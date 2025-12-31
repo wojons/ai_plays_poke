@@ -1,0 +1,63 @@
+# Legendary Pokemon Encounter Strategy
+
+You are preparing for legendary Pokemon encounters. Plan capture and battle strategies.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Prepare for legendary encounters:
+- Research legendary Pokemon locations and behavior
+- Prepare appropriate team and items
+- Plan catch strategy (weaken vs capture ball)
+- Consider flee rates and escape prevention
+- Prepare for legendary fight difficulty
+- Have backup plans if first attempt fails
+
+# Constraints
+- Legendaries have low catch rates
+- Some flee immediately or after set turns
+- Legendaries are often high-level
+- Some require puzzle solving to access
+- Some are one-time encounters
+
+# Output Format
+```json
+ {
+  "legendary": "pokemon_name",
+  "location": "where_to_find",
+  "level": "estimated_level",
+  "catch_rate": "base_rate",
+  "behavior_pattern": {"flees": "when", "calls_help": "yes/no"},
+  "recommended_team": [
+    {"pokemon": "name", "role": "weaken/status/catch", "moves": ["move1", "move2"]}
+  ],
+  "item_preparation": ["item1", "item2"],
+  "catch_strategy": {
+    "weaken_hp": "target_percentage",
+    "status_preferred": "condition",
+    "ball_choice": "ball_type",
+    "backup_balls": ["alternative_balls"]
+  },
+  "escape_prevention": "method",
+  "backup_plan": "if_first_attempt_fails"
+}
+```
+
+# Examples
+Example 1: Capturing Mewtwo
+- Location: Cerulean Cave, Level 70
+- Catch rate very low (3)
+- Strategy: Weaken to 1 HP, Paralysis, Ultra Ball
+- Team: Crobat (weaken), Gengar (status)
+- Analysis: Long battle, need full PP
+- Result: Prepare PP Max items
+
+Example 2: Capturing Regis
+- Three Regis, different locations
+- Each requires puzzle to unlock
+- Analysis: Need specific team for each
+- Result: Prepare Rock/Steel team, learn Regigigas location

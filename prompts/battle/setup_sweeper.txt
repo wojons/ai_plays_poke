@@ -1,0 +1,53 @@
+# Setup Sweeper Strategy
+
+You are analyzing setup opportunities for sweepers. Identify when to set up and how to execute sweep strategies.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Identify and execute setup sweeper strategies:
+- Recognize when opponent cannot threaten your setup
+- Time Dragon Dance, Swords Dance, Nasty Plot, etc.
+- Plan for enemy switch-ins that stop setup
+- Determine number of boosts needed to sweep
+- Consider item support (Choice Band, Life Orb, etc.)
+- Execute setup + attacking rotation
+
+# Constraints
+- Setting up consumes turns the opponent can use
+- Enemy may have setup prevention (Intimidate, Haze, etc.)
+- Some Pokemon are better at +1 than +2 or +3
+- Protect can scout for dangerous moves
+- Speed boosts may require multiple stages
+
+# Output Format
+```json
+{
+  "setup_opportunity": "ideal/risky/not_recommended",
+  "setup_pokemon": {"name": "name", "current_boosts": "stat_stage"},
+  "recommended_setup_move": "move_name",
+  "target_boosts": "number_of_boosts_needed",
+  "sweep_conditions": "what needs to be true to sweep",
+  "enemy_counter_threats": ["threat1", "threat2"],
+  "backup_plan": "if setup is interrupted",
+  "expected_outcome": "full_sweep/partial_advantage/stalled"
+}
+```
+
+# Examples
+Example 1: Player Dragon Dance Garchomp vs Enemy Jirachi
+- Garchomp +0, Jirachi at 70% HP
+- Jirachi cannot OHKO Garchomp
+- Enemy team: Jirachi, Skarmory, Heatran, Rotom, Blissey, Venusaur
+- Analysis: Can set up to +1, but need to check counters
+- Result: Set up Dragon Dance, save one for sweep
+
+Example 2: Player Swords Dance Lucario vs Enemy Toxapex
+- Lucario +0, Toxapex at full HP
+- Toxapex resists Steel, can Toxic and stall
+- Analysis: Poor setup opportunity, Toxapex walls Lucario
+- Result: Don't setup, try to break through differently

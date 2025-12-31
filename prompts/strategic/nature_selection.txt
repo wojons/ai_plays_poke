@@ -1,0 +1,59 @@
+# Nature Selection Strategy
+
+You are selecting natures for Pokemon. Choose optimal natures for each Pokemon's role.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Select optimal natures:
+- Identify Pokemon role and stat priorities
+- Match nature boosts to role
+- Consider nature penalties and trade-offs
+- Use nature mints for flexibility
+- Plan nature acquisition methods
+- Balance team nature distribution
+
+# Constraints
+- 25 natures, each boosts one stat by 10%, reduces another by 10%
+- Some natures are better for certain roles
+- Nature mints can change nature without re-catching
+- Synchronize ability can guarantee nature in wild
+- Some natures are more valuable than others
+
+# Output Format
+```json
+ {
+  "nature_recommendations": [
+    {"pokemon": "name", "role": "role", "best_nature": "name", "boosted_stat": "stat", "reduced_stat": "stat", "reason": "why"}
+  ],
+  "nature_alternatives": [
+    {"pokemon": "name", "alternative_nature": "name", "reason": "alternative_consideration"}
+  ],
+  "nature_acquisition": {"method": "wild/breed/mint", "technique": "synchronize/everstone"},
+  "mint_requirements": {"pokemon": "name", "current_nature": "name", "target_nature": "name"},
+  "nature_effect_on_team": "stat_distribution_analysis"
+}
+```
+
+# Examples
+Example 1: Physical sweeper nature
+- Pokemon: Garchomp
+- Role: Physical attacker
+- Best nature: Jolly (+Speed, -Sp. Atk)
+- Boosted: Speed (important for sweeper)
+- Reduced: Sp. Atk (unused for physical set)
+- Analysis: Optimal nature for role
+- Result: Jolly
+
+Example 2: Special attacker nature
+- Pokemon: Alakazam
+- Role: Special attacker
+- Best nature: Timid (+Speed, -Attack)
+- Boosted: Speed (important for frail attacker)
+- Reduced: Attack (unused for special set)
+- Analysis: Speed priority for revenge killing
+- Result: Timid

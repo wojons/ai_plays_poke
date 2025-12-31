@@ -1,0 +1,16 @@
+{
+  "pallet_town": {
+    "name": "Pallet Town",
+    "type": "town",
+    "tile_patterns": ["grass", "path", "water"],
+    "features": {"pokemon_center": true, "pokemart": true, "gym": false},
+    "connections": ["route_1"]
+  },
+  "route_1": {
+    "name": "Route 1",
+    "type": "route",
+    "tile_patterns": ["grass", "path", "tall_grass"],
+    "features": {"pokemon_center": false, "pokemart": false, "gym": false},
+    "connections": ["pallet_town", "viridian_city"]
+  }
+}

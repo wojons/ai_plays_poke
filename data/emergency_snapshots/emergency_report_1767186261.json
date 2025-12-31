@@ -1,0 +1,18 @@
+{
+  "timestamp": 1767186261.8998082,
+  "reason": "Softlock detected: MODE_DURATION_EXCEEDED",
+  "softlock": {
+    "type": "MODE_DURATION_EXCEEDED",
+    "severity": "HIGH",
+    "description": "Mode battle/battle exceeded 700s (threshold: 180s)",
+    "timestamp": 1767186261.8995602,
+    "tick": 0,
+    "mode": "battle",
+    "sub_mode": "battle",
+    "duration_seconds": 700.0,
+    "repeated_action": null,
+    "state_sequence": [],
+    "actions_taken": []
+  },
+  "recoveries_today": 0
+}

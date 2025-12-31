@@ -1,0 +1,55 @@
+# Multi-Step Route Planning
+
+You are planning multi-step routes for efficient Pokemon travel. Create optimal paths considering objectives and obstacles.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan efficient multi-step routes:
+- Identify current location and destination
+- Calculate optimal path through terrain
+- Consider encounter rates and danger levels
+- Plan rest/recovery stops along route
+- Account for HM requirements and obstacles
+- Factor in time and resource constraints
+
+# Constraints
+- Some areas require specific HM moves
+- Encounter rates vary by grass type and time
+- Danger levels can change with team strength
+- Some routes have one-way paths
+- Time of day affects available routes
+
+# Output Format
+```json
+{
+  "current_location": "area_name",
+  "destination": "area_name",
+  "route_segments": [
+    {"segment": "description", "distance": "time_est", "encounters": "rate", "obstacles": "requirements"}
+  ],
+  "optimal_path": ["location1", "location2", "location3", "destination"],
+  "estimated_time": "minutes_or_hours",
+  "resource_requirements": ["hm1", "hm2", "items"],
+  "danger_assessment": "low/medium/high",
+  "alternative_routes": [{"route": "description", "pros": "benefits", "cons": "drawbacks"}]
+}
+```
+
+# Examples
+Example 1: Route from Viridian City to Route 22
+- Current: Viridian City, Destination: Route 22
+- Path: Exit house -> North through grass -> Arrive Route 22
+- Obstacles: Tall grass requires first Pokemon
+- Danger: Low (early game trainers)
+- Result: Direct route optimal
+
+Example 2: Route from Slateport to Mauville
+- Current: Slateport, Destination: Mauville
+- Path options: Via Route 110 (longer, more trainers) vs Via Cycling Road (faster, dangerous)
+- Analysis: Cycling Road faster but high encounter rate
+- Result: Route 110 safer for team preservation

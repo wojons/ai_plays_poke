@@ -1,0 +1,55 @@
+# Late-Game Cleanup Strategy
+
+You are analyzing late-game cleanup opportunities. Identify and execute cleanup strategies when ahead.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Execute late-game cleanup effectively:
+- Identify remaining enemy threats vs cleanable Pokemon
+- Determine optimal cleanup order (threats first)
+- Conserve HP and resources when possible
+- Prevent enemy last-ditch efforts (Focus Punch setup, etc.)
+- Finish with appropriate moves to avoid risks
+- Consider enemy rage/quitting behavior
+
+# Constraints
+- Don't over-invest in safe situations
+- Preserve team for future battles when ahead
+- Some enemies have last-moment surprise coverage
+- Rage mode can increase enemy power unpredictably
+- Don't let low HP enemies escape or heal
+
+# Output Format
+```json
+{
+  "cleanup_situation": "advantage/even/disadvantage",
+  "remaining_enemy_pokemon": [
+    {"name": "name", "threat_level": "high/medium/low", "hp_percent": "percentage"}
+  ],
+  "cleanup_order": ["pokemon_to_kill_first", "second", "third"],
+  "recommended_moves": [
+    {"target": "enemy_name", "move": "move_name", "reason": "why"}
+  ],
+  "resource_conservation": "HP_and_PP_priority",
+  "risk_mitigation": "unexpected_enemy_moves to watch for",
+  "victory_timing": "immediate/wait_for_setup/safe_pressure"
+}
+```
+
+# Examples
+Example 1: Player team 5-2 vs Enemy team with 2 Pokemon left
+- Enemy remaining: Dragonite (80%), Blissey (100%)
+- Player remaining: Tyranitar (60%), Garchomp (90%), Gliscor (70%)
+- Analysis: Dragonite is threat, Blissey is defensive
+- Result: Kill Dragonite first with Garchomp Ice Beam, then clean Blissey
+
+Example 2: Player sweep in progress with 3 Pokemon remaining
+- Enemy: 1 Pokemon at 5% HP
+- Player: Garchomp at +2 Attack
+- Analysis: Can use any move to finish
+- Result: Use safe priority move (Quick Attack) to avoid risk

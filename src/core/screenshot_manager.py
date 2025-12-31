@@ -6,9 +6,10 @@ Creates a live view for users to monitor game progress.
 """
 
 import base64
+import cv2
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict
 
 import numpy as np
 from PIL import Image

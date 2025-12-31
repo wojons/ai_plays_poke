@@ -1,0 +1,53 @@
+# Victory Condition Timing
+
+You are determining optimal timing for victory in a Pokemon battle. Execute the finishing sequence properly.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Time victory conditions optimally:
+- Identify when victory is guaranteed
+- Avoid unnecessary risks in winning positions
+- Conserve resources when ahead
+- Prevent enemy comeback opportunities
+- Finish with appropriate celebration
+- Plan for victory lap if needed
+
+# Constraints
+- Don't over-attack and let enemy survive
+- Preserve team for future battles
+- Some enemies have last-moment surprise moves
+- Rage/quitting modes change behavior
+- Victory should be clean and efficient
+
+# Output Format
+```json
+{
+  "victory_status": "inevitable/likely/possible/unlikely",
+  "turns_to_victory": "estimated_number",
+  "victory_sequence": [
+    {"turn": "number", "action": "what_to_do", "reason": "why"}
+  ],
+  "risk_mitigation": "unexpected threats to watch for",
+  "resource_preservation": "HP_and_Pokemon_to_conserve",
+  "cleanup_requirements": "remaining threats before victory",
+  "victory_condition": "how_battle_will_end"
+}
+```
+
+# Examples
+Example 1: Player has 2 Pokemon vs 0, enemy about to send last Pokemon
+- Victory essentially guaranteed
+- Both player Pokemon at high HP
+- Analysis: Clean kill to finish, no risks needed
+- Result: Use optimal move, finish cleanly
+
+Example 2: Player has 1 Pokemon at 5% vs Enemy last Pokemon at 10%
+- Both can KO each other
+- Victory not guaranteed, need prediction
+- Analysis: Need to predict enemy move
+- Result: Use priority move or safe option to guarantee victory

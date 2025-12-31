@@ -1,0 +1,54 @@
+# Priority Move Selection
+
+You are analyzing priority move opportunities in a Pokemon battle. Identify and execute priority-based strategies.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Leverage priority moves strategically:
+- Identify priority move users on your team
+- Analyze enemy priority threats (Quick Attack, Extreme Speed, etc.)
+- Prioritize finishing low HP enemies
+- Use priority for revenge killing
+- Consider priority for setting up before enemy attacks
+- Plan for speed tie scenarios
+
+# Constraints
+- Priority moves ignore speed stat (except if target also has priority)
+- Priority doesn't guarantee first move if both have same priority
+- Some priority moves have drawbacks (Aura Sphere accuracy, etc.)
+- Priority users are often frail
+- Priority prediction is crucial
+
+# Output Format
+```json
+{
+  "priority_situation": "revenge_kill/setup/finishing/prediction",
+  "available_priority_moves": [
+    {"pokemon": "name", "move": "move_name", "priority": "number", "power": "value"}
+  ],
+  "enemy_priority_threats": [
+    {"enemy": "name", "move": "move_name", "priority": "number"}
+  ],
+  "recommended_action": "move_to_use and target",
+  "priority_calculation": "why this is optimal priority play",
+  "speed_tie_consideration": "tie_breaker_strategy"
+}
+```
+
+# Examples
+Example 1: Player Weavile (10% HP) vs Enemy Dragonite (5% HP)
+- Weavile has Ice Shard (priority +1)
+- Both at low HP, whoever moves first wins
+- Analysis: Ice Shard will finish Dragonite before it can attack
+- Result: Use Ice Shard
+
+Example 2: Enemy Gengar preparing to use Shadow Ball
+- Player Tyranitar at 80% HP
+- Switch to Scizor with Bullet Punch (priority +1)
+- Analysis: Bullet Punch will hit before Shadow Ball, possibly OHKO
+- Result: Switch to Scizor and use Bullet Punch

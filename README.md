@@ -131,7 +131,7 @@ Statistical deviation detection for anomaly handling:
 
 ```bash
 # 1. Create virtual environment
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # 2. Install dependencies
@@ -142,19 +142,282 @@ cp .env.example .env
 # Edit .env and add your OPENAI_API_KEY
 
 # 4. Select your game
-# Edit config/settings.yaml -> rom.path
+# Edit config/settings.yaml -> rom.path (default: data/rom/pokemon_blue.gb)
 
-# 5. Run the AI
-python -m src.main
+# 5. Run the AI (basic)
+python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --save-dir runs/test_001
 ```
+
+## How to Run
+
+The main entry point is `src/game_loop.py` which accepts the following arguments:
+
+### Required Arguments
+| Argument | Description |
+|----------|-------------|
+| `--rom` | Path to Pokemon ROM file (.gb or .gbc) |
+
+### Optional Arguments
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--save-dir` | `./game_saves` | Directory for saves, database, and screenshots |
+| `--screenshot-interval` | 60 | Ticks between screenshots (60 = ~1 second at 60fps) |
+| `--max-ticks` | None | Maximum ticks to run before stopping (optional) |
+| `--load-state` | None | Load existing emulator state file |
+| `--multi-instance` | False | Run multiple emulator instances simultaneously |
+| `--instances` | 3 | Number of instances for multi-instance mode |
+
+### Examples
+
+**Basic run:**
+```bash
+python3 src/game_loop.py --rom data/rom/pokemon_blue.gb
+```
+
+**With screenshots every 30 ticks:**
+```bash
+python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --screenshot-interval 30 --save-dir runs/screenshots_test
+```
+
+**With max ticks limit (10000 ticks ~ 3 minutes at max speed):**
+```bash
+python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --max-ticks 10000 --save-dir runs/test_001
+```
+
+**Complete example with all options:**
+```bash
+python3 src/game_loop.py \
+    --rom data/rom/pokemon_blue.gb \
+    --save-dir runs/test_001 \
+    --screenshot-interval 60 \
+    --max-ticks 10000
+```
+
+**Run with different ROM:**
+```bash
+python3 src/game_loop.py --rom data/rom/pokemon_red.gb --save-dir runs/red_run
+```
+
+**Load from saved state:**
+```bash
+python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --load-state runs/test_001/emulator_state.state
+```
+
+### Output Structure
+
+Each run creates the following structure in `--save-dir`:
+```
+runs/test_001/
+├── game_data.db           # SQLite database with all session data
+├── emulator_state.state   # Emulator save state
+└── screenshots/           # Screenshot captures
+    ├── screenshot_0060.png
+    ├── screenshot_0120.png
+    └── ...
+```
+
+## How to Test
+
+### Running All Tests
+```bash
+# Run all tests with verbose output
+pytest tests/ -v
+
+# Run with coverage report
+pytest --cov=src --cov-report=html
+
+# Run with coverage and terminal summary
+pytest --cov=src --cov-report=term-missing
+```
+
+### Running Specific Tests
+```bash
+# Run a specific test file
+pytest tests/test_schemas.py -v
+
+# Run tests in a specific directory
+pytest tests/cli/ -v
+
+# Run a specific test function
+pytest tests/test_schemas.py::test_command_creation -v
+
+# Run tests matching a pattern
+pytest -k "battle" -v
+```
+
+### Test Categories
+```bash
+# Unit tests only (fast)
+pytest tests/ -v -m "not integration"
+
+# Integration tests (slower, may require emulator)
+pytest tests/ -v -m "integration"
+
+# Run tests in parallel
+pytest tests/ -n auto -v
+```
+
+### Viewing Coverage Report
+```bash
+# After running with coverage, view HTML report
+open htmlcov/index.html  # macOS
+xdg-open htmlcov/index.html  # Linux
+start htmlcov/index.html  # Windows
+```
+
+## Troubleshooting
+
+### Common Errors and Solutions
+
+#### `ROM file not found`
+```
+ERROR: ROM file not found: data/rom/pokemon_blue.gb
+```
+**Solution:** Verify the ROM path is correct. ROMs should be in `data/rom/`:
+```bash
+ls data/rom/
+# Should show: pokemon_red.gb, pokemon_blue.gb, etc.
+```
+
+#### `No module named 'pyboy'`
+```
+ModuleNotFoundError: No module named 'pyboy'
+```
+**Solution:** Install dependencies in your virtual environment:
+```bash
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+#### `OPENAI_API_KEY not set`
+```
+WARNING: No OpenRouter API key found. Using stub AI mode
+```
+**Solution:** Create `.env` file with your API key:
+```bash
+cp .env.example .env
+# Edit .env and add your API key
+```
+
+#### `Database error` or `sqlite3.OperationalError`
+```
+sqlite3.OperationalError: unable to open database file
+```
+**Solution:** Ensure the save directory exists and is writable:
+```bash
+mkdir -p runs/test_001
+python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --save-dir runs/test_001
+```
+
+#### Emulator crashes or hangs
+```
+ERROR: Emulator crashed at tick 150
+```
+**Solutions:**
+1. Try a different ROM (some ROM hacks may have compatibility issues)
+2. Reduce screenshot frequency: `--screenshot-interval 120`
+3. Limit max ticks: `--max-ticks 5000`
+4. Check available memory: `free -h` (Linux) or `Activity Monitor` (macOS)
+
+#### Poor performance / slow execution
+**Symptoms:** Low ticks per second, stuttering, high CPU
+
+**Solutions:**
+1. Increase screenshot interval: `--screenshot-interval 120`
+2. Set max ticks to limit session length
+3. Close other applications
+4. Ensure virtual environment is activated
+
+### API Key Setup
+
+#### OpenAI API Key
+1. Get an API key from https://platform.openai.com/api-keys
+2. Add to `.env`:
+   ```
+   OPENAI_API_KEY=sk-your-key-here
+   ```
+3. Verify in config/settings.yaml that `models.thinking_model.provider` is set to "openai"
+
+#### OpenRouter (Alternative Provider)
+OpenRouter provides access to multiple models including GPT-4 and Claude:
+1. Get API key from https://openrouter.ai
+2. Add to `.env`:
+   ```
+   OPENROUTER_API_KEY=your-key-here
+   ```
+3. Configure in settings.yaml with your preferred model
+
+#### Verifying API Connection
+```bash
+# Test API key is loaded
+source venv/bin/activate
+python3 -c "from dotenv import load_dotenv; from pathlib import Path; load_dotenv(Path('.env')); import os; print('API Key set:', bool(os.getenv('OPENAI_API_KEY')))"
+```
+
+### Emulator Issues
+
+#### Black screen on startup
+**Solutions:**
+1. ROM may be corrupted - try a different ROM file
+2. Verify ROM is the correct version for your emulator settings
+3. Check emulator speed setting in `config/settings.yaml`
+
+#### Save states not loading
+**Solutions:**
+1. Ensure save state file exists: `ls runs/test_001/emulator_state.state`
+2. Try without loading state first to establish baseline
+3. Verify ROM version matches the save state
+
+#### Memory reading errors
+```
+Error reading memory at address 0xD158
+```
+**Solutions:**
+1. This is expected if the game hasn't loaded yet
+2. Memory addresses may vary by ROM version
+3. Check logs/ directory for detailed error traces
+
+### Getting Help
+
+1. **Check logs:** All errors are logged to `logs/` directory
+2. **Run in debug mode:** Increase verbosity by checking console output
+3. **Search existing issues:** Check GitHub issues for similar problems
+4. **Create new issue:** Include:
+   - Full error message and traceback
+   - Operating system and Python version
+   - ROM file name and version
+   - Command used to run
 
 ## Requirements
 
+### System Requirements
 - Python 3.10+
-- OpenAI API key (GPT-4V/GPT-4o-mini)
 - 1GB storage for logs/memory
-- Internet connection (API calls)
-- PyBoy emulator (for Game Boy emulation)
+- Internet connection (for API calls)
+- PyBoy emulator (Game Boy/Game Boy Color emulation)
+
+### API Keys (Optional)
+- OpenAI API Key (GPT-4V/GPT-4o-mini) - enables real AI mode
+- Without API key: runs in stub AI mode for testing
+
+### Dependencies
+```
+# Core dependencies (installed automatically)
+pyboy>=1.0.0          # Game Boy emulator
+requests>=2.31.0      # HTTP client for LLM APIs
+numpy>=1.24.0         # Numerical operations
+Pillow>=10.0.0        # Image processing
+pydantic>=2.0         # Data validation
+python-dotenv>=1.0    # Environment variable management
+opencv-python>=4.8.0  # Image processing pipeline
+
+# Development dependencies (optional)
+pytest>=7.0           # Testing framework
+pytest-cov>=4.0       # Coverage reporting
+black>=23.0           # Code formatter
+mypy>=1.0             # Type checking
+flake8>=6.0           # Linting
+```
 
 ## Performance Targets
 
@@ -202,6 +465,19 @@ python -m src.main
 - **Architecture:** [memory-bank/systemPatterns.md](memory-bank/systemPatterns.md)
 - **Progress:** [memory-bank/progress.md](memory-bank/progress.md)
 - **Specifications:** [specs/ptp_01x_detailed/](specs/ptp_01x_detailed/)
+- **API Reference:** [docs/api/index.md](docs/api/index.md) - Complete API documentation for GameLoop, GameAIManager, Database, and data structures
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+### Quick Contribution Guide
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Install development dependencies: `pip install -r requirements-dev.txt`
+4. Run tests: `pytest tests/ -v`
+5. Format code: `black src/ tests/`
+6. Submit a pull request
 
 ## License
 

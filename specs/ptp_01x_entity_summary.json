@@ -1,0 +1,74 @@
+{
+  "module": "Entity Management & Party Optimization",
+  "status": "DESIGN_COMPLETE",
+  "version": "1.0",
+  "files_created": [
+    {"path": "src/core/entity.py", "description": "Main entity module with PokemonData model, CarryScoreCalculator, EvolutionManager, TeamCompositionOptimizer, and EntityManager", "lines": 1031, "components": 5, "methods": 48},
+    {"path": "specs/ptp_01x_detailed/chapter_06_entity_design.md", "description": "Comprehensive design document with data models, algorithms, integration points, and implementation order", "lines": 884, "sections": 11},
+    {"path": "tests/test_entity.py", "description": "Test suite with 55+ unit tests covering all components", "lines": 712, "tests": 55}
+  ],
+  "component_breakdown": {
+    "PokemonData Model": {
+      "classes": ["PokemonData", "BaseStats", "PokemonStats", "IndividualValues", "EffortValues", "Move", "Experience"],
+      "methods": ["species_name()", "can_battle()", "has_move()", "get_move()", "total_pp_remaining()", "average_pp_remaining()", "offensive_stat()", "defensive_stat()", "is_overleveled()", "is_underleveled()", "to_dict()"]
+    },
+    "Team Data Model": {
+      "classes": ["Team"],
+      "methods": ["active_pokemon()", "active_count()", "can_battle()", "battle_ready_count()", "average_level()", "level_spread()", "get_lead_pokemon()", "has_hm_user()", "get_hm_users()", "needs_rebalancing()"]
+    },
+    "CarryScoreCalculator": {
+      "description": "Calculates battle utility scores for Pokemon bench/active decisions",
+      "methods": ["calculate_level_relevance()", "calculate_type_uniqueness()", "calculate_move_coverage()", "calculate_stat_efficiency()", "apply_rarity_modifier()", "apply_sentimental_modifier()", "calculate_carry_score()", "should_bench()"]
+    },
+    "EvolutionManager": {
+      "description": "Manages evolution timing and decision logic",
+      "methods": ["get_evolution_conditions()", "check_evolution_available()", "evaluate_pre_evolution_moves()", "calculate_evolution_vs_wait_tradeoff()", "calculate_move_value()", "should_use_evolution_item()", "get_evolution_readiness()"]
+    },
+    "TeamCompositionOptimizer": {
+      "description": "Optimizes team composition for current and upcoming content",
+      "methods": ["analyze_type_coverage()", "calculate_stat_distribution()", "detect_move_overlap()", "assign_roles()", "identify_boss_counters()", "calculate_battle_usage_priorities()", "optimize_party_order()", "calculate_experience_rebalance_needed()", "analyze_team()", "suggest_party_changes()"]
+    },
+    "EntityManager": {
+      "description": "Main entity management class coordinating all sub-components",
+      "methods": ["set_team()", "update_pokemon()", "get_pokemon()", "calculate_all_carry_scores()", "analyze_team()", "get_evolution_recommendations()", "get_party_optimization_suggestions()", "check_experience_balance()"]
+    }
+  },
+  "data_model_fields": {
+    "PokemonData": ["pokemon_id", "species_id", "nickname", "level", "current_hp", "max_hp", "base_stats", "ivs", "evs", "moves", "status", "experience", "types", "happiness", "is_shiny", "catch_location", "catch_level", "victories", "defeats", "experience_gained", "critical_battle_wins", "solo_gym_wins"],
+    "Team": ["team_id", "name", "party", "box", "total_battles", "total_victories", "total_defeats", "last_analysis"]
+  },
+  "integration_points": {
+    "Combat": ["TypeChart", "Stat calculations", "MoveCategory"],
+    "GOAP": ["Carry scores for goal prioritization", "Evolution goals", "Training goals", "Optimization goals"],
+    "Vision": ["Pokemon identification", "Level indicators", "Status detection", "Move list parsing", "Evolution triggers"],
+    "Navigation": ["HM requirements", "Type coverage needs", "Grinding routes"]
+  },
+  "recommended_implementation_order": [
+    {"phase": 1, "task": "Data Models", "priority": 1, "estimated_time": "1 day"},
+    {"phase": 2, "task": "Carry Score Calculator", "priority": 2, "estimated_time": "2 days"},
+    {"phase": 3, "task": "Evolution Manager", "priority": 3, "estimated_time": "2 days"},
+    {"phase": 4, "task": "Team Optimization", "priority": 4, "estimated_time": "2 days"},
+    {"phase": 5, "task": "Integration & Tests", "priority": 5, "estimated_time": "2 days"}
+  ],
+  "known_dependencies": {
+    "on_completed_items": ["2.1 Hierarchical State Machine", "2.2 Vision & Perception", "2.3 Tactical Combat Heuristics"],
+    "on_not_started_items": [],
+    "data_dependencies": ["src/core/data/species.json", "src/core/data/moves.json", "src/core/data/evolution.json"]
+  },
+  "performance_specifications": {
+    "operations": [
+      {"operation": "Full party scan", "target_ms": 80},
+      {"operation": "Carry score calc (6 Pokemon)", "target_ms": 30},
+      {"operation": "Evolution check", "target_ms": 15},
+      {"operation": "Type coverage analysis", "target_ms": 10},
+      {"operation": "Party reorder", "target_ms": 20}
+    ],
+    "memory_budget": {"Total": "<100KB"}
+  },
+  "acceptance_criteria": {
+    "pokemon_data_tracking": "100% accurate stat calculations matching Gen 1 formulas",
+    "evolution_timing": ">95% success rate not missing critical moves",
+    "team_type_coverage": ">90% of relevant types covered",
+    "carry_score_correlation": ">0.7 correlation coefficient with win rate"
+  }
+}

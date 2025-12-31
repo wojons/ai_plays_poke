@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PTP-01X Observability Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            color: #00d9ff;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .session-select {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 1rem 1.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-header h2 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #00d9ff;
+        }
+
+        .panel-content {
+            padding: 1.5rem;
+        }
+
+        .screenshot-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .screenshot-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        #screenshot {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .screenshot-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-running {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .status-paused {
+            background: rgba(255, 200, 0, 0.2);
+            color: #ffc800;
+            border: 1px solid rgba(255, 200, 0, 0.3);
+        }
+
+        .status-stopped {
+            background: rgba(255, 100, 100, 0.2);
+            color: #ff6464;
+            border: 1px solid rgba(255, 100, 100, 0.3);
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #00d9ff;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 0.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .control-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #000;
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, #ffc800, #e6aa00);
+            color: #000;
+        }
+
+        .btn-resume {
+            background: linear-gradient(135deg, #00d9ff, #00a8cc);
+            color: #000;
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #ff6464, #cc5050);
+            color: #fff;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .command-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .command-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.85rem;
+        }
+
+        .command-item:last-child {
+            border-bottom: none;
+        }
+
+        .command-time {
+            color: #666;
+            font-size: 0.75rem;
+        }
+
+        .command-text {
+            color: #00d9ff;
+            margin: 0.25rem 0;
+        }
+
+        .command-reasoning {
+            color: #888;
+            font-size: 0.8rem;
+            font-style: italic;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .tick-rate-bar {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .tick-rate-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d9ff, #00ff88);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .no-screenshot {
+            width: 320px;
+            height: 288px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+        }
+
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff6464;
+        }
+
+        .connection-dot.connected {
+            background: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .loading {
+            animation: pulse 1.5s infinite;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>PTP-01X Dashboard</h1>
+        <div class="header-controls">
+            <div class="connection-status">
+                <div class="connection-dot" id="wsStatus"></div>
+                <span id="wsStatusText">Disconnected</span>
+            </div>
+            <select class="session-select" id="sessionSelect">
+                <option value="default">Default Session</option>
+            </select>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <div class="screenshot-container">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Live Game View</h2>
+                    <span class="status-badge" id="statusBadge">Stopped</span>
+                </div>
+                <div class="panel-content">
+                    <div class="screenshot-wrapper">
+                        <div class="no-screenshot" id="noScreenshot">No Screenshot Available</div>
+                        <img id="screenshot" style="display: none;" alt="Game Screenshot">
+                        <div class="screenshot-overlay">
+                            <div id="tickCount">Tick: 0</div>
+                            <div id="location">Location: Unknown</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem;">
+                            <span>Tick Rate</span>
+                            <span id="tickRateValue">0.0 ticks/sec</span>
+                        </div>
+                        <div class="tick-rate-bar">
+                            <div class="tick-rate-fill" id="tickRateFill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Metrics</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value" id="totalTicks">0</div>
+                            <div class="metric-label">Total Ticks</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="totalCommands">0</div>
+                            <div class="metric-label">Commands</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="successRate">100%</div>
+                            <div class="metric-label">Success Rate</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value" id="avgConfidence">0%</div>
+                            <div class="metric-label">Avg Confidence</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Session Control</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="control-buttons">
+                        <button class="btn btn-start" id="startBtn" onclick="startSession()">Start</button>
+                        <button class="btn btn-pause" id="pauseBtn" onclick="pauseSession()" disabled>Pause</button>
+                        <button class="btn btn-resume" id="resumeBtn" onclick="resumeSession()" disabled>Resume</button>
+                        <button class="btn btn-stop" id="stopBtn" onclick="stopSession()" disabled>Stop</button>
+                    </div>
+                    <div style="margin-top: 1rem; font-size: 0.85rem; color: #888;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                            <span>Session Time:</span>
+                            <span id="sessionTime">0:00:00</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>Commands/min:</span>
+                            <span id="commandsPerMin">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <h2>Recent Commands</h2>
+                </div>
+                <div class="panel-content">
+                    <div class="command-list" id="commandList">
+                        <div style="text-align: center; color: #666; padding: 1rem;">
+                            No commands yet
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_KEY = 'ptp-secret-key-12345';
+        let ws = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
+        let currentSessionId = 'default';
+        let reconnectTimeout = null;
+
+        const headers = {
+            'X-API-Key': API_KEY,
+            'Content-Type': 'application/json'
+        };
+
+        function updateUI(status, metrics) {
+            document.getElementById('totalTicks').textContent = metrics.total_ticks || 0;
+            document.getElementById('totalCommands').textContent = metrics.total_commands || 0;
+            document.getElementById('successRate').textContent = `${((metrics.success_rate || 1) * 100).toFixed(1)}%`;
+            document.getElementById('avgConfidence').textContent = `${((metrics.avg_confidence || 0) * 100).toFixed(1)}%`;
+            document.getElementById('tickRateValue').textContent = `${metrics.ticks_per_second || 0} ticks/sec`;
+            document.getElementById('commandsPerMin').textContent = metrics.commands_per_minute || 0;
+
+            const tickRateFill = document.getElementById('tickRateFill');
+            const maxTickRate = 15;
+            tickRateFill.style.width = `${Math.min((metrics.ticks_per_second || 0) / maxTickRate * 100, 100)}%`;
+
+            const elapsed = metrics.elapsed_seconds || 0;
+            const hours = Math.floor(elapsed / 3600);
+            const minutes = Math.floor((elapsed % 3600) / 60);
+            const seconds = Math.floor(elapsed % 60);
+            document.getElementById('sessionTime').textContent = 
+                `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+            const statusBadge = document.getElementById('statusBadge');
+            statusBadge.className = 'status-badge';
+
+            if (status.paused) {
+                statusBadge.textContent = 'Paused';
+                statusBadge.classList.add('status-paused');
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('resumeBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = false;
+            } else if (status.running) {
+                statusBadge.textContent = 'Running';
+                statusBadge.classList.add('status-running');
+                document.getElementById('pauseBtn').disabled = false;
+                document.getElementById('resumeBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+            } else {
+                statusBadge.textContent = 'Stopped';
+                statusBadge.classList.add('status-stopped');
+                document.getElementById('pauseBtn').disabled = true;
+                document.getElementById('resumeBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = true;
+            }
+
+            document.getElementById('tickCount').textContent = `Tick: ${status.tick_count || 0}`;
+            document.getElementById('location').textContent = `Location: ${status.location || 'Unknown'}`;
+        }
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch(`/status?session_id=${currentSessionId}`, { headers });
+                if (response.ok) {
+                    const status = await response.json();
+                    return status;
+                }
+            } catch (e) {
+                console.error('Failed to fetch status:', e);
+            }
+            return null;
+        }
+
+        async function fetchMetrics() {
+            try {
+                const response = await fetch(`/metrics?session_id=${currentSessionId}`, { headers });
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (e) {
+                console.error('Failed to fetch metrics:', e);
+            }
+            return null;
+        }
+
+        async function fetchActions() {
+            try {
+                const response = await fetch(`/actions/recent?session_id=${currentSessionId}&limit=20`, { headers });
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (e) {
+                console.error('Failed to fetch actions:', e);
+            }
+            return null;
+        }
+
+        function updateCommandList(actions) {
+            const list = document.getElementById('commandList');
+            if (!actions || !actions.actions || actions.actions.length === 0) {
+                list.innerHTML = '<div style="text-align: center; color: #666; padding: 1rem;">No commands yet</div>';
+                return;
+            }
+
+            list.innerHTML = actions.actions.slice().reverse().map(action => `
+                <div class="command-item">
+                    <div class="command-time">${formatTime(action.timestamp)}</div>
+                    <div class="command-text">${action.command || 'Unknown'}</div>
+                    ${action.reasoning ? `<div class="command-reasoning">${action.reasoning}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return '';
+            try {
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString();
+            } catch (e) {
+                return timestamp;
+            }
+        }
+
+        function connectWebSocket() {
+            if (ws) {
+                ws.close();
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/screenshots/${currentSessionId}`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                document.getElementById('wsStatus').classList.add('connected');
+                document.getElementById('wsStatusText').textContent = 'Connected';
+                reconnectAttempts = 0;
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'screenshot' && data.image) {
+                    document.getElementById('noScreenshot').style.display = 'none';
+                    const img = document.getElementById('screenshot');
+                    img.style.display = 'block';
+                    img.src = data.image;
+                    document.getElementById('tickCount').textContent = `Tick: ${data.tick || 0}`;
+                }
+
+                if (data.type === 'status') {
+                    fetchMetrics().then(metrics => {
+                        if (metrics) {
+                            const status = {
+                                running: !data.paused && data.tick > 0,
+                                paused: data.paused,
+                                tick_count: data.tick,
+                                location: data.state
+                            };
+                            updateUI(status, metrics);
+                        }
+                    });
+                }
+
+                if (data.type === 'metrics') {
+                    const status = {
+                        running: !data.session_active === false,
+                        paused: data.session_active === false,
+                        tick_count: data.total_ticks
+                    };
+                    updateUI(status, data);
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('wsStatus').classList.remove('connected');
+                document.getElementById('wsStatusText').textContent = 'Disconnected';
+
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    reconnectTimeout = setTimeout(connectWebSocket, 2000 * reconnectAttempts);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        async function startSession() {
+            try {
+                const response = await fetch('/control/start', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ session_id: currentSessionId })
+                });
+
+                if (response.ok) {
+                    updateAfterControl();
+                }
+            } catch (e) {
+                console.error('Failed to start session:', e);
+            }
+        }
+
+        async function pauseSession() {
+            try {
+                const response = await fetch('/control/pause', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ session_id: currentSessionId })
+                });
+
+                if (response.ok) {
+                    updateAfterControl();
+                }
+            } catch (e) {
+                console.error('Failed to pause session:', e);
+            }
+        }
+
+        async function resumeSession() {
+            try {
+                const response = await fetch('/control/resume', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ session_id: currentSessionId })
+                });
+
+                if (response.ok) {
+                    updateAfterControl();
+                }
+            } catch (e) {
+                console.error('Failed to resume session:', e);
+            }
+        }
+
+        async function stopSession() {
+            try {
+                const response = await fetch('/control/stop', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ session_id: currentSessionId })
+                });
+
+                if (response.ok) {
+                    updateAfterControl();
+                }
+            } catch (e) {
+                console.error('Failed to stop session:', e);
+            }
+        }
+
+        async function updateAfterControl() {
+            const status = await fetchStatus();
+            const metrics = await fetchMetrics();
+            const actions = await fetchActions();
+
+            if (status && metrics) {
+                updateUI(status, metrics);
+            }
+
+            if (actions) {
+                updateCommandList(actions);
+            }
+        }
+
+        document.getElementById('sessionSelect').addEventListener('change', (e) => {
+            currentSessionId = e.target.value;
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
+            }
+            reconnectAttempts = 0;
+            connectWebSocket();
+            updateAfterControl();
+        });
+
+        async function initDashboard() {
+            await updateAfterControl();
+            connectWebSocket();
+
+            setInterval(async () => {
+                if (!ws || ws.readyState !== WebSocket.OPEN) {
+                    const actions = await fetchActions();
+                    if (actions) {
+                        updateCommandList(actions);
+                    }
+                }
+            }, 5000);
+        }
+
+        initDashboard();
+    </script>
+</body>
+</html>

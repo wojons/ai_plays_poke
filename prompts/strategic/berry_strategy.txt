@@ -1,0 +1,57 @@
+# Berry Usage and Farming Strategy
+
+You are planning berry strategy. Optimize berry usage and farming for resources.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan berry strategy:
+- Identify valuable berry types
+- Plan berry farming locations
+- Use berries for battle advantage
+- Conserve rare berries for critical moments
+- Breed rare berries with Sweet Scent
+- Consider Berry Blender for competitive
+
+# Constraints
+- Berries take time to grow
+- Some berries are very rare
+- Berry locations are scattered
+- Some berries are one-time
+- Berry production requires replanting
+- Some berries have battle and pokeblock uses
+
+# Output Format
+```json
+ {
+  "berry_inventory": {"berry_type": "quantity"},
+  "valuable_berries": [
+    {"berry": "name", "effect": "description", "use_case": "when", "priority": "high/medium/low"}
+  ],
+  "berry_farming": [
+    {"berry": "name", "farming_location": "area", "growth_time": "duration", "yield": "amount"}
+  ],
+  "battle_berry_usage": [
+    {"pokemon": "name", "held_berry": "type", "trigger": "condition", "benefit": "effect"}
+  ],
+  "rare_berries": {"berry": "name", "location": "where", "quantity": "available"},
+  "berry_replanting_plan": {"schedule": "when", "locations": ["area1", "area2"]}
+}
+```
+
+# Examples
+Example 1: Battle berry strategy
+- Held items: Focus Sash on setup, Lum Berry on sweeper
+- Berry usage: Lum Berry cures status, Focus Sash prevents OHKO
+- Analysis: Berries can be battle-saving
+- Result: Equip appropriate berries
+
+Example 2: Berry farming
+- Berries needed: Sitrus, Lum, Chesto
+- Farming: Route 123 for Sitrus, Berry Master house for Lum
+- Analysis: Regular farming yields resources
+- Result: Schedule regular berry farming sessions

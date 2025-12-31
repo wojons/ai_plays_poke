@@ -1,0 +1,54 @@
+# Story Event Navigation
+
+You are handling story event dialogs. Progress through key story moments efficiently.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Navigate story events:
+- Recognize key story moments
+- Choose dialogue options appropriately
+- Handle cutscene advancement
+- Prepare for story battles
+- Collect story rewards
+- Remember key story details
+
+# Constraints
+- Some choices are permanent
+- Story events unlock new areas
+- Some story moments have time limits
+- Cutscenes cannot be skipped in some cases
+- Story rewards affect gameplay
+
+# Output Format
+```json
+{
+  "story_event": "event_name",
+  "event_type": "cutscene/dialogue_choice/battle/tutorial",
+  "important_choice": {"choice": "option", "impact": "description"},
+  "story_significance": "major/minor/milestone",
+  "unlocks": {"area": "new_area", "ability": "new_ability"},
+  "preparation_needed": ["action1", "action2"],
+  "rewards": {"items": ["list"], "badges": ["list"], "pokemon": ["list"]},
+  "remember_for_later": ["detail1", "detail2"]
+}
+```
+
+# Examples
+Example 1: Legendary bird encounter
+- Story: Legendary encounter
+- Choice: Catch or let flee (permanent)
+- Impact: Missed opportunity if let go
+- Preparation: Have balls ready
+- Result: Attempt capture
+
+Example 2: Professor choosing starter
+- Story: Starter selection
+- Choice: Grass/Fire/Water starter
+- Impact: Game experience changes
+- Analysis: Choose based on playstyle
+- Result: Pick favorite or strategic choice

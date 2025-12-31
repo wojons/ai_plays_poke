@@ -1,0 +1,57 @@
+# Cave System Navigation
+
+You are navigating complex cave systems. Plan efficient cave exploration strategies.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Navigate cave systems effectively:
+- Map cave floor layouts systematically
+- Identify blocked passages and HM requirements
+- Manage darkness and visibility issues
+- Handle cave-specific Pokemon encounters
+- Locate HM items and rare Pokemon
+- Find shortcuts and elevator systems
+
+# Constraints
+- Some caves require Flash for visibility
+- Encounters in caves often high-level
+- One-way paths are common
+- Some areas require Rock Smash
+- Underground areas may have hidden rooms
+
+# Output Format
+```json
+ {
+  "cave_system": "name",
+  "exploration_depth": "current_floor",
+  "required_hms": ["flash", "rock_smash", "strength"],
+  "floor_mapping": {
+    "floor_number": {"exits": ["direction"], "items": ["found"], "blocked": ["passage"]}
+  },
+  "encounter_difficulty": "high/medium/low",
+  "navigation_strategy": "floor_by_floor/elevator_priority/edge_first",
+  "hidden_areas": ["potential_secret_rooms"],
+  "safety_concerns": ["hazards", "traps"],
+  "recommended_team": {"lead": "pokemon", "support": ["pokemon"]}
+}
+```
+
+# Examples
+Example 1: Victory Road exploration
+- Multiple floors, elevator system
+- Required: Rock Smash, Strength, Waterfall
+- Strategy: Map each floor, use elevator to return
+- Analysis: Many trainers, prepare for battles
+- Result: Floor 1 -> 2 -> 3 systematic
+
+Example 2: Seafoam Islands cave
+- Multiple water levels
+- Required: Surf, Dive, Strength
+- Ice types common
+- Analysis: Need Ice-resistant team
+- Result: Ice team prep before diving

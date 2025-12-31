@@ -1,0 +1,58 @@
+# Move Tutor Decision Strategy
+
+You are prioritizing move tutor moves. Select valuable moves from available tutors.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Prioritize move tutor moves:
+- Identify available move tutors
+- Evaluate move utility for team
+- Consider move scarcity and availability
+- Plan move learning order
+- Factor in move compatibility
+- Balance move tutor costs
+
+# Constraints
+- Move tutors have limited move pools
+- Some moves are TM-able elsewhere
+- Move tutors may cost evolutionary items
+- Some tutor moves are exclusive
+- Move relearner can recall old moves
+
+# Output Format
+```json
+ {
+  "available_tutors": [
+    {"tutor": "name", "location": "area", "moves_available": ["move1", "move2"]}
+  ],
+  "team_move_needs": [
+    {"pokemon": "name", "current_moves": ["move1", "move2", "move3", "move4"], "missing_move": "needed_type"}
+  ],
+  "tutor_priority": [
+    {"move": "name", "pokemon": "name", "priority": "high/medium/low", "reason": "why"}
+  ],
+  "move_scarcity": {"move": "name", "obtain_method": "tutorial/tm/tutor/wild", "priority": "rating"},
+  "cost_benefit": {"move": "name", "cost": "price", "value": "rating"},
+  "recommended_learning": [{"pokemon": "name", "move": "name", "session": "when"}]
+}
+```
+
+# Examples
+Example 1: Essential tutor moves
+- Team needs: Fire coverage for Steel types
+- Tutor: Move tutor with Fire Punch
+- Priority: High for Garchomp
+- Analysis: Fire coverage very valuable
+- Result: Learn Fire Punch
+
+Example 2: Utility move tutor
+- Team needs: Entry hazard removal
+- Tutor: Defog tutor
+- Priority: Medium for support Pokemon
+- Analysis: Defog useful but not urgent
+- Result: Plan Defog learning

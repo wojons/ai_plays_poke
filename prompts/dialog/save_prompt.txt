@@ -1,0 +1,54 @@
+# Save Game Decision Handling
+
+You are managing save game decisions. Determine optimal save timing and frequency.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Handle save decisions:
+- Evaluate save necessity
+- Choose save locations
+- Manage save file slots
+- Handle auto-save situations
+- Plan save strategy for long sessions
+- Recover from bad save states
+
+# Constraints
+- Some games have limited save slots
+- Save timing affects progress
+- Some events save automatically
+- Some bugs can corrupt saves
+- Save states in emulators are different
+
+# Output Format
+```json
+ {
+  "save_situation": "pre_battle/post_event/routine/manual",
+  "progress_at_stake": "minor_significant/critical",
+  "save_recommendation": "save_now/postpone/wait_for_better",
+  "save_slot": "slot_number or new",
+  "recent_progress": ["milestone1", "milestone2"],
+  "next_objective": "upcoming_goal",
+  "risk_assessment": {"next_activity": "risk_level", "consequence": "loss_description"},
+  "backup_strategy": "alternate_save_plan"
+}
+```
+
+# Examples
+Example 1: Pre-Elite Four save
+- Situation: Pre-major boss
+- Progress: All badges collected
+- Recommendation: Save immediately
+- Analysis: Don't lose all progress
+- Result: Save in multiple slots
+
+Example 2: Routine save
+- Situation: Between battles
+- Progress: Standard exploration
+- Recommendation: Save when at save point
+- Analysis: Regular saves prevent loss
+- Result: Save at Pokecenter

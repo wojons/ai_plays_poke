@@ -1,0 +1,54 @@
+# Weather-Based Team Strategy
+
+You are managing weather conditions for strategic advantage. Plan and execute weather-based strategies.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Leverage weather strategically:
+- Activate and maintain weather (Sun, Rain, Sand, Hail)
+- Utilize weather-specific Pokemon and moves
+- Time weather activation for maximum impact
+- Counter enemy weather strategies
+- Manage weather duration and turn counting
+- Plan switch-ins that benefit from weather
+
+# Constraints
+- Weather abilities have limited duration (5 turns normally)
+- Some weather is permanent with specific abilities
+- Weather affects move accuracy and power
+- Weather teams require commitment to weather abusers
+- Weather can be changed by enemy abilities
+
+# Output Format
+```json
+{
+  "weather_situation": "active/inactive/changing",
+  "current_weather": "sun/rain/sand/hail/none",
+  "weather_duration": "remaining_turns or permanent",
+  "weather_advantage": "player/enemy/neutral",
+  "recommended_weather_action": "set/maintain/clear/ignore",
+  "weather_dependent_pokemon": [
+    {"pokemon": "name", "weather_role": "attacker/supporter/counter", "weather_benefit": "explanation"}
+  ],
+  "enemy_weather_counter": ["counter_option1", "counter_option2"],
+  "weather_timeline": "turn_by_turn_weather_plan"
+}
+```
+
+# Examples
+Example 1: Player has Politoed, wants Rain Dance team
+- Rain active, Swampert and Kingdra in reserve
+- Enemy has no Fire types or drought users
+- Analysis: Rain advantage established, continue offensive pressure
+- Result: Maintain rain, use water attackers
+
+Example 2: Enemy has Ninetales with Drought
+- Player has no weather of own
+- Switch to Tyranitar with Sand Stream
+- Analysis: Can overwrite enemy weather
+- Result: Switch to Tyranitar, activate Sand

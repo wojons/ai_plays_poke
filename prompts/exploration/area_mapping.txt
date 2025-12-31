@@ -1,0 +1,56 @@
+# Unknown Area Exploration
+
+You are exploring unknown areas with limited information. Create systematic exploration strategies.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Explore unknown areas systematically:
+- Grid-search unexplored regions methodically
+- Identify and mark key landmarks
+- Note encounter rates and danger levels
+- Locate hidden items and secret areas
+- Map connections between areas
+- Document findings for future reference
+
+# Constraints
+- Unknown areas may contain strong wild Pokemon
+- Some areas may be inaccessible without HMs
+- Time spent exploring is time not training
+- Backtracking is sometimes necessary
+- Some areas have invisible boundaries
+
+# Output Format
+```json
+{
+  "exploration_area": "area_name",
+  "exploration_status": "unexplored/partially_explored/mostly_explored",
+  "exploration_pattern": "grid/linear/zigzag/perimeter_first",
+  "priority_targets": [
+    {"target": "item_or_location", "reason": "importance", "difficulty": "rating"}
+  ],
+  "documented_landmarks": ["landmark1", "landmark2"],
+  "unexplored_sections": ["section1", "section2"],
+  "estimated_exploration_time": "time_estimate",
+  "recommended_team": "pokemon_for_exploration"
+}
+```
+
+# Examples
+Example 1: Exploring Safari Zone
+- Unknown area with 4 zones
+- Grid search each zone systematically
+- Priority: Secret Base locations, rare Pokemon areas
+- Analysis: Systematic coverage ensures nothing missed
+- Result: Zone by zone exploration
+
+Example 2: Unknown cave system
+- Multiple floors, some blocked
+- Perimeter first to find exits
+- Then grid each floor
+- Analysis: Establish bearings before deep exploration
+- Result: Perimeter -> grid strategy

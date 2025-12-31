@@ -1,0 +1,59 @@
+# NPC Trade Requirement Planning
+
+You are planning NPC trades. Identify trade requirements and execute beneficial trades.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan NPC trades:
+- Identify available NPC trades
+- Determine trade requirements (Pokemon level, type, nickname)
+- Evaluate trade value (is it fair?)
+- Consider evolution by trade requirements
+- Plan Pokemon to prepare for trades
+- Execute trades at optimal time
+
+# Constraints
+- Some trades are one-time
+- Nicknamed Pokemon often required
+- Level requirements must be met
+- Some trades give underleveled Pokemon
+- Trade evolutions require trading
+- Trade Pokemon may have different stats
+
+# Output Format
+```json
+ {
+  "available_trades": [
+    {"npc": "name", "location": "area", "gives": "pokemon", "wants": {"pokemon": "name", "requirements": ["condition1", "condition2"]}, "value": "rating"}
+  ],
+  "trade_evolution_needs": [
+    {"pokemon": "name", "evolution": "evolved_form", "trade_for": "pokemon_name"}
+  ],
+  "trade_preparation": [
+    {"wanted_pokemon": "name", "preparation": "what_to_do", "timeline": "when"}
+  ],
+  "trade_value_analysis": [
+    {"trade": "description", "player_receives": "benefit", "player_gives": "cost", "recommendation": "do/don't"}
+  ],
+  "post_trade_impact": {"team_changes": ["change1"], "stat_changes": ["effect"]}
+}
+```
+
+# Examples
+Example 1: Valuable trade
+- NPC: Trade Machop for Onix
+- Location: Rock Tunnel
+- Value: Onix is good early game Pokemon
+- Analysis: Fair trade, good for team
+- Result: Prepare Machop, make trade
+
+Example 2: Trade evolution
+- Pokemon: Machamp requires trade to evolve
+- Alternative: Use Link Cable in later games
+- Analysis: Can evolve without trading now
+- Result: Save Machoke for Link Cable

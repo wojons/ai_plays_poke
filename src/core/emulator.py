@@ -10,7 +10,7 @@ from typing import Optional
 import numpy as np
 import os
 
-from schemas.commands import Button, GameState, CommandExecutionResult
+from src.schemas.commands import Button, GameState, CommandExecutionResult
 
 # Try to import PyBoy, fallback to stub if not available
 try:
@@ -165,79 +165,106 @@ class EmulatorInterface:
         else:
             print(f"⏎ Pressing {button} for {duration_frames} frames (stub mode)")
     
-    def save_state(self, state_path: str):
+    def save_state(self, state_path: str) -> bool:
         """
-        Save emulator state to file
+        Save emulator state to file using PyBoy's native save state mechanism.
         
         Args:
             state_path: Path to save state file
+            
+        Returns:
+            True if save was successful, False otherwise
         """
         if PYBOY_AVAILABLE and hasattr(self, 'pyboy') and self.pyboy:
             try:
-                # PyBoy save state functionality
-                # Note: PyBoy save states are binary format
+                state_data = self.pyboy.dumps()
                 with open(state_path, 'wb') as f:
-                    # TODO: Implement actual PyBoy save state
-                    f.write(b"stub_save_state")
-                print(f"💾 PyBoy state saved to {state_path}")
+                    f.write(state_data)
+                print(f"💾 PyBoy state saved to {state_path} ({len(state_data)} bytes)")
+                return True
             except Exception as e:
-                print(f"⚠️  Save state error: {e}")
+                print(f"⚠️  PyBoy save state error: {e}")
+                return False
         else:
-            # Stub save state
             try:
-                Path(state_path).write_text(f"stub_state_{self.current_tick}")
-                print(f"💾 State saved to {state_path}")
+                stub_data = f"stub_state_{self.current_tick}".encode('utf-8')
+                with open(state_path, 'wb') as f:
+                    f.write(stub_data)
+                print(f"💾 State saved to {state_path} (stub mode)")
+                return True
             except Exception as e:
                 print(f"⚠️  Save state error: {e}")
+                return False
     
-    def load_state(self, state_path: str):
+    def load_state(self, state_path: str) -> bool:
         """
-        Load emulator state from file
+        Load emulator state from file using PyBoy's native load state mechanism.
         
         Args:
             state_path: Path to state file
+            
+        Returns:
+            True if load was successful, False otherwise
         """
         if PYBOY_AVAILABLE and hasattr(self, 'pyboy') and self.pyboy:
             try:
-                # TODO: Implement actual PyBoy load state
-                print(f"💾 PyBoy state loaded from {state_path}")
+                with open(state_path, 'rb') as f:
+                    state_data = f.read()
+                self.pyboy.loads(state_data)
+                print(f"💾 PyBoy state loaded from {state_path} ({len(state_data)} bytes)")
+                return True
             except Exception as e:
-                print(f"⚠️  Load state error: {e}")
+                print(f"⚠️  PyBoy load state error: {e}")
+                return False
         else:
-            # Stub load state
             try:
-                content = Path(state_path).read_text()
-                print(f"💾 State loaded from {state_path}: {content}")
+                if Path(state_path).exists():
+                    content = Path(state_path).read_text()
+                    print(f"💾 State loaded from {state_path}: {content} (stub mode)")
+                    return True
+                else:
+                    print(f"⚠️  State file not found: {state_path}")
+                    return False
             except Exception as e:
                 print(f"⚠️  Load state error: {e}")
-        # Stub: just print for now
+                return False
     
-    def send_input(self, button: Button):
+    def get_state_bytes(self) -> bytes:
         """
-        Single frame button press
+        Get emulator state as bytes for in-memory storage.
+        
+        Returns:
+            Bytes containing the emulator state, or empty bytes if unavailable
+        """
+        if PYBOY_AVAILABLE and hasattr(self, 'pyboy') and self.pyboy:
+            try:
+                return self.pyboy.dumps()
+            except Exception as e:
+                print(f"⚠️  PyBoy get_state_bytes error: {e}")
+                return b""
+        else:
+            return f"stub_state_{self.current_tick}".encode('utf-8')
+    
+    def load_state_bytes(self, state_data: bytes) -> bool:
+        """
+        Load emulator state from bytes for in-memory restoration.
         
         Args:
-            button: Button to press
+            state_data: Bytes containing the emulator state
+            
+        Returns:
+            True if load was successful, False otherwise
         """
-        print(f"⏎ Single press: {button}")
-    
-    def load_state(self, state_path: str):
-        """
-        Load saved state
-        
-        Args:
-            state_path: Path to state file
-        """
-        print(f"📂 Loading state from {state_path}")
-    
-    def save_state(self, state_path: str):
-        """
-        Save current state
-        
-        Args:
-            state_path: Path where to save state
-        """
-        print(f"💾 Saving state to {state_path}")
+        if PYBOY_AVAILABLE and hasattr(self, 'pyboy') and self.pyboy:
+            try:
+                self.pyboy.loads(state_data)
+                return True
+            except Exception as e:
+                print(f"⚠️  PyBoy load_state_bytes error: {e}")
+                return False
+        else:
+            print("⚠️  Cannot load state bytes in stub mode")
+            return False
     
     def get_game_time(self) -> int:
         """

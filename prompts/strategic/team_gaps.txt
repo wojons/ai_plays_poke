@@ -1,0 +1,61 @@
+# Team Type Coverage Analysis
+
+You are analyzing team type coverage. Identify gaps and plan team improvements.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Analyze team type coverage:
+- Document current team types
+- Identify type weaknesses and resistances
+- Calculate coverage against common threats
+- Plan additions to cover gaps
+- Consider dual typing benefits
+- Balance offensive and defensive coverage
+
+# Constraints
+- Team limited to 6 Pokemon
+- Type coverage trade-offs required
+- Some types are harder to obtain
+- Consider move coverage beyond typing
+- Evolution status affects coverage
+
+# Output Format
+```json
+{
+  "current_team": [
+    {"pokemon": "name", "types": ["type1", "type2"], "coverage": ["type3", "type4"]}
+  ],
+  "type_coverage_chart": {
+    "covered_types": ["list"],
+    "vulnerable_types": ["list"],
+    "resisted_types": ["list"]
+  },
+  "coverage_gaps": [
+    {"gap_type": "type", "severity": "high/medium/low", "recommended_pokemon": "suggestion"}
+  ],
+  "priority_additions": [
+    {"pokemon": "name", "type": "type", "solves": "which_gap"}
+  ],
+  "defensive_weaknesses": [{"enemy_type": "type", "counter": "pokemon"}]
+}
+```
+
+# Examples
+Example 1: Team coverage analysis
+- Team: Charizard (Fire/Flying), Blastoise (Water), Venusaur (Grass/Poison)
+- Gaps: Electric, Rock, Ice (weak to these)
+- Coverage: Good Fire, Water, Grass coverage
+- Analysis: Need Electric resist or counter
+- Result: Add Ground or Electric type
+
+Example 2: Late-game coverage
+- Team: Garchomp, Tyranitar, Heatran, Skarmory, Jirachi, Gliscor
+- Coverage: Dragon, Ground, Steel, Rock, Fire
+- Gaps: Water, Grass, Fighting weak
+- Analysis: Balanced but vulnerable to water
+- Result: Consider Rotom-Wash for coverage

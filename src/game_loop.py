@@ -30,6 +30,7 @@ from db.database import GameDatabase
 from core.emulator import EmulatorInterface, EmulatorManager, Button
 from core.screenshots import ScreenshotManager, SimpleLiveView
 from core.ai_client import GameAIManager, OpenRouterClient
+from core.save_manager import SaveManager, SaveManagerConfig, SnapshotReason
 from schemas.commands import (
     AICommand, AIThought, GameState, 
     create_press_command, CommandType
@@ -72,6 +73,16 @@ class GameLoop:
         # Screenshot manager
         screenshot_dir = Path(config["save_dir"]) / "screenshots"
         self.screenshot_mgr = ScreenshotManager(str(screenshot_dir))
+        
+        # Save Manager for snapshots
+        save_config = SaveManagerConfig(
+            save_dir=config["save_dir"],
+            max_snapshots=config.get("save_max_snapshots", 10),
+            snapshot_interval_ticks=config.get("save_interval_ticks", 1000),
+            save_on_events=config.get("save_on_events", ["battle", "level_up", "badge"]),
+            validate_on_save=config.get("save_validate", False)
+        )
+        self.save_manager = SaveManager(save_config)
         
         # Live view
         self.live_view = SimpleLiveView(self.screenshot_mgr)
@@ -226,6 +237,39 @@ class GameLoop:
         
         # Check for battle state transition
         self._detect_battle_transition()
+        
+        # Check for save state snapshot
+        self._check_save_snapshot()
+    
+    def _check_save_snapshot(self):
+        """Check if save state snapshot should be created"""
+        emulator = self.emulator_mgr.get_instance(self.current_instance) if self.emulator_mgr else self.emulator
+        
+        # Update save manager tick count
+        self.save_manager.set_tick_count(self.current_tick)
+        
+        # Get current game state for snapshot metadata
+        game_state = self._analyze_game_state()
+        
+        # Check interval-based snapshot
+        if self.save_manager.should_snapshot_interval(self.current_tick):
+            self.save_manager.save_snapshot(
+                emulator=emulator,
+                tick_count=self.current_tick,
+                reason=SnapshotReason.INTERVAL,
+                state_description=f"Interval snapshot at tick {self.current_tick}",
+                game_state=game_state.to_dict() if hasattr(game_state, 'to_dict') else None
+            )
+        
+        # Check event-based snapshots
+        if game_state.is_battle and self.current_battle_id is None:
+            self.save_manager.save_snapshot(
+                emulator=emulator,
+                tick_count=self.current_tick,
+                reason=SnapshotReason.BATTLE_START,
+                state_description=f"Battle started at tick {self.current_tick}",
+                game_state=game_state.to_dict() if hasattr(game_state, 'to_dict') else None
+            )
     
     def _capture_and_process_screenshot(self):
         """Capture screenshot, analyze, and trigger AI if needed"""
@@ -625,10 +669,14 @@ class GameLoop:
             self.battle_turn_count = 0
             print("⚔️ Battle started!")
             
+        elif game_state.is_battle and self.current_battle_id is not None:
+            # In battle, increment turn counter
+            self.battle_turn_count += 1
+            
         elif not game_state.is_battle and self.current_battle_id is not None:
             # Battle ended
             # For now, assume victory if survived
-            outcome = "victory" if game_state.player_hp_percent > 0 else "defeat"
+            outcome = "victory" if (game_state.player_hp_percent or 0) > 0 else "defeat"
             self.db.log_battle_end(self.current_battle_id, outcome, self.battle_turn_count)
             
             if outcome == "victory":

@@ -1,0 +1,10 @@
+{
+  "timestamp": 1767186332.8279426,
+  "reason": "Test recovery",
+  "softlock_type": null,
+  "softlock_severity": null,
+  "current_state": {
+    "test": "state"
+  },
+  "state_machine": null
+}

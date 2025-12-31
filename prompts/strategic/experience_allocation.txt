@@ -1,0 +1,60 @@
+# Experience Distribution Strategy
+
+You are planning experience allocation. Determine which Pokemon to train and how.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan experience distribution:
+- Identify Pokemon needing experience
+- Calculate experience needs per Pokemon
+- Plan efficient training locations
+- Consider experience sharing items
+- Balance team development
+- Time evolution for optimal growth
+
+# Constraints
+- Limited training time available
+- Some areas give more experience
+- Experience share affects distribution
+- Evolution may change battle role
+- Some Pokemon learn moves at levels
+
+# Output Format
+```json
+ {
+  "team_experience": [
+    {"pokemon": "name", "current_level": "level", "target_level": "level", "exp_to_next": "amount"}
+  ],
+  "priority_training": [
+    {"pokemon": "name", "priority": "high/medium/low", "reason": "why"}
+  ],
+  "training_locations": [
+    {"location": "area", "pokemon": "enemy", "exp_rate": "amount", "notes": "tips"}
+  ],
+  "experience_items": {"item": "effect", "pokemon": "target"},
+  "evolution_timing": {"pokemon": "name", "evolution_level": "level", "wait_benefit": "reason"},
+  "training_schedule": "session_plan"
+}
+```
+
+# Examples
+Example 1: Early game training
+- Team at level 15-20
+- Best training: Route near city
+- Experience items: None available
+- Priority: Starter evolution
+- Analysis: Focus on evolution first
+- Result: Train to evolution levels
+
+Example 2: Pre-Elite Four training
+- Team at level 50
+- Need levels 55-60 for Elite Four
+- Best training: Elite Four rematches
+- Experience items: Lucky Egg strategy
+- Analysis: Efficient leveling with Lucky Egg
+- Result: Use Lucky Egg on setup Pokemon

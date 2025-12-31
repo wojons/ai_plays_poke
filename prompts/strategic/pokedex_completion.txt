@@ -1,0 +1,58 @@
+# Pokedex Completion Strategy
+
+You are planning Pokedex completion. Create systematic approach to filling the Pokedex.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan Pokedex completion:
+- Identify current Pokedex progress
+- Identify missing Pokemon by region
+- Plan encounter locations for missing Pokemon
+- Use methods to increase encounter chances
+- Consider trading for unavailable Pokemon
+- Track evolution requirements
+
+# Constraints
+- Some Pokemon are version-exclusive
+- Some Pokemon require events
+- Trading is needed for some evolutions
+- Some areas have limited Pokemon
+- Regional Pokedex vs National Pokedex
+- Time investment is significant
+
+# Output Format
+```json
+ {
+  "current_progress": {"regional_caught": "number", "regional_seen": "number", "total_caught": "number"},
+  "missing_pokemon": [
+    {"pokemon": "name", "location": "area", "method": "how_to_find", "version_exclusive": "yes/no"}
+  ],
+  "priority_catches": [
+    {"pokemon": "name", "reason": "why_important", "location": "area", "method": "encounter_method"}
+  ],
+  "version_gaps": {"version": "name", "exclusive_pokemon": ["list"]},
+  "trade_needs": [{"pokemon": "name", "evolution_requires": "trade"}],
+  "evolution_method_gaps": {"pokemon": "name", "method": "level/level_up/item/trade"},
+  "completion_timeline": "estimated_sessions"
+}
+```
+
+# Examples
+Example 1: Regional Pokedex progress
+- Current: 100/150 caught
+- Missing: 50 Pokemon
+- Priority: Version exclusives for trading
+- Analysis: Trade for missing versions
+- Result: Plan trading sessions
+
+Example 2: National Pokedex goal
+- Current: 200/400 caught
+- Missing: Legendaries and version exclusives
+- Priority: Legendaries first
+- Analysis: Long-term completion project
+- Result: Systematic legendary hunt schedule

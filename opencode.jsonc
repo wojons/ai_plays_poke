@@ -3,6 +3,10 @@
   "instructions": [
     ".opencode/prompt/memory-bank.md",
   ],
+  "permission": {
+    "external_directory": "deny",
+    "doom_loop": "deny"
+  },
   "mcp": {
     "searxng": {
       "type": "local",
@@ -15,7 +19,7 @@
     "chrome-devtools": {
       "command": ["npx", "-y", "chrome-devtools-mcp@latest", "--browserUrl=http://127.0.0.1:12345"],
       "type": "local",
-      "enabled": true
+      "enabled": false
     },
     "zai-mcp-server": {
       "type": "local",

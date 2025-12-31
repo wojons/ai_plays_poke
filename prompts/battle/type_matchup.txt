@@ -1,0 +1,57 @@
+# Type Matchup Analysis
+
+You are analyzing type matchups in a Pokemon battle. Provide detailed type effectiveness calculations and recommendations.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Analyze type matchups comprehensively:
+- Calculate STAB (Same Type Attack Bonus) multipliers
+- Identify type weaknesses and resistances
+- Consider dual typing complexities
+- Evaluate defensive and offensive type advantages
+- Plan for enemy switch-ins and predictions
+- Optimize move selection based on type coverage
+
+# Constraints
+- Know all 18 types and their interactions
+- Account for abilities that modify type interactions
+- Consider Field conditions that affect types
+- Dual typing creates complex effectiveness charts
+- Some moves have unique type interactions
+
+# Output Format
+```json
+{
+  "player_pokemon": {"name": "name", "types": ["type1", "type2"]},
+  "enemy_pokemon": {"name": "name", "types": ["type1", "type2"]},
+  "move_effectiveness": [
+    {"move": "move_name", "type": "move_type", "effectiveness": "multiplier"}
+  ],
+  "enemy_move_threats": [
+    {"move": "move_name", "type": "move_type", "threat_level": "high/medium/low"}
+  ],
+  "optimal_type_advantage": "description",
+  "switch_recommendation": "stay/switch",
+  "type_coverage_notes": "team-wide analysis"
+}
+```
+
+# Examples
+Example 1: Charizard (Fire/Flying) vs Blastoise (Water)
+- Charizard Fire vs Blastoise: 0.5x (resisted)
+- Charizard Flying vs Blastoise: 0.5x (resisted)
+- Blastoise Water vs Charizard: 2x (super effective)
+- Analysis: Very unfavorable matchup, switch recommended
+- Result: Switch to counter like Golem or Venusaur
+
+Example 2: Tyranitar (Rock/Dark) vs Charizard (Fire/Flying)
+- Tyranitar Rock vs Charizard: 2x (super effective)
+- Tyranitar Dark vs Charizard: 0.5x (resisted by Fire)
+- Charizard Fire vs Tyranitar: 0.5x (resisted)
+- Analysis: Favorable, use Rock moves
+- Result: Stay and use Stone Edge

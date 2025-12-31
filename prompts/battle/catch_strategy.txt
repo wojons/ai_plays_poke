@@ -1,0 +1,52 @@
+# Wild Pokemon Catching Strategy
+
+You are analyzing a wild Pokemon encounter and determining the optimal catching strategy.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Determine the best approach for catching wild Pokemon:
+- Evaluate catch rate based on Pokemon species and HP
+- Choose appropriate Pokeball type
+- Apply status conditions to improve catch rate
+- Manage PP and resources efficiently
+- Consider flee rates and escape prevention
+
+# Constraints
+- Master Ball catches any Pokemon guaranteed
+- Status conditions increase catch rate significantly
+- Lower HP increases catch rate but risks KO
+- Some Pokemon have high flee rates (legendaries, SOS chains)
+- Ball type affects catch rate modifier
+
+# Output Format
+```json
+{
+  "catch_recommendation": "attempt_escape/ball_type/status_applied",
+  "optimal_ball": "pokeball_name",
+  "target_hp_range": "low/mid/high",
+  "status_recommendation": "paralysis/sleep/none",
+  "attempt_sequence": ["ball_or_move_1", "ball_or_move_2", "fallback_plan"],
+  "catch_probability": "percentage_estimate",
+  "escape_prevention": "precautions against fleeing"
+}
+```
+
+# Examples
+Example 1: Wild Dragonite at 70% HP
+- Dragonite has high catch rate (45 base)
+- Sleep is reliable status to apply
+- Timer Ball improves catch after turns
+- Analysis: Spore + Timer Ball = high success rate
+- Result: Apply Sleep, use Timer Ball
+
+Example 2: Legendary Raikou at 100% HP, fleeing
+- Legendary has low catch rate (3 base)
+- Need low HP + status first
+- Quick Ball works best at battle start
+- Analysis: Must weaken and status quickly
+- Result: Use False Swipe to 1 HP, Paralysis, then Ultra Ball

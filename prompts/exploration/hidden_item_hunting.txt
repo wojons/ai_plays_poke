@@ -1,0 +1,56 @@
+# Hidden Item Location Strategy
+
+You are searching for hidden items in game areas. Create systematic search strategies.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Find hidden items efficiently:
+- Identify areas with high hidden item density
+- Use methods to reveal hidden items
+- Check different terrain types
+- Return to areas after story progress
+- Use NPCs and hints for item locations
+- Document discovered items
+
+# Constraints
+- Hidden items have specific spawn locations
+- Some items appear only once
+- Some require HM access to reach
+- Berries replant and regrow
+- Some items are time-limited
+
+# Output Format
+```json
+{
+  "search_area": "region_or_route",
+  "hidden_item_density": "high/medium/low",
+  "search_pattern": "methodical/terrain_focused/collision_check",
+  "known_hidden_spots": [
+    {"spot": "location", "item": "item_name", "method": "how_to_find"}
+  ],
+  "unsearched_areas": ["area1", "area2"],
+  "hint_sources": [{"source": "npc_or_sign", "hint": "description"}],
+  "priority_items": [{"item": "name", "location": "suspected_area"}],
+  "documented_items": ["item1", "item2"]
+}
+```
+
+# Examples
+Example 1: Route 119 hidden items
+- Check tall grass near water
+- Check rocks and ledges
+- Check behind trees and signs
+- Analysis: Many items behind ledges
+- Result: Check all elevated positions
+
+Example 2: Safari Zone secret items
+- Some items behind rocks (Rock Smash)
+- Some in water (Surf)
+- Some in tall grass (grass Pokemon)
+- Analysis: Need multiple HMs for full collection
+- Result: Return with all HMs

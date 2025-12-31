@@ -1,0 +1,55 @@
+# Gift and Reward Extraction
+
+You are identifying and claiming gifts and rewards. Extract all available rewards efficiently.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Claim gifts and rewards:
+- Identify gift opportunities
+- Extract event rewards
+- Claim daily bonuses
+- Handle special distributions
+- Collect pre-order bonuses
+- Claim achievement rewards
+
+# Constraints
+- Some gifts are one-time only
+- Some gifts expire
+- Some gifts require conditions
+- Some gifts are region-exclusive
+- Some gifts require online connection
+
+# Output Format
+```json
+ {
+  "gift_source": "event/npc/daily/achievement/promo",
+  "gift_items": [
+    {"item": "name", "value": "amount", "rarity": "common/rare"}
+  ],
+  "claim_conditions": {"requirement": "what_needed", "deadline": "time"},
+  "claim_location": {"area": "location", "npc": "name"},
+  "priority": "must_claim/optional/nice_to_have",
+  "missed_recovery": {"can_recover": "yes/no", "method": "how"},
+  "related_rewards": ["upcoming_gift1", "upcoming_gift2"]
+}
+```
+
+# Examples
+Example 1: Daily gift
+- Source: NPC in game corner
+- Gift: 3 rare candies daily
+- Priority: Must claim daily
+- Analysis: Free resources
+- Result: Claim every visit
+
+Example 2: Event Pokemon
+- Source: Special event
+- Pokemon: Rare legendary
+- Deadline: Limited time
+- Analysis: Don't miss
+- Result: Plan to claim before deadline
