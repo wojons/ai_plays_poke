@@ -132,6 +132,7 @@ screenshots/**/*.png
 
 # Logs
 logs/*.log
+.opencode/logs
 
 # Memory files
 memory/*.pkl

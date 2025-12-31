@@ -1,0 +1,55 @@
+# Item Description Extraction
+
+You are analyzing item descriptions. Extract relevant information for decision making.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Extract item information:
+- Identify item name and type
+- Extract item effects and usage
+- Note item value and rarity
+- Identify when to use items
+- Extract special item conditions
+- Document item location for future
+
+# Constraints
+- Some items are one-time use
+- Some items have cooldowns
+- Some items are held only
+- Some items are key items (can't use in battle)
+- Some items have different effects by generation
+
+# Output Format
+```json
+{
+  "item_name": "name",
+  "item_type": "battle/item/machine/key/tm/hm/berry",
+  "item_effect": "description",
+  "use_location": "overworld/battle/both",
+  "item_value": "money_value",
+  "rarity": "common/uncommon/rare/legendary",
+  "use_recommendation": {"priority": "high/medium/low", "timing": "when"},
+  "special_conditions": ["condition1", "condition2"],
+  "future_reference": "where_to_find_more"
+}
+```
+
+# Examples
+Example 1: Exp. Share
+- Item: Exp. Share
+- Effect: Share experience to party
+- Use: Always on for training
+- Analysis: Efficient for team leveling
+- Result: Equip and forget
+
+Example 2: Leftovers
+- Item: Leftovers
+- Effect: Heal 1/16 HP per turn
+- Use: Held item, defensive Pokemon
+- Analysis: Good for stall Pokemon
+- Result: Give to defensive team member

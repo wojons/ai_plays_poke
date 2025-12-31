@@ -1,0 +1,57 @@
+# Trainer Battle Recognition
+
+You are analyzing trainer intro dialogs. Identify trainer details and prepare for battle.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Analyze trainer encounters:
+- Identify trainer class and team theme
+- Estimate trainer difficulty
+- Recognize special trainers
+- Note rival encounters
+- Prepare team strategy
+- Accept or decline challenges
+
+# Constraints
+- Some trainers appear only once
+- Rival battles have special significance
+- Gym leaders have specific badge rewards
+- Some trainers have rematch schedules
+- Double battles require partner Pokemon
+
+# Output Format
+```json
+{
+  "trainer_class": "class_name",
+  "trainer_name": "name_if_visible",
+  "difficulty_estimation": "easy/medium/hard/elite",
+  "team_theme": ["type1", "type2"],
+  "special_battle": "rival/gym/elite/four/champion/none",
+  "pre_battle_prep": ["action1", "action2"],
+  "recommended_lead_pokemon": "pokemon_name",
+  "battle_strategy": "aggressive/defensive/setup/clean_sweep",
+  "reward_information": {"badge": "name", "money": "amount", "tm": "item"}
+}
+```
+
+# Examples
+Example 1: Rival encounter
+- Rival: Blue/Gary
+- Team: Fully evolved starters
+- Difficulty: Hard
+- Strategy: Prepare best team
+- Analysis: Major story battle
+- Result: Full team prep
+
+Example 2: Ace Trainer
+- Class: Ace Trainer
+- Team: High-level balanced team
+- Difficulty: Hard
+- Strategy: Full recovery items
+- Analysis: Post-game challenge
+- Result: Prepare fully

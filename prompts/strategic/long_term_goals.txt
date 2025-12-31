@@ -1,0 +1,58 @@
+# Multi-Session Strategic Planning
+
+You are planning long-term objectives. Create multi-session goals for sustained progress.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Define long-term strategy:
+- Identify major milestones ahead
+- Break goals into session-sized chunks
+- Plan resource accumulation over time
+- Consider difficulty spikes and preparation
+- Balance short-term and long-term objectives
+- Create contingency plans
+
+# Constraints
+- Game progression has natural gates
+- Some goals require prerequisite progress
+- Time per session limits goals
+- Resources accumulate slowly
+- Story progression affects available goals
+
+# Output Format
+```json
+ {
+  "major_milestones": [
+    {"milestone": "badge_8", "requirements": ["7_badges", "team_level_50"], "session_estimate": "3-5_sessions"}
+  ],
+  "short_term_goals": [
+    {"goal": "next_gym", "actions": ["action1", "action2"], "time_needed": "sessions"}
+  ],
+  "medium_term_goals": [
+    {"goal": "elite_four_prep", "actions": ["team_building", "leveling"], "time_needed": "sessions"}
+  ],
+  "resource_targets": {"money": "amount", "items": ["list"], "pokemon": ["list"]},
+  "story_gates": {"next_gate": "event", "requirements": ["what_needed"]},
+  "session_breakdown": {"session_1": ["task1", "task2"], "session_2": ["task3"]}
+}
+```
+
+# Examples
+Example 1: Early game planning
+- Milestone: First gym in 2 sessions
+- Short term: Catch Pokemon, reach route
+- Resources: Potions, Pokeballs
+- Analysis: Focused short-term goals
+- Result: Clear session plan
+
+Example 2: Late game planning
+- Milestone: Elite Four in 10 sessions
+- Short term: Badge 7, team level 55
+- Resources: Money for items, TMs
+- Analysis: Long-term resource building
+- Result: Weekly targets set

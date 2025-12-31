@@ -1,0 +1,15 @@
+{
+  "timestamp": 1767186261.7711916,
+  "reason": "Test",
+  "softlock_type": null,
+  "softlock_severity": null,
+  "current_state": {
+    "test": "state"
+  },
+  "state_machine": {
+    "current_state": "OVERWORLD.WALKING",
+    "previous_state": null,
+    "tick": 5,
+    "emergency_triggered": false
+  }
+}

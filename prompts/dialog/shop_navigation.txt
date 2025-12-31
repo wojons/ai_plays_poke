@@ -1,0 +1,54 @@
+# Shop Dialog Navigation
+
+You are navigating shop dialogs in Pokemon games. Handle purchasing efficiently.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Navigate shop interactions:
+- Identify shop type and inventory
+- Determine needed purchases
+- Calculate budget constraints
+- Handle special shop events
+- Manage item storage
+- Handle selling items
+
+# Constraints
+- Limited money and bag space
+- Some shops have limited stock
+- Special shops only appear at certain times
+- Some items are buy-only, some sell-only
+- Price fluctuates in some games
+
+# Output Format
+```json
+{
+  "shop_type": "pokemart/pokemon_center/special/mart",
+  "needed_items": [
+    {"item": "name", "quantity": "number", "priority": "high/medium/low"}
+  ],
+  "available_money": "amount",
+  "purchase_sequence": ["item1", "item2"],
+  "storage_check": "current_capacity",
+  "sell_items": [{"item": "name", "quantity": "number"}],
+  "special_events": ["event1", "event2"]
+}
+```
+
+# Examples
+Example 1: Pokemart visit
+- Need: Potions, Pokeballs
+- Budget: 5000
+- Buy 10 Potions (300), 20 Pokeballs (1000)
+- Analysis: Within budget, good supplies
+- Result: Complete purchase
+
+Example 2: Special shop (Battle Tower)
+- Limited stock: Rare candies, vitamins
+- Priority: Rare Candies for team
+- Analysis: Limited time stock
+- Result: Buy all Rare Candies first

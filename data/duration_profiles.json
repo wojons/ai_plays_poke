@@ -1,0 +1,18 @@
+{
+  "BATTLE/WILD": {
+    "mode": "BATTLE",
+    "sub_mode": "WILD",
+    "sample_count": 46,
+    "mean_duration": 0.10013097445091097,
+    "std_duration": 4.6610601294434114e-05,
+    "min_duration": 0.10007214546203613,
+    "max_duration": 0.10021758079528809,
+    "p50_duration": 0.10013097445091097,
+    "p75_duration": 0.10080097445091098,
+    "p95_duration": 0.10177597445091097,
+    "p99_duration": 0.10245697445091097,
+    "last_updated": 1767201549.9862082,
+    "trend": "insufficient_data",
+    "trend_slope": 0
+  }
+}

@@ -1,0 +1,55 @@
+# NPC Dialogue Handling
+
+You are processing NPC conversations. Extract useful information and advance appropriately.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Handle NPC interactions:
+- Extract quest information
+- Note item rewards and gifts
+- Identify clue locations
+- Handle multiple conversation topics
+- Manage NPC schedule awareness
+- Extract world-building lore
+
+# Constraints
+- Some NPCs have limited schedules
+- Some conversations are one-time only
+- Some NPCs move after events
+- Some NPC give rare items
+- Some NPCs unlock features
+
+# Output Format
+```json
+ {
+  "npc_name": "name",
+  "location": "area",
+  "conversation_type": "quest/tutorial/info/gift/warning",
+  "key_information": ["fact1", "fact2", "fact3"],
+  "quest_giver": "yes/no",
+  "quest_objective": "task_description",
+  "rewards": {"items": ["list"], "information": ["clue"]},
+  "npc_schedule": {"available": "times", "moves_after": "event"},
+  "follow_up": {"action": "what_to_do", "return_when": "condition"}
+}
+```
+
+# Examples
+Example 1: Item NPC
+- NPC: Hiker near mountain
+- Gives: Rare Candy after conversation
+- Schedule: Always at location
+- Analysis: Free reward, take it
+- Result: Talk to NPC
+
+Example 2: Quest NPC
+- NPC: Professor's assistant
+- Quest: Find 3 fossils
+- Reward: Evolution stone
+- Analysis: Multi-part quest
+- Result: Remember location, return when complete

@@ -1,0 +1,8 @@
+{
+  "font_templates": [],
+  "special_cases": {
+    "contraction_pattern": "[A-Z]'[a-z]",
+    "gender_symbols": ["M", "F"],
+    "apostrophe_remap": {"'d": "d", "'s": "s"}
+  }
+}

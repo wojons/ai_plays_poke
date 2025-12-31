@@ -1,0 +1,59 @@
+# Water Route and Surf Navigation
+
+You are planning water route travel using Surf. Manage water-based exploration efficiently.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Navigate water routes effectively:
+- Plan Surf routes between islands
+- Manage water encounter rates
+- Locate underwater areas and Dive spots
+- Handle water Pokemon encounters
+- Conserve surfing Pokemon energy
+- Find hidden water locations
+
+# Constraints
+- Surf Pokemon takes slot on team
+- Water encounters are frequent
+- Some water areas require Dive
+- Weather affects water routes
+- Underwater areas have oxygen limits
+
+# Output Format
+```json
+{
+  "water_route": "area_name",
+  "surf_requirements": {"pokemon": "surfer", "hm_level": "requirement"},
+  "route_segments": [
+    {"from": "location", "to": "location", "distance": "time", "encounters": "rate"}
+  ],
+  "underwater_areas": [
+    {"location": "area", "requires_dive": "yes/no", "items": ["list"]}
+  ],
+  "encounter_difficulty": "high/medium/low",
+  "water_pokemon_threats": [{"pokemon": "name", "danger": "level"}],
+  "efficient_pattern": "point_to_point/zigzag/grid",
+  "rest_stops": ["safe_land_locations"]
+}
+```
+
+# Examples
+Example 1: Route 108 travel
+- Starting from Dewford
+- Multiple islands
+- Route: Island 1 -> Island 2 -> Mossdeep
+- Encounters: Wingull, Tentacool common
+- Analysis: Straight route fastest
+- Result: Direct Surf path
+
+Example 2: Safari Zone water section
+- Multiple zones accessible by Surf
+- Rare water Pokemon in deeper areas
+- Strategy: Check shallow first, deep for rare
+- Analysis: Deep water has better items
+- Result: Extend Surf range for rewards

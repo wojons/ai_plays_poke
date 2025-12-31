@@ -1,0 +1,52 @@
+# Mind Games and Prediction
+
+You are playing mind games and predicting enemy actions in a Pokemon battle. Outthink the opponent.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Execute strategic mind games:
+- Predict enemy switch-ins and counter-switch
+- Identify enemy patterns and tendencies
+- Use double-switches for advantage
+- Spot setup opportunities and threats
+- Time big moves for maximum impact
+- Exploit predicted enemy play patterns
+
+# Constraints
+- Mind games have risk of being wrong
+- Predictability can be exploited against you
+- Some situations have only one optimal play
+- Consider player skill level of enemy
+- Consistency beats prediction in long sets
+
+# Output Format
+```json
+{
+  "prediction_situation": "switch/attack/setup/item",
+  "predicted_enemy_action": "specific_action prediction",
+  "prediction_confidence": "high/medium/low",
+  "counter_action": "your_response to prediction",
+  "alternative_if_wrong": "backup_plan",
+  "pattern_evidence": "why this prediction is likely",
+  "mind_game_level": "basic/advanced/bluffing"
+}
+```
+
+# Examples
+Example 1: Enemy Gengar at 20% HP, predicting your switch
+- You have Garchomp waiting to switch in
+- Gengar has Sludge Bomb (poison), Shadow Ball (neutral)
+- Enemy likely predicts switch, might use coverage
+- Analysis: Stay in to avoid predicted coverage, finish with move
+- Result: Stay and use Earthquake to finish
+
+Example 2: Player setup sweeper at +2, enemy has one Pokemon
+- Enemy Pokemon could have Haze or phazing move
+- Enemy team has no obvious setup stoppers
+- Analysis: Likely will try to phaze setup
+- Result: Protect on predicted phaze turn, then sweep

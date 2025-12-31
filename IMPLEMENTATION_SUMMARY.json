@@ -1,0 +1,78 @@
+{
+  "summary": {
+    "file_path": "src/core/memory.py",
+    "design_document_path": "specs/ptp_01x_detailed/chapter_05b_tri_tier_memory_architecture.md",
+    "test_file_path": "tests/test_memory.py",
+    "description": "Tri-Tier Memory Architecture implementation for PTP-01X Pokemon AI",
+    "status": "SKELETON_IMPLEMENTATION"
+  },
+  "components": {
+    "ObserverMemory": {
+      "tier": "EPHEMERAL",
+      "lifecycle": "Tick-Level",
+      "methods": ["get_recent_outcomes()", "add_action()", "clear()", "to_dict()"],
+      "dataclasses": ["TickState", "ActionRecord", "SensoryInput"],
+      "purpose": "Working memory for immediate decision context"
+    },
+    "StrategistMemory": {
+      "tier": "SESSION",
+      "lifecycle": "Session-Level",
+      "methods": ["get_objectives_progress()", "get_win_rate()", "record_battle()", "to_dict()"],
+      "dataclasses": ["SessionObjective", "BattleRecord", "LocationVisited", "ResourceSnapshot"],
+      "purpose": "Tactical memory tracking session progress and resources"
+    },
+    "TacticianMemory": {
+      "tier": "PERSISTENT",
+      "lifecycle": "Long-Term",
+      "methods": ["add_pattern()", "record_strategy_success()", "add_mistake()", "load_from_database()", "save_to_database()"],
+      "dataclasses": ["LearnedPattern", "SuccessfulStrategy", "MistakeRecord", "PlayerPreference"],
+      "purpose": "Long-term learned knowledge from multiple sessions"
+    },
+    "MemoryConsolidator": {
+      "tier": "MANAGEMENT",
+      "lifecycle": "Continuous",
+      "methods": ["tick()", "consolidate_observer_to_strategist()", "consolidate_strategist_to_tactician()", "apply_forgetting()"],
+      "config_class": "ConsolidationConfig",
+      "purpose": "Manages memory flow between tiers and pattern recognition"
+    }
+  },
+  "memory_tier_data_structures": {
+    "ObserverMemory": ["TickState", "ActionRecord", "SensoryInput"],
+    "StrategistMemory": ["SessionObjective", "BattleRecord", "LocationVisited", "ResourceSnapshot"],
+    "TacticianMemory": ["LearnedPattern", "SuccessfulStrategy", "MistakeRecord", "PlayerPreference"]
+  },
+  "integration_points": {
+    "database": {"file": "src/db/database.py", "tables": ["tactician_patterns", "successful_strategies", "mistake_records", "player_preferences"]},
+    "goap": {"file": "src/core/goap.py", "integration_class": "MemoryGOAPIntegration"},
+    "ai_client": {"file": "src/core/ai_client.py", "integration_class": "MemoryAIIntegration"}
+  },
+  "recommended_implementation_order": [
+    {"phase": 1, "priority": "HIGH", "tasks": ["Define memory dataclasses", "Create ObserverMemory", "Implement session hooks"]},
+    {"phase": 2, "priority": "HIGH", "tasks": ["Implement StrategistMemory", "Add battle history", "Resource tracking"]},
+    {"phase": 3, "priority": "MEDIUM", "tasks": ["Create TacticianMemory", "Add database schema", "Save/load operations"]},
+    {"phase": 4, "priority": "MEDIUM", "tasks": ["Implement MemoryConsolidator", "Pattern recognition", "Strategy extraction"]},
+    {"phase": 5, "priority": "MEDIUM", "tasks": ["Integrate with GOAP", "Integrate with AI Client", "Memory APIs"]},
+    {"phase": 6, "priority": "LOW", "tasks": ["Forgetting logic", "Prioritization", "Performance tuning"]}
+  ],
+  "known_dependencies": {
+    "1.6": "Game state definitions",
+    "2.1": "GOAP planner for objective integration",
+    "3.1": "Battle system for battle history",
+    "4.1": "Navigation system for location tracking",
+    "7.1": "Inventory system for resource tracking"
+  },
+  "acceptance_criteria": [
+    "Memory tiers functional and integrated",
+    "Consolidation occurs every 1000 ticks",
+    "Memory queries return relevant context",
+    "No memory bloat over 10+ hour sessions"
+  ],
+  "performance_specifications": {
+    "observer_query": "<1ms",
+    "strategist_query": "<5ms",
+    "tactician_query": "<10ms",
+    "consolidation": "<100ms",
+    "database_save": "<50ms",
+    "database_load": "<100ms"
+  }
+}

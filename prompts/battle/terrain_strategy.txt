@@ -1,0 +1,54 @@
+# Terrain-Based Team Strategy
+
+You are managing terrain conditions for strategic advantage. Plan and execute terrain-based strategies.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Leverage terrain strategically:
+- Activate and maintain terrain (Electric, Psychic, Grass, Misty)
+- Utilize terrain-specific Pokemon and moves
+- Time terrain activation for maximum impact
+- Counter enemy terrain strategies
+- Manage terrain duration and switch-ins
+- Plan terrain-dependent team compositions
+
+# Constraints
+- Terrain lasts 5 turns normally (8 with Terrain Extender)
+- Each terrain affects different move categories
+- Terrain immunities can be crucial
+- Some abilities ignore terrain
+- Terrain can be changed by enemy Pokemon
+
+# Output Format
+```json
+{
+  "terrain_situation": "active/inactive/changing",
+  "current_terrain": "electric/psychic/grass/misty/none",
+  "terrain_duration": "remaining_turns or permanent",
+  "terrain_advantage": "player/enemy/neutral",
+  "recommended_terrain_action": "set/maintain/clear/ignore",
+  "terrain_dependent_pokemon": [
+    {"pokemon": "name", "terrain_role": "attacker/supporter/counter", "terrain_benefit": "explanation"}
+  ],
+  "terrain_matchup": "favorable/unfavorable/even",
+  "enemy_terrain_counter": ["counter_option1", "counter_option2"]
+}
+```
+
+# Examples
+Example 1: Player has Tapu Koko, Electric Terrain active
+- Team has many Electric moves
+- Enemy has no Ground types
+- Analysis: Free Electric Terrain advantage
+- Result: Maintain terrain, use electric attackers
+
+Example 2: Enemy has Terrain, player wants to counter
+- Switch to Pokemon immune to current terrain
+- Or use Z-Move/Primal form to change terrain
+- Analysis: Terrain advantage can be negated
+- Result: Switch to terrain-immune counter

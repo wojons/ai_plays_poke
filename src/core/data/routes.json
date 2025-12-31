@@ -1,0 +1,268 @@
+{
+  "version": "1.0",
+  "description": "Route definitions for Kanto region navigation",
+  "routes": [
+    {
+      "id": "pallet_town",
+      "name": "Pallet Town",
+      "width": 20,
+      "height": 15,
+      "connections": ["route1"],
+      "environment": "town"
+    },
+    {
+      "id": "route1",
+      "name": "Route 1",
+      "width": 40,
+      "height": 10,
+      "connections": ["pallet_town", "viridian_city"],
+      "environment": "grassland"
+    },
+    {
+      "id": "viridian_city",
+      "name": "Viridian City",
+      "width": 25,
+      "height": 20,
+      "connections": ["route1", "route2"],
+      "environment": "city"
+    },
+    {
+      "id": "route2",
+      "name": "Route 2",
+      "width": 15,
+      "height": 45,
+      "connections": ["viridian_city", "pewter_city", "digletts_cave"],
+      "environment": "grassland"
+    },
+    {
+      "id": "pewter_city",
+      "name": "Pewter City",
+      "width": 30,
+      "height": 25,
+      "connections": ["route2", "route3"],
+      "environment": "city"
+    },
+    {
+      "id": "route3",
+      "name": "Route 3",
+      "width": 50,
+      "height": 15,
+      "connections": ["pewter_city", "cerulean_city", "mt_moon"],
+      "environment": "grassland"
+    },
+    {
+      "id": "cerulean_city",
+      "name": "Cerulean City",
+      "width": 30,
+      "height": 25,
+      "connections": ["route3", "route4", "route24", "route25"],
+      "environment": "city"
+    },
+    {
+      "id": "route4",
+      "name": "Route 4",
+      "width": 15,
+      "height": 35,
+      "connections": ["cerulean_city", "rock_tunnel"],
+      "environment": "grassland"
+    },
+    {
+      "id": "rock_tunnel",
+      "name": "Rock Tunnel",
+      "width": 25,
+      "height": 20,
+      "connections": ["route4", "route9"],
+      "environment": "cave",
+      "requires_flash": true
+    },
+    {
+      "id": "route9",
+      "name": "Route 9",
+      "width": 40,
+      "height": 12,
+      "connections": ["rock_tunnel", "route10"],
+      "environment": "grassland"
+    },
+    {
+      "id": "route10",
+      "name": "Route 10",
+      "width": 20,
+      "height": 30,
+      "connections": ["route9", "lavender_town"],
+      "environment": "grassland"
+    },
+    {
+      "id": "lavender_town",
+      "name": "Lavender Town",
+      "width": 20,
+      "height": 18,
+      "connections": ["route10", "route12"],
+      "environment": "town"
+    },
+    {
+      "id": "route12",
+      "name": "Route 12",
+      "width": 45,
+      "height": 15,
+      "connections": ["lavender_town", "route11"],
+      "environment": "grassland",
+      "requires_surf": true
+    },
+    {
+      "id": "route11",
+      "name": "Route 11",
+      "width": 15,
+      "height": 25,
+      "connections": ["route12", "vermilion_city"],
+      "environment": "grassland"
+    },
+    {
+      "id": "vermilion_city",
+      "name": "Vermilion City",
+      "width": 30,
+      "height": 22,
+      "connections": ["route11", "route6"],
+      "environment": "city"
+    },
+    {
+      "id": "route6",
+      "name": "Route 6",
+      "width": 15,
+      "height": 35,
+      "connections": ["vermilion_city", "saffron_city"],
+      "environment": "grassland"
+    },
+    {
+      "id": "saffron_city",
+      "name": "Saffron City",
+      "width": 40,
+      "height": 35,
+      "connections": ["route6", "route7", "route8"],
+      "environment": "city"
+    },
+    {
+      "id": "route7",
+      "name": "Route 7",
+      "width": 40,
+      "height": 15,
+      "connections": ["saffron_city", "celadon_city"],
+      "environment": "grassland"
+    },
+    {
+      "id": "route8",
+      "name": "Route 8",
+      "width": 15,
+      "height": 40,
+      "connections": ["saffron_city", "fuchsia_city"],
+      "environment": "grassland"
+    },
+    {
+      "id": "celadon_city",
+      "name": "Celadon City",
+      "width": 35,
+      "height": 30,
+      "connections": ["route7", "route16"],
+      "environment": "city"
+    },
+    {
+      "id": "route16",
+      "name": "Route 16",
+      "width": 50,
+      "height": 12,
+      "connections": ["celadon_city", "route17"],
+      "environment": "grassland"
+    },
+    {
+      "id": "route17",
+      "name": "Route 17",
+      "width": 15,
+      "height": 45,
+      "connections": ["route16", "fuchsia_city"],
+      "environment": "cycling"
+    },
+    {
+      "id": "fuchsia_city",
+      "name": "Fuchsia City",
+      "width": 30,
+      "height": 25,
+      "connections": ["route8", "route17", "route18", "safari_zone"],
+      "environment": "city"
+    },
+    {
+      "id": "route18",
+      "name": "Route 18",
+      "width": 40,
+      "height": 12,
+      "connections": ["fuchsia_city", "route19"],
+      "environment": "grassland"
+    },
+    {
+      "id": "route19",
+      "name": "Route 19",
+      "width": 35,
+      "height": 10,
+      "connections": ["route18", "route20"],
+      "environment": "water",
+      "requires_surf": true
+    },
+    {
+      "id": "route20",
+      "name": "Route 20",
+      "width": 40,
+      "height": 15,
+      "connections": ["route19", "cinnabar_island"],
+      "environment": "water",
+      "requires_surf": true
+    },
+    {
+      "id": "cinnabar_island",
+      "name": "Cinnabar Island",
+      "width": 25,
+      "height": 20,
+      "connections": ["route20", "route21"],
+      "environment": "city"
+    },
+    {
+      "id": "route21",
+      "name": "Route 21",
+      "width": 15,
+      "height": 20,
+      "connections": ["cinnabar_island", "pallet_town"],
+      "environment": "grassland"
+    }
+  ],
+  "pokemon_centers": [
+    {"name": "Pallet Town Center", "x": 6, "y": 10, "map_id": "pallet_town"},
+    {"name": "Viridian City Center", "x": 10, "y": 12, "map_id": "viridian_city"},
+    {"name": "Pewter City Center", "x": 8, "y": 8, "map_id": "pewter_city"},
+    {"name": "Cerulean City Center", "x": 12, "y": 10, "map_id": "cerulean_city"},
+    {"name": "Lavender Town Center", "x": 6, "y": 8, "map_id": "lavender_town"},
+    {"name": "Vermilion City Center", "x": 10, "y": 12, "map_id": "vermilion_city"},
+    {"name": "Celadon City Center", "x": 15, "y": 12, "map_id": "celadon_city"},
+    {"name": "Fuchsia City Center", "x": 10, "y": 10, "map_id": "fuchsia_city"},
+    {"name": "Cinnabar Island Center", "x": 8, "y": 8, "map_id": "cinnabar_island"},
+    {"name": "Saffron City Center", "x": 15, "y": 15, "map_id": "saffron_city"}
+  ],
+  "gyms": [
+    {"name": "Viridian Gym", "x": 9, "y": 5, "map_id": "viridian_city", "badge": "earth", "leader": "Giovanni"},
+    {"name": "Pewter Gym", "x": 7, "y": 5, "map_id": "pewter_city", "badge": "boulder", "leader": "Brock"},
+    {"name": "Cerulean Gym", "x": 9, "y": 6, "map_id": "cerulean_city", "badge": "cascade", "leader": "Misty"},
+    {"name": "Vermilion Gym", "x": 8, "y": 5, "map_id": "vermilion_city", "badge": "thunder", "leader": "Lt. Surge"},
+    {"name": "Celadon Gym", "x": 12, "y": 8, "map_id": "celadon_city", "badge": "rainbow", "leader": "Erika"},
+    {"name": "Fuchsia Gym", "x": 10, "y": 6, "map_id": "fuchsia_city", "badge": "soul", "leader": "Koga"},
+    {"name": "Saffron Gym", "x": 15, "y": 10, "map_id": "saffron_city", "badge": "marsh", "leader": "Sabrina"},
+    {"name": "Cinnabar Gym", "x": 8, "y": 6, "map_id": "cinnabar_island", "badge": "volcano", "leader": "Blaine"}
+  ],
+  "shops": [
+    {"name": "Pallet Mart", "x": 7, "y": 9, "map_id": "pallet_town", "inventory": ["potion", "antidote", "paralyze_heal"]},
+    {"name": "Viridian Mart", "x": 11, "y": 10, "map_id": "viridian_city", "inventory": ["potion", "antidote", "escape_rope"]},
+    {"name": "Pewter Mart", "x": 9, "y": 9, "map_id": "pewter_city", "inventory": ["potion", "repel", "antidote"]},
+    {"name": "Cerulean Mart", "x": 11, "y": 9, "map_id": "cerulean_city", "inventory": ["potion", "super_potion", "repel"]},
+    {"name": "Lavender Mart", "x": 7, "y": 7, "map_id": "lavender_town", "inventory": ["potion", "revive", "escape_rope"]},
+    {"name": "Vermilion Mart", "x": 11, "y": 11, "map_id": "vermilion_city", "inventory": ["super_potion", "repel", "max_repel"]},
+    {"name": "Celadon Mart", "x": 16, "y": 11, "map_id": "celadon_city", "inventory": ["super_potion", "hyper_potion", "revive"]},
+    {"name": "Fuchsia Mart", "x": 11, "y": 9, "map_id": "fuchsia_city", "inventory": ["super_potion", "repel", "escape_rope"]},
+    {"name": "Saffron Mart", "x": 14, "y": 14, "map_id": "saffron_city", "inventory": ["hyper_potion", "max_repel", "full_heal"]},
+    {"name": "Cinnabar Mart", "x": 9, "y": 7, "map_id": "cinnabar_island", "inventory": ["burn_heal", "ice_heal", "awakening"]}
+  ]
+}

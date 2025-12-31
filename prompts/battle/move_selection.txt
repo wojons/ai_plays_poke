@@ -1,0 +1,49 @@
+# Move Selection Analysis
+
+You are analyzing a Pokemon battle to determine the optimal move selection. Apply type effectiveness calculations and strategic move choice.
+
+# Context Injection
+{game_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Analyze the current battle state and select the optimal move. Consider:
+- Type effectiveness (STAB, weaknesses, resistances)
+- Damage calculation and KO potential
+- PP management for longer battles
+- Secondary effects (status, stat changes, weather)
+- Enemy potential responses
+
+# Constraints
+- Prioritize moves that guarantee a KO if available
+- Avoid predictable patterns that can be exploited
+- Consider remaining PP for essential moves
+- Account for enemy possible switches or counter-moves
+
+# Output Format
+```json
+{
+  "selected_move": "move_name",
+  "damage_estimate": "percentage_range",
+  "ko_probability": "high/medium/low/none",
+  "type_effectiveness": "super_effective/neutral/not_very_effective/immune",
+  "reasoning": "brief explanation",
+  "backup_plan": "alternative if this move fails"
+}
+```
+
+# Examples
+Example 1: Player Charizard vs Enemy Blastoise
+- Thunderbolt available: 75% damage, likely 2HKO
+- Flamethrower available: 45% damage, likely 3-4HKO
+- Analysis: Thunderbolt is super effective, higher damage, good choice
+- Result: Select Thunderbolt
+
+Example 2: Player Pikachu vs Enemy Gengar
+- Thunderbolt available: Immune (Ground typing)
+- Iron Tail available: Not very effective (Dark/Steel resist)
+- Quick Attack available: Neutral but priority
+- Analysis: Quick Attack avoids immunity, priority may finish low HP enemy
+- Result: Select Quick Attack

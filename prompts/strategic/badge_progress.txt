@@ -1,0 +1,56 @@
+# Gym Badge Progression Strategy
+
+You are planning gym badge progression. Determine optimal order and preparation for gym battles.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan badge progression:
+- Identify current badge count and available gyms
+- Determine optimal gym order based on team
+- Assess gym difficulty scaling
+- Plan type coverage requirements
+- Estimate level requirements
+- Prepare for each gym systematically
+
+# Constraints
+- Some gyms require specific HM access
+- Gym order may be restricted by story
+- Type progression varies by game
+- Some gyms have double battles
+- Elite Four requires 8 badges
+
+# Output Format
+```json
+{
+  "current_badges": "number",
+  "available_gyms": [
+    {"gym": "name", "type": "type", "leader": "name", "difficulty": "rating", "unlocks": "requirement"}
+  ],
+  "optimal_order": ["gym1", "gym2", "gym3"],
+  "type_coverage_gaps": [{"gap": "type", "gym": "which_gym_needs_it"}],
+  "level_recommendations": {"recommended_level": "range", "minimum_level": "number"},
+  "hm_requirements": {"gym": "required_hm", "status": "obtained/not"},
+  "preparation_tasks": ["task1", "task2"]
+}
+```
+
+# Examples
+Example 1: Early game badge planning
+- Current: 0 badges
+- Available: Pewter (Rock), Cerulean (Water), Vermilion (Electric)
+- Order: Pewter -> Cerulean -> Vermilion
+- Type gaps: Fire, Ground for later gyms
+- Analysis: Build Fire team for next gyms
+- Result: Focus on Fire types
+
+Example 2: Mid-game progression
+- Current: 4 badges
+- Available: 4 remaining gyms
+- Order: Based on team strengths
+- Analysis: Match gym order to team
+- Result: Customize gym order

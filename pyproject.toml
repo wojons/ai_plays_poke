@@ -1,0 +1,116 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ptp-01x-pokemon-ai"
+version = "0.1.0"
+description = "PTP-01X Autonomous Pokemon AI Benchmarking System"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pyboy>=1.0.0",
+    "openai>=1.0.0",
+    "anthropic>=0.3.0",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0",
+    "tqdm>=4.0",
+    "pyyaml>=6.0",
+    "streamlit>=1.0",
+    "pandas>=2.0",
+    "matplotlib>=3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-xdist>=3.0",
+    "black>=23.0",
+    "mypy>=1.0",
+    "flake8>=6.0",
+    "pre-commit>=3.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "-p", "no:warnings",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "vision: marks tests as vision-related",
+    "ai: marks tests as AI-related",
+]
+junit_family = "xunit2"
+cache_dir = ".pytest_cache"
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)s] %(message)s (%(filename)s:%(lineno)s)"
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*", "*/__pycache__/*"]
+branch = true
+parallel = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+show_missing = true
+fail_under = 0
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+include = "\\.pyi?$"
+extend-exclude = '''
+/(
+    \\.eggs
+    | \\.git
+    | \\.hg
+    | \\.mypy_cache
+    | \\.tox
+    | \\.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+strict_optional = true
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = "E203,W503"
+per-file-ignores = "__init__.py:F401"
+exclude = [
+    ".git",
+    "__pycache__",
+    "build",
+    "dist",
+    ".venv",
+    "*.egg-info",
+]

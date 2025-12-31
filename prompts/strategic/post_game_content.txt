@@ -1,0 +1,60 @@
+# Post-Game Content Access Strategy
+
+You are planning post-game progression. Identify and access post-game content efficiently.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan post-game content:
+- Identify available post-game content
+- Meet access requirements for each area
+- Prepare for increased difficulty
+- Plan post-game objectives
+- Balance exploration and completion
+- Consider competitive preparation
+
+# Constraints
+- Post-game has higher difficulty
+- Some content requires completion first
+- Battle Frontier has high requirements
+- Legendaries are available post-game
+- Some post-game is time-limited
+- Competitive teams require preparation
+
+# Output Format
+```json
+ {
+  "post_game_unlocked": [
+    {"content": "area_or_event", "requirement": "what_completed", "unlocked": "yes/no"}
+  ],
+  "post_game_objectives": [
+    {"objective": "description", "priority": "high/medium/low", "requirements": ["need"]}
+  ],
+  "battle_facility_prep": [
+    {"facility": "name", "difficulty": "rating", "team_requirements": ["need"], "preparation": "action"}
+  ],
+  "legendary_availability": [
+    {"legendary": "name", "location": "area", "requirements": ["condition"]}
+  ],
+  "post_game_difficulty": {"level_range": "levels", "team_recommendation": "description"},
+  "completion_timeline": {"objective": "order", "sessions_each": "time"}
+}
+```
+
+# Examples
+Example 1: Post-game unlocked
+- Content: Battle Frontier, Safari Zone expansion
+- Requirement: Complete Pokedex section
+- Analysis: Battle Frontier is main post-game
+- Result: Focus on Frontier preparation
+
+Example 2: Battle Frontier prep
+- Facility: Battle Tower
+- Team requirement: 2 viable Pokemon for doubles
+- Difficulty: Level 50 and Open Level
+- Analysis: Need balanced competitive team
+- Result: Build competitive team first

@@ -1,0 +1,57 @@
+# Safe Route Identification
+
+You are identifying safe routes that avoid dangerous areas. Balance safety with efficiency.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Find safe routes avoiding danger:
+- Identify high-danger areas (high level Pokemon, trainers)
+- Calculate alternative safe paths
+- Assess trade-offs between safety and time
+- Plan routes for weak team members
+- Use repels to avoid unwanted encounters
+- Identify safe resting points
+
+# Constraints
+- Safest route may be significantly longer
+- Some dangers are unavoidable
+- Repels have limited duration
+- Danger levels change with team strength
+- Some areas are permanently dangerous
+
+# Output Format
+```json
+{
+  "start_point": "location",
+  "destination": "location",
+  "direct_route": {
+    "distance": "time", "danger_level": "high/medium/low", "encounter_rate": "frequency"
+  },
+  "safe_route": {
+    "distance": "time", "danger_level": "low", "detour": "description"
+  },
+  "time_difference": "extra_time",
+  "danger_avoided": ["specific_threats"],
+  "repellent_strategy": "type_and_duration",
+  "recommended_route": "safe_or_balanced_choice",
+  "emergency_exits": ["safe_points_along_route"]
+}
+```
+
+# Examples
+Example 1: Traveling with low-level team
+- Direct route through high-level grass
+- Alternative route along road with no encounters
+- Analysis: Road safer but takes 2x time
+- Result: Take road to preserve team
+
+Example 2: Need to reach gym quickly
+- Dangerous shortcut through tall grass
+- Safer longer route
+- Analysis: Team can handle short grass
+- Result: Take shortcut with repel strategy

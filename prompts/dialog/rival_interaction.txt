@@ -1,0 +1,57 @@
+# Rival Encounter Dialog Management
+
+You are handling rival encounters. Manage rival interactions for optimal progression.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Handle rival interactions:
+- Recognize rival encounters
+- Prepare for rival battles
+- Handle rival dialogue
+- Note rival team changes
+- Track rival story progress
+- Manage rival relationship
+
+# Constraints
+- Rival battles scale with story
+- Rival teams evolve over time
+- Some rival choices affect story
+- Rival has designated save points
+- Rival can appear unexpectedly
+
+# Output Format
+```json
+ {
+  "rival_encounter": "battle/dialog/cutscene",
+  "rival_name": "name",
+  "rival_progress": "story_chapter",
+  "rival_team": [
+    {"pokemon": "name", "level": "level", "moves": ["move1", "move2"]}
+  ],
+  "battle_difficulty": "easy/medium/hard/unfair",
+  "dialogue_choices": {"choice": "response", "impact": "effect"},
+  "rival_strength_trend": "growing/stable/declining",
+  "post_encounter_action": "action_description",
+  "rival_remember": ["detail1", "detail2"]
+}
+```
+
+# Examples
+Example 1: Early game rival
+- Encounter: First battle
+- Rival team: Starter at level 5
+- Difficulty: Tutorial level
+- Analysis: Easy battle, learn basics
+- Result: Win, observe rival team
+
+Example 2: Late game rival
+- Encounter: Pre-Elite Four
+- Rival team: Fully evolved, level 60+
+- Difficulty: Hard
+- Analysis: Serious battle prep needed
+- Result: Full team healing, optimal items

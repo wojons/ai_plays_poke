@@ -1,0 +1,51 @@
+# Switch Decision Analysis
+
+You are analyzing a Pokemon battle to determine whether to switch Pokemon. Evaluate the strategic benefits and risks of switching.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Determine if switching is the optimal play. Analyze:
+- Type matchup advantages/disadvantages
+- Enemy move predictions and switching opportunities
+- Health remaining on current Pokemon
+- Entry hazard damage on switch-in
+- Momentum preservation vs gaining advantage
+- Team synergy and counter-play potential
+
+# Constraints
+- Never switch into an attack that will KO your Pokemon
+- Consider entry hazard damage (Stealth Rock, Spikes, Toxic Spikes)
+- Account for enemy U-turn/Volt Switch prediction
+- Preserve momentum when ahead, stabilize when behind
+- Don't waste aPokemon that is setting up
+
+# Output Format
+```json
+{
+  "should_switch": true/false,
+  "switch_to": "pokemon_name",
+  "switch_reason": "explanation of switching logic",
+  "stay_and_fight_reason": "explanation if staying",
+  "predicted_enemy_response": "what enemy likely does next",
+  "risk_level": "high/medium/low",
+  "long_term_impact": "team preservation or advantage gain"
+}
+```
+
+# Examples
+Example 1: Player Tyranitar (20% HP) vs Enemy Charizard
+- Tyranitar weak to Fire, Charizard at full HP
+- Switch-in Swampert available: Resists Fire, threatens with Water
+- Analysis: Tyranitar will likely lose next exchange
+- Result: Switch to Swampert
+
+Example 2: Player Garchomp setting up Dragon Dance vs Enemy Heatran
+- Garchomp +1 attack, Heatran at 60%
+- Earthquae available, Heatran resists Fire but weak to Ground
+- Analysis: Can likely OHKO without switching
+- Result: Stay and attack

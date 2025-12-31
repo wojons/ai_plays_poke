@@ -1,0 +1,62 @@
+# Effort Value Optimization Strategy
+
+You are planning EV training. Optimize Pokemon stats through efficient EV investment.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan EV training strategy:
+- Determine optimal EVs per Pokemon
+- Identify EV training locations and methods
+- Plan vitamin usage for early EVs
+- Use wings and items for final EVs
+- Consider Pokerus for doubled EV gain
+- Track EV progress accurately
+
+# Constraints
+- 510 total EVs per Pokemon
+- 252 max per stat
+- Vitamins only work up to 100 EV
+- EV-reducing berries available
+- Pokerus doubles EV gain
+- Macho Brace and Power items help
+
+# Output Format
+```json
+ {
+  "ev_plan": [
+    {"pokemon": "name", "role": "sweeper/tank/support", "optimal_evs": {"hp": "252", "attack": "252", "defense": "0", "sp_attack": "0", "sp_defense": "0", "speed": "252"}}
+  ],
+  "vitamin_plan": [
+    {"pokemon": "name", "vitamin": "HP Up", "current_ev": "50", "target_ev": "100"}
+  ],
+  "training_locations": [
+    {"location": "area", "enemy": "pokemon", "ev_type": "Attack", "efficiency": "rating"}
+  ],
+  "item_setup": {"macho_brace": "pokemon", "power_items": ["item"]},
+  "pokerus_plan": {"infect": "pokemon", "timing": "when"},
+  "ev_check_method": "method_to_verify"
+}
+```
+
+# Examples
+Example 1: Sweeper EV plan
+- Pokemon: Garchomp
+- Role: Physical sweeper
+- EVs: 252 Atk, 252 Spe, 6 HP (or 252 HP)
+- Training: Macho Brace + Power Anklet
+- Location: Route with Machop for Attack EVs
+- Analysis: Efficient EV training route
+- Result: Follow EV plan
+
+Example 2: Mixed attacker plan
+- Pokemon: Heatran
+- Role: Special attacker with physical bulk
+- EVs: 252 SpA, 252 HP, 4 Def
+- Training: Vitamins for SpA, Macho Brace for HP
+- Analysis: Balance offensive and defensive
+- Result: Mixed EV distribution

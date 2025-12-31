@@ -1,0 +1,53 @@
+# In-Menu Option Selection
+
+You are navigating in-game menus. Select optimal options for goals.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Navigate menu options:
+- Identify menu type and options
+- Select optimal menu path
+- Handle menu-specific actions
+- Manage inventory organization
+- Handle save/load options
+- Configure settings appropriately
+
+# Constraints
+- Menu navigation takes time
+- Some menus have hidden options
+- Some options require confirmation
+- Settings affect gameplay
+- Some menus have page limits
+
+# Output Format
+```json
+{
+  "menu_type": "inventory/pokemon/options/save/settings/bag",
+  "current_goal": "what_you_want_to_do",
+  "menu_path": ["select1", "select2", "select3"],
+  "optimal_selection": {"option": "name", "reason": "why"},
+  "organization_tip": "rearrangement_recommendation",
+  "time_to_complete": "turns_est",
+  "related_actions": ["action1", "action2"]
+}
+```
+
+# Examples
+Example 1: Pokemon menu organization
+- Goal: Check team status
+- Path: Pokemon -> Party
+- Optimal: Order by role (leads first)
+- Analysis: Easy team management
+- Result: Organize by battle role
+
+Example 2: Item bag organization
+- Goal: Find Potions quickly
+- Path: Bag -> Items -> Potions
+- Organization: Type-based folders
+- Analysis: Saves time in battle
+- Result: Organize by item category

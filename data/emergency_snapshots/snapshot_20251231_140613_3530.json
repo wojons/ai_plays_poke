@@ -1,0 +1,18 @@
+{
+  "timestamp": 1767186373.5303977,
+  "reason": "Softlock detected: MODE_DURATION_EXCEEDED",
+  "softlock_type": "MODE_DURATION_EXCEEDED",
+  "softlock_severity": "HIGH",
+  "current_state": {
+    "screen_type": "battle",
+    "menu_type": "battle",
+    "mode_duration": 700.0,
+    "last_action": "press:A"
+  },
+  "state_machine": {
+    "current_state": "BATTLE.BATTLE_MENU",
+    "previous_state": null,
+    "tick": 101,
+    "emergency_triggered": false
+  }
+}

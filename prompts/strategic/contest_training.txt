@@ -1,0 +1,59 @@
+# Contest Preparation Strategy
+
+You are preparing for Pokemon contests. Optimize contest performance and training.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan contest preparation:
+- Identify contest type and requirements
+- Prepare Pokemon for contest stats
+- Use Poffins for contest stats
+- Plan move order for contest
+- Consider contest rewards and ribbons
+- Balance contest training with battle training
+
+# Constraints
+- Contests require different stats (Cool, Beauty, Cute, Smart, Tough)
+- Poffins are expensive
+- Contest moves must be learned
+- Some Pokemon are better at certain contests
+- Contest training takes time away from battles
+- Ribbons are permanent achievements
+
+# Output Format
+```json
+ {
+  "contest_goal": {"type": "contest_type", "rank": "normal/super/master"},
+  "contest_pokemon": [
+    {"pokemon": "name", "contest_type": "type", "current_stats": {"cool": "20", "beauty": "20"}, "target_stats": {"cool": "50", "beauty": "50"}}
+  ],
+  "poffin_plan": {"poffin_type": "type", "quantity_needed": "number", "cost": "price"},
+  "move_preparation": [
+    {"pokemon": "name", "contest_move": "move", "learn_method": "level/tm/tutor"}
+  ],
+  "contest_strategy": {"move_order": ["move1", "move2", "move3", "move4"], "timing": "when_to_use"},
+  "contest_rewards": {"ribbon": "name", "benefit": "description"},
+  "time_investment": {"sessions_needed": "number", "priority": "high/medium/low"}
+}
+```
+
+# Examples
+Example 1: Beauty contest prep
+- Contest: Pokemon Contest (Beauty)
+- Pokemon: Milotic (good Beauty base)
+- Needed: Beauty stat boost
+- Poffins: Beauty Poffins
+- Analysis: Milotic is natural beauty contestant
+- Result: Feed Beauty Poffins
+
+Example 2: Master Rank prep
+- Contest: Master Rank contests
+- Requirement: High stats in category
+- Pokemon: Optimized for specific contest
+- Analysis: Long-term contest project
+- Result: Plan months of preparation

@@ -1,0 +1,125 @@
+# PTP-01X Prompt Library Catalog
+
+## Overview
+This catalog contains 55 specialized prompts for the Pokemon AI system. Prompts are organized by category and priority level.
+
+## Prompt Categories
+
+### Battle Prompts (16 total - 15 new + 1 existing)
+1. `basic_fighting.txt` - Basic battle analysis (EXISTING)
+2. `move_selection.txt` - Type effectiveness analysis
+3. `switch_decision.txt` - When to switch Pokemon
+4. `status_management.txt` - Status condition handling
+5. `catch_strategy.txt` - Wild Pokemon catching
+6. `boss_preparation.txt` - Gym leader preparation
+7. `type_matchup.txt` - Detailed type analysis
+8. `priority_moves.txt` - Priority move selection
+9. `setup_sweeper.txt` - Setting up sweepers
+10. `cleanup_role.txt` - Late-game cleanup
+11. `hazard_control.txt` - Entry hazard management
+12. `weather_strategy.txt` - Weather-based teams
+13. `tailwind_support.txt` - Speed control
+14. `terrain_strategy.txt` - Terrain-based teams
+15. `reversal_mind.txt` - Prediction and mind games
+16. `endgame_timing.txt` - Victory condition timing
+
+### Exploration Prompts (11 total - 10 new + 1 existing)
+1. `pathfinding.txt` - Basic pathfinding (EXISTING)
+2. `route_planning.txt` - Multi-step route planning
+3. `hm_usage.txt` - When/how to use HM moves
+4. `area_mapping.txt` - Unknown area exploration
+5. `safe_routes.txt` - Avoiding dangerous areas
+6. `shortest_path.txt` - Efficient travel
+7. `resource_gathering.txt` - Item collection routes
+8. `hidden_item_hunting.txt` - Secret item locations
+9. `legendary_encounter.txt` - Legendary Pokemon strategies
+10. `cave_exploration.txt` - Underground navigation
+11. `water_route_planning.txt` - Surf and water routes
+
+### Dialog Prompts (11 total - 10 new + 1 existing)
+1. `text_flow.txt` - Basic text analysis (EXISTING)
+2. `shop_navigation.txt` - Shopping dialog handling
+3. `trainer_intro.txt` - Trainer battle recognition
+4. `story_advancement.txt` - Key story events
+5. `item_description.txt` - Item information extraction
+6. `npc_conversation.txt` - NPC dialogue handling
+7. `yes_no_decisions.txt` - Binary choice dialogs
+8. `menu_selection.txt` - In-menu option selection
+9. `save_prompt.txt` - Save game decisions
+10. `gift_receiving.txt` - Gift and reward extraction
+11. `rival_interaction.txt` - Rival encounter dialogs
+
+### Menu Prompts (1 total - 1 existing)
+1. `navigation.txt` - Menu navigation (EXISTING)
+
+### Strategic Prompts (16 total - 15 new + 1 existing)
+1. `game_planning.txt` - Basic strategic analysis (EXISTING)
+2. `badge_progress.txt` - Next gym strategy
+3. `team_gaps.txt` - Type coverage analysis
+4. `experience_allocation.txt` - Which Pokemon to train
+5. `long_term_goals.txt` - Multi-session planning
+6. `ev_optimal.txt` - Effort Value optimization
+7. `iv_breeding.txt` - Individual Value considerations
+8. `nature_selection.txt` - Nature choices for Pokemon
+9. `move_tutor_priority.txt` - Move tutor decisions
+10. `tm_acquisition.txt` - Technical Machine priorities
+11. `berry_strategy.txt` - Berry usage and farming
+12. `contest_training.txt` - Beauty contest preparation
+13. `pokedex_completion.txt` - National Dex goals
+14. `money_management.txt` - Budget optimization
+15. `trading_strategy.txt` - NPC trade requirements
+16. `post_game_content.txt` - Endgame content access
+
+## Prompt Selection by Game State
+
+### Battle State Triggers
+- Any battle prompt during active combat
+- Switch decision during enemy attack animations
+- Type matchup when new Pokemon enters battle
+- Priority moves when enemy at low HP
+
+### Dialog State Triggers
+- Shop navigation when entering stores
+- Trainer intro when challenge is offered
+- Story advancement at key cutscenes
+- Yes/no decisions at choice prompts
+
+### Exploration State Triggers
+- Route planning at area transitions
+- HM usage at blocked paths
+- Hidden item hunting in item-rich areas
+- Safe routes when team is low level
+
+### Menu State Triggers
+- Save prompts at save points
+- Inventory management when bag is opened
+- Pokemon selection at team management screens
+
+### Strategic State Triggers
+- Badge progress when approaching gyms
+- Team gaps after major battles
+- EV optimization after leveling up
+- Long-term goals at session boundaries
+
+## Priority Levels
+- **Critical (Priority 5)**: Immediate battle decisions, story progression
+- **High (Priority 4)**: Gym preparation, resource management
+- **Medium (Priority 3)**: Team optimization, exploration planning
+- **Low (Priority 2)**: Optional improvements, secondary objectives
+- **Background (Priority 1)**: Long-term goals, post-game content
+
+## Usage Metrics
+Each prompt tracks:
+- Usage count
+- Effectiveness score (1-5)
+- Last used timestamp
+- Success rate for prompt-specific outcomes
+
+## Integration Notes
+The PromptManager automatically selects prompts based on:
+1. Current game state type (battle, dialog, exploration, menu)
+2. AI preference mode (balanced, tactical, strategic)
+3. Context keywords in game state
+4. Priority weighting for situation relevance
+
+See `src/core/prompt_manager.py` for implementation details.

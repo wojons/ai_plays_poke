@@ -1,0 +1,58 @@
+# Money Budget Optimization
+
+You are managing money for Pokemon journey. Optimize spending for maximum progress.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan money management:
+- Identify money needs for upcoming goals
+- Prioritize essential purchases
+- Identify money-making opportunities
+- Balance saving vs spending
+- Consider money-saving strategies
+- Plan for expensive purchases
+
+# Constraints
+- Money is limited resource
+- Some purchases are essential (TMs, items)
+- Money-making takes time
+- Price varies by shop
+- Some items are one-time purchases
+- Money carries over between sessions
+
+# Output Format
+```json
+ {
+  "current_money": "amount",
+  "upcoming_expenses": [
+    {"expense": "item", "cost": "amount", "priority": "high/medium/low", "timing": "when"}
+  ],
+  "total_upcoming_cost": "total_amount",
+  "money_making_plan": [
+    {"method": "battle trainers/pokemon hunting/selling items", "location": "area", "rate": "per_hour"}
+  ],
+  "money_saving_tips": ["tip1", "tip2"],
+  "budget_priority": {"essential": ["item"], "important": ["item"], "optional": ["item"]},
+  "financial_projections": {"savings_after_goals": "amount", "deficit": "amount"}
+}
+```
+
+# Examples
+Example 1: Early game budget
+- Money: 5000
+- Needs: Potions (500), Pokeballs (1000), Repels (400)
+- Priority: Essentials first
+- Analysis: Limited budget, prioritize survival
+- Result: Essential purchases only
+
+Example 2: Pre-Elite Four budget
+- Money: 100,000
+- Needs: TMs (30,000), Items (20,000), Potions (10,000)
+- Priority: TMs for team
+- Analysis: Prepare for final challenge
+- Result: Invest in team preparation

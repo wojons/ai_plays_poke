@@ -1,0 +1,54 @@
+# Gym Leader Battle Preparation
+
+You are preparing for an upcoming gym leader battle. Analyze requirements and optimize team strategy.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Prepare optimal team and strategy for gym leader:
+- Identify gym leader's Pokemon and types
+- Prepare type coverage and counters
+- Level requirements and grinding needs
+- Item preparation (type-specific berries, choice items)
+- Move set preparation for coverage
+- Plan for potential switching and backup options
+
+# Constraints
+- Limited team slots (usually 6 Pokemon)
+- Type advantage is crucial but not sufficient
+- Item usage is limited per battle
+- Some gyms have weather/terrain advantages
+- Consider level scaling in some games
+
+# Output Format
+```json
+{
+  "gym_leader": "leader_name",
+  "leader_types": ["type1", "type2"],
+  "leader_pokemon": [{"name": "pokemon", "types": ["type"], "moves": ["move"]}],
+  "recommended_counters": [{"pokemon": "name", "type": "type", "reason": "explanation"}],
+  "team_composition": ["pokemon1", "pokemon2", "pokemon3", "pokemon4", "pokemon5", "pokemon6"],
+  "grind_recommendations": "level or training focus",
+  "item_preparation": ["item1", "item2"],
+  "key_moves_needed": ["move1", "move2"]
+}
+```
+
+# Examples
+Example 1: Preparing for Water-type Gym (Maylene/Crasher Wake equivalent)
+- Leader uses Gyarados, Floatzel, Quagsire
+- Electric and Grass types are optimal
+- Team: Jolteon, Venusaur, Charizard, Blastoise, Pikachu, Snorlax
+- Analysis: Electric types can sweep, Grass for coverage
+- Result: Lead with Electric, backup with Grass
+
+Example 2: Preparing for Psychic-type Gym (Sabrina equivalent)
+- Leader uses Alakazam, Gardevoir, Espeon
+- Dark and Bug types are optimal
+- Team: Tyranitar, Scizor, Houndoom, Heracross, Gengar, Machamp
+- Analysis: Dark types resist Psychic, Bug for coverage
+- Result: Lead with Dark type

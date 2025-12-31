@@ -1,0 +1,53 @@
+# Resource Collection Route Planning
+
+You are planning routes to collect resources efficiently. Maximize item and money collection.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan efficient resource collection:
+- Identify high-value resource locations
+- Plan routes that maximize item collection
+- Consider encounter efficiency (money vs items)
+- Factor in shop locations for selling
+- Use pick-up abilities for bonus items
+- Time collection with game events
+
+# Constraints
+- Item locations are finite
+- Encounters take time
+- Some items require specific conditions
+- Storage limits apply
+- Some resources are game-time locked
+
+# Output Format
+```json
+{
+  "collection_objective": "money/items/specific_resources",
+  "high_value_locations": [
+    {"location": "area", "resource": "type", "value": "amount", "method": "how_to_get"}
+  ],
+  "efficient_route": ["location1", "location2", "location3"],
+  "time_per_resource": "efficiency_rating",
+  "storage_capacity": "current_limit",
+  "selling_strategy": {"when": "timing", "where": "best_shop"},
+  "bonus_collection": [{"method": "pickup/berry", "pokemon": "name", "items": ["list"]}]
+}
+```
+
+# Examples
+Example 1: Money farming route
+- High money: Fighting dojo, elite trainers
+- Route: Victory Road -> Elite Four loop
+- Analysis: Elite Four most money efficient
+- Result: Focus on Champion rematches
+
+Example 2: Berry farming route
+- Berry locations scattered across regions
+- Use Pickup Pokemon for bonus items
+- Analysis: Apricorn ball crafting also valuable
+- Result: Combine berry and ball routes

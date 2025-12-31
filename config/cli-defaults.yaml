@@ -1,0 +1,231 @@
+# PTP-01X CLI Default Configuration
+#
+# This file contains default values for all CLI flags.
+# These can be overridden by command-line arguments.
+#
+# Version: 2.0
+# Date: December 31, 2025
+
+# Required arguments (not in this file - must be provided via CLI)
+# --rom: Path to Pokemon ROM file
+
+# Core settings
+save_dir: "./game_saves"
+
+# ============================================================
+# TICK RATE CONTROL
+# ============================================================
+tick_rate:
+  # Base tick rate for overworld exploration (ticks/second)
+  base: 10
+  # Tick rate during battle sequences
+  battle: 2
+  # Maximum seconds without state change before timeout
+  timeout: 30
+  # Auto-adjust rate based on decision latency
+  adaptive: false
+  # Cost budget mode: hourly, daily, or run
+  budget_mode: null
+  # Maximum budget in dollars per period
+  budget_limit: null
+
+# ============================================================
+# SCREENSHOT CONTROL
+# ============================================================
+screenshot:
+  # Base screenshot interval in ticks
+  interval: 100
+  # Screenshots captured per battle turn
+  battle_turn: 1
+  # Screenshots captured per error tick
+  on_error: 1
+  # Capture screenshot on any state transition
+  on_change: false
+  # JPEG quality 0-100
+  quality: 85
+  # Maximum storage in GB for screenshots
+  max_storage_gb: 50.0
+  # Enable non-blocking (async) screenshot capture
+  async: false
+  # Compress old screenshots to save storage
+  compress: false
+
+# ============================================================
+# COMMAND BUFFER CONTROL
+# ============================================================
+command_buffer:
+  # Maximum number of queued commands
+  buffer_size: 10
+  # Maximum seconds a command can wait in buffer
+  timeout: 5
+  # Validate commands against current game state
+  validate: false
+  # Number of commands stored for potential rollback
+  rollback_history: 100
+  # Clear command buffer when random battle starts
+  interrupt_battle: true
+  # Seconds before command is considered stale
+  stale_threshold: 2
+
+# ============================================================
+# RUN LIMITS
+# ============================================================
+limits:
+  # Maximum real time in seconds (null = unlimited)
+  max_time: null
+  # Maximum game ticks (null = unlimited)
+  max_ticks: null
+  # Maximum cost in USD (null = unlimited)
+  max_cost: null
+  # Stop after catching N Pokemon (null = unlimited)
+  max_pokemon_caught: null
+  # Stop after earning N badges (0-16, null = unlimited)
+  max_badges: null
+  # Stop when Pokemon reaches level N (1-100, null = unlimited)
+  max_level: null
+  # Action when limit is reached: save-and-exit, save-only, abort
+  on_limit: "save-and-exit"
+  # Seconds to finish current decision before stopping
+  grace_period: 30
+
+# ============================================================
+# SNAPSHOT MANAGEMENT
+# ============================================================
+snapshot:
+  # Number of RAM snapshots for instant restore
+  memory: 10
+  # Interval in ticks for disk snapshots
+  disk: 1000
+  # Event triggers for snapshots: catch,battle,badge,death
+  on_event: []
+  # Maximum storage in GB for snapshots
+  max_disk_gb: 20.0
+  # Compress disk snapshots to save storage
+  compress: false
+  # Validate snapshots can be restored after saving
+  validate: false
+  # Automatically rollback to last good snapshot on error
+  rollback_on_error: false
+  # Maximum rollback depth
+  rollback_grace: 3
+  # Allow sharing snapshots via network
+  share: false
+  # Name for creating a named snapshot
+  name: null
+
+# ============================================================
+# EXPERIMENT ORCHESTRATION
+# ============================================================
+experiment:
+  # Experiment identifier for grouping results
+  name: "default"
+  # Maximum concurrent game instances
+  parallel_workers: 1
+  # Number of retries on failure
+  sequential_retry: 3
+  # Per-worker memory limit in GB
+  memory_limit_gb: 8.0
+  # Maximum API calls per minute across all workers
+  api_rate_limit: 100
+  # Calculate mean and standard deviation for parallel runs
+  aggregate_stats: false
+  # Behavior on failure: continue, fast-fail, retry
+  fail_mode: "continue"
+  # Save checkpoint after N sequential runs
+  checkpoint_frequency: 10000
+  # Resume experiment from checkpoint directory
+  resume_from: null
+  # Load experiment settings from YAML config file
+  config_file: null
+  # Export aggregated results after experiment completes
+  export_results: false
+  # Output format for exported results: json, csv, parquet
+  results_format: "json"
+
+# ============================================================
+# SYSTEM SETTINGS
+# ============================================================
+system:
+  # Enable verbose output
+  verbose: false
+  # Suppress all output except errors
+  quiet: false
+  # Write logs to specified file
+  log_file: null
+  # Load additional configuration from YAML file
+  config_file: null
+  # Random seed for reproducibility
+  random_seed: null
+
+# ============================================================
+# PRESET CONFIGURATIONS
+# ============================================================
+
+# Development/Debug preset - frequent screenshots, slow execution
+development:
+  tick_rate:
+    base: 5
+    battle: 1
+  screenshot:
+    interval: 10
+    on_change: true
+    quality: 95
+  command_buffer:
+    validate: true
+  snapshot:
+    memory: 50
+    disk: 500
+    on_event: ["catch", "battle", "badge"]
+
+# Performance preset - fast execution, minimal screenshots
+performance:
+  tick_rate:
+    base: 15
+    battle: 3
+  screenshot:
+    interval: 500
+    quality: 70
+  snapshot:
+    disk: 5000
+    compress: true
+
+# Budget preset - cost-constrained execution
+budget:
+  tick_rate:
+    budget_mode: "hourly"
+    budget_limit: 5.00
+  screenshot:
+    interval: 1000
+    quality: 60
+  limits:
+    max_cost: 10.00
+    on_limit: "save-and-exit"
+
+# Long-running experiment preset
+experiment_long:
+  tick_rate:
+    base: 12
+  screenshot:
+    interval: 200
+    compress: true
+  snapshot:
+    disk: 2000
+    on_event: ["catch"]
+  limits:
+    max_time: 259200
+    max_cost: 200.00
+
+# Benchmark preset - for performance comparison
+benchmark:
+  tick_rate:
+    base: 10
+    adaptive: true
+  screenshot:
+    interval: 1000
+    compress: true
+  snapshot:
+    disk: 10000
+  experiment:
+    aggregate_stats: true
+    export_results: true
+    results_format: "parquet"

@@ -1,0 +1,50 @@
+# Status Condition Management
+
+You are managing status conditions in a Pokemon battle. Balance offensive status use with defensive status prevention.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Manage status conditions effectively:
+- Apply offensive status to slow down enemies (Paralysis, Sleep, Frozen)
+- Remove or mitigate status on your Pokemon
+- Exploit status clauses and opponent weaknesses
+- Time status moves for maximum impact
+- Prevent enemy status application through prediction
+
+# Constraints
+- Sleep has accuracy risk (33% miss chance)
+- Paralysis allows speed control but doesn't always activate
+- Toxic damage accumulates over time
+- Consider status on switch-in ( Toxic spikes, etc.)
+- Know which Pokemon are immune to certain statuses
+
+# Output Format
+```json
+{
+  "status_action": "apply/protect/remove/ignore",
+  "target_status": "paralysis/sleep/toxic/burn/freeze/none",
+  "move_to_use": "move_name or none",
+  "timing_evaluation": "optimal/suboptimal/timing_critical",
+  "enemy_counterplay": "expected enemy response",
+  "risk_assessment": "failure consequences",
+  "expected_value": "damage_dealt or time_saved"
+}
+```
+
+# Examples
+Example 1: Player Gliscor vs Enemy Gengar
+- Gliscor has Toxic, Gengar at 80% HP
+- Gengar lacks reliable recovery, slow poison damage effective
+- Analysis: Toxic + Protect stall strategy viable
+- Result: Use Toxic, plan Protect rotation
+
+Example 2: Player Gyarados is Paralyzed vs Enemy Tyranitar
+- Gyarados at 40% HP, can still attack
+- Switch-out brings in hazards damage
+- Analysis: Can't afford another turn paralyzed, switch recommended
+- Result: Switch to teammate

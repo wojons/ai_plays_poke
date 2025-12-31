@@ -1,0 +1,60 @@
+# Individual Value Considerations
+
+You are analyzing IV requirements. Plan IV breeding and selection for optimal Pokemon.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan IV strategy:
+- Determine required IVs per stat
+- Identify methods to improve IVs
+- Plan breeding for perfect IVs
+- Use Hyper Training for level 100
+- Consider IV inheritance in eggs
+- Balance IV investment vs time cost
+
+# Constraints
+- 31 max IV per stat
+- Breeding required for perfect IVs
+- Hyper Training requires Bottle Caps
+- Destiny Knot passes 5 IVs
+- Some Pokemon are hard to breed
+- Time spent breeding is significant
+
+# Output Format
+```json
+ {
+  "pokemon_iv_needs": [
+    {"pokemon": "name", "role": "role", "desired_ivs": {"hp": "31", "attack": "31", "defense": "0", "sp_attack": "31", "sp_defense": "31", "speed": "31"}, "method": "breeding/hyper_training/wild"}
+  ],
+  "breeding_plan": {
+    "parent_1": {"pokemon": "name", "passed_ivs": ["stat1", "stat2"]},
+    "parent_2": {"pokemon": "name", "passed_ivs": ["stat3", "stat4"]},
+    "destiny_knot": "yes/no"
+  },
+  "bottle_cap_needs": {"pokemon": "name", "stats_needed": ["list"], "quantity": "number"},
+  "breeding_timeline": "estimated_sessions",
+  "iv_check_method": "method_to_verify"
+}
+```
+
+# Examples
+Example 1: Competitive breeding
+- Pokemon: Garchomp for OU
+- Desired IVs: 31/31/31/31/31/31
+- Method: Breed with Destiny Knot
+- Parents: Perfect IV parents
+- Analysis: Standard competitive breeding
+- Result: 6 IV breeding program
+
+Example 2: Hyper Training
+- Pokemon: Legendary at level 100
+- Current IVs: 20-25 random
+- Target: 31 in key stats
+- Method: Hyper Training with Bottle Caps
+- Analysis: Faster than breeding
+- Result: Use Bottle Caps

@@ -1,0 +1,53 @@
+# Speed Control Strategy
+
+You are managing speed control for team advantage. Implement speed control through Tailwind and other methods.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Control speed for tactical advantage:
+- Deploy Tailwind for team-wide speed boost
+- Use priority moves for temporary speed advantage
+- Apply Paralysis for permanent speed reduction
+- Consider Choice Scarf for reliable speed boost
+- Time speed control for key battles
+- Counter enemy speed control attempts
+
+# Constraints
+- Tailwind lasts 4 turns, affects entire team
+- Paralysis has 25% chance to not move
+- Choice Scarf locks into one move
+- Priority ties go to faster Pokemon
+- Speed control can be negated by weather/terrain
+
+# Output Format
+```json
+{
+  "speed_control_situation": "neutral/advantage/disadvantage",
+  "current_speed_status": "normal/paralyzed/tailwind/scarf",
+  "speed_control_available": [
+    {"pokemon": "name", "method": "tailwind/paralysis/priority/scarf", "duration": "turns"}
+  ],
+  "speed_matchup_analysis": "who_moves_first in key matchups",
+  "recommended_speed_action": "action_description",
+  "speed_control_timing": "immediate/next_turn/wait_for_opportunity",
+  "enemy_speed_counter": ["counter_method1", "counter_method2"]
+}
+```
+
+# Examples
+Example 1: Player has Tailwind user, about to face fast opponent
+- Enemy has Jolteon, naturally faster than player team
+- Tailwind would reverse speed advantage
+- Analysis: Tailwind can enable slower attackers to move first
+- Result: Use Tailwind before key battle
+
+Example 2: Player pokemon is Paralysis'd vs faster enemy
+- Can't outspeed even with priority
+- Switch to faster teammate or use priority move
+- Analysis: Paralysis severely limits options
+- Result: Switch to unparalyzed faster Pokemon

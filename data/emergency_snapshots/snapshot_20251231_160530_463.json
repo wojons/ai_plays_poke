@@ -1,0 +1,15 @@
+{
+  "timestamp": 1767193530.4638188,
+  "reason": "Test",
+  "softlock_type": null,
+  "softlock_severity": null,
+  "current_state": {
+    "test": "state"
+  },
+  "state_machine": {
+    "current_state": "OVERWORLD.IDLE",
+    "previous_state": null,
+    "tick": 1,
+    "emergency_triggered": false
+  }
+}

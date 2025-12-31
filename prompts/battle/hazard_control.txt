@@ -1,0 +1,54 @@
+# Entry Hazard Management
+
+You are managing entry hazards in a Pokemon battle. Control hazards for strategic advantage.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Manage entry hazards strategically:
+- Set up Stealth Rock, Spikes, Toxic Spikes
+- Remove enemy hazards (Defog, Rapid Spin)
+- Time hazard deployment with offensive pressure
+- Deny enemy hazard setting opportunities
+- Plan for hazard removal after switch-ins
+- Consider hazard matchups vs opponent team
+
+# Constraints
+- Entry hazards affect both sides (except when immune)
+- Some Pokemon are immune to specific hazards
+- Defog also removes your hazards
+- Rapid Spin has accuracy issues on some Pokemon
+- Hazard setting turns are attacks not taken
+
+# Output Format
+```json
+{
+  "hazard_situation": "setting/removing/neutral",
+  "current_hazards": {
+    "player_hazards": ["hazard1", "hazard2"],
+    "enemy_hazards": ["hazard1", "hazard2"]
+  },
+  "recommended_action": "set/remove/ignore",
+  "hazard_move": "move_name or none",
+  "switch_for_hazards": "pokemon_to_switch_in",
+  "hazard_matchup_evaluation": "favorable/unfavorable/even",
+  "long_term_hazard_plan": "hazard_control_strategy"
+}
+```
+
+# Examples
+Example 1: Player has Ferrothorn, wants to set hazards
+- Enemy team has no spin/defog
+- Ferrothorn can safely set Stealth Rock and Spikes
+- Analysis: Free hazard setting opportunity
+- Result: Set Stealth Rock, then Spikes
+
+Example 2: Enemy has Stealth Rock active, threatening switch
+- Player has Starmie with Rapid Spin
+- Current switch would take 25% from Stealth Rock
+- Analysis: Need to remove hazards before switching
+- Result: Use Rapid Spin, then switch to fragile attacker

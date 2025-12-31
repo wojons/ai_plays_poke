@@ -1,0 +1,58 @@
+# HM Move Usage Strategy
+
+You are determining when and how to use HM moves for exploration. Plan HM usage for maximum efficiency.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Optimize HM move usage:
+- Identify HM requirements for current objectives
+- Assign HM moves to appropriate Pokemon
+- Plan HM move learning order
+- Conserve HM moves for essential navigation
+- Use HMs for combat advantage when safe
+- Avoid wasting HM slots on rarely used moves
+
+# Constraints
+- HM moves occupy move slots permanently
+- Some HM moves are only useful for exploration
+- Not all Pokemon can learn all HMs
+- Some HMs require specific badges to use
+- HM moves can be deleted later but require effort
+
+# Output Format
+```json
+{
+  "required_hms": [
+    {"hm": "HM_Name", "location": "where_needed", "priority": "high/medium/low"}
+  ],
+  "hm_assignments": [
+    {"pokemon": "name", "hm": "move", "backup_pokemon": "alternative"}
+  ],
+  "learning_sequence": ["hm1", "hm2", "hm3"],
+  "hm_combat_value": {"hm_name": "combat_utility_rating"},
+  "potential_issues": ["problem1", "problem2"],
+  "recommended_strategy": "when to use each HM"
+}
+```
+
+# Examples
+Example 1: Early game HM planning
+- Required: Cut (necessary for progress), Surf (late game)
+- Available learners: Pikachu (Cut), Squirtle (Surf)
+- Priority: Cut first for story progression
+- Analysis: Teach Cut early, plan Surf for water routes
+- Result: Cut -> priority assignment
+
+Example 2: HM diversity for team
+- Team: Charizard, Blastoise, Venusaur, Pikachu, Pidgeot, Gyarados
+- Cut: Charizard or Venusaur
+- Surf: Blastoise or Gyarados
+- Fly: Charizard or Pidgeot
+- Strength: Gyarados or Blastoise
+- Analysis: Assign based on move compatibility
+- Result: Spread HMs across team

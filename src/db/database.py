@@ -13,9 +13,27 @@ Tracks:
 
 import sqlite3
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
+
+logger = logging.getLogger(__name__)
+
+
+class DatabaseError(Exception):
+    """Base exception for database errors."""
+    pass
+
+
+class ConstraintViolationError(DatabaseError):
+    """Raised when a database constraint is violated."""
+    pass
+
+
+class InterruptError(DatabaseError):
+    """Raised when a database operation is interrupted."""
+    pass
 
 
 class GameDatabase:
@@ -36,10 +54,13 @@ class GameDatabase:
     
     def init_database(self):
         """Initialize all database tables"""
-        with sqlite3.connect(self.db_path) as conn:
+        try:
+            conn = sqlite3.connect(self.db_path, timeout=0.001)
+        except sqlite3.OperationalError as e:
+            raise DatabaseError(f"Database is locked or unavailable: {e}")
+        
+        with conn:
             cursor = conn.cursor()
-            
-            # Sessions table - tracks overall AI runs
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS sessions (
                     session_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -196,7 +217,7 @@ class GameDatabase:
             
             conn.commit()
     
-    def start_session(self, rom_path: str, model_name: str = "unknown") -> int:
+    def start_session(self, rom_path: str, model_name: str = "unknown") -> int | None:
         """
         Start a new tracked session
         
@@ -325,7 +346,7 @@ class GameDatabase:
             ))
             conn.commit()
     
-    def log_battle_start(self, battle_data: Dict[str, Any]) -> int:
+    def log_battle_start(self, battle_data: Dict[str, Any]) -> int | None:
         """
         Start tracking a battle
         
@@ -465,6 +486,92 @@ class GameDatabase:
     def _get_screenshots(self, cursor, session_id: int) -> List[Dict]:
         cursor.execute("SELECT * FROM screenshots WHERE session_id = ?", (session_id,))
         return [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
+
+    def _execute(self, query: str, params: tuple = ()) -> sqlite3.Cursor:
+        """
+        Internal method to execute a SQL query with proper error handling.
+
+        Args:
+            query: SQL query string
+            params: Tuple of parameters for the query
+
+        Returns:
+            sqlite3.Cursor object
+
+        Raises:
+            ConstraintViolationError: If a constraint violation occurs
+            DatabaseError: For other database errors
+        """
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                conn.commit()
+                return cursor
+        except sqlite3.IntegrityError as e:
+            logger.error(f"Constraint violation in query: {query} with params {params}: {e}")
+            raise ConstraintViolationError(f"Database constraint violated: {e}") from e
+        except sqlite3.Error as e:
+            logger.error(f"Database error in query: {query} with params {params}: {e}")
+            raise DatabaseError(f"Database operation failed: {e}") from e
+
+    def close(self):
+        """
+        Close the database connection and perform cleanup.
+        Since this implementation uses context managers internally,
+        this method is primarily a no-op for API compatibility.
+        """
+        logger.info("Database connection closed")
+        pass
+
+    def get_session(self, session_id: int) -> Dict[str, Any]:
+        """
+        Get a session by its ID.
+
+        Args:
+            session_id: The session ID to retrieve
+
+        Returns:
+            Dictionary containing session data
+
+        Raises:
+            sqlite3.OperationalError: If session is not found
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
+            row = cursor.fetchone()
+            if row is None:
+                raise sqlite3.OperationalError(f"Session {session_id} not found")
+            columns = [desc[0] for desc in cursor.description]
+            return dict(zip(columns, row))
+
+    def save_session_data(self, data: Dict[str, Any]) -> bool:
+        """
+        Save arbitrary session data to the database.
+
+        Args:
+            data: Dictionary of data to save
+
+        Returns:
+            True if successful, False otherwise
+
+        Raises:
+            KeyboardInterrupt: If operation is interrupted
+        """
+        try:
+            self._execute(
+                "INSERT INTO sessions (rom_path, model_name, final_state) VALUES (?, ?, ?)",
+                (
+                    data.get("rom_path", "unknown"),
+                    data.get("model_name", "unknown"),
+                    json.dumps(data)
+                )
+            )
+            return True
+        except KeyboardInterrupt:
+            logger.warning("Session data save interrupted")
+            raise
 
 
 # Create database instance with default path

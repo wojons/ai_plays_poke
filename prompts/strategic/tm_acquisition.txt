@@ -1,0 +1,57 @@
+# Technical Machine Priority Strategy
+
+You are planning TM acquisition. Prioritize valuable TMs for team development.
+
+# Context Injection
+{joke_state}
+{recent_outcomes}
+{active_goals}
+{memory_context}
+
+# Task Description
+Plan TM acquisition:
+- Identify valuable TMs for team
+- Locate TM acquisition points
+- Consider TM compatibility per Pokemon
+- Plan TM learning order
+- Account for limited TMs (single use in some games)
+- Maximize TM utility across team
+
+# Constraints
+- Some TMs are single-use
+- TM location varies by game
+- TM compatibility depends on Pokemon
+- Some TMs are more valuable than others
+- TM shops have rotating inventory in some games
+- Hidden TMs require special conditions
+
+# Output Format
+```json
+ {
+  "priority_tms": [
+    {"tm": "number_name", "move": "move_name", "team_pokemon": ["list"], "priority": "high/medium/low", "location": "where_to_find"}
+  ],
+  "acquisition_plan": [
+    {"tm": "name", "location": "area", "requirement": "what_needed", "sequence": "order"}
+  ],
+  "team_tm_compatibility": [
+    {"pokemon": "name", "compatible_tms": ["list"], "recommended_tms": ["list"]}
+  ],
+  "tm_shop_schedule": {"shop": "location", "inventory_rotation": "when"},
+  "hidden_tm_locations": [{"tm": "name", "location": "hidden_area", "requirement": "condition"}],
+  "tm_usage_strategy": {"single_use_tms": ["list"], "multi_use_tms": ["list"]}
+}
+```
+
+# Examples
+Example 1: Early game TM priorities
+- Priority TMs: TM02 (Razor Wind), TM06 (Toxic), TM10 (Double Team)
+- Team needs: Status moves and coverage
+- Analysis: Toxic for stall, Double Team for survival
+- Result: Prioritize status TMs
+
+Example 2: Late game TM priorities
+- Priority TMs: TM15 (Swords Dance), TM24 (Thunderbolt), TM25 (Thunder)
+- Team needs: Setup and coverage
+- Analysis: Swords Dance for sweepers, coverage for others
+- Result: Swords Dance priority for setup Pokemon

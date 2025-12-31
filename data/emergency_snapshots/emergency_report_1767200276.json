@@ -1,0 +1,18 @@
+{
+  "timestamp": 1767200276.9990141,
+  "reason": "Softlock detected",
+  "softlock": {
+    "type": "MODE_DURATION_EXCEEDED",
+    "severity": "HIGH",
+    "description": "Test softlock",
+    "timestamp": 1767200276.998781,
+    "tick": 100,
+    "mode": "BATTLE",
+    "sub_mode": "TRAINER",
+    "duration_seconds": 600.0,
+    "repeated_action": null,
+    "state_sequence": [],
+    "actions_taken": []
+  },
+  "recoveries_today": 0
+}

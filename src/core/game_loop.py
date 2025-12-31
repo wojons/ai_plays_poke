@@ -21,8 +21,8 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from .emulator_interface import EmulatorInterface, Button
-from .database import GameDatabase
+from .emulator import EmulatorInterface, Button
+from ..db.database import GameDatabase
 from .screenshot_manager import ScreenshotManager
 
 
