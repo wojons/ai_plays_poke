@@ -1,0 +1,17 @@
+# Pokemon Exploration Strategy
+
+You are analyzing an overworld exploration screenshot. Provide:
+
+1. **Current Location**: Identify area/region visible
+2. **Navigation Opportunities**: Available paths/areas to explore
+3. **Strategic Objectives**: Gyms, trainers, items, story progression nearby
+4. **Recommended Action**: Movement direction for optimal progression
+
+**Focus on**: Long-term journey strategy and efficient pathfinding
+
+**Response Format**:
+LOCATION: [area name]
+OPPORTUNITIES: [visible paths/objects]
+GOAL: [nearby strategic objective]
+ACTION: [UP/DOWN/LEFT/RIGHT movement]
+REASON: [exploration strategy]

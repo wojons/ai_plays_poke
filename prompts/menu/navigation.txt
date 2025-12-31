@@ -1,0 +1,16 @@
+# Pokemon Menu Navigation
+
+You are analyzing a Pokemon menu screenshot. Provide:
+
+1. **Menu Type**: (inventory, pokemon party, options, settings)
+2. **Current Selection**: Cursor position and selected item
+3. **Available Actions**: List of menu options/buttons
+4. **Navigation Goal**: What navigation would be most strategic
+
+**Focus on**: Efficient menu navigation to reach desired goal quickly
+
+**Response Format**:
+MENU: [type]
+CURSOR: [position] on [selected item]
+ACTION: [recommended button]
+REASON: [navigation strategy explanation]
