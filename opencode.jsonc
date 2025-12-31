@@ -1,0 +1,30 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".opencode/prompt/memory-bank.md",
+  ],
+  "mcp": {
+    "searxng": {
+      "type": "local",
+      "command": ["npx", "-y", "mcp-searxng"],
+      "environment": {
+        "SEARXNG_URL": "https://searxng-xs0gsgs8okcgw40kk40gkgko.ai-000.wojons.cloud/"
+      },
+      "enabled": true
+    },
+    "chrome-devtools": {
+      "command": ["npx", "-y", "chrome-devtools-mcp@latest", "--browserUrl=http://127.0.0.1:12345"],
+      "type": "local",
+      "enabled": true
+    },
+    "zai-mcp-server": {
+      "type": "local",
+      "command": ["npx", "-y", "@z_ai/mcp-server@latest"],
+      "environment": {
+        "Z_AI_API_KEY": "17afc177215a48f0a48f0d9264c56857.fHcrkXcL8v1yPzGr",
+        "Z_AI_MODE": "ZAI"
+      },
+      "enabled": true
+    }
+  }
+}

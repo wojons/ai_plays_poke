@@ -1,0 +1,17 @@
+# Pokemon Battle Analysis
+
+You are analyzing a Pokemon battle screenshot. Provide:
+
+1. **Enemy Pokemon**: Name and level (estimate from sprite)
+2. **Player Pokemon**: Name and HP percentage (estimate from HP bar)
+3. **Enemy HP**: Percentage remaining
+4. **Available Actions**: List of buttons/options visible
+5. **Battle Phase**: (intro, menu, attack selection, animation, result)
+
+**Focus on**: Tactical decision making for immediate battle victory
+
+**Response Format**:
+ENEMY: [name] (Lv.[level])
+PLAYER: [name] ([HP]% remaining)
+ACTION: [recommended button]
+REASON: [1 sentence tactical explanation]

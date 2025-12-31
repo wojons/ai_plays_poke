@@ -1,0 +1,17 @@
+# Pokemon Dialog Analysis
+
+You are analyzing a Pokemon dialog/text screenshot. Provide:
+
+1. **Speaker**: Who is talking (NPC, Pokemon, system)
+2. **Content Summary**: What the dialog is saying (key information)
+3. **Dialog Type**: (story text, battle intro, trainer message, item description)
+4. **Action Needed**: Whether to advance dialog or take other action
+
+**Focus on**: Understanding story progression and dialog flow management
+
+**Response Format**:
+SPEAKER: [speaker name]
+CONTENT: [key information summary]
+TYPE: [dialog category]
+ACTION: [A to advance / B to skip / menu option]
+REASON: [dialog flow strategy]

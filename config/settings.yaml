@@ -1,0 +1,66 @@
+# AI Plays Pokemon Configuration
+
+# ROM Settings
+rom:
+  path: "data/rom/pokemon_blue.gb"  # CHANGE THIS to select your game
+  version: "pokemon_blue"            # Game version for memory/analytics
+  
+# Available ROMs (uncomment the path above to use):
+# ──────────────────────────────────────────────────────────────
+# Gen 1 (Game Boy):
+#   pokemon_red.gb      - Pokemon Red (English)
+#   pokemon_blue.gb     - Pokemon Blue (English) ✅ CURRENT
+#   pokemon_green.gb    - Pokemon Green (Japanese)
+#   pokemon_yellow.gb   - Pokemon Yellow (Gen 1.5)
+#
+# Gen 2 (Game Boy Color):
+#   pokemon_gold.gbc    - Pokemon Gold
+#   pokemon_silver.gbc  - Pokemon Silver
+# ──────────────────────────────────────────────────────────────
+
+# API Keys (set via environment variables)
+api_keys:
+  openai: "${OPENAI_API_KEY}"
+  anthropic: "${ANTHROPIC_API_KEY}"
+
+# Model Configuration
+models:
+  thinking_model:
+    provider: "openai"  # or "anthropic"
+    model: "gpt-4o"
+    max_tokens: 1000
+    
+  acting_model:
+    provider: "openai"
+    model: "gpt-4o-mini"
+    max_tokens: 200
+
+# Vision Settings
+vision:
+  provider: "openai"  # or "anthropic"
+  model: "gpt-4o"
+  cost_optimization: true  # Enable differential rendering
+
+# Memory Settings
+memory:
+  storage_path: "memory/"
+  auto_save_interval: 100  # Save every N decisions
+  max_memory_age_hours: 720  # 30 days
+
+# Analytics Settings
+analytics:
+  log_path: "logs/"
+  detailed_logging: true
+  metrics_interval: 10  # Log metrics every N decisions
+
+# Emulator Settings
+emulator:
+  speed: 0  # 0 = maximum speed, 1 = normal
+  save_states: true
+  state_path: "data/states/"
+
+# Cost Targets
+budget:
+  max_cost_per_hour: 1.00  # USD
+  daily_budget: 10.00  # USD
+  warning_threshold: 0.8  # Warn at 80% of budget
