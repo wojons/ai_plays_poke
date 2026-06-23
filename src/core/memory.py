@@ -1621,3 +1621,50 @@ def create_memory_system(
         config=config
     )
     return observer, strategist, tactician, consolidator
+
+
+# ============================================================================
+# GameMemory — lightweight memory for decision-loop prompt injection
+# ============================================================================
+
+class GameMemory:
+    """Tracks recent actions, party status, goal, and exploration stats.
+
+    Designed as a simple accumulator that feeds into the PromptStack's
+    memory layer.  All fields default to sensible empty values.
+    """
+
+    def __init__(self) -> None:
+        self.recent_actions: list[str] = []       # last 20 action strings
+        self.party_status: dict[str, str] = {}     # pokémon name → status
+        self.active_goal: str = ""                 # current objective
+        self.battles_fought: int = 0
+        self.locations_visited: list[str] = []
+
+    # -- mutation ---------------------------------------------------------
+
+    def record_action(self, action_str: str) -> None:
+        """Append an action description and cap the buffer at 20."""
+        self.recent_actions.append(action_str)
+        if len(self.recent_actions) > 20:
+            self.recent_actions = self.recent_actions[-20:]
+
+    def update_party(self, status: str) -> None:
+        """Update the party status string (e.g. 'Squirtle L12 healthy, Pidgey L10 fainted')."""
+        self.party_status = status if isinstance(status, dict) else {"status": status}
+
+    def set_goal(self, goal: str) -> None:
+        """Set the active goal (e.g. 'Reach Pewter City Gym')."""
+        self.active_goal = goal
+
+    # -- snapshot ---------------------------------------------------------
+
+    def snapshot(self) -> dict:
+        """Return a dict suitable for injection into PromptStack.assemble()."""
+        return {
+            "recent_actions": list(self.recent_actions),
+            "party_status": self.party_status.get("status", str(self.party_status)),
+            "active_goal": self.active_goal,
+            "battles_fought": self.battles_fought,
+            "locations_visited": list(self.locations_visited),
+        }

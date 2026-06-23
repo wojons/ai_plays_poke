@@ -566,7 +566,8 @@ class OpenRouterClient:
         max_tokens: Optional[int] = 500,
         temperature: float = 0.3,
         stream: bool = False,
-        retry_count: int = 0
+        retry_count: int = 0,
+        tools: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
         Make a chat completion request to OpenRouter
@@ -600,6 +601,9 @@ class OpenRouterClient:
             "top_p": 0.95,
             "stream": stream
         }
+
+        if tools:
+            payload["tools"] = tools
 
         if images and len(images) > 0:
             image_content = []
@@ -797,6 +801,48 @@ class OpenRouterClient:
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature
+        )
+
+        return result["content"]
+
+    def send_tool_request(
+        self,
+        prompt: str,
+        tools: list[dict],
+        model: str,
+        max_tokens: int = 300,
+        temperature: float = 0.3,
+    ) -> str:
+        """Send a request with tool definitions and return the raw response text.
+
+        The entire *prompt* is sent as a single user message (no system/
+        user split — owl-alpha and similar text-only models handle this
+        best).  Tool definitions are added to the payload in OpenAI
+        function-calling format.
+
+        Args:
+            prompt: Full assembled prompt text.
+            tools: List of tool definitions (OpenAI function-calling format).
+            model: OpenRouter model ID (e.g. ``\"openrouter/owl-alpha\"``).
+            max_tokens: Maximum tokens to generate.
+            temperature: Sampling temperature.
+
+        Returns:
+            Raw text response from the model.
+        """
+        messages = [
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ]
+
+        result = self.chat_completion(
+            model=model,
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            tools=tools,
         )
 
         return result["content"]
