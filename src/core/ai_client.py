@@ -725,6 +725,51 @@ class OpenRouterClient:
 
         return result["content"]
 
+    def send_vision_request(
+        self,
+        prompt: str,
+        image_b64: str,
+        model: str,
+        max_tokens: int = 300,
+        temperature: float = 0.3,
+    ) -> str:
+        """Send a multimodal vision request and return the text response.
+
+        Args:
+            prompt: Text prompt describing what to analyze.
+            image_b64: Base64-encoded PNG image (without data URI prefix).
+            model: OpenRouter model ID (e.g. "google/gemma-3-12b-it").
+            max_tokens: Maximum tokens to generate.
+            temperature: Sampling temperature (0.0–1.0).
+
+        Returns:
+            Raw text response from the vision model.
+        """
+        messages = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{image_b64}"
+                        }
+                    }
+                ]
+            }
+        ]
+
+        result = self.chat_completion(
+            model=model,
+            messages=messages,
+            images=None,  # image already embedded in message content
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+
+        return result["content"]
+
     def get_text_response(
         self,
         prompt: str,
