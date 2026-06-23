@@ -21,24 +21,12 @@
 **Files:** src/core/demo_runner.py (new), tests/test_gameplay_demo.py (new)
 **Result:** DemoRunner with run() + run_headless(). 12 tests (10 unit + 2 headless ROM) all pass. Live API tests gated behind OPENROUTER_API_KEY.
 
-### [ ] DEMO-2: Vision-only headless test (no API key needed)
-**Priority:** medium
+### [x] DEMO-2: Vision-only headless test (no API key needed) ✅ (pending commit)
 **Model:** deepseek-v4-pro (foreman direct)
 **Files:** tests/test_vision_headless.py (new)
-**Description:** Tests the vision pipeline without requiring an API key. Uses placeholder screenshots or statically-generated frame buffers to verify OCR text extraction, screen classification, and prompt assembly. Fast, reproducible, no network.
-**Verify:** `source venv/bin/activate && python -m pytest tests/test_vision_headless.py -v --tb=short -x`
-**AC:**
-- AC-006: VisionClient.classify returns valid ScreenClassification for known screen types
-- AC-007: OCR extracts recognizable text from frame buffer regions
-- AC-008: PromptStack assembles correctly from vision output
-**Status:** ready
+**Result:** 56 headless vision tests — VisionClient parsing (18 tests), encoding/OCR extraction (10 tests), PromptStack assembly + helpers (28 tests). All pass without ROM or API key. Covers AC-006, AC-007, AC-008.
 
-### [ ] CHORE-1: Fix test_validate_valid_config ROM dependency
-**Priority:** low
+### [x] CHORE-1: Fix test_validate_valid_config ROM dependency ✅ (pending commit)
 **Model:** deepseek-v4-pro (foreman direct)
 **Files:** tests/ptp_cli/test_flags.py
-**Description:** test_validate_valid_config fails because it looks for ROM at /tmp/test_pokemon.gb which doesn't exist. Either mock the ROM path check or create a temp ROM file in the test.
-**Verify:** `source venv/bin/activate && python -m pytest tests/ptp_cli/test_flags.py::TestCLIFlagParser::test_validate_valid_config -v --tb=short -x`
-**AC:**
-- AC-009: test_validate_valid_config passes without requiring a real ROM file
-**Status:** ready
+**Result:** Replaced hardcoded `/tmp/test_pokemon.gb` paths with `tmp_path` fixture (temporary files). 4 tests fixed — test_validate_valid_config, test_validate_verbose_quiet_conflict, test_parse_and_validate_success, test_parse_and_validate_error. All pass. AC-009 satisfied.
