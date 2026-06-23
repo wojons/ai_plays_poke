@@ -10,27 +10,16 @@
 
 ### [x] PHASE-5: Autonomous Cron Loop ✅ (8d19a6c)
 **Model:** deepseek-v4-pro (foreman direct)
-**Result:** Created .coding-hermes/cron.sh wrapper script. DecisionLoop runner that skips intro, runs N cycles, reports results. Executable, venv-aware, API-key aware.
-**Commit:** 8d19a6c
+**Result:** Created .coding-hermes/cron.sh wrapper script. DecisionLoop runner that skips intro, runs N cycles, reports results.
 
 ### [x] BUGFIX: Advance past game intro ✅ (8d19a6c)
 **Model:** deepseek-v4-pro (foreman direct)
-**Result:** Added `Emulator.skip_intro()` method — presses A for 30 frames + waits 60 frames, repeated 16×. Defaults work for GBA gen3 (LeafGreen/FireRed). Configurable press_frames, wait_frames, repetitions.
-**Commit:** 8d19a6c
+**Result:** Added `Emulator.skip_intro()` method — presses A for 30 frames + waits 60 frames, repeated 16×. Defaults work for GBA gen3.
 
-### [ ] DEMO-1: Gameplay integration test
-**Priority:** high
-**Model:** ollama-cloud/glm-5.2
-**Files:** tests/test_gameplay_demo.py (new), src/core/demo_runner.py (new)
-**Description:** End-to-end gameplay test: load ROM, skip intro via Emulator.skip_intro(), run 10 decision cycles with owl-alpha thinking, verify tool execution produces non-trivial game state changes. Must work with OPENROUTER_API_KEY in env.
-**Verify:** `OPENROUTER_API_KEY=$(grep OPENROUTER_API_KEY ~/.hermes/.env | cut -d= -f2-) source venv/bin/activate && python -m pytest tests/test_gameplay_demo.py -v --tb=short -k "not live_api" -x`
-**AC:**
-- AC-001: demo_runner.py loads ROM and skips intro successfully
-- AC-002: Vision pipeline classifies screens correctly during gameplay
-- AC-003: Decision loop produces tool calls (press A, press B, d-pad) within 5 cycles
-- AC-004: Game state changes are detected between cycles (different screen_type or different text)
-- AC-005: Failsafe triggers if stuck on same screen for >50 cycles
-**Status:** ready
+### [x] DEMO-1: Gameplay integration test ✅ (b20d033)
+**Model:** deepseek-v4-pro (foreman direct — thin composition)
+**Files:** src/core/demo_runner.py (new), tests/test_gameplay_demo.py (new)
+**Result:** DemoRunner with run() + run_headless(). 12 tests (10 unit + 2 headless ROM) all pass. Live API tests gated behind OPENROUTER_API_KEY.
 
 ### [ ] DEMO-2: Vision-only headless test (no API key needed)
 **Priority:** medium
