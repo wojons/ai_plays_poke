@@ -179,6 +179,35 @@ class Emulator:
         core.clear_keys(key_mask)
         self._pygba.wait(1)
 
+    # ── intro skip ───────────────────────────────────────────────────────
+
+    def skip_intro(
+        self,
+        *,
+        press_frames: int = 30,
+        wait_frames: int = 60,
+        repetitions: int = 16,
+    ) -> None:
+        """Advance past the game intro sequence.
+
+        Presses the A button repeatedly, separated by waits, to
+        advance through copyright screens, title screen, Professor
+        Oak's introduction, and naming screens until the player
+        reaches the overworld.
+
+        This is a **best-effort** method — the exact frame counts
+        needed vary by ROM and generation.  The defaults work for
+        Pokémon LeafGreen / FireRed (GBA, gen3).
+
+        Args:
+            press_frames:  How long to hold A each press (≥ 1).
+            wait_frames:   How long to idle between presses.
+            repetitions:   How many press+wait cycles to perform.
+        """
+        for _ in range(repetitions):
+            self.press_button("a", frames=press_frames)
+            self.wait(wait_frames)
+
     # ── lifecycle ────────────────────────────────────────────────────────
 
     def reset(self) -> None:
