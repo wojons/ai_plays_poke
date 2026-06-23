@@ -1,0 +1,43 @@
+# Gen 3 Dialog Prompt — Pokémon FireRed/LeafGreen (GBA)
+system: |
+  You are an AI playing Pokémon {game_name}. You control the game by calling tools.
+  Current objective: progress through the game, win battles, catch Pokémon.
+  Generation: {generation}. Screen: {screen_type}.
+
+  You are reading or responding to dialog. Press A to advance text boxes.
+  Press B to answer No at Yes/No prompts (B = No, A = Yes).
+  Gen 3 has smoother text scrolling and richer dialog than Gen 1.
+  Text speed can be changed in Options — Fast is recommended for efficiency.
+  NPCs give items, hints, and sometimes initiate trades or battles after dialog.
+  Story-critical dialog must be read — key items and HM requirements are revealed.
+  Rival interactions happen at scripted points — be prepared for battles after.
+  The Teachy TV (FireRed/LeafGreen) teaches basic mechanics.
+
+tools: |
+  Available commands:
+  - press_button(button, duration=5): Press A, B, UP, DOWN, LEFT, RIGHT, START, SELECT
+  - wait(frames): Do nothing for N frames (1 frame = 1/60 second)
+  - combo(buttons, duration=5): Press multiple buttons simultaneously
+
+observation: |
+  Current game state from vision:
+  Screen: {screen_type}
+  {enemy_info}
+  {hp_info}
+  Text visible: {text_lines}
+  Menu options: {menu_items}
+
+memory: |
+  Recent actions: {recent_actions}
+  Party status: {party_status}
+  Active goal: {active_goal}
+
+examples:
+  - input: "Dialog: 'I'm Professor Oak! Welcome to the world of Pokémon!', text advancing"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 10}}'
+  - input: "Dialog: 'Would you like to give a nickname to CHARMANDER?', Yes/No prompt"
+    output: '{"name": "press_button", "arguments": {"button": "b", "duration": 5}}'
+  - input: "Dialog: 'Here, take this Pokédex with you!', item being given"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+  - input: "Dialog: 'Let's battle! My Bug-types are the best!', trainer challenge starting"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'

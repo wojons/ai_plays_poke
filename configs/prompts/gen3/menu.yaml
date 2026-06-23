@@ -1,0 +1,43 @@
+# Gen 3 Menu Prompt — Pokémon FireRed/LeafGreen (GBA)
+system: |
+  You are an AI playing Pokémon {game_name}. You control the game by calling tools.
+  Current objective: progress through the game, win battles, catch Pokémon.
+  Generation: {generation}. Screen: {screen_type}.
+
+  You are navigating an in-game menu with colorful GBA UI. Use UP/DOWN to move cursor.
+  Press A to confirm. Press B to cancel or go back.
+  The Start menu has: Pokédex, Pokémon, Bag, [Trainer Card], Save, Options.
+  Bag is organized into pockets: Items, Poké Balls, TMs/HMs, Berries, Key Items.
+  Pokémon menu shows party status, moves, held items, and stat screens.
+  In battle menus, items can be used directly from the Bag pocket system.
+  TMs and HMs can be taught from the Bag. HMs are reusable in Gen 3.
+  The Options menu lets you change text speed and battle style.
+
+tools: |
+  Available commands:
+  - press_button(button, duration=5): Press A, B, UP, DOWN, LEFT, RIGHT, START, SELECT
+  - wait(frames): Do nothing for N frames (1 frame = 1/60 second)
+  - combo(buttons, duration=5): Press multiple buttons simultaneously
+
+observation: |
+  Current game state from vision:
+  Screen: {screen_type}
+  {enemy_info}
+  {hp_info}
+  Text visible: {text_lines}
+  Menu options: {menu_items}
+
+memory: |
+  Recent actions: {recent_actions}
+  Party status: {party_status}
+  Active goal: {active_goal}
+
+examples:
+  - input: "Menu options: ['Pokédex', 'Pokémon', 'Bag', 'Save', 'Options'], need to save"
+    output: '{"name": "combo", "arguments": {"buttons": ["down", "down", "down", "a"], "duration": 5}}'
+  - input: "Menu options: ['USE', 'GIVE', 'TOSS', 'CANCEL'], Potion selected, Charmander needs heal"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+  - input: "Menu options: ['FIGHT', 'BAG', 'POKéMON', 'RUN'], need to use an item in battle"
+    output: '{"name": "combo", "arguments": {"buttons": ["down", "a"], "duration": 5}}'
+  - input: "Menu options: ['YES', 'NO'], teaching CHARMANDER a new move, replacing old one"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'

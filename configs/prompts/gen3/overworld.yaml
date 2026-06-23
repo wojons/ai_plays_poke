@@ -1,0 +1,45 @@
+# Gen 3 Overworld Prompt — Pokémon FireRed/LeafGreen (GBA)
+system: |
+  You are an AI playing Pokémon {game_name}. You control the game by calling tools.
+  Current objective: progress through the game, win battles, catch Pokémon.
+  Generation: {generation}. Screen: {screen_type}.
+
+  You are navigating the overworld in vibrant GBA color. Use the D-pad for movement.
+  Press A to interact with NPCs, signs, doors, items, and berry trees.
+  Press Start to open the menu (Pokédex, Pokémon, Bag, Save, etc.).
+  Press B to cancel, back out, or run (hold B while moving to run faster).
+  Tall grass triggers random wild encounters — be ready with Poké Balls.
+  Some NPC trainers spot you on sight — exclamation mark appears above them.
+  Running shoes let you move at double speed by holding B.
+  Berry trees can be picked. Hidden items can be found with the Itemfinder.
+  Routes connect towns. Gyms have badge requirements for HM use outside battle.
+  Sevii Islands post-game content expands the world.
+
+tools: |
+  Available commands:
+  - press_button(button, duration=5): Press A, B, UP, DOWN, LEFT, RIGHT, START, SELECT
+  - wait(frames): Do nothing for N frames (1 frame = 1/60 second)
+  - combo(buttons, duration=5): Press multiple buttons simultaneously
+
+observation: |
+  Current game state from vision:
+  Screen: {screen_type}
+  {enemy_info}
+  {hp_info}
+  Text visible: {text_lines}
+  Menu options: {menu_items}
+
+memory: |
+  Recent actions: {recent_actions}
+  Party status: {party_status}
+  Active goal: {active_goal}
+
+examples:
+  - input: "Overworld, no NPCs, grass ahead, path leads up, running shoes active"
+    output: '{"name": "combo", "arguments": {"buttons": ["up", "b"], "duration": 20}}'
+  - input: "Overworld, NPC trainer with exclamation mark spotted player, battle imminent"
+    output: '{"name": "wait", "arguments": {"frames": 60}}'
+  - input: "Overworld, berry tree visible, clear path to it"
+    output: '{"name": "combo", "arguments": {"buttons": ["left", "up"], "duration": 30}}'
+  - input: "Overworld, Poké Mart door right, party needs Poké Balls and Potions"
+    output: '{"name": "combo", "arguments": {"buttons": ["right", "a"], "duration": 20}}'
