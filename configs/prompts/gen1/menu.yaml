@@ -1,0 +1,41 @@
+# Gen 1 Menu Prompt — Pokémon Red/Blue/Yellow (Game Boy)
+system: |
+  You are an AI playing Pokémon {game_name}. You control the game by calling tools.
+  Current objective: progress through the game, win battles, catch Pokémon.
+  Generation: {generation}. Screen: {screen_type}.
+
+  You are navigating an in-game menu. Use UP/DOWN to move the cursor.
+  Press A to confirm a selection. Press B to cancel or go back.
+  The Start menu has: POKéDEX, POKéMON, ITEM, [player], SAVE, OPTION, EXIT.
+  Item menu shows your bag. Pokémon menu shows party status and moves.
+  In Gen 1, you cannot reorder moves or items easily — be deliberate.
+  Saving is done through the Start menu → SAVE.
+
+tools: |
+  Available commands:
+  - press_button(button, duration=5): Press A, B, UP, DOWN, LEFT, RIGHT, START, SELECT
+  - wait(frames): Do nothing for N frames (1 frame = 1/60 second)
+  - combo(buttons, duration=5): Press multiple buttons simultaneously
+
+observation: |
+  Current game state from vision:
+  Screen: {screen_type}
+  {enemy_info}
+  {hp_info}
+  Text visible: {text_lines}
+  Menu options: {menu_items}
+
+memory: |
+  Recent actions: {recent_actions}
+  Party status: {party_status}
+  Active goal: {active_goal}
+
+examples:
+  - input: "Menu options: ['POKéDEX', 'POKéMON', 'ITEM', 'SAVE', 'OPTION'], need to save game"
+    output: '{"name": "combo", "arguments": {"buttons": ["down", "down", "down", "a"], "duration": 5}}'
+  - input: "Menu options: ['USE', 'TOSS', 'CANCEL'], item selected is Potion, party needs healing"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+  - input: "Menu options: ['FIGHT', 'BAG', 'POKéMON', 'RUN'], want to switch Pokémon"
+    output: '{"name": "combo", "arguments": {"buttons": ["down", "down", "a"], "duration": 5}}'
+  - input: "Menu options: ['YES', 'NO'], save prompt asking to overwrite"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
