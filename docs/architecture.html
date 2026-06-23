@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Plays Pokémon — Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020617; --card: #0f172a; --border: #1e293b;
+    --cyan: #22d3ee; --emerald: #34d399; --violet: #a78bfa;
+    --amber: #fbbf24; --rose: #fb7185; --orange: #fb923c;
+    --slate: #94a3b8; --text: #e2e8f0; --dim: #64748b;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    padding: 40px; line-height: 1.6;
+  }
+  .container { max-width: 1100px; margin:0 auto; }
+  h1 { font-size: 2rem; color: var(--cyan); margin-bottom: 4px; }
+  h1 .dot { display:inline-block; width:12px; height:12px; background:var(--emerald);
+    border-radius:50%; margin-right:10px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+  .subtitle { color: var(--dim); font-size: .9rem; margin-bottom: 40px; }
+
+  .section { background: var(--card); border:1px solid var(--border);
+    border-radius:12px; padding:28px; margin-bottom:28px; }
+  .section h2 { font-size:1.1rem; color:var(--cyan); margin-bottom:16px;
+    padding-bottom:10px; border-bottom:1px solid var(--border); }
+  .section h3 { font-size:.95rem; color:var(--emerald); margin:20px 0 10px; }
+
+  .grid { display:grid; gap:16px; }
+  .grid2 { grid-template-columns:1fr 1fr; }
+  .grid3 { grid-template-columns:1fr 1fr 1fr; }
+
+  .card { background: var(--bg); border:1px solid var(--border);
+    border-radius:8px; padding:18px; }
+  .card h4 { font-size:.85rem; margin-bottom:8px; }
+  .card.cyan { border-color: var(--cyan); } .card.cyan h4 { color:var(--cyan); }
+  .card.emerald { border-color: var(--emerald); } .card.emerald h4 { color:var(--emerald); }
+  .card.violet { border-color: var(--violet); } .card.violet h4 { color:var(--violet); }
+  .card.amber { border-color: var(--amber); } .card.amber h4 { color:var(--amber); }
+  .card.rose { border-color: var(--rose); } .card.rose h4 { color:var(--rose); }
+
+  .flow { display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:20px 0; justify-content:center; }
+  .flow-box { background: var(--card); border:2px solid var(--border);
+    border-radius:8px; padding:12px 16px; text-align:center;
+    font-size:.8rem; white-space:nowrap; }
+  .flow-box.vision { border-color:var(--violet); color:var(--violet); }
+  .flow-box.think { border-color:var(--emerald); color:var(--emerald); }
+  .flow-box.exec { border-color:var(--cyan); color:var(--cyan); }
+  .flow-box.prompt { border-color:var(--amber); color:var(--amber); }
+  .flow-arrow { color:var(--dim); font-size:1.2rem; }
+
+  .phase { display:flex; gap:14px; align-items:flex-start; padding:14px 0;
+    border-bottom:1px solid var(--border); }
+  .phase:last-child { border-bottom:none; }
+  .phase-num { background:var(--cyan); color:var(--bg); border-radius:50%;
+    width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:.8rem; flex-shrink:0; margin-top:2px; }
+  .phase-body h4 { font-size:.85rem; color:var(--text); margin-bottom:4px; }
+  .phase-body p { font-size:.75rem; color:var(--dim); }
+
+  .prompt-stack { font-size:.75rem; }
+  .prompt-stack .layer { background:var(--bg); border-left:3px solid var(--border);
+    padding:8px 12px; margin:4px 0; border-radius:0 6px 6px 0; }
+  .prompt-stack .sys { border-color:var(--rose); }
+  .prompt-stack .tools { border-color:var(--amber); }
+  .prompt-stack .obs { border-color:var(--emerald); }
+  .prompt-stack .mem { border-color:var(--violet); }
+  .prompt-stack .ex { border-color:var(--cyan); }
+
+  table { width:100%; border-collapse:collapse; font-size:.78rem; }
+  th { text-align:left; color:var(--dim); padding:8px 12px;
+    border-bottom:1px solid var(--border); font-weight:600; }
+  td { padding:8px 12px; border-bottom:1px solid var(--border); }
+  .tag { display:inline-block; padding:2px 8px; border-radius:4px;
+    font-size:.7rem; font-weight:600; }
+  .tag.gb { background:rgba(34,211,238,.15); color:var(--cyan); }
+  .tag.gba { background:rgba(251,191,36,.15); color:var(--amber); }
+
+  pre { background:var(--bg); border:1px solid var(--border); border-radius:6px;
+    padding:14px; font-size:.72rem; overflow-x:auto; margin:10px 0; }
+  code { font-family:'JetBrains Mono', monospace; }
+
+  @media(max-width:700px){ .grid2,.grid3{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1><span class="dot"></span>AI Plays Pokémon</h1>
+<p class="subtitle">Autonomous AI agent plays Pokémon games via headless emulation + vision models + tool-calling LLMs</p>
+
+<!-- ARCHITECTURE DIAGRAM -->
+<div class="section">
+  <h2>▸ System Architecture</h2>
+  <div class="flow">
+    <div class="flow-box vision">📸 Screenshot</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box vision">Gemma 12B<br><small>Vision Model</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box prompt">Prompt<br>Assembler</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box think">owl-alpha<br><small>Thinking Model</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box exec">Tool Call<br><small>press_button("A")</small></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box exec">pygba<br><small>Emulator</small></div>
+    <div class="flow-arrow">⟲</div>
+  </div>
+</div>
+
+<!-- EMULATOR -->
+<div class="section">
+  <h2>▸ Emulator Layer</h2>
+  <div class="grid grid2">
+    <div>
+      <h3>Single Emulator: pygba (mGBA)</h3>
+      <p style="font-size:.8rem;color:var(--dim)">Handles both GB and GBA from one code path. GB games auto-cropped to remove Super Game Boy borders.</p>
+      <table style="margin-top:12px">
+        <tr><th>Game</th><th>Platform</th><th>Raw</th><th>After Crop</th></tr>
+        <tr><td>Pokémon Blue</td><td><span class="tag gb">GB</span></td><td>256×224</td><td>144×160</td></tr>
+        <tr><td>Pokémon Red</td><td><span class="tag gb">GB</span></td><td>256×224</td><td>144×160</td></tr>
+        <tr><td>Pokémon LeafGreen</td><td><span class="tag gba">GBA</span></td><td>240×160</td><td>— (no crop)</td></tr>
+      </table>
+    </div>
+    <div style="font-size:.75rem">
+      <h3>GB Crop Strategy</h3>
+      <p style="color:var(--dim)">SGB border = decorative noise for vision model. Crop to game-only region:</p>
+      <pre>if rom_is_gb:
+    screen = screen[40:184, 48:208]  # → 144×160</pre>
+      <h3 style="margin-top:16px">Available ROMs</h3>
+      <p style="color:var(--dim)">
+        ✅ Pokémon Blue (GB)<br>
+        ✅ Pokémon Red (GB)<br>
+        ✅ Pokémon Red Enhanced (GB)<br>
+        ✅ Pokémon LeafGreen (GBA)
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- MODEL ARCHITECTURE -->
+<div class="section">
+  <h2>▸ Model Architecture</h2>
+  <div class="grid grid2">
+    <div class="card violet">
+      <h4>Vision Model: google/gemma-3-12b-it</h4>
+      <p style="font-size:.75rem;color:var(--dim);margin-bottom:8px">
+        Multimodal. Reads raw screenshots. Outputs structured JSON — never narration.
+      </p>
+      <table>
+        <tr><th>Cost</th><td>$0.05/M in + $0.15/M out</td></tr>
+        <tr><th>Context</th><td>131K tokens</td></tr>
+        <tr><th>Per screenshot</th><td>~$0.0001</td></tr>
+        <tr><th>What it extracts</th><td>screen_type, enemy_name, hp%, text_lines, menu_options</td></tr>
+      </table>
+    </div>
+    <div class="card emerald">
+      <h4>Thinking Model: openrouter/owl-alpha</h4>
+      <p style="font-size:.75rem;color:var(--dim);margin-bottom:8px">
+        Text-only. Receives assembled prompt + vision output. Returns tool calls.
+      </p>
+      <table>
+        <tr><th>Cost</th><td>FREE ($0.00)</td></tr>
+        <tr><th>Context</th><td>1M tokens</td></tr>
+        <tr><th>Per decision</th><td>$0.00000</td></tr>
+        <tr><th>What it does</th><td>Selects next action from tool schema</td></tr>
+      </table>
+    </div>
+  </div>
+  <p style="font-size:.75rem;color:var(--dim);margin-top:16px">
+    <strong>Why two models?</strong> Vision models are expensive for text reasoning. Text models are cheap/free for decision-making. Gemma reads the screen once; owl-alpha makes decisions all day for free. Total cost per gameplay hour: ~$0.04.
+  </p>
+</div>
+
+<!-- TOOL SCHEMA -->
+<div class="section">
+  <h2>▸ Tool Schema (Thinking Model → Emulator)</h2>
+  <div class="grid grid3">
+    <div class="card amber"><h4>press_button</h4><pre>{
+  "button": "A|B|UP|DOWN|
+             LEFT|RIGHT|
+             START|SELECT",
+  "duration": 5
+}</pre><p style="font-size:.7rem;color:var(--dim);margin-top:6px">Press and hold for N frames, then release</p></div>
+    <div class="card amber"><h4>wait</h4><pre>{
+  "frames": 60
+}</pre><p style="font-size:.7rem;color:var(--dim);margin-top:6px">Advance emulator without pressing anything (1 frame = 1/60s)</p></div>
+    <div class="card amber"><h4>combo</h4><pre>{
+  "buttons": ["UP","A"],
+  "duration": 5
+}</pre><p style="font-size:.7rem;color:var(--dim);margin-top:6px">Press multiple buttons simultaneously</p></div>
+  </div>
+</div>
+
+<!-- PROMPT SYSTEM -->
+<div class="section">
+  <h2>▸ Stacked Prompt System</h2>
+  <p style="font-size:.8rem;color:var(--dim);margin-bottom:14px">
+    Prompts are layered configs selected by <strong>game generation × screen type</strong>. The vision model's output determines which stack loads.
+  </p>
+
+  <div class="grid grid2">
+    <div>
+      <h3>Config Structure</h3>
+      <pre>configs/prompts/
+├── gen1/              # Red/Blue/Yellow
+│   ├── battle.yaml
+│   ├── overworld.yaml
+│   ├── menu.yaml
+│   └── dialog.yaml
+└── gen3/              # FireRed/LeafGreen
+    ├── battle.yaml
+    ├── overworld.yaml
+    ├── menu.yaml
+    └── dialog.yaml</pre>
+    </div>
+    <div>
+      <h3>Each YAML Contains</h3>
+      <div class="prompt-stack">
+        <div class="layer sys"><strong>system_prompt</strong> — Role, rules, what game this is, what you control</div>
+        <div class="layer tools"><strong>tool_definitions</strong> — Available commands for this screen type</div>
+        <div class="layer obs"><strong>observation_template</strong> — Injects vision output: "Enemy: {name} HP:{hp}%"</div>
+        <div class="layer mem"><strong>memory_context</strong> — Recent actions, active goals, party status</div>
+        <div class="layer ex"><strong>few_shot_examples</strong> — 2-3 examples of correct tool calls for this screen</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VISION PROMPT -->
+<div class="section">
+  <h2>▸ Vision Prompt Design</h2>
+  <p style="font-size:.78rem;color:var(--dim);margin-bottom:12px">
+    The vision prompt is the most critical piece. It must extract <strong>specific actionable data</strong> — not describe the scene.
+  </p>
+  <div class="grid grid2">
+    <div>
+      <h3>Questions It Must Answer</h3>
+      <ul style="font-size:.75rem;color:var(--dim);list-style:none;padding:0">
+        <li>• What screen type? (battle / overworld / menu / dialog / title)</li>
+        <li>• If battle: enemy Pokémon name? Your HP bar %? Enemy HP bar %?</li>
+        <li>• What moves are shown? Any status icons?</li>
+        <li>• If overworld: adjacent tiles? NPCs? Signs? Grass? Exits?</li>
+        <li>• If menu: which menu? What's highlighted? How many options?</li>
+        <li>• If dialog: exact text shown? Is there a yes/no prompt?</li>
+        <li>• Any text boxes? What do they say — top line verbatim?</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Output Format (JSON)</h3>
+      <pre>{
+  "screen_type": "battle",
+  "enemy_pokemon": "Pidgey",
+  "player_hp_pct": 72,
+  "enemy_hp_pct": 34,
+  "text_lines": [
+    "What will PIDGEY do?",
+    "FIGHT  BAG",
+    "POKéMON  RUN"
+  ],
+  "menu_items": ["FIGHT","BAG","POKéMON","RUN"],
+  "adjacent_tiles": [],
+  "status_icons": [],
+  "dialog_prompt": null
+}</pre>
+    </div>
+  </div>
+  <p style="font-size:.7rem;color:var(--rose);margin-top:12px">
+    ⚠️ System prompt must forbid narration. No "I can see a Pokémon battle..." — JSON only.
+  </p>
+</div>
+
+<!-- DATA FLOW -->
+<div class="section">
+  <h2>▸ Decision Loop (Per Tick)</h2>
+  <div class="grid grid2">
+    <div style="font-size:.78rem;color:var(--dim)">
+      <p><strong>1. Capture</strong> — pygba renders frame, crop if GB</p>
+      <p><strong>2. Vision</strong> — Gemma 12B reads screenshot → structured JSON</p>
+      <p><strong>3. Select</strong> — screen_type + generation → choose prompt stack</p>
+      <p><strong>4. Assemble</strong> — system + tools + vision data + memory + examples → final prompt</p>
+      <p><strong>5. Decide</strong> — owl-alpha returns tool call JSON</p>
+      <p><strong>6. Execute</strong> — tool call → emulator button press</p>
+      <p><strong>7. Repeat</strong> — advance N frames, go to 1</p>
+    </div>
+    <div>
+      <h3>State Machine</h3>
+      <pre>
+[BOOT] → [TITLE] → [NEW GAME]
+    │
+    ▼
+[OVERWORLD] ←→ [BATTLE]
+    │              │
+    ├→ [MENU]      ├→ [CATCH]
+    ├→ [DIALOG]    └→ [FAINT]
+    └→ [SHOP]
+      </pre>
+    </div>
+  </div>
+</div>
+
+<!-- IMPLEMENTATION -->
+<div class="section">
+  <h2>▸ Build Phases</h2>
+  <div class="phase">
+    <div class="phase-num">1</div>
+    <div class="phase-body">
+      <h4>Emulator Wrapper + Tool Executor</h4>
+      <p>Replace old emulator.py with unified pygba wrapper. GB crop, tool schema, press_button/wait/combo execution. Verify screenshots work for Blue + LeafGreen.</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">2</div>
+    <div class="phase-body">
+      <h4>Prompt Config System</h4>
+      <p>YAML configs for gen1/gen3 × battle/overworld/menu/dialog. Prompt assembler that layers system → tools → observation → memory → examples. Few-shot examples for each screen type.</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">3</div>
+    <div class="phase-body">
+      <h4>Vision Pipeline</h4>
+      <p>Wire Gemma 3 12B via OpenRouter. Screenshot → base64 → structured JSON. Retry on parse failure. Vision output cached per screenshot.</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">4</div>
+    <div class="phase-body">
+      <h4>Decision Pipeline</h4>
+      <p>Vision output → prompt selection → assembly → owl-alpha → tool call parse → execute. Memory injection (last 10 actions, current goal, party status). Fallback on parse failures (default "press A").</p>
+    </div>
+  </div>
+  <div class="phase">
+    <div class="phase-num">5</div>
+    <div class="phase-body">
+      <h4>Autonomous Cron Loop</h4>
+      <p>coding-hermes cron job. Each tick: run N frames, commit checkpoint, push results. Database logging for every decision. Replay support for debugging.</p>
+    </div>
+  </div>
+</div>
+
+<!-- MODEL COMPARISON -->
+<div class="section">
+  <h2>▸ Model Options (Thinking Tier)</h2>
+  <table>
+    <tr><th>Model</th><th>Cost (in/out per 1M)</th><th>Context</th><th>Vision?</th><th>Role</th></tr>
+    <tr><td style="color:var(--emerald)">owl-alpha ★</td><td>$0 / $0</td><td>1M</td><td>No</td><td>Thinking</td></tr>
+    <tr><td>deepseek-v4-flash</td><td>$0.20 / $0.80</td><td>128K</td><td>No</td><td>Thinking (fallback)</td></tr>
+    <tr><td>qwen-3-32b</td><td>$0.12 / $0.39</td><td>131K</td><td>No</td><td>Thinking (stronger)</td></tr>
+    <tr><td style="color:var(--violet)">gemma-3-12b-it ★</td><td>$0.05 / $0.15</td><td>131K</td><td>Yes</td><td>Vision</td></tr>
+    <tr><td>gemini-2.5-flash</td><td>$0.15 / $0.60</td><td>1M</td><td>Yes</td><td>Vision (fallback)</td></tr>
+  </table>
+  <p style="font-size:.7rem;color:var(--dim);margin-top:10px">
+    ★ = recommended for cost. Total projected cost: &lt;$0.05/hour of gameplay.
+  </p>
+</div>
+
+<footer style="text-align:center;color:var(--dim);font-size:.7rem;padding:30px 0">
+  ai_plays_poke · pygba + Gemma 12B + owl-alpha · June 2026
+</footer>
+
+</div>
+</body>
+</html>
