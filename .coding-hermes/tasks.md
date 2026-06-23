@@ -3,28 +3,18 @@
 
 ## Active Queue
 
-### [ ] PHASE-1: Unified Emulator + Tool Executor
-**Model:** ollama-cloud/minimax-m3
-**Files:** src/core/emulator.py (rewrite), src/core/tools.py (new), src/core/rom_detect.py (new)
-**Verify:** `python -c "from src.core.emulator import Emulator; e = Emulator('data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb'); print(e.capture()); e.press_button('A', 5); print('OK')"`
-**Status:** ready to spawn
+### [x] PHASE-1: Unified Emulator + Tool Executor ✅ (d372832)
+### [x] PHASE-2: Prompt Config System ✅ (a26540e)
+### [x] PHASE-3: Vision Pipeline ✅ (ea6a2c6)
+### [x] PHASE-4: Decision Pipeline ✅ (348b372)
 
-### [ ] PHASE-2: Prompt Config System
-**Model:** ollama-cloud/minimax-m3
-**Files:** configs/prompts/**/*.yaml (new), src/core/prompt_assembler.py (new)
-**Verify:** Python imports, YAML parses, assembler produces valid prompt string with all layers
-
-### [ ] PHASE-3: Vision Pipeline
-**Model:** ollama-cloud/minimax-m3
-**Files:** src/core/vision.py (new/rewrite), tests/test_vision_pipeline.py
-**Verify:** Can call Gemma 12B with a screenshot, receive valid JSON back
-
-### [ ] PHASE-4: Decision Pipeline
-**Model:** ollama-cloud/minimax-m3
-**Files:** src/core/decision.py (new), src/game_loop.py (rewrite decision methods)
-**Verify:** Full loop: screenshot → vision → assemble → think → tool call → execute → repeat
-
-### [ ] PHASE-5: Cron Loop
+### [ ] PHASE-5: Autonomous Cron Loop
 **Model:** deepseek-v4-pro (foreman direct)
+**Goal:** Set up cron job that runs the decision loop autonomously with checkpoint commits
 **Files:** .coding-hermes/cron.sh, hermes cron job config
-**Verify:** Autonomous ticks with checkpoint commits
+**Status:** ready
+
+### [ ] BUGFIX: Advance past game intro
+The intro sequence (copyright → Game Freak → title → Oak) requires specific button sequences.
+Need to script the full intro skip so the AI starts at actual gameplay (Pallet Town overworld).
+Add to emulator.py: `skip_intro()` method that handles the full sequence.
