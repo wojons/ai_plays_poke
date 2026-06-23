@@ -458,20 +458,24 @@ class TestCLIFlagParser:
         with pytest.raises(SystemExit):
             parser.parse_args(args)
 
-    def test_validate_valid_config(self):
+    def test_validate_valid_config(self, tmp_path):
         """Test validation of valid configuration."""
+        rom = tmp_path / "test_pokemon.gb"
+        rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
         parser = CLIFlagParser()
-        args = ["--rom", "/tmp/test_pokemon.gb"]
+        args = ["--rom", str(rom)]
         config = parser.parse_args(args)
         errors = parser.validate_config(config)
 
         assert len(errors) == 0
 
-    def test_validate_verbose_quiet_conflict(self):
+    def test_validate_verbose_quiet_conflict(self, tmp_path):
         """Test validation catches verbose/quiet conflict."""
+        rom = tmp_path / "test_pokemon.gb"
+        rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
         parser = CLIFlagParser()
         args = [
-            "--rom", "/tmp/test_pokemon.gb",
+            "--rom", str(rom),
             "--verbose",
             "--quiet"
         ]
@@ -480,20 +484,24 @@ class TestCLIFlagParser:
 
         assert any("Cannot use both --verbose and --quiet" in e for e in errors)
 
-    def test_parse_and_validate_success(self):
+    def test_parse_and_validate_success(self, tmp_path):
         """Test parse_and_validate returns valid config."""
+        rom = tmp_path / "test_pokemon.gb"
+        rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
         parser = CLIFlagParser()
-        args = ["--rom", "/tmp/test_pokemon.gb"]
+        args = ["--rom", str(rom)]
         config, errors = parser.parse_and_validate(args)
 
         assert len(errors) == 0
         assert isinstance(config, FullConfig)
 
-    def test_parse_and_validate_error(self):
+    def test_parse_and_validate_error(self, tmp_path):
         """Test parse_and_validate returns errors for invalid config."""
+        rom = tmp_path / "test_pokemon.gb"
+        rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
         parser = CLIFlagParser()
         args = [
-            "--rom", "/tmp/test_pokemon.gb",
+            "--rom", str(rom),
             "--verbose",
             "--quiet"
         ]
