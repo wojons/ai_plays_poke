@@ -28,13 +28,10 @@ class TestROMHandling:
 
     def test_missing_rom_graceful_handling(self):
         """ROM not found → appropriate error, no crash"""
-        with patch('os.path.exists', return_value=False):
-            from src.core.emulator import EmulatorInterface
+        from src.core.emulator import Emulator
 
-            with pytest.raises((FileNotFoundError, Exception)) as exc_info:
-                EmulatorInterface(rom_path="/nonexistent/rom.gb")
-
-            assert exc_info.value is not None
+        with pytest.raises(FileNotFoundError):
+            Emulator(rom_path="/nonexistent/rom.gb")
 
     def test_invalid_rom_header(self):
         """Invalid ROM → clear error message"""
@@ -43,11 +40,9 @@ class TestROMHandling:
             temp_path = f.name
 
         try:
-            from src.core.emulator import EmulatorInterface
+            from src.core.emulator import Emulator
             with pytest.raises(Exception):
-                emulator = EmulatorInterface(rom_path=temp_path)
-                if emulator.pyboy is None:
-                    raise Exception("ROM validation failed")
+                Emulator(rom_path=temp_path)
         finally:
             os.unlink(temp_path)
 
@@ -58,37 +53,39 @@ class TestROMHandling:
             temp_path = f.name
 
         try:
-            from src.core.emulator import EmulatorInterface
-            emulator = EmulatorInterface(rom_path=temp_path)
-            assert emulator.pyboy is None
+            from src.core.emulator import Emulator
+            with pytest.raises(Exception):
+                Emulator(rom_path=temp_path)
         finally:
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
 
     def test_rom_path_with_spaces(self):
         """ROM path with spaces → proper handling"""
+        import shutil
         with tempfile.TemporaryDirectory() as tmpdir:
             spaced_path = os.path.join(tmpdir, "my rom file.gb")
-            with open(spaced_path, 'wb') as f:
-                f.write(b"NINTENDO" + b"\x00" * 100)
+            # Copy a real ROM to the spaced path to test path handling
+            shutil.copy2("data/rom/pokemon_red.gb", spaced_path)
 
-            from src.core.emulator import EmulatorInterface
-            emulator = EmulatorInterface(rom_path=spaced_path)
+            from src.core.emulator import Emulator
+            emulator = Emulator(rom_path=spaced_path)
 
             assert emulator is not None
+            emulator.stop()
 
     def test_rom_permission_denied(self):
         """ROM file permission denied → appropriate error"""
         with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
-            f.write(b"NINTENDO" + b"\x00" * 100)
+            f.write(b"\x00" * 32768)
             temp_path = f.name
 
         try:
             os.chmod(temp_path, 0o000)
 
-            from src.core.emulator import EmulatorInterface
-            with pytest.raises((PermissionError, Exception)):
-                EmulatorInterface(rom_path=temp_path)
+            from src.core.emulator import Emulator
+            with pytest.raises(Exception):
+                Emulator(rom_path=temp_path)
         finally:
             os.chmod(temp_path, 0o644)
             os.unlink(temp_path)
@@ -99,9 +96,9 @@ class TestROMHandling:
             temp_path = f.name
 
         try:
-            from src.core.emulator import EmulatorInterface
-            emulator = EmulatorInterface(rom_path=temp_path)
-            assert emulator.pyboy is None
+            from src.core.emulator import Emulator
+            with pytest.raises(Exception):
+                Emulator(rom_path=temp_path)
         finally:
             os.unlink(temp_path)
 
@@ -112,9 +109,9 @@ class TestROMHandling:
             temp_path = f.name
 
         try:
-            from src.core.emulator import EmulatorInterface
-            emulator = EmulatorInterface(rom_path=temp_path)
-            assert emulator.pyboy is None
+            from src.core.emulator import Emulator
+            with pytest.raises(Exception):
+                Emulator(rom_path=temp_path)
         finally:
             os.unlink(temp_path)
 
@@ -133,7 +130,7 @@ class TestAPIKeyHandling:
 
     def test_api_key_empty_string(self):
         """API key is empty string → stub mode"""
-        with patch.dict(os.environ, {"OPENAI_API_KEY": ""}):
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "", "OPENROUTER_API_KEY": ""}):
             from src.core.ai_client import AIModelClient
 
             client = AIModelClient()
