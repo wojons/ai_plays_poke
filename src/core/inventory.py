@@ -26,7 +26,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 from datetime import datetime
 import logging
 
@@ -568,7 +568,7 @@ class InventoryState:
 
         tm_db: Dict[int, TMData] = {}
 
-        tm_data_list = [
+        tm_data_list: List[Any] = [
             (1, ItemType.TM01, "Mega Punch", "Normal", 40, 85, []),
             (2, ItemType.TM02, "Razor Wind", "Normal", 80, 100, []),
             (3, ItemType.TM03, "Swords Dance", "Normal", 0, 100, []),
@@ -2028,7 +2028,7 @@ class InventoryManager:
 
     def get_shopping_goal(self, party_state: PartyState, money: int) -> Optional[ShoppingPlan]:
         """Generate shopping goal for GOAP planner"""
-        return self._shopping.generate_shopping_list(party_state, None, money)
+        return cast(Optional[ShoppingPlan], self._shopping.generate_shopping_list(party_state, None, money))
 
     def get_healing_goal(self, party_state: PartyState) -> Optional[Tuple[bool, HealingPriority, str]]:
         """Generate healing goal for GOAP planner"""

@@ -49,7 +49,7 @@ class PromptManager:
         self.load_prompts()
         
         # Usage tracking for analytics
-        self.prompt_usage_stats = {}
+        self.prompt_usage_stats: Dict[str, Any] = {}
     
     def load_prompts(self):
         """Load all prompt templates from filesystem"""

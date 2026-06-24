@@ -9,8 +9,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pyboy import PyBoy
+from typing import Any
 
-def scan_memory_for_pokemon_data(pyboy: "PyBoy", scan_range: tuple[int, int] = (0xD000, 0xE000)) -> dict:
+def scan_memory_for_pokemon_data(pyboy: "PyBoy", scan_range: tuple[int, int] = (0xD000, 0xE000)) -> dict[str, Any]:
+
     """Scan memory for Pokemon-related data"""
     
     memory = pyboy.memory

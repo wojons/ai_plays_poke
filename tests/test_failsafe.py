@@ -965,7 +965,7 @@ class TestFailsafeIntegration:
         state_machine = HierarchicalStateMachine()
         manager = FailsafeManager(state_machine=state_machine)
         
-        state_machine.transition_to("BATTLE.TRAINER", tick=100)
+        state_machine.transition_to("BATTLE.BATTLE_INTRO", tick=100)
         state_machine.transition_to("BATTLE.BATTLE_MENU", tick=101)
         
         result = manager.update(

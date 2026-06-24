@@ -13,7 +13,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, Tuple, Callable
+from typing import Any, Dict, List, Optional, Set, Tuple, Callable, cast
 from heapq import heappush, heappop
 from collections import deque
 import json
@@ -541,7 +541,7 @@ class AStarPathfinder:
             visited.add(current_map)
 
             if current_map == goal_map:
-                return path
+                return cast(List[Position], path)
 
             for warp_source, warp_dest in self.graph.warps.items():
                 if warp_source.map_id == current_map:
@@ -762,60 +762,60 @@ class AreaManager:
             self.graph.add_poi(poi)
 
     def _load_default_areas(self) -> None:
-        default_routes = [
+        default_routes: List[Dict[str, object]] = [
             {"id": "route1", "name": "Route 1", "connections": ["pallet_town", "viridian_city"]},
             {"id": "route2", "name": "Route 2", "connections": ["viridian_city", "pewter_city"]},
             {"id": "route3", "name": "Route 3", "connections": ["pewter_city", "cerulean_city"]},
         ]
-        self.routes.update({r["id"]: r for r in default_routes})
+        self.routes.update({str(cast(str, r["id"])): r for r in default_routes})
 
-        default_centers = [
+        default_centers: List[Dict[str, object]] = [
             {"name": "Pallet Town Center", "x": 6, "y": 10, "map_id": "pallet_town"},
             {"name": "Viridian City Center", "x": 10, "y": 12, "map_id": "viridian_city"},
             {"name": "Pewter City Center", "x": 8, "y": 8, "map_id": "pewter_city"},
         ]
         for center in default_centers:
-            pos = Position(center["x"], center["y"], map_id=center["map_id"])
+            pos = Position(int(cast(int, center["x"])), int(cast(int, center["y"])), map_id=str(cast(str, center["map_id"])))
             poi = PointOfInterest(
-                name=center["name"],
+                name=str(cast(str, center["name"])),
                 position=pos,
                 location_type=LocationType.POKEMON_CENTER,
-                map_id=center["map_id"],
+                map_id=str(cast(str, center["map_id"])),
                 metadata={}
             )
-            self.pokemon_centers[center["name"]] = poi
+            self.pokemon_centers[str(cast(str, center["name"]))] = poi
             self.graph.add_poi(poi)
 
-        default_gyms = [
+        default_gyms: List[Dict[str, object]] = [
             {"name": "Pewter Gym", "x": 7, "y": 5, "map_id": "pewter_city", "badge": "boulder", "leader": "Brock"},
             {"name": "Cerulean Gym", "x": 9, "y": 6, "map_id": "cerulean_city", "badge": "cascade", "leader": "Misty"},
         ]
         for gym in default_gyms:
-            pos = Position(gym["x"], gym["y"], map_id=gym["map_id"])
+            pos = Position(int(cast(int, gym["x"])), int(cast(int, gym["y"])), map_id=str(cast(str, gym["map_id"])))
             poi = PointOfInterest(
-                name=gym["name"],
+                name=str(cast(str, gym["name"])),
                 position=pos,
                 location_type=LocationType.GYM,
-                map_id=gym["map_id"],
-                metadata={"badge": gym["badge"], "leader": gym["leader"]}
+                map_id=str(cast(str, gym["map_id"])),
+                metadata={"badge": str(cast(str, gym["badge"])), "leader": str(cast(str, gym["leader"]))}
             )
-            self.gyms[gym["name"]] = poi
+            self.gyms[str(cast(str, gym["name"]))] = poi
             self.graph.add_poi(poi)
 
-        default_shops = [
+        default_shops: List[Dict[str, object]] = [
             {"name": "Viridian Mart", "x": 11, "y": 10, "map_id": "viridian_city", "inventory": ["potion", "antidote"]},
             {"name": "Pewter Mart", "x": 9, "y": 9, "map_id": "pewter_city", "inventory": ["potion", "repel"]},
         ]
         for shop in default_shops:
-            pos = Position(shop["x"], shop["y"], map_id=shop["map_id"])
+            pos = Position(int(cast(int, shop["x"])), int(cast(int, shop["y"])), map_id=str(cast(str, shop["map_id"])))
             poi = PointOfInterest(
-                name=shop["name"],
+                name=str(cast(str, shop["name"])),
                 position=pos,
                 location_type=LocationType.POKEMART,
-                map_id=shop["map_id"],
-                metadata={"inventory": shop["inventory"]}
+                map_id=str(cast(str, shop["map_id"])),
+                metadata={"inventory": cast(List[str], shop["inventory"])}
             )
-            self.shops[shop["name"]] = poi
+            self.shops[str(cast(str, shop["name"]))] = poi
             self.graph.add_poi(poi)
 
     def get_nearest_pokemon_center(self, position: Position) -> Optional[PointOfInterest]:
@@ -1037,7 +1037,7 @@ class NavigationSystem:
         if context is None:
             context = PathfindingContext()
 
-        return self.pathfinder.find_path(start, goal, context)
+        return cast(PathResult, self.pathfinder.find_path(start, goal, context))
 
     def navigate_to_poi(
         self,
@@ -1080,7 +1080,7 @@ class NavigationSystem:
             if poi:
                 pois.append(poi)
 
-        return self.route_optimizer.optimize_route(start, pois, context)
+        return cast(Tuple[List[RouteSegment], float], self.route_optimizer.optimize_route(start, pois, context))
 
     def solve_puzzle(
         self,
@@ -1090,11 +1090,11 @@ class NavigationSystem:
         context: PathfindingContext
     ) -> PathResult:
         if puzzle_type == "safari":
-            return self.puzzle_solver.solve_safari_zone(start, goal, context)
+            return cast(PathResult, self.puzzle_solver.solve_safari_zone(start, goal, context))
         elif puzzle_type == "rock_tunnel":
-            return self.puzzle_solver.solve_rock_tunnel(start, goal, context)
+            return cast(PathResult, self.puzzle_solver.solve_rock_tunnel(start, goal, context))
         elif puzzle_type == "cycling_road":
-            return self.puzzle_solver.solve_cycling_road(start, goal, context)
+            return cast(PathResult, self.puzzle_solver.solve_cycling_road(start, goal, context))
         else:
             return PathResult(
                 success=False,

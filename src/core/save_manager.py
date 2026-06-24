@@ -22,7 +22,7 @@ import time
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, cast
 from enum import Enum
 from collections import OrderedDict
 import threading
@@ -283,7 +283,7 @@ class SaveManager:
                     logger.info(f"Loaded snapshot: {snapshot_id}")
                     self._move_to_front(snapshot_id)
                 
-                return success
+                return cast(bool, success)
                 
             except Exception as e:
                 logger.error(f"Failed to load snapshot: {e}")

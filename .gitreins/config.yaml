@@ -14,7 +14,7 @@ guards:
 evaluator:
   max_iterations: 25
   lsp_diagnostics: true
-  static_analysis_diagnostics: false
+  static_analysis_diagnostics: true
 history:
   enabled: true
   storage: git

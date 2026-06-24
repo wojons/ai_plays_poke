@@ -102,6 +102,7 @@ warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
 strict_optional = true
+disallow_untyped_defs = false
 
 [tool.flake8]
 max-line-length = 88
