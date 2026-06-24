@@ -273,6 +273,7 @@ class GameLoop:
         })
         
         print(f"✅ AI decision made: {command['action']}")
+        return command
     
     def _simple_battle_ai(self) -> Dict[str, Any]:
         """Simple battle heuristic (placeholder)"""

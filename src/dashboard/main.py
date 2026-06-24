@@ -43,7 +43,7 @@ def verify_api_key(x_api_key: str = Header(None)) -> bool:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):  # type: ignore[misc]
+async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
     sessions.clear()
     connection_manager.clear()
     yield

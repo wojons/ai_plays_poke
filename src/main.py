@@ -61,7 +61,7 @@ class PokemonAIAgent:
         except Exception as e:
             print(f"  ❌ Error capturing screenshot: {e}")
             return False
-    def read_memory_data(self) -> None:
+    def read_memory_data(self) -> dict[str, int] | None:
         """Read Pokemon game data from memory"""
         if not self.pyboy:
             return None
@@ -87,7 +87,7 @@ class PokemonAIAgent:
             print(f"❌ Error reading memory: {e}")
             return None
     
-    def get_game_state(self, tick) :  # type: ignore[no-untyped-def]
+    def get_game_state(self, tick: int) -> dict[str, object]:
 
         """Get current game state including screenshot and memory data"""
         # Capture screenshot

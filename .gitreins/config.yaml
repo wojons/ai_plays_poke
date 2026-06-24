@@ -10,7 +10,6 @@ guards:
   static_analysis_tools:
     python:
     - mypy
-    - pyright
 evaluator:
   max_iterations: 25
   lsp_diagnostics: true

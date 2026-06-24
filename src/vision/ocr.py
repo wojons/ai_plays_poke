@@ -54,7 +54,7 @@ class OCREngine:
         self.font_templates: Dict[int, FontTemplate] = {}
         self._load_font_database()
         
-        self.special_cases = {
+        self.special_cases: dict[str, Any] = {
             "contraction_pattern": r"[A-Z]'[a-z]",
             "gender_symbols": {"M": "♂", "F": "♀"},
             "apostrophe_remap": {"'d": "d", "'s": "s", "'l": "l", "'t": "t", "'v": "v", "'r": "r"},
@@ -155,7 +155,7 @@ class OCREngine:
         with open(self.FONT_DATABASE_PATH, 'w') as f:
             json.dump(data, f, indent=2)
     
-    def _build_common_words_set(self, words: list[str] = None) -> set[str]:  # type: ignore[no-untyped-def]
+    def _build_common_words_set(self, words: list[str] | None = None) -> set[str]:
         """Build set of common Pokemon words for validation"""
         return {
             "POKEMON", "TRAINER", "ITEM", "MENU", "SAVE", "LOAD", "OPTIONS",
