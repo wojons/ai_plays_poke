@@ -110,7 +110,7 @@ class SpriteRecognizer:
         if sprite_region.size == 0:
             return None
         best_match = None
-        best_score = 0
+        best_score = 0.0
         candidates = self.common_pokemon
         if expected_types:
             candidates = [name for name in self.common_pokemon if any(t in self.pokemon_types.get(name, []) for t in expected_types)] or self.common_pokemon
@@ -140,12 +140,15 @@ class SpriteRecognizer:
         denominator = np.sqrt(np.sum(a_centered**2) * np.sum(b_centered**2))
         if denominator == 0:
             return 0.0
-        return max(0.0, numerator / denominator)
+        return float(max(0.0, numerator / denominator))
     
     def _ensure_grayscale(self, image: np.ndarray) -> np.ndarray:
+        result: np.ndarray
         if len(image.shape) == 3:
-            return np.mean(image, axis=2).astype(np.uint8)
-        return image.copy()
+            result = np.mean(image, axis=2).astype(np.uint8)
+        else:
+            result = image.copy()
+        return result
     
     def _resize_to_match(self, region: np.ndarray, target_size: Tuple[int, int]) -> np.ndarray:
         th, tw = target_size
@@ -168,7 +171,7 @@ class SpriteRecognizer:
         if not any(filled):
             return None
         filled_ratio = np.mean(filled)
-        is_low, is_critical = filled_ratio < 0.3, filled_ratio < 0.1
+        is_low, is_critical = bool(filled_ratio < 0.3), bool(filled_ratio < 0.1)
         percentage = max(0.0, min(100.0, filled_ratio * 100))
         return HPBarResult(current=int(percentage), maximum=100, percentage=percentage, is_low=is_low, is_critical=is_critical)
     
@@ -202,7 +205,7 @@ class SpriteRecognizer:
         return matches
     
     def get_pokemon_types(self, name: str) -> List[str]:
-        return self.pokemon_types.get(name, ["Unknown"])
+        return list(self.pokemon_types.get(name, ["Unknown"]))
     
     def is_shiny(self, sprite_region: np.ndarray) -> bool:
         if sprite_region.size == 0:
@@ -213,4 +216,4 @@ class SpriteRecognizer:
             return False
         sparkle_gray = self._ensure_grayscale(sparkle_region)
         white_ratio = np.sum(sparkle_gray > 250) / sparkle_gray.size
-        return white_ratio > 0.05
+        return bool(white_ratio > 0.05)

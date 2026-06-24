@@ -903,7 +903,7 @@ class BreakoutAnalytics:
 class ModeDurationEscalation:
     def __init__(self, confidence_scorer: Optional[Any] = None):
         self.confidence_scorer = confidence_scorer
-        self.escalation_tiers = {
+        self.escalation_tiers: dict[EscalationTier, dict[str, Any]] = {
             EscalationTier.NONE: {"confidence_floor": 80, "actions": ["continue_normal"], "check_interval": 10.0},
             EscalationTier.ENHANCED_MONITORING: {"confidence_floor": 60, "actions": ["increase_check_frequency", "log_verbose"], "check_interval": 5.0},
             EscalationTier.PLAN_SIMPLIFICATION: {"confidence_floor": 40, "actions": ["simplify_strategy", "force_progress"], "check_interval": 2.0},
@@ -960,10 +960,10 @@ class ModeDurationEscalation:
         self.current_tier = new_tier
 
     def get_check_interval(self) -> float:
-        return self.escalation_tiers[self.current_tier]["check_interval"]
+        return float(self.escalation_tiers[self.current_tier]["check_interval"])
 
     def get_confidence_floor(self) -> int:
-        return self.escalation_tiers[self.current_tier]["confidence_floor"]
+        return int(self.escalation_tiers[self.current_tier]["confidence_floor"])
 
 
 class ModeDurationTrackingSystem:

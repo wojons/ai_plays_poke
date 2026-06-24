@@ -293,11 +293,11 @@ class AILogger:
         
         self._initialized = True
         self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._base_log_dir = Path("logs")
+        self._base_log_dir: Path = Path("logs")
         self._setup_complete = False
         
         # Initialize logger
-        self.logger = logging.getLogger("ai_plays_poke")
+        self.logger: logging.Logger = logging.getLogger("ai_plays_poke")
         self.logger.setLevel(logging.DEBUG)
         
         # Clear existing handlers

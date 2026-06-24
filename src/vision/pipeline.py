@@ -317,7 +317,7 @@ class VisionPipeline:
         """Check if any frame changed since last check"""
         if len(self.frame_history) < 2:
             return True
-        return self.frame_history[-1] != self.frame_history[-2]
+        return bool(self.frame_history[-1] != self.frame_history[-2])
     
     def _normalize_aspect_ratio(self, frame: np.ndarray) -> np.ndarray:
         """Normalize frame to 4:3 aspect ratio"""
@@ -350,8 +350,8 @@ class VisionPipeline:
         g = frame[:, :, 1].astype(np.float32)
         b = frame[:, :, 2].astype(np.float32)
         
-        gray = (0.299 * r + 0.587 * g + 0.114 * b).astype(np.uint8)
-        
+        gray: np.ndarray = (0.299 * r + 0.587 * g + 0.114 * b).astype(np.uint8)
+
         return gray
     
     def _resize_to_target(

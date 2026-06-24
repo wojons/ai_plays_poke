@@ -177,7 +177,7 @@ class LocationDetector:
         return tiles
     
     def _identify_tile_patterns(self, tiles: List[np.ndarray]) -> Dict[str, int]:
-        pattern_counts = {}
+        pattern_counts: Dict[str, int] = {}
         
         for tile in tiles:
             tile_hash = self._compute_tile_hash(tile)
@@ -277,7 +277,7 @@ class LocationDetector:
         pattern_hash: str
     ) -> Tuple[str, str, float]:
         best_match = None
-        best_score = 0
+        best_score = 0.0
         
         for area_key, area_info in self.area_database.items():
             score = 0.0
@@ -294,7 +294,7 @@ class LocationDetector:
                 score += 2.0
             
             if score > best_score:
-                best_score = score
+                best_score = float(score)
                 best_match = (area_info["name"], area_info["type"], score)
         
         if best_match and best_score >= 1:
@@ -304,10 +304,10 @@ class LocationDetector:
         return "Unknown Area", "unknown", 0.0
     
     def get_tile_collision(self, tile_type: str) -> str:
-        return self.tile_classifications.get(tile_type, {}).get("collision", "unknown")
+        return str(self.tile_classifications.get(tile_type, {}).get("collision", "unknown"))
     
     def is_tile_interactive(self, tile_type: str) -> bool:
-        return self.tile_classifications.get(tile_type, {}).get("interactive", False)
+        return bool(self.tile_classifications.get(tile_type, {}).get("interactive", False))
     
     def get_navigation_graph(self, screenshot: np.ndarray) -> Dict[Tuple[int, int], Dict]:
         tiles = self._extract_tiles(screenshot)

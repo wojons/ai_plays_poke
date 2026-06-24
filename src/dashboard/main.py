@@ -72,7 +72,7 @@ class DashboardSession:
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self.db = GameDatabase(str(self.save_dir / "game_data.db"))
         self.screenshot_manager = ScreenshotManager(str(self.save_dir / "screenshots"))
-        self.state = {
+        self.state: Dict[str, Any] = {
             "running": False,
             "paused": False,
             "tick_count": 0,
@@ -346,7 +346,7 @@ async def websocket_screenshot(websocket: WebSocket, session_id: str):
     connection_manager[session_id] = websocket
     
     try:
-        last_screenshot_time = 0
+        last_screenshot_time = 0.0
         while True:
             screenshot_path = session.get_latest_screenshot_path()
             

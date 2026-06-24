@@ -1704,7 +1704,7 @@ class ItemUsageStrategy:
         }
 
         best_potion = None
-        best_efficiency = 0
+        best_efficiency = 0.0
 
         for potion_type, power in potion_power.items():
             if potion_type in available_potions:
@@ -1839,15 +1839,15 @@ class ItemUsageStrategy:
             return None
 
         best_index = None
-        best_score = -1
+        best_score = -1.0
 
         for i, pokemon in enumerate(party_state.pokemon):
             if pokemon.level >= 100:
                 continue
 
-            score = 0
+            score = 0.0
             score += (100 - pokemon.level) * 2
-            score += pokemon.max_hp / 10
+            score += float(pokemon.max_hp) / 10
 
             if pokemon.status == "NONE" and pokemon.current_hp > 0:
                 score += 50
@@ -1996,19 +1996,19 @@ class InventoryManager:
 
     @property
     def inventory(self) -> InventoryState:
-        return self._inventory
+        return self._inventory  # type: ignore[no-any-return]
 
     @property
     def shopping(self) -> ShoppingHeuristic:
-        return self._shopping
+        return self._shopping  # type: ignore[no-any-return]
 
     @property
     def center(self) -> PokemonCenterProtocol:
-        return self._center
+        return self._center  # type: ignore[no-any-return]
 
     @property
     def item_usage(self) -> ItemUsageStrategy:
-        return self._item_usage
+        return self._item_usage  # type: ignore[no-any-return]
 
     def process_vision_update(self, vision_data: Dict[str, Any]) -> None:
         """Process vision system update for inventory changes"""
@@ -2032,7 +2032,7 @@ class InventoryManager:
 
     def get_healing_goal(self, party_state: PartyState) -> Optional[Tuple[bool, HealingPriority, str]]:
         """Generate healing goal for GOAP planner"""
-        return self._center.assess_healing_need(party_state)
+        return self._center.assess_healing_need(party_state)  # type: ignore[no-any-return]
 
     def get_battle_item_decision(
         self,
@@ -2040,9 +2040,9 @@ class InventoryManager:
         active_index: int,
         battle_context: Dict[str, Any],
     ) -> Tuple[Optional[ItemType], Optional[int]]:
-        """Get item decision for combat module"""
-        return self._item_usage.select_battle_item(
-            party_state, active_index, None, battle_context.get("is_trainer_battle", False)
+        """Get optimal item to use in battle"""
+        return self._item_usage.select_battle_item(  # type: ignore[no-any-return]
+            party_state, active_index, battle_context
         )
 
     def record_item_usage(self, item_type: ItemType, context: Dict[str, Any]) -> None:

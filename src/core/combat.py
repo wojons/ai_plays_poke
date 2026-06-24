@@ -229,7 +229,7 @@ def get_default_stat(stat_name: str, default_value: int = 50) -> int:
     return defaults.get(stat_name, default_value)
 
 
-def validate_pokemon_data(data: Dict[str, Any], required_fields: List[str] = None) -> None:
+def validate_pokemon_data(data: Dict[str, Any], required_fields: Optional[List[str]] = None) -> None:
     """
     Validate Pokemon data for completeness.
 

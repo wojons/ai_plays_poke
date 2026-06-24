@@ -196,7 +196,7 @@ class CommandExecutionResult:
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for logging"""
-        d = {
+        d: dict[str, Any] = {
             "tick": self.command.tick,
             "command_type": self.command.command_type.value,
             "command_value": self.command.to_string(),
@@ -254,7 +254,7 @@ def parse_command_string(command_str: str) -> Optional[Dict[str, Any]]:
         return None
     
     command_type, params = parts
-    result = {"command_type": command_type}
+    result: Dict[str, Any] = {"command_type": command_type}
     
     if command_type == "press":
         if params in [b.value for b in Button]:

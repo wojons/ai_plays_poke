@@ -11,7 +11,7 @@ import json
 import base64
 import hashlib
 import re
-from typing import Optional
+from typing import Optional, cast
 
 import numpy as np
 from PIL import Image
@@ -181,7 +181,7 @@ class VisionClient:
 
         # Direct parse.
         try:
-            return json.loads(cleaned)
+            return cast(dict, json.loads(cleaned))
         except json.JSONDecodeError:
             pass
 
@@ -194,7 +194,7 @@ class VisionClient:
             match = re.search(pattern, cleaned, re.DOTALL)
             if match:
                 try:
-                    return json.loads(match.group())
+                    return cast(dict, json.loads(match.group()))
                 except json.JSONDecodeError:
                     continue
 

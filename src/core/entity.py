@@ -410,7 +410,7 @@ class PokemonData:
         
         stab = 1.2 if best_move.move_type in self.types else 1.0
         dps = (best_move.power * attack_stat / 100) * speed_weight * stab
-        return max(dps, 1.0)
+        return float(max(dps, 1.0))
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -863,7 +863,7 @@ class CarryScoreCalculator:
         else:
             score = min(efficiency_ratio * 20.0, 30.0)
 
-        return max(0.0, min(20.0, score))
+        return float(max(0.0, min(20.0, score)))
 
     def apply_rarity_modifier(self, pokemon: PokemonData) -> float:
         return self.RARITY_MULTIPLIERS.get(pokemon.species_id, 1.0)
@@ -1585,9 +1585,9 @@ class TeamCompositionOptimizer:
                     "priority": "high"
                 })
 
-        for pokemon in current_party:
-            if pokemon:
-                score, _ = self.carry_calculator.calculate_carry_score(pokemon, current_party)
+        for party_member in current_party:
+            if party_member is not None:
+                score, _ = self.carry_calculator.calculate_carry_score(party_member, current_party)
                 bench_status = self.carry_calculator.should_bench(score)
                 if bench_status == "immediate_bench":
                     for box_mon in box_pokemon:
@@ -1597,7 +1597,7 @@ class TeamCompositionOptimizer:
                         if box_score > score:
                             suggestions.append({
                                 "action": "replace",
-                                "remove": pokemon.species_id,
+                                "remove": party_member.species_id,
                                 "add": box_mon.species_id,
                                 "reason": f"{box_mon.species_id} has higher carry score ({box_score:.1f} vs {score:.1f})",
                                 "priority": "medium"

@@ -7,6 +7,7 @@ Creates a live view for users to monitor game progress.
 
 import base64
 import cv2
+import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict
@@ -129,6 +130,8 @@ class ScreenshotManager:
         images = []
         for screenshot_path in recent_screenshots:
             img = cv2.imread(str(screenshot_path))
+            if img is None:
+                continue
             # Scale up for better visibility (2x)
             img_resized = cv2.resize(img, (320, 288), interpolation=cv2.INTER_NEAREST)
             images.append(img_resized)
@@ -256,6 +259,8 @@ class LiveView:
             duration: Seconds to display
         """
         img = cv2.imread(str(filepath))
+        if img is None:
+            return
         
         # Get original filename
         filename = filepath.name

@@ -18,7 +18,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, cast
 
 # Add project root to Python path for imports
 project_root = Path(__file__).parent.parent
@@ -27,7 +27,22 @@ sys.path.insert(0, str(project_root))
 import numpy as np
 
 from db.database import GameDatabase
-from core.emulator import EmulatorInterface, EmulatorManager, Button
+from core.emulator import Emulator, Button
+
+
+class EmulatorManager:
+    """Stub for planned multi-instance support — not yet implemented."""
+    def __init__(self, rom_path: str, count: int) -> None:
+        raise NotImplementedError("Multi-instance support not yet implemented")
+
+    def start_all(self) -> None:
+        raise NotImplementedError
+
+    def stop_all(self) -> None:
+        raise NotImplementedError
+
+    def get_instance(self, instance_id: str) -> "Emulator":
+        raise NotImplementedError
 from core.screenshots import ScreenshotManager, SimpleLiveView
 from core.ai_client import GameAIManager, OpenRouterClient
 from core.save_manager import SaveManager, SaveManagerConfig, SnapshotReason
@@ -58,13 +73,13 @@ class GameLoop:
         rom_path = config["rom_path"]
         
         # Single emulator mode
+        self.emulator_mgr: Optional[EmulatorManager] = None
         if config.get("multi_instance", False):
             count = config.get("instance_count", 3)
             self.emulator_mgr = EmulatorManager(rom_path, count)
             self.current_instance = f"instance_0"
         else:
-            self.emulator_mgr = None
-            self.emulator = EmulatorInterface(rom_path)
+            self.emulator = Emulator(rom_path)
         
         # Database
         db_path = Path(config["save_dir"]) / "game_data.db"
@@ -407,7 +422,7 @@ class GameLoop:
         Uses real AI (OpenRouter) when available, falls back to stub AI otherwise
         """
         print(f"🤔 AI decision needed at tick {self.current_tick} ({game_state.screen_type})")
-        self.metrics["ai_decisions"] += 1
+        self.metrics["ai_decisions"] = cast(int, self.metrics["ai_decisions"]) + 1
         
         # Check if we should use real AI or stub
         if self.use_real_ai and self.ai_manager:
