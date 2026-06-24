@@ -388,6 +388,21 @@ def main() -> None:
                 if vis.get("screen_subtype") == "keyboard":
                     state_type = "name_entry"
 
+                # ── Rival battle detection ────────────────────────
+                if vis.get("screen_subtype") == "rival_battle":
+                    ctx.set_location("rival_battle")
+                    # Save special BATTLE_ screenshot
+                    battle_png = SCREENSHOT_DIR / f"BATTLE_{cycle+1:04d}.png"
+                    img.save(battle_png)
+                    evt = {
+                        "cycle": cycle + 1,
+                        "event": "RIVAL_BATTLE_REACHED",
+                    }
+                    results.append(evt)
+                    log_file.write(json.dumps(evt, default=str) + "\n")
+                    log_file.flush()
+                    print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle+1}")
+
                 win = StateWindow(state_type, ctx, emu, vis, generation="gen1", max_steps=STATE_STEPS)
                 result = win.run()
                 emu.fast_forward(FAST_FORWARD_FRAMES)

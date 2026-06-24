@@ -124,7 +124,7 @@
 4. Add `max_fast_forward` safety cap — 20 consecutive auto-A presses, then fall back to AI
 5. This should reduce intro time from ~30 cycles to < 10 cycles
 
-### [ ] BATTLE-1: Add rival battle recognition to screen classifier
+### [x] BATTLE-1: Add rival battle recognition to screen classifier ✅ (pending)
 **Priority:** high
 **Why:** Need to know when we've reached the rival battle. Current classifier lumps it into generic "battle" — should distinguish "rival_battle" specifically.
 **Files:** configs/prompts/gen1/battle.yaml, src/core/vision.py

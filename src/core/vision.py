@@ -33,7 +33,7 @@ class VisionClient:
         "Return exactly this JSON structure:\n"
         "{\n"
         '  "screen_type": "battle|overworld|dialog|name_entry|name_confirm|menu|title|unknown",\n'
-        '  "screen_subtype": "start_menu|item_menu|battle_menu|yes_no|keyboard|or null",\n'
+        '  "screen_subtype": "start_menu|item_menu|battle_menu|yes_no|keyboard|rival_battle|or null",\n'
         '  "enemy_pokemon": "Pokemon name or null",\n'
         '  "player_hp_pct": 0-100,\n'
         '  "enemy_hp_pct": 0-100,\n'
@@ -49,13 +49,16 @@ class VisionClient:
         '- screen_type: "battle" if HP bars visible. '
         '"overworld" if walking around (no text boxes). '
         '"name_entry" if a letter grid/keyboard is visible with "YOUR NAME?" '
-        'or "RIVAL\'S NAME?" at top. '
+        "or \"RIVAL'S NAME?\" at top. "
         '"name_confirm" if text says "Right! So your name is..."'
         '"dialog" if text box visible but NO letter grid and NO HP bars. '
         '"menu" if a list menu (POKéDEX, ITEM, SAVE etc) is open. '
         '"title" if title screen.\n'
         "- screen_subtype: for menus, specify which kind. "
-        "For name_entry, always \"keyboard\".\n"
+        'For name_entry, always "keyboard". '
+        'For battles against the rival (Gary/Blue), set to "rival_battle" '
+        "— look for the rival's unique sprite (spiky hair) and no wild "
+        "encounter animation/flash.\n"
         "- adjacent_tiles: for overworld ONLY. Describe what is ONE TILE in "
         "each direction from the player. Use: wall, stairs, path, grass, "
         "npc, door, empty, bed, table, pc, plant.\n"
