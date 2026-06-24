@@ -76,8 +76,8 @@ from src.core.symbols import SYMBOL_REFERENCE
 
 # ── Config ──────────────────────────────────────────────────────────
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
-CYCLES = 100
-STATE_STEPS = 10
+CYCLES = 200
+STATE_STEPS = 12
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 12  # controller steps per overworld cycle
 PRESS_FRAMES = 120  # hold button for 2s game time
@@ -88,6 +88,13 @@ LOG_DIR.mkdir(exist_ok=True)
 WORLD_DIR.mkdir(exist_ok=True)
 run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_path = LOG_DIR / f"run_{run_id}.jsonl"
+SCREENSHOT_DIR = Path("screenshots") / f"run_{run_id}"
+SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
+
+# ── Checkpointing ───────────────────────────────────────────────────
+CHECKPOINT_INTERVAL = 10   # save state every N cycles
+CHECKPOINT_SLOTS = 5       # rotating slots 0-4
+MAX_SAME_DIRECTION = 5     # blocked-direction threshold before rollback
 
 # ── Load cartographer prompt ────────────────────────────────────────
 _carto_cfg = yaml.safe_load(
@@ -260,14 +267,30 @@ def main() -> None:
 
     print(f"[{run_id}] Starting run with cartographer pipeline...")
 
+    # ── Checkpoint / recovery state ────────────────────────────────
+    _same_dir: str | None = None
+    _same_dir_count: int = 0
+    _checkpoint_slot: int = 0
+    _last_saved_slot: int | None = None
+
     # No blind intro skip — let the AI navigate title/dialog/name_entry
     # via the StateWindow pipeline like any other game state
 
     ctx = GlobalContext(generation="gen1", location="title")
 
+    # Open log file for incremental writing (web viewer polls this)
+    log_file = open(log_path, "w")
+    log_file.write("")  # create/truncate
+    log_file.flush()
+
     for cycle in range(CYCLES):
+        result: dict[str, Any] = {}
         try:
             screenshot = emu.capture()
+
+            # Save screenshot every cycle for progress tracking
+            img = Image.fromarray(screenshot)
+            img.save(SCREENSHOT_DIR / f"step_{cycle+1:04d}.png")
 
             # Step 1: Quick screen classification
             vis = vision.analyze(screenshot, game="gen1")
@@ -314,13 +337,47 @@ def main() -> None:
                     emu.fast_forward(STEP_FORWARD)  # let game respond
 
                     world.last_button = button
-                    results.append({
+                    entry = {
                         "cycle": cycle + 1,
                         "screen": st,
                         "pipeline": "cartographer",
                         "button": button,
                         "intent": intent,
-                    })
+                    }
+                    results.append(entry)
+                    log_file.write(json.dumps(entry, default=str) + "\n")
+                    log_file.flush()
+
+                    # Blocked-direction tracking
+                    if button in ("UP", "DOWN", "LEFT", "RIGHT"):
+                        if button == _same_dir:
+                            _same_dir_count += 1
+                        else:
+                            _same_dir = button
+                            _same_dir_count = 1
+                    else:
+                        _same_dir = None
+                        _same_dir_count = 0
+
+                    # Recovery: load checkpoint if stuck in same direction
+                    if _same_dir_count >= MAX_SAME_DIRECTION and _last_saved_slot is not None:
+                        try:
+                            emu.load_state(_last_saved_slot)
+                            evt = {
+                                "cycle": cycle + 1,
+                                "event": "state_loaded",
+                                "slot": _last_saved_slot,
+                                "reason": f"blocked_{_same_dir}_x{_same_dir_count}",
+                            }
+                            results.append(evt)
+                            log_file.write(json.dumps(evt, default=str) + "\n")
+                            log_file.flush()
+                            print(f"  [RECOVER] Loaded checkpoint slot {_last_saved_slot} (blocked {_same_dir} x{_same_dir_count})")
+                            _same_dir = None
+                            _same_dir_count = 0
+                            break  # exit cartographer loop — let next cycle re-evaluate
+                        except Exception as exc:
+                            print(f"  [RECOVER] Failed to load slot {_last_saved_slot}: {exc}")
 
                 elapsed = time.time() - t0
                 print(f"  [{cycle+1}/{CYCLES}] {st} | cartographer x{CART_STEPS} | {elapsed:.1f}s")
@@ -344,13 +401,16 @@ def main() -> None:
                         last_action = f"{tc.get('name','?')}({tc.get('arguments',{})})"
                         break
 
-                results.append({
+                entry = {
                     "cycle": cycle + 1,
                     "screen": st,
                     "state": state_type,
                     "action": last_action,
                     "elapsed_s": round(elapsed, 1),
-                })
+                }
+                results.append(entry)
+                log_file.write(json.dumps(entry, default=str) + "\n")
+                log_file.flush()
                 print(f"  [{cycle+1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s")
 
             # Handle progression
@@ -365,16 +425,39 @@ def main() -> None:
                 ctx.add_goal("leave bedroom")
                 ctx.add_goal("reach rival battle")
 
+            # ── Checkpoint save every N cycles ────────────────────
+            if (cycle + 1) % CHECKPOINT_INTERVAL == 0:
+                try:
+                    emu.save_state(_checkpoint_slot)
+                    evt = {
+                        "cycle": cycle + 1,
+                        "event": "state_saved",
+                        "slot": _checkpoint_slot,
+                    }
+                    results.append(evt)
+                    log_file.write(json.dumps(evt, default=str) + "\n")
+                    log_file.flush()
+                    print(f"  [CKPT] Saved state to slot {_checkpoint_slot}")
+                    _last_saved_slot = _checkpoint_slot
+                    _checkpoint_slot = (_checkpoint_slot + 1) % CHECKPOINT_SLOTS
+                except Exception as exc:
+                    print(f"  [CKPT] Failed to save state: {exc}")
+
         except Exception:
             traceback.print_exc()
-            results.append({"cycle": cycle + 1, "error": traceback.format_exc()})
+            err_entry = {"cycle": cycle + 1, "error": traceback.format_exc()}
+            results.append(err_entry)
+            log_file.write(json.dumps(err_entry, default=str) + "\n")
+            log_file.flush()
 
     emu.stop()
 
     # Write log
-    with open(log_path, "w") as f:
-        for entry in results:
-            f.write(json.dumps(entry, default=str) + "\n")
+    log_file.seek(0)
+    log_file.truncate()
+    for entry in results:
+        log_file.write(json.dumps(entry, default=str) + "\n")
+    log_file.close()
 
     # Summary
     screens = set(r.get("screen", "?") for r in results)

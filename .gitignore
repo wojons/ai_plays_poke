@@ -139,5 +139,8 @@ cron_logs/
 # Emergency snapshots (generated during runs)
 data/emergency_snapshots/
 
+# Checkpoint save states (cron_runner rotating slots)
+checkpoints/
+
 # Memory files
 memory/*.pkl

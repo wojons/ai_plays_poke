@@ -97,3 +97,50 @@
 4. Test TOOL_SCHEMA fast_forward entry has correct JSON schema
 5. Coverage: tools.py 74% → 90%+
 **Result:** 7 tests — 5 execution (with frames, large, zero, missing, invalid) + 2 schema validations (required frames, default=180).
+
+---
+
+## Active Queue (Bane's rival-battle push)
+
+### [x] CKPT-1: Add emulator state checkpointing to cron_runner.py ✅ (pending)
+**Priority:** high
+**Why:** Hit glitched void — need rollback to recover. Prevents wasting cycles in broken map states.
+**Files:** src/core/emulator.py, cron_runner.py
+**AC:**
+1. Add `save_state(slot: int)` and `load_state(slot: int)` methods to Emulator using pygba save states
+2. In cron_runner.py, save state every 10 cycles (cycle % 10 == 0) to rotating slots 0-4
+3. If controller issues same blocked direction 5+ times in a row, load previous save state
+4. Log state save/load events to cron_logs
+5. Works on GB ROMs (Pokémon Blue) — pygba supports save states for all cores
+
+### [ ] FAST-1: Fast-forward through non-interactive dialog in StateWindow
+**Priority:** high
+**Why:** Intro takes 20-30 cycles just through Oak's speech. AI deliberates on each text box. Should fast-forward deterministic text and only deliberate on choices.
+**Files:** src/core/state_window.py, configs/prompts/gen1/dialog.yaml
+**AC:**
+1. Add `is_interactive()` check — returns False for pure narration text (no menu, no name entry, no Yes/No)
+2. When dialog is non-interactive, auto-press A without calling the AI (just fast_forward + A press)
+3. When dialog becomes interactive (menu appears, name entry, Yes/No), switch back to AI deliberation
+4. Add `max_fast_forward` safety cap — 20 consecutive auto-A presses, then fall back to AI
+5. This should reduce intro time from ~30 cycles to < 10 cycles
+
+### [ ] BATTLE-1: Add rival battle recognition to screen classifier
+**Priority:** high
+**Why:** Need to know when we've reached the rival battle. Current classifier lumps it into generic "battle" — should distinguish "rival_battle" specifically.
+**Files:** configs/prompts/gen1/battle.yaml, src/core/vision.py
+**AC:**
+1. Add screen_subtype "rival_battle" to vision classifier prompt — triggered by: HP bars + Rival sprite + no wild encounter flash
+2. When rival_battle detected, log a special event: "RIVAL BATTLE REACHED" to cron_logs
+3. Add `ctx.set_location("rival_battle")` in cron_runner.py when rival_battle screen type is detected
+4. Save a special screenshot with prefix "VICTORY_" or "BATTLE_" to screenshots/ on rival battle detection
+5. Don't break existing battle flow — rival_battle should still use the normal battle StateWindow
+
+### [ ] RECOVER-1: Void state recovery — detect and escape glitched maps
+**Priority:** medium
+**Why:** On Jun 23 run, AI navigated into a white void where map didn't load. Should detect and recover.
+**Files:** cron_runner.py
+**AC:**
+1. After cartographer_analyze(), check if >95% of visible tiles are "?" (unknown)
+2. If all-unknown for 3 consecutive cycles, trigger recovery: press START (open menu), press B twice (close menu, force screen redraw)
+3. If recovery fails 3 times in a row, press START + B + B + A (attempt soft reset to title)
+4. Log all recovery attempts with cycle number and tiles_known percentage
