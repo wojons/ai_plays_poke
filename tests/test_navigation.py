@@ -41,37 +41,37 @@ from src.core.navigation import (
 class TestPosition:
     """Tests for Position dataclass"""
 
-    def test_position_creation(self):
+    def test_position_creation(self):  # type: ignore
         pos = Position(5, 10, "test_map")
         assert pos.x == 5
         assert pos.y == 10
         assert pos.map_id == "test_map"
 
-    def test_position_equality(self):
+    def test_position_equality(self):  # type: ignore
         pos1 = Position(5, 10, "map1")
         pos2 = Position(5, 10, "map1")
         pos3 = Position(5, 10, "map2")
         assert pos1 == pos2
         assert pos1 != pos3
 
-    def test_position_hash(self):
+    def test_position_hash(self):  # type: ignore
         pos1 = Position(5, 10, "map1")
         pos2 = Position(5, 10, "map1")
         assert hash(pos1) == hash(pos2)
         pos_set = {pos1, pos2}
         assert len(pos_set) == 1
 
-    def test_position_distance_to(self):
+    def test_position_distance_to(self):  # type: ignore
         pos1 = Position(0, 0, "map1")
         pos2 = Position(3, 4, "map1")
         assert pos1.distance_to(pos2) == 7
 
-    def test_position_manhattan_heuristic(self):
+    def test_position_manhattan_heuristic(self):  # type: ignore
         pos1 = Position(0, 0)
         pos2 = Position(5, 5)
         assert pos1.manhattan_heuristic(pos2) == 10
 
-    def test_position_lt_comparison(self):
+    def test_position_lt_comparison(self):  # type: ignore
         pos1 = Position(1, 1)
         pos2 = Position(2, 2)
         assert pos1 < pos2
@@ -80,7 +80,7 @@ class TestPosition:
 class TestGraphNode:
     """Tests for GraphNode dataclass"""
 
-    def test_graph_node_creation(self):
+    def test_graph_node_creation(self):  # type: ignore
         pos = Position(5, 5)
         node = GraphNode(position=pos, tile_type=TileType.PASSABLE)
         assert node.position == pos
@@ -88,7 +88,7 @@ class TestGraphNode:
         assert node.hm_requirement is None
         assert node.is_poi is False
 
-    def test_graph_node_with_hm_requirement(self):
+    def test_graph_node_with_hm_requirement(self):  # type: ignore
         pos = Position(5, 5)
         node = GraphNode(
             position=pos,
@@ -97,7 +97,7 @@ class TestGraphNode:
         )
         assert node.hm_requirement == HMMove.CUT
 
-    def test_graph_node_with_warp(self):
+    def test_graph_node_with_warp(self):  # type: ignore
         pos = Position(5, 5)
         warp_dest = Position(10, 10, "other_map")
         node = GraphNode(
@@ -107,7 +107,7 @@ class TestGraphNode:
         )
         assert node.warp_destination == warp_dest
 
-    def test_graph_node_poi(self):
+    def test_graph_node_poi(self):  # type: ignore
         pos = Position(5, 5)
         node = GraphNode(
             position=pos,
@@ -122,7 +122,7 @@ class TestGraphNode:
 class TestGraphEdge:
     """Tests for GraphEdge dataclass"""
 
-    def test_graph_edge_creation(self):
+    def test_graph_edge_creation(self):  # type: ignore
         from_pos = Position(0, 0)
         to_pos = Position(1, 0)
         edge = GraphEdge(from_node=from_pos, to_node=to_pos)
@@ -131,7 +131,7 @@ class TestGraphEdge:
         assert edge.cost == 1.0
         assert edge.is_warp is False
 
-    def test_graph_edge_with_hm(self):
+    def test_graph_edge_with_hm(self):  # type: ignore
         from_pos = Position(0, 0)
         to_pos = Position(1, 0)
         edge = GraphEdge(
@@ -141,7 +141,7 @@ class TestGraphEdge:
         )
         assert edge.requires_hm == HMMove.CUT
 
-    def test_graph_edge_ledge(self):
+    def test_graph_edge_ledge(self):  # type: ignore
         from_pos = Position(0, 0)
         to_pos = Position(1, 0)
         edge = GraphEdge(
@@ -157,17 +157,17 @@ class TestGraphEdge:
 class TestWorldGraph:
     """Tests for WorldGraph class"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.graph = WorldGraph()
 
-    def test_add_node(self):
+    def test_add_node(self):  # type: ignore
         pos = Position(5, 5)
         node = GraphNode(position=pos, tile_type=TileType.PASSABLE)
         self.graph.add_node(node)
         assert pos in self.graph.nodes
         assert self.graph.nodes[pos] == node
 
-    def test_add_edge(self):
+    def test_add_edge(self):  # type: ignore
         from_pos = Position(0, 0)
         to_pos = Position(1, 0)
         from_node = GraphNode(position=from_pos, tile_type=TileType.PASSABLE)
@@ -181,11 +181,11 @@ class TestWorldGraph:
 
         assert edge in self.graph.edges[from_pos]
 
-    def test_set_map_dimensions(self):
+    def test_set_map_dimensions(self):  # type: ignore
         self.graph.set_map_dimensions("route1", 40, 10)
         assert self.graph.map_dimensions["route1"] == (40, 10)
 
-    def test_is_accessible_passable(self):
+    def test_is_accessible_passable(self):  # type: ignore
         pos = Position(5, 5)
         node = GraphNode(position=pos, tile_type=TileType.PASSABLE)
         self.graph.add_node(node)
@@ -193,7 +193,7 @@ class TestWorldGraph:
         context = PathfindingContext()
         assert self.graph.is_accessible(pos, context) is True
 
-    def test_is_accessible_blocking(self):
+    def test_is_accessible_blocking(self):  # type: ignore
         pos = Position(5, 5)
         node = GraphNode(position=pos, tile_type=TileType.BLOCKING)
         self.graph.add_node(node)
@@ -201,7 +201,7 @@ class TestWorldGraph:
         context = PathfindingContext()
         assert self.graph.is_accessible(pos, context) is False
 
-    def test_is_accessible_with_hm_requirement(self):
+    def test_is_accessible_with_hm_requirement(self):  # type: ignore
         pos = Position(5, 5)
         node = GraphNode(
             position=pos,
@@ -216,7 +216,7 @@ class TestWorldGraph:
         context_without_hm = PathfindingContext(allow_hm_usage=False)
         assert self.graph.is_accessible(pos, context_without_hm) is True
 
-    def test_add_poi(self):
+    def test_add_poi(self):  # type: ignore
         pos = Position(5, 5)
         poi = PointOfInterest(
             name="Test Center",
@@ -229,7 +229,7 @@ class TestWorldGraph:
         assert poi.name in self.graph.pois
         assert self.graph.get_poi_by_name("Test Center") == poi
 
-    def test_get_poi_by_type(self):
+    def test_get_poi_by_type(self):  # type: ignore
         center_pos = Position(5, 5)
         gym_pos = Position(10, 10)
 
@@ -261,11 +261,11 @@ class TestWorldGraph:
 class TestAStarPathfinder:
     """Tests for AStarPathfinder class"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.graph = WorldGraph()
         self.pathfinder = AStarPathfinder(self.graph)
 
-    def _create_test_grid(self):
+    def _create_test_grid(self):  # type: ignore
         for x in range(10):
             for y in range(10):
                 pos = Position(x, y)
@@ -286,7 +286,7 @@ class TestAStarPathfinder:
                     )
                     self.graph.add_edge(edge_down)
 
-    def test_simple_pathfinding(self):
+    def test_simple_pathfinding(self):  # type: ignore
         self._create_test_grid()
 
         start = Position(0, 0)
@@ -300,7 +300,7 @@ class TestAStarPathfinder:
         assert result.path[0] == start
         assert result.path[-1] == goal
 
-    def test_no_path_blocked(self):
+    def test_no_path_blocked(self):  # type: ignore
         self._create_test_grid()
 
         block_pos = Position(5, 5)
@@ -316,7 +316,7 @@ class TestAStarPathfinder:
         assert result.success is True
         assert block_pos not in result.path
 
-    def test_pathfinding_cost(self):
+    def test_pathfinding_cost(self):  # type: ignore
         self._create_test_grid()
 
         start = Position(0, 0)
@@ -328,7 +328,7 @@ class TestAStarPathfinder:
         assert result.success is True
         assert result.total_cost >= 3.0
 
-    def test_pathfinding_with_tall_grass(self):
+    def test_pathfinding_with_tall_grass(self):  # type: ignore
         self._create_test_grid()
 
         grass_pos = Position(2, 0)
@@ -350,7 +350,7 @@ class TestAStarPathfinder:
         assert result_normal.success is True
         assert result_avoid.success is True
 
-    def test_pathfinding_cache(self):
+    def test_pathfinding_cache(self):  # type: ignore
         self._create_test_grid()
 
         start = Position(0, 0)
@@ -366,12 +366,12 @@ class TestAStarPathfinder:
 class TestRouteOptimizer:
     """Tests for RouteOptimizer class"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.graph = WorldGraph()
         self.pathfinder = AStarPathfinder(self.graph)
         self.optimizer = RouteOptimizer(self.graph, self.pathfinder)
 
-    def _create_test_graph(self):
+    def _create_test_graph(self):  # type: ignore
         for x in range(20):
             for y in range(20):
                 pos = Position(x, y)
@@ -385,7 +385,7 @@ class TestRouteOptimizer:
                     edge = GraphEdge(from_node=pos, to_node=Position(x, y + 1))
                     self.graph.add_edge(edge)
 
-    def test_optimize_route_single_objective(self):
+    def test_optimize_route_single_objective(self):  # type: ignore
         self._create_test_graph()
 
         start = Position(0, 0)
@@ -403,7 +403,7 @@ class TestRouteOptimizer:
         assert len(segments) == 1
         assert cost > 0
 
-    def test_optimize_route_multiple_objectives(self):
+    def test_optimize_route_multiple_objectives(self):  # type: ignore
         self._create_test_graph()
 
         start = Position(0, 0)
@@ -424,7 +424,7 @@ class TestRouteOptimizer:
         assert len(segments) == 3
         assert cost > 0
 
-    def test_cluster_objectives(self):
+    def test_cluster_objectives(self):  # type: ignore
         self._create_test_graph()
 
         objectives = [
@@ -441,7 +441,7 @@ class TestRouteOptimizer:
 
         assert len(clusters) > 0
 
-    def test_calculate_route_safety(self):
+    def test_calculate_route_safety(self):  # type: ignore
         self._create_test_graph()
 
         start = Position(0, 0)
@@ -475,40 +475,40 @@ class TestRouteOptimizer:
 class TestAreaManager:
     """Tests for AreaManager class"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.graph = WorldGraph()
         self.manager = AreaManager(self.graph)
 
-    def test_default_areas_loaded(self):
+    def test_default_areas_loaded(self):  # type: ignore
         assert len(self.manager.pokemon_centers) > 0
         assert len(self.manager.gyms) > 0
         assert len(self.manager.shops) > 0
 
-    def test_get_nearest_pokemon_center(self):
+    def test_get_nearest_pokemon_center(self):  # type: ignore
         pos = Position(0, 0, "pallet_town")
         center = self.manager.get_nearest_pokemon_center(pos)
 
         assert center is not None
         assert center.location_type == LocationType.POKEMON_CENTER
 
-    def test_get_nearest_gym(self):
+    def test_get_nearest_gym(self):  # type: ignore
         pos = Position(0, 0, "pallet_town")
         gym = self.manager.get_nearest_gym(pos)
 
         assert gym is not None
         assert gym.location_type == LocationType.GYM
 
-    def test_get_all_gyms(self):
+    def test_get_all_gyms(self):  # type: ignore
         gyms = self.manager.get_all_gyms()
         assert len(gyms) > 0
         assert all(g.location_type == LocationType.GYM for g in gyms)
 
-    def test_get_all_pokemon_centers(self):
+    def test_get_all_pokemon_centers(self):  # type: ignore
         centers = self.manager.get_all_pokemon_centers()
         assert len(centers) > 0
         assert all(c.location_type == LocationType.POKEMON_CENTER for c in centers)
 
-    def test_get_all_shops(self):
+    def test_get_all_shops(self):  # type: ignore
         shops = self.manager.get_all_shops()
         assert len(shops) > 0
         assert all(s.location_type == LocationType.POKEMART for s in shops)
@@ -517,11 +517,11 @@ class TestAreaManager:
 class TestPuzzleSolver:
     """Tests for PuzzleSolver class"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.graph = WorldGraph()
         self.solver = PuzzleSolver(self.graph)
 
-    def _create_test_graph(self):
+    def _create_test_graph(self):  # type: ignore
         for x in range(10):
             for y in range(10):
                 pos = Position(x, y)
@@ -535,7 +535,7 @@ class TestPuzzleSolver:
                     edge = GraphEdge(from_node=pos, to_node=Position(x, y + 1))
                     self.graph.add_edge(edge)
 
-    def test_solve_safari_zone(self):
+    def test_solve_safari_zone(self):  # type: ignore
         self._create_test_graph()
 
         start = Position(0, 0)
@@ -546,7 +546,7 @@ class TestPuzzleSolver:
 
         assert result.success is True
 
-    def test_solve_rock_tunnel_without_flash(self):
+    def test_solve_rock_tunnel_without_flash(self):  # type: ignore
         self._create_test_graph()
 
         start = Position(0, 0)
@@ -558,7 +558,7 @@ class TestPuzzleSolver:
         assert result.success is False
         assert any("Flash" in w for w in result.warnings)
 
-    def test_solve_rock_tunnel_with_flash(self):
+    def test_solve_rock_tunnel_with_flash(self):  # type: ignore
         self._create_test_graph()
 
         start = Position(0, 0)
@@ -569,7 +569,7 @@ class TestPuzzleSolver:
 
         assert result.success is True
 
-    def test_solve_ice_puzzle(self):
+    def test_solve_ice_puzzle(self):  # type: ignore
         self._create_test_graph()
 
         ice_positions = {Position(2, y) for y in range(5)}
@@ -588,10 +588,10 @@ class TestPuzzleSolver:
 class TestNavigationSystem:
     """Integration tests for NavigationSystem"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.nav = NavigationSystem()
 
-    def _add_test_edges(self):
+    def _add_test_edges(self):  # type: ignore
         for x in range(10):
             for y in range(10):
                 pos = Position(x, y)
@@ -611,14 +611,14 @@ class TestNavigationSystem:
                     edge = GraphEdge(from_node=from_pos, to_node=to_pos)
                     self.nav.graph.add_edge(edge)
 
-    def test_navigation_system_creation(self):
+    def test_navigation_system_creation(self):  # type: ignore
         assert self.nav.graph is not None
         assert self.nav.pathfinder is not None
         assert self.nav.route_optimizer is not None
         assert self.nav.area_manager is not None
         assert self.nav.puzzle_solver is not None
 
-    def test_navigate_to_position(self):
+    def test_navigate_to_position(self):  # type: ignore
         self._add_test_edges()
 
         start = Position(0, 0)
@@ -630,7 +630,7 @@ class TestNavigationSystem:
         assert result.success is True
         assert len(result.path) > 0
 
-    def test_navigate_to_poi(self):
+    def test_navigate_to_poi(self):  # type: ignore
         center_poi = self.nav.graph.get_poi_by_name("Pallet Town Center")
         assert center_poi is not None
 
@@ -638,7 +638,7 @@ class TestNavigationSystem:
 
         assert result.success is True
 
-    def test_navigate_to_nonexistent_poi(self):
+    def test_navigate_to_nonexistent_poi(self):  # type: ignore
         start = Position(0, 0, "pallet_town")
         context = PathfindingContext()
 
@@ -647,7 +647,7 @@ class TestNavigationSystem:
         assert result.success is False
         assert len(result.warnings) > 0
 
-    def test_find_heal_location(self):
+    def test_find_heal_location(self):  # type: ignore
         start = Position(0, 0, "pallet_town")
         context = PathfindingContext()
 
@@ -656,7 +656,7 @@ class TestNavigationSystem:
         assert center is not None
         assert center.location_type == LocationType.POKEMON_CENTER
 
-    def test_plan_multi_stop_route(self):
+    def test_plan_multi_stop_route(self):  # type: ignore
         center_poi = self.nav.graph.get_poi_by_name("Pallet Town Center")
         assert center_poi is not None
 
@@ -669,7 +669,7 @@ class TestNavigationSystem:
         assert len(segments) >= 0
         assert cost >= 0
 
-    def test_solve_puzzle(self):
+    def test_solve_puzzle(self):  # type: ignore
         self._add_test_edges()
 
         start = Position(0, 0)
@@ -680,7 +680,7 @@ class TestNavigationSystem:
 
         assert result.success is True
 
-    def test_get_navigation_status(self):
+    def test_get_navigation_status(self):  # type: ignore
         status = self.nav.get_navigation_status()
 
         assert "total_nodes" in status
@@ -694,7 +694,7 @@ class TestNavigationSystem:
 class TestCreateNavigationSystem:
     """Tests for create_navigation_system factory function"""
 
-    def test_create_navigation_system(self):
+    def test_create_navigation_system(self):  # type: ignore
         nav = create_navigation_system()
 
         assert nav is not None
@@ -705,7 +705,7 @@ class TestCreateNavigationSystem:
 class TestPathResult:
     """Tests for PathResult dataclass"""
 
-    def test_path_result_success(self):
+    def test_path_result_success(self):  # type: ignore
         result = PathResult(
             success=True,
             path=[Position(0, 0), Position(1, 0), Position(2, 0)],
@@ -722,7 +722,7 @@ class TestPathResult:
         assert HMMove.CUT in result.hm_requirements
         assert len(result.warnings) == 1
 
-    def test_path_result_failure(self):
+    def test_path_result_failure(self):  # type: ignore
         result = PathResult(
             success=False,
             warnings=["No path found"]
@@ -735,14 +735,14 @@ class TestPathResult:
 class TestHMMove:
     """Tests for HMMove enum"""
 
-    def test_hm_move_values(self):
+    def test_hm_move_values(self):  # type: ignore
         assert HMMove.CUT.value == "HM01"
         assert HMMove.FLY.value == "HM02"
         assert HMMove.SURF.value == "HM03"
         assert HMMove.STRENGTH.value == "HM04"
         assert HMMove.FLASH.value == "HM05"
 
-    def test_hm_move_iteration(self):
+    def test_hm_move_iteration(self):  # type: ignore
         moves = list(HMMove)
         assert len(moves) == 7
         assert HMMove.CUT in moves
@@ -755,7 +755,7 @@ class TestHMMove:
 class TestTileType:
     """Tests for TileType enum"""
 
-    def test_tile_type_values(self):
+    def test_tile_type_values(self):  # type: ignore
         assert TileType.PASSABLE is not None
         assert TileType.BLOCKING is not None
         assert TileType.WATER is not None

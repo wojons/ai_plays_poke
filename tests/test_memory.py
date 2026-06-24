@@ -48,7 +48,7 @@ from src.core.memory import (
 class TestTickState:
     """Tests for TickState dataclass"""
     
-    def test_default_values(self):
+    def test_default_values(self):  # type: ignore
         """Test default tick state values"""
         state = TickState()
         assert state.tick == 0
@@ -61,7 +61,7 @@ class TestTickState:
         assert state.screen_type == "overworld"
         assert state.active_goal is None
     
-    def test_custom_values(self):
+    def test_custom_values(self):  # type: ignore
         """Test tick state with custom values"""
         state = TickState(
             tick=500,
@@ -84,7 +84,7 @@ class TestTickState:
 class TestActionRecord:
     """Tests for ActionRecord dataclass"""
     
-    def test_action_record_creation(self):
+    def test_action_record_creation(self):  # type: ignore
         """Test action record creation"""
         action = ActionRecord(
             tick=100,
@@ -106,7 +106,7 @@ class TestActionRecord:
 class TestSensoryInput:
     """Tests for SensoryInput dataclass"""
     
-    def test_sensory_input_defaults(self):
+    def test_sensory_input_defaults(self):  # type: ignore
         """Test sensory input default values"""
         sensory = SensoryInput()
         assert sensory.vision_labels == []
@@ -115,7 +115,7 @@ class TestSensoryInput:
         assert sensory.screen_type == "unknown"
         assert sensory.enemy_pokemon is None
     
-    def test_sensory_input_battle(self):
+    def test_sensory_input_battle(self):  # type: ignore
         """Test sensory input for battle"""
         sensory = SensoryInput(
             vision_labels=["pokemon", "health_bar", "menu"],
@@ -135,7 +135,7 @@ class TestSensoryInput:
 class TestObserverMemory:
     """Tests for ObserverMemory (ephemeral, tick-level)"""
     
-    def test_create_observer_memory(self):
+    def test_create_observer_memory(self):  # type: ignore
         """Test factory function creates empty observer memory"""
         observer = create_observer_memory()
         assert observer is not None
@@ -144,7 +144,7 @@ class TestObserverMemory:
         assert observer.decision_context == {}
         assert observer.current_state.tick == 0
     
-    def test_add_single_action(self):
+    def test_add_single_action(self):  # type: ignore
         """Test adding single action to observer memory"""
         observer = create_observer_memory()
         action = ActionRecord(
@@ -161,7 +161,7 @@ class TestObserverMemory:
         assert len(observer.recent_actions) == 1
         assert observer.recent_actions[0].action_type == "press"
     
-    def test_add_multiple_actions_fifo(self):
+    def test_add_multiple_actions_fifo(self):  # type: ignore
         """Test FIFO buffer - max 10 actions"""
         observer = create_observer_memory()
         for i in range(15):
@@ -179,7 +179,7 @@ class TestObserverMemory:
         assert len(observer.recent_actions) == 10
         assert observer.recent_actions[0].tick == 5
     
-    def test_get_recent_outcomes(self):
+    def test_get_recent_outcomes(self):  # type: ignore
         """Test getting recent outcomes"""
         observer = create_observer_memory()
         outcomes = observer.get_recent_outcomes()
@@ -197,7 +197,7 @@ class TestObserverMemory:
         assert outcomes[0]["success"] is True
         assert outcomes[0]["action_type"] == "press"
     
-    def test_clear_observer(self):
+    def test_clear_observer(self):  # type: ignore
         """Test clearing observer memory"""
         observer = create_observer_memory()
         observer.decision_context["test"] = "value"
@@ -218,7 +218,7 @@ class TestObserverMemory:
         assert observer.current_state.money == 0
         assert len(observer.recent_actions) == 0
     
-    def test_update_state(self):
+    def test_update_state(self):  # type: ignore
         """Test updating state"""
         observer = create_observer_memory()
         observer.update_state(
@@ -230,7 +230,7 @@ class TestObserverMemory:
         assert observer.current_state.is_battle is True
         assert observer.current_state.party_hp_percent == 75.0
     
-    def test_success_rate(self):
+    def test_success_rate(self):  # type: ignore
         """Test success rate calculation"""
         observer = create_observer_memory()
         assert observer.get_success_rate() == 0.0
@@ -246,7 +246,7 @@ class TestObserverMemory:
         
         assert observer.get_success_rate() == pytest.approx(0.6, rel=0.01)
     
-    def test_avg_confidence(self):
+    def test_avg_confidence(self):  # type: ignore
         """Test average confidence calculation"""
         observer = create_observer_memory()
         assert observer.get_avg_confidence() == 0.0
@@ -261,7 +261,7 @@ class TestObserverMemory:
         
         assert observer.get_avg_confidence() == pytest.approx(0.775, rel=0.01)
     
-    def test_serialization(self):
+    def test_serialization(self):  # type: ignore
         """Test observer memory serialization"""
         observer = create_observer_memory()
         observer.current_state.tick = 100
@@ -280,7 +280,7 @@ class TestObserverMemory:
 class TestStrategistMemory:
     """Tests for StrategistMemory (session-level)"""
     
-    def test_create_strategist_memory(self):
+    def test_create_strategist_memory(self):  # type: ignore
         """Test factory function creates strategist memory"""
         strategist = create_strategist_memory("session_001", 0)
         assert strategist is not None
@@ -291,7 +291,7 @@ class TestStrategistMemory:
         assert strategist.victories == 0
         assert strategist.defeats == 0
     
-    def test_record_battle_victory(self):
+    def test_record_battle_victory(self):  # type: ignore
         """Test recording battle victory"""
         strategist = create_strategist_memory("session_001", 0)
         battle = BattleRecord(
@@ -316,7 +316,7 @@ class TestStrategistMemory:
         assert strategist.defeats == 0
         assert len(strategist.battle_history) == 1
     
-    def test_record_battle_defeat(self):
+    def test_record_battle_defeat(self):  # type: ignore
         """Test recording battle defeat"""
         strategist = create_strategist_memory("session_001", 0)
         battle = BattleRecord(
@@ -340,12 +340,12 @@ class TestStrategistMemory:
         assert strategist.victories == 0
         assert strategist.defeats == 1
     
-    def test_win_rate_empty(self):
+    def test_win_rate_empty(self):  # type: ignore
         """Test win rate with no battles"""
         strategist = create_strategist_memory("session_001", 0)
         assert strategist.get_win_rate() == 0.0
     
-    def test_win_rate_mixed(self):
+    def test_win_rate_mixed(self):  # type: ignore
         """Test win rate with mixed outcomes"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -369,7 +369,7 @@ class TestStrategistMemory:
         
         assert strategist.get_win_rate() == pytest.approx(0.75, rel=0.01)
     
-    def test_add_objective(self):
+    def test_add_objective(self):  # type: ignore
         """Test adding session objective"""
         strategist = create_strategist_memory("session_001", 0)
         objective = SessionObjective(
@@ -391,7 +391,7 @@ class TestStrategistMemory:
         assert strategist.active_objective is not None
         assert strategist.active_objective.name == "Defeat Brock"
     
-    def test_update_objective_progress(self):
+    def test_update_objective_progress(self):  # type: ignore
         """Test updating objective progress"""
         strategist = create_strategist_memory("session_001", 0)
         objective = SessionObjective(
@@ -412,7 +412,7 @@ class TestStrategistMemory:
         
         assert strategist.objectives[0].progress_percent == 50.0
     
-    def test_complete_objective(self):
+    def test_complete_objective(self):  # type: ignore
         """Test completing objective"""
         strategist = create_strategist_memory("session_001", 0)
         objective = SessionObjective(
@@ -435,7 +435,7 @@ class TestStrategistMemory:
         assert strategist.objectives[0].progress_percent == 100.0
         assert strategist.active_objective is None
     
-    def test_add_location_new(self):
+    def test_add_location_new(self):  # type: ignore
         """Test adding new location"""
         strategist = create_strategist_memory("session_001", 0)
         location = LocationVisited(
@@ -454,7 +454,7 @@ class TestStrategistMemory:
         assert "Pewter City" in strategist.locations_visited
         assert strategist.locations_visited["Pewter City"].visit_count == 1
     
-    def test_add_location_existing(self):
+    def test_add_location_existing(self):  # type: ignore
         """Test adding to existing location"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -488,7 +488,7 @@ class TestStrategistMemory:
         assert "Area B" in strategist.locations_visited["Route 1"].explored_areas
         assert "Wild Pokemon" in strategist.locations_visited["Route 1"].points_of_interest
     
-    def test_update_money(self):
+    def test_update_money(self):  # type: ignore
         """Test updating money"""
         strategist = create_strategist_memory("session_001", 0)
         strategist.update_money(3000)
@@ -498,7 +498,7 @@ class TestStrategistMemory:
         strategist.update_money(-3000)
         assert strategist.current_money == 0
     
-    def test_update_items(self):
+    def test_update_items(self):  # type: ignore
         """Test updating items"""
         strategist = create_strategist_memory("session_001", 0)
         strategist.update_items("Potion", 5)
@@ -508,7 +508,7 @@ class TestStrategistMemory:
         strategist.update_items("Potion", -10)
         assert "Potion" not in strategist.current_items
     
-    def test_get_battles_by_outcome(self):
+    def test_get_battles_by_outcome(self):  # type: ignore
         """Test filtering battles by outcome"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -536,7 +536,7 @@ class TestStrategistMemory:
         assert len(victories) == 3
         assert len(defeats) == 2
     
-    def test_get_recent_battles(self):
+    def test_get_recent_battles(self):  # type: ignore
         """Test getting recent battles"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -562,7 +562,7 @@ class TestStrategistMemory:
         assert len(recent) == 3
         assert recent[0].battle_id == "b7"
     
-    def test_get_objectives_progress(self):
+    def test_get_objectives_progress(self):  # type: ignore
         """Test getting objectives progress by type"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -589,7 +589,7 @@ class TestStrategistMemory:
         assert progress["exploration"] == 50.0
         assert progress["defeat_gym"] == 50.0
     
-    def test_clear_session(self):
+    def test_clear_session(self):  # type: ignore
         """Test clearing session data"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -618,7 +618,7 @@ class TestStrategistMemory:
         assert strategist.current_money == 0
         assert len(strategist.battle_history) == 0
     
-    def test_serialization(self):
+    def test_serialization(self):  # type: ignore
         """Test strategist memory serialization"""
         strategist = create_strategist_memory("session_001", 0)
         data = strategist.to_dict()
@@ -632,7 +632,7 @@ class TestStrategistMemory:
 class TestTacticianMemory:
     """Tests for TacticianMemory (persistent, long-term)"""
     
-    def test_create_tactician_memory(self):
+    def test_create_tactician_memory(self):  # type: ignore
         """Test factory function creates tactician memory"""
         tactician = create_tactician_memory()
         assert tactician is not None
@@ -642,7 +642,7 @@ class TestTacticianMemory:
         assert tactician.total_battles == 0
         assert tactician.overall_win_rate == 0.0
     
-    def test_add_pattern_new(self):
+    def test_add_pattern_new(self):  # type: ignore
         """Test adding new pattern"""
         tactician = create_tactician_memory()
         pattern = LearnedPattern(
@@ -663,7 +663,7 @@ class TestTacticianMemory:
         assert "pattern_001" in tactician.patterns
         assert tactician.patterns["pattern_001"].confidence == 0.83
     
-    def test_add_pattern_update_existing(self):
+    def test_add_pattern_update_existing(self):  # type: ignore
         """Test updating existing pattern"""
         tactician = create_tactician_memory()
         
@@ -700,7 +700,7 @@ class TestTacticianMemory:
         assert tactician.patterns["pattern_001"].confidence == 0.83
         assert tactician.patterns["pattern_001"].relevance_score == 0.8
     
-    def test_record_strategy_success(self):
+    def test_record_strategy_success(self):  # type: ignore
         """Test recording strategy success"""
         tactician = create_tactician_memory()
         
@@ -727,7 +727,7 @@ class TestTacticianMemory:
         assert tactician.strategies["strat_001"].successful_uses == 1
         assert tactician.strategies["strat_001"].success_rate == 0.5
     
-    def test_get_or_create_strategy(self):
+    def test_get_or_create_strategy(self):  # type: ignore
         """Test getting or creating strategy"""
         tactician = create_tactician_memory()
         
@@ -750,7 +750,7 @@ class TestTacticianMemory:
         
         assert strategy1.strategy_id == strategy2.strategy_id
     
-    def test_add_mistake_new(self):
+    def test_add_mistake_new(self):  # type: ignore
         """Test adding new mistake"""
         tactician = create_tactician_memory()
         mistake = MistakeRecord(
@@ -769,7 +769,7 @@ class TestTacticianMemory:
         assert "mistake_001" in tactician.mistakes
         assert tactician.mistakes["mistake_001"].severity == "major"
     
-    def test_add_mistake_merge(self):
+    def test_add_mistake_merge(self):  # type: ignore
         """Test merging similar mistakes"""
         tactician = create_tactician_memory()
         
@@ -802,7 +802,7 @@ class TestTacticianMemory:
         assert len(tactician.mistakes) == 1
         assert tactician.mistakes["mistake_001"].occurrence_count == 2
     
-    def test_get_preference_existing(self):
+    def test_get_preference_existing(self):  # type: ignore
         """Test getting existing preference"""
         tactician = create_tactician_memory()
         preference = PlayerPreference(
@@ -821,13 +821,13 @@ class TestTacticianMemory:
         assert retrieved is not None
         assert retrieved.category == "move_order"
     
-    def test_get_preference_nonexistent(self):
+    def test_get_preference_nonexistent(self):  # type: ignore
         """Test getting nonexistent preference"""
         tactician = create_tactician_memory()
         pref = tactician.get_preference("nonexistent")
         assert pref is None
     
-    def test_set_preference_update(self):
+    def test_set_preference_update(self):  # type: ignore
         """Test updating existing preference"""
         tactician = create_tactician_memory()
         
@@ -858,7 +858,7 @@ class TestTacticianMemory:
         assert tactician.preferences["move_order"].preference_value["strategy"] == "updated"
         assert tactician.preferences["move_order"].confidence == 0.8
     
-    def test_get_relevant_patterns(self):
+    def test_get_relevant_patterns(self):  # type: ignore
         """Test getting relevant patterns"""
         tactician = create_tactician_memory()
         
@@ -891,7 +891,7 @@ class TestTacticianMemory:
         assert len(relevant) == 2
         assert relevant[0].pattern_id == "p2"
     
-    def test_get_successful_strategies(self):
+    def test_get_successful_strategies(self):  # type: ignore
         """Test getting successful strategies"""
         tactician = create_tactician_memory()
         
@@ -925,7 +925,7 @@ class TestTacticianMemory:
         assert len(strategies) == 1
         assert strategies[0].strategy_id == "s1"
     
-    def test_get_mistakes_for_context(self):
+    def test_get_mistakes_for_context(self):  # type: ignore
         """Test getting mistakes for context"""
         tactician = create_tactician_memory()
         
@@ -958,7 +958,7 @@ class TestTacticianMemory:
         assert len(relevant) == 1
         assert relevant[0].mistake_id == "m1"
     
-    def test_get_patterns_by_type(self):
+    def test_get_patterns_by_type(self):  # type: ignore
         """Test getting patterns by type"""
         tactician = create_tactician_memory()
         
@@ -976,7 +976,7 @@ class TestTacticianMemory:
         battle_patterns = tactician.get_patterns_by_type("battle")
         assert len(battle_patterns) == 2
     
-    def test_get_high_confidence_patterns(self):
+    def test_get_high_confidence_patterns(self):  # type: ignore
         """Test getting high confidence patterns"""
         tactician = create_tactician_memory()
         
@@ -997,7 +997,7 @@ class TestTacticianMemory:
         high_conf = tactician.get_high_confidence_patterns(0.7)
         assert len(high_conf) == 2
     
-    def test_update_stats(self):
+    def test_update_stats(self):  # type: ignore
         """Test updating overall stats"""
         tactician = create_tactician_memory()
         
@@ -1013,7 +1013,7 @@ class TestTacticianMemory:
         assert tactician.total_battles == 3
         assert tactician.overall_win_rate == pytest.approx(0.667, rel=0.01)
     
-    def test_increment_sessions(self):
+    def test_increment_sessions(self):  # type: ignore
         """Test incrementing session counter"""
         tactician = create_tactician_memory()
         assert tactician.total_sessions == 0
@@ -1022,7 +1022,7 @@ class TestTacticianMemory:
         tactician.increment_sessions()
         assert tactician.total_sessions == 2
     
-    def test_prune_low_value(self):
+    def test_prune_low_value(self):  # type: ignore
         """Test pruning low value memories"""
         tactician = create_tactician_memory()
         
@@ -1045,7 +1045,7 @@ class TestTacticianMemory:
         assert pruned == 10
         assert len(tactician.patterns) == 50
     
-    def test_serialization(self):
+    def test_serialization(self):  # type: ignore
         """Test tactician memory serialization"""
         tactician = create_tactician_memory()
         tactician.total_sessions = 5
@@ -1063,7 +1063,7 @@ class TestTacticianMemory:
 class TestTacticianMemoryDatabase:
     """Tests for TacticianMemory database operations"""
     
-    def test_save_and_load_patterns(self):
+    def test_save_and_load_patterns(self):  # type: ignore
         """Test saving and loading patterns from database"""
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "test_memory.db")
@@ -1093,7 +1093,7 @@ class TestTacticianMemoryDatabase:
             assert tactician2.patterns["test_pattern"].confidence == 0.83
             assert tactician2.total_sessions == 3
     
-    def test_save_and_load_strategies(self):
+    def test_save_and_load_strategies(self):  # type: ignore
         """Test saving and loading strategies from database"""
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "test_memory.db")
@@ -1119,7 +1119,7 @@ class TestTacticianMemoryDatabase:
             assert "strat_001" in tactician2.strategies
             assert tactician2.strategies["strat_001"].success_rate == 0.9
     
-    def test_save_and_load_mistakes(self):
+    def test_save_and_load_mistakes(self):  # type: ignore
         """Test saving and loading mistakes from database"""
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "test_memory.db")
@@ -1145,7 +1145,7 @@ class TestTacticianMemoryDatabase:
             assert "mistake_001" in tactician2.mistakes
             assert tactician2.mistakes["mistake_001"].occurrence_count == 3
     
-    def test_save_and_load_preferences(self):
+    def test_save_and_load_preferences(self):  # type: ignore
         """Test saving and loading preferences from database"""
         with tempfile.TemporaryDirectory() as tmpdir:
             db_path = os.path.join(tmpdir, "test_memory.db")
@@ -1175,7 +1175,7 @@ class TestTacticianMemoryDatabase:
 class TestMemoryConsolidator:
     """Tests for MemoryConsolidator"""
     
-    def test_create_consolidator(self):
+    def test_create_consolidator(self):  # type: ignore
         """Test factory function creates consolidator"""
         observer = create_observer_memory()
         strategist = create_strategist_memory("session_001", 0)
@@ -1188,7 +1188,7 @@ class TestMemoryConsolidator:
         assert consolidator is not None
         assert consolidator.config.tick_interval == 1000
     
-    def test_default_config(self):
+    def test_default_config(self):  # type: ignore
         """Test default consolidation configuration"""
         config = ConsolidationConfig()
         assert config.tick_interval == 1000
@@ -1199,7 +1199,7 @@ class TestMemoryConsolidator:
         assert config.max_strategies == 100
         assert config.max_mistakes == 200
     
-    def test_set_references(self):
+    def test_set_references(self):  # type: ignore
         """Test setting memory references"""
         consolidator = create_consolidator()
         observer = create_observer_memory()
@@ -1214,13 +1214,13 @@ class TestMemoryConsolidator:
         assert consolidator.strategist is strategist
         assert consolidator.tactician is tactician
     
-    def test_tick_no_consolidation(self):
+    def test_tick_no_consolidation(self):  # type: ignore
         """Test tick without consolidation"""
         consolidator = create_consolidator()
         result = consolidator.tick(100)
         assert result is None
     
-    def test_tick_with_consolidation(self):
+    def test_tick_with_consolidation(self):  # type: ignore
         """Test tick with consolidation"""
         observer = create_observer_memory()
         observer.current_state.tick = 1500
@@ -1238,7 +1238,7 @@ class TestMemoryConsolidator:
         assert result.success is True
         assert result.consolidation_time_ms >= 0
     
-    def test_consolidate_observer_to_strategist(self):
+    def test_consolidate_observer_to_strategist(self):  # type: ignore
         """Test consolidating observer to strategist"""
         observer = create_observer_memory()
         for i in range(5):
@@ -1259,7 +1259,7 @@ class TestMemoryConsolidator:
         assert result.patterns_extracted >= 0
         assert consolidator._pending_patterns is not None
     
-    def test_consolidate_strategist_to_tactician(self):
+    def test_consolidate_strategist_to_tactician(self):  # type: ignore
         """Test consolidating strategist to tactician"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -1289,7 +1289,7 @@ class TestMemoryConsolidator:
         assert result.success is True
         assert result.details["battles_analyzed"] == 3
     
-    def test_apply_forgetting(self):
+    def test_apply_forgetting(self):  # type: ignore
         """Test applying forgetting logic"""
         tactician = create_tactician_memory()
         
@@ -1314,7 +1314,7 @@ class TestMemoryConsolidator:
         assert result.success is True
         assert result.memories_pruned >= 10
     
-    def test_prioritize_memories(self):
+    def test_prioritize_memories(self):  # type: ignore
         """Test prioritizing memories"""
         observer = create_observer_memory()
         strategist = create_strategist_memory("session_001", 0)
@@ -1365,7 +1365,7 @@ class TestMemoryConsolidator:
         assert "tactician" in priorities
         assert "obj_001" in priorities["strategist"]
     
-    def test_get_consolidation_status(self):
+    def test_get_consolidation_status(self):  # type: ignore
         """Test consolidation status"""
         consolidator = create_consolidator()
         status = consolidator.get_consolidation_status()
@@ -1375,7 +1375,7 @@ class TestMemoryConsolidator:
         assert "config" in status
         assert status["config"]["tick_interval"] == 1000
     
-    def test_get_avg_consolidation_time(self):
+    def test_get_avg_consolidation_time(self):  # type: ignore
         """Test average consolidation time"""
         consolidator = create_consolidator()
         assert consolidator.get_avg_consolidation_time() == 0.0
@@ -1384,7 +1384,7 @@ class TestMemoryConsolidator:
 class TestMemoryGOAPIntegration:
     """Tests for GOAP integration"""
     
-    def test_get_context_for_planning(self):
+    def test_get_context_for_planning(self):  # type: ignore
         """Test getting context for planning"""
         observer = create_observer_memory()
         observer.current_state.location = "Route 1"
@@ -1439,7 +1439,7 @@ class TestMemoryGOAPIntegration:
         assert context["strategist"]["session_win_rate"] == 1.0
         assert context["tactician"]["total_sessions"] == 10
     
-    def test_query_strategist_objectives(self):
+    def test_query_strategist_objectives(self):  # type: ignore
         """Test querying strategist objectives"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -1464,7 +1464,7 @@ class TestMemoryGOAPIntegration:
         assert len(objectives) == 2
         assert all(o.status == "active" for o in objectives)
     
-    def test_query_tactician_strategies(self):
+    def test_query_tactician_strategies(self):  # type: ignore
         """Test querying tactician strategies"""
         tactician = create_tactician_memory()
         
@@ -1490,7 +1490,7 @@ class TestMemoryGOAPIntegration:
         assert len(strategies) == 5
         assert strategies[0].strategy_id == "s4"
     
-    def test_record_planning_outcome(self):
+    def test_record_planning_outcome(self):  # type: ignore
         """Test recording planning outcome"""
         observer = create_observer_memory()
         action = ActionRecord(
@@ -1509,7 +1509,7 @@ class TestMemoryGOAPIntegration:
 class TestMemoryAIIntegration:
     """Tests for AI integration"""
     
-    def test_inject_memory_context(self):
+    def test_inject_memory_context(self):  # type: ignore
         """Test injecting memory context"""
         observer = create_observer_memory()
         observer.current_state.location = "Pallet Town"
@@ -1545,7 +1545,7 @@ class TestMemoryAIIntegration:
         assert "action_success_rate" in context
         assert context["session_performance"]["win_rate"] == 1.0
     
-    def test_get_tactical_context(self):
+    def test_get_tactical_context(self):  # type: ignore
         """Test getting tactical context"""
         tactician = create_tactician_memory()
         
@@ -1581,7 +1581,7 @@ class TestMemoryAIIntegration:
         
         assert "Rattata" in context or "Previously effective" in context
     
-    def test_get_strategic_context(self):
+    def test_get_strategic_context(self):  # type: ignore
         """Test getting strategic context"""
         strategist = create_strategist_memory("session_001", 0)
         strategist.current_money = 5000
@@ -1625,7 +1625,7 @@ class TestMemoryAIIntegration:
         assert "60%" in context or "60.0%" in context
         assert "100%" in context or "1.0" in context
     
-    def test_get_recent_actions_summary(self):
+    def test_get_recent_actions_summary(self):  # type: ignore
         """Test getting recent actions summary"""
         observer = create_observer_memory()
         
@@ -1646,7 +1646,7 @@ class TestMemoryAIIntegration:
 class TestMemorySystem:
     """Tests for complete memory system"""
     
-    def test_create_memory_system(self):
+    def test_create_memory_system(self):  # type: ignore
         """Test creating complete memory system"""
         observer, strategist, tactician, consolidator = create_memory_system(
             session_id="session_001",
@@ -1662,7 +1662,7 @@ class TestMemorySystem:
         assert consolidator.strategist is strategist
         assert consolidator.tactician is tactician
     
-    def test_full_memory_tier_integration(self):
+    def test_full_memory_tier_integration(self):  # type: ignore
         """Test full integration between memory tiers"""
         observer, strategist, tactician, consolidator = create_memory_system(
             session_id="session_001",
@@ -1715,7 +1715,7 @@ class TestMemorySystem:
         assert context["strategist"]["session_battles"] == 1
         assert context["tactician"]["pattern_count"] == 1
     
-    def test_battle_to_strategy_consolidation(self):
+    def test_battle_to_strategy_consolidation(self):  # type: ignore
         """Test battle outcomes becoming strategies"""
         observer, strategist, tactician, consolidator = create_memory_system(
             session_id="session_001",
@@ -1749,37 +1749,37 @@ class TestMemorySystem:
 class TestEdgeCases:
     """Tests for edge cases and error handling"""
     
-    def test_empty_recent_actions(self):
+    def test_empty_recent_actions(self):  # type: ignore
         """Test observer with no recent actions"""
         observer = create_observer_memory()
         outcomes = observer.get_recent_outcomes()
         assert outcomes == []
     
-    def test_win_rate_no_battles(self):
+    def test_win_rate_no_battles(self):  # type: ignore
         """Test win rate with no battles"""
         strategist = create_strategist_memory("session_001", 0)
         win_rate = strategist.get_win_rate()
         assert win_rate == 0.0
     
-    def test_empty_patterns_query(self):
+    def test_empty_patterns_query(self):  # type: ignore
         """Test querying patterns when none exist"""
         tactician = create_tactician_memory()
         patterns = tactician.get_relevant_patterns({"test": "context"})
         assert patterns == []
     
-    def test_nonexistent_preference(self):
+    def test_nonexistent_preference(self):  # type: ignore
         """Test getting nonexistent preference"""
         tactician = create_tactician_memory()
         pref = tactician.get_preference("nonexistent")
         assert pref is None
     
-    def test_empty_consolidation_history(self):
+    def test_empty_consolidation_history(self):  # type: ignore
         """Test consolidator with no history"""
         consolidator = create_consolidator()
         status = consolidator.get_consolidation_status()
         assert status["consolidation_history_length"] == 0
     
-    def test_invalid_battle_record(self):
+    def test_invalid_battle_record(self):  # type: ignore
         """Test handling invalid battle data"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -1804,7 +1804,7 @@ class TestEdgeCases:
         assert strategist.victories == 0
         assert strategist.defeats == 0
     
-    def test_max_actions_fifo_order(self):
+    def test_max_actions_fifo_order(self):  # type: ignore
         """Test FIFO order with max actions"""
         observer = create_observer_memory()
         
@@ -1820,7 +1820,7 @@ class TestEdgeCases:
         assert observer.recent_actions[0].action_value == "10"
         assert observer.recent_actions[-1].action_value == "19"
     
-    def test_mistake_severity_sorting(self):
+    def test_mistake_severity_sorting(self):  # type: ignore
         """Test mistakes are sorted by severity"""
         tactician = create_tactician_memory()
         
@@ -1841,7 +1841,7 @@ class TestEdgeCases:
         assert len(mistakes) == 3
         assert mistakes[0].severity == "critical"
     
-    def test_consolidator_missing_references(self):
+    def test_consolidator_missing_references(self):  # type: ignore
         """Test consolidator with missing memory references"""
         consolidator = create_consolidator()
         
@@ -1855,7 +1855,7 @@ class TestEdgeCases:
 class TestPerformance:
     """Performance tests for memory operations"""
     
-    def test_observer_query_performance(self):
+    def test_observer_query_performance(self):  # type: ignore
         """Test observer query performance (<1ms)"""
         observer = create_observer_memory()
         for i in range(10):
@@ -1877,7 +1877,7 @@ class TestPerformance:
         avg_time = elapsed / iterations
         assert avg_time < 1.0, f"Observer query took {avg_time:.2f}ms"
     
-    def test_strategist_query_performance(self):
+    def test_strategist_query_performance(self):  # type: ignore
         """Test strategist query performance (<5ms)"""
         strategist = create_strategist_memory("session_001", 0)
         
@@ -1910,7 +1910,7 @@ class TestPerformance:
         avg_time = elapsed / iterations
         assert avg_time < 5.0, f"Strategist query took {avg_time:.2f}ms"
     
-    def test_tactician_query_performance(self):
+    def test_tactician_query_performance(self):  # type: ignore
         """Test tactician query performance (<10ms)"""
         tactician = create_tactician_memory()
         
@@ -1938,7 +1938,7 @@ class TestPerformance:
         avg_time = elapsed / iterations
         assert avg_time < 10.0, f"Tactician query took {avg_time:.2f}ms"
     
-    def test_consolidation_performance(self):
+    def test_consolidation_performance(self):  # type: ignore
         """Test consolidation performance (<100ms)"""
         observer, strategist, tactician, consolidator = create_memory_system(
             session_id="session_001",

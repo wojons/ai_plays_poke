@@ -525,7 +525,7 @@ class Plan:
     total_cost: float = 0.0
     success_rate: float = 0.0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.plan_id:
             self.plan_id = str(uuid.uuid4())
         self.total_cost = sum(a.get_cost() for a in self.actions)
@@ -597,7 +597,7 @@ class GoalStack:
 class GoalDAG:
     """Directed Acyclic Graph for goal enablement tracking"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.nodes: Dict[str, Goal] = {}
         self.edges: List[Tuple[str, str]] = []
 
@@ -662,7 +662,7 @@ class GoalDAG:
 class PriorityQueue:
     """Priority queue for goal selection"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.heap: List[Tuple[float, str, Goal]] = []
         self.goal_map: Dict[str, Tuple[float, Goal]] = {}
 
@@ -702,7 +702,7 @@ class PriorityQueue:
 class GoalPriorityCalculator:
     """Calculates priority scores for goals using multi-factor analysis"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.success_history: Dict[str, List[int]] = {}
 
     def calculate_priority(self, goal: Goal, state: GameState) -> float:
@@ -799,7 +799,7 @@ class GoalPriorityCalculator:
 class GoalPrioritizer:
     """Manages goal prioritization and selection"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.calculator = GoalPriorityCalculator()
         self.priority_queue = PriorityQueue()
         self.goal_dag = GoalDAG()
@@ -818,7 +818,7 @@ class GoalPrioritizer:
             if goal:
                 feasible, _ = goal.is_feasible(state)
                 if feasible:
-                    return goal  # type: ignore[no-any-return]
+                    return goal  # type: ignore
         return None
 
     def reprioritize(self, state: GameState) -> None:
@@ -1039,7 +1039,7 @@ class PlanMonitor:
 class HierarchicalPlanner:
     """Multi-layer hierarchical planner with strategic, tactical, operational, and reactive layers"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.goal_prioritizer = GoalPrioritizer()
         self.planner = Planner(self.goal_prioritizer)
         self.plan_monitor = PlanMonitor(self.planner)
@@ -1062,7 +1062,7 @@ class HierarchicalPlanner:
             return None
 
         self.current_plan = plan
-        return plan  # type: ignore[no-any-return]
+        return plan  # type: ignore
 
     def execute_step(self, state: GameState) -> Tuple[bool, Optional[Plan], GameState]:
         if not self.current_plan:
@@ -1087,7 +1087,7 @@ class HierarchicalPlanner:
         return False, self.current_plan, state
 
     def handle_interruption(self, interruption_type: str, state: GameState) -> Tuple[bool, Optional[Plan]]:
-        return self.plan_monitor.handle_interruption(interruption_type, state)  # type: ignore[no-any-return]
+        return self.plan_monitor.handle_interruption(interruption_type, state)  # type: ignore
 
     def add_goal(self, goal: Goal, state: GameState) -> None:
         self.goal_prioritizer.add_goal(goal, state)

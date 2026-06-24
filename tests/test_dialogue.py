@@ -25,10 +25,10 @@ from src.core.dialogue import (
 class TestDialogParser:
     """Test dialog parsing functionality"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.parser = DialogParser()
 
-    def test_parse_simple_greeting(self):
+    def test_parse_simple_greeting(self):  # type: ignore
         """Should parse a simple greeting"""
         dialog = "Hello there! Welcome to our town."
         entry = self.parser.parse_dialog(dialog)
@@ -37,7 +37,7 @@ class TestDialogParser:
         assert len(entry.lines) > 0
         assert entry.primary_intent == DialogIntent.GREETING
 
-    def test_parse_battle_challenge(self):
+    def test_parse_battle_challenge(self):  # type: ignore
         """Should parse battle challenge dialog"""
         dialog = "I challenge you to a battle! Prepare yourself!"
         entry = self.parser.parse_dialog(dialog)
@@ -45,7 +45,7 @@ class TestDialogParser:
         assert entry.primary_intent in [DialogIntent.BATTLE_CHALLENGE, DialogIntent.THREAT]
         assert entry.dialog_type == DialogType.BATTLE
 
-    def test_parse_quest_offer(self):
+    def test_parse_quest_offer(self):  # type: ignore
         """Should parse quest offer dialog"""
         dialog = "Please help me find my lost Pokemon. It's somewhere in the forest."
         entry = self.parser.parse_dialog(dialog)
@@ -53,7 +53,7 @@ class TestDialogParser:
         assert entry.primary_intent in [DialogIntent.QUEST, DialogIntent.INFORMATION]
         assert entry.quest_triggered is not None or len(entry.information_extracted) > 0
 
-    def test_parse_shop_dialog(self):
+    def test_parse_shop_dialog(self):  # type: ignore
         """Should parse shop dialog"""
         dialog = "Welcome to the PokeMart! What would you like to buy?"
         entry = self.parser.parse_dialog(dialog)
@@ -61,7 +61,7 @@ class TestDialogParser:
         assert entry.primary_intent in [DialogIntent.SHOP, DialogIntent.GREETING, DialogIntent.CHOICE]
         assert DialogType.ITEM in [entry.dialog_type, DialogType.INFORMATION]
 
-    def test_parse_item_gift(self):
+    def test_parse_item_gift(self):  # type: ignore
         """Should parse gift dialog"""
         dialog = "Here, have this Potion. It will help you on your journey."
         entry = self.parser.parse_dialog(dialog)
@@ -70,21 +70,21 @@ class TestDialogParser:
         assert entry.reward_offered is not None
         assert "POTION" in entry.reward_offered.get('item', '').upper()
 
-    def test_parse_healing_dialog(self):
+    def test_parse_healing_dialog(self):  # type: ignore
         """Should parse healing dialog"""
         dialog = "Welcome to the Pokemon Center! Your Pokemon have been healed."
         entry = self.parser.parse_dialog(dialog)
         
         assert entry.primary_intent in [DialogIntent.HEAL, DialogIntent.GREETING]
 
-    def test_parse_progression_dialog(self):
+    def test_parse_progression_dialog(self):  # type: ignore
         """Should parse progression dialog"""
         dialog = "You've earned the Badge! The path to the next city is now open."
         entry = self.parser.parse_dialog(dialog)
         
         assert entry.primary_intent in [DialogIntent.PROGRESSION, DialogIntent.REWARD]
 
-    def test_extract_pokemon_entities(self):
+    def test_extract_pokemon_entities(self):  # type: ignore
         """Should extract Pokemon names from dialog"""
         dialog = "I saw a rare Pikachu near the forest. You should catch it!"
         entry = self.parser.parse_dialog(dialog)
@@ -92,7 +92,7 @@ class TestDialogParser:
         pokemon = entry.key_entities.get('pokemon', [])
         assert "PIKACHU" in pokemon
 
-    def test_extract_location_entities(self):
+    def test_extract_location_entities(self):  # type: ignore
         """Should extract location names from dialog"""
         dialog = "The legendary Pokemon is hiding in Cerulean Cave."
         entry = self.parser.parse_dialog(dialog)
@@ -100,7 +100,7 @@ class TestDialogParser:
         locations = entry.key_entities.get('locations', [])
         assert "CERULEAN CAVE" in locations or len(locations) > 0
 
-    def test_extract_item_entities(self):
+    def test_extract_item_entities(self):  # type: ignore
         """Should extract item names from dialog"""
         dialog = "You found a TM containing Thunderbolt! Use it on your Pikachu."
         entry = self.parser.parse_dialog(dialog)
@@ -108,7 +108,7 @@ class TestDialogParser:
         items = entry.key_entities.get('items', [])
         assert any("TM" in item for item in items)
 
-    def test_parse_multiple_lines(self):
+    def test_parse_multiple_lines(self):  # type: ignore
         """Should parse multiple lines of dialog"""
         dialog = """Hello there!
 I haven't seen you before.
@@ -118,82 +118,82 @@ Are you a Pokemon Trainer?"""
         assert len(entry.lines) == 3
         assert entry.confidence > 0
 
-    def test_parse_choice_dialog(self):
+    def test_parse_choice_dialog(self):  # type: ignore
         """Should identify choice dialog"""
         dialog = "What would you like to do? 1) Battle 2) Talk 3) Leave"
         entry = self.parser.parse_dialog(dialog)
         
         assert any(line.is_choice for line in entry.lines)
 
-    def test_parse_important_line_detection(self):
+    def test_parse_important_line_detection(self):  # type: ignore
         """Should identify important lines"""
         dialog = "Hello there! By the way, the Gym Leader has the Badge you need."
         entry = self.parser.parse_dialog(dialog)
         
         assert any(line.is_important for line in entry.lines)
 
-    def test_secondary_intent_detection(self):
+    def test_secondary_intent_detection(self):  # type: ignore
         """Should detect secondary intent or primary is battle challenge"""
         dialog = "Welcome! Let's have a battle and become friends!"
         entry = self.parser.parse_dialog(dialog)
         
         assert entry.primary_intent in [DialogIntent.GREETING, DialogIntent.BATTLE_CHALLENGE]
 
-    def test_parse_empty_dialog(self):
+    def test_parse_empty_dialog(self):  # type: ignore
         """Should handle empty dialog"""
         entry = self.parser.parse_dialog("")
         
         assert entry is not None
         assert entry.primary_intent == DialogIntent.INFORMATION
 
-    def test_parse_system_message(self):
+    def test_parse_system_message(self):  # type: ignore
         """Should parse system messages"""
         dialog = "SAVED THE GAME."
         entry = self.parser.parse_dialog(dialog)
         
         assert entry is not None
 
-    def test_parse_trainer_introduction(self):
+    def test_parse_trainer_introduction(self):  # type: ignore
         """Should detect trainer class from dialog"""
         dialog = "I am Brock, the Pewter City Gym Leader. I'm rock-solid!"
         entry = self.parser.parse_dialog(dialog, {'location': 'PEWTER CITY'})
         
         assert entry.dialog_type in [DialogType.TRAINER, DialogType.BATTLE]
 
-    def test_confidence_calculation(self):
+    def test_confidence_calculation(self):  # type: ignore
         """Should calculate confidence score"""
         dialog = "Battle! Battle! Battle!"
         entry = self.parser.parse_dialog(dialog)
         
         assert 0.0 <= entry.confidence <= 1.0
 
-    def test_actions_required_extraction(self):
+    def test_actions_required_extraction(self):  # type: ignore
         """Should extract required actions from intent"""
         dialog = "Would you like to enter the shop?"
         entry = self.parser.parse_dialog(dialog)
         
         assert len(entry.actions_required) > 0
 
-    def test_information_extraction(self):
+    def test_information_extraction(self):  # type: ignore
         """Should extract useful information from dialog"""
         dialog = "Did you know that Zapdos appears during thunderstorms on Route 10?"
         entry = self.parser.parse_dialog(dialog)
         
         assert len(entry.information_extracted) > 0
 
-    def test_pokemon_database_completeness(self):
+    def test_pokemon_database_completeness(self):  # type: ignore
         """Pokemon database should contain expected names"""
         assert "PIKACHU" in self.parser._pokemon_names
         assert "CHARIZARD" in self.parser._pokemon_names
         assert "MEWTWO" in self.parser._pokemon_names
 
-    def test_location_database_completeness(self):
+    def test_location_database_completeness(self):  # type: ignore
         """Location database should contain expected locations"""
         assert "PALLET TOWN" in self.parser._location_names
         assert "ROUTE 1" in self.parser._location_names
         assert "VIRIDIAN CITY" in self.parser._location_names
 
-    def test_item_database_completeness(self):
+    def test_item_database_completeness(self):  # type: ignore
         """Item database should contain expected items"""
         assert "POKE BALL" in self.parser._item_names
         assert "POTION" in self.parser._item_names
@@ -203,10 +203,10 @@ Are you a Pokemon Trainer?"""
 class TestTextSpeedController:
     """Test text speed control functionality"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.controller = TextSpeedController()
 
-    def test_get_optimal_speed_short_dialog(self):
+    def test_get_optimal_speed_short_dialog(self):  # type: ignore
         """Should use normal speed for short dialog"""
         dialog = DialogEntry(
             lines=[DialogLine("Hello!", "HELLO", None, None, DialogIntent.GREETING)],
@@ -220,7 +220,7 @@ class TestTextSpeedController:
         
         assert speed['auto_advance'] == True
 
-    def test_get_optimal_speed_long_dialog(self):
+    def test_get_optimal_speed_long_dialog(self):  # type: ignore
         """Should skip long dialogs"""
         lines = [DialogLine(f"Line {i}", f"LINE {i}", None, None, DialogIntent.INFORMATION) 
                  for i in range(10)]
@@ -236,7 +236,7 @@ class TestTextSpeedController:
         
         assert speed.get('read_first_line_only') == True
 
-    def test_calculate_button_presses(self):
+    def test_calculate_button_presses(self):  # type: ignore
         """Should calculate correct button presses"""
         dialog = DialogEntry(
             lines=[
@@ -254,7 +254,7 @@ class TestTextSpeedController:
         assert len(presses) > 0
         assert all(p in list(NavigationButton) for p in presses)
 
-    def test_set_speed_setting(self):
+    def test_set_speed_setting(self):  # type: ignore
         """Should change speed setting"""
         result = self.controller.set_speed_setting("instant")
         assert result == True
@@ -262,7 +262,7 @@ class TestTextSpeedController:
         result = self.controller.set_speed_setting("invalid")
         assert result == False
 
-    def test_get_speed_stats(self):
+    def test_get_speed_stats(self):  # type: ignore
         """Should return statistics"""
         stats = self.controller.get_speed_stats()
         
@@ -270,7 +270,7 @@ class TestTextSpeedController:
         assert 'total_dialogs' in stats
         assert 'skip_rate_percent' in stats
 
-    def test_should_skip_remaining(self):
+    def test_should_skip_remaining(self):  # type: ignore
         """Should correctly determine if remaining should be skipped"""
         lines = [DialogLine(f"Line {i}", f"LINE {i}", None, None, DialogIntent.INFORMATION) 
                  for i in range(10)]
@@ -291,38 +291,38 @@ class TestTextSpeedController:
 class TestMenuNavigator:
     """Test menu navigation functionality"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.navigator = MenuNavigator()
 
-    def test_detect_main_menu(self):
+    def test_detect_main_menu(self):  # type: ignore
         """Should detect main menu"""
         text = "POKEMON  BAG  FIGHT  RUN"
         menu_type = self.navigator.detect_menu_type(text)
         
         assert menu_type == MenuType.MAIN_MENU
 
-    def test_detect_battle_menu(self):
+    def test_detect_battle_menu(self):  # type: ignore
         """Should detect battle menu"""
         text = "FIGHT  PKMN  ITEM  RUN"
         menu_type = self.navigator.detect_menu_type(text)
         
         assert menu_type == MenuType.BATTLE_MENU
 
-    def test_detect_shop_menu(self):
+    def test_detect_shop_menu(self):  # type: ignore
         """Should detect shop menu"""
         text = "BUY  SELL  QUIT"
         menu_type = self.navigator.detect_menu_type(text)
         
         assert menu_type == MenuType.SHOP_MENU
 
-    def test_detect_yes_no_dialog(self):
+    def test_detect_yes_no_dialog(self):  # type: ignore
         """Should detect yes/no dialog"""
         text = "YES  NO"
         menu_type = self.navigator.detect_menu_type(text)
         
         assert menu_type == MenuType.YES_NO
 
-    def test_create_menu_state(self):
+    def test_create_menu_state(self):  # type: ignore
         """Should create menu state from options"""
         options = ["Option 1", "Option 2", "Option 3"]
         state = self.navigator.create_menu_state(MenuType.CHOICE, options, 0)
@@ -331,13 +331,13 @@ class TestMenuNavigator:
         assert len(state.options) == 3
         assert state.current_selection == 0
 
-    def test_calculate_navigation_path(self):
+    def test_calculate_navigation_path(self):  # type: ignore
         """Should calculate correct navigation path"""
         path = self.navigator.calculate_navigation_path((0, 0), (1, 0))
         
         assert NavigationButton.DOWN in path
 
-    def test_navigate_to_option(self):
+    def test_navigate_to_option(self):  # type: ignore
         """Should navigate to specific option"""
         options = ["POKEMON", "BAG", "FIGHT", "RUN"]
         state = self.navigator.create_menu_state(MenuType.MAIN_MENU, options, 0)
@@ -347,45 +347,45 @@ class TestMenuNavigator:
         assert success == True
         assert len(path) > 0
 
-    def test_select_current_option(self):
+    def test_select_current_option(self):  # type: ignore
         """Should return select button press"""
         presses = self.navigator.select_current_option()
         
         assert NavigationButton.A in presses
 
-    def test_handle_yes_no_yes(self):
+    def test_handle_yes_no_yes(self):  # type: ignore
         """Should handle yes response"""
         presses = self.navigator.handle_yes_no_dialog(True)
         
         assert presses[0] == NavigationButton.A
 
-    def test_handle_yes_no_no(self):
+    def test_handle_yes_no_no(self):  # type: ignore
         """Should handle no response"""
         presses = self.navigator.handle_yes_no_dialog(False)
         
         assert presses[0] == NavigationButton.DOWN
         assert presses[1] == NavigationButton.A
 
-    def test_handle_multiple_choice(self):
+    def test_handle_multiple_choice(self):  # type: ignore
         """Should handle multiple choice selection"""
         presses = self.navigator.handle_multiple_choice(2, 4)
         
         assert NavigationButton.A in presses
 
-    def test_exit_menu(self):
+    def test_exit_menu(self):  # type: ignore
         """Should return exit button presses"""
         presses = self.navigator.exit_menu()
         
         assert presses[0] == NavigationButton.B
 
-    def test_get_menu_stats(self):
+    def test_get_menu_stats(self):  # type: ignore
         """Should return menu navigation statistics"""
         stats = self.navigator.get_menu_stats()
         
         assert 'total_navigations' in stats
         assert 'success_rate_percent' in stats
 
-    def test_navigation_failure(self):
+    def test_navigation_failure(self):  # type: ignore
         """Should handle navigation to non-existent option"""
         options = ["POKEMON", "BAG"]
         state = self.navigator.create_menu_state(MenuType.MAIN_MENU, options, 0)
@@ -395,14 +395,14 @@ class TestMenuNavigator:
         assert success == False
         assert len(path) == 0
 
-    def test_cache_clearing(self):
+    def test_cache_clearing(self):  # type: ignore
         """Should clear navigation cache"""
         self.navigator._menu_cache['test'] = []
         self.navigator.clear_cache()
         
         assert len(self.navigator._menu_cache) == 0
 
-    def test_unknown_menu_type(self):
+    def test_unknown_menu_type(self):  # type: ignore
         """Should return None for unknown menu"""
         text = "Some random text that doesn't match any menu"
         menu_type = self.navigator.detect_menu_type(text)
@@ -413,10 +413,10 @@ class TestMenuNavigator:
 class TestNPCInteraction:
     """Test NPC interaction functionality"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.interaction = NPCInteraction()
 
-    def test_interact_with_npc(self):
+    def test_interact_with_npc(self):  # type: ignore
         """Should process NPC interaction"""
         result = self.interaction.interact_with_npc(
             "PROFESSOR OAK",
@@ -427,7 +427,7 @@ class TestNPCInteraction:
         assert result.npc_info is not None
         assert result.npc_info.name == "PROFESSOR OAK"
 
-    def test_detect_battle_initiation(self):
+    def test_detect_battle_initiation(self):  # type: ignore
         """Should detect when battle is initiated"""
         result = self.interaction.interact_with_npc(
             "RIVAL",
@@ -436,7 +436,7 @@ class TestNPCInteraction:
         
         assert result.battle_initiated == True
 
-    def test_extract_gift(self):
+    def test_extract_gift(self):  # type: ignore
         """Should extract gift information"""
         result = self.interaction.interact_with_npc(
             "MR FUJI",
@@ -445,7 +445,7 @@ class TestNPCInteraction:
         
         assert result.gift_received is not None and "POTION" in result.gift_received.upper()
 
-    def test_extract_information(self):
+    def test_extract_information(self):  # type: ignore
         """Should extract information from dialog"""
         info = self.interaction.extract_information(
             "Did you know that rare Pokemon appear at night?"
@@ -453,7 +453,7 @@ class TestNPCInteraction:
         
         assert len(info) > 0
 
-    def test_extract_hints(self):
+    def test_extract_hints(self):  # type: ignore
         """Should extract hints from dialog"""
         hints = self.interaction.extract_hints(
             "Here's a tip: There's a hidden Rare Candy in the forest."
@@ -461,7 +461,7 @@ class TestNPCInteraction:
         
         assert len(hints) > 0
 
-    def test_get_npc_info(self):
+    def test_get_npc_info(self):  # type: ignore
         """Should return NPC info"""
         npc_info = self.interaction.get_npc_info("BROCK")
         
@@ -469,7 +469,7 @@ class TestNPCInteraction:
         assert npc_info.name == "BROCK"
         assert npc_info.is_trainer == True
 
-    def test_get_interaction_history(self):
+    def test_get_interaction_history(self):  # type: ignore
         """Should return interaction history"""
         self.interaction.interact_with_npc("NPC1", "Hello")
         self.interaction.interact_with_npc("NPC2", "Hi")
@@ -478,14 +478,14 @@ class TestNPCInteraction:
         
         assert len(history) == 2
 
-    def test_get_interaction_stats(self):
+    def test_get_interaction_stats(self):  # type: ignore
         """Should return interaction statistics"""
         stats = self.interaction.get_interaction_stats()
         
         assert 'total_interactions' in stats
         assert 'battles_initiated' in stats
 
-    def test_create_new_npc(self):
+    def test_create_new_npc(self):  # type: ignore
         """Should create entry for unknown NPC"""
         result = self.interaction.interact_with_npc(
             "UNKNOWN NPC",
@@ -495,7 +495,7 @@ class TestNPCInteraction:
         assert result.npc_info is not None
         assert result.npc_info.name == "UNKNOWN NPC"
 
-    def test_determine_action(self):
+    def test_determine_action(self):  # type: ignore
         """Should determine correct action"""
         result = self.interaction.interact_with_npc(
             "SHOPKEEPER",
@@ -504,25 +504,25 @@ class TestNPCInteraction:
         
         assert result.action_taken in ["enter_shop", "acknowledge", "continue"]
 
-    def test_npc_database_completeness(self):
+    def test_npc_database_completeness(self):  # type: ignore
         """Should have default NPCs in database"""
         assert "BROCK" in self.interaction._npc_database
         assert "MISTY" in self.interaction._npc_database
         assert "NURSE JOY" in self.interaction._npc_database
 
-    def test_unknown_npc_returns_none(self):
+    def test_unknown_npc_returns_none(self):  # type: ignore
         """Should return None for unknown NPC"""
         npc_info = self.interaction.get_npc_info("NONEXISTENT NPC")
         
         assert npc_info is None
 
-    def test_interaction_with_empty_dialog(self):
+    def test_interaction_with_empty_dialog(self):  # type: ignore
         """Should handle empty dialog"""
         result = self.interaction.interact_with_npc("NPC", "")
         
         assert result.success == True
 
-    def test_quest_detection(self):
+    def test_quest_detection(self):  # type: ignore
         """Should detect quest start"""
         result = self.interaction.interact_with_npc(
             "NPC",
@@ -535,24 +535,24 @@ class TestNPCInteraction:
 class TestDialogueManager:
     """Test main dialogue manager"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.manager = create_dialogue_system()
 
-    def test_process_dialog(self):
+    def test_process_dialog(self):  # type: ignore
         """Should process dialog text"""
         entry = self.manager.process_dialog("Hello there!")
         
         assert entry is not None
         assert entry.primary_intent is not None
 
-    def test_advance_dialog(self):
+    def test_advance_dialog(self):  # type: ignore
         """Should return button presses for dialog advancement"""
         entry = self.manager.process_dialog("Hello!")
         presses = self.manager.advance_dialog(entry)
         
         assert len(presses) > 0
 
-    def test_handle_npc_interaction(self):
+    def test_handle_npc_interaction(self):  # type: ignore
         """Should handle NPC interaction"""
         result = self.manager.handle_npc_interaction(
             "PROFESSOR OAK",
@@ -562,7 +562,7 @@ class TestDialogueManager:
         assert result.success == True
         assert result.npc_info is not None
 
-    def test_navigate_menu(self):
+    def test_navigate_menu(self):  # type: ignore
         """Should navigate menu to option"""
         success, presses = self.manager.navigate_menu(
             "POKEMON  BAG  FIGHT",
@@ -571,7 +571,7 @@ class TestDialogueManager:
         
         assert success == True or success == False
 
-    def test_get_system_stats(self):
+    def test_get_system_stats(self):  # type: ignore
         """Should return system statistics"""
         self.manager.process_dialog("Test dialog")
         
@@ -581,7 +581,7 @@ class TestDialogueManager:
         assert 'text_speed' in stats
         assert 'menu_navigation' in stats
 
-    def test_get_dialog_history(self):
+    def test_get_dialog_history(self):  # type: ignore
         """Should return dialog history"""
         self.manager.process_dialog("Dialog 1")
         self.manager.process_dialog("Dialog 2")
@@ -590,7 +590,7 @@ class TestDialogueManager:
         
         assert len(history) == 2
 
-    def test_reset(self):
+    def test_reset(self):  # type: ignore
         """Should reset manager state"""
         self.manager.process_dialog("Test")
         
@@ -599,7 +599,7 @@ class TestDialogueManager:
         history = self.manager.get_dialog_history()
         assert len(history) == 0
 
-    def test_multiple_dialogs(self):
+    def test_multiple_dialogs(self):  # type: ignore
         """Should handle multiple dialogs correctly"""
         entry1 = self.manager.process_dialog("Hello!")
         entry2 = self.manager.process_dialog("Welcome!")
@@ -612,24 +612,24 @@ class TestDialogueManager:
 class TestDialogTypes:
     """Test dialog type classification"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.parser = DialogParser()
 
-    def test_battle_dialog_type(self):
+    def test_battle_dialog_type(self):  # type: ignore
         """Should classify battle dialog"""
         dialog = "I challenge you to a battle!"
         entry = self.parser.parse_dialog(dialog)
         
         assert entry.dialog_type == DialogType.BATTLE
 
-    def test_item_dialog_type(self):
+    def test_item_dialog_type(self):  # type: ignore
         """Should classify item dialog"""
         dialog = "Here's a rare item for you!"
         entry = self.parser.parse_dialog(dialog)
         
         assert entry.dialog_type in [DialogType.ITEM, DialogType.INFORMATION]
 
-    def test_information_dialog_type(self):
+    def test_information_dialog_type(self):  # type: ignore
         """Should classify information dialog"""
         dialog = "Did you know that Pokemon have different types?"
         entry = self.parser.parse_dialog(dialog)
@@ -640,31 +640,31 @@ class TestDialogTypes:
 class TestIntentClassification:
     """Test intent classification accuracy"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.parser = DialogParser()
 
-    def test_greeting_intent(self):
+    def test_greeting_intent(self):  # type: ignore
         """Should classify greeting intent"""
         dialog = "Hello! Nice to meet you!"
         entry = self.parser.parse_dialog(dialog)
         
         assert entry.primary_intent == DialogIntent.GREETING
 
-    def test_threat_intent(self):
+    def test_threat_intent(self):  # type: ignore
         """Should classify threat intent"""
         dialog = "You'll never defeat me!"
         entry = self.parser.parse_dialog(dialog)
         
         assert entry.primary_intent in [DialogIntent.THREAT, DialogIntent.BATTLE_CHALLENGE]
 
-    def test_choice_intent(self):
+    def test_choice_intent(self):  # type: ignore
         """Should classify choice intent"""
         dialog = "What would you like to do?"
         entry = self.parser.parse_dialog(dialog)
         
         assert entry.primary_intent == DialogIntent.CHOICE
 
-    def test_reward_intent(self):
+    def test_reward_intent(self):  # type: ignore
         """Should classify reward intent"""
         dialog = "You've won a prize!"
         entry = self.parser.parse_dialog(dialog)
@@ -675,35 +675,35 @@ class TestIntentClassification:
 class TestFactoryFunctions:
     """Test factory function creation"""
 
-    def test_create_dialogue_system(self):
+    def test_create_dialogue_system(self):  # type: ignore
         """Should create dialogue system"""
         system = create_dialogue_system()
         
         assert system is not None
         assert isinstance(system, DialogueManager)
 
-    def test_create_dialog_parser(self):
+    def test_create_dialog_parser(self):  # type: ignore
         """Should create dialog parser"""
         parser = create_dialog_parser()
         
         assert parser is not None
         assert isinstance(parser, DialogParser)
 
-    def test_create_text_speed_controller(self):
+    def test_create_text_speed_controller(self):  # type: ignore
         """Should create text speed controller"""
         controller = create_text_speed_controller()
         
         assert controller is not None
         assert isinstance(controller, TextSpeedController)
 
-    def test_create_menu_navigator(self):
+    def test_create_menu_navigator(self):  # type: ignore
         """Should create menu navigator"""
         navigator = create_menu_navigator()
         
         assert navigator is not None
         assert isinstance(navigator, MenuNavigator)
 
-    def test_create_npc_interaction(self):
+    def test_create_npc_interaction(self):  # type: ignore
         """Should create NPC interaction handler"""
         handler = create_npc_interaction()
         
@@ -714,10 +714,10 @@ class TestFactoryFunctions:
 class TestEdgeCases:
     """Test edge cases and error handling"""
 
-    def setup_method(self):
+    def setup_method(self):  # type: ignore
         self.parser = DialogParser()
 
-    def test_very_long_dialog(self):
+    def test_very_long_dialog(self):  # type: ignore
         """Should handle very long dialog"""
         long_dialog = " ".join(["This is a long dialog line."] * 100)
         entry = self.parser.parse_dialog(long_dialog)
@@ -725,35 +725,35 @@ class TestEdgeCases:
         assert entry is not None
         assert len(entry.lines) > 0
 
-    def test_special_characters(self):
+    def test_special_characters(self):  # type: ignore
         """Should handle special characters"""
         dialog = "Hello! How are you???!!!"
         entry = self.parser.parse_dialog(dialog)
         
         assert entry is not None
 
-    def test_numbers_in_dialog(self):
+    def test_numbers_in_dialog(self):  # type: ignore
         """Should handle numbers in dialog"""
         dialog = "You need at least 10 Pokemon to enter."
         entry = self.parser.parse_dialog(dialog)
         
         assert entry is not None
 
-    def test_mixed_case_text(self):
+    def test_mixed_case_text(self):  # type: ignore
         """Should handle mixed case text"""
         dialog = "HeLLo WoRLd!"
         entry = self.parser.parse_dialog(dialog)
         
         assert entry is not None
 
-    def test_empty_lines_in_dialog(self):
+    def test_empty_lines_in_dialog(self):  # type: ignore
         """Should handle dialog with empty lines"""
         dialog = "Hello\n\n\nGoodbye"
         entry = self.parser.parse_dialog(dialog)
         
         assert entry is not None
 
-    def test_dialog_with_only_entities(self):
+    def test_dialog_with_only_entities(self):  # type: ignore
         """Should handle dialog with only entity names"""
         dialog = "PIKACHU CHARIZARD MEWTWO"
         entry = self.parser.parse_dialog(dialog)
@@ -765,7 +765,7 @@ class TestEdgeCases:
 class TestDialogEntry:
     """Test DialogEntry dataclass"""
 
-    def test_dialog_entry_creation(self):
+    def test_dialog_entry_creation(self):  # type: ignore
         """Should create dialog entry with all fields"""
         entry = DialogEntry(
             lines=[],
@@ -779,7 +779,7 @@ class TestDialogEntry:
         assert entry.primary_intent == DialogIntent.GREETING
         assert entry.confidence == 0.9
 
-    def test_dialog_entry_with_entities(self):
+    def test_dialog_entry_with_entities(self):  # type: ignore
         """Should store entities correctly"""
         entry = DialogEntry(
             lines=[],
@@ -792,7 +792,7 @@ class TestDialogEntry:
         
         assert 'PIKACHU' in entry.key_entities['pokemon']
 
-    def test_dialog_entry_with_reward(self):
+    def test_dialog_entry_with_reward(self):  # type: ignore
         """Should store reward information"""
         entry = DialogEntry(
             lines=[],
@@ -810,7 +810,7 @@ class TestDialogEntry:
 class TestMenuState:
     """Test MenuState dataclass"""
 
-    def test_menu_state_creation(self):
+    def test_menu_state_creation(self):  # type: ignore
         """Should create menu state correctly"""
         options = [
             MenuOption(0, "Option 1", 0, 0, True),
@@ -826,7 +826,7 @@ class TestMenuState:
         assert state.menu_type == MenuType.CHOICE
         assert len(state.options) == 2
 
-    def test_menu_option_properties(self):
+    def test_menu_option_properties(self):  # type: ignore
         """Should have correct option properties"""
         option = MenuOption(
             index=0,
@@ -843,7 +843,7 @@ class TestMenuState:
 class TestNPCInfo:
     """Test NPCInfo dataclass"""
 
-    def test_npc_info_creation(self):
+    def test_npc_info_creation(self):  # type: ignore
         """Should create NPC info correctly"""
         npc = NPCInfo(
             name="BROCK",
@@ -856,7 +856,7 @@ class TestNPCInfo:
         assert npc.name == "BROCK"
         assert npc.is_trainer == True
 
-    def test_npc_with_hints(self):
+    def test_npc_with_hints(self):  # type: ignore
         """Should store hints correctly"""
         npc = NPCInfo(
             name="NPC",
@@ -871,7 +871,7 @@ class TestNPCInfo:
 class TestInteractionResult:
     """Test InteractionResult dataclass"""
 
-    def test_interaction_result_creation(self):
+    def test_interaction_result_creation(self):  # type: ignore
         """Should create interaction result correctly"""
         result = InteractionResult(
             success=True,

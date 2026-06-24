@@ -171,7 +171,7 @@ class WorldGraph:
     Tile-based navigation graph representing the game world
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.nodes: Dict[Position, GraphNode] = {}
         self.edges: Dict[Position, List[GraphEdge]] = {}
         self.map_dimensions: Dict[str, Tuple[int, int]] = {}
@@ -1021,7 +1021,7 @@ class NavigationSystem:
     Main navigation system integrating all components
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.graph = WorldGraph()
         self.pathfinder = AStarPathfinder(self.graph)
         self.route_optimizer = RouteOptimizer(self.graph, self.pathfinder)

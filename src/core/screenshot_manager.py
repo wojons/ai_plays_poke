@@ -177,7 +177,7 @@ class ScreenshotManager:
         
         return output_path
     
-    def cleanup_old_screenshots(self, keep_count: int = 1000):
+    def cleanup_old_screenshots(self, keep_count: int = 1000) -> None:
         """
         Keep only the most recent screenshots to save disk space
         
@@ -215,7 +215,7 @@ class LiveView:
         self.is_displaying = False
         self.display_window = "AI Plays Pokemon - Live View"
     
-    def start_display(self):
+    def start_display(self) -> None:
         """Start displaying screenshots in real-time"""
         cv2.namedWindow(self.display_window, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(self.display_window, 640, 576)  # 4x scale
@@ -224,13 +224,13 @@ class LiveView:
         print(f"🖼️ Live view started. Window: {self.display_window}")
         print("Press 'q' in the window to close")
     
-    def stop_display(self):
+    def stop_display(self) -> None:
         """Stop the live view display"""
         if self.is_displaying:
             cv2.destroyWindow(self.display_window)
             self.is_displaying = False
     
-    def update_display(self, screenshot: np.ndarray):
+    def update_display(self, screenshot: np.ndarray) -> None:
         """Update the live view with a new screenshot"""
         if not self.is_displaying:
             return
@@ -250,7 +250,7 @@ class LiveView:
         if cv2.waitKey(1) & 0xFF == ord('q'):
             self.stop_display()
     
-    def display_screenshot(self, filepath: Path, duration: float = 2.0):
+    def display_screenshot(self, filepath: Path, duration: float = 2.0) -> None:
         """
         Display a specific screenshot for a duration
         

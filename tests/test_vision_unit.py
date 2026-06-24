@@ -20,7 +20,7 @@ try:
     sys.exit(1)
 except ValueError as e:
     print(f"OK: Correctly raised ValueError for missing key")
-os.environ["OPENROUTER_API_KEY"] = old_key
+os.environ["OPENROUTER_API_KEY"] = old_key  # type: ignore
 
 # Test 2: basic creation
 vc = VisionClient()
@@ -37,7 +37,7 @@ print(f"OK: Hash consistent")
 b64 = vc._encode_image(fake_screen)
 print(f"OK: Base64 length: {len(b64)} chars")
 decoded = b64m.b64decode(b64)
-assert decoded[:4] == b'\x89PNG', f"Not a PNG: {decoded[:4]}"
+assert decoded[:4] == b'\x89PNG', f"Not a PNG: {decoded[:4]}"  # type: ignore
 print(f"OK: Valid PNG, {len(decoded)} bytes")
 
 # Test 5: JSON parse

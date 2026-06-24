@@ -25,7 +25,7 @@ GEN_LABELS: Dict[str, str] = {
 LAYER_ORDER = ("system", "tools", "observation", "memory", "examples")
 
 
-class SafeDict(dict):
+class SafeDict(dict[str, Any]):
     """Dict subclass that returns the missing key placeholder instead of raising KeyError."""
 
     def __missing__(self, key: str) -> str:

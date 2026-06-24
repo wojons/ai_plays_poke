@@ -31,7 +31,7 @@ class TileInfo:
 class LocationDetector:
     AREA_DATABASE_PATH = Path(__file__).parent / "data" / "areas.json"
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.area_database: Dict = {}
         self.tile_templates: Dict[str, np.ndarray] = {}
         self._load_area_database()
@@ -49,7 +49,7 @@ class LocationDetector:
             "ledge": {"collision": "ledge", "interactive": False},
         }
     
-    def _load_area_database(self):
+    def _load_area_database(self) -> None:
         if self.AREA_DATABASE_PATH.exists():
             try:
                 with open(self.AREA_DATABASE_PATH, 'r') as f:
@@ -59,7 +59,7 @@ class LocationDetector:
         else:
             self._create_default_area_database()
     
-    def _create_default_area_database(self):
+    def _create_default_area_database(self) -> None:
         self.area_database = {
             "pallet_town": {
                 "name": "Pallet Town",
@@ -128,7 +128,7 @@ class LocationDetector:
         }
         self._save_area_database()
     
-    def _save_area_database(self):
+    def _save_area_database(self) -> None:
         self.AREA_DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
         with open(self.AREA_DATABASE_PATH, 'w') as f:
             json.dump(self.area_database, f, indent=2)

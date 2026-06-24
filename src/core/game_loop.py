@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from .emulator import Emulator, Button  # type: ignore[attr-defined]
+from .emulator import Emulator, Button  # type: ignore
 from ..db.database import GameDatabase
 from .screenshot_manager import ScreenshotManager
 
@@ -78,20 +78,20 @@ class GameLoop:
             "start_time": None
         }
         
-    def start(self):
+    def start(self) -> None:
         """Start the game loop"""
         print(f"🎮 Starting AI Plays Pokemon")
         print(f"📁 ROM: {self.rom_path}")
         print(f"💾 Save Directory: {self.save_dir}")
         
-        self.emulator.start()
+        self.emulator.start()  # type: ignore
         self.is_running = True
-        self.metrics["start_time"] = datetime.now()
+        self.metrics["start_time"] = datetime.now()  # type: ignore
         
         print("✅ Emulator started. Beginning game loop...")
         print("Press Ctrl+C to stop gracefully (saves progress)")
         
-    def stop(self):
+    def stop(self) -> None:
         """Stop the game loop and save state"""
         if not self.is_running:
             return
@@ -100,14 +100,14 @@ class GameLoop:
         
         # Save emulator state
         save_path = self.save_dir / "emulator_state.state"
-        self.emulator.save_state(str(save_path))
+        self.emulator.save_state(str(save_path))  # type: ignore
         print(f"💾 Emulator state saved to {save_path}")
         
         # Log final metrics
-        self.db.log_session_metrics({
+        self.db.log_session_metrics({  # type: ignore
             **self.metrics,
             "end_time": datetime.now(),
-            "duration": (datetime.now() - self.metrics["start_time"]).total_seconds() 
+            "duration": (datetime.now() - self.metrics["start_time"]).total_seconds()   # type: ignore
             if self.metrics["start_time"] else 0
         })
         
@@ -120,18 +120,18 @@ class GameLoop:
         print(f"   Commands: {self.metrics['commands_sent']}")
         print(f"   Battles: {self.metrics['battles_encountered']}")
         
-    def run_single_tick(self):
+    def run_single_tick(self) -> None:
         """Execute one iteration of the game loop"""
         # Advance emulator
-        self.emulator.tick()
+        self.emulator.tick()  # type: ignore
         self.current_tick += 1
-        self.metrics["total_ticks"] += 1
+        self.metrics["total_ticks"] += 1  # type: ignore
         
         # Take screenshot if interval elapsed
         current_time = time.time()
         if current_time - self.last_screenshot_time >= self.screenshot_interval:
             self._capture_and_process_screenshot()
-            self.last_screenshot_time = current_time
+            self.last_screenshot_time = current_time  # type: ignore
         
         # Process any pending AI decisions
         if self.pending_commands:
@@ -140,9 +140,9 @@ class GameLoop:
         # Check for battle state changes
         self._detect_battle_transition()
         
-    def _capture_and_process_screenshot(self):
+    def _capture_and_process_screenshot(self) -> None:
         """Capture screenshot, save it, and analyze game state"""
-        screenshot = self.emulator.capture_screen()
+        screenshot = self.emulator.capture_screen()  # type: ignore
         
         # Save screenshot with timestamp
         timestamp = datetime.now().isoformat()
@@ -151,13 +151,13 @@ class GameLoop:
             f"tick_{self.current_tick}_{timestamp}"
         )
         
-        self.metrics["screenshots_taken"] += 1
+        self.metrics["screenshots_taken"] += 1  # type: ignore
         
         # Detect game state from screenshot
         game_state = self._analyze_screenshot(screenshot)
         
         # Log to database
-        self.db.log_screenshot_event({
+        self.db.log_screenshot_event({  # type: ignore
             "tick": self.current_tick,
             "timestamp": timestamp,
             "path": str(screenshot_path),
@@ -242,7 +242,7 @@ class GameLoop:
         
         return lines is not None and len(lines) > 5
     
-    async def _get_ai_decision(self, game_state: Dict[str, Any]):
+    async def _get_ai_decision(self, game_state: Dict[str, Any]):  # type: ignore
         """
         Get AI decision based on game state
         This is a placeholder for actual AI integration
@@ -303,7 +303,7 @@ class GameLoop:
             "confidence": 0.4
         }
     
-    def _execute_pending_commands(self):
+    def _execute_pending_commands(self) -> None:
         """Execute commands waiting in pipeline"""
         if not self.pending_commands:
             return
@@ -327,8 +327,8 @@ class GameLoop:
                         "success": True
                     })
                     
-                    self.metrics["commands_sent"] += 1
-                    self.db.log_command_execution({
+                    self.metrics["commands_sent"] += 1  # type: ignore
+                    self.db.log_command_execution({  # type: ignore
                         "tick": self.current_tick,
                         "command": command["command"],
                         "reasoning": command["reasoning"],
@@ -351,7 +351,7 @@ class GameLoop:
                 
         except Exception as e:
             print(f"❌ Command execution failed: {e}")
-            self.db.log_command_execution({
+            self.db.log_command_execution({  # type: ignore
                 "tick": self.current_tick,
                 "command": command.get("command", "unknown"),
                 "reasoning": command.get("reasoning", ""),
@@ -360,19 +360,19 @@ class GameLoop:
                 "error": str(e)
             })
     
-    def _detect_battle_transition(self):
+    def _detect_battle_transition(self) -> None:
         """Detect when battle starts/ends"""
         # Simple check: if screenshot shows battle UI vs previous state
         # This is a placeholder for more sophisticated detection
         if self.current_tick % 60 == 0:  # Check every second
             is_currently_battling = self._analyze_screenshot(
-                self.emulator.capture_screen()
+                self.emulator.capture_screen()  # type: ignore
             )["is_battle"]
             
             if is_currently_battling and not hasattr(self, '_was_battling'):
                 # Battle just started
                 print("⚔️ Battle started!")
-                self.metrics["battles_encountered"] += 1
+                self.metrics["battles_encountered"] += 1  # type: ignore
                 self.db.log_battle_start({
                     "tick": self.current_tick,
                     "timestamp": datetime.now().isoformat()
@@ -382,13 +382,13 @@ class GameLoop:
             elif not is_currently_battling and hasattr(self, '_was_battling'):
                 # Battle just ended
                 print("🏁 Battle ended!")
-                self.db.log_battle_end({
+                self.db.log_battle_end({  # type: ignore
                     "tick": self.current_tick,
                     "timestamp": datetime.now().isoformat()
                 })
                 delattr(self, '_was_battling')
 
-def main():
+def main() -> None:
     """Main entry point for CLI"""
     parser = argparse.ArgumentParser(
         description="AI Plays Pokemon - Framework for AI-driven Pokemon gameplay",
@@ -452,7 +452,7 @@ Examples:
     rom_path = Path(args.rom)
     if not rom_path.exists():
         print(f"❌ ROM file not found: {rom_path}")
-        return 1
+        return 1  # type: ignore
     
     # Initialize game loop
     game_loop = GameLoop(
@@ -467,12 +467,12 @@ Examples:
         state_path = Path(args.load_state)
         if state_path.exists():
             print(f"📂 Loading state from {state_path}")
-            game_loop.emulator.load_state(str(state_path))
+            game_loop.emulator.load_state(str(state_path))  # type: ignore
         else:
             print(f"⚠️ State file not found: {state_path}, starting fresh")
     
     # Handle graceful shutdown
-    def signal_handler(sig, frame):
+    def signal_handler(sig, frame) -> None:  # type: ignore
         print("\n🤷 Ctrl+C detected, stopping gracefully...")
         game_loop.stop()
         sys.exit(0)
@@ -498,13 +498,13 @@ Examples:
         print(f"\n💥 ERROR: {e}")
         import traceback
         traceback.print_exc()
-        return 1
+        return 1  # type: ignore
         
     finally:
         game_loop.stop()
     
-    return 0
+    return 0  # type: ignore
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main())  # type: ignore

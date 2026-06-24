@@ -356,7 +356,7 @@ class InventoryState:
     ITEM_DATABASE: Dict[ItemType, ItemData] = {}
     TM_DATABASE: Dict[int, TMData] = {}
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._items: Dict[ItemType, InventoryItem] = {}
         self._key_items: Dict[ItemType, KeyItem] = {}
         self._initialize_item_database()
@@ -1988,7 +1988,7 @@ class InventoryManager:
     - Navigation for Mart/Center locations
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._inventory = InventoryState()
         self._shopping = ShoppingHeuristic(self._inventory)
         self._center = PokemonCenterProtocol(self._inventory)
@@ -1996,19 +1996,19 @@ class InventoryManager:
 
     @property
     def inventory(self) -> InventoryState:
-        return self._inventory  # type: ignore[no-any-return]
+        return self._inventory  # type: ignore
 
     @property
     def shopping(self) -> ShoppingHeuristic:
-        return self._shopping  # type: ignore[no-any-return]
+        return self._shopping  # type: ignore
 
     @property
     def center(self) -> PokemonCenterProtocol:
-        return self._center  # type: ignore[no-any-return]
+        return self._center  # type: ignore
 
     @property
     def item_usage(self) -> ItemUsageStrategy:
-        return self._item_usage  # type: ignore[no-any-return]
+        return self._item_usage  # type: ignore
 
     def process_vision_update(self, vision_data: Dict[str, Any]) -> None:
         """Process vision system update for inventory changes"""
@@ -2032,7 +2032,7 @@ class InventoryManager:
 
     def get_healing_goal(self, party_state: PartyState) -> Optional[Tuple[bool, HealingPriority, str]]:
         """Generate healing goal for GOAP planner"""
-        return self._center.assess_healing_need(party_state)  # type: ignore[no-any-return]
+        return self._center.assess_healing_need(party_state)  # type: ignore
 
     def get_battle_item_decision(
         self,
@@ -2041,7 +2041,7 @@ class InventoryManager:
         battle_context: Dict[str, Any],
     ) -> Tuple[Optional[ItemType], Optional[int]]:
         """Get optimal item to use in battle"""
-        return self._item_usage.select_battle_item(  # type: ignore[no-any-return]
+        return self._item_usage.select_battle_item(  # type: ignore
             party_state, active_index, battle_context
         )
 

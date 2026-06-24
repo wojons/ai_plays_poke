@@ -251,7 +251,7 @@ class IndividualValues:
     speed: int = 0
     special: int = 0
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.hp = max(0, min(15, self.hp))
         self.attack = max(0, min(15, self.attack))
         self.defense = max(0, min(15, self.defense))
@@ -274,7 +274,7 @@ class EffortValues:
     def total(self) -> int:
         return self.hp + self.attack + self.defense + self.speed + self.special
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.hp = max(0, min(65535, self.hp))
         self.attack = max(0, min(65535, self.attack))
         self.defense = max(0, min(65535, self.defense))
@@ -464,7 +464,7 @@ class Team:
     total_defeats: int = 0
     last_analysis: Optional[str] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if len(self.party) != 6:
             raise ValueError("Party must have exactly 6 slots")
         while len(self.party) < 6:

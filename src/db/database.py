@@ -52,7 +52,7 @@ class GameDatabase:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.init_database()
     
-    def init_database(self):
+    def init_database(self) -> None:
         """Initialize all database tables"""
         try:
             conn = sqlite3.connect(self.db_path, timeout=0.001)
@@ -239,7 +239,7 @@ class GameDatabase:
             print(f"✅ Database: Started session {session_id} with model '{model_name}'")
             return session_id
     
-    def end_session(self, final_metrics: Dict[str, Any]):
+    def end_session(self, final_metrics: Dict[str, Any]) -> None:
         """
         End current session with final metrics
         
@@ -264,7 +264,7 @@ class GameDatabase:
             conn.commit()
             print("✅ Database: Session ended and metrics saved")
     
-    def log_screenshot(self, tick: int, file_path: str, game_state: Dict[str, Any]):
+    def log_screenshot(self, tick: int, file_path: str, game_state: Dict[str, Any]) -> None:
         """Log a screenshot capture event"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -278,7 +278,7 @@ class GameDatabase:
             ))
             conn.commit()
     
-    def log_command(self, command_data: Dict[str, Any]):
+    def log_command(self, command_data: Dict[str, Any]) -> None:
         """
         Log a command sent to emulator
         
@@ -312,7 +312,7 @@ class GameDatabase:
             ))
             conn.commit()
     
-    def log_ai_thought(self, thought_data: Dict[str, Any]):
+    def log_ai_thought(self, thought_data: Dict[str, Any]) -> None:
         """
         Log AI thinking process
         
@@ -374,7 +374,7 @@ class GameDatabase:
             conn.commit()
             return battle_id
     
-    def log_battle_end(self, battle_id: int, outcome: str, turns_taken: int):
+    def log_battle_end(self, battle_id: int, outcome: str, turns_taken: int) -> None:
         """End a battle with outcome"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -391,7 +391,7 @@ class GameDatabase:
             ))
             conn.commit()
     
-    def log_battle_turn(self, battle_id: int, turn_data: Dict[str, Any]):
+    def log_battle_turn(self, battle_id: int, turn_data: Dict[str, Any]) -> None:
         """Log a single battle turn"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -467,23 +467,23 @@ class GameDatabase:
         
         return output_path
     
-    def _get_session_data(self, cursor, session_id: int) -> Dict:
+    def _get_session_data(self, cursor, session_id: int) -> Dict:  # type: ignore
         cursor.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
         return dict(zip([d[0] for d in cursor.description], cursor.fetchone())) if cursor.fetchone() else {}
     
-    def _get_commands(self, cursor, session_id: int) -> List[Dict]:
+    def _get_commands(self, cursor, session_id: int) -> List[Dict]:  # type: ignore
         cursor.execute("SELECT * FROM commands WHERE session_id = ?", (session_id,))
         return [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
     
-    def _get_thoughts(self, cursor, session_id: int) -> List[Dict]:
+    def _get_thoughts(self, cursor, session_id: int) -> List[Dict]:  # type: ignore
         cursor.execute("SELECT * FROM ai_thoughts WHERE session_id = ?", (session_id,))
         return [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
     
-    def _get_battles(self, cursor, session_id: int) -> List[Dict]:
+    def _get_battles(self, cursor, session_id: int) -> List[Dict]:  # type: ignore
         cursor.execute("SELECT * FROM battles WHERE session_id = ?", (session_id,))
         return [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
     
-    def _get_screenshots(self, cursor, session_id: int) -> List[Dict]:
+    def _get_screenshots(self, cursor, session_id: int) -> List[Dict]:  # type: ignore
         cursor.execute("SELECT * FROM screenshots WHERE session_id = ?", (session_id,))
         return [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
 
@@ -515,7 +515,7 @@ class GameDatabase:
             logger.error(f"Database error in query: {query} with params {params}: {e}")
             raise DatabaseError(f"Database operation failed: {e}") from e
 
-    def close(self):
+    def close(self) -> None:
         """
         Close the database connection and perform cleanup.
         Since this implementation uses context managers internally,

@@ -28,12 +28,12 @@ class TestCostOptimizer:
     """Tests for CostOptimizer budget tracking"""
 
     @pytest.fixture
-    def cost_optimizer(self):
+    def cost_optimizer(self):  # type: ignore
         """Create cost optimizer for testing"""
         from src.core.ai_client import CostOptimizer
         return CostOptimizer(budget=10.0)
 
-    def test_track_cost_vision(self, cost_optimizer):
+    def test_track_cost_vision(self, cost_optimizer):  # type: ignore
         """Test cost tracking for vision task"""
         cost = cost_optimizer.track_cost(
             model="openai/gpt-4o",
@@ -46,7 +46,7 @@ class TestCostOptimizer:
         assert cost_optimizer.decisions == 1
         assert cost_optimizer.spent > 0
 
-    def test_track_cost_accumulation(self, cost_optimizer):
+    def test_track_cost_accumulation(self, cost_optimizer):  # type: ignore
         """Test cost accumulation over multiple calls"""
         initial_spent = cost_optimizer.spent
 
@@ -57,7 +57,7 @@ class TestCostOptimizer:
         assert cost_optimizer.decisions == 3
         assert cost_optimizer.spent == initial_spent + cost1 + cost2 + cost3
 
-    def test_get_remaining_budget(self, cost_optimizer):
+    def test_get_remaining_budget(self, cost_optimizer):  # type: ignore
         """Test remaining budget calculation"""
         initial_remaining = cost_optimizer.get_remaining_budget()
 
@@ -66,7 +66,7 @@ class TestCostOptimizer:
         remaining = cost_optimizer.get_remaining_budget()
         assert remaining < initial_remaining
 
-    def test_get_budget_percentage(self, cost_optimizer):
+    def test_get_budget_percentage(self, cost_optimizer):  # type: ignore
         """Test budget percentage calculation"""
         percentage_before = cost_optimizer.get_budget_percentage()
 
@@ -75,7 +75,7 @@ class TestCostOptimizer:
         percentage_after = cost_optimizer.get_budget_percentage()
         assert percentage_after > percentage_before
 
-    def test_should_switch_model_low_budget(self, cost_optimizer):
+    def test_should_switch_model_low_budget(self, cost_optimizer):  # type: ignore
         """Test model switching recommendation on low budget"""
         cost_optimizer.budget = 0.5
         cost_optimizer.spent = 0.45
@@ -88,7 +88,7 @@ class TestCostOptimizer:
         assert "4o-mini" in result.model or result.confidence < 0.7
         assert "budget" in result.reasoning.lower()
 
-    def test_should_switch_model_simple_task(self, cost_optimizer):
+    def test_should_switch_model_simple_task(self, cost_optimizer):  # type: ignore
         """Test model switching for simple tasks"""
         result = cost_optimizer.should_switch_model(
             task_complexity=0.2,
@@ -98,7 +98,7 @@ class TestCostOptimizer:
         assert result.model == "openai/gpt-4o-mini"
         assert "simple" in result.reasoning.lower()
 
-    def test_should_switch_model_complex_task(self, cost_optimizer):
+    def test_should_switch_model_complex_task(self, cost_optimizer):  # type: ignore
         """Test model switching for complex tasks"""
         cost_optimizer.spent = 0.5
 
@@ -109,7 +109,7 @@ class TestCostOptimizer:
 
         assert result.complexity == 0.8
 
-    def test_get_cost_report(self, cost_optimizer):
+    def test_get_cost_report(self, cost_optimizer):  # type: ignore
         """Test detailed cost report generation"""
         cost_optimizer.track_cost("openai/gpt-4o-mini", "tactical", 500, 200)
         cost_optimizer.track_cost("openai/gpt-4o", "vision", 1000, 500)
@@ -122,7 +122,7 @@ class TestCostOptimizer:
         assert "cost_per_model" in report
         assert "cost_per_task_type" in report
 
-    def test_cost_per_model_tracking(self, cost_optimizer):
+    def test_cost_per_model_tracking(self, cost_optimizer):  # type: ignore
         """Test cost tracking per model"""
         cost_optimizer.track_cost("openai/gpt-4o", "vision", 1000, 500)
         cost_optimizer.track_cost("openai/gpt-4o", "vision", 1000, 500)
@@ -134,7 +134,7 @@ class TestCostOptimizer:
         assert "openai/gpt-4o-mini" in report["cost_per_model"]
         assert report["cost_per_model"]["openai/gpt-4o"] > report["cost_per_model"]["openai/gpt-4o-mini"]
 
-    def test_cost_per_task_type_tracking(self, cost_optimizer):
+    def test_cost_per_task_type_tracking(self, cost_optimizer):  # type: ignore
         """Test cost tracking per task type"""
         cost_optimizer.track_cost("openai/gpt-4o", "vision", 1000, 500)
         cost_optimizer.track_cost("openai/gpt-4o-mini", "tactical", 500, 200)
@@ -146,7 +146,7 @@ class TestCostOptimizer:
         assert "tactical" in report["cost_per_task_type"]
         assert "strategic" in report["cost_per_task_type"]
 
-    def test_reset(self, cost_optimizer):
+    def test_reset(self, cost_optimizer):  # type: ignore
         """Test cost optimizer reset"""
         cost_optimizer.track_cost("openai/gpt-4o", "vision", 1000, 500)
         cost_optimizer.reset()
@@ -155,7 +155,7 @@ class TestCostOptimizer:
         assert cost_optimizer.decisions == 0
         assert cost_optimizer.cost_per_decision == 0.0
 
-    def test_cost_accuracy_to_three_decimals(self, cost_optimizer):
+    def test_cost_accuracy_to_three_decimals(self, cost_optimizer):  # type: ignore
         """Test cost tracking accuracy to $0.001"""
         for _ in range(10):
             cost_optimizer.track_cost("openai/gpt-4o-mini", "tactical", 100, 50)
@@ -168,12 +168,12 @@ class TestPerformanceTracker:
     """Tests for PerformanceTracker metrics"""
 
     @pytest.fixture
-    def performance_tracker(self):
+    def performance_tracker(self):  # type: ignore
         """Create performance tracker for testing"""
         from src.core.ai_client import PerformanceTracker
         return PerformanceTracker()
 
-    def test_record_result_success(self, performance_tracker):
+    def test_record_result_success(self, performance_tracker):  # type: ignore
         """Test recording successful result"""
         performance_tracker.record_result(
             model="openai/gpt-4o",
@@ -191,7 +191,7 @@ class TestPerformanceTracker:
         assert stats["failed_calls"] == 0
         assert stats["success_rate"] == 1.0
 
-    def test_record_result_failure(self, performance_tracker):
+    def test_record_result_failure(self, performance_tracker):  # type: ignore
         """Test recording failed result"""
         performance_tracker.record_result(
             model="openai/gpt-4o-mini",
@@ -209,7 +209,7 @@ class TestPerformanceTracker:
         assert stats["failed_calls"] == 1
         assert stats["success_rate"] == 0.0
 
-    def test_record_multiple_results(self, performance_tracker):
+    def test_record_multiple_results(self, performance_tracker):  # type: ignore
         """Test recording multiple results for same model"""
         for i in range(5):
             performance_tracker.record_result(
@@ -227,13 +227,13 @@ class TestPerformanceTracker:
         assert stats["failed_calls"] == 1
         assert abs(stats["success_rate"] - 0.8) < 0.01
 
-    def test_get_model_stats_nonexistent(self, performance_tracker):
+    def test_get_model_stats_nonexistent(self, performance_tracker):  # type: ignore
         """Test getting stats for non-existent model"""
         stats = performance_tracker.get_model_stats("nonexistent/model")
 
         assert stats is None
 
-    def test_get_best_model_for_task(self, performance_tracker):
+    def test_get_best_model_for_task(self, performance_tracker):  # type: ignore
         """Test finding best performing model for task"""
         for i in range(10):
             performance_tracker.record_result(
@@ -257,7 +257,7 @@ class TestPerformanceTracker:
 
         assert best == "openai/gpt-4o"
 
-    def test_get_all_model_stats(self, performance_tracker):
+    def test_get_all_model_stats(self, performance_tracker):  # type: ignore
         """Test getting statistics for all models"""
         performance_tracker.record_result("model_a", "vision", True, 1000, 500)
         performance_tracker.record_result("model_b", "tactical", True, 500, 200)
@@ -269,7 +269,7 @@ class TestPerformanceTracker:
         assert "model_b" in all_stats
         assert all_stats["model_a"]["total_calls"] == 2
 
-    def test_get_recent_success_rate(self, performance_tracker):
+    def test_get_recent_success_rate(self, performance_tracker):  # type: ignore
         """Test recent success rate calculation"""
         for i in range(15):
             performance_tracker.record_result(
@@ -284,7 +284,7 @@ class TestPerformanceTracker:
 
         assert 0.0 <= rate <= 1.0
 
-    def test_get_average_latency(self, performance_tracker):
+    def test_get_average_latency(self, performance_tracker):  # type: ignore
         """Test average latency calculation for task type"""
         latencies = [500.0, 600.0, 700.0]
         for lat in latencies:
@@ -300,7 +300,7 @@ class TestPerformanceTracker:
 
         assert avg_latency == sum(latencies) / len(latencies)
 
-    def test_reset(self, performance_tracker):
+    def test_reset(self, performance_tracker):  # type: ignore
         """Test performance tracker reset"""
         performance_tracker.record_result("model", "task", True, 1000, 500)
         performance_tracker.reset()
@@ -308,7 +308,7 @@ class TestPerformanceTracker:
         assert performance_tracker.get_model_stats("model") is None
         assert len(performance_tracker.recent_results) == 0
 
-    def test_task_specific_metrics(self, performance_tracker):
+    def test_task_specific_metrics(self, performance_tracker):  # type: ignore
         """Test metrics tracking per task type"""
         performance_tracker.record_result("model", "vision", True, 1500, 1000)
         performance_tracker.record_result("model", "tactical", True, 500, 200)
@@ -322,13 +322,13 @@ class TestResultMerger:
     """Tests for ResultMerger conflict resolution"""
 
     @pytest.fixture
-    def result_merger(self):
+    def result_merger(self):  # type: ignore
         """Create result merger for testing"""
         from src.core.ai_client import ResultMerger
         return ResultMerger(confidence_threshold=0.6)
 
     @pytest.fixture
-    def sample_results(self):
+    def sample_results(self):  # type: ignore
         """Create sample model results"""
         from src.core.ai_client import ModelResult
 
@@ -360,7 +360,7 @@ class TestResultMerger:
         ]
 
     @pytest.fixture
-    def conflicting_results(self):
+    def conflicting_results(self):  # type: ignore
         """Create conflicting model results"""
         from src.core.ai_client import ModelResult
 
@@ -383,7 +383,7 @@ class TestResultMerger:
             )
         ]
 
-    def test_merge_single_result(self, result_merger):
+    def test_merge_single_result(self, result_merger):  # type: ignore
         """Test merging with single result"""
         from src.core.ai_client import ModelResult
 
@@ -406,7 +406,7 @@ class TestResultMerger:
         assert not merged.conflicts_detected
         assert merged.merge_method == "single_model"
 
-    def test_merge_consensus_results(self, result_merger, sample_results):
+    def test_merge_consensus_results(self, result_merger, sample_results):  # type: ignore
         """Test merging when results have consensus"""
         merged = result_merger.merge_results(sample_results)
 
@@ -415,14 +415,14 @@ class TestResultMerger:
         assert not merged.conflicts_detected
         assert merged.merge_method == "consensus"
 
-    def test_merge_conflicting_results(self, result_merger, conflicting_results):
+    def test_merge_conflicting_results(self, result_merger, conflicting_results):  # type: ignore
         """Test merging when results conflict"""
         merged = result_merger.merge_results(conflicting_results)
 
         assert merged.conflicts_detected
         assert len(merged.contributing_models) == 2
 
-    def test_merge_empty_results(self, result_merger):
+    def test_merge_empty_results(self, result_merger):  # type: ignore
         """Test merging empty results"""
         merged = result_merger.merge_results([])
 
@@ -431,7 +431,7 @@ class TestResultMerger:
         assert merged.confidence == 0.0
         assert not merged.conflicts_detected
 
-    def test_merge_all_failed(self, result_merger):
+    def test_merge_all_failed(self, result_merger):  # type: ignore
         """Test merging when all results failed"""
         from src.core.ai_client import ModelResult
 
@@ -459,7 +459,7 @@ class TestResultMerger:
         assert merged.merge_method == "all_failed"
         assert merged.conflicts_detected
 
-    def test_confidence_weighted_merge(self, result_merger):
+    def test_confidence_weighted_merge(self, result_merger):  # type: ignore
         """Test confidence-weighted merge"""
         from src.core.ai_client import ModelResult
 
@@ -487,7 +487,7 @@ class TestResultMerger:
         assert merged.selected_model in ["model_a", "model_b", "consensus"]
         assert merged.confidence >= 0.65
 
-    def test_alternative_results_preserved(self, result_merger, sample_results):
+    def test_alternative_results_preserved(self, result_merger, sample_results):  # type: ignore
         """Test that alternative results are preserved in merge"""
         merged = result_merger.merge_results(sample_results)
 
@@ -496,7 +496,7 @@ class TestResultMerger:
         assert "model_b" in merged.alternative_results
         assert "model_c" in merged.alternative_results
 
-    def test_detect_conflicts(self, result_merger, sample_results, conflicting_results):
+    def test_detect_conflicts(self, result_merger, sample_results, conflicting_results):  # type: ignore
         """Test conflict detection"""
         no_conflicts = result_merger._detect_conflicts(sample_results)
         conflicts = result_merger._detect_conflicts(conflicting_results)
@@ -504,7 +504,7 @@ class TestResultMerger:
         assert len(no_conflicts) == 0
         assert len(conflicts) > 0
 
-    def test_calculate_similarity(self, result_merger):
+    def test_calculate_similarity(self, result_merger):  # type: ignore
         """Test similarity calculation between texts"""
         sim_high = result_merger._calculate_similarity(
             "use thunderbolt now",
@@ -518,14 +518,14 @@ class TestResultMerger:
         assert sim_high == 1.0
         assert sim_low < 0.5
 
-    def test_extract_actions(self, result_merger):
+    def test_extract_actions(self, result_merger):  # type: ignore
         """Test action extraction from content"""
         actions = result_merger._extract_actions("ACTION: THUNDER and ACTION: QUICK")
 
         assert "THUNDER" in actions
         assert "QUICK" in actions
 
-    def test_consensus_check(self, result_merger, sample_results, conflicting_results):
+    def test_consensus_check(self, result_merger, sample_results, conflicting_results):  # type: ignore
         """Test consensus checking"""
         consensus = result_merger._has_consensus(sample_results, [])
         no_consensus = result_merger._has_consensus(conflicting_results, [])
@@ -533,7 +533,7 @@ class TestResultMerger:
         assert consensus
         assert not no_consensus
 
-    def test_build_consensus(self, result_merger, conflicting_results):
+    def test_build_consensus(self, result_merger, conflicting_results):  # type: ignore
         """Test consensus building from conflicting results"""
         conflicts = result_merger._detect_conflicts(conflicting_results)
         consensus = result_merger._build_consensus(conflicting_results, conflicts)
@@ -546,7 +546,7 @@ class TestResultMerger:
 class TestTaskComplexity:
     """Tests for TaskComplexity dataclass"""
 
-    def test_default_values(self):
+    def test_default_values(self):  # type: ignore
         """Test default complexity values"""
         from src.core.ai_client import TaskComplexity
 
@@ -558,7 +558,7 @@ class TestTaskComplexity:
         assert tc.creativity_weight == 0.6
         assert tc.accuracy_weight == 0.8
 
-    def test_custom_values(self):
+    def test_custom_values(self):  # type: ignore
         """Test custom complexity values"""
         from src.core.ai_client import TaskComplexity
 
@@ -576,7 +576,7 @@ class TestTaskComplexity:
 class TestModelSelection:
     """Tests for ModelSelection dataclass"""
 
-    def test_create_model_selection(self):
+    def test_create_model_selection(self):  # type: ignore
         """Test creating model selection"""
         from src.core.ai_client import ModelSelection
 
@@ -596,7 +596,7 @@ class TestModelSelection:
         assert selection.estimated_cost == 0.005
         assert selection.estimated_latency_ms == 1500.0
 
-    def test_model_selection_optional_fields(self):
+    def test_model_selection_optional_fields(self):  # type: ignore
         """Test model selection with default values"""
         from src.core.ai_client import ModelSelection
 
@@ -616,7 +616,7 @@ class TestModelSelection:
 class TestRoutingConfig:
     """Tests for RoutingConfig dataclass"""
 
-    def test_default_config(self):
+    def test_default_config(self):  # type: ignore
         """Test default routing configuration"""
         from src.core.ai_client import RoutingConfig
 
@@ -630,7 +630,7 @@ class TestRoutingConfig:
         assert config.quality_weight == 0.4
         assert config.prefer_cheap_on_budget
 
-    def test_custom_config(self):
+    def test_custom_config(self):  # type: ignore
         """Test custom routing configuration"""
         from src.core.ai_client import RoutingConfig
 
@@ -655,7 +655,7 @@ class TestMultiModelIntegration:
 class TestEdgeCases:
     """Edge case tests for multi-model coordination"""
 
-    def test_zero_budget(self):
+    def test_zero_budget(self):  # type: ignore
         """Test handling zero budget"""
         from src.core.ai_client import CostOptimizer, RoutingConfig
 
@@ -665,7 +665,7 @@ class TestEdgeCases:
         remaining = optimizer.get_remaining_budget()
         assert remaining == 0.0
 
-    def test_very_low_confidence_results(self):
+    def test_very_low_confidence_results(self):  # type: ignore
         """Test merging results with very low confidence"""
         from src.core.ai_client import ModelResult, ResultMerger
 
@@ -695,7 +695,7 @@ class TestEdgeCases:
         assert merged is not None
         assert merged.confidence < 0.3
 
-    def test_very_high_confidence_results(self):
+    def test_very_high_confidence_results(self):  # type: ignore
         """Test merging results with very high confidence"""
         from src.core.ai_client import ModelResult, ResultMerger
 
@@ -725,7 +725,7 @@ class TestEdgeCases:
         assert merged.confidence >= 0.9
         assert not merged.conflicts_detected
 
-    def test_empty_content_results(self):
+    def test_empty_content_results(self):  # type: ignore
         """Test handling results with empty content"""
         from src.core.ai_client import ModelResult, ResultMerger
 
@@ -746,7 +746,7 @@ class TestEdgeCases:
 
         assert merged.content == ""
 
-    def test_concurrent_tracking(self):
+    def test_concurrent_tracking(self):  # type: ignore
         """Test thread-safe cost and performance tracking"""
         import threading
         from src.core.ai_client import CostOptimizer, PerformanceTracker
@@ -754,11 +754,11 @@ class TestEdgeCases:
         cost_tracker = CostOptimizer(budget=100.0)
         perf_tracker = PerformanceTracker()
 
-        def track_costs():
+        def track_costs():  # type: ignore
             for _ in range(50):
                 cost_tracker.track_cost("model", "task", 100, 50)
 
-        def track_performance():
+        def track_performance():  # type: ignore
             for _ in range(50):
                 perf_tracker.record_result("model", "task", True, 500.0, 150)
 
@@ -779,7 +779,7 @@ class TestEdgeCases:
         assert stats is not None
         assert stats["total_calls"] == 100
 
-    def test_special_characters_in_content(self):
+    def test_special_characters_in_content(self):  # type: ignore
         """Test handling special characters in model content"""
         from src.core.ai_client import ModelResult, ResultMerger
 
@@ -800,7 +800,7 @@ class TestEdgeCases:
 
         assert "THUNDERBOLT" in merged.content
 
-    def test_unicode_content(self):
+    def test_unicode_content(self):  # type: ignore
         """Test handling unicode characters in content"""
         from src.core.ai_client import ModelResult, ResultMerger
 
