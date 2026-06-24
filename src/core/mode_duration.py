@@ -563,9 +563,9 @@ class DurationProfileStore:
             return {}
         try:
             with open(self.storage_path, "r") as f:
-                return json.load(f)
+                return cast(Dict[str, Any], json.load(f))
         except (json.JSONDecodeError, IOError):
-            return {}
+            return cast(Dict[str, Any], {})
 
     def _save_all(self, profiles: Dict[str, Any]) -> None:
         with open(self.storage_path, "w") as f:
@@ -745,7 +745,7 @@ class AnomalyResponseSelector:
             primary_anomaly=sorted_anomalies[0], all_anomalies=anomalies)
 
     def _get_priority(self, anomaly_type: str) -> int:
-        return self.response_matrix.get(anomaly_type, {}).get("priority", 10)
+        return cast(int, self.response_matrix.get(anomaly_type, {}).get("priority", 10))
 
 
 class BreakoutManager:

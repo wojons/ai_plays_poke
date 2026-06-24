@@ -19,7 +19,7 @@ import logging
 import threading
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List, Union
+from typing import Optional, Dict, Any, List, Union, cast
 from functools import wraps
 from pathlib import Path as FilePath
 import traceback
@@ -561,7 +561,7 @@ class AILogger:
     
     def get_session_id(self) -> str:
         """Get current session ID"""
-        return self._session_id
+        return str(self._session_id)
     
     def get_log_directory(self) -> Path:
         """Get log directory path"""

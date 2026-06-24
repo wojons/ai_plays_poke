@@ -1176,7 +1176,7 @@ class CombatSystem:
         """
         return clamp_hp(current, max_hp)
 
-    def calculate_hp_after_damage(self, current_hp: int, damage: int, max_hp: int = None) -> int:
+    def calculate_hp_after_damage(self, current_hp: int, damage: int, max_hp: Optional[int] = None) -> int:
         """
         Calculate new HP after taking damage with clamping.
 

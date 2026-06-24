@@ -16,7 +16,7 @@ Performance Specifications:
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional, Any, Tuple, cast
 from datetime import datetime
 import json
 import time
@@ -1140,19 +1140,19 @@ class MemoryConsolidator:
             result.details["message"] = "No battles to consolidate"
             return result
         
-        battle_outcomes = defaultdict(lambda: {"wins": 0, "losses": 0, "moves": []})
+        battle_outcomes: Dict[str, Dict[str, object]] = defaultdict(lambda: {"wins": 0, "losses": 0, "moves": []})
         
         for battle in battles:
             key = f"{battle.enemy_pokemon}_{battle.player_pokemon}"
             if battle.outcome == "victory":
-                battle_outcomes[key]["wins"] += 1
-                battle_outcomes[key]["moves"].extend(battle.moves_used)
+                battle_outcomes[key]["wins"] = cast(int, battle_outcomes[key]["wins"]) + 1
+                cast(list, battle_outcomes[key]["moves"]).extend(battle.moves_used)
             else:
-                battle_outcomes[key]["losses"] += 1
+                battle_outcomes[key]["losses"] = cast(int, battle_outcomes[key]["losses"]) + 1
         
         for key, outcome in battle_outcomes.items():
-            total = outcome["wins"] + outcome["losses"]
-            win_rate = outcome["wins"] / total if total > 0 else 0
+            total = cast(int, outcome["wins"]) + cast(int, outcome["losses"])
+            win_rate = cast(int, outcome["wins"]) / total if total > 0 else 0.0
             
             if win_rate >= self.config.pattern_threshold and outcome["moves"]:
                 parts = key.split("_")
@@ -1164,7 +1164,7 @@ class MemoryConsolidator:
                         context={"battle_type": "wild"},
                         enemy_type=enemy_type,
                         player_pokemon=player_pokemon,
-                        moves_sequence=list(dict.fromkeys(outcome["moves"][-5:]))
+                        moves_sequence=list(dict.fromkeys(cast(list, outcome["moves"])[-5:]))
                     )
                     strategy.record_use(True)
                     result.strategies_created += 1
@@ -1232,7 +1232,7 @@ class MemoryConsolidator:
         Returns:
             Dict with tier -> list of memory_ids sorted by priority
         """
-        priorities = {
+        priorities: Dict[str, List[str]] = {
             "observer": [],
             "strategist": [],
             "tactician": []
@@ -1252,7 +1252,7 @@ class MemoryConsolidator:
         if self.tactician:
             priorities["tactician"] = sorted(
                 [p.pattern_id for p in self.tactician.patterns.values()],
-                key=lambda pid: self.tactician.patterns[pid].relevance_score,
+                key=lambda pid: (self.tactician.patterns[pid].relevance_score if self.tactician else 0),
                 reverse=True
             )[:20]
         
