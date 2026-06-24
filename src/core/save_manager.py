@@ -187,7 +187,7 @@ class SaveManager:
                 snapshot_id = self._generate_snapshot_id(reason)
                 state_path = self.snapshots_dir / f"{snapshot_id}.state"
                 
-                state_bytes = emulator.get_state_bytes()
+                state_bytes = emulator.get_state_bytes()  # type: ignore[attr-defined]
                 if not state_bytes:
                     logger.error("Failed to get state bytes from emulator")
                     return False, ""
@@ -253,7 +253,7 @@ class SaveManager:
         
         return max(0, len(self._snapshot_cache) - max_snapshots)
     
-    def load_snapshot(self, snapshot_id: str, emulator) -> bool:
+    def load_snapshot(self, snapshot_id: str, emulator: "Emulator") -> bool:
         """
         Restore emulator from a specific snapshot
         
@@ -280,7 +280,7 @@ class SaveManager:
                 with open(state_path, 'rb') as f:
                     state_data = f.read()
                 
-                success = emulator.load_state_bytes(state_data)
+                success = emulator.load_state_bytes(state_data)  # type: ignore[attr-defined]
                 
                 if success:
                     logger.info(f"Loaded snapshot: {snapshot_id}")
@@ -371,7 +371,7 @@ class SaveManager:
     
     def save_emergency_snapshot(
         self,
-        emulator,
+        emulator: "Emulator",
         tick_count: int,
         reason: str = "emergency"
     ) -> str:

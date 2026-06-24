@@ -29,7 +29,7 @@ def fresh_hsm() -> "HierarchicalStateMachine":
 
 
 @pytest.fixture
-def bootstrapped_hsm(fresh_hsm) -> None:
+def bootstrapped_hsm(fresh_hsm: "HierarchicalStateMachine") -> "HierarchicalStateMachine":
     """Create an HSM that has completed the bootstrap sequence"""
     for state in ["BOOT.TITLE_SCREEN", "BOOT.PRESS_START", "BOOT.SELECT_GAME_MODE",
                   "BOOT.NEW_GAME", "BOOT.CHARACTER_NAMING", "BOOT.CONFIGURE_OPTIONS",
