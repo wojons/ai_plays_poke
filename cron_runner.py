@@ -255,10 +255,10 @@ def main():
 
     print(f"[{run_id}] Starting run with cartographer pipeline...")
 
-    # Skip intro
-    emu.skip_intro(press_frames=10, wait_frames=30, repetitions=120)
+    # No blind intro skip — let the AI navigate title/dialog/name_entry
+    # via the StateWindow pipeline like any other game state
 
-    ctx = GlobalContext(generation="gen1", location="intro")
+    ctx = GlobalContext(generation="gen1", location="title")
 
     for cycle in range(CYCLES):
         try:
@@ -355,7 +355,7 @@ def main():
                 elif not ctx.rival_name:
                     ctx.rival_name = vis["name_field"]
 
-            if st == "overworld" and ctx.location == "intro":
+            if st == "overworld" and ctx.location in ("title", "intro"):
                 ctx.set_location("bedroom")
                 ctx.add_goal("leave bedroom")
                 ctx.add_goal("reach rival battle")
