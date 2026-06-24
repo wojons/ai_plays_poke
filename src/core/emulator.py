@@ -117,6 +117,17 @@ class Emulator:
             img = img[_SGB_CROP]
         return img
 
+    # ── fast-forward ──────────────────────────────────────────────────────
+
+    def fast_forward(self, frames: int) -> None:
+        """Run *frames* at maximum emulator speed (no throttling, ~12k FPS).
+
+        Use this instead of :meth:`wait` when you want to skip through
+        animations, dialogue, or transitions as quickly as possible.
+        """
+        for _ in range(max(frames, 0)):
+            self._pygba.core.run_frame()
+
     # ── input ────────────────────────────────────────────────────────────
 
     def press_button(self, button: str, frames: int = 5) -> None:
