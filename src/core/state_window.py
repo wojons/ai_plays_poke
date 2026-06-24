@@ -227,7 +227,7 @@ class StateWindow:
                 prompt=prompt,
                 tools=TOOL_SCHEMA + _DUCKBRAIN_TOOLS + [_QUERY_GLOBAL_TOOL],
                 model=self.thinking_model,
-                max_tokens=300,
+                max_tokens=2000,
                 temperature=0.3,
             )
 
