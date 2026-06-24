@@ -135,7 +135,7 @@
 4. Save a special screenshot with prefix "VICTORY_" or "BATTLE_" to screenshots/ on rival battle detection
 5. Don't break existing battle flow — rival_battle should still use the normal battle StateWindow
 
-### [ ] RECOVER-1: Void state recovery — detect and escape glitched maps
+### [x] RECOVER-1: Void state recovery — detect and escape glitched maps ✅ (pending)
 **Priority:** medium
 **Why:** On Jun 23 run, AI navigated into a white void where map didn't load. Should detect and recover.
 **Files:** cron_runner.py
