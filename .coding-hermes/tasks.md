@@ -3,6 +3,69 @@
 
 ## Active Queue
 
+### [ ] FIX-4: Audit remaining threading.Lock in CircuitBreaker + TokenTracker
+**Priority:** medium
+**Model:** deepseek-v4-pro (foreman direct — mechanical)
+**Files:** src/core/ai_client.py
+**AC:**
+1. Audit all threading.Lock() usage in ai_client.py — 2 remaining: CircuitBreaker (line 81), TokenTracker (line 115)
+2. Verify no method in CircuitBreaker calls another CircuitBreaker method that acquires lock
+3. Verify no method in TokenTracker calls another TokenTracker method that acquires lock
+4. If safe after audit, no changes needed — tests already pass
+
+### [ ] COV-1: Add unit tests for state_window.py (0% → 50%+)
+**Priority:** high
+**Why:** Core AI decision module for game state windows (battle, dialog, overworld). 143 lines at 0% coverage.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_state_window.py (new)
+**AC:**
+1. Test StateWindow.__init__ with battle screen context → verify hp_info, enemy_info populated
+2. Test StateWindow.__init__ with dialog screen context → verify text, speaker extracted
+3. Test StateWindow.__init__ with overworld screen context → verify location, map data
+4. Test assemble_prompt returns string with expected sections (hp_info, enemy, context)
+5. Test assemble_prompt with empty context → returns minimal valid prompt
+6. Test assemble_prompt with full context → includes all sections
+7. Coverage: state_window.py 0% → 50%+
+
+### [ ] COV-2: Add unit tests for vision/sprite.py (52% → 75%+)
+**Priority:** medium
+**Why:** Sprite detection identifies Pokémon, trainers, and NPCs on screen.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_sprite_detection.py (new)
+**AC:**
+1. Test extract_sprites with known sprite regions (mock cropped images) → correct sprite count
+2. Test classify_sprite returns expected type for known sprite patterns
+3. Test edge case: empty image → no sprites
+4. Test edge case: single-pixel image → graceful handling
+5. Coverage: vision/sprite.py 52% → 75%+
+
+### [ ] COV-3: Add unit tests for vision/location.py (49% → 70%+)
+**Priority:** medium
+**Why:** Location detection identifies town/route from screen pixels — critical for navigation.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_location_detection.py (new)
+**AC:**
+1. Test detect_location with known town tiles → returns correct location name
+2. Test detect_location with route tiles → returns route number
+3. Test extract_map_name from screenshot → returns map name string
+4. Test edge case: unknown tiles → returns "unknown" with low confidence
+5. Coverage: vision/location.py 49% → 70%+
+
+### [ ] COV-4: Add unit tests for vision/ocr.py (54% → 75%+)
+**Priority:** medium
+**Why:** OCR reads dialog text, menu items, and battle messages from screen.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_ocr.py (new)
+**AC:**
+1. Test extract_text with known text image → returns expected string
+2. Test extract_text with empty image → returns empty string
+3. Test extract_menu_items with menu image → returns list of menu options
+4. Test extract_dialog_text with dialog image → returns speaker + text
+5. Test edge case: garbled image → graceful fallback
+6. Coverage: vision/ocr.py 54% → 75%+
+
+---
+
 ### [x] PHASE-1: Unified Emulator + Tool Executor ✅ (d372832)
 ### [x] PHASE-2: Prompt Config System ✅ (a26540e)
 ### [x] PHASE-3: Vision Pipeline ✅ (ea6a2c6)
