@@ -135,7 +135,7 @@
 4. Save a special screenshot with prefix "VICTORY_" or "BATTLE_" to screenshots/ on rival battle detection
 5. Don't break existing battle flow — rival_battle should still use the normal battle StateWindow
 
-### [x] RECOVER-1: Void state recovery — detect and escape glitched maps ✅ (pending)
+### [x] RECOVER-1: Void state recovery — detect and escape glitched maps ✅ (7f23b9f)
 **Priority:** medium
 **Why:** On Jun 23 run, AI navigated into a white void where map didn't load. Should detect and recover.
 **Files:** cron_runner.py
@@ -144,3 +144,39 @@
 2. If all-unknown for 3 consecutive cycles, trigger recovery: press START (open menu), press B twice (close menu, force screen redraw)
 3. If recovery fails 3 times in a row, press START + B + B + A (attempt soft reset to title)
 4. Log all recovery attempts with cycle number and tiles_known percentage
+
+---
+
+## Active Queue (Jun 24 — Performance + Reliability Push)
+
+### [x] INTRO-1: Add deterministic intro bypass for Gen 1 ✅
+**Priority:** highest
+**Why:** Jun 24 run wasted 31 cycles on title + 57 cycles on name entry (~3,700s) before reaching overworld. The intro sequence is deterministic — no AI needed.
+**Model:** deepseek-v4-pro (foreman direct — mechanical fix)
+**Files:** src/core/emulator.py (+113 lines: bypass_title + enter_name with keyboard grid), cron_runner.py (+73 lines: mechanical intro loop)
+**Result:** Added bypass_title() (START press), enter_name() (navigates Gen 1 keyboard grid), and a mechanical intro loop in cron_runner that classifies screens + takes deterministic actions. 5 new tests. All 1020 non-ROM tests pass.
+
+### [x] TEST-1: Fix flaky test_inventory test-ordering failure ✅
+**Priority:** high
+**Why:** `test_check_waste_prevention_no_waste` and `test_check_waste_prevention_would_be_wasteful` fail in full suite due to `ShoppingHeuristic.HEALING_POWER` being empty (shared class state). Test expectations also used wrong HP values for the threshold check (30 HP missing < 200*0.3=60 → wasteful).
+**Model:** deepseek-v4-pro (foreman direct — debugging)
+**Files:** tests/test_inventory.py
+**Result:** Root cause: `ShoppingHeuristic.HEALING_POWER` is a class-level dict populated lazily. Fixed by explicitly setting `HEALING_POWER[ItemType.HYPER_POTION] = 200` in both tests, and corrected HP values: 1/125 (124 missing >= 60 → not wasteful) and 50/80 (30 missing < 60 → wasteful). All 24 tests in TestItemUsageStrategy pass; 1020/1020 non-ROM tests.
+**AC:**
+1. Identify the root cause: is it a shared fixture not being cleaned up, a module-level state leak, or a test ordering dependency?
+2. Fix the root cause (add fixture cleanup, isolate test state, or add setup/teardown)
+3. Verify: `source venv/bin/activate && python -m pytest tests/test_inventory.py -v` — all pass
+4. Verify: `source venv/bin/activate && python -m pytest tests/ -x -q --tb=short -k "not rom and not live"` passes without this test failing
+
+### [ ] CTRL-1: Debug overworld controller direction-locking
+**Priority:** medium
+**Why:** Jun 24 run cycles 91-100: controller pressed DOWN on every single step (120+ decisions). Blocked-direction recovery at MAX_SAME_DIRECTION=5 should have triggered checkpoint rollback but didn't. Either _same_dir tracking is broken or checkpoint save/load fails silently.
+**Model:** deepseek-v4-pro (foreman direct — debugging)
+**Files:** cron_runner.py, src/core/emulator.py
+**AC:**
+1. Verify `Emulator.save_state(slot)` and `load_state(slot)` work on GB ROMs — write a targeted test or manual check
+2. Verify `_same_dir` tracking persists across CART_STEPS iterations (check for unintended reset)
+3. Verify `_last_saved_slot` is non-None when overworld cycles begin
+4. If save_state fails silently: add fallback (soft reset via pressing all buttons) 
+5. If tracking is correct but recovery doesn't fire: add debug print to confirm threshold is reached
+6. Add unit test for blocked-direction recovery logic

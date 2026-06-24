@@ -292,10 +292,84 @@ def main() -> None:
     _void_cycles: int = 0       # consecutive cycles with >95% unknown tiles
     _recovery_attempts: int = 0  # recovery attempts in current void sequence
 
-    # No blind intro skip — let the AI navigate title/dialog/name_entry
-    # via the StateWindow pipeline like any other game state
+    # ── Deterministic intro bypass ──────────────────────────────────
+    # The intro sequence (title → Oak dialog → name entry → overworld)
+    # is deterministic.  Don't waste AI cycles deliberating on it.
+    print(f"[{run_id}] Bypassing intro deterministically...")
 
-    ctx = GlobalContext(generation="gen1", location="title")
+    # Step 1: Title screen → press START
+    emu.bypass_title()
+    emu.wait(120)  # let Oak appear
+
+    # Step 2: Mechanical intro loop — advance through dialog + name entry
+    _intro_steps = 0
+    _MAX_INTRO_STEPS = 60  # generous safety cap
+    _player_named = False
+    _rival_named = False
+
+    while _intro_steps < _MAX_INTRO_STEPS:
+        _intro_steps += 1
+        screenshot = emu.capture()
+
+        # Quick screen classification
+        intro_vis = vision.analyze(screenshot, game="gen1")
+        st = intro_vis.get("screen_type", "unknown")
+
+        if st == "overworld":
+            print(f"  [{_intro_steps}] Reached overworld — intro complete")
+            break
+        elif st == "title":
+            # Shouldn't happen after bypass_title, but handle gracefully
+            emu.press_button("start", frames=30)
+            emu.wait(90)
+        elif st in ("dialog", "name_confirm"):
+            # Advance dialog mechanically
+            emu.press_button("a", frames=5)
+            emu.fast_forward(180)
+        elif st == "name_entry":
+            if not _player_named:
+                print(f"  [{_intro_steps}] Entering player name ASH...")
+                emu.enter_name("ASH")
+                _player_named = True
+                emu.wait(60)
+                # Confirm the name (press A on the confirm prompt)
+                emu.press_button("a", frames=10)
+                emu.wait(120)
+            elif not _rival_named:
+                print(f"  [{_intro_steps}] Entering rival name GARY...")
+                emu.enter_name("GARY")
+                _rival_named = True
+                emu.wait(60)
+                emu.press_button("a", frames=10)
+                emu.wait(120)
+            else:
+                # Unexpected third name entry — press A to dismiss
+                emu.press_button("a", frames=10)
+                emu.wait(60)
+        else:
+            # Unknown state — press A and hope
+            emu.press_button("a", frames=10)
+            emu.wait(60)
+
+    if _intro_steps >= _MAX_INTRO_STEPS:
+        print(f"  [!] Intro bypass hit {_MAX_INTRO_STEPS} step cap — proceeding anyway")
+    else:
+        print(f"  Intro bypass complete in {_intro_steps} steps")
+
+    # Save state after intro
+    try:
+        emu.save_state(0)
+        _last_saved_slot = 0
+        print("  [CKPT] Post-intro state saved to slot 0")
+    except Exception as exc:
+        print(f"  [CKPT] Failed to save post-intro state: {exc}")
+
+    ctx = GlobalContext(generation="gen1", location="bedroom")
+    # If we bypassed the intro, set player/rival names
+    if _player_named:
+        ctx.player_name = "ASH"
+    if _rival_named:
+        ctx.rival_name = "GARY"
 
     # Open log file for incremental writing (web viewer polls this)
     log_file = open(log_path, "w")
