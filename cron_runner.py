@@ -65,6 +65,7 @@ class _SGBSuppress:
         # thread is daemon — will exit on its own
 
 sys.path.insert(0, str(Path(__file__).parent))
+# ruff: noqa: E402 — sys.path must be modified before project imports
 from src.core.emulator import Emulator
 from src.core.global_context import GlobalContext
 from src.core.state_window import StateWindow
@@ -209,6 +210,8 @@ def controller_decide(
     world_view: str,
     last_button: str = "",
     last_result: str = "",
+    blocked_dir: str = "",
+    blocked_count: int = 0,
 ) -> dict[str, Any]:
     """Controller model (DeepSeek V4 Flash) decides next button press."""
     system = (
@@ -216,18 +219,31 @@ def controller_decide(
         "Given the current world map and state, output exactly one button press.\n"
         "Respond with ONLY a JSON object:\n"
         '{"button": "UP|DOWN|LEFT|RIGHT|A|B|START|SELECT", "intent": "short reason"}\n\n'
-        "RULES:\n"
-        "- Prefer exploring unvisited tiles (? or never-seen areas)\n"
-        "- If blocked, try another direction\n"
-        "- Use A to interact with signs/doors/NPCs when adjacent\n"
-        "- Use START to open menu if needed\n"
-        "- Don't repeat the same blocked direction 3+ times in a row\n"
+        "EXPLORATION STRATEGY (clockwise rotation):\n"
+        "- When all directions are unknown, try UP first, then RIGHT, then DOWN, then LEFT.\n"
+        "- NEVER repeat a direction that was already tried and had no visible effect.\n"
+        "- If a direction is blocked, rotate clockwise to the next one.\n\n"
+        "BLOCKED-DIRECTION RULE (CRITICAL):\n"
+        "- If told you've been blocked in a direction 3+ times, you MUST choose a different direction.\n"
+        "- Rotate: UP→RIGHT→DOWN→LEFT→UP. Pick the next unblocked direction.\n\n"
+        "INTERACTION:\n"
+        "- Use A to interact with signs/doors/NPCs when adjacent.\n"
+        "- Use START to open menu if needed.\n"
     )
+
+    blocked_msg = ""
+    if blocked_dir and blocked_count >= 2:
+        blocked_msg = (
+            f"\n⚠️  WARNING: You pressed {blocked_dir} {blocked_count} times in a row "
+            f"with no progress. That direction is BLOCKED or WRONG. "
+            f"Try the next direction clockwise from {blocked_dir}.\n"
+        )
 
     msg = (
         f"{world_view}\n\n"
         f"LAST BUTTON: {last_button or 'none'}\n"
-        f"LAST RESULT: {last_result or 'unknown'}\n\n"
+        f"LAST RESULT: {last_result or 'unknown'}\n"
+        f"{blocked_msg}\n"
         "What button should I press next?  Output JSON only."
     )
 
@@ -377,7 +393,6 @@ def main() -> None:
     log_file.flush()
 
     for cycle in range(CYCLES):
-        result: dict[str, Any] = {}
         try:
             screenshot = emu.capture()
 
@@ -461,6 +476,8 @@ def main() -> None:
                     decision = controller_decide(
                         controller_client, world_view,
                         world.last_button, world.last_result,
+                        blocked_dir=_same_dir or "",
+                        blocked_count=_same_dir_count,
                     )
                     button = decision.get("button", "A").upper()
                     intent = decision.get("intent", "")
@@ -549,7 +566,7 @@ def main() -> None:
                     print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle+1}")
 
                 win = StateWindow(state_type, ctx, emu, vis, generation="gen1", max_steps=STATE_STEPS)
-                result = win.run()
+                win.run()
                 emu.fast_forward(FAST_FORWARD_FRAMES)
                 elapsed = time.time() - t0
 
