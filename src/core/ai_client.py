@@ -684,9 +684,23 @@ class OpenRouterClient:
 
             choices = result.get("choices", [])
             first_choice = choices[0] if choices else {}
+            message = first_choice.get("message", {})
+
+            # Check for tool_calls FIRST (proper OpenAI function calling)
+            tool_calls = message.get("tool_calls", [])
+            if tool_calls:
+                first_tool = tool_calls[0]
+                func = first_tool.get("function", {})
+                content = json.dumps({
+                    "name": func.get("name", ""),
+                    "arguments": json.loads(func.get("arguments", "{}"))
+                        if isinstance(func.get("arguments"), str) else func.get("arguments", {}),
+                })
+            else:
+                content = message.get("content", "")
 
             return {
-                "content": first_choice.get("message", {}).get("content", ""),
+                "content": content,
                 "finish_reason": first_choice.get("finish_reason", "stop"),
                 "model": result.get("model", model),
                 "usage": usage,
