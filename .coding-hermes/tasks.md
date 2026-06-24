@@ -42,15 +42,8 @@
 **Files:** tests/test_live_demo.py (new)
 **Result:** 4 live tests (AC-010 through AC-013) all pass — 269s with real ROM (GBA LeafGreen) + owl-alpha vision/thinking. Test file: +270 lines. Screenshots validated at (160,240,3) for GBA. Tool calls verified against TOOL_SCHEMA. Summary fields checked for completeness.
 
-### [ ] COVERAGE: Add unit tests for ToolExecutor class
+### [x] COVERAGE: Add unit tests for ToolExecutor class ✅
 **Priority:** medium
-**Model:** ollama-cloud/minimax-m3 (1 file, mechanical)
+**Model:** deepseek-v4-pro (foreman direct — mechanical test file)
 **Files:** tests/test_tools.py (new)
-**Verify:** `source venv/bin/activate && python -m pytest tests/test_tools.py -v`
-**AC:**
-- AC-014: test_parse_tool_call_code_fenced — code-fenced JSON → correct tool name + args
-- AC-015: test_parse_tool_call_inline — inline "ACTION:" format → extracted action
-- AC-016: test_execute_tool_call_press_button — press_button call → emulator receives correct method
-- AC-017: test_execute_tool_call_wait — wait call → emulator advances correct frames
-- AC-018: test_execute_tool_call_invalid — unknown tool name → handled gracefully
-**Status:** ready
+**Result:** 32 unit tests (0.03s) covering parse_tool_call (13 tests: code-fenced, bare JSON, OpenAI-style, edge cases) + execute_tool_call (10 tests: press_button, wait, combo, invalid tool, missing args) + TOOL_SCHEMA validation (5 tests) + extra combo+wait coverage (4 tests). No ToolExecutor class exists — tests cover the actual functions in src/core/tools.py.
