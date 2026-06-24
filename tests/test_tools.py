@@ -268,7 +268,7 @@ class TestToolSchema:
 
     def test_tool_schema_names_match(self) -> None:
         """Schema names match what execute_tool_call accepts."""
-        expected_names = {"press_button", "wait", "combo"}
+        expected_names = {"press_button", "wait", "combo", "fast_forward"}
         actual_names = {t["function"]["name"] for t in TOOL_SCHEMA}
         assert actual_names == expected_names
 

@@ -528,19 +528,27 @@ class TestLocationDetection:
 
 
 class TestVisionIntegration:
-    """Integration tests for vision system with real screenshots"""
+    """Integration tests for vision system with real screenshots.
+
+    These tests require pre-captured screenshots from a Docker container.
+    They are skipped when the screenshots directory doesn't exist locally.
+    """
 
     @pytest.fixture
     def real_screenshot_path(self) :  # type: ignore[no-untyped-def]
-
         """Path to real sample screenshot"""
-        return Path("/config/workspace/ai_plays_poke/src/vision_test_run/screenshots/overworld/tick_000060_screenshot_20251230_222926_425460.png")
+        p = Path("/config/workspace/ai_plays_poke/src/vision_test_run/screenshots/overworld/tick_000060_screenshot_20251230_222926_425460.png")
+        if not p.exists():
+            pytest.skip("Real screenshot not available (Docker-path only)")
+        return p
 
     @pytest.fixture
     def latest_screenshot_path(self) :  # type: ignore[no-untyped-def]
-
         """Path to latest screenshot"""
-        return Path("/config/workspace/ai_plays_poke/src/vision_test_run/screenshots/latest/latest_overworld.png")
+        p = Path("/config/workspace/ai_plays_poke/src/vision_test_run/screenshots/latest/latest_overworld.png")
+        if not p.exists():
+            pytest.skip("Latest screenshot not available (Docker-path only)")
+        return p
 
     def test_screenshot_file_exists(self, real_screenshot_path) -> None:  # type: ignore[no-untyped-def]
         """Test that real screenshot file exists"""
