@@ -1996,19 +1996,19 @@ class InventoryManager:
 
     @property
     def inventory(self) -> InventoryState:
-        return self._inventory  # type: ignore
+        return self._inventory
 
     @property
     def shopping(self) -> ShoppingHeuristic:
-        return self._shopping  # type: ignore
+        return self._shopping
 
     @property
     def center(self) -> PokemonCenterProtocol:
-        return self._center  # type: ignore
+        return self._center
 
     @property
     def item_usage(self) -> ItemUsageStrategy:
-        return self._item_usage  # type: ignore
+        return self._item_usage
 
     def process_vision_update(self, vision_data: Dict[str, Any]) -> None:
         """Process vision system update for inventory changes"""
@@ -2032,7 +2032,7 @@ class InventoryManager:
 
     def get_healing_goal(self, party_state: PartyState) -> Optional[Tuple[bool, HealingPriority, str]]:
         """Generate healing goal for GOAP planner"""
-        return self._center.assess_healing_need(party_state)  # type: ignore
+        return self._center.assess_healing_need(party_state)
 
     def get_battle_item_decision(
         self,
@@ -2041,7 +2041,7 @@ class InventoryManager:
         battle_context: Dict[str, Any],
     ) -> Tuple[Optional[ItemType], Optional[int]]:
         """Get optimal item to use in battle"""
-        return self._item_usage.select_battle_item(  # type: ignore
+        return self._item_usage.select_battle_item(
             party_state, active_index, battle_context
         )
 

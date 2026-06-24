@@ -530,7 +530,7 @@ class AStarPathfinder:
             return []
 
         visited: Set[str] = set()
-        queue: deque = deque()
+        queue: deque[Tuple[str, List[Position]]] = deque()
         queue.append((start_map, []))
 
         while queue:
@@ -541,7 +541,7 @@ class AStarPathfinder:
             visited.add(current_map)
 
             if current_map == goal_map:
-                return cast(List[Position], path)
+                return path
 
             for warp_source, warp_dest in self.graph.warps.items():
                 if warp_source.map_id == current_map:
@@ -690,7 +690,7 @@ class AreaManager:
 
     def __init__(self, graph: WorldGraph):
         self.graph = graph
-        self.routes: Dict[str, Dict] = {}
+        self.routes: Dict[str, Dict[str, Any]] = {}
         self.gyms: Dict[str, PointOfInterest] = {}
         self.pokemon_centers: Dict[str, PointOfInterest] = {}
         self.shops: Dict[str, PointOfInterest] = {}
@@ -706,7 +706,7 @@ class AreaManager:
             logger.warning(f"Routes data not found at {data_path}, using default data")
             self._load_default_areas()
 
-    def _import_routes(self, data: Dict) -> None:
+    def _import_routes(self, data: Dict[str, Any]) -> None:
         for route_data in data.get("routes", []):
             self.routes[route_data["id"]] = route_data
 
@@ -848,7 +848,7 @@ class AreaManager:
     def get_all_shops(self) -> List[PointOfInterest]:
         return list(self.shops.values())
 
-    def get_route(self, route_id: str) -> Optional[Dict]:
+    def get_route(self, route_id: str) -> Optional[Dict[str, Any]]:
         return self.routes.get(route_id)
 
     def get_connection_maps(self, map_id: str) -> List[str]:
@@ -1037,7 +1037,7 @@ class NavigationSystem:
         if context is None:
             context = PathfindingContext()
 
-        return cast(PathResult, self.pathfinder.find_path(start, goal, context))
+        return self.pathfinder.find_path(start, goal, context)
 
     def navigate_to_poi(
         self,
@@ -1080,7 +1080,7 @@ class NavigationSystem:
             if poi:
                 pois.append(poi)
 
-        return cast(Tuple[List[RouteSegment], float], self.route_optimizer.optimize_route(start, pois, context))
+        return self.route_optimizer.optimize_route(start, pois, context)
 
     def solve_puzzle(
         self,
@@ -1090,11 +1090,11 @@ class NavigationSystem:
         context: PathfindingContext
     ) -> PathResult:
         if puzzle_type == "safari":
-            return cast(PathResult, self.puzzle_solver.solve_safari_zone(start, goal, context))
+            return self.puzzle_solver.solve_safari_zone(start, goal, context)
         elif puzzle_type == "rock_tunnel":
-            return cast(PathResult, self.puzzle_solver.solve_rock_tunnel(start, goal, context))
+            return self.puzzle_solver.solve_rock_tunnel(start, goal, context)
         elif puzzle_type == "cycling_road":
-            return cast(PathResult, self.puzzle_solver.solve_cycling_road(start, goal, context))
+            return self.puzzle_solver.solve_cycling_road(start, goal, context)
         else:
             return PathResult(
                 success=False,

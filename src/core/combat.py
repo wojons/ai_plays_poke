@@ -609,7 +609,7 @@ class MoveSelector:
                 base_score *= 1.1
                 notes.append("Priority move")
 
-        if setup_opportunity and move.category != MoveCategory.STATUS:
+        if setup_opportunity:
             if self._is_setup_move(move):
                 if damage_range.expected_damage < defender.current_hp * 0.3:
                     base_score *= 2.0

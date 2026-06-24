@@ -23,8 +23,7 @@ def simple_test() -> None:
     # Check if ROM exists
     if not os.path.exists(rom_path):
         print(f"❌ ROM not found: {rom_path}")
-        return False  # type: ignore
-    
+        return False
     # Initialize emulator
     print("🚀 Loading ROM...")
     pyboy = PyBoy(rom_path)
@@ -68,10 +67,9 @@ def simple_test() -> None:
     print("\n" + "=" * 50)
     print("✅ Test completed!")
     
-    return True  # type: ignore
-
+    return True
 if __name__ == "__main__":
-    success = simple_test()  # type: ignore
+    success = simple_test()
     if success:
         print("\n🎉 All systems go! PyBoy screenshots are working.")
     else:

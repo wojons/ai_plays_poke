@@ -27,20 +27,17 @@ try:
     VISION_AVAILABLE = True
 except ImportError:
     VISION_AVAILABLE = False
-    VisionPipeline = None  # type: ignore
-    OCREngine = None  # type: ignore
-    SpriteRecognizer = None  # type: ignore
-    BattleAnalyzer = None  # type: ignore
-    LocationDetector = None  # type: ignore
-
+    VisionPipeline = None
+    OCREngine = None
+    SpriteRecognizer = None
+    BattleAnalyzer = None
+    LocationDetector = None
 try:
     from anthropic import Anthropic
     ANTHROPIC_AVAILABLE = True
 except ImportError:
     ANTHROPIC_AVAILABLE = False
-    Anthropic = None  # type: ignore
-
-
+    Anthropic = None
 class APIError(Exception):
     """Exception raised for API-related errors"""
     pass
@@ -117,7 +114,7 @@ class TokenTracker:
         self.request_history: List[Dict[str, Any]] = []
         self.lock = threading.Lock()
 
-    def record_request(  # type: ignore
+    def record_request(
         self,
         model: str,
         input_tokens: int,
@@ -169,7 +166,7 @@ class TokenTracker:
             self.request_history = []
 
 
-def log_api_call(model: str, duration_ms: float, input_tokens: int,  # type: ignore
+def log_api_call(model: str, duration_ms: float, input_tokens: int,
                  output_tokens: int, cost: float, success: bool = True):
     """Simple logging function for API calls"""
     print(f"📡 API: {model} | {duration_ms:.0f}ms | "
@@ -177,7 +174,7 @@ def log_api_call(model: str, duration_ms: float, input_tokens: int,  # type: ign
           f"${cost:.6f} | Success: {success}")
 
 
-def log_vision_analysis(screen_type: str, enemy_pokemon: str,  # type: ignore
+def log_vision_analysis(screen_type: str, enemy_pokemon: str,
                         player_hp: float, enemy_hp: float):
     """Simple logging function for vision analysis"""
     print(f"👁️ Vision: {screen_type} | Enemy: {enemy_pokemon or 'None'} | "
@@ -314,7 +311,7 @@ class AIModelClient:
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
-                json=payload,  # type: ignore
+                json=payload,
                 timeout=10
             )
 
@@ -368,12 +365,12 @@ class AIModelClient:
 
         for retry in range(max_retries):
             try:
-                result = self._client.chat_completion(  # type: ignore
-                    model=self._client.models.get("acting", "openai/gpt-4o-mini"),  # type: ignore
+                result = self._client.chat_completion(
+                    model=self._client.models.get("acting", "openai/gpt-4o-mini"),
                     messages=[{"role": "user", "content": json.dumps(payload)}],
                     max_tokens=300
                 )
-                return result  # type: ignore  # type: ignore
+                return result  # type: ignore
             except Exception as e:
                 if retry < max_retries - 1:
                     delay = 1.0 * (2 ** retry)
@@ -416,7 +413,7 @@ class AIModelClient:
             content = response.get("content", "")
             if isinstance(content, str):
                 try:
-                    return json.loads(content)  # type: ignore
+                    return json.loads(content)
                 except json.JSONDecodeError:
                     pass
 
@@ -476,7 +473,7 @@ class ClaudeClient:
                 model=model,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                messages=messages  # type: ignore
+                messages=messages
             )
 
             duration_ms = (time.time() - start_time) * 1000
@@ -488,7 +485,7 @@ class ClaudeClient:
             self.circuit_breaker.record_success()
 
             return {
-                "content": response.content[0].text,  # type: ignore
+                "content": response.content[0].text,
                 "finish_reason": response.stop_reason,
                 "model": model,
                 "usage": {
@@ -525,9 +522,7 @@ class ClaudeClient:
             max_tokens=max_tokens
         )
 
-        return result["content"]  # type: ignore
-
-
+        return result["content"]
 class OpenRouterClient:
     """
     Client for OpenRouter API
@@ -583,8 +578,7 @@ class OpenRouterClient:
             api_key = deepseek_key
         else:
             base_url = self.base_url
-            api_key = self.api_key  # type: ignore
-
+            api_key = self.api_key
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -749,8 +743,7 @@ class OpenRouterClient:
             max_tokens=max_tokens
         )
 
-        return result["content"]  # type: ignore
-
+        return result["content"]
     def send_vision_request(
         self,
         prompt: str,
@@ -794,8 +787,7 @@ class OpenRouterClient:
             temperature=temperature,
         )
 
-        return result["content"]  # type: ignore
-
+        return result["content"]
     def get_text_response(
         self,
         prompt: str,
@@ -825,8 +817,7 @@ class OpenRouterClient:
             temperature=temperature
         )
 
-        return result["content"]  # type: ignore
-
+        return result["content"]
     def send_tool_request(
         self,
         prompt: str,
@@ -871,9 +862,7 @@ class OpenRouterClient:
             tools=tools if use_native_tools else None,
         )
 
-        return result["content"]  # type: ignore
-
-
+        return result["content"]
 class JSONResponseParser:
     """Structured JSON response parser with validation and retry logic"""
 
@@ -896,7 +885,7 @@ class JSONResponseParser:
             result = self._try_parse_json(response, schema)
             if result:
                 self.parse_success_count += 1
-                return result  # type: ignore
+                return result
         except Exception as e:
             pass
 
@@ -919,14 +908,14 @@ class JSONResponseParser:
             result = json.loads(cleaned)
             if schema:
                 self._validate_against_schema(result, schema)
-            return result  # type: ignore
+            return result
         except json.JSONDecodeError:
             pass
 
         json_match = re.search(r'\{[^{}]*\}', response)
         if json_match:
             try:
-                return json.loads(json_match.group())  # type: ignore
+                return json.loads(json_match.group())
             except json.JSONDecodeError:
                 pass
 
@@ -972,7 +961,7 @@ class JSONResponseParser:
 
         if retry_count == 0:
             try:
-                return json.loads(cleaned)  # type: ignore
+                return json.loads(cleaned)
             except json.JSONDecodeError:
                 pass
 
@@ -985,7 +974,7 @@ class JSONResponseParser:
             match = re.search(pattern, response)
             if match:
                 try:
-                    return json.loads(match.group())  # type: ignore
+                    return json.loads(match.group())
                 except json.JSONDecodeError:
                     continue
 
@@ -1013,8 +1002,7 @@ class JSONResponseParser:
                 value = match.group(1)
                 if field in ["player_hp", "enemy_hp"]:
                     value = int(value)
-                result["extracted_fields"][field] = value  # type: ignore
-
+                result["extracted_fields"][field] = value
         self.parse_failure_count += 1
         return result
 
@@ -1209,9 +1197,9 @@ class GameAIManager:
                 print("✅ PromptManager initialized")
             except Exception as e:
                 print(f"⚠️  PromptManager initialization failed: {e}")
-                self.prompt_manager = None  # type: ignore
+                self.prompt_manager = None
         else:
-            self.prompt_manager = None  # type: ignore
+            self.prompt_manager = None
         self.ai_model_client = AIModelClient(api_key)
         self.openrouter_client = self.ai_model_client._client
 
@@ -1221,10 +1209,9 @@ class GameAIManager:
                 print("✅ Claude client initialized")
             except Exception as e:
                 print(f"⚠️  Claude client initialization failed: {e}")
-                self.claude_client = None  # type: ignore
+                self.claude_client = None
         else:
-            self.claude_client = None  # type: ignore
-
+            self.claude_client = None
         self.vision_model = "openai/gpt-4o"
         self.thinking_model = "openai/gpt-4o-mini"
         self.acting_model = "openai/gpt-4o-mini"
@@ -1316,10 +1303,9 @@ Format: REASONING: [explanation] ACTION: [button]
     def _get_client_for_model(self, model: str) -> None:
         """Get appropriate client for a model"""
         if "claude" in model.lower():
-            return self.claude_client  # type: ignore
-        return self.openrouter_client  # type: ignore
-
-    def _make_api_call_with_retry(  # type: ignore
+            return self.claude_client
+        return self.openrouter_client
+    def _make_api_call_with_retry(
         self,
         client_method: Callable,
         max_retries: int = 3,
@@ -1345,8 +1331,7 @@ Format: REASONING: [explanation] ACTION: [button]
                         duration_ms=result.get("duration_ms", 0)
                     )
 
-                return result  # type: ignore
-
+                return result
             except Exception as e:
                 if retry < max_retries - 1:
                     delay = self.rate_limiter.get_delay(retry)
@@ -1378,12 +1363,11 @@ Format: REASONING: [explanation] ACTION: [button]
                 prompt = relevant_prompts[0] + "\n\n" + prompt
 
         try:
-            client = self._get_client_for_model(model)  # type: ignore
+            client = self._get_client_for_model(model)
             if hasattr(client, 'get_vision_response'):
-                response = client.get_vision_response(prompt, screenshot, model=model)  # type: ignore
+                response = client.get_vision_response(prompt, screenshot, model=model)
             else:
-                response = self.openrouter_client.get_vision_response(prompt, screenshot, model=model)  # type: ignore
-
+                response = self.openrouter_client.get_vision_response(prompt, screenshot, model=model)
             print(f"📝 Vision response ({len(response)} chars): {response[:200]}...")
 
             result = self.json_parser.parse(response)
@@ -1406,8 +1390,7 @@ Format: REASONING: [explanation] ACTION: [button]
                   f"enemy={result.get('enemy_pokemon', 'None')}, "
                   f"HP={result.get('player_hp', 100)}%/{result.get('enemy_hp', 100)}%")
 
-            return result  # type: ignore
-
+            return result
         except Exception as e:
             print(f"❌ Vision analysis failed: {e}")
             return {
@@ -1454,12 +1437,11 @@ Format: REASONING: [explanation] ACTION: [button]
         model = model or selected_model
 
         try:
-            client = self._get_client_for_model(model)  # type: ignore
+            client = self._get_client_for_model(model)
             if hasattr(client, 'get_text_response'):
-                response = client.get_text_response(prompt, model=model)  # type: ignore
+                response = client.get_text_response(prompt, model=model)
             else:
-                response = self.openrouter_client.get_text_response(prompt, model=model)  # type: ignore
-
+                response = self.openrouter_client.get_text_response(prompt, model=model)
             print(f"Strategic model response: {response[:200]}...")
 
             result = self._parse_strategic_response(response)
@@ -1474,8 +1456,7 @@ Format: REASONING: [explanation] ACTION: [button]
 
             print(f"✅ Strategic plan: {result.get('objective', 'Unknown')}")
 
-            return result  # type: ignore
-
+            return result
         except Exception as e:
             print(f"❌ Strategic planning failed: {e}")
             return {
@@ -1531,16 +1512,16 @@ Format: REASONING: [explanation] ACTION: [button]
         model = model or selected_model
 
         try:
-            client = self._get_client_for_model(model)  # type: ignore
+            client = self._get_client_for_model(model)
             if hasattr(client, 'get_text_response'):
-                response = client.get_text_response(  # type: ignore
+                response = client.get_text_response(
                     prompt,
                     model=model,
                     max_tokens=300,
                     temperature=0.3
                 )
             else:
-                response = self.openrouter_client.get_text_response(  # type: ignore
+                response = self.openrouter_client.get_text_response(
                     prompt,
                     model=model,
                     max_tokens=300,
@@ -1562,8 +1543,7 @@ Format: REASONING: [explanation] ACTION: [button]
             print(f"✅ Tactical: REASONING: {result.get('reasoning', '')[:100]}... "
                   f"ACTION: {result.get('action', 'press:A')}")
 
-            return result  # type: ignore
-
+            return result
         except Exception as e:
             print(f"❌ Tactical decision failed: {e}")
             return {
@@ -1951,7 +1931,7 @@ class PerformanceTracker:
         self.max_recent_results = 1000
         self.lock = threading.Lock()
 
-    def record_result(self, model: str, task_type: str, success: bool,  # type: ignore
+    def record_result(self, model: str, task_type: str, success: bool,
                       latency_ms: float, tokens: int = 0):
         """
         Record performance result for a model on a task.
@@ -2358,8 +2338,7 @@ class ResultMerger:
         """Merge results with confidence weighting"""
         total_confidence = sum(r.confidence for r in results)
         if total_confidence == 0:
-            return results[0]  # type: ignore
-
+            return results[0]
         weighted_content = ""
         for r in results:
             weight = r.confidence / total_confidence

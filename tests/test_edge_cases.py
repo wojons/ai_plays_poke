@@ -26,14 +26,14 @@ from pathlib import Path
 class TestROMHandling:
     """Tests for ROM file handling edge cases (7 tests)"""
 
-    def test_missing_rom_graceful_handling(self):  # type: ignore
+    def test_missing_rom_graceful_handling(self) -> None:
         """ROM not found → appropriate error, no crash"""
         from src.core.emulator import Emulator
 
         with pytest.raises(FileNotFoundError):
             Emulator(rom_path="/nonexistent/rom.gb")
 
-    def test_invalid_rom_header(self):  # type: ignore
+    def test_invalid_rom_header(self) -> None:
         """Invalid ROM → clear error message"""
         with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
             f.write(b"NOT A VALID ROM HEADER" + b"\x00" * 100)
@@ -46,7 +46,7 @@ class TestROMHandling:
         finally:
             os.unlink(temp_path)
 
-    def test_rom_corruption_recovery(self):  # type: ignore
+    def test_rom_corruption_recovery(self) -> None:
         """ROM corruption detected → graceful shutdown"""
         with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
             f.write(b"\x00" * 100)
@@ -60,7 +60,7 @@ class TestROMHandling:
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
 
-    def test_rom_path_with_spaces(self):  # type: ignore
+    def test_rom_path_with_spaces(self) -> None:
         """ROM path with spaces → proper handling"""
         import shutil
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -74,7 +74,7 @@ class TestROMHandling:
             assert emulator is not None
             emulator.stop()
 
-    def test_rom_permission_denied(self):  # type: ignore
+    def test_rom_permission_denied(self) -> None:
         """ROM file permission denied → appropriate error"""
         with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
             f.write(b"\x00" * 32768)
@@ -90,7 +90,7 @@ class TestROMHandling:
             os.chmod(temp_path, 0o644)
             os.unlink(temp_path)
 
-    def test_rom_empty_file(self):  # type: ignore
+    def test_rom_empty_file(self) -> None:
         """Empty ROM file → appropriate error"""
         with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
             temp_path = f.name
@@ -102,7 +102,7 @@ class TestROMHandling:
         finally:
             os.unlink(temp_path)
 
-    def test_rom_too_small(self):  # type: ignore
+    def test_rom_too_small(self) -> None:
         """ROM file too small → appropriate error"""
         with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
             f.write(b"\x00" * 100)
@@ -119,7 +119,7 @@ class TestROMHandling:
 class TestAPIKeyHandling:
     """Tests for API key handling edge cases (7 tests)"""
 
-    def test_missing_api_key(self):  # type: ignore
+    def test_missing_api_key(self) -> None:
         """API key absent → stub fallback mode"""
         with patch.dict(os.environ, {}, clear=True):
             with patch('src.core.ai_client.AIModelClient._load_api_key', return_value=None):
@@ -128,7 +128,7 @@ class TestAPIKeyHandling:
                 client = AIModelClient()
                 assert client._api_key is None or client._stub_mode is True
 
-    def test_api_key_empty_string(self):  # type: ignore
+    def test_api_key_empty_string(self) -> None:
         """API key is empty string → stub mode"""
         with patch.dict(os.environ, {"OPENAI_API_KEY": "", "OPENROUTER_API_KEY": ""}):
             from src.core.ai_client import AIModelClient
@@ -136,7 +136,7 @@ class TestAPIKeyHandling:
             client = AIModelClient()
             assert client._api_key is None or client._api_key == ""
 
-    def test_api_key_invalid_format(self):  # type: ignore
+    def test_api_key_invalid_format(self) -> None:
         """Invalid API key format → clear error, no retry loop"""
         with patch('src.core.ai_client.requests.post') as mock_post:
             mock_post.side_effect = Exception("401 Unauthorized")
@@ -147,7 +147,7 @@ class TestAPIKeyHandling:
             with pytest.raises(Exception):
                 client._validate_api_key()
 
-    def test_api_key_expired(self):  # type: ignore
+    def test_api_key_expired(self) -> None:
         """Expired API key → clear error message"""
         with patch('src.core.ai_client.requests.post') as mock_post:
             mock_response = MagicMock()
@@ -162,11 +162,11 @@ class TestAPIKeyHandling:
 
             assert exc_info.value is not None
 
-    def test_api_key_rate_limit(self):  # type: ignore
+    def test_api_key_rate_limit(self) -> None:
         """API key rate limited → retry with backoff"""
         call_count = 0
 
-        def raise_rate_limit(*args, **kwargs):  # type: ignore
+        def raise_rate_limit(*args, **kwargs) -> None:
             nonlocal call_count
             call_count += 1
             if call_count < 3:
@@ -182,7 +182,7 @@ class TestAPIKeyHandling:
             result = client._make_request_with_retry("test", {})
             assert call_count >= 1
 
-    def test_api_key_environment_override(self):  # type: ignore
+    def test_api_key_environment_override(self) -> None:
         """API key from environment → correctly loaded"""
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-env-key"}):
             from src.core.ai_client import AIModelClient
@@ -191,7 +191,7 @@ class TestAPIKeyHandling:
                 client = AIModelClient()
                 mock_load.assert_called_once()
 
-    def test_api_key_with_special_chars(self):  # type: ignore
+    def test_api_key_with_special_chars(self) -> None:
         """API key with special characters → proper handling"""
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-key-with-dashes-and_underscores.v3"}):
             from src.core.ai_client import AIModelClient
@@ -204,11 +204,11 @@ class TestAPIKeyHandling:
 class TestNetworkHandling:
     """Tests for network handling edge cases (7 tests)"""
 
-    def test_network_timeout(self):  # type: ignore
+    def test_network_timeout(self) -> None:
         """Network timeout → retry logic, eventual fallback"""
         call_count = 0
 
-        def raise_timeout(*args, **kwargs):  # type: ignore
+        def raise_timeout(*args, **kwargs) -> None:
             nonlocal call_count
             call_count += 1
             if call_count < 2:
@@ -224,7 +224,7 @@ class TestNetworkHandling:
             result = client._make_request_with_retry("test", {})
             assert call_count >= 1
 
-    def test_connection_refused(self):  # type: ignore
+    def test_connection_refused(self) -> None:
         """Connection refused → appropriate error handling"""
         with patch('src.core.ai_client.requests.post') as mock_post:
             mock_post.side_effect = ConnectionRefusedError("Connection refused")
@@ -234,7 +234,7 @@ class TestNetworkHandling:
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {}, max_retries=0)
 
-    def test_dns_resolution_failure(self):  # type: ignore
+    def test_dns_resolution_failure(self) -> None:
         """DNS failure → clear error message"""
         with patch('src.core.ai_client.requests.post') as mock_post:
             mock_post.side_effect = Exception("nodename nor servname provided, or not known")
@@ -246,7 +246,7 @@ class TestNetworkHandling:
 
             assert "dns" in str(exc_info.value).lower() or "resolve" in str(exc_info.value).lower() or "nodename" in str(exc_info.value).lower()
 
-    def test_ssl_certificate_error(self):  # type: ignore
+    def test_ssl_certificate_error(self) -> None:
         """SSL certificate error → appropriate handling"""
         with patch('src.core.ai_client.requests.post') as mock_post:
             import ssl
@@ -257,7 +257,7 @@ class TestNetworkHandling:
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
-    def test_connection_reset_by_peer(self):  # type: ignore
+    def test_connection_reset_by_peer(self) -> None:
         """Connection reset by peer → retry or fail gracefully"""
         with patch('src.core.ai_client.requests.post') as mock_post:
             mock_post.side_effect = ConnectionResetError("Connection reset by peer")
@@ -267,7 +267,7 @@ class TestNetworkHandling:
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {}, max_retries=0)
 
-    def test_partial_response_received(self):  # type: ignore
+    def test_partial_response_received(self) -> None:
         """Partial response received → handle incomplete data"""
         with patch('src.core.ai_client.requests.post') as mock_post:
             mock_response = MagicMock()
@@ -280,7 +280,7 @@ class TestNetworkHandling:
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
-    def test_too_many_redirects(self):  # type: ignore
+    def test_too_many_redirects(self) -> None:
         """Too many redirects → handle redirect loop"""
         with patch('src.core.ai_client.requests.post') as mock_post:
             mock_post.side_effect = Exception("Too many redirects")
@@ -296,7 +296,7 @@ class TestNetworkHandling:
 class TestDatabaseHandling:
     """Tests for database handling edge cases (7 tests)"""
 
-    def test_database_corruption(self):  # type: ignore
+    def test_database_corruption(self) -> None:
         """DB corruption → graceful handling, data preservation"""
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
             db_path = f.name
@@ -313,7 +313,7 @@ class TestDatabaseHandling:
                 os.unlink(db_path)
 
     @pytest.mark.skip(reason="flaky: threading-based lock test unreliable in CI")
-    def test_database_locked(self):  # type: ignore
+    def test_database_locked(self) -> None:
         """DB locked by another process → retry or fail gracefully"""
         import sqlite3
         import threading
@@ -325,7 +325,7 @@ class TestDatabaseHandling:
             conn = sqlite3.connect(db_path)
             conn.execute("PRAGMA locking_mode = EXCLUSIVE")
 
-            def release_lock():  # type: ignore
+            def release_lock() -> None:
                 time.sleep(0.2)
                 try:
                     conn.close()
@@ -345,7 +345,7 @@ class TestDatabaseHandling:
                     pass
                 os.unlink(db_path)
 
-    def test_database_constraint_violation(self):  # type: ignore
+    def test_database_constraint_violation(self) -> None:
         """Constraint violation → appropriate error handling"""
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
             db_path = f.name
@@ -365,7 +365,7 @@ class TestDatabaseHandling:
             if os.path.exists(db_path):
                 os.unlink(db_path)
 
-    def test_database_interrupt_recovery(self):  # type: ignore
+    def test_database_interrupt_recovery(self) -> None:
         """Database operation interrupted → recovery attempt"""
         import sqlite3
 
@@ -388,7 +388,7 @@ class TestDatabaseHandling:
                 except:
                     pass
 
-    def test_database_missing_table(self):  # type: ignore
+    def test_database_missing_table(self) -> None:
         """Missing expected table → error gracefully"""
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
             db_path = f.name
@@ -414,16 +414,15 @@ class TestDatabaseHandling:
 class TestScreenshotHandling:
     """Tests for screenshot handling edge cases (7 tests)"""
 
-    def test_invalid_screenshot_data(self):  # type: ignore
+    def test_invalid_screenshot_data(self) -> None:
         """Invalid screenshot → clear error, no crash"""
         from src.vision import VisionPipeline
 
         pipeline = VisionPipeline()
 
         with pytest.raises((TypeError, ValueError, AttributeError, Exception)):
-            pipeline.process(None)  # type: ignore
-
-    def test_screenshot_memory_error(self):  # type: ignore
+            pipeline.process(None)
+    def test_screenshot_memory_error(self) -> None:
         """Memory error during processing → graceful recovery"""
         from src.vision import VisionPipeline
 
@@ -433,7 +432,7 @@ class TestScreenshotHandling:
             with pytest.raises(MemoryError):
                 pipeline.process(np.zeros((144, 160, 3), dtype=np.uint8))
 
-    def test_screenshot_wrong_dimensions(self):  # type: ignore
+    def test_screenshot_wrong_dimensions(self) -> None:
         """Screenshot with wrong dimensions → handle gracefully"""
         from src.vision import VisionPipeline
 
@@ -442,7 +441,7 @@ class TestScreenshotHandling:
         with pytest.raises((ValueError, Exception)):
             pipeline.process(np.zeros((100, 100, 3), dtype=np.uint8))
 
-    def test_screenshot_wrong_dtype(self):  # type: ignore
+    def test_screenshot_wrong_dtype(self) -> None:
         """Screenshot with wrong dtype → handle gracefully"""
         from src.vision import VisionPipeline
 
@@ -451,7 +450,7 @@ class TestScreenshotHandling:
         with pytest.raises((TypeError, ValueError)):
             pipeline.process(np.zeros((144, 160, 3), dtype=np.float32))
 
-    def test_screenshot_empty_array(self):  # type: ignore
+    def test_screenshot_empty_array(self) -> None:
         """Empty screenshot array → handle gracefully"""
         from src.vision import VisionPipeline
 
@@ -460,7 +459,7 @@ class TestScreenshotHandling:
         with pytest.raises((ValueError, Exception)):
             pipeline.process(np.array([], dtype=np.uint8))
 
-    def test_screenshot_corrupted_pixel_data(self):  # type: ignore
+    def test_screenshot_corrupted_pixel_data(self) -> None:
         """Screenshot with corrupted pixel data → handle gracefully"""
         from src.vision import VisionPipeline
 
@@ -472,7 +471,7 @@ class TestScreenshotHandling:
         with pytest.raises((ValueError, Exception)):
             pipeline.process(corrupted_image)
 
-    def test_screenshot_timeout(self):  # type: ignore
+    def test_screenshot_timeout(self) -> None:
         """Screenshot processing timeout → fail gracefully"""
         from src.vision import VisionPipeline
 
@@ -488,7 +487,7 @@ class TestScreenshotHandling:
 class TestStateMachineEdgeCases:
     """Tests for state machine edge cases (5 tests)"""
 
-    def test_invalid_state_transition(self):  # type: ignore
+    def test_invalid_state_transition(self) -> None:
         """Invalid state transition → appropriate handling"""
         from src.core.state_machine import HierarchicalStateMachine
 
@@ -497,7 +496,7 @@ class TestStateMachineEdgeCases:
         with pytest.raises((ValueError, Exception)):
             state_machine.transition_to("INVALID_STATE", tick=1)
 
-    def test_state_machine_null_current_state(self):  # type: ignore
+    def test_state_machine_null_current_state(self) -> None:
         """Null current state → handle gracefully"""
         from src.core.state_machine import HierarchicalStateMachine
 
@@ -506,7 +505,7 @@ class TestStateMachineEdgeCases:
         result = state_machine.get_current_state()
         assert result is not None
 
-    def test_state_machine_rapid_transitions(self):  # type: ignore
+    def test_state_machine_rapid_transitions(self) -> None:
         """Rapid state transitions → handle without race conditions"""
         from src.core.state_machine import HierarchicalStateMachine
 
@@ -517,7 +516,7 @@ class TestStateMachineEdgeCases:
 
         assert state_machine._tick == 99
 
-    def test_state_machine_invalid_tick(self):  # type: ignore
+    def test_state_machine_invalid_tick(self) -> None:
         """Invalid tick value → handle gracefully"""
         from src.core.state_machine import HierarchicalStateMachine
 
@@ -528,7 +527,7 @@ class TestStateMachineEdgeCases:
         with pytest.raises((ValueError, Exception)):
             state_machine.transition_to("OVERWORLD.WALKING", tick=50)
 
-    def test_state_machine_deep_nested_state(self):  # type: ignore
+    def test_state_machine_deep_nested_state(self) -> None:
         """Deep nested state → handle properly"""
         from src.core.state_machine import HierarchicalStateMachine
 
@@ -543,7 +542,7 @@ class TestStateMachineEdgeCases:
 class TestCombatEdgeCases:
     """Tests for combat system edge cases (5 tests)"""
 
-    def test_invalid_pokemon_data(self):  # type: ignore
+    def test_invalid_pokemon_data(self) -> None:
         """Invalid Pokemon data → handle gracefully"""
         from src.core.combat import CombatSystem
 
@@ -552,7 +551,7 @@ class TestCombatEdgeCases:
         with pytest.raises((ValueError, TypeError)):
             combat.analyze_battle_state({"invalid": "data"})
 
-    def test_missing_pokemon_stats(self):  # type: ignore
+    def test_missing_pokemon_stats(self) -> None:
         """Missing Pokemon stats → use defaults"""
         from src.core.combat import CombatSystem
 
@@ -566,7 +565,7 @@ class TestCombatEdgeCases:
 
         assert result is not None
 
-    def test_negative_hp_calculation(self):  # type: ignore
+    def test_negative_hp_calculation(self) -> None:
         """Negative HP calculation → clamp to 0"""
         from src.core.combat import CombatSystem
 
@@ -575,7 +574,7 @@ class TestCombatEdgeCases:
         result = combat.calculate_hp_after_damage(50, 100)
         assert result >= 0
 
-    def test_max_hp_exceeded(self):  # type: ignore
+    def test_max_hp_exceeded(self) -> None:
         """Max HP exceeded → clamp to max"""
         from src.core.combat import CombatSystem
 
@@ -584,7 +583,7 @@ class TestCombatEdgeCases:
         result = combat.clamp_hp(150, max_hp=100)
         assert result == 100
 
-    def test_zero_damage_move(self):  # type: ignore
+    def test_zero_damage_move(self) -> None:
         """Zero damage move → return 0"""
         from src.core.combat import CombatSystem
 

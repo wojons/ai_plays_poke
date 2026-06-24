@@ -541,9 +541,7 @@ class DurationProfileLearner:
             f"{GameMode.CUTSCENE.value}/VICTORY": {"warning": 60, "critical": 120, "emergency": 180},
         }
         key = f"{mode}/{sub_mode}"
-        return defaults.get(key, {"warning": 120, "critical": 300, "emergency": 600})  # type: ignore
-
-
+        return cast(Dict[str, float], defaults.get(key, {"warning": 120.0, "critical": 300.0, "emergency": 600.0}))
 class DurationProfileStore:
     def __init__(self, storage_path: str = "data/duration_profiles.json"):
         self.storage_path = storage_path
@@ -726,13 +724,13 @@ class AnomalyResponseSelector:
         if not anomalies:
             return ResponsePlan(actions=[], confidence_impact=0, escalation_tier="NONE")
         sorted_anomalies = sorted(anomalies, key=lambda a: self._get_priority(a.type))
-        all_actions = []  # type: ignore
+        all_actions: list[Any] = []
         total_confidence_impact = 0
         highest_escalation = "NONE"
         for anomaly in sorted_anomalies:
             response = self.response_matrix.get(anomaly.type, {"actions": ["log_warning"], "confidence_impact": -5})
-            all_actions.extend(response["actions"])  # type: ignore
-            total_confidence_impact += response["confidence_impact"]  # type: ignore
+            all_actions.extend(cast(list[Any], response["actions"]))
+            total_confidence_impact += cast(int, response["confidence_impact"])
             if anomaly.severity == "CRITICAL":
                 highest_escalation = "EMERGENCY"
             elif anomaly.severity == "HIGH" and highest_escalation != "EMERGENCY":

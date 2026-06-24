@@ -42,26 +42,26 @@ from src.core.map_integrator import MapIntegrator
 class TestStripToTsv:
     """Tests for strip_to_tsv."""
 
-    def test_simple(self):  # type: ignore
+    def test_simple(self) -> None:
         assert strip_to_tsv("T.g") == "T\t.\tg"
 
-    def test_all_same(self):  # type: ignore
+    def test_all_same(self) -> None:
         assert strip_to_tsv("....") == ".\t.\t.\t."
 
-    def test_single_char(self):  # type: ignore
+    def test_single_char(self) -> None:
         assert strip_to_tsv("T") == "T"
 
-    def test_empty_string(self):  # type: ignore
+    def test_empty_string(self) -> None:
         assert strip_to_tsv("") == ""
 
-    def test_mixed_terrain(self):  # type: ignore
+    def test_mixed_terrain(self) -> None:
         packed = "TTT....ggg....T"
         tsv = strip_to_tsv(packed)
         assert "\t" in tsv
         # Roundtrip: TSV back to packed
         assert tsv_to_strip(tsv) == packed
 
-    def test_sample_constant_matches(self):  # type: ignore
+    def test_sample_constant_matches(self) -> None:
         """SAMPLE_STRIP_TSV should be the TSV form of SAMPLE_STRIP_PACKED."""
         assert strip_to_tsv(SAMPLE_STRIP_PACKED) == SAMPLE_STRIP_TSV
 
@@ -69,24 +69,24 @@ class TestStripToTsv:
 class TestTsvToStrip:
     """Tests for tsv_to_strip."""
 
-    def test_simple(self):  # type: ignore
+    def test_simple(self) -> None:
         assert tsv_to_strip("T\t.\tg") == "T.g"
 
-    def test_with_whitespace(self):  # type: ignore
+    def test_with_whitespace(self) -> None:
         """Tokens are preserved as-is — spaces are meaningful (e.g. for objects)."""
         assert tsv_to_strip("T\t .\tg ") == "T .g "
 
-    def test_consecutive_tabs(self):  # type: ignore
+    def test_consecutive_tabs(self) -> None:
         """Consecutive tabs produce empty tokens (stripped to '')."""
         assert tsv_to_strip("T\t\tg") == "Tg"
 
-    def test_trailing_tab(self):  # type: ignore
+    def test_trailing_tab(self) -> None:
         assert tsv_to_strip("T.\t") == "T."
 
-    def test_empty_string(self):  # type: ignore
+    def test_empty_string(self) -> None:
         assert tsv_to_strip("") == ""
 
-    def test_no_tabs(self):  # type: ignore
+    def test_no_tabs(self) -> None:
         """Pass-through for non-TSV strings."""
         assert tsv_to_strip("TTTggg") == "TTTggg"
 
@@ -94,17 +94,17 @@ class TestTsvToStrip:
 class TestNormalizeStripTerrain:
     """Tests for normalize_strip_terrain."""
 
-    def test_packed_passthrough(self):  # type: ignore
+    def test_packed_passthrough(self) -> None:
         assert normalize_strip_terrain("TTTggg") == "TTTggg"
 
-    def test_tsv_detected_and_converted(self):  # type: ignore
+    def test_tsv_detected_and_converted(self) -> None:
         result = normalize_strip_terrain("T\t.\tg")
         assert result == "T.g"
 
-    def test_empty_string(self):  # type: ignore
+    def test_empty_string(self) -> None:
         assert normalize_strip_terrain("") == ""
 
-    def test_mixed_format(self):  # type: ignore
+    def test_mixed_format(self) -> None:
         """Full strip TSV → packed."""
         tsv = strip_to_tsv("TTT....ggg....T")
         result = normalize_strip_terrain(tsv)
@@ -114,21 +114,21 @@ class TestNormalizeStripTerrain:
 class TestPadStripTerrain:
     """Tests for pad_strip_terrain."""
 
-    def test_pads_short(self):  # type: ignore
+    def test_pads_short(self) -> None:
         result = pad_strip_terrain("TTT", target_length=15)
         assert len(result) == 15
         assert result == "TTT????????????"
 
-    def test_exact_length(self):  # type: ignore
+    def test_exact_length(self) -> None:
         result = pad_strip_terrain("TTT....ggg....T", target_length=15)
         assert result == "TTT....ggg....T"
 
-    def test_truncates_long(self):  # type: ignore
+    def test_truncates_long(self) -> None:
         result = pad_strip_terrain("TTT....ggg....TTTT", target_length=15)
         assert len(result) == 15
         assert result == "TTT....ggg....T"
 
-    def test_default_target(self):  # type: ignore
+    def test_default_target(self) -> None:
         result = pad_strip_terrain("T")
         assert len(result) == VIEWPORT_TILE_WIDTH  # 15
 
@@ -159,7 +159,7 @@ class TestExtractTileStrip:
                 screen[y, x, 2] = 128
         return screen
 
-    def test_extract_north_strip(self):  # type: ignore
+    def test_extract_north_strip(self) -> None:
         """Extract top row of tiles (N edge)."""
         screen = self._make_screen()
         # Top row of tiles is at y_px = 0
@@ -182,7 +182,7 @@ class TestExtractTileStrip:
         assert np.all(last_tile[:, :, 0] == 9 * 25)  # tile_x=9 → red=225
         assert np.all(last_tile[:, :, 1] == 0)
 
-    def test_extract_south_strip(self):  # type: ignore
+    def test_extract_south_strip(self) -> None:
         """Extract bottom row of tiles (S edge)."""
         screen = self._make_screen()
         # Bottom row of tiles is at y_px = (9-1)*16 = 128
@@ -197,7 +197,7 @@ class TestExtractTileStrip:
         first_tile = strip[:, 0:16, :]
         assert np.all(first_tile[:, :, 1] == 8 * 28)
 
-    def test_extract_east_strip(self):  # type: ignore
+    def test_extract_east_strip(self) -> None:
         """E/W movement: column of tiles extracted and arranged horizontally."""
         screen = self._make_screen()
         # Rightmost column at x_px = (10-1)*16 = 144
@@ -219,7 +219,7 @@ class TestExtractTileStrip:
         assert np.all(last_tile[:, :, 0] == 9 * 25)
         assert np.all(last_tile[:, :, 1] == 8 * 28)
 
-    def test_extract_west_strip(self):  # type: ignore
+    def test_extract_west_strip(self) -> None:
         """Extract leftmost column (W edge)."""
         screen = self._make_screen()
         strip = extract_tile_strip(screen, "W", 0, start=0, length=9)
@@ -233,7 +233,7 @@ class TestExtractTileStrip:
             tile = strip[:, i * 16 : (i + 1) * 16, :]
             assert np.all(tile[:, :, 0] == 0)
 
-    def test_east_strip_is_horizontal_layout(self):  # type: ignore
+    def test_east_strip_is_horizontal_layout(self) -> None:
         """E/W strips must be horizontal (single row of tiles).
 
         The whole point is that the vision model always sees one
@@ -244,11 +244,10 @@ class TestExtractTileStrip:
         strip = extract_tile_strip(screen, "E", x_px, start=0, length=9)
 
         # Height must be exactly one tile (16)
-        assert strip.shape[0] == GB_TILE_PX  # type: ignore
+        assert strip.shape[0] == GB_TILE_PX
         # Width > height (horizontal strip)
-        assert strip.shape[1] > strip.shape[0]  # type: ignore
-
-    def test_out_of_bounds_returns_none(self):  # type: ignore
+        assert strip.shape[1] > strip.shape[0]
+    def test_out_of_bounds_returns_none(self) -> None:
         """Extracting beyond screen edges returns None."""
         screen = self._make_screen()
         # y too large
@@ -258,7 +257,7 @@ class TestExtractTileStrip:
         # x too large
         assert extract_tile_strip(screen, "E", 200) is None
 
-    def test_partial_strip_truncated(self):  # type: ignore
+    def test_partial_strip_truncated(self) -> None:
         """If length extends beyond screen, return what we can."""
         screen = self._make_screen()
         # Start at tile 8, request 5 tiles — only 2 tiles fit (8, 9)
@@ -275,7 +274,7 @@ class TestExtractTileStrip:
 class TestObsPatchTsvParsing:
     """Tests that OBS_PATCH parser accepts terrain_tsv."""
 
-    def test_terrain_tsv_overrides_empty_terrain(self):  # type: ignore
+    def test_terrain_tsv_overrides_empty_terrain(self) -> None:
         """terrain_tsv should be used when terrain is empty."""
         data = {
             "prev_tick": 0,
@@ -303,7 +302,7 @@ class TestObsPatchTsvParsing:
         assert patch.strip is not None
         assert patch.strip.terrain == "T.g.T"
 
-    def test_terrain_takes_priority_over_terrain_tsv(self):  # type: ignore
+    def test_terrain_takes_priority_over_terrain_tsv(self) -> None:
         """When both provided, terrain (packed) wins."""
         data = {
             "strip": {
@@ -318,7 +317,7 @@ class TestObsPatchTsvParsing:
         assert patch.strip is not None
         assert patch.strip.terrain == "T..#"
 
-    def test_objects_tsv(self):  # type: ignore
+    def test_objects_tsv(self) -> None:
         """objects_tsv works the same way."""
         data = {
             "strip": {
@@ -332,7 +331,7 @@ class TestObsPatchTsvParsing:
         assert patch.strip is not None
         assert patch.strip.objects == "D I "
 
-    def test_actors_tsv(self):  # type: ignore
+    def test_actors_tsv(self) -> None:
         """actors_tsv works the same way."""
         data = {
             "strip": {
@@ -355,7 +354,7 @@ class TestObsPatchTsvParsing:
 class TestMapIntegratorTsvStrip:
     """Tests that MapIntegrator.apply works with TSV-formatted strips."""
 
-    def test_apply_tsv_strip_north(self):  # type: ignore
+    def test_apply_tsv_strip_north(self) -> None:
         """MapIntegrator accepts TSV terrain in a north-movement patch."""
         mi = MapIntegrator()
         mi.world.init_blank(20, 20)
@@ -396,7 +395,7 @@ class TestMapIntegratorTsvStrip:
         assert mi.world.terrain_at(8, 0) == "~"
         assert mi.world.terrain_at(14, 0) == "T"
 
-    def test_apply_tsv_strip_east(self):  # type: ignore
+    def test_apply_tsv_strip_east(self) -> None:
         """MapIntegrator accepts TSV terrain in an east-movement patch."""
         mi = MapIntegrator()
         mi.world.init_blank(20, 20)
@@ -435,7 +434,7 @@ class TestMapIntegratorTsvStrip:
         assert mi.world.terrain_at(15, 3) == "#"
         assert mi.world.terrain_at(15, 4) == "~"
 
-    def test_apply_mixed_packed_and_tsv(self):  # type: ignore
+    def test_apply_mixed_packed_and_tsv(self) -> None:
         """MapIntegrator handles terrain as packed, objects as TSV."""
         mi = MapIntegrator()
         mi.world.init_blank(20, 20)
@@ -483,15 +482,15 @@ class TestMapIntegratorTsvStrip:
 class TestViewportConstants:
     """Verify tile/px constants are internally consistent."""
 
-    def test_gb_screen_dimensions(self):  # type: ignore
+    def test_gb_screen_dimensions(self) -> None:
         assert GB_SCREEN_PX[0] == 160  # width
         assert GB_SCREEN_PX[1] == 144  # height
 
-    def test_tiles_fit_screen_evenly(self):  # type: ignore
+    def test_tiles_fit_screen_evenly(self) -> None:
         """Tile count × tile size should equal screen dimensions."""
         assert GB_VIEWPORT_TILES[0] * GB_TILE_PX == GB_SCREEN_PX[0]  # 10 × 16 = 160
         assert GB_VIEWPORT_TILES[1] * GB_TILE_PX == GB_SCREEN_PX[1]  # 9 × 16 = 144
 
-    def test_viewport_tile_width_reasonable(self):  # type: ignore
+    def test_viewport_tile_width_reasonable(self) -> None:
         """The canonical viewport tile width should be at least the visible width."""
         assert VIEWPORT_TILE_WIDTH >= GB_VIEWPORT_TILES[0]  # 15 >= 10

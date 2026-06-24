@@ -26,18 +26,18 @@ from src.schemas.commands import (
 class TestButtonEnum:
     """Tests for Button enum values and behavior"""
 
-    def test_button_values_exist(self):  # type: ignore
+    def test_button_values_exist(self) -> None:
         """Verify all expected buttons are defined"""
         expected_buttons = {"A", "B", "START", "SELECT", "UP", "DOWN", "LEFT", "RIGHT"}
         actual_buttons = {b.value for b in Button}
         assert actual_buttons == expected_buttons
 
-    def test_button_string_inheritance(self):  # type: ignore
+    def test_button_string_inheritance(self) -> None:
         """Button inherits from str for easy comparison"""
         assert Button.A == "A"
         assert Button.START == "START"
 
-    def test_button_count(self):  # type: ignore
+    def test_button_count(self) -> None:
         """Verify correct number of buttons"""
         assert len(Button) == 8
 
@@ -45,18 +45,18 @@ class TestButtonEnum:
 class TestCommandTypeEnum:
     """Tests for CommandType enum values and behavior"""
 
-    def test_command_type_values_exist(self):  # type: ignore
+    def test_command_type_values_exist(self) -> None:
         """Verify all expected command types are defined"""
         expected_types = {"press", "hold", "release", "sequence", "batch", "wait"}
         actual_types = {ct.value for ct in CommandType}
         assert actual_types == expected_types
 
-    def test_command_type_string_inheritance(self):  # type: ignore
+    def test_command_type_string_inheritance(self) -> None:
         """CommandType inherits from str for easy comparison"""
-        assert CommandType.PRESS == "press"
-        assert CommandType.BATCH == "batch"
+        assert CommandType.PRESS.value == "press"
+        assert CommandType.BATCH.value == "batch"
 
-    def test_command_type_count(self):  # type: ignore
+    def test_command_type_count(self) -> None:
         """Verify correct number of command types"""
         assert len(CommandType) == 6
 
@@ -64,7 +64,7 @@ class TestCommandTypeEnum:
 class TestAICommand:
     """Tests for AICommand dataclass"""
 
-    def test_ai_command_creation_minimal(self):  # type: ignore
+    def test_ai_command_creation_minimal(self) -> None:
         """Create AICommand with minimal required fields"""
         cmd = AICommand(
             command_type=CommandType.PRESS,
@@ -80,7 +80,7 @@ class TestAICommand:
         assert cmd.confidence == 0.8
         assert cmd.tick == 100
 
-    def test_ai_command_creation_full(self):  # type: ignore
+    def test_ai_command_creation_full(self) -> None:
         """Create AICommand with all fields"""
         cmd = AICommand(
             command_type=CommandType.BATCH,
@@ -98,7 +98,7 @@ class TestAICommand:
         assert cmd.duration_ms == 1000
         assert cmd.wait_ticks == 60
 
-    def test_ai_command_to_dict(self):  # type: ignore
+    def test_ai_command_to_dict(self) -> None:
         """Test conversion to dictionary"""
         cmd = AICommand(
             command_type=CommandType.PRESS,
@@ -114,7 +114,7 @@ class TestAICommand:
         assert result["button"] == "A"
         assert result["tick"] == 100
 
-    def test_ai_command_to_dict_with_sequence(self):  # type: ignore
+    def test_ai_command_to_dict_with_sequence(self) -> None:
         """Test to_dict with button sequence"""
         cmd = AICommand(
             command_type=CommandType.SEQUENCE,
@@ -127,7 +127,7 @@ class TestAICommand:
         result = cmd.to_dict()
         assert result["button_sequence"] == ["UP", "DOWN", "A"]
 
-    def test_ai_command_to_string_press(self):  # type: ignore
+    def test_ai_command_to_string_press(self) -> None:
         """Test to_string for press command"""
         cmd = AICommand(
             command_type=CommandType.PRESS,
@@ -139,7 +139,7 @@ class TestAICommand:
         )
         assert cmd.to_string() == "press:A"
 
-    def test_ai_command_to_string_batch(self):  # type: ignore
+    def test_ai_command_to_string_batch(self) -> None:
         """Test to_string for batch command"""
         cmd = AICommand(
             command_type=CommandType.BATCH,
@@ -152,7 +152,7 @@ class TestAICommand:
         )
         assert cmd.to_string() == "batch:DOWNx5"
 
-    def test_ai_command_to_string_wait(self):  # type: ignore
+    def test_ai_command_to_string_wait(self) -> None:
         """Test to_string for wait command"""
         cmd = AICommand(
             command_type=CommandType.WAIT,
@@ -164,7 +164,7 @@ class TestAICommand:
         )
         assert cmd.to_string() == "wait:120"
 
-    def test_ai_command_default_values(self):  # type: ignore
+    def test_ai_command_default_values(self) -> None:
         """Test default field values"""
         cmd = AICommand(
             command_type=CommandType.PRESS,
@@ -184,7 +184,7 @@ class TestAICommand:
 class TestGameState:
     """Tests for GameState dataclass"""
 
-    def test_game_state_creation_minimal(self):  # type: ignore
+    def test_game_state_creation_minimal(self) -> None:
         """Create GameState with minimal required fields"""
         state = GameState(
             tick=100,
@@ -198,7 +198,7 @@ class TestGameState:
         assert state.screen_type == "overworld"
         assert state.is_battle is False
 
-    def test_game_state_creation_full(self):  # type: ignore
+    def test_game_state_creation_full(self) -> None:
         """Create GameState with all fields"""
         state = GameState(
             tick=200,
@@ -222,7 +222,7 @@ class TestGameState:
         assert state.cursor_position == (1, 2)
         assert state.location == "Route 1"
 
-    def test_game_state_to_dict(self):  # type: ignore
+    def test_game_state_to_dict(self) -> None:
         """Test conversion to dictionary"""
         state = GameState(
             tick=100,
@@ -239,7 +239,7 @@ class TestGameState:
         assert result["is_menu"] is True
         assert result["menu_type"] == "pokemon"
 
-    def test_game_state_default_values(self):  # type: ignore
+    def test_game_state_default_values(self) -> None:
         """Test default field values"""
         state = GameState(
             tick=100,
@@ -263,7 +263,7 @@ class TestGameState:
 class TestBattleState:
     """Tests for BattleState dataclass"""
 
-    def test_battle_state_creation(self):  # type: ignore
+    def test_battle_state_creation(self) -> None:
         """Create BattleState with required fields"""
         state = BattleState(
             tick=100,
@@ -279,7 +279,7 @@ class TestBattleState:
         assert state.enemy_level == 50
         assert state.turn_number == 0
 
-    def test_battle_state_type_advice(self):  # type: ignore
+    def test_battle_state_type_advice(self) -> None:
         """Test type advice generation"""
         state = BattleState(
             tick=100,
@@ -298,7 +298,7 @@ class TestBattleState:
         assert "Grass" in advice
         assert "Ice" in advice
 
-    def test_battle_state_no_type_data(self):  # type: ignore
+    def test_battle_state_no_type_data(self) -> None:
         """Test type advice when no data available"""
         state = BattleState(
             tick=100,
@@ -313,7 +313,7 @@ class TestBattleState:
         advice = state.get_type_advice()
         assert advice == "No type data available"
 
-    def test_battle_state_to_dict(self):  # type: ignore
+    def test_battle_state_to_dict(self) -> None:
         """Test conversion to dictionary"""
         state = BattleState(
             tick=100,
@@ -333,7 +333,7 @@ class TestBattleState:
 class TestAIThought:
     """Tests for AIThought dataclass"""
 
-    def test_ai_thought_creation(self):  # type: ignore
+    def test_ai_thought_creation(self) -> None:
         """Create AIThought with required fields"""
         thought = AIThought(
             tick=100,
@@ -350,7 +350,7 @@ class TestAIThought:
         assert thought.game_state["hp_percent"] == 20.0
         assert thought.tokens_used == 200
 
-    def test_ai_thought_to_dict(self):  # type: ignore
+    def test_ai_thought_to_dict(self) -> None:
         """Test conversion to dictionary with JSON serialization"""
         thought = AIThought(
             tick=100,
@@ -372,7 +372,7 @@ class TestAIThought:
 class TestCommandExecutionResult:
     """Tests for CommandExecutionResult dataclass"""
 
-    def test_execution_result_success(self):  # type: ignore
+    def test_execution_result_success(self) -> None:
         """Test successful command execution result"""
         cmd = AICommand(
             command_type=CommandType.PRESS,
@@ -391,7 +391,7 @@ class TestCommandExecutionResult:
         assert result.execution_time_ms == 25.5
         assert result.error_message is None
 
-    def test_execution_result_failure(self):  # type: ignore
+    def test_execution_result_failure(self) -> None:
         """Test failed command execution result"""
         cmd = AICommand(
             command_type=CommandType.PRESS,
@@ -410,7 +410,7 @@ class TestCommandExecutionResult:
         assert result.success is False
         assert result.error_message == "Button press failed"
 
-    def test_execution_result_to_dict(self):  # type: ignore
+    def test_execution_result_to_dict(self) -> None:
         """Test conversion to dictionary"""
         cmd = AICommand(
             command_type=CommandType.PRESS,
@@ -433,7 +433,7 @@ class TestCommandExecutionResult:
 class TestHelperFunctions:
     """Tests for helper functions"""
 
-    def test_create_press_command(self):  # type: ignore
+    def test_create_press_command(self) -> None:
         """Test creating a press command via helper"""
         cmd = create_press_command(
             button=Button.A,
@@ -447,7 +447,7 @@ class TestHelperFunctions:
         assert cmd.confidence == 0.95
         assert cmd.tick == 500
 
-    def test_create_batch_command(self):  # type: ignore
+    def test_create_batch_command(self) -> None:
         """Test creating a batch command via helper"""
         cmd = create_batch_command(
             direction="LEFT",
@@ -461,14 +461,14 @@ class TestHelperFunctions:
         assert cmd.batch_steps == 20
         assert cmd.confidence == 0.7
 
-    def test_parse_command_string_press(self):  # type: ignore
+    def test_parse_command_string_press(self) -> None:
         """Test parsing press command string"""
         result = parse_command_string("press:A")
         assert result is not None
         assert result["command_type"] == "press"
         assert result["button"] == "A"
 
-    def test_parse_command_string_batch(self):  # type: ignore
+    def test_parse_command_string_batch(self) -> None:
         """Test parsing batch command string"""
         result = parse_command_string("batch:UPx15")
         assert result is not None
@@ -476,29 +476,29 @@ class TestHelperFunctions:
         assert result["batch_direction"] == "UP"
         assert result["batch_steps"] == 15
 
-    def test_parse_command_string_sequence(self):  # type: ignore
+    def test_parse_command_string_sequence(self) -> None:
         """Test parsing sequence command string"""
         result = parse_command_string("sequence:UP,UP,LEFT,A")
         assert result is not None
         assert result["command_type"] == "sequence"
         assert result["button_sequence"] == ["UP", "UP", "LEFT", "A"]
 
-    def test_parse_command_string_invalid(self):  # type: ignore
+    def test_parse_command_string_invalid(self) -> None:
         """Test parsing invalid command string"""
         result = parse_command_string("invalid:command")
         assert result is None
 
-    def test_parse_command_string_no_colon(self):  # type: ignore
+    def test_parse_command_string_no_colon(self) -> None:
         """Test parsing command without colon"""
         result = parse_command_string("pressA")
         assert result is None
 
-    def test_parse_command_string_unknown_button(self):  # type: ignore
+    def test_parse_command_string_unknown_button(self) -> None:
         """Test parsing command with unknown button"""
         result = parse_command_string("press:INVALID")
         assert result is None
 
-    def test_parse_command_string_unknown_command_type(self):  # type: ignore
+    def test_parse_command_string_unknown_command_type(self) -> None:
         """Test parsing unknown command type"""
         result = parse_command_string("jump:A")
         assert result is None
@@ -507,7 +507,7 @@ class TestHelperFunctions:
 class TestCommandValidation:
     """Tests for command validation logic"""
 
-    def test_confidence_range(self):  # type: ignore
+    def test_confidence_range(self) -> None:
         """Test confidence values are within valid range"""
         cmd = AICommand(
             command_type=CommandType.PRESS,
@@ -529,7 +529,7 @@ class TestCommandValidation:
         )
         assert 0.0 <= cmd_low.confidence <= 1.0
 
-    def test_battle_state_turn_number(self):  # type: ignore
+    def test_battle_state_turn_number(self) -> None:
         """Test turn number starts at 0 and increments"""
         state = BattleState(
             tick=100,
@@ -544,7 +544,7 @@ class TestCommandValidation:
         )
         assert state.turn_number >= 0
 
-    def test_game_state_hp_percent_range(self):  # type: ignore
+    def test_game_state_hp_percent_range(self) -> None:
         """Test HP percentages are within valid range"""
         state = GameState(
             tick=100,
@@ -559,7 +559,7 @@ class TestCommandValidation:
         assert state.enemy_hp_percent is None or 0.0 <= state.enemy_hp_percent <= 100.0
         assert state.player_hp_percent is None or 0.0 <= state.player_hp_percent <= 100.0
 
-    def test_command_type_values(self):  # type: ignore
+    def test_command_type_values(self) -> None:
         """Verify command types have expected string values"""
         assert CommandType.PRESS.value == "press"
         assert CommandType.HOLD.value == "hold"
@@ -568,7 +568,7 @@ class TestCommandValidation:
         assert CommandType.BATCH.value == "batch"
         assert CommandType.WAIT.value == "wait"
 
-    def test_batch_command_validation(self):  # type: ignore
+    def test_batch_command_validation(self) -> None:
         """Test batch command step count validation"""
         cmd = AICommand(
             command_type=CommandType.BATCH,
@@ -581,7 +581,7 @@ class TestCommandValidation:
         )
         assert cmd.batch_steps >= 0
 
-    def test_sequence_command_length(self):  # type: ignore
+    def test_sequence_command_length(self) -> None:
         """Test sequence command can contain multiple buttons"""
         long_sequence = [Button.UP] * 10 + [Button.A]
         cmd = AICommand(
@@ -598,7 +598,7 @@ class TestCommandValidation:
 class TestSerializationRoundTrip:
     """Tests for serialization and deserialization round trips"""
 
-    def test_command_serialization_round_trip(self):  # type: ignore
+    def test_command_serialization_round_trip(self) -> None:
         """Test command survives to_dict -> from_dict round trip"""
         original = AICommand(
             command_type=CommandType.PRESS,
@@ -615,7 +615,7 @@ class TestSerializationRoundTrip:
         assert as_dict["confidence"] == 0.85
         assert as_dict["tick"] == 12345
 
-    def test_game_state_serialization_round_trip(self):  # type: ignore
+    def test_game_state_serialization_round_trip(self) -> None:
         """Test game state survives to_dict round trip"""
         original = GameState(
             tick=100,
@@ -633,7 +633,7 @@ class TestSerializationRoundTrip:
         assert as_dict["menu_type"] == "bag"
         assert as_dict["cursor_position"] == (0, 3)
 
-    def test_battle_state_serialization_round_trip(self):  # type: ignore
+    def test_battle_state_serialization_round_trip(self) -> None:
         """Test battle state survives to_dict round trip"""
         original = BattleState(
             tick=200,

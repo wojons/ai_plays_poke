@@ -17,7 +17,7 @@ from pyboy import PyBoy
 class PokemonAIAgent:
     """AI Agent that plays Pokemon games"""
     
-    def __init__(self, rom_path) -> None:  # type: ignore
+    def __init__(self, rom_path) -> None:
         self.rom_path = rom_path
         self.pyboy = None
         self.screenshot_dir = Path(__file__).parent.parent / "screenshots"
@@ -31,27 +31,23 @@ class PokemonAIAgent:
         # Check if ROM exists
         if not os.path.exists(self.rom_path):
             print(f"❌ ROM not found: {self.rom_path}")
-            return False  # type: ignore
-        
+            return False
         # Initialize emulator
         print("🚀 Loading ROM...")
         self.pyboy = PyBoy(self.rom_path)
         
         print("✅ Pokemon game started successfully!")
-        return True  # type: ignore
-    
-    def run_ticks(self, num_ticks=100) -> None:  # type: ignore
+        return True
+    def run_ticks(self, num_ticks=100) -> None:
         """Run the game for specified number of ticks"""
         print(f"▶️  Running {num_ticks} ticks...")
         for _ in range(num_ticks):
-            self.pyboy.tick()  # type: ignore
-    
-    def capture_screenshot(self, tick) -> None:  # type: ignore
+            self.pyboy.tick()
+    def capture_screenshot(self, tick) -> None:
         """Capture screenshot at current game state"""
         try:
             # Get screen ndarray
-            screen_nparr = self.pyboy.screen.ndarray  # type: ignore
-            
+            screen_nparr = self.pyboy.screen.ndarray
             if screen_nparr is not None and screen_nparr.size > 0:
                 # Convert to PIL Image
                 pil_image = Image.fromarray(screen_nparr, mode='RGB')
@@ -59,11 +55,10 @@ class PokemonAIAgent:
                 filepath = self.screenshot_dir / filename
                 pil_image.save(str(filepath))
                 print(f"  📸 Tick {tick}: Saved {filename}")
-                return True  # type: ignore
+                return True
         except Exception as e:
             print(f"  ❌ Error capturing screenshot: {e}")
-            return False  # type: ignore
-    
+            return False
     def read_memory_data(self) -> None:
         """Read Pokemon game data from memory"""
         if not self.pyboy:
@@ -90,15 +85,14 @@ class PokemonAIAgent:
             print(f"❌ Error reading memory: {e}")
             return None
     
-    def get_game_state(self, tick) -> None:  # type: ignore
+    def get_game_state(self, tick) -> None:
         """Get current game state including screenshot and memory data"""
         # Capture screenshot
         self.capture_screenshot(tick)
         
         # Read memory data
-        memory_data = self.read_memory_data()  # type: ignore
-        
-        return {  # type: ignore
+        memory_data = self.read_memory_data()
+        return {
             'tick': tick,
             'screenshot': f"screenshots/screenshot_{tick:04d}.png",
             'memory_data': memory_data
@@ -125,7 +119,7 @@ def main() -> None:
     agent = PokemonAIAgent(rom_path)
     
     # Start the game
-    if not agent.start():  # type: ignore
+    if not agent.start():
         return
     
     try:

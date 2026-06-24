@@ -818,7 +818,7 @@ class GoalPrioritizer:
             if goal:
                 feasible, _ = goal.is_feasible(state)
                 if feasible:
-                    return goal  # type: ignore
+                    return goal
         return None
 
     def reprioritize(self, state: GameState) -> None:
@@ -1062,7 +1062,7 @@ class HierarchicalPlanner:
             return None
 
         self.current_plan = plan
-        return plan  # type: ignore
+        return plan
 
     def execute_step(self, state: GameState) -> Tuple[bool, Optional[Plan], GameState]:
         if not self.current_plan:
@@ -1087,7 +1087,7 @@ class HierarchicalPlanner:
         return False, self.current_plan, state
 
     def handle_interruption(self, interruption_type: str, state: GameState) -> Tuple[bool, Optional[Plan]]:
-        return self.plan_monitor.handle_interruption(interruption_type, state)  # type: ignore
+        return self.plan_monitor.handle_interruption(interruption_type, state)
 
     def add_goal(self, goal: Goal, state: GameState) -> None:
         self.goal_prioritizer.add_goal(goal, state)

@@ -173,7 +173,7 @@ class MapIntegrator:
 
         w.tick = patch.tick
 
-    def _apply_strip(self, strip) -> None:  # type: ignore
+    def _apply_strip(self, strip) -> None:
         """Apply a single row/column of new data.
 
         Handles both packed strings (``"TTT....ggg"``) and TSV format
@@ -216,7 +216,7 @@ class MapIntegrator:
                         if ch != " " or w.objects[y][x] == " ":
                             w.objects[y][x] = ch
 
-    def _apply_correction(self, corr) -> None:  # type: ignore
+    def _apply_correction(self, corr) -> None:
         """Apply a correction to a previously-written tile."""
         w = self.world
         x, y = corr.at
@@ -241,7 +241,7 @@ class MapIntegrator:
         elif corr.layer == "visited":
             self._mark_visited(x, y, corr.to_char)
 
-    def _apply_actor_update(self, au, tick: int) -> None:  # type: ignore
+    def _apply_actor_update(self, au, tick: int) -> None:
         """Update or create an actor."""
         w = self.world
         aid = au.id or f"actor_{au.pos[0]}_{au.pos[1]}"
@@ -296,12 +296,12 @@ def _parse_raw(raw: str) -> dict[str, Any]:
         raw = "\n".join(lines)
 
     try:
-        return json.loads(raw)  # type: ignore
+        return json.loads(raw)
     except (json.JSONDecodeError, ValueError):
         pass
 
     try:
-        return _yaml.safe_load(raw) or {}  # type: ignore
+        return _yaml.safe_load(raw) or {}
     except Exception:
         return {}
 

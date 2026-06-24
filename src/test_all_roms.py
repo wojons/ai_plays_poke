@@ -23,8 +23,7 @@ def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_inte
     # Check if ROM exists
     if not os.path.exists(rom_path):
         print(f"❌ ROM not found: {rom_path}")
-        return False  # type: ignore
-    
+        return False
     # Create screenshots directory for this ROM
     base_screenshot_dir = Path(__file__).parent.parent / "screenshots"
     screenshot_dir = base_screenshot_dir / rom_name
@@ -67,9 +66,7 @@ def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_inte
     print(f"\n✅ {rom_name} test completed!")
     print(f"📁 Screenshots: {screenshot_dir}")
     
-    return True  # type: ignore
-
-
+    return True
 def main() -> None:
     """Test all available ROMs"""
     
@@ -90,12 +87,11 @@ def main() -> None:
     
     for rom_path, rom_name in roms:
         if os.path.exists(rom_path):
-            success = test_rom(rom_path, rom_name, num_ticks=3000, screenshot_interval=1000)  # type: ignore
+            success = test_rom(rom_path, rom_name, num_ticks=3000, screenshot_interval=1000)
             results.append((rom_name, success))
         else:
             print(f"\n⚠️  ROM not found: {rom_path}")
-            results.append((rom_name, False))  # type: ignore
-    
+            results.append((rom_name, False))
     # Summary
     print(f"\n{'='*60}")
     print("📊 SUMMARY")

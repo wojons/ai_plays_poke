@@ -27,7 +27,7 @@ from pathlib import Path
 class TestScreenshotProcessing:
     """Tests for screenshot processing performance (5 tests)"""
 
-    def test_ocr_processing_time(self):  # type: ignore
+    def test_ocr_processing_time(self) -> None:
         """OCR processing should complete in <500ms"""
         from src.vision.ocr import OCREngine
         
@@ -41,7 +41,7 @@ class TestScreenshotProcessing:
         
         assert processing_time < 0.5, f"OCR took {processing_time:.2f}s (>500ms)"
 
-    def test_sprite_extraction_time(self):  # type: ignore
+    def test_sprite_extraction_time(self) -> None:
         """Sprite extraction should complete in <100ms"""
         from src.vision.sprite import SpriteRecognizer
         
@@ -55,7 +55,7 @@ class TestScreenshotProcessing:
         
         assert processing_time < 0.1, f"Sprite extraction took {processing_time:.2f}s (>100ms)"
 
-    def test_vision_pipeline_latency(self):  # type: ignore
+    def test_vision_pipeline_latency(self) -> None:
         """Full vision pipeline should complete in <500ms"""
         from src.vision.pipeline import VisionPipeline
         
@@ -68,7 +68,7 @@ class TestScreenshotProcessing:
         
         assert processing_time < 0.5, f"Vision pipeline took {processing_time:.2f}s (>500ms)"
 
-    def test_battle_analysis_time(self):  # type: ignore
+    def test_battle_analysis_time(self) -> None:
         """Battle analysis should complete in <200ms"""
         from src.vision.battle import BattleAnalyzer
         
@@ -81,7 +81,7 @@ class TestScreenshotProcessing:
         
         assert processing_time < 0.2, f"Battle analysis took {processing_time:.2f}s (>200ms)"
 
-    def test_location_detection_time(self):  # type: ignore
+    def test_location_detection_time(self) -> None:
         """Location detection should complete in <200ms"""
         from src.vision.location import LocationDetector
         
@@ -98,7 +98,7 @@ class TestScreenshotProcessing:
 class TestAIDecisionTime:
     """Tests for AI decision performance (2 tests)"""
 
-    def test_prompt_selection_time(self):  # type: ignore
+    def test_prompt_selection_time(self) -> None:
         """Prompt selection should complete in <50ms"""
         from src.core.prompt_manager import PromptManager
         
@@ -111,7 +111,7 @@ class TestAIDecisionTime:
         
         assert selection_time < 0.05, f"Prompt selection took {selection_time:.2f}s (>50ms)"
 
-    def test_simple_ai_decision_time(self):  # type: ignore
+    def test_simple_ai_decision_time(self) -> None:
         """AI client initialization should complete in <50ms"""
         from src.core.ai_client import GameAIManager
         
@@ -125,7 +125,7 @@ class TestAIDecisionTime:
 class TestMemoryUsage:
     """Tests for memory efficiency (2 tests)"""
 
-    def test_memory_within_limits(self):  # type: ignore
+    def test_memory_within_limits(self) -> None:
         """Memory usage should stay under 500MB"""
         process = psutil.Process()
         initial_memory = process.memory_info().rss / (1024 * 1024)  # Convert to MB
@@ -140,7 +140,7 @@ class TestMemoryUsage:
         # Allow up to 100MB increase for this operation
         assert memory_increase < 100, f"Memory increased by {memory_increase:.1f}MB (>100MB)"
 
-    def test_numpy_array_memory_efficient(self):  # type: ignore
+    def test_numpy_array_memory_efficient(self) -> None:
         """NumPy operations should not leak memory"""
         process = psutil.Process()
         initial_memory = process.memory_info().rss / (1024 * 1024)

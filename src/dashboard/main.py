@@ -43,7 +43,7 @@ def verify_api_key(x_api_key: str = Header(None)) -> bool:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):  # type: ignore
+async def lifespan(app: FastAPI):
     sessions.clear()
     connection_manager.clear()
     yield
@@ -196,18 +196,18 @@ def get_session(session_id: str = "default") -> DashboardSession:
 
 
 @app.get("/")
-async def root():  # type: ignore
+async def root():
     return FileResponse("src/dashboard/static/index.html")
 
 
 @app.get("/status")
-async def get_status(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):  # type: ignore
+async def get_status(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
     session = get_session(session_id)
     return session.get_status()
 
 
 @app.get("/screenshots/latest")
-async def get_latest_screenshot(  # type: ignore
+async def get_latest_screenshot(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     format: str = "json"
@@ -238,7 +238,7 @@ async def get_latest_screenshot(  # type: ignore
 
 
 @app.get("/screenshots/file")
-async def get_screenshot_file(path: str = Query(...)):  # type: ignore
+async def get_screenshot_file(path: str = Query(...)):
     p = Path(path)
     if not p.exists():
         raise HTTPException(status_code=404, detail="Screenshot not found")
@@ -246,7 +246,7 @@ async def get_screenshot_file(path: str = Query(...)):  # type: ignore
 
 
 @app.get("/actions/recent")
-async def get_recent_actions(  # type: ignore
+async def get_recent_actions(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     limit: int = 50
@@ -259,13 +259,13 @@ async def get_recent_actions(  # type: ignore
 
 
 @app.get("/metrics")
-async def get_metrics(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):  # type: ignore
+async def get_metrics(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
     session = get_session(session_id)
     return session.get_metrics()
 
 
 @app.post("/control/pause")
-async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):  # type: ignore
+async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -274,7 +274,7 @@ async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: s
 
 
 @app.post("/control/resume")
-async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):  # type: ignore
+async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -283,14 +283,14 @@ async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: 
 
 
 @app.post("/control/stop")
-async def stop_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):  # type: ignore
+async def stop_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
     session = get_session(session_id)
     session.stop()
     return {"status": "stopped", "session_id": session_id}
 
 
 @app.post("/control/start")
-async def start_session(  # type: ignore
+async def start_session(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     save_dir: str = "./game_saves"
@@ -303,7 +303,7 @@ async def start_session(  # type: ignore
 
 
 @app.post("/control/command")
-async def send_command(  # type: ignore
+async def send_command(
     command: Dict[str, Any],
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default"
@@ -323,7 +323,7 @@ async def send_command(  # type: ignore
 
 
 @app.get("/sessions")
-async def list_sessions(x_api_key: bool = Depends(verify_api_key)):  # type: ignore
+async def list_sessions(x_api_key: bool = Depends(verify_api_key)):
     return {
         "sessions": [
             {
@@ -336,7 +336,7 @@ async def list_sessions(x_api_key: bool = Depends(verify_api_key)):  # type: ign
 
 
 @app.websocket("/ws/screenshots/{session_id}")
-async def websocket_screenshot(websocket: WebSocket, session_id: str):  # type: ignore
+async def websocket_screenshot(websocket: WebSocket, session_id: str):
     await websocket.accept()
     
     if session_id not in dashboard_sessions:
@@ -388,7 +388,7 @@ async def websocket_screenshot(websocket: WebSocket, session_id: str):  # type: 
 
 
 @app.websocket("/ws/metrics/{session_id}")
-async def websocket_metrics(websocket: WebSocket, session_id: str):  # type: ignore
+async def websocket_metrics(websocket: WebSocket, session_id: str):
     await websocket.accept()
     
     if session_id not in dashboard_sessions:
@@ -409,12 +409,12 @@ async def websocket_metrics(websocket: WebSocket, session_id: str):  # type: ign
 
 
 @app.get("/health")
-async def health_check():  # type: ignore
+async def health_check():
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
 @app.get("/api/docs")
-async def api_docs():  # type: ignore
+async def api_docs():
     return {
         "title": "PTP-01X Dashboard API",
         "version": "1.0.0",

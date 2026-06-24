@@ -178,8 +178,7 @@ class ScreenshotManager:
         if deleted_count > 0:
             print(f"🧹 Cleaned up {deleted_count} old screenshots (kept {keep_count})")
         
-        return deleted_count  # type: ignore
-    
+        return deleted_count
     def get_stats(self) -> dict:
         """Get statistics about stored screenshots"""
         return {

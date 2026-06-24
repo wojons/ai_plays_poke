@@ -193,7 +193,7 @@ class RotationFileHandler(logging.FileHandler):
             # Close current file
             if self.stream:
                 self.stream.close()
-                self.stream = None  # type: ignore
+                self.stream = None
             
             # Rename current file
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -276,19 +276,19 @@ class AILogger:
     
     _instance: Optional['AILogger'] = None
     _lock = threading.Lock()
+    _initialized: bool = False
     
-    def __new__(cls) -> None:  # type: ignore
+    def __new__(cls) -> "AILogger":
         """Singleton pattern"""
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
                     cls._instance = super().__new__(cls)
-                    cls._instance._initialized = False  # type: ignore
-        return cls._instance  # type: ignore
-    
+                    cls._instance._initialized = False
+        return cls._instance
     def __init__(self) -> None:
         """Initialize logger"""
-        if self._initialized:  # type: ignore
+        if self._initialized:
             return
         
         self._initialized = True
@@ -337,8 +337,7 @@ class AILogger:
         if log_dir:
             self._base_log_dir = Path(log_dir)
         else:
-            self._base_log_dir = Path(self._config.get("log_dir", "logs"))  # type: ignore
-        
+            self._base_log_dir = Path(str(self._config.get("log_dir", "logs")))
         # Create log directory structure
         self._create_log_directories()
         
@@ -376,7 +375,7 @@ class AILogger:
     def _add_console_handler(self) -> None:
         """Add console handler"""
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(self._config.get("console_log_level", logging.INFO))  # type: ignore
+        console_handler.setLevel(self._config.get("console_log_level", logging.INFO))
         console_handler.setFormatter(PlainFormatter())
         self.logger.addHandler(console_handler)
     
@@ -390,10 +389,10 @@ class AILogger:
         main_log_file = self._base_log_dir / "main.log"
         main_handler = RotationFileHandler(
             str(main_log_file),
-            max_bytes=max_bytes,  # type: ignore
-            backup_count=max_backups  # type: ignore
+            max_bytes=max_bytes,
+            backup_count=max_backups
         )
-        main_handler.setLevel(log_level)  # type: ignore
+        main_handler.setLevel(log_level)
         main_handler.setFormatter(PlainFormatter())
         self.logger.addHandler(main_handler)
         
@@ -401,20 +400,19 @@ class AILogger:
         json_log_file = self._base_log_dir / "structured.json.log"
         json_handler = RotationFileHandler(
             str(json_log_file),
-            max_bytes=max_bytes,  # type: ignore
-            backup_count=max_backups  # type: ignore
+            max_bytes=max_bytes,
+            backup_count=max_backups
         )
-        json_handler.setLevel(self._config.get("json_log_level", logging.INFO))  # type: ignore
+        json_handler.setLevel(self._config.get("json_log_level", logging.INFO))
         json_handler.setFormatter(JSONFormatter())
         self.logger.addHandler(json_handler)
         
         # Category-specific logs
-        self._add_category_file_handler(LogCategory.DECISIONS, log_level, max_bytes, max_backups)  # type: ignore
-        self._add_category_file_handler(LogCategory.BATTLES, log_level, max_bytes, max_backups)  # type: ignore
-        self._add_category_file_handler(LogCategory.ERRORS, logging.DEBUG, max_bytes, max_backups)  # type: ignore
-        self._add_category_file_handler(LogCategory.PERFORMANCE, logging.DEBUG, max_bytes, max_backups)  # type: ignore
-        self._add_category_file_handler(LogCategory.API, logging.DEBUG, max_bytes, max_backups)  # type: ignore
-    
+        self._add_category_file_handler(LogCategory.DECISIONS, log_level, max_bytes, max_backups)
+        self._add_category_file_handler(LogCategory.BATTLES, log_level, max_bytes, max_backups)
+        self._add_category_file_handler(LogCategory.ERRORS, logging.DEBUG, max_bytes, max_backups)
+        self._add_category_file_handler(LogCategory.PERFORMANCE, logging.DEBUG, max_bytes, max_backups)
+        self._add_category_file_handler(LogCategory.API, logging.DEBUG, max_bytes, max_backups)
     def _add_category_file_handler(self, category: str, log_level: int, 
                                     max_bytes: int, max_backups: int) -> None:
         """Add file handler for specific category"""
@@ -431,7 +429,7 @@ class AILogger:
         handler.addFilter(CategoryFilter(categories=[category]))
         self.logger.addHandler(handler)
     
-    def _log_with_category(self, level: int, message: str, category: str,  # type: ignore
+    def _log_with_category(self, level: int, message: str, category: str,
                            tick: int = 0, **extra) -> None:
         """Internal logging method with category support"""
         # Build extra dict with our custom fields
@@ -445,27 +443,27 @@ class AILogger:
     
     # ============ Logging Methods ============
     
-    def debug(self, message: str, category: str = LogCategory.MAIN,  # type: ignore
+    def debug(self, message: str, category: str = LogCategory.MAIN,
               tick: int = 0, **extra) -> None:
         """Log debug message"""
         self._log_with_category(logging.DEBUG, message, category, tick, **extra)
     
-    def info(self, message: str, category: str = LogCategory.MAIN,  # type: ignore
+    def info(self, message: str, category: str = LogCategory.MAIN,
              tick: int = 0, **extra) -> None:
         """Log info message"""
         self._log_with_category(logging.INFO, message, category, tick, **extra)
     
-    def warning(self, message: str, category: str = LogCategory.MAIN,  # type: ignore
+    def warning(self, message: str, category: str = LogCategory.MAIN,
                 tick: int = 0, **extra) -> None:
         """Log warning message"""
         self._log_with_category(logging.WARNING, message, category, tick, **extra)
     
-    def error(self, message: str, category: str = LogCategory.ERRORS,  # type: ignore
+    def error(self, message: str, category: str = LogCategory.ERRORS,
               tick: int = 0, **extra) -> None:
         """Log error message"""
         self._log_with_category(logging.ERROR, message, category, tick, **extra)
     
-    def critical(self, message: str, category: str = LogCategory.ERRORS,  # type: ignore
+    def critical(self, message: str, category: str = LogCategory.ERRORS,
                  tick: int = 0, **extra) -> None:
         """Log critical message"""
         self._log_with_category(logging.CRITICAL, message, category, tick, **extra)
@@ -618,7 +616,7 @@ class AILogger:
 
 # ============ Decorators for Easy Logging ============
 
-def log_function_call(category: str = LogCategory.MAIN,   # type: ignore
+def log_function_call(category: str = LogCategory.MAIN,
                       log_args: bool = False, log_result: bool = True):
     """
     Decorator to log function calls
@@ -628,9 +626,9 @@ def log_function_call(category: str = LogCategory.MAIN,   # type: ignore
         log_args: Whether to log function arguments
         log_result: Whether to log function result
     """
-    def decorator(func) -> None:  # type: ignore
+    def decorator(func) -> None:
         @wraps(func)
-        def wrapper(*args, **kwargs) -> None:  # type: ignore
+        def wrapper(*args, **kwargs) -> None:
             logger = get_logger()
             
             # Log function call
@@ -657,8 +655,7 @@ def log_function_call(category: str = LogCategory.MAIN,   # type: ignore
                         result=result
                     )
                 
-                return result  # type: ignore
-                
+                return result
             except Exception as e:
                 logger.log_error_with_context(
                     e, 
@@ -667,7 +664,7 @@ def log_function_call(category: str = LogCategory.MAIN,   # type: ignore
                 )
                 raise
         
-        return wrapper  # type: ignore
+        return wrapper
     return decorator
 
 

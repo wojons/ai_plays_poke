@@ -16,7 +16,7 @@ from PIL import Image
 import base64
 import io
 
-def test_vision_image_encoding():  # type: ignore
+def test_vision_image_encoding():
     """Test if images are being encoded correctly for OpenRouter API"""
     
     print("🧪 Testing Vision API Image Delivery")
@@ -79,7 +79,7 @@ def test_vision_image_encoding():  # type: ignore
         traceback.print_exc()
         return False
 
-def test_image_encoding_pipeline():  # type: ignore
+def test_image_encoding_pipeline():
     """Test the image encoding pipeline step by step"""
     
     print("\n🔍 Testing Image Encoding Pipeline")

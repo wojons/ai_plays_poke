@@ -467,27 +467,27 @@ class GameDatabase:
         
         return output_path
     
-    def _get_session_data(self, cursor, session_id: int) -> Dict:  # type: ignore
+    def _get_session_data(self, cursor: sqlite3.Cursor, session_id: int) -> Dict[str, Any]:
         cursor.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
         return dict(zip([d[0] for d in cursor.description], cursor.fetchone())) if cursor.fetchone() else {}
     
-    def _get_commands(self, cursor, session_id: int) -> List[Dict]:  # type: ignore
+    def _get_commands(self, cursor: sqlite3.Cursor, session_id: int) -> List[Dict[str, Any]]:
         cursor.execute("SELECT * FROM commands WHERE session_id = ?", (session_id,))
         return [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
     
-    def _get_thoughts(self, cursor, session_id: int) -> List[Dict]:  # type: ignore
+    def _get_thoughts(self, cursor: sqlite3.Cursor, session_id: int) -> List[Dict[str, Any]]:
         cursor.execute("SELECT * FROM ai_thoughts WHERE session_id = ?", (session_id,))
         return [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
     
-    def _get_battles(self, cursor, session_id: int) -> List[Dict]:  # type: ignore
+    def _get_battles(self, cursor: sqlite3.Cursor, session_id: int) -> List[Dict[str, Any]]:
         cursor.execute("SELECT * FROM battles WHERE session_id = ?", (session_id,))
         return [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
     
-    def _get_screenshots(self, cursor, session_id: int) -> List[Dict]:  # type: ignore
+    def _get_screenshots(self, cursor: sqlite3.Cursor, session_id: int) -> List[Dict[str, Any]]:
         cursor.execute("SELECT * FROM screenshots WHERE session_id = ?", (session_id,))
         return [dict(zip([d[0] for d in cursor.description], row)) for row in cursor.fetchall()]
 
-    def _execute(self, query: str, params: tuple = ()) -> sqlite3.Cursor:
+    def _execute(self, query: str, params: tuple[Any, ...] = ()) -> sqlite3.Cursor:
         """
         Internal method to execute a SQL query with proper error handling.
 

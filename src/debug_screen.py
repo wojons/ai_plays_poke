@@ -23,8 +23,7 @@ def debug_screen(rom_path: str, num_ticks: int = 1000) -> None:
     # Check if ROM exists
     if not os.path.exists(rom_path):
         print(f"❌ ROM not found: {rom_path}")
-        return False  # type: ignore
-    
+        return False
     # Initialize emulator
     print(f"🚀 Loading ROM...")
     pyboy = PyBoy(rom_path)
@@ -70,15 +69,13 @@ def debug_screen(rom_path: str, num_ticks: int = 1000) -> None:
     print("\n" + "=" * 50)
     print("✅ Debug completed!")
     
-    return True  # type: ignore
-
+    return True
 if __name__ == "__main__":
     print("🧪 PyBoy Screen Debug Test")
     print("=" * 50)
     
     # Run debug with Pokemon Blue ROM
-    success = debug_screen("data/rom/pokemon_blue.gb", num_ticks=1000)  # type: ignore
-    
+    success = debug_screen("data/rom/pokemon_blue.gb", num_ticks=1000)
     if success:
         print("\n🎉 Debug completed successfully!")
     else:

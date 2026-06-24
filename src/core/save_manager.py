@@ -84,6 +84,9 @@ class SaveManagerConfig:
     emergency_snapshot_count: int = 3
 
 
+from src.core.emulator import Emulator
+
+
 class SaveManager:
     """
     Comprehensive save state manager for Pokemon AI
@@ -158,9 +161,9 @@ class SaveManager:
         with self._lock:
             self._tick_count = tick_count
     
-    def save_snapshot(  # type: ignore
+    def save_snapshot(
         self,
-        emulator,
+        emulator: "Emulator",
         tick_count: int,
         reason: SnapshotReason,
         state_description: str = "",
@@ -250,7 +253,7 @@ class SaveManager:
         
         return max(0, len(self._snapshot_cache) - max_snapshots)
     
-    def load_snapshot(self, snapshot_id: str, emulator) -> bool:  # type: ignore
+    def load_snapshot(self, snapshot_id: str, emulator) -> bool:
         """
         Restore emulator from a specific snapshot
         
@@ -366,7 +369,7 @@ class SaveManager:
             logger.info(f"Deleted snapshot: {snapshot_id}")
             return True
     
-    def save_emergency_snapshot(  # type: ignore
+    def save_emergency_snapshot(
         self,
         emulator,
         tick_count: int,

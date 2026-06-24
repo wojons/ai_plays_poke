@@ -18,65 +18,65 @@ from src.core.mode_duration import (
 
 
 class TestModeClassifier:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.classifier = ModeClassifier()
 
-    def test_classify_overworld(self):  # type: ignore
+    def test_classify_overworld(self) -> None:
         state = {"is_battle": False, "has_dialog": False, "is_menu": False, "screen_type": "overworld"}
         result = self.classifier.classify_mode(state, tick=100)
         assert result.mode == GameMode.OVERWORLD.value
         assert result.sub_mode == OverworldSubMode.NAVIGATION.value
         assert result.confidence > 0.7
 
-    def test_classify_battle(self):  # type: ignore
+    def test_classify_battle(self) -> None:
         state = {"is_battle": True, "has_dialog": False, "is_menu": False}
         result = self.classifier.classify_mode(state, tick=101)
         assert result.mode == GameMode.BATTLE.value
         assert result.sub_mode == BattleSubMode.WILD_NORMAL.value
 
-    def test_classify_battle_with_trainer(self):  # type: ignore
+    def test_classify_battle_with_trainer(self) -> None:
         state = {"is_battle": True, "trainer_name": "Blue"}
         result = self.classifier.classify_mode(state, tick=102)
         assert result.mode == GameMode.BATTLE.value
         assert result.sub_mode == BattleSubMode.TRAINER.value
 
-    def test_classify_battle_gym_leader(self):  # type: ignore
+    def test_classify_battle_gym_leader(self) -> None:
         state = {"is_battle": True, "gym_leader": True}
         result = self.classifier.classify_mode(state, tick=103)
         assert result.mode == GameMode.BATTLE.value
         assert result.sub_mode == BattleSubMode.GYM_LEADER.value
 
-    def test_classify_dialog(self):  # type: ignore
+    def test_classify_dialog(self) -> None:
         state = {"has_dialog": True, "dialog_text": "Hello there!"}
         result = self.classifier.classify_mode(state, tick=104)
         assert result.mode == GameMode.DIALOG.value
         assert result.sub_mode == DialogSubMode.NPC_SHORT.value
 
-    def test_classify_dialog_long(self):  # type: ignore
+    def test_classify_dialog_long(self) -> None:
         state = {"has_dialog": True, "dialog_text": "Line 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11"}
         result = self.classifier.classify_mode(state, tick=105)
         assert result.mode == GameMode.DIALOG.value
         assert result.sub_mode == DialogSubMode.NPC_LONG.value
 
-    def test_classify_menu(self):  # type: ignore
+    def test_classify_menu(self) -> None:
         state = {"is_menu": True, "menu_type": "pokemon"}
         result = self.classifier.classify_mode(state, tick=106)
         assert result.mode == GameMode.MENU.value
         assert result.sub_mode == MenuSubMode.POKEMON.value
 
-    def test_classify_cutscene(self):  # type: ignore
+    def test_classify_cutscene(self) -> None:
         state = {"screen_type": "cutscene", "dialog_text": "Welcome to the world of Pokemon!"}
         result = self.classifier.classify_mode(state, tick=107)
         assert result.mode == GameMode.CUTSCENE.value
         assert result.sub_mode == CutsceneSubMode.INTRO.value
 
-    def test_classify_cutscene_evolution(self):  # type: ignore
+    def test_classify_cutscene_evolution(self) -> None:
         state = {"screen_type": "cutscene", "dialog_text": "What? Pikachu is evolving!"}
         result = self.classifier.classify_mode(state, tick=108)
         assert result.mode == GameMode.CUTSCENE.value
         assert result.sub_mode == CutsceneSubMode.EVOLUTION.value
 
-    def test_classify_caching(self):  # type: ignore
+    def test_classify_caching(self) -> None:
         state = {"is_battle": True}
         result1 = self.classifier.classify_mode(state, tick=109)
         time.sleep(0.05)
@@ -85,10 +85,10 @@ class TestModeClassifier:
 
 
 class TestDurationTracker:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.tracker = DurationTracker()
 
-    def test_enter_and_exit_mode(self):  # type: ignore
+    def test_enter_and_exit_mode(self) -> None:
         self.tracker.enter_mode("BATTLE", "WILD", tick=100)
         assert self.tracker.current_mode is not None
         assert self.tracker.current_mode.mode == "BATTLE"
@@ -99,14 +99,14 @@ class TestDurationTracker:
         assert exit_record.mode == "BATTLE"
         assert exit_record.duration > 0
 
-    def test_get_current_duration(self):  # type: ignore
+    def test_get_current_duration(self) -> None:
         self.tracker.enter_mode("OVERWORLD", "NAVIGATION", tick=100)
         time.sleep(0.1)
         duration = self.tracker.get_current_duration()
         assert duration >= 0.1
         self.tracker.exit_mode(reason="natural", tick=200)
 
-    def test_cumulative_tracking(self):  # type: ignore
+    def test_cumulative_tracking(self) -> None:
         self.tracker.enter_mode("BATTLE", "WILD", tick=100)
         time.sleep(0.1)
         self.tracker.exit_mode(reason="natural", tick=200)
@@ -116,7 +116,7 @@ class TestDurationTracker:
         cumulative = self.tracker.get_current_cumulative("session")
         assert cumulative > 0
 
-    def test_mode_sequence_tracking(self):  # type: ignore
+    def test_mode_sequence_tracking(self) -> None:
         self.tracker.enter_mode("OVERWORLD", "NAVIGATION", tick=100)
         self.tracker.exit_mode(reason="natural", tick=101)
         self.tracker.enter_mode("DIALOG", "NPC_SHORT", tick=101)
@@ -125,48 +125,44 @@ class TestDurationTracker:
         assert self.tracker.mode_sequence[0] == "OVERWORLD/NAVIGATION"
         assert self.tracker.mode_sequence[1] == "DIALOG/NPC_SHORT"
 
-    def test_mode_transition_interrupt(self):  # type: ignore
+    def test_mode_transition_interrupt(self) -> None:
         self.tracker.enter_mode("OVERWORLD", "NAVIGATION", tick=100)
         time.sleep(0.1)
         interrupt_exit = self.tracker.enter_mode("BATTLE", "WILD", tick=110)
-        assert self.tracker.current_mode.mode == "BATTLE"  # type: ignore
-        assert interrupt_exit.exit_reason == "interrupt"  # type: ignore
+        assert self.tracker.current_mode.mode == "BATTLE"
+        assert interrupt_exit.exit_reason == "interrupt"
         exit_record = self.tracker.exit_mode(reason="natural", tick=200)
-        assert exit_record.exit_reason == "natural"  # type: ignore
-
-
+        assert exit_record.exit_reason == "natural"
 class TestDurationProfileLearner:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.learner = DurationProfileLearner()
 
-    def test_update_profile_new(self):  # type: ignore
+    def test_update_profile_new(self) -> None:
         self.learner.update_profile("BATTLE", "WILD", 100.0)
         profile = self.learner.get_profile("BATTLE", "WILD")
         assert profile is not None
         assert profile.sample_count == 1
         assert profile.mean_duration == 100.0
 
-    def test_update_profile_accumulates(self):  # type: ignore
+    def test_update_profile_accumulates(self) -> None:
         for i in range(5):
             self.learner.update_profile("BATTLE", "WILD", 100.0 + i * 10)
         profile = self.learner.get_profile("BATTLE", "WILD")
-        assert profile.sample_count == 5  # type: ignore
-        assert profile.mean_duration > 100.0  # type: ignore
-
-    def test_outlier_detection(self):  # type: ignore
+        assert profile.sample_count == 5
+        assert profile.mean_duration > 100.0
+    def test_outlier_detection(self) -> None:
         for i in range(10):
             self.learner.update_profile("BATTLE", "WILD", 100.0)
         self.learner.update_profile("BATTLE", "WILD", 1000.0)
         profile = self.learner.get_profile("BATTLE", "WILD")
-        assert profile.sample_count == 10  # type: ignore
-
-    def test_get_thresholds_unknown_profile(self):  # type: ignore
+        assert profile.sample_count == 10
+    def test_get_thresholds_unknown_profile(self) -> None:
         thresholds = self.learner.get_thresholds("UNKNOWN", "MODE")
         assert "warning" in thresholds
         assert "critical" in thresholds
         assert "emergency" in thresholds
 
-    def test_get_thresholds_known_profile(self):  # type: ignore
+    def test_get_thresholds_known_profile(self) -> None:
         for i in range(10):
             self.learner.update_profile("BATTLE", "WILD", 100.0)
         thresholds = self.learner.get_thresholds("BATTLE", "WILD")
@@ -176,12 +172,12 @@ class TestDurationProfileLearner:
 
 
 class TestDurationProfileStore:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.temp_dir = tempfile.mkdtemp()
         self.storage_path = os.path.join(self.temp_dir, "test_profiles.json")
         self.store = DurationProfileStore(storage_path=self.storage_path)
 
-    def test_save_and_load_profile(self):  # type: ignore
+    def test_save_and_load_profile(self) -> None:
         profile = ModeDurationProfile(
             mode="BATTLE", sub_mode="WILD", sample_count=5, mean_duration=120.0, std_duration=20.0,
             min_duration=100.0, max_duration=140.0, p50_duration=120.0, p75_duration=130.0,
@@ -197,22 +193,22 @@ class TestDurationProfileStore:
 
 
 class TestAnomalyDetector:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.learner = DurationProfileLearner()
         self.detector = AnomalyDetector(self.learner)
 
-    def test_no_anomaly_normal_duration(self):  # type: ignore
+    def test_no_anomaly_normal_duration(self) -> None:
         anomalies = self.detector.detect_anomalies(
             "BATTLE", "WILD", 50.0, 100.0, 50.0, 500.0, [])
         assert len(anomalies) == 0
 
-    def test_anomaly_unknown_mode_exceeds_emergency(self):  # type: ignore
+    def test_anomaly_unknown_mode_exceeds_emergency(self) -> None:
         anomalies = self.detector.detect_anomalies(
             "UNKNOWN", "MODE", 700.0, 0, 0, 0, [])
         assert len(anomalies) == 1
         assert anomalies[0].type == "DURATION_UNKNOWN_MODE"
 
-    def test_anomaly_z_score_extreme(self):  # type: ignore
+    def test_anomaly_z_score_extreme(self) -> None:
         for i in range(10):
             self.learner.update_profile("BATTLE", "WILD", 100.0)
         anomalies = self.detector.detect_anomalies(
@@ -221,19 +217,19 @@ class TestAnomalyDetector:
         extreme_anomaly = [a for a in anomalies if a.type == "DURATION_EXTREME"]
         assert len(extreme_anomaly) == 1
 
-    def test_anomaly_sequence_stickiness(self):  # type: ignore
+    def test_anomaly_sequence_stickiness(self) -> None:
         sequence = ["BATTLE_WILD"] * 8 + ["DIALOG_NPC"] * 2
         anomalies = self.detector.detect_anomalies("", "", 0, 0, 0, 0, sequence)
         stickiness = [a for a in anomalies if a.type == "MODE_STICKINESS"]
         assert len(stickiness) == 1
 
-    def test_anomaly_sequence_oscillation(self):  # type: ignore
+    def test_anomaly_sequence_oscillation(self) -> None:
         sequence = ["BATTLE", "DIALOG", "BATTLE", "DIALOG", "BATTLE", "DIALOG"]
         anomalies = self.detector.detect_anomalies("", "", 0, 0, 0, 0, sequence)
         oscillation = [a for a in anomalies if a.type == "MODE_OSCILLATION"]
         assert len(oscillation) == 1
 
-    def test_anomaly_cumulative_session_emergency(self):  # type: ignore
+    def test_anomaly_cumulative_session_emergency(self) -> None:
         anomalies = self.detector.detect_anomalies(
             "BATTLE", "WILD", 0, 8000.0, 0, 0, [])
         emergency = [a for a in anomalies if a.type == "CUMULATIVE_SESSION_EMERGENCY"]
@@ -241,15 +237,15 @@ class TestAnomalyDetector:
 
 
 class TestAnomalyResponseSelector:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.selector = AnomalyResponseSelector()
 
-    def test_no_anomalies(self):  # type: ignore
+    def test_no_anomalies(self) -> None:
         response = self.selector.select_response([])
         assert response.escalation_tier == "NONE"
         assert len(response.actions) == 0
 
-    def test_critical_anomaly_escalates(self):  # type: ignore
+    def test_critical_anomaly_escalates(self) -> None:
         anomalies = [
             Anomaly(type="DURATION_EXTREME", severity="CRITICAL", description="Test",
                     value=100, threshold=50, recommended_action="break_out_immediate")
@@ -258,7 +254,7 @@ class TestAnomalyResponseSelector:
         assert response.escalation_tier == "EMERGENCY"
         assert "break_out_immediate" in response.actions
 
-    def test_high_anomaly_escalates(self):  # type: ignore
+    def test_high_anomaly_escalates(self) -> None:
         anomalies = [
             Anomaly(type="DURATION_HIGH", severity="HIGH", description="Test",
                     value=100, threshold=50, recommended_action="break_out_aggressive")
@@ -266,7 +262,7 @@ class TestAnomalyResponseSelector:
         response = self.selector.select_response(anomalies)
         assert response.escalation_tier == "HIGH"
 
-    def test_medium_anomaly_escalates(self):  # type: ignore
+    def test_medium_anomaly_escalates(self) -> None:
         anomalies = [
             Anomaly(type="DURATION_WARNING", severity="MEDIUM", description="Test",
                     value=100, threshold=50, recommended_action="increase_monitoring")
@@ -276,52 +272,52 @@ class TestAnomalyResponseSelector:
 
 
 class TestBreakoutManager:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.manager = BreakoutManager()
 
-    def test_execute_breakout_success(self):  # type: ignore
+    def test_execute_breakout_success(self) -> None:
         result = self.manager.execute_breakout(
             BreakoutStrategy.STANDARD, "BATTLE", "WILD", {})
         assert result is not None
         assert result.strategy == "break_out_standard"
 
-    def test_execute_breakout_multiple_attempts(self):  # type: ignore
+    def test_execute_breakout_multiple_attempts(self) -> None:
         result = self.manager.execute_breakout(
             BreakoutStrategy.IMMEDIATE, "BATTLE", "WILD", {})
         assert result is not None
         assert result.attempts <= 3
 
-    def test_breakout_history_tracking(self):  # type: ignore
+    def test_breakout_history_tracking(self) -> None:
         self.manager.execute_breakout(BreakoutStrategy.STANDARD, "BATTLE", "WILD", {})
         assert len(self.manager.success_history) == 3
 
 
 class TestBreakoutAnalytics:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.analytics = BreakoutAnalytics()
 
-    def test_record_breakout(self):  # type: ignore
+    def test_record_breakout(self) -> None:
         result = BreakoutResult(success=True, strategy="test", action="test_action", attempts=1)
         self.analytics.record_breakout(result)
         assert len(self.analytics.breakout_history) == 1
 
-    def test_get_recommended_strategy(self):  # type: ignore
+    def test_get_recommended_strategy(self) -> None:
         strategy = self.analytics.get_recommended_strategy("BATTLE", "WILD")
         assert strategy == BreakoutStrategy.STANDARD
 
 
 class TestModeDurationEscalation:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.escalation = ModeDurationEscalation()
 
-    def test_initial_tier_none(self):  # type: ignore
+    def test_initial_tier_none(self) -> None:
         assert self.escalation.current_tier == EscalationTier.NONE
 
-    def test_update_escalation_no_anomalies(self):  # type: ignore
+    def test_update_escalation_no_anomalies(self) -> None:
         tier = self.escalation.update_escalation([], 90.0)
         assert tier == EscalationTier.NONE
 
-    def test_update_escalation_critical_anomaly(self):  # type: ignore
+    def test_update_escalation_critical_anomaly(self) -> None:
         anomalies = [
             Anomaly(type="DURATION_EXTREME", severity="CRITICAL", description="Test",
                     value=100, threshold=50)
@@ -329,7 +325,7 @@ class TestModeDurationEscalation:
         tier = self.escalation.update_escalation(anomalies, 90.0)
         assert tier == EscalationTier.RESET_CONDITION
 
-    def test_update_escalation_high_anomaly(self):  # type: ignore
+    def test_update_escalation_high_anomaly(self) -> None:
         anomalies = [
             Anomaly(type="DURATION_HIGH", severity="HIGH", description="Test",
                     value=100, threshold=50)
@@ -337,15 +333,15 @@ class TestModeDurationEscalation:
         tier = self.escalation.update_escalation(anomalies, 90.0)
         assert tier == EscalationTier.EMERGENCY_PROTOCOL
 
-    def test_update_escalation_low_confidence(self):  # type: ignore
+    def test_update_escalation_low_confidence(self) -> None:
         tier = self.escalation.update_escalation([], 30.0)
         assert tier == EscalationTier.EMERGENCY_PROTOCOL
 
-    def test_get_check_interval(self):  # type: ignore
+    def test_get_check_interval(self) -> None:
         interval = self.escalation.get_check_interval()
         assert interval == 10.0
 
-    def test_tier_transition_tracking(self):  # type: ignore
+    def test_tier_transition_tracking(self) -> None:
         anomalies = [Anomaly(type="DURATION_EXTREME", severity="CRITICAL", description="Test",
                              value=100, threshold=50)]
         self.escalation.update_escalation(anomalies, 90.0)
@@ -353,36 +349,36 @@ class TestModeDurationEscalation:
 
 
 class TestModeDurationTrackingSystem:
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.mdts = ModeDurationTrackingSystem()
 
-    def test_update_classifies_mode(self):  # type: ignore
+    def test_update_classifies_mode(self) -> None:
         state = {"is_battle": True}
         result = self.mdts.update(state, tick=100)
         assert result["mode"] == GameMode.BATTLE.value
         assert result["sub_mode"] == BattleSubMode.WILD_NORMAL.value
 
-    def test_update_detects_anomalies(self):  # type: ignore
+    def test_update_detects_anomalies(self) -> None:
         state = {"is_battle": True}
         result = self.mdts.update(state, tick=100)
         assert "anomalies" in result
         assert "escalation_tier" in result
 
-    def test_update_tracks_duration(self):  # type: ignore
+    def test_update_tracks_duration(self) -> None:
         state = {"is_battle": True}
         self.mdts.update(state, tick=100)
         time.sleep(0.1)
         result = self.mdts.update(state, tick=101)
         assert result["current_duration"] >= 0.1
 
-    def test_on_mode_exit_learns_profile(self):  # type: ignore
+    def test_on_mode_exit_learns_profile(self) -> None:
         self.mdts.duration_tracker.enter_mode("BATTLE", "WILD", tick=100)
         time.sleep(0.1)
         self.mdts.on_mode_exit("BATTLE", "WILD", "natural", tick=200)
         profile = self.mdts.profile_learner.get_profile("BATTLE", "WILD")
         assert profile is not None
 
-    def test_get_dashboard_data(self):  # type: ignore
+    def test_get_dashboard_data(self) -> None:
         state = {"is_battle": True}
         self.mdts.update(state, tick=100)
         data = self.mdts.get_dashboard_data()
@@ -390,7 +386,7 @@ class TestModeDurationTrackingSystem:
         assert "current_duration" in data
         assert "escalation_tier" in data
 
-    def test_integration_with_state_machine(self):  # type: ignore
+    def test_integration_with_state_machine(self) -> None:
         state_machine = MagicMock()
         mdts = ModeDurationTrackingSystem(state_machine=state_machine)
         state = {"is_battle": False}
@@ -399,14 +395,14 @@ class TestModeDurationTrackingSystem:
 
 
 class TestDataClasses:
-    def test_mode_classification_serialization(self):  # type: ignore
+    def test_mode_classification_serialization(self) -> None:
         mc = ModeClassification(
             mode="BATTLE", sub_mode="WILD", confidence=0.85,
             timestamp=time.time(), tick=100
         )
         assert mc.mode == "BATTLE"
 
-    def test_mode_duration_profile_serialization(self):  # type: ignore
+    def test_mode_duration_profile_serialization(self) -> None:
         profile = ModeDurationProfile(
             mode="BATTLE", sub_mode="WILD", sample_count=10, mean_duration=120.0,
             std_duration=20.0, min_duration=100.0, max_duration=140.0,
@@ -418,7 +414,7 @@ class TestDataClasses:
         loaded = ModeDurationProfile.from_dict(data)
         assert loaded.mode == profile.mode
 
-    def test_anomaly_serialization(self):  # type: ignore
+    def test_anomaly_serialization(self) -> None:
         anomaly = Anomaly(
             type="DURATION_HIGH", severity="HIGH", description="Test anomaly",
             value=100.0, threshold=50.0, deviation=2.5
@@ -426,7 +422,7 @@ class TestDataClasses:
         assert anomaly.type == "DURATION_HIGH"
         assert anomaly.severity == "HIGH"
 
-    def test_breakout_result(self):  # type: ignore
+    def test_breakout_result(self) -> None:
         result = BreakoutResult(
             success=True, strategy="break_out_standard", action="RUN", attempts=2
         )
@@ -435,24 +431,24 @@ class TestDataClasses:
 
 
 class TestEdgeCases:
-    def test_empty_state(self):  # type: ignore
+    def test_empty_state(self) -> None:
         classifier = ModeClassifier()
         result = classifier.classify_mode({}, tick=0)
         assert result.mode == GameMode.OVERWORLD.value
 
-    def test_empty_state_duration_tracker(self):  # type: ignore
+    def test_empty_state_duration_tracker(self) -> None:
         tracker = DurationTracker()
         assert tracker.get_current_duration() == 0.0
         assert tracker.get_current_cumulative() == 0.0
         assert tracker.exit_mode() is None
 
-    def test_anomaly_detector_empty_sequence(self):  # type: ignore
+    def test_anomaly_detector_empty_sequence(self) -> None:
         learner = DurationProfileLearner()
         detector = AnomalyDetector(learner)
         anomalies = detector.detect_anomalies("", "", 0, 0, 0, 0, [])
         assert len(anomalies) == 0
 
-    def test_profile_learner_zero_duration(self):  # type: ignore
+    def test_profile_learner_zero_duration(self) -> None:
         learner = DurationProfileLearner()
         learner.update_profile("TEST", "MODE", 0.0)
         profile = learner.get_profile("TEST", "MODE")

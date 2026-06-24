@@ -41,22 +41,22 @@ def _has_api_key() -> bool:
 class TestDemoRunnerInstantiation:
     """DemoRunner can be created without a working ROM."""
 
-    def test_instantiate_nonexistent_path(self):  # type: ignore
+    def test_instantiate_nonexistent_path(self) -> None:
         runner = DemoRunner("/tmp/no_such_rom.gba")
         assert runner is not None
         assert runner._rom_path == Path("/tmp/no_such_rom.gba").resolve()
 
-    def test_instantiate_with_relative_path(self):  # type: ignore
+    def test_instantiate_with_relative_path(self) -> None:
         runner = DemoRunner("data/rom/pokemon.gba")
         assert runner is not None
         assert runner._rom_path.is_absolute()
 
-    def test_default_models(self):  # type: ignore
+    def test_default_models(self) -> None:
         runner = DemoRunner("/tmp/fake.gba")
         assert runner._thinking_model == "openrouter/owl-alpha"
         assert runner._vision_model == "google/gemma-3-12b-it"
 
-    def test_custom_generation(self):  # type: ignore
+    def test_custom_generation(self) -> None:
         runner = DemoRunner("/tmp/fake.gba", generation="gen1")
         assert runner._generation == "gen1"
 
@@ -64,12 +64,12 @@ class TestDemoRunnerInstantiation:
 class TestDemoRunnerFileNotFound:
     """DemoRunner raises when ROM doesn't exist."""
 
-    def test_run_raises_file_not_found(self):  # type: ignore
+    def test_run_raises_file_not_found(self) -> None:
         runner = DemoRunner("/tmp/no_such_rom_xyz_12345.gba")
         with pytest.raises(FileNotFoundError, match="ROM not found"):
             runner.run(max_cycles=1)
 
-    def test_run_headless_raises_file_not_found(self):  # type: ignore
+    def test_run_headless_raises_file_not_found(self) -> None:
         runner = DemoRunner("/tmp/no_such_rom_xyz_12345.gba")
         with pytest.raises(FileNotFoundError, match="ROM not found"):
             runner.run_headless()
@@ -78,7 +78,7 @@ class TestDemoRunnerFileNotFound:
 class TestDemoSummary:
     """demo_summary() formats results correctly."""
 
-    def test_basic_summary(self):  # type: ignore
+    def test_basic_summary(self) -> None:
         result = {
             "rom_path": "/tmp/test.gba",
             "cycles_completed": 10,
@@ -95,7 +95,7 @@ class TestDemoSummary:
         assert "battle" in summary
         assert "overworld" in summary
 
-    def test_zero_cycles(self):  # type: ignore
+    def test_zero_cycles(self) -> None:
         result = {
             "rom_path": "/tmp/test.gba",
             "cycles_completed": 0,
@@ -112,12 +112,12 @@ class TestDemoSummary:
 class TestCleanup:
     """cleanup() is safe to call multiple times."""
 
-    def test_cleanup_before_run(self):  # type: ignore
+    def test_cleanup_before_run(self) -> None:
         runner = DemoRunner("/tmp/fake.gba")
         runner.cleanup()  # should not raise
         assert runner.emulator is None
 
-    def test_cleanup_twice(self):  # type: ignore
+    def test_cleanup_twice(self) -> None:
         runner = DemoRunner("/tmp/fake.gba")
         runner.cleanup()
         runner.cleanup()  # idempotent
@@ -132,13 +132,13 @@ class TestHeadlessRun:
     """Headless run validates ROM loading + intro skip + capture."""
 
     @pytest.fixture(autouse=True)
-    def _check_rom(self):  # type: ignore
+    def _check_rom(self) -> None:
         rom = _find_rom()
         if rom is None:
             pytest.skip("No ROM found in data/rom/")
         self._rom_path = rom
 
-    def test_headless_smoke(self):  # type: ignore
+    def test_headless_smoke(self) -> None:
         runner = DemoRunner(str(self._rom_path))
         try:
             result = runner.run_headless(max_cycles=3, screenshot_interval=10)
@@ -152,7 +152,7 @@ class TestHeadlessRun:
         finally:
             runner.cleanup()
 
-    def test_headless_single_cycle(self):  # type: ignore
+    def test_headless_single_cycle(self) -> None:
         runner = DemoRunner(str(self._rom_path))
         try:
             result = runner.run_headless(max_cycles=1, screenshot_interval=5)
@@ -171,7 +171,7 @@ class TestLiveGameplay:
     """Full gameplay demo with vision + thinking LLM."""
 
     @pytest.fixture(autouse=True)
-    def _check_prereqs(self):  # type: ignore
+    def _check_prereqs(self) -> None:
         if not _has_api_key():
             pytest.skip("OPENROUTER_API_KEY not set")
         rom = _find_rom()
@@ -179,7 +179,7 @@ class TestLiveGameplay:
             pytest.skip("No ROM found in data/rom/")
         self._rom_path = rom
 
-    def test_live_run_three_cycles(self):  # type: ignore
+    def test_live_run_three_cycles(self) -> None:
         """Run 3 cycles — verify the pipeline produces results."""
         runner = DemoRunner(str(self._rom_path))
         try:
@@ -202,7 +202,7 @@ class TestLiveGameplay:
         finally:
             runner.cleanup()
 
-    def test_live_run_skips_intro(self):  # type: ignore
+    def test_live_run_skips_intro(self) -> None:
         """Verify intro skip works — first screen type isn't 'title'."""
         runner = DemoRunner(str(self._rom_path))
         try:

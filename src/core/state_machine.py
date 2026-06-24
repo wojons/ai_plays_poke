@@ -256,7 +256,7 @@ class HierarchicalStateMachine:
         self._start_time = time.time()
         self._emergency_triggered = False
         self._emergency_reason: Optional[str] = None
-        self._on_transition_callbacks: List = []
+        self._on_transition_callbacks: List[Callable[..., None]] = []
         self._on_emergency_callbacks: List[Callable[[str], None]] = []
 
         self._setup_legal_transitions()
@@ -708,7 +708,7 @@ class GameStateClassifier:
         self._last_classification_time = 0.0
         self._classification_interval = 0.016  # ~60fps
 
-    def classify(self, screen_data: Any, memory_data: Optional[Dict] = None) -> Optional[str]:
+    def classify(self, screen_data: Any, memory_data: Optional[Dict[str, Any]] = None) -> Optional[str]:
         """
         Classify the current game state and trigger appropriate transition
         Returns the new state name, or None if no transition needed
@@ -735,7 +735,7 @@ class GameStateClassifier:
 
         return None
 
-    def _determine_state(self, screen_data: Any, memory_data: Optional[Dict]) -> Optional[str]:
+    def _determine_state(self, screen_data: Any, memory_data: Optional[Dict[str, Any]]) -> Optional[str]:
         """Determine the current state from screen/memory data"""
         return None
 

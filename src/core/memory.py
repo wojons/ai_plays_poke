@@ -124,7 +124,7 @@ class ObserverMemory:
         self.sensory_input = SensoryInput()
         self.current_state = TickState()
     
-    def update_state(self, **kwargs) -> None:  # type: ignore
+    def update_state(self, **kwargs: Any) -> None:
         """Update current state with new values"""
         for key, value in kwargs.items():
             if hasattr(self.current_state, key):
@@ -1146,7 +1146,7 @@ class MemoryConsolidator:
             key = f"{battle.enemy_pokemon}_{battle.player_pokemon}"
             if battle.outcome == "victory":
                 battle_outcomes[key]["wins"] = cast(int, battle_outcomes[key]["wins"]) + 1
-                cast(list, battle_outcomes[key]["moves"]).extend(battle.moves_used)
+                cast(List[str], battle_outcomes[key]["moves"]).extend(battle.moves_used)
             else:
                 battle_outcomes[key]["losses"] = cast(int, battle_outcomes[key]["losses"]) + 1
         
@@ -1164,7 +1164,7 @@ class MemoryConsolidator:
                         context={"battle_type": "wild"},
                         enemy_type=enemy_type,
                         player_pokemon=player_pokemon,
-                        moves_sequence=list(dict.fromkeys(cast(list, outcome["moves"])[-5:]))
+                        moves_sequence=list(dict.fromkeys(cast(List[str], outcome["moves"])[-5:]))
                     )
                     strategy.record_use(True)
                     result.strategies_created += 1
@@ -1430,11 +1430,11 @@ class MemoryGOAPIntegration:
         return tactician.get_successful_strategies(enemy_type, player_pokemon)
     
     @staticmethod
-    def record_planning_outcome(  # type: ignore
+    def record_planning_outcome(
         observer: ObserverMemory,
         success: bool,
         outcome: str
-    ):
+    ) -> None:
         """Record planning outcome for learning"""
         if observer.recent_actions:
             observer.recent_actions[-1].success = success
@@ -1659,7 +1659,7 @@ class GameMemory:
 
     # -- snapshot ---------------------------------------------------------
 
-    def snapshot(self) -> dict:
+    def snapshot(self) -> Dict[str, Any]:
         """Return a dict suitable for injection into PromptStack.assemble()."""
         return {
             "recent_actions": list(self.recent_actions),
