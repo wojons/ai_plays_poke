@@ -36,55 +36,55 @@ from ptp_cli.flags import (
 class TestTickRateConfig:
     """Tests for TickRateConfig validation."""
 
-    def test_valid_defaults(self):  # type: ignore
+    def test_valid_defaults(self) -> None:
         """Test default values are valid."""
         config = TickRateConfig()
         errors = config._validate_config()
         assert len(errors) == 0
 
-    def test_valid_custom_values(self):  # type: ignore
+    def test_valid_custom_values(self) -> None:
         """Test custom values within range."""
         config = TickRateConfig(base=15, battle=3, timeout=60)
         errors = config._validate_config()
         assert len(errors) == 0
 
-    def test_invalid_base_too_low(self):  # type: ignore
+    def test_invalid_base_too_low(self) -> None:
         """Test base tick rate too low."""
         config = TickRateConfig(base=0)
         errors = config._validate_config()
         assert "tick-rate-base must be >= 1" in errors
 
-    def test_invalid_base_too_high(self):  # type: ignore
+    def test_invalid_base_too_high(self) -> None:
         """Test base tick rate too high."""
         config = TickRateConfig(base=100)
         errors = config._validate_config()
         assert "tick-rate-base must be <= 60" in errors
 
-    def test_invalid_battle_too_low(self):  # type: ignore
+    def test_invalid_battle_too_low(self) -> None:
         """Test battle tick rate too low."""
         config = TickRateConfig(battle=0)
         errors = config._validate_config()
         assert "tick-rate-battle must be >= 1" in errors
 
-    def test_invalid_timeout_too_low(self):  # type: ignore
+    def test_invalid_timeout_too_low(self) -> None:
         """Test timeout too low."""
         config = TickRateConfig(timeout=1)
         errors = config._validate_config()
         assert "tick-rate-timeout must be >= 5" in errors
 
-    def test_adaptive_with_high_base_warning(self):  # type: ignore
+    def test_adaptive_with_high_base_warning(self) -> None:
         """Test adaptive mode warning with high base rate."""
         config = TickRateConfig(base=45, adaptive=True)
         errors = config._validate_config()
         assert any("adaptive mode works best" in e for e in errors)
 
-    def test_budget_mode_without_limit(self):  # type: ignore
+    def test_budget_mode_without_limit(self) -> None:
         """Test budget mode requires limit."""
         config = TickRateConfig(budget_mode="hourly", budget_limit=None)
         errors = config._validate_config()
         assert any("tick-rate-budget-limit required" in e for e in errors)
 
-    def test_budget_limit_negative(self):  # type: ignore
+    def test_budget_limit_negative(self) -> None:
         """Test negative budget limit."""
         config = TickRateConfig(budget_limit=-5.0)
         errors = config._validate_config()
@@ -94,37 +94,37 @@ class TestTickRateConfig:
 class TestScreenshotConfig:
     """Tests for ScreenshotConfig validation."""
 
-    def test_valid_defaults(self):  # type: ignore
+    def test_valid_defaults(self) -> None:
         """Test default values are valid."""
         config = ScreenshotConfig()
         errors = config._validate_config()
         assert len(errors) == 0
 
-    def test_valid_custom_values(self):  # type: ignore
+    def test_valid_custom_values(self) -> None:
         """Test custom values within range."""
         config = ScreenshotConfig(interval=50, quality=90, max_storage_gb=100.0)
         errors = config._validate_config()
         assert len(errors) == 0
 
-    def test_invalid_interval_too_low(self):  # type: ignore
+    def test_invalid_interval_too_low(self) -> None:
         """Test interval too low."""
         config = ScreenshotConfig(interval=0)
         errors = config._validate_config()
         assert "screenshot-interval must be >= 1" in errors
 
-    def test_invalid_quality_too_low(self):  # type: ignore
+    def test_invalid_quality_too_low(self) -> None:
         """Test quality below range."""
         config = ScreenshotConfig(quality=-1)
         errors = config._validate_config()
         assert "screenshot-quality must be 0-100" in errors
 
-    def test_invalid_quality_too_high(self):  # type: ignore
+    def test_invalid_quality_too_high(self) -> None:
         """Test quality above range."""
         config = ScreenshotConfig(quality=101)
         errors = config._validate_config()
         assert "screenshot-quality must be 0-100" in errors
 
-    def test_invalid_max_storage(self):  # type: ignore
+    def test_invalid_max_storage(self) -> None:
         """Test non-positive max storage."""
         config = ScreenshotConfig(max_storage_gb=0)
         errors = config._validate_config()
@@ -134,31 +134,31 @@ class TestScreenshotConfig:
 class TestCommandBufferConfig:
     """Tests for CommandBufferConfig validation."""
 
-    def test_valid_defaults(self):  # type: ignore
+    def test_valid_defaults(self) -> None:
         """Test default values are valid."""
         config = CommandBufferConfig()
         errors = config._validate_config()
         assert len(errors) == 0
 
-    def test_invalid_buffer_size_too_low(self):  # type: ignore
+    def test_invalid_buffer_size_too_low(self) -> None:
         """Test buffer size too low."""
         config = CommandBufferConfig(buffer_size=0)
         errors = config._validate_config()
         assert "command-buffer-size must be >= 1" in errors
 
-    def test_invalid_timeout_too_low(self):  # type: ignore
+    def test_invalid_timeout_too_low(self) -> None:
         """Test timeout too low."""
         config = CommandBufferConfig(timeout=0)
         errors = config._validate_config()
         assert "command-timeout must be >= 1" in errors
 
-    def test_invalid_rollback_history(self):  # type: ignore
+    def test_invalid_rollback_history(self) -> None:
         """Test negative rollback history."""
         config = CommandBufferConfig(rollback_history=-1)
         errors = config._validate_config()
         assert "command-rollback-history must be >= 0" in errors
 
-    def test_invalid_stale_threshold(self):  # type: ignore
+    def test_invalid_stale_threshold(self) -> None:
         """Test negative stale threshold."""
         config = CommandBufferConfig(stale_threshold=-1)
         errors = config._validate_config()
@@ -168,61 +168,61 @@ class TestCommandBufferConfig:
 class TestRunLimitsConfig:
     """Tests for RunLimitsConfig validation."""
 
-    def test_valid_defaults(self):  # type: ignore
+    def test_valid_defaults(self) -> None:
         """Test default values are valid."""
         config = RunLimitsConfig()
         errors = config._validate_config()
         assert len(errors) == 0
 
-    def test_invalid_max_time(self):  # type: ignore
+    def test_invalid_max_time(self) -> None:
         """Test non-positive max time."""
         config = RunLimitsConfig(max_time_seconds=0)
         errors = config._validate_config()
         assert "max-time must be positive" in errors
 
-    def test_invalid_max_ticks(self):  # type: ignore
+    def test_invalid_max_ticks(self) -> None:
         """Test non-positive max ticks."""
         config = RunLimitsConfig(max_ticks=-1)
         errors = config._validate_config()
         assert "max-ticks must be positive" in errors
 
-    def test_invalid_max_cost(self):  # type: ignore
+    def test_invalid_max_cost(self) -> None:
         """Test non-positive max cost."""
         config = RunLimitsConfig(max_cost=0)
         errors = config._validate_config()
         assert "max-cost must be positive" in errors
 
-    def test_invalid_max_pokemon_caught(self):  # type: ignore
+    def test_invalid_max_pokemon_caught(self) -> None:
         """Test non-positive max Pokemon caught."""
         config = RunLimitsConfig(max_pokemon_caught=0)
         errors = config._validate_config()
         assert "max-pokemon-caught must be positive" in errors
 
-    def test_invalid_max_badges_too_low(self):  # type: ignore
+    def test_invalid_max_badges_too_low(self) -> None:
         """Test max badges below range."""
         config = RunLimitsConfig(max_badges=-1)
         errors = config._validate_config()
         assert "max-badges must be 0-16" in errors
 
-    def test_invalid_max_badges_too_high(self):  # type: ignore
+    def test_invalid_max_badges_too_high(self) -> None:
         """Test max badges above range."""
         config = RunLimitsConfig(max_badges=20)
         errors = config._validate_config()
         assert "max-badges must be 0-16" in errors
 
-    def test_invalid_max_level_too_low(self):  # type: ignore
+    def test_invalid_max_level_too_low(self) -> None:
         """Test max level below range."""
         config = RunLimitsConfig(max_level=0)
         errors = config._validate_config()
         assert "max-level must be 1-100" in errors
 
-    def test_invalid_max_level_too_high(self):  # type: ignore
+    def test_invalid_max_level_too_high(self) -> None:
         """Test max level above range."""
         config = RunLimitsConfig(max_level=150)
         errors = config._validate_config()
         assert "max-level must be 1-100" in errors
 
-    def test_invalid_grace_period(self):  # type: ignore
+    def test_invalid_grace_period(self) -> None:
         """Test negative grace period."""
         config = RunLimitsConfig(grace_period=-1)
         errors = config._validate_config()
@@ -232,13 +232,13 @@ class TestRunLimitsConfig:
 class TestSnapshotConfig:
     """Tests for SnapshotConfig validation."""
 
-    def test_valid_defaults(self):  # type: ignore
+    def test_valid_defaults(self) -> None:
         """Test default values are valid."""
         config = SnapshotConfig()
         errors = config._validate_config()
         assert len(errors) == 0
 
-    def test_valid_custom_values(self):  # type: ignore
+    def test_valid_custom_values(self) -> None:
         """Test custom values within range."""
         config = SnapshotConfig(
             memory_count=20,
@@ -248,31 +248,31 @@ class TestSnapshotConfig:
         errors = config._validate_config()
         assert len(errors) == 0
 
-    def test_invalid_memory_count(self):  # type: ignore
+    def test_invalid_memory_count(self) -> None:
         """Test negative memory count."""
         config = SnapshotConfig(memory_count=-1)
         errors = config._validate_config()
         assert "snapshot-memory must be >= 0" in errors
 
-    def test_invalid_disk_interval(self):  # type: ignore
+    def test_invalid_disk_interval(self) -> None:
         """Test disk interval too low."""
         config = SnapshotConfig(disk_interval=50)
         errors = config._validate_config()
         assert "snapshot-disk must be >= 100" in errors
 
-    def test_invalid_event(self):  # type: ignore
+    def test_invalid_event(self) -> None:
         """Test invalid event in on_event."""
         config = SnapshotConfig(on_event=["invalid_event"])
         errors = config._validate_config()
         assert "invalid snapshot-on-event" in errors[0]
 
-    def test_invalid_max_disk(self):  # type: ignore
+    def test_invalid_max_disk(self) -> None:
         """Test non-positive max disk."""
         config = SnapshotConfig(max_disk_gb=0)
         errors = config._validate_config()
         assert "snapshot-max-disk must be positive" in errors
 
-    def test_invalid_rollback_grace(self):  # type: ignore
+    def test_invalid_rollback_grace(self) -> None:
         """Test negative rollback grace."""
         config = SnapshotConfig(rollback_grace=-1)
         errors = config._validate_config()
@@ -282,37 +282,37 @@ class TestSnapshotConfig:
 class TestExperimentConfig:
     """Tests for ExperimentConfig validation."""
 
-    def test_valid_defaults(self):  # type: ignore
+    def test_valid_defaults(self) -> None:
         """Test default values are valid."""
         config = ExperimentConfig()
         errors = config._validate_config()
         assert len(errors) == 0
 
-    def test_invalid_parallel_workers(self):  # type: ignore
+    def test_invalid_parallel_workers(self) -> None:
         """Test workers below 1."""
         config = ExperimentConfig(parallel_workers=0)
         errors = config._validate_config()
         assert "parallel-workers must be >= 1" in errors
 
-    def test_invalid_sequential_retry(self):  # type: ignore
+    def test_invalid_sequential_retry(self) -> None:
         """Test negative retry count."""
         config = ExperimentConfig(sequential_retry=-1)
         errors = config._validate_config()
         assert "sequential-retry must be >= 0" in errors
 
-    def test_invalid_memory_limit(self):  # type: ignore
+    def test_invalid_memory_limit(self) -> None:
         """Test non-positive memory limit."""
         config = ExperimentConfig(memory_limit_gb=0)
         errors = config._validate_config()
         assert "parallel-memory-limit must be positive" in errors
 
-    def test_invalid_api_rate_limit(self):  # type: ignore
+    def test_invalid_api_rate_limit(self) -> None:
         """Test API rate limit below 1."""
         config = ExperimentConfig(api_rate_limit=0)
         errors = config._validate_config()
         assert "parallel-api-rate-limit must be >= 1" in errors
 
-    def test_invalid_checkpoint_frequency(self):  # type: ignore
+    def test_invalid_checkpoint_frequency(self) -> None:
         """Test negative checkpoint frequency."""
         config = ExperimentConfig(checkpoint_frequency=-1)
         errors = config._validate_config()
@@ -322,7 +322,7 @@ class TestExperimentConfig:
 class TestCLIFlagParser:
     """Tests for CLIFlagParser."""
 
-    def test_parse_basic_args(self):  # type: ignore
+    def test_parse_basic_args(self) -> None:
         """Test parsing basic required arguments."""
         parser = CLIFlagParser()
         args = ["--rom", "test.gb"]
@@ -331,7 +331,7 @@ class TestCLIFlagParser:
         assert config.rom_path == "test.gb"
         assert config.save_dir == "./game_saves"
 
-    def test_parse_all_defaults(self):  # type: ignore
+    def test_parse_all_defaults(self) -> None:
         """Test parsing with all defaults."""
         parser = CLIFlagParser()
         args = ["--rom", "/tmp/test_pokemon.gb"]
@@ -344,7 +344,7 @@ class TestCLIFlagParser:
         assert config.snapshot.memory_count == 10
         assert config.experiment.name == "default"
 
-    def test_parse_tick_rate_flags(self):  # type: ignore
+    def test_parse_tick_rate_flags(self) -> None:
         """Test parsing tick rate flags."""
         parser = CLIFlagParser()
         args = [
@@ -361,7 +361,7 @@ class TestCLIFlagParser:
         assert config.tick_rate.timeout == 60
         assert config.tick_rate.adaptive is True
 
-    def test_parse_screenshot_flags(self):  # type: ignore
+    def test_parse_screenshot_flags(self) -> None:
         """Test parsing screenshot flags."""
         parser = CLIFlagParser()
         args = [
@@ -378,7 +378,7 @@ class TestCLIFlagParser:
         assert config.screenshot.on_change is True
         assert config.screenshot.async_capture is True
 
-    def test_parse_limit_flags(self):  # type: ignore
+    def test_parse_limit_flags(self) -> None:
         """Test parsing limit flags."""
         parser = CLIFlagParser()
         args = [
@@ -397,7 +397,7 @@ class TestCLIFlagParser:
         assert config.limits.max_badges == 8
         assert config.limits.on_limit == "save-only"
 
-    def test_parse_snapshot_flags(self):  # type: ignore
+    def test_parse_snapshot_flags(self) -> None:
         """Test parsing snapshot flags."""
         parser = CLIFlagParser()
         args = [
@@ -414,7 +414,7 @@ class TestCLIFlagParser:
         assert config.snapshot.on_event == ["catch", "battle", "badge"]
         assert config.snapshot.compress is True
 
-    def test_parse_experiment_flags(self):  # type: ignore
+    def test_parse_experiment_flags(self) -> None:
         """Test parsing experiment flags."""
         parser = CLIFlagParser()
         args = [
@@ -433,7 +433,7 @@ class TestCLIFlagParser:
         assert config.experiment.export_results is True
         assert config.experiment.results_format == "parquet"
 
-    def test_parse_system_flags(self):  # type: ignore
+    def test_parse_system_flags(self) -> None:
         """Test parsing system flags."""
         parser = CLIFlagParser()
         args = [
@@ -448,7 +448,7 @@ class TestCLIFlagParser:
         assert config.system.log_file == "output.log"
         assert config.system.random_seed == 42
 
-    def test_parse_invalid_quality_range(self):  # type: ignore
+    def test_parse_invalid_quality_range(self) -> None:
         """Test invalid quality range."""
         parser = CLIFlagParser()
         args = [
@@ -458,7 +458,7 @@ class TestCLIFlagParser:
         with pytest.raises(SystemExit):
             parser.parse_args(args)
 
-    def test_validate_valid_config(self, tmp_path):  # type: ignore
+    def test_validate_valid_config(self, tmp_path) -> None:
         """Test validation of valid configuration."""
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
@@ -469,7 +469,7 @@ class TestCLIFlagParser:
 
         assert len(errors) == 0
 
-    def test_validate_verbose_quiet_conflict(self, tmp_path):  # type: ignore
+    def test_validate_verbose_quiet_conflict(self, tmp_path) -> None:
         """Test validation catches verbose/quiet conflict."""
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
@@ -484,7 +484,7 @@ class TestCLIFlagParser:
 
         assert any("Cannot use both --verbose and --quiet" in e for e in errors)
 
-    def test_parse_and_validate_success(self, tmp_path):  # type: ignore
+    def test_parse_and_validate_success(self, tmp_path) -> None:
         """Test parse_and_validate returns valid config."""
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
@@ -495,7 +495,7 @@ class TestCLIFlagParser:
         assert len(errors) == 0
         assert isinstance(config, FullConfig)
 
-    def test_parse_and_validate_error(self, tmp_path):  # type: ignore
+    def test_parse_and_validate_error(self, tmp_path) -> None:
         """Test parse_and_validate returns errors for invalid config."""
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
@@ -513,7 +513,7 @@ class TestCLIFlagParser:
 class TestFullConfig:
     """Tests for FullConfig."""
 
-    def test_to_dict(self):  # type: ignore
+    def test_to_dict(self) -> None:
         """Test to_dict conversion."""
         config = FullConfig(
             rom_path="pokemon.gb",
@@ -527,7 +527,7 @@ class TestFullConfig:
         assert result["tick_rate"]["base"] == 10
         assert result["screenshot"]["interval"] == 100
 
-    def test_validate_missing_rom(self):  # type: ignore
+    def test_validate_missing_rom(self) -> None:
         """Test validation fails for missing ROM."""
         config = FullConfig(rom_path="")
         errors = config.validate()
@@ -535,7 +535,7 @@ class TestFullConfig:
         assert len(errors) > 0
         assert any("rom path is required" in e for e in errors)
 
-    def test_validate_nonexistent_rom(self):  # type: ignore
+    def test_validate_nonexistent_rom(self) -> None:
         """Test validation fails for non-existent ROM."""
         config = FullConfig(rom_path="/nonexistent/pokemon.gb")
         errors = config.validate()
@@ -543,7 +543,7 @@ class TestFullConfig:
         assert len(errors) > 0
         assert any("ROM file not found" in e for e in errors)
 
-    def test_validate_valid_rom(self):  # type: ignore
+    def test_validate_valid_rom(self) -> None:
         """Test validation passes for valid ROM path."""
         rom_path = Path("/tmp/test_rom.gb")
         rom_path.touch()
@@ -559,25 +559,25 @@ class TestFullConfig:
 class TestEnums:
     """Tests for enum types."""
 
-    def test_limit_action_values(self):  # type: ignore
+    def test_limit_action_values(self) -> None:
         """Test LimitAction enum values."""
         assert LimitAction.SAVE_AND_EXIT.value == "save-and-exit"
         assert LimitAction.SAVE_ONLY.value == "save-only"
         assert LimitAction.ABORT.value == "abort"
 
-    def test_fail_mode_values(self):  # type: ignore
+    def test_fail_mode_values(self) -> None:
         """Test FailMode enum values."""
         assert FailMode.CONTINUE.value == "continue"
         assert FailMode.FAST_FAIL.value == "fast-fail"
         assert FailMode.RETRY.value == "retry"
 
-    def test_budget_mode_values(self):  # type: ignore
+    def test_budget_mode_values(self) -> None:
         """Test BudgetMode enum values."""
         assert BudgetMode.HOURLY.value == "hourly"
         assert BudgetMode.DAILY.value == "daily"
         assert BudgetMode.RUN.value == "run"
 
-    def test_results_format_values(self):  # type: ignore
+    def test_results_format_values(self) -> None:
         """Test ResultsFormat enum values."""
         assert ResultsFormat.JSON.value == "json"
         assert ResultsFormat.CSV.value == "csv"

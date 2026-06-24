@@ -245,7 +245,7 @@ class VisionPipeline:
         """
         self.validate_screenshot(raw_screenshot)
         
-        def timeout_handler(signum, frame) -> None:  # type: ignore
+        def timeout_handler(signum, frame) -> None:
             raise ScreenshotProcessingError(
                 message=f"Screenshot processing timed out after {timeout} seconds",
                 error_type="timeout"

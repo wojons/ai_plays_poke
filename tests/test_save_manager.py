@@ -31,7 +31,7 @@ from src.core.save_manager import (
 class TestSaveManagerConfig:
     """Tests for SaveManagerConfig class"""
 
-    def test_default_config(self):  # type: ignore
+    def test_default_config(self) -> None:
         """Test default configuration values"""
         config = SaveManagerConfig()
         assert config.save_dir == "./game_saves"
@@ -42,7 +42,7 @@ class TestSaveManagerConfig:
         assert config.validate_on_save is False
         assert config.emergency_snapshot_count == 3
 
-    def test_custom_config(self):  # type: ignore
+    def test_custom_config(self) -> None:
         """Test custom configuration values"""
         config = SaveManagerConfig(
             save_dir="/custom/path",
@@ -65,7 +65,7 @@ class TestSaveManagerConfig:
 class TestSnapshotMetadata:
     """Tests for SnapshotMetadata class"""
 
-    def test_create_metadata(self):  # type: ignore
+    def test_create_metadata(self) -> None:
         """Test creating snapshot metadata"""
         metadata = SnapshotMetadata(
             snapshot_id="test_snapshot_123",
@@ -89,7 +89,7 @@ class TestSnapshotMetadata:
         assert metadata.team_hp_percent == 85.5
         assert metadata.is_valid is True
 
-    def test_metadata_to_dict(self):  # type: ignore
+    def test_metadata_to_dict(self) -> None:
         """Test converting metadata to dictionary"""
         metadata = SnapshotMetadata(
             snapshot_id="test_456",
@@ -104,7 +104,7 @@ class TestSnapshotMetadata:
         assert data["tick_count"] == 500
         assert data["reason"] == "manual"
 
-    def test_metadata_from_dict(self):  # type: ignore
+    def test_metadata_from_dict(self) -> None:
         """Test creating metadata from dictionary"""
         data = {
             "snapshot_id": "from_dict_789",
@@ -129,7 +129,7 @@ class TestSnapshotMetadata:
 class TestSaveManagerBasic:
     """Tests for SaveManager basic operations"""
 
-    def test_init_creates_directories(self):  # type: ignore
+    def test_init_creates_directories(self) -> None:
         """Test that initialization creates necessary directories"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -139,7 +139,7 @@ class TestSaveManagerBasic:
             assert manager.emergency_dir.exists()
             assert manager.metadata_file.parent.exists()
 
-    def test_init_loads_existing_index(self):  # type: ignore
+    def test_init_loads_existing_index(self) -> None:
         """Test loading existing snapshot index on init"""
         with tempfile.TemporaryDirectory() as tmpdir:
             snapshots_dir = Path(tmpdir) / "snapshots"
@@ -170,7 +170,7 @@ class TestSaveManagerBasic:
             assert "existing_001" in manager._snapshot_cache
             assert manager._snapshot_cache["existing_001"].tick_count == 100
 
-    def test_set_tick_count(self):  # type: ignore
+    def test_set_tick_count(self) -> None:
         """Test updating tick count"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -179,7 +179,7 @@ class TestSaveManagerBasic:
             manager.set_tick_count(5000)
             assert manager._tick_count == 5000
 
-    def test_list_snapshots_empty(self):  # type: ignore
+    def test_list_snapshots_empty(self) -> None:
         """Test listing snapshots when none exist"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -188,7 +188,7 @@ class TestSaveManagerBasic:
             snapshots = manager.list_snapshots()
             assert len(snapshots) == 0
 
-    def test_list_snapshots_with_data(self):  # type: ignore
+    def test_list_snapshots_with_data(self) -> None:
         """Test listing snapshots with existing data"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -210,7 +210,7 @@ class TestSaveManagerBasic:
 class TestSaveManagerSnapshotCreation:
     """Tests for snapshot creation functionality"""
 
-    def test_save_snapshot_success(self):  # type: ignore
+    def test_save_snapshot_success(self) -> None:
         """Test successful snapshot creation"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir, max_snapshots=5)
@@ -231,7 +231,7 @@ class TestSaveManagerSnapshotCreation:
             assert len(manager._snapshot_cache) == 1
             assert (manager.snapshots_dir / f"{snapshot_id}.state").exists()
 
-    def test_save_snapshot_empty_state(self):  # type: ignore
+    def test_save_snapshot_empty_state(self) -> None:
         """Test snapshot creation with empty state"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -250,7 +250,7 @@ class TestSaveManagerSnapshotCreation:
             assert snapshot_id == ""
             assert len(manager._snapshot_cache) == 0
 
-    def test_save_snapshot_with_game_state(self):  # type: ignore
+    def test_save_snapshot_with_game_state(self) -> None:
         """Test snapshot creation with game state info"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -278,7 +278,7 @@ class TestSaveManagerSnapshotCreation:
             assert metadata.badges == 3
             assert metadata.team_hp_percent == 75.0
 
-    def test_snapshot_rotation(self):  # type: ignore
+    def test_snapshot_rotation(self) -> None:
         """Test automatic rotation when exceeding max snapshots"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir, max_snapshots=3)
@@ -297,7 +297,7 @@ class TestSaveManagerSnapshotCreation:
             assert len(manager._snapshot_cache) == 3
             assert "interval_0" not in manager._snapshot_cache
 
-    def test_snapshot_id_format(self):  # type: ignore
+    def test_snapshot_id_format(self) -> None:
         """Test that snapshot IDs have correct format"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -319,7 +319,7 @@ class TestSaveManagerSnapshotCreation:
 class TestSaveManagerLoading:
     """Tests for snapshot loading functionality"""
 
-    def test_load_snapshot_success(self):  # type: ignore
+    def test_load_snapshot_success(self) -> None:
         """Test successful snapshot loading"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -342,7 +342,7 @@ class TestSaveManagerLoading:
             assert load_success is True
             mock_emulator.load_state_bytes.assert_called_once()
 
-    def test_load_snapshot_not_found(self):  # type: ignore
+    def test_load_snapshot_not_found(self) -> None:
         """Test loading non-existent snapshot"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -354,7 +354,7 @@ class TestSaveManagerLoading:
             
             assert success is False
 
-    def test_validate_snapshot_valid(self):  # type: ignore
+    def test_validate_snapshot_valid(self) -> None:
         """Test validation of valid snapshot"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -373,7 +373,7 @@ class TestSaveManagerLoading:
             assert is_valid is True
             assert manager._snapshot_cache[snapshot_id].is_valid is True
 
-    def test_validate_snapshot_missing_file(self):  # type: ignore
+    def test_validate_snapshot_missing_file(self) -> None:
         """Test validation of snapshot with missing file"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -396,7 +396,7 @@ class TestSaveManagerLoading:
 class TestSaveManagerManagement:
     """Tests for snapshot management functionality"""
 
-    def test_get_snapshot_info(self):  # type: ignore
+    def test_get_snapshot_info(self) -> None:
         """Test getting snapshot info"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -415,7 +415,7 @@ class TestSaveManagerManagement:
             assert info is not None
             assert info["location"] == "Pallet Town"
 
-    def test_get_recent_snapshots(self):  # type: ignore
+    def test_get_recent_snapshots(self) -> None:
         """Test getting recent snapshots"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -433,7 +433,7 @@ class TestSaveManagerManagement:
             recent = manager.get_recent_snapshots(count=3)
             assert len(recent) == 3
 
-    def test_delete_snapshot(self):  # type: ignore
+    def test_delete_snapshot(self) -> None:
         """Test deleting a snapshot"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -457,7 +457,7 @@ class TestSaveManagerManagement:
             assert snapshot_id not in manager._snapshot_cache
             assert not state_file.exists()
 
-    def test_delete_snapshot_not_found(self):  # type: ignore
+    def test_delete_snapshot_not_found(self) -> None:
         """Test deleting non-existent snapshot"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -470,7 +470,7 @@ class TestSaveManagerManagement:
 class TestSaveManagerEmergency:
     """Tests for emergency snapshot functionality"""
 
-    def test_save_emergency_snapshot(self):  # type: ignore
+    def test_save_emergency_snapshot(self) -> None:
         """Test creating emergency snapshot"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -489,7 +489,7 @@ class TestSaveManagerEmergency:
             assert (manager.emergency_dir / f"{snapshot_id}.state").exists()
             assert (manager.emergency_dir / f"{snapshot_id}.json").exists()
 
-    def test_get_emergency_snapshots(self):  # type: ignore
+    def test_get_emergency_snapshots(self) -> None:
         """Test getting emergency snapshots"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -504,7 +504,7 @@ class TestSaveManagerEmergency:
             emergency = manager.get_emergency_snapshots()
             assert len(emergency) == 2
 
-    def test_emergency_snapshot_preserved_on_rotation(self):  # type: ignore
+    def test_emergency_snapshot_preserved_on_rotation(self) -> None:
         """Test that emergency snapshots are not affected by rotation"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir, max_snapshots=2)
@@ -529,7 +529,7 @@ class TestSaveManagerEmergency:
 class TestSaveManagerEvents:
     """Tests for event-triggered snapshot functionality"""
 
-    def test_should_snapshot_interval_true(self):  # type: ignore
+    def test_should_snapshot_interval_true(self) -> None:
         """Test interval snapshot trigger"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(
@@ -541,7 +541,7 @@ class TestSaveManagerEvents:
             
             assert manager.should_snapshot_interval(1001) is True
 
-    def test_should_snapshot_interval_false(self):  # type: ignore
+    def test_should_snapshot_interval_false(self) -> None:
         """Test interval not yet reached"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(
@@ -553,7 +553,7 @@ class TestSaveManagerEvents:
             
             assert manager.should_snapshot_interval(500) is False
 
-    def test_should_snapshot_event(self):  # type: ignore
+    def test_should_snapshot_event(self) -> None:
         """Test event-triggered snapshot"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(
@@ -570,7 +570,7 @@ class TestSaveManagerEvents:
 class TestSaveManagerStatistics:
     """Tests for save manager statistics"""
 
-    def test_get_statistics(self):  # type: ignore
+    def test_get_statistics(self) -> None:
         """Test getting statistics"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(
@@ -597,7 +597,7 @@ class TestSaveManagerStatistics:
             assert stats["snapshot_interval_ticks"] == 1000
             assert stats["total_size_bytes"] > 0
 
-    def test_cleanup_all(self):  # type: ignore
+    def test_cleanup_all(self) -> None:
         """Test cleanup of all snapshots"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -619,7 +619,7 @@ class TestSaveManagerStatistics:
 class TestSaveManagerIntegration:
     """Integration tests for SaveManager"""
 
-    def test_full_snapshot_lifecycle(self):  # type: ignore
+    def test_full_snapshot_lifecycle(self) -> None:
         """Test complete snapshot lifecycle"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir, max_snapshots=5)
@@ -651,7 +651,7 @@ class TestSaveManagerIntegration:
             stats = manager.get_statistics()
             assert stats["total_snapshots"] == 3
 
-    def test_thread_safety(self):  # type: ignore
+    def test_thread_safety(self) -> None:
         """Test thread-safe operations"""
         import threading
         
@@ -662,7 +662,7 @@ class TestSaveManagerIntegration:
             mock_emulator = Mock()
             mock_emulator.get_state_bytes.return_value = b"thread_test"
             
-            def save_snapshots():  # type: ignore
+            def save_snapshots() -> None:
                 for i in range(10):
                     manager.save_snapshot(
                         emulator=mock_emulator,
@@ -678,7 +678,7 @@ class TestSaveManagerIntegration:
             
             assert len(manager._snapshot_cache) <= config.max_snapshots
 
-    def test_snapshot_with_all_reasons(self):  # type: ignore
+    def test_snapshot_with_all_reasons(self) -> None:
         """Test creating snapshots with all reason types"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(save_dir=tmpdir)
@@ -696,7 +696,7 @@ class TestSaveManagerIntegration:
                 assert success is True
                 assert reason.value in snapshot_id
 
-    def test_config_validation(self):  # type: ignore
+    def test_config_validation(self) -> None:
         """Test configuration validation"""
         with tempfile.TemporaryDirectory() as tmpdir:
             config = SaveManagerConfig(

@@ -136,9 +136,9 @@ class BattleAnalyzer:
         
         is_shiny = False
         if is_enemy:
-            sprite_region = self.sprite_recognizer._extract_enemy_sprite_region(screenshot)  # type: ignore
+            sprite_region = self.sprite_recognizer._extract_enemy_sprite_region(screenshot)
         else:
-            sprite_region = self.sprite_recognizer._extract_player_sprite_region(screenshot)  # type: ignore
+            sprite_region = self.sprite_recognizer._extract_player_sprite_region(screenshot)
         if sprite_region is not None:
             is_shiny = self.sprite_recognizer.is_shiny(sprite_region)
         
@@ -247,7 +247,7 @@ class BattleAnalyzer:
         modifier *= self.get_type_effectiveness(attack_type, defender_types)
         modifier *= (np.random.random() * 0.15 + 0.85)
         
-        damage = (((2 * attacker_level / 5 + 2) * attack_power * modifier) / 50) + 2
+        damage: float = (((2 * attacker_level / 5 + 2) * attack_power * modifier) / 50) + 2
         
         return damage
     

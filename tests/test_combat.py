@@ -25,45 +25,45 @@ from src.core.combat import (
 class TestTypeChart:
     """Test type effectiveness chart calculations"""
 
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.type_chart = TypeChart()
 
-    def test_fire_vs_grass_super_effective(self):  # type: ignore
+    def test_fire_vs_grass_super_effective(self) -> None:
         """Fire should be super effective against Grass"""
         effectiveness = self.type_chart.get_effectiveness(
             PokemonType.FIRE, [PokemonType.GRASS]
         )
         assert effectiveness == 2.0
 
-    def test_fire_vs_water_not_very_effective(self):  # type: ignore
+    def test_fire_vs_water_not_very_effective(self) -> None:
         """Fire should not be very effective against Water"""
         effectiveness = self.type_chart.get_effectiveness(
             PokemonType.FIRE, [PokemonType.WATER]
         )
         assert effectiveness == 0.5
 
-    def test_electric_vs_ground_immune(self):  # type: ignore
+    def test_electric_vs_ground_immune(self) -> None:
         """Electric should be immune to Ground"""
         effectiveness = self.type_chart.get_effectiveness(
             PokemonType.ELECTRIC, [PokemonType.GROUND]
         )
         assert effectiveness == 0.0
 
-    def test_fighting_vs_ghost_immune(self):  # type: ignore
+    def test_fighting_vs_ghost_immune(self) -> None:
         """Fighting should be immune to Ghost"""
         effectiveness = self.type_chart.get_effectiveness(
             PokemonType.FIGHTING, [PokemonType.GHOST]
         )
         assert effectiveness == 0.0
 
-    def test_psychic_vs_dark_immune(self):  # type: ignore
+    def test_psychic_vs_dark_immune(self) -> None:
         """Psychic should be immune to Dark"""
         effectiveness = self.type_chart.get_effectiveness(
             PokemonType.PSYCHIC, [PokemonType.DARK]
         )
         assert effectiveness == 0.0
 
-    def test_dual_type_multiplication(self):  # type: ignore
+    def test_dual_type_multiplication(self) -> None:
         """Dual types should multiply effectiveness"""
         charizard_types = [PokemonType.FIRE, PokemonType.FLYING]
         water_effectiveness = self.type_chart.get_effectiveness(
@@ -71,7 +71,7 @@ class TestTypeChart:
         )
         assert water_effectiveness == 2.0
 
-    def test_super_effective_helper(self):  # type: ignore
+    def test_super_effective_helper(self) -> None:
         """is_super_effective should detect >= 2.0"""
         assert self.type_chart.is_super_effective(
             PokemonType.FIRE, [PokemonType.GRASS]
@@ -80,7 +80,7 @@ class TestTypeChart:
             PokemonType.FIRE, [PokemonType.WATER]
         )
 
-    def test_immune_helper(self):  # type: ignore
+    def test_immune_helper(self) -> None:
         """is_immune should detect 0.0 effectiveness"""
         assert self.type_chart.is_immune(
             PokemonType.NORMAL, [PokemonType.GHOST]
@@ -89,7 +89,7 @@ class TestTypeChart:
             PokemonType.FIRE, [PokemonType.GRASS]
         )
 
-    def test_all_18_types_present(self):  # type: ignore
+    def test_all_18_types_present(self) -> None:
         """All 18 types should be in the chart"""
         expected_types = [
             PokemonType.NORMAL, PokemonType.FIRE, PokemonType.WATER,
@@ -102,7 +102,7 @@ class TestTypeChart:
         for ptype in expected_types:
             assert ptype in [t for t in PokemonType]
 
-    def test_neutral_damage(self):  # type: ignore
+    def test_neutral_damage(self) -> None:
         """Neutral matchups should return 1.0"""
         effectiveness = self.type_chart.get_effectiveness(
             PokemonType.NORMAL, [PokemonType.ELECTRIC]
@@ -113,11 +113,11 @@ class TestTypeChart:
 class TestDamageCalculator:
     """Test Gen 1 damage calculation"""
 
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.type_chart = TypeChart()
         self.calculator = DamageCalculator(self.type_chart)
 
-    def test_base_damage_formula(self):  # type: ignore
+    def test_base_damage_formula(self) -> None:
         """Test basic damage formula output"""
         damage = self.calculator.calculate_base_damage(
             level=50, power=100, attack=100, defense=100
@@ -125,7 +125,7 @@ class TestDamageCalculator:
         assert damage > 0
         assert isinstance(damage, int)
 
-    def test_stab_bonus(self):  # type: ignore
+    def test_stab_bonus(self) -> None:
         """STAB should increase damage by 1.5x"""
         damage_no_stab = self.calculator.calculate_base_damage(
             level=50, power=100, attack=100, defense=100, stab=1.0
@@ -135,7 +135,7 @@ class TestDamageCalculator:
         )
         assert damage_stab == int(damage_no_stab * 1.5)
 
-    def test_type_effectiveness_multiplier(self):  # type: ignore
+    def test_type_effectiveness_multiplier(self) -> None:
         """Type effectiveness should multiply damage"""
         damage_neutral = self.calculator.calculate_base_damage(
             level=50, power=100, attack=100, defense=100,
@@ -147,7 +147,7 @@ class TestDamageCalculator:
         )
         assert damage_super == damage_neutral * 2
 
-    def test_critical_hit(self):  # type: ignore
+    def test_critical_hit(self) -> None:
         """Critical hit should double damage"""
         damage_normal = self.calculator.calculate_base_damage(
             level=50, power=100, attack=100, defense=100,
@@ -159,7 +159,7 @@ class TestDamageCalculator:
         )
         assert damage_crit == damage_normal * 2
 
-    def test_damage_range_bounds(self):  # type: ignore
+    def test_damage_range_bounds(self) -> None:
         """Damage range should be consistent with 85-100% random factor"""
         damage_085 = self.calculator.calculate_base_damage(
             level=50, power=100, attack=100, defense=100,
@@ -171,7 +171,7 @@ class TestDamageCalculator:
         )
         assert damage_085 <= damage_100
 
-    def test_effective_stat_calculation(self):  # type: ignore
+    def test_effective_stat_calculation(self) -> None:
         """Stat stages should modify stats correctly"""
         base_stat = 100
         assert self.calculator.calculate_effective_stat(base_stat, 0) == 100.0
@@ -179,13 +179,13 @@ class TestDamageCalculator:
         assert self.calculator.calculate_effective_stat(base_stat, 2) == 200.0
         assert self.calculator.calculate_effective_stat(base_stat, -1) == 50.0
 
-    def test_stab_detection(self):  # type: ignore
+    def test_stab_detection(self) -> None:
         """STAB should be detected when move type matches Pokemon type"""
         pikachu_types = [PokemonType.ELECTRIC]
         assert self.calculator.calculate_stab(PokemonType.ELECTRIC, pikachu_types) == 1.5
         assert self.calculator.calculate_stab(PokemonType.NORMAL, pikachu_types) == 1.0
 
-    def test_damage_range_calculation(self):  # type: ignore
+    def test_damage_range_calculation(self) -> None:
         """Damage range should provide min/max values"""
         attacker = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -212,7 +212,7 @@ class TestDamageCalculator:
         assert damage_range.expected_damage >= damage_range.min_damage
         assert damage_range.expected_damage <= damage_range.max_damage
 
-    def test_ko_prediction(self):  # type: ignore
+    def test_ko_prediction(self) -> None:
         """KO prediction should be accurate"""
         attacker = Pokemon(
             name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
@@ -240,7 +240,7 @@ class TestDamageCalculator:
         if guaranteed:
             assert defender.current_hp <= damage_range.min_damage
 
-    def test_minimum_damage(self):  # type: ignore
+    def test_minimum_damage(self) -> None:
         """Minimum damage should always be at least 1"""
         damage = self.calculator.calculate_base_damage(
             level=1, power=1, attack=1, defense=1000,
@@ -253,11 +253,11 @@ class TestDamageCalculator:
 class TestMoveSelector:
     """Test move selection and scoring heuristics"""
 
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.type_chart = TypeChart()
         self.selector = MoveSelector(self.type_chart)
 
-    def test_stab_scoring_bonus(self):  # type: ignore
+    def test_stab_scoring_bonus(self) -> None:
         """STAB moves should score higher"""
         attacker = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -289,7 +289,7 @@ class TestMoveSelector:
         assert not quick_score.has_stab
         assert thunder_score.score > quick_score.score
 
-    def test_type_effectiveness_scoring(self):  # type: ignore
+    def test_type_effectiveness_scoring(self) -> None:
         """Super effective moves should score higher"""
         attacker = Pokemon(
             name="Charmander", level=50, types=[PokemonType.FIRE],
@@ -321,7 +321,7 @@ class TestMoveSelector:
         assert scratch_score.effectiveness == 1.0
         assert ember_score.score > scratch_score.score
 
-    def test_accuracy_penalty(self):  # type: ignore
+    def test_accuracy_penalty(self) -> None:
         """Low accuracy moves should be penalized for risk-averse AI"""
         attacker = Pokemon(
             name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
@@ -351,7 +351,7 @@ class TestMoveSelector:
 
         assert risk_averse.score <= not_risk_averse.score
 
-    def test_ko_bonus(self):  # type: ignore
+    def test_ko_bonus(self) -> None:
         """Moves that can KO should get significant bonus"""
         attacker = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -375,7 +375,7 @@ class TestMoveSelector:
 
         assert score.ko_likely
 
-    def test_immune_moves_scored_zero(self):  # type: ignore
+    def test_immune_moves_scored_zero(self) -> None:
         """Immune moves should get zero score"""
         attacker = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -400,7 +400,7 @@ class TestMoveSelector:
         assert score.score == 0.0
         assert "Immune" in score.notes[0]
 
-    def test_select_best_move(self):  # type: ignore
+    def test_select_best_move(self) -> None:
         """Select best move should return highest scoring move"""
         attacker = Pokemon(
             name="Blastoise", level=50, types=[PokemonType.WATER],
@@ -430,7 +430,7 @@ class TestMoveSelector:
         assert best.effectiveness == 2.0
         assert best.has_stab
 
-    def test_priority_move_scoring(self):  # type: ignore
+    def test_priority_move_scoring(self) -> None:
         """Priority moves should get bonus when slower"""
         slow_pokemon = Pokemon(
             name="Slowpoke", level=50, types=[PokemonType.WATER, PokemonType.PSYCHIC],
@@ -464,23 +464,23 @@ class TestMoveSelector:
 class TestEnemyPredictor:
     """Test enemy behavior prediction"""
 
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.type_chart = TypeChart()
         self.predictor = EnemyPredictor(self.type_chart)
 
-    def test_base_move_prediction(self):  # type: ignore
+    def test_base_move_prediction(self) -> None:
         """Should predict known base moves"""
         moves = self.predictor.predict_moves("Pikachu", 50)
         assert "Thunder Shock" in moves
         assert "Quick Attack" in moves
 
-    def test_trainer_behavior_retrieval(self):  # type: ignore
+    def test_trainer_behavior_retrieval(self) -> None:
         """Should retrieve behavior for trainer types"""
         gym_behavior = self.predictor.get_trainer_behavior("gym_leader")
         assert gym_behavior["aggression"] > 0.8
         assert gym_behavior["prefer_strong_moves"]
 
-    def test_threat_level_calculation(self):  # type: ignore
+    def test_threat_level_calculation(self) -> None:
         """Threat level should reflect danger"""
         enemy = Pokemon(
             name="Gyarados", level=55, types=[PokemonType.WATER, PokemonType.FLYING],
@@ -506,13 +506,13 @@ class TestEnemyPredictor:
         assert 0.0 <= threat <= 1.0
         assert threat > 0
 
-    def test_unknown_species_default_moves(self):  # type: ignore
+    def test_unknown_species_default_moves(self) -> None:
         """Unknown species should get default moves"""
         moves = self.predictor.predict_moves("UnknownPokemon", 50)
         assert len(moves) > 0
         assert "Tackle" in moves
 
-    def test_aggressive_trainer_prediction(self):  # type: ignore
+    def test_aggressive_trainer_prediction(self) -> None:
         """Aggressive trainers should prefer strong moves"""
         youngster = self.predictor.get_trainer_behavior("youngster")
         assert youngster["aggression"] > 0.5
@@ -522,12 +522,12 @@ class TestEnemyPredictor:
 class TestBattleStrategist:
     """Test battle strategy decisions"""
 
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.type_chart = TypeChart()
         self.strategist = BattleStrategist(self.type_chart)
         self.move_selector = MoveSelector(self.type_chart)
 
-    def test_switch_on_low_hp(self):  # type: ignore
+    def test_switch_on_low_hp(self) -> None:
         """Should switch when HP is critical"""
         current = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -556,7 +556,7 @@ class TestBattleStrategist:
         assert should_switch
         assert "Critical HP" in reason or "emergency" in reason.lower()
 
-    def test_switch_on_type_disadvantage(self):  # type: ignore
+    def test_switch_on_type_disadvantage(self) -> None:
         """Should switch when at severe type disadvantage"""
         current = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -590,7 +590,7 @@ class TestBattleStrategist:
 
         assert should_switch
 
-    def test_no_switch_when_can_ko(self):  # type: ignore
+    def test_no_switch_when_can_ko(self) -> None:
         """Should not switch when can KO opponent"""
         current = Pokemon(
             name="Charizard", level=60, types=[PokemonType.FIRE, PokemonType.FLYING],
@@ -607,8 +607,7 @@ class TestBattleStrategist:
             max_hp=30, current_hp=5, attack=30, defense=20,
             speed=50, special=20, moves=[]
         )
-        party = []  # type: ignore
-
+        party = []
         should_switch, reason, _ = self.strategist.should_switch(
             current, opponent, party, self.move_selector
         )
@@ -616,7 +615,7 @@ class TestBattleStrategist:
         assert not should_switch
         assert "Can KO" in reason
 
-    def test_catch_probability_calculation(self):  # type: ignore
+    def test_catch_probability_calculation(self) -> None:
         """Catch probability should account for HP and status"""
         catch = self.strategist.calculate_catch_probability(
             species="Pikachu",
@@ -631,7 +630,7 @@ class TestBattleStrategist:
         assert catch.hp_factor > 0
         assert 0.0 <= catch.success_probability <= 1.0
 
-    def test_catch_ball_factor(self):  # type: ignore
+    def test_catch_ball_factor(self) -> None:
         """Different balls should have different factors"""
         catch_poke = self.strategist.calculate_catch_probability(
             "Pikachu", 100, 50, StatusCondition.NONE, "Poke Ball"
@@ -646,7 +645,7 @@ class TestBattleStrategist:
         assert catch_great.ball_factor > catch_poke.ball_factor
         assert catch_ultra.ball_factor > catch_great.ball_factor
 
-    def test_setup_opportunity_assessment(self):  # type: ignore
+    def test_setup_opportunity_assessment(self) -> None:
         """Should assess if setup is safe"""
         attacker = Pokemon(
             name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
@@ -670,7 +669,7 @@ class TestBattleStrategist:
         assert is_safe
         assert score > 0.5
 
-    def test_1_hp_risk_assessment(self):  # type: ignore
+    def test_1_hp_risk_assessment(self) -> None:
         """Should assess risk when enemy is at 1 HP"""
         attacker = Pokemon(
             name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
@@ -697,7 +696,7 @@ class TestBattleStrategist:
 
         assert is_safe or "GUARANTEED" in reasoning or "HIGH chance" in reasoning
 
-    def test_switch_candidate_evaluation(self):  # type: ignore
+    def test_switch_candidate_evaluation(self) -> None:
         """Should evaluate switch candidates properly"""
         current = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -742,10 +741,10 @@ class TestBattleStrategist:
 class TestCombatManager:
     """Test main combat manager"""
 
-    def setup_method(self):  # type: ignore
+    def setup_method(self) -> None:
         self.combat = CombatManager()
 
-    def test_get_combat_state(self):  # type: ignore
+    def test_get_combat_state(self) -> None:
         """Should return comprehensive combat state"""
         player = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -779,7 +778,7 @@ class TestCombatManager:
         assert "should_switch" in state
         assert state["best_move"] == "Thunder Shock"
 
-    def test_calculate_catch_odds(self):  # type: ignore
+    def test_calculate_catch_odds(self) -> None:
         """Should calculate catch odds for wild Pokemon"""
         odds = self.combat.calculate_catch_odds(
             species="Pikachu",
@@ -792,7 +791,7 @@ class TestCombatManager:
         assert isinstance(odds, CatchAttempt)
         assert odds.success_probability > 0.5
 
-    def test_combat_state_switch_recommendation(self):  # type: ignore
+    def test_combat_state_switch_recommendation(self) -> None:
         """Should recommend switch when appropriate"""
         player = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -826,14 +825,14 @@ class TestCombatManager:
 class TestStatStages:
     """Test stat stage calculations"""
 
-    def test_multiplier_values(self):  # type: ignore
+    def test_multiplier_values(self) -> None:
         """Stat stages should have correct multipliers"""
         assert StatStage.ZERO.multiplier == 1.0
         assert StatStage.POSITIVE_1.multiplier == 1.5
         assert StatStage.POSITIVE_2.multiplier == 2.0
         assert StatStage.POSITIVE_6.multiplier == 4.0
 
-    def test_negative_multipliers(self):  # type: ignore
+    def test_negative_multipliers(self) -> None:
         """Negative stat stages should have reduced multipliers"""
         assert StatStage.NEGATIVE_1.multiplier == 0.6667
         assert StatStage.NEGATIVE_2.multiplier == 0.5
@@ -843,7 +842,7 @@ class TestStatStages:
 class TestMoveCategories:
     """Test move categories and attributes"""
 
-    def test_move_creation(self):  # type: ignore
+    def test_move_creation(self) -> None:
         """Moves should be created with correct attributes"""
         move = Move(
             name="Thunderbolt",
@@ -862,7 +861,7 @@ class TestMoveCategories:
         assert move.power == 90
         assert move.category == MoveCategory.SPECIAL
 
-    def test_status_move(self):  # type: ignore
+    def test_status_move(self) -> None:
         """Status moves should have 0 power"""
         status_move = Move(
             name="Thunder Wave",
@@ -877,7 +876,7 @@ class TestMoveCategories:
         assert status_move.category == MoveCategory.STATUS
         assert status_move.power == 0
 
-    def test_priority_move(self):  # type: ignore
+    def test_priority_move(self) -> None:
         """Priority moves should have positive priority"""
         quick_attack = Move(
             name="Quick Attack",
@@ -892,7 +891,7 @@ class TestMoveCategories:
 
         assert quick_attack.priority == 1
 
-    def test_high_crit_move(self):  # type: ignore
+    def test_high_crit_move(self) -> None:
         """High crit moves should be marked"""
         slash = Move(
             name="Slash",
@@ -911,7 +910,7 @@ class TestMoveCategories:
 class TestPokemonData:
     """Test Pokemon data structure"""
 
-    def test_pokemon_creation(self):  # type: ignore
+    def test_pokemon_creation(self) -> None:
         """Pokemon should be created with correct attributes"""
         pikachu = Pokemon(
             name="Pikachu",
@@ -933,7 +932,7 @@ class TestPokemonData:
         assert pikachu.current_hp == 80
         assert pikachu.status == StatusCondition.NONE
 
-    def test_pokemon_with_moves(self):  # type: ignore
+    def test_pokemon_with_moves(self) -> None:
         """Pokemon with moves should track them"""
         thunder_shock = Move(
             name="Thunder Shock", move_type=PokemonType.ELECTRIC,
@@ -956,7 +955,7 @@ class TestPokemonData:
         assert len(pikachu.moves) == 2
         assert pikachu.moves[0].name == "Thunder Shock"
 
-    def test_pokemon_with_status(self):  # type: ignore
+    def test_pokemon_with_status(self) -> None:
         """Pokemon should track status conditions"""
         paralyzed_pikachu = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -967,7 +966,7 @@ class TestPokemonData:
 
         assert paralyzed_pikachu.status == StatusCondition.PARALYZED
 
-    def test_pokemon_stat_stages(self):  # type: ignore
+    def test_pokemon_stat_stages(self) -> None:
         """Pokemon should track stat stages"""
         boosted_pokemon = Pokemon(
             name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
@@ -983,7 +982,7 @@ class TestPokemonData:
 class TestStatusConditions:
     """Test status condition handling"""
 
-    def test_status_none(self):  # type: ignore
+    def test_status_none(self) -> None:
         """Default status should be NONE"""
         pokemon = Pokemon(
             name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
@@ -993,7 +992,7 @@ class TestStatusConditions:
 
         assert pokemon.status == StatusCondition.NONE
 
-    def test_all_statuses_defined(self):  # type: ignore
+    def test_all_statuses_defined(self) -> None:
         """All status conditions should be defined"""
         expected_statuses = [
             StatusCondition.NONE, StatusCondition.POISONED,

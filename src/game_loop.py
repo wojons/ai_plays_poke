@@ -121,15 +121,15 @@ class GameLoop:
         self.session_id = None
         
         # Command pipeline
-        self.pending_commands: list = []
-        self.command_history: list = []
+        self.pending_commands: list[Dict[str, Any]] = []
+        self.command_history: list[Dict[str, Any]] = []
         
         # Current battle tracking
         self.current_battle_id: Optional[int] = None
         self.battle_turn_count = 0
         
         # Metrics
-        self.metrics = {
+        self.metrics: dict[str, Any] = {
             "total_ticks": 0,
             "screenshots_taken": 0,
             "commands_sent": 0,
@@ -167,8 +167,7 @@ class GameLoop:
         )
         
         self.is_running = True
-        self.metrics["start_time"] = datetime.now()  # type: ignore
-        
+        self.metrics["start_time"] = datetime.now()
         print("✅ System initialized. Beginning game loop...")
         print("Press Ctrl+C to stop gracefully")
         print()
@@ -225,14 +224,13 @@ class GameLoop:
         print(f"   Losses: {self.metrics['battles_lost']}")
         
         if self.metrics["start_time"]:
-            duration = (datetime.now() - self.metrics["start_time"]).total_seconds()  # type: ignore
+            duration = (datetime.now() - self.metrics["start_time"]).total_seconds()
             print(f"   Duration: {duration:.1f} seconds")
     
     def run_single_tick(self) -> None:
         """Execute one iteration of the game loop"""
         self.current_tick += 1
-        self.metrics["total_ticks"] += 1  # type: ignore
-        
+        self.metrics["total_ticks"] += 1
         # Tick emulator
         if self.emulator_mgr:
             emulator = self.emulator_mgr.get_instance(self.current_instance)
@@ -305,7 +303,7 @@ class GameLoop:
             tick=self.current_tick
         )
         
-        self.metrics["screenshots_taken"] += 1  # type: ignore
+        self.metrics["screenshots_taken"] += 1
         self.live_view.should_display = True  # For screenshot manager tracking
         self.live_view.current_image = screenshot
         
@@ -620,8 +618,7 @@ class GameLoop:
                 "execution_time_ms": execution_time
             })
             
-            self.metrics["commands_sent"] += 1  # type: ignore
-            
+            self.metrics["commands_sent"] += 1
             self.db.log_command({
                 "tick": command["tick"],
                 "command_type": parsed.get("type", "unknown"),
@@ -680,7 +677,7 @@ class GameLoop:
                 "player_pokemon": "Starter",
                 "player_level": 5
             })
-            self.metrics["battles_encountered"] += 1  # type: ignore
+            self.metrics["battles_encountered"] += 1
             self.battle_turn_count = 0
             print("⚔️ Battle started!")
             
@@ -695,17 +692,16 @@ class GameLoop:
             self.db.log_battle_end(self.current_battle_id, outcome, self.battle_turn_count)
             
             if outcome == "victory":
-                self.metrics["battles_won"] += 1  # type: ignore
+                self.metrics["battles_won"] += 1
             else:
-                self.metrics["battles_lost"] += 1  # type: ignore
-            
+                self.metrics["battles_lost"] += 1
             print(f"🏁 Battle ended! Result: {outcome}")
             
             self.current_battle_id = None
             self.battle_turn_count = 0
 
 
-def create_config(args) -> Dict[str, Any]:  # type: ignore
+def create_config(args: Any) -> Dict[str, Any]:
     """Create configuration from CLI arguments"""
     return {
         "rom_path": args.rom,
@@ -801,8 +797,7 @@ Examples:
     rom_path = Path(args.rom)
     if not rom_path.exists():
         print(f"❌ ROM file not found: {rom_path}")
-        return 1  # type: ignore
-    
+        return 1
     # Create configuration
     config = create_config(args)
     
@@ -810,7 +805,7 @@ Examples:
     game_loop = GameLoop(config)
     
     # Handle graceful shutdown
-    def signal_handler(sig, frame) -> None:  # type: ignore
+    def signal_handler(sig, frame) -> None:
         print("\n🤷 Signal received, stopping gracefully...")
         game_loop.stop()
         sys.exit(0)
@@ -836,12 +831,10 @@ Examples:
         print(f"\n💥 ERROR: {e}")
         import traceback
         traceback.print_exc()
-        return 1  # type: ignore
+        return 1
     finally:
         game_loop.stop()
     
-    return 0  # type: ignore
-
-
+    return 0
 if __name__ == "__main__":
-    sys.exit(main())  # type: ignore
+    sys.exit(main())

@@ -20,7 +20,7 @@ import json
 from unittest.mock import Mock, MagicMock, patch
 from dataclasses import asdict
 
-from src.core.failsafe import (  # type: ignore
+from src.core.failsafe import (
     ConfidenceScorer, ConfidenceBreakdown, ConfidenceLevel,
     SoftlockDetector, SoftlockInfo,
     EmergencyRecovery, RecoveryState, RecoveryResult,
@@ -34,7 +34,7 @@ from src.core.state_machine import HierarchicalStateMachine, StateType
 class TestConfidenceScorer:
     """Tests for ConfidenceScorer class (15 tests)"""
 
-    def test_calculate_confidence_with_all_inputs(self):  # type: ignore
+    def test_calculate_confidence_with_all_inputs(self) -> None:
         """Test confidence calculation with all inputs provided"""
         scorer = ConfidenceScorer()
         result = scorer.calculate_confidence(
@@ -51,7 +51,7 @@ class TestConfidenceScorer:
         assert result.tick == 100
         assert len(result.factors) == 3
 
-    def test_calculate_confidence_with_partial_inputs(self):  # type: ignore
+    def test_calculate_confidence_with_partial_inputs(self) -> None:
         """Test confidence calculation with partial inputs"""
         scorer = ConfidenceScorer()
         result = scorer.calculate_confidence(
@@ -65,7 +65,7 @@ class TestConfidenceScorer:
         assert result.tick == 200
         assert len(result.factors) >= 1
 
-    def test_calculate_confidence_with_none_inputs(self):  # type: ignore
+    def test_calculate_confidence_with_none_inputs(self) -> None:
         """Test confidence calculation with all None inputs"""
         scorer = ConfidenceScorer()
         result = scorer.calculate_confidence(tick=300)
@@ -76,7 +76,7 @@ class TestConfidenceScorer:
         assert result.overall_confidence == 1.0  # all defaults
         assert result.tick == 300
 
-    def test_calculate_confidence_stores_history(self):  # type: ignore
+    def test_calculate_confidence_stores_history(self) -> None:
         """Test that confidence calculations are stored in history"""
         scorer = ConfidenceScorer()
         
@@ -90,71 +90,69 @@ class TestConfidenceScorer:
         assert history[1].tick == 2
         assert history[2].tick == 3
 
-    def test_get_confidence_level_high(self):  # type: ignore
+    def test_get_confidence_level_high(self) -> None:
         """Test confidence level classification - HIGH"""
         scorer = ConfidenceScorer()
         level = scorer.get_confidence_level(0.9)
         assert level == ConfidenceLevel.HIGH
 
-    def test_get_confidence_level_medium(self):  # type: ignore
+    def test_get_confidence_level_medium(self) -> None:
         """Test confidence level classification - MEDIUM"""
         scorer = ConfidenceScorer()
         level = scorer.get_confidence_level(0.75)
         assert level == ConfidenceLevel.MEDIUM
 
-    def test_get_confidence_level_low(self):  # type: ignore
+    def test_get_confidence_level_low(self) -> None:
         """Test confidence level classification - LOW"""
         scorer = ConfidenceScorer()
         level = scorer.get_confidence_level(0.55)
         assert level == ConfidenceLevel.LOW
 
-    def test_get_confidence_level_critical(self):  # type: ignore
+    def test_get_confidence_level_critical(self) -> None:
         """Test confidence level classification - CRITICAL"""
         scorer = ConfidenceScorer()
         level = scorer.get_confidence_level(0.25)
         assert level == ConfidenceLevel.CRITICAL
 
-    def test_is_confidence_acceptable_above_threshold(self):  # type: ignore
+    def test_is_confidence_acceptable_above_threshold(self) -> None:
         """Test acceptability check above threshold"""
         scorer = ConfidenceScorer(default_threshold=0.7)
         assert scorer.is_confidence_acceptable(0.8) is True
         assert scorer.is_confidence_acceptable(0.7) is True
 
-    def test_is_confidence_acceptable_below_threshold(self):  # type: ignore
+    def test_is_confidence_acceptable_below_threshold(self) -> None:
         """Test acceptability check below threshold"""
         scorer = ConfidenceScorer(default_threshold=0.7)
         assert scorer.is_confidence_acceptable(0.6) is False
         assert scorer.is_confidence_acceptable(0.3) is False
 
-    def test_get_recent_confidence_trend_insufficient_data(self):  # type: ignore
+    def test_get_recent_confidence_trend_insufficient_data(self) -> None:
         """Test trend calculation with insufficient data"""
         scorer = ConfidenceScorer()
         trend = scorer.get_recent_confidence_trend()
         assert trend["trend"] == "insufficient_data"
         assert trend["avg"] is None
 
-    def test_get_recent_confidence_trend_improving(self):  # type: ignore
+    def test_get_recent_confidence_trend_improving(self) -> None:
         """Test trend calculation - improving"""
         scorer = ConfidenceScorer()
         for i in [0.5, 0.6, 0.7, 0.8, 0.85]:
-            scorer.calculate_confidence(ai_confidence=i, tick=i)  # type: ignore
-        
+            scorer.calculate_confidence(ai_confidence=i, tick=i)
         trend = scorer.get_recent_confidence_trend()
         assert trend["trend"] == "improving"
         assert trend["avg"] is not None
         assert trend["min"] >= 0.5
         assert trend["max"] <= 1.0
 
-    def test_get_recent_confidence_trend_declining(self):  # type: ignore
+    def test_get_recent_confidence_trend_declining(self) -> None:
         """Test trend calculation - declining"""
         scorer = ConfidenceScorer()
         for i in [0.9, 0.85, 0.8, 0.7, 0.6]:
-            scorer.calculate_confidence(ai_confidence=i, tick=i)  # type: ignore
-        
+            scorer.calculate_confidence(ai_confidence=i, tick=i)
         trend = scorer.get_recent_confidence_trend()
         assert trend["trend"] == "declining"
 
-    def test_get_recent_confidence_trend_stable(self):  # type: ignore
+    def test_get_recent_confidence_trend_stable(self) -> None:
         """Test trend calculation - stable"""
         scorer = ConfidenceScorer()
         confidence = 0.75
@@ -164,7 +162,7 @@ class TestConfidenceScorer:
         trend = scorer.get_recent_confidence_trend()
         assert trend["trend"] == "stable"
 
-    def test_get_last_confidence(self):  # type: ignore
+    def test_get_last_confidence(self) -> None:
         """Test getting the most recent confidence breakdown"""
         scorer = ConfidenceScorer()
         result = scorer.calculate_confidence(ai_confidence=0.95, tick=999)
@@ -174,7 +172,7 @@ class TestConfidenceScorer:
         assert last.tick == 999
         assert last.ai_decision_confidence == 0.95  # Check input, not weighted result
 
-    def test_confidence_history_limit(self):  # type: ignore
+    def test_confidence_history_limit(self) -> None:
         """Test that confidence history is limited to 100 entries"""
         scorer = ConfidenceScorer()
         
@@ -188,7 +186,7 @@ class TestConfidenceScorer:
 class TestSoftlockDetector:
     """Tests for SoftlockDetector class (15 tests)"""
 
-    def test_check_softlock_mode_duration_exceeded(self):  # type: ignore
+    def test_check_softlock_mode_duration_exceeded(self) -> None:
         """Test softlock detection for exceeded mode duration"""
         detector = SoftlockDetector()
         
@@ -206,7 +204,7 @@ class TestSoftlockDetector:
         assert softlock.mode == "BATTLE"
         assert softlock.sub_mode == "WILD_NORMAL"
 
-    def test_check_softlock_mode_duration_critical(self):  # type: ignore
+    def test_check_softlock_mode_duration_critical(self) -> None:
         """Test softlock detection for critically exceeded duration"""
         detector = SoftlockDetector()
         
@@ -221,7 +219,7 @@ class TestSoftlockDetector:
         assert softlock is not None
         assert softlock.severity == "HIGH"  # 700 > 600
 
-    def test_check_softlock_repeated_action(self):  # type: ignore
+    def test_check_softlock_repeated_action(self) -> None:
         """Test softlock detection for repeated same action"""
         detector = SoftlockDetector(repeated_action_threshold=5)
         
@@ -240,7 +238,7 @@ class TestSoftlockDetector:
         assert softlock.type == "REPEATED_ACTION"
         assert softlock.repeated_action == "press:A"
 
-    def test_check_softlock_no_repeated_action(self):  # type: ignore
+    def test_check_softlock_no_repeated_action(self) -> None:
         """Test no softlock when actions are different"""
         detector = SoftlockDetector(repeated_action_threshold=5)
         
@@ -258,7 +256,7 @@ class TestSoftlockDetector:
         
         assert softlock is None
 
-    def test_check_softlock_state_loop_detection(self):  # type: ignore
+    def test_check_softlock_state_loop_detection(self) -> None:
         """Test softlock detection for state oscillation"""
         state_machine = HierarchicalStateMachine()
         detector = SoftlockDetector(state_machine=state_machine)
@@ -283,7 +281,7 @@ class TestSoftlockDetector:
         assert softlock is not None
         assert softlock.type == "STATE_OSCILLATION"
 
-    def test_check_softlock_zero_progress(self):  # type: ignore
+    def test_check_softlock_zero_progress(self) -> None:
         """Test softlock detection for zero progress"""
         detector = SoftlockDetector(progress_window_seconds=0.1)
         
@@ -308,7 +306,7 @@ class TestSoftlockDetector:
         assert softlock is not None
         assert softlock.type == "ZERO_PROGRESS"
 
-    def test_check_softlock_no_softlock_conditions(self):  # type: ignore
+    def test_check_softlock_no_softlock_conditions(self) -> None:
         """Test no softlock when all conditions are normal"""
         detector = SoftlockDetector()
         
@@ -323,7 +321,7 @@ class TestSoftlockDetector:
         
         assert softlock is None
 
-    def test_record_action(self):  # type: ignore
+    def test_record_action(self) -> None:
         """Test action recording"""
         detector = SoftlockDetector()
         detector.record_action("press:START", 42)
@@ -338,7 +336,7 @@ class TestSoftlockDetector:
         
         assert softlock is None  # Not enough repeats yet
 
-    def test_record_state(self):  # type: ignore
+    def test_record_state(self) -> None:
         """Test state recording"""
         detector = SoftlockDetector()
         detector.record_state("BATTLE.BATTLE_MENU")
@@ -346,7 +344,7 @@ class TestSoftlockDetector:
         
         assert len(detector._state_sequence) == 2
 
-    def test_save_and_get_known_good_state(self):  # type: ignore
+    def test_save_and_get_known_good_state(self) -> None:
         """Test saving and retrieving known good states"""
         detector = SoftlockDetector()
         
@@ -371,7 +369,7 @@ class TestSoftlockDetector:
         assert saved.tick == 100
         assert saved.mode == "OVERWORLD"
 
-    def test_known_good_states_limit(self):  # type: ignore
+    def test_known_good_states_limit(self) -> None:
         """Test that known good states are limited"""
         detector = SoftlockDetector()
         
@@ -395,7 +393,7 @@ class TestSoftlockDetector:
         assert saved is not None
         assert saved.tick == 59  # Most recent
 
-    def test_get_softlock_history(self):  # type: ignore
+    def test_get_softlock_history(self) -> None:
         """Test retrieving softlock history"""
         detector = SoftlockDetector()
         
@@ -405,7 +403,7 @@ class TestSoftlockDetector:
         history = detector.get_softlock_history(count=10)
         assert len(history) == 2
 
-    def test_thresholds_for_different_modes(self):  # type: ignore
+    def test_thresholds_for_different_modes(self) -> None:
         """Test that different modes have different thresholds"""
         detector = SoftlockDetector()
         
@@ -418,7 +416,7 @@ class TestSoftlockDetector:
             softlock = detector.check_softlock(mode, sub_mode, float(duration), None, 1)
             assert softlock is not None, f"Expected softlock for {mode}/{sub_mode}"
 
-    def test_no_false_positives_normal_operation(self):  # type: ignore
+    def test_no_false_positives_normal_operation(self) -> None:
         """Test no false positives during normal operation"""
         detector = SoftlockDetector()
         
@@ -435,11 +433,11 @@ class TestSoftlockDetector:
         history = detector.get_softlock_history(10)
         assert len(history) == 0
 
-    def test_thread_safety(self):  # type: ignore
+    def test_thread_safety(self) -> None:
         """Test thread-safe operation"""
         detector = SoftlockDetector()
         
-        def trigger_checks():  # type: ignore
+        def trigger_checks() -> None:
             for i in range(50):
                 detector.check_softlock("OVERWORLD", "NAVIGATION", float(i), f"action_{i}", i)
                 detector.record_action(f"action_{i}", i)
@@ -458,7 +456,7 @@ class TestSoftlockDetector:
 class TestEmergencyRecovery:
     """Tests for EmergencyRecovery class (10 tests)"""
 
-    def test_initiate_recovery_success(self):  # type: ignore
+    def test_initiate_recovery_success(self) -> None:
         """Test successful recovery initiation"""
         recovery = EmergencyRecovery()
         
@@ -473,7 +471,7 @@ class TestEmergencyRecovery:
         assert any("snapshot_saved" in action for action in result.actions_taken)
         assert result.time_taken_ms >= 0
 
-    def test_initiate_recovery_with_softlock_info(self):  # type: ignore
+    def test_initiate_recovery_with_softlock_info(self) -> None:
         """Test recovery with softlock info provided"""
         state_machine = HierarchicalStateMachine()
         recovery = EmergencyRecovery(state_machine=state_machine)
@@ -498,7 +496,7 @@ class TestEmergencyRecovery:
         assert result.success is True
         assert result.recovery_type == "mode_duration_recovery"
 
-    def test_state_rollback(self):  # type: ignore
+    def test_state_rollback(self) -> None:
         """Test state rollback functionality"""
         state_machine = HierarchicalStateMachine()
         state_machine.transition_to("OVERWORLD.IDLE", tick=1)
@@ -514,7 +512,7 @@ class TestEmergencyRecovery:
         
         assert result.success is True
 
-    def test_snapshot_saved_to_file(self):  # type: ignore
+    def test_snapshot_saved_to_file(self) -> None:
         """Test that snapshots are saved to file"""
         recovery = EmergencyRecovery(snapshot_dir="/tmp/test_snapshots")
         
@@ -527,7 +525,7 @@ class TestEmergencyRecovery:
         for f in snapshot_files:
             os.remove(f"/tmp/test_snapshots/{f}")
 
-    def test_emergency_report_created(self):  # type: ignore
+    def test_emergency_report_created(self) -> None:
         """Test that emergency reports are created"""
         recovery = EmergencyRecovery(snapshot_dir="/tmp/test_snapshots")
         
@@ -540,7 +538,7 @@ class TestEmergencyRecovery:
         for f in report_files:
             os.remove(f"/tmp/test_snapshots/{f}")
 
-    def test_get_recovery_history(self):  # type: ignore
+    def test_get_recovery_history(self) -> None:
         """Test retrieving recovery history"""
         recovery = EmergencyRecovery()
         
@@ -550,7 +548,7 @@ class TestEmergencyRecovery:
         history = recovery.get_recovery_history(count=10)
         assert len(history) == 2
 
-    def test_is_recovering_during_recovery(self):  # type: ignore
+    def test_is_recovering_during_recovery(self) -> None:
         """Test is_recovering flag during active recovery"""
         recovery = EmergencyRecovery()
         
@@ -560,7 +558,7 @@ class TestEmergencyRecovery:
         
         assert recovery.is_recovering() is True
 
-    def test_recovery_history_limit(self):  # type: ignore
+    def test_recovery_history_limit(self) -> None:
         """Test that recovery history is maintained"""
         recovery = EmergencyRecovery()
         
@@ -570,7 +568,7 @@ class TestEmergencyRecovery:
         history = recovery.get_recovery_history(count=10)
         assert len(history) == 10  # Limited to requested count
 
-    def test_snapshot_contains_state_machine_info(self):  # type: ignore
+    def test_snapshot_contains_state_machine_info(self) -> None:
         """Test that snapshots contain state machine info"""
         state_machine = HierarchicalStateMachine()
         state_machine.transition_to("OVERWORLD.IDLE", tick=1)
@@ -584,7 +582,7 @@ class TestEmergencyRecovery:
             data = json.load(f)
             assert "state_machine" in data
 
-    def test_recovery_with_empty_game_state(self):  # type: ignore
+    def test_recovery_with_empty_game_state(self) -> None:
         """Test recovery with minimal game state"""
         recovery = EmergencyRecovery()
         
@@ -601,7 +599,7 @@ class TestEmergencyRecovery:
 class TestDeathSpiralPreventer:
     """Tests for DeathSpiralPreventer class (8 tests)"""
 
-    def test_check_hp_status_healthy(self):  # type: ignore
+    def test_check_hp_status_healthy(self) -> None:
         """Test HP status check - healthy range"""
         preventer = DeathSpiralPreventer()
         
@@ -615,7 +613,7 @@ class TestDeathSpiralPreventer:
         assert result["should_heal"] is False
         assert result["recommended_action"] is None
 
-    def test_check_hp_status_warning(self):  # type: ignore
+    def test_check_hp_status_warning(self) -> None:
         """Test HP status check - warning range"""
         preventer = DeathSpiralPreventer(warning_threshold=0.25)
         
@@ -629,7 +627,7 @@ class TestDeathSpiralPreventer:
         assert result["alerts"] is not None
         assert len(result["alerts"]) > 0
 
-    def test_check_hp_status_critical(self):  # type: ignore
+    def test_check_hp_status_critical(self) -> None:
         """Test HP status check - critical range"""
         preventer = DeathSpiralPreventer(critical_threshold=0.10)
         
@@ -643,7 +641,7 @@ class TestDeathSpiralPreventer:
         assert result["should_heal"] is True
         assert result["recommended_action"] == "heal_immediately"
 
-    def test_check_hp_status_none_value(self):  # type: ignore
+    def test_check_hp_status_none_value(self) -> None:
         """Test HP status check with None value"""
         preventer = DeathSpiralPreventer()
         
@@ -655,7 +653,7 @@ class TestDeathSpiralPreventer:
         
         assert result["status"] == "healthy"
 
-    def test_check_party_status_all_healthy(self):  # type: ignore
+    def test_check_party_status_all_healthy(self) -> None:
         """Test party status - all healthy"""
         preventer = DeathSpiralPreventer()
         
@@ -672,7 +670,7 @@ class TestDeathSpiralPreventer:
         assert result["alive_count"] == 3
         assert result["should_heal"] is False
 
-    def test_check_party_status_some_low(self):  # type: ignore
+    def test_check_party_status_some_low(self) -> None:
         """Test party status - some low HP"""
         preventer = DeathSpiralPreventer(warning_threshold=0.25)
         
@@ -686,7 +684,7 @@ class TestDeathSpiralPreventer:
         
         assert result["should_heal"] is True
 
-    def test_check_party_status_empty(self):  # type: ignore
+    def test_check_party_status_empty(self) -> None:
         """Test party status - empty party"""
         preventer = DeathSpiralPreventer()
         
@@ -695,7 +693,7 @@ class TestDeathSpiralPreventer:
         assert result["healthy"] is True
         assert result["can_battle"] is True
 
-    def test_get_hp_trend(self):  # type: ignore
+    def test_get_hp_trend(self) -> None:
         """Test HP trend analysis"""
         preventer = DeathSpiralPreventer()
         
@@ -707,7 +705,7 @@ class TestDeathSpiralPreventer:
         assert trend["current"] == 60.0
         assert trend["avg"] == pytest.approx(80.0)
 
-    def test_check_pp_status_stub(self):  # type: ignore
+    def test_check_pp_status_stub(self) -> None:
         """Test PP status check (MVP stub)"""
         preventer = DeathSpiralPreventer()
         
@@ -716,7 +714,7 @@ class TestDeathSpiralPreventer:
         assert result["_stub"] is True
         assert result["has_pp"] is True
 
-    def test_check_escape_available_stub(self):  # type: ignore
+    def test_check_escape_available_stub(self) -> None:
         """Test escape availability check (MVP stub)"""
         preventer = DeathSpiralPreventer()
         
@@ -725,7 +723,7 @@ class TestDeathSpiralPreventer:
         assert result["_stub"] is True
         assert result["available"] is True
 
-    def test_consecutive_low_hp_tracking(self):  # type: ignore
+    def test_consecutive_low_hp_tracking(self) -> None:
         """Test tracking of consecutive low HP ticks"""
         preventer = DeathSpiralPreventer(critical_threshold=0.10)
         
@@ -734,7 +732,7 @@ class TestDeathSpiralPreventer:
         
         assert preventer._consecutive_low_hp_ticks == 3
 
-    def test_hp_trend_insufficient_data(self):  # type: ignore
+    def test_hp_trend_insufficient_data(self) -> None:
         """Test HP trend with insufficient data"""
         preventer = DeathSpiralPreventer()
         
@@ -745,7 +743,7 @@ class TestDeathSpiralPreventer:
 class TestSystemHealthMonitor:
     """Tests for SystemHealthMonitor class (8 tests)"""
 
-    def test_check_health_returns_metrics(self):  # type: ignore
+    def test_check_health_returns_metrics(self) -> None:
         """Test that check_health returns valid metrics"""
         monitor = SystemHealthMonitor()
         
@@ -756,7 +754,7 @@ class TestSystemHealthMonitor:
         assert metrics.memory_usage_mb > 0
         assert 0.0 <= metrics.overall_score <= 1.0
 
-    def test_health_score_calculation(self):  # type: ignore
+    def test_health_score_calculation(self) -> None:
         """Test health score calculation"""
         monitor = SystemHealthMonitor()
         
@@ -765,7 +763,7 @@ class TestSystemHealthMonitor:
         score = metrics.overall_score
         assert 0.0 <= score <= 1.0
 
-    def test_record_api_latency(self):  # type: ignore
+    def test_record_api_latency(self) -> None:
         """Test recording API latency"""
         monitor = SystemHealthMonitor()
         
@@ -775,7 +773,7 @@ class TestSystemHealthMonitor:
         recent = monitor._get_recent_api_latency()
         assert recent == pytest.approx(750.0)
 
-    def test_get_health_status_healthy(self):  # type: ignore
+    def test_get_health_status_healthy(self) -> None:
         """Test health status - healthy"""
         monitor = SystemHealthMonitor()
         
@@ -784,7 +782,7 @@ class TestSystemHealthMonitor:
         assert status["status"] in ["healthy", "warning", "critical"]
         assert "score" in status
 
-    def test_get_health_status_warning(self):  # type: ignore
+    def test_get_health_status_warning(self) -> None:
         """Test health status - warning conditions"""
         monitor = SystemHealthMonitor(
             memory_warning_mb=1.0,
@@ -798,7 +796,7 @@ class TestSystemHealthMonitor:
         assert status["status"] in ["healthy", "warning", "critical"]
         assert len(status["issues"]) >= 0
 
-    def test_get_health_history(self):  # type: ignore
+    def test_get_health_history(self) -> None:
         """Test retrieving health history"""
         monitor = SystemHealthMonitor()
         
@@ -808,14 +806,14 @@ class TestSystemHealthMonitor:
         history = monitor.get_health_history(count=3)
         assert len(history) == 3
 
-    def test_api_success_rate_stub(self):  # type: ignore
+    def test_api_success_rate_stub(self) -> None:
         """Test API success rate (MVP stub returns 1.0)"""
         monitor = SystemHealthMonitor()
         
         success = monitor._get_api_success_rate()
         assert success == 1.0
 
-    def test_health_score_decreases_with_issues(self):  # type: ignore
+    def test_health_score_decreases_with_issues(self) -> None:
         """Test that health score decreases with issues"""
         monitor = SystemHealthMonitor(
             memory_critical_mb=0.001  # Very low threshold
@@ -826,7 +824,7 @@ class TestSystemHealthMonitor:
         if metrics.memory_usage_mb > 0.001:
             assert metrics.overall_score < 1.0
 
-    def test_health_history_limit(self):  # type: ignore
+    def test_health_history_limit(self) -> None:
         """Test that health history is limited"""
         monitor = SystemHealthMonitor()
         
@@ -840,7 +838,7 @@ class TestSystemHealthMonitor:
 class TestFailsafeManager:
     """Tests for FailsafeManager integration (6 tests)"""
 
-    def test_update_returns_comprehensive_result(self):  # type: ignore
+    def test_update_returns_comprehensive_result(self) -> None:
         """Test that update returns all expected fields"""
         manager = FailsafeManager()
         
@@ -860,7 +858,7 @@ class TestFailsafeManager:
         assert "confidence_level" in result
         assert result["tick"] == 100
 
-    def test_update_with_no_softlock(self):  # type: ignore
+    def test_update_with_no_softlock(self) -> None:
         """Test update with no softlock detected"""
         manager = FailsafeManager()
         
@@ -880,7 +878,7 @@ class TestFailsafeManager:
         assert result["recovery_triggered"] is False
         assert result["confidence_acceptable"] is True
 
-    def test_enable_disable(self):  # type: ignore
+    def test_enable_disable(self) -> None:
         """Test enabling and disabling failsafe"""
         manager = FailsafeManager()
         
@@ -892,7 +890,7 @@ class TestFailsafeManager:
         manager.enable()
         assert manager.is_enabled() is True
 
-    def test_check_action(self):  # type: ignore
+    def test_check_action(self) -> None:
         """Test action checking"""
         manager = FailsafeManager()
         
@@ -900,7 +898,7 @@ class TestFailsafeManager:
         
         assert True  # No exception
 
-    def test_record_state(self):  # type: ignore
+    def test_record_state(self) -> None:
         """Test state recording"""
         manager = FailsafeManager()
         
@@ -908,7 +906,7 @@ class TestFailsafeManager:
         
         assert True  # No exception
 
-    def test_get_dashboard_data(self):  # type: ignore
+    def test_get_dashboard_data(self) -> None:
         """Test dashboard data retrieval"""
         manager = FailsafeManager()
         
@@ -921,7 +919,7 @@ class TestFailsafeManager:
         assert "confidence" in data
         assert "health_status" in data
 
-    def test_failsafe_with_state_machine(self):  # type: ignore
+    def test_failsafe_with_state_machine(self) -> None:
         """Test failsafe manager with state machine"""
         state_machine = HierarchicalStateMachine()
         manager = FailsafeManager(state_machine=state_machine)
@@ -938,7 +936,7 @@ class TestFailsafeManager:
 class TestFailsafeIntegration:
     """Integration tests (4 tests)"""
 
-    def test_full_failsafe_cycle(self):  # type: ignore
+    def test_full_failsafe_cycle(self) -> None:
         """Test complete failsafe cycle"""
         state_machine = HierarchicalStateMachine()
         manager = FailsafeManager(state_machine=state_machine)
@@ -960,7 +958,7 @@ class TestFailsafeIntegration:
         
         assert result is not None
 
-    def test_recovery_after_softlock(self):  # type: ignore
+    def test_recovery_after_softlock(self) -> None:
         """Test recovery sequence after softlock"""
         state_machine = HierarchicalStateMachine()
         manager = FailsafeManager(state_machine=state_machine)
@@ -980,7 +978,7 @@ class TestFailsafeIntegration:
         
         assert result["softlock"] is not None or result["recovery_triggered"] is not None
 
-    def test_confidence_tracking_across_updates(self):  # type: ignore
+    def test_confidence_tracking_across_updates(self) -> None:
         """Test confidence tracking across multiple updates"""
         manager = FailsafeManager()
         
@@ -996,7 +994,7 @@ class TestFailsafeIntegration:
         assert len(confidences) == 10
         assert confidences[0] > confidences[-1]
 
-    def test_get_dashboard_data_after_updates(self):  # type: ignore
+    def test_get_dashboard_data_after_updates(self) -> None:
         """Test dashboard data after multiple updates"""
         manager = FailsafeManager()
         

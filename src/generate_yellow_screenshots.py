@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from pyboy import PyBoy
 from PIL import Image
 
-def generate_pokemon_yellow_screenshots(num_ticks=100000, screenshot_interval=1000) -> None:  # type: ignore
+def generate_pokemon_yellow_screenshots(num_ticks=100000, screenshot_interval=1000) -> None:
     """Generate high-quality screenshots for Pokemon Yellow"""
     
     print("🎮 Pokemon Yellow Screenshot Generator")
@@ -27,8 +27,7 @@ def generate_pokemon_yellow_screenshots(num_ticks=100000, screenshot_interval=10
     # Check if ROM exists
     if not os.path.exists(rom_path):
         print(f"❌ ROM not found: {rom_path}")
-        return False  # type: ignore
-    
+        return False
     # Create screenshots directory specifically for Pokemon Yellow
     screenshot_dir = Path(__file__).parent.parent / "screenshots" / "pokemon_yellow_corrected"
     screenshot_dir.mkdir(parents=True, exist_ok=True)
@@ -79,11 +78,10 @@ def generate_pokemon_yellow_screenshots(num_ticks=100000, screenshot_interval=10
     print(f"📁 Location: {screenshot_dir}")
     print("=" * 60)
     
-    return True  # type: ignore
-
+    return True
 if __name__ == "__main__":
     # Generate full 100,000 ticks with screenshots every 1,000 ticks
-    success = generate_pokemon_yellow_screenshots(  # type: ignore
+    success = generate_pokemon_yellow_screenshots(
         num_ticks=100000,  # Full generation
         screenshot_interval=1000
     )

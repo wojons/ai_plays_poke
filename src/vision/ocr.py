@@ -60,8 +60,7 @@ class OCREngine:
             "apostrophe_remap": {"'d": "d", "'s": "s", "'l": "l", "'t": "t", "'v": "v", "'r": "r"},
         }
         
-        self.common_words = self._build_common_words_set()  # type: ignore
-    
+        self.common_words = self._build_common_words_set()
     def _load_font_database(self) -> None:
         """Load font templates from database file"""
         if self.FONT_DATABASE_PATH.exists():
@@ -158,7 +157,7 @@ class OCREngine:
     
     def _build_common_words_set(self) -> None:
         """Build set of common Pokemon words for validation"""
-        return {  # type: ignore
+        return {
             "POKEMON", "TRAINER", "ITEM", "MENU", "SAVE", "LOAD", "OPTIONS",
             "BATTLE", "WILD", "ENCOUNTER", "LEVEL", "HP", "PP", "EXP",
             "ROUTE", "TOWN", "CITY", "FOREST", "CAVE", "ROAD", "PATH",
@@ -402,7 +401,7 @@ class OCREngine:
     
     def _fix_contractions(self, text: str) -> str:
         """Fix common OCR errors in contractions"""
-        for wrong, right in self.special_cases.get("apostrophe_remap", {}).items():  # type: ignore
+        for wrong, right in self.special_cases.get("apostrophe_remap", {}).items():
             text = text.replace("'" + wrong, right)
         return text
     
@@ -412,7 +411,7 @@ class OCREngine:
         corrected = []
         
         for word in words:
-            if word in self.common_words:  # type: ignore
+            if word in self.common_words:
                 corrected.append(word)
             else:
                 corrected.append(self._suggest_correction(word))

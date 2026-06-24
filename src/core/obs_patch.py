@@ -122,7 +122,7 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
         try:
             data = yaml.safe_load(data)
         except Exception:
-            patch.raw["_errors"] = [f"Failed to parse patch: {data[:200]}"]  # type: ignore
+            patch.raw["_errors"] = [f"Failed to parse patch: {data[:200]}"]
             return patch
         if not isinstance(data, dict):
             patch.raw["_errors"] = ["Patch is not a dict"]
@@ -200,8 +200,8 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
         for e in edges:
             if isinstance(e, dict):
                 patch.edges.append(EdgeUpdate(
-                    from_pos=e.get("from", e.get("from_pos", [0, 0])),  # type: ignore
-                    dir=e.get("dir", e.get("direction", "N")),  # type: ignore
+                    from_pos=e.get("from", e.get("from_pos", [0, 0])),
+                    dir=e.get("dir", e.get("direction", "N")),
                     outcome=e.get("outcome", "unknown"),
                     reason=e.get("reason", ""),
                 ))

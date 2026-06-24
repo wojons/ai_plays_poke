@@ -24,7 +24,7 @@ from src.schemas.commands import (
 
 
 @pytest.fixture
-def mock_emulator():  # type: ignore
+def mock_emulator() -> None:
     """Mock PyBoy emulator state"""
     emulator = MagicMock()
     emulator.tick_count = 100
@@ -39,7 +39,7 @@ def mock_emulator():  # type: ignore
 
 
 @pytest.fixture
-def mock_ai_client():  # type: ignore
+def mock_ai_client() -> None:
     """Mock AI client responses"""
     client = MagicMock()
     client.generate_decision.return_value = {
@@ -76,14 +76,14 @@ def mock_game_state() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_screenshot():  # type: ignore
+def sample_screenshot() -> None:
     """Pre-captured screenshot fixture (mock image data)"""
     import numpy as np
     return np.zeros((144, 160, 3), dtype=np.uint8)
 
 
 @pytest.fixture
-def temp_session(tmp_path):  # type: ignore
+def temp_session(tmp_path) -> None:
     """Temporary session directory with proper structure"""
     session_dir = tmp_path / "session_001"
     session_dir.mkdir()
@@ -94,7 +94,7 @@ def temp_session(tmp_path):  # type: ignore
 
 
 @pytest.fixture
-def sample_ai_command():  # type: ignore
+def sample_ai_command() -> None:
     """Sample AI command for testing"""
     return AICommand(
         command_type=CommandType.PRESS,
@@ -107,7 +107,7 @@ def sample_ai_command():  # type: ignore
 
 
 @pytest.fixture
-def sample_batch_command():  # type: ignore
+def sample_batch_command() -> None:
     """Sample batch command for testing"""
     return AICommand(
         command_type=CommandType.BATCH,
@@ -121,7 +121,7 @@ def sample_batch_command():  # type: ignore
 
 
 @pytest.fixture
-def sample_sequence_command():  # type: ignore
+def sample_sequence_command() -> None:
     """Sample sequence command for testing"""
     return AICommand(
         command_type=CommandType.SEQUENCE,
@@ -134,7 +134,7 @@ def sample_sequence_command():  # type: ignore
 
 
 @pytest.fixture
-def sample_game_state():  # type: ignore
+def sample_game_state() -> None:
     """Sample game state for testing"""
     return GameState(
         tick=100,
@@ -156,7 +156,7 @@ def sample_game_state():  # type: ignore
 
 
 @pytest.fixture
-def sample_battle_state():  # type: ignore
+def sample_battle_state() -> None:
     """Sample battle state for testing"""
     return BattleState(
         tick=200,
@@ -177,7 +177,7 @@ def sample_battle_state():  # type: ignore
 
 
 @pytest.fixture
-def sample_ai_thought():  # type: ignore
+def sample_ai_thought() -> None:
     """Sample AI thought for testing"""
     return AIThought(
         tick=100,
@@ -193,7 +193,7 @@ def sample_ai_thought():  # type: ignore
 
 
 @pytest.fixture
-def sample_command_execution_result(sample_ai_command, sample_game_state):  # type: ignore
+def sample_command_execution_result(sample_ai_command, sample_game_state) -> None:
     """Sample command execution result for testing"""
     return CommandExecutionResult(
         command=sample_ai_command,
@@ -205,7 +205,7 @@ def sample_command_execution_result(sample_ai_command, sample_game_state):  # ty
 
 
 @pytest.fixture
-def mock_db_connection():  # type: ignore
+def mock_db_connection() -> None:
     """Mock database connection"""
     db = MagicMock()
     db.execute.return_value = None

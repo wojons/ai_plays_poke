@@ -128,7 +128,7 @@ class ConfidenceScorer:
         self.high_threshold = high_threshold
         self.critical_threshold = critical_threshold
         self._lock = threading.Lock()
-        self._confidence_history: deque = deque(maxlen=100)
+        self._confidence_history: deque[ConfidenceBreakdown] = deque(maxlen=100)
         self._last_confidence: Optional[ConfidenceBreakdown] = None
 
     def calculate_confidence(
@@ -260,7 +260,7 @@ class SoftlockDetector:
         self.repeated_action_threshold = repeated_action_threshold
         
         self._lock = threading.Lock()
-        self._action_history: deque = deque(maxlen=100)
+        self._action_history: deque[Tuple[int, Optional[str]]] = deque(maxlen=100)
         self._state_sequence: List[str] = []
         self._last_progress_tick: int = 0
         self._last_progress_time: float = 0.0
@@ -722,7 +722,7 @@ class DeathSpiralPreventer:
         self.warning_threshold = warning_threshold
         self.critical_threshold = critical_threshold
         self._lock = threading.Lock()
-        self._hp_history: deque = deque(maxlen=50)
+        self._hp_history: deque[Tuple[int, float]] = deque(maxlen=50)
         self._alerts: List[Dict[str, Any]] = []
         self._low_hp_count = 0
         self._consecutive_low_hp_ticks = 0

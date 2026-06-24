@@ -26,7 +26,7 @@ from core.goap import (
 class TestGameState:
     """Tests for GameState dataclass"""
 
-    def test_default_game_state(self):  # type: ignore
+    def test_default_game_state(self) -> None:
         state = GameState()
         assert state.tick == 0
         assert state.location == ""
@@ -34,7 +34,7 @@ class TestGameState:
         assert state.money == 0
         assert state.party == []
 
-    def test_game_state_with_party(self):  # type: ignore
+    def test_game_state_with_party(self) -> None:
         state = GameState(
             party=[
                 {"name": "Pikachu", "level": 5, "current_hp": 35, "max_hp": 35},
@@ -44,7 +44,7 @@ class TestGameState:
         assert len(state.party) == 2
         assert state.get_avg_party_level() == 5.0
 
-    def test_get_party_hp_percent(self):  # type: ignore
+    def test_get_party_hp_percent(self) -> None:
         state = GameState(
             party=[
                 {"current_hp": 50, "max_hp": 100},
@@ -53,7 +53,7 @@ class TestGameState:
         )
         assert state.get_party_hp_percent() == 0.5
 
-    def test_get_fainted_count(self):  # type: ignore
+    def test_get_fainted_count(self) -> None:
         state = GameState(
             party=[
                 {"current_hp": 0, "max_hp": 100},
@@ -63,7 +63,7 @@ class TestGameState:
         )
         assert state.get_fainted_count() == 2
 
-    def test_get_low_hp_pokemon(self):  # type: ignore
+    def test_get_low_hp_pokemon(self) -> None:
         state = GameState(
             party=[
                 {"name": "A", "current_hp": 10, "max_hp": 100},
@@ -74,7 +74,7 @@ class TestGameState:
         low_hp = state.get_low_hp_pokemon()
         assert len(low_hp) == 2
 
-    def test_to_dict(self):  # type: ignore
+    def test_to_dict(self) -> None:
         state = GameState(location="Pallet Town", badges=1, money=3000)
         result = state.to_dict()
         assert result["location"] == "Pallet Town"
@@ -82,7 +82,7 @@ class TestGameState:
         assert result["money"] == 3000
         assert "is_battle" in result
 
-    def test_to_state_dict(self):  # type: ignore
+    def test_to_state_dict(self) -> None:
         state = GameState(
             party=[
                 {"name": "Pikachu", "level": 5, "current_hp": 35, "max_hp": 35}
@@ -97,7 +97,7 @@ class TestGameState:
 class TestGoal:
     """Tests for base Goal class"""
 
-    def test_goal_creation(self):  # type: ignore
+    def test_goal_creation(self) -> None:
         goal = Goal(
             goal_id="test-1",
             name="Test Goal",
@@ -110,7 +110,7 @@ class TestGoal:
         assert goal.status == "PENDING"
         assert goal.progress == 0.0
 
-    def test_goal_auto_id(self):  # type: ignore
+    def test_goal_auto_id(self) -> None:
         goal = Goal(
             name="Test Goal",
             description="A test goal",
@@ -120,7 +120,7 @@ class TestGoal:
         assert goal.goal_id is not None
         assert len(goal.goal_id) > 0
 
-    def test_is_feasible_no_requirements(self):  # type: ignore
+    def test_is_feasible_no_requirements(self) -> None:
         goal = Goal(
             name="Test Goal",
             description="A test goal",
@@ -132,7 +132,7 @@ class TestGoal:
         assert feasible is True
         assert missing == {}
 
-    def test_is_feasible_with_money_requirement(self):  # type: ignore
+    def test_is_feasible_with_money_requirement(self) -> None:
         goal = Goal(
             name="Buy Potion",
             description="Buy a potion",
@@ -145,7 +145,7 @@ class TestGoal:
         assert feasible is False
         assert missing["money"] == 200
 
-    def test_is_feasible_with_sufficient_money(self):  # type: ignore
+    def test_is_feasible_with_sufficient_money(self) -> None:
         goal = Goal(
             name="Buy Potion",
             description="Buy a potion",
@@ -157,7 +157,7 @@ class TestGoal:
         feasible, missing = goal.is_feasible(state)
         assert feasible is True
 
-    def test_is_feasible_with_level_requirement(self):  # type: ignore
+    def test_is_feasible_with_level_requirement(self) -> None:
         goal = Goal(
             name="Defeat Gym",
             description="Defeat a gym",
@@ -169,7 +169,7 @@ class TestGoal:
         feasible, missing = goal.is_feasible(state)
         assert feasible is False
 
-    def test_calculate_utility(self):  # type: ignore
+    def test_calculate_utility(self) -> None:
         goal = Goal(
             name="Test Goal",
             description="A test goal",
@@ -186,7 +186,7 @@ class TestGoal:
 class TestDefeatGymGoal:
     """Tests for DefeatGymGoal"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         goal = DefeatGymGoal(
             gym_name="Pewter City",
             gym_leader="Brock",
@@ -200,7 +200,7 @@ class TestDefeatGymGoal:
         assert goal.required_resources["badges"] == 0
         assert goal.required_resources["level"] == 12
 
-    def test_description(self):  # type: ignore
+    def test_description(self) -> None:
         goal = DefeatGymGoal(gym_name="Cerulean City", gym_leader="Misty")
         assert "Misty" in goal.description
         assert "Cerulean City" in goal.description
@@ -209,18 +209,18 @@ class TestDefeatGymGoal:
 class TestCatchPokemonGoal:
     """Tests for CatchPokemonGoal"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         goal = CatchPokemonGoal(species="Pikachu", min_level=5, max_level=20)
         assert goal.species == "Pikachu"
         assert goal.min_level == 5
         assert goal.max_level == 20
         assert goal.location is None
 
-    def test_creation_with_location(self):  # type: ignore
+    def test_creation_with_location(self) -> None:
         goal = CatchPokemonGoal(species="Pikachu", location="Route 1")
         assert goal.location == "Route 1"
 
-    def test_is_feasible_wrong_location(self):  # type: ignore
+    def test_is_feasible_wrong_location(self) -> None:
         goal = CatchPokemonGoal(species="Pikachu", location="Route 22")
         state = GameState(location="Route 1")
         feasible, missing = goal.is_feasible(state)
@@ -231,12 +231,12 @@ class TestCatchPokemonGoal:
 class TestHealPartyGoal:
     """Tests for HealPartyGoal"""
 
-    def test_creation_normal(self):  # type: ignore
+    def test_creation_normal(self) -> None:
         goal = HealPartyGoal(urgency="normal")
         assert goal.urgency == "normal"
         assert goal.priority == 70
 
-    def test_creation_critical(self):  # type: ignore
+    def test_creation_critical(self) -> None:
         goal = HealPartyGoal(urgency="critical")
         assert goal.urgency == "critical"
         assert goal.priority == 95
@@ -245,7 +245,7 @@ class TestHealPartyGoal:
 class TestTrainPokemonGoal:
     """Tests for TrainPokemonGoal"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         goal = TrainPokemonGoal(target_level=15, training_location="Route 22")
         assert goal.target_level == 15
         assert goal.training_location == "Route 22"
@@ -255,18 +255,18 @@ class TestTrainPokemonGoal:
 class TestObtainItemGoal:
     """Tests for ObtainItemGoal"""
 
-    def test_creation_buy(self):  # type: ignore
+    def test_creation_buy(self) -> None:
         goal = ObtainItemGoal(item_name="Poke Ball", quantity=10, buy=True, target_price=200)
         assert goal.item_name == "Poke Ball"
         assert goal.quantity == 10
         assert goal.buy is True
         assert goal.required_resources["money"] == 200
 
-    def test_creation_find(self):  # type: ignore
+    def test_creation_find(self) -> None:
         goal = ObtainItemGoal(item_name="HM01", buy=False)
         assert goal.buy is False
 
-    def test_priority_critical_items(self):  # type: ignore
+    def test_priority_critical_items(self) -> None:
         goal = ObtainItemGoal(item_name="Poke Ball")
         assert goal.priority == 90
 
@@ -274,14 +274,14 @@ class TestObtainItemGoal:
 class TestAction:
     """Tests for base Action class"""
 
-    def test_action_creation(self):  # type: ignore
+    def test_action_creation(self) -> None:
         action = NavigateAction("Route 1")
         assert action.action_id is not None
         assert action.status == "PENDING"
         assert action.progress == 0.0
         assert action.retry_count == 0
 
-    def test_can_execute_default(self):  # type: ignore
+    def test_can_execute_default(self) -> None:
         action = NavigateAction("Route 1")
         state = GameState()
         assert action.can_execute(state) is True
@@ -290,27 +290,27 @@ class TestAction:
 class TestNavigateAction:
     """Tests for NavigateAction"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         action = NavigateAction(target_location="Pewter City", method="astar")
         assert action.target_location == "Pewter City"
         assert action.method == "astar"
         assert action.action_type == ActionType.NAVIGATION
 
-    def test_get_preconditions(self):  # type: ignore
+    def test_get_preconditions(self) -> None:
         action = NavigateAction("Route 1")
         preconditions = action.get_preconditions()
         assert "not_in_battle" in preconditions
 
-    def test_get_effects(self):  # type: ignore
+    def test_get_effects(self) -> None:
         action = NavigateAction("Pewter City")
         effects = action.get_effects()
         assert effects["location"] == "Pewter City"
 
-    def test_get_cost(self):  # type: ignore
+    def test_get_cost(self) -> None:
         action = NavigateAction("Route 1")
         assert action.get_cost() == 10.0
 
-    def test_can_execute_in_battle(self):  # type: ignore
+    def test_can_execute_in_battle(self) -> None:
         action = NavigateAction("Route 1")
         state = GameState()
         state.is_battle = True
@@ -320,19 +320,19 @@ class TestNavigateAction:
 class TestBattleAction:
     """Tests for BattleAction"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         action = BattleAction(battle_type="wild", target="Pikachu", strategy="catch")
         assert action.battle_type == "wild"
         assert action.target == "Pikachu"
         assert action.strategy == "catch"
         assert action.action_type == ActionType.BATTLE
 
-    def test_get_preconditions(self):  # type: ignore
+    def test_get_preconditions(self) -> None:
         action = BattleAction()
         preconditions = action.get_preconditions()
         assert "in_battle" in preconditions
 
-    def test_can_execute_not_in_battle(self):  # type: ignore
+    def test_can_execute_not_in_battle(self) -> None:
         action = BattleAction()
         state = GameState()
         assert action.can_execute(state) is False
@@ -341,19 +341,19 @@ class TestBattleAction:
 class TestMenuAction:
     """Tests for MenuAction"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         action = MenuAction(menu_type="shop", action="buy", target="Potion", quantity=3)
         assert action.menu_type == "shop"
         assert action.action == "buy"
         assert action.target == "Potion"
         assert action.quantity == 3
 
-    def test_get_effects_shop(self):  # type: ignore
+    def test_get_effects_shop(self) -> None:
         action = MenuAction("shop", "buy", "Potion", 2)
         effects = action.get_effects()
         assert effects["item_obtained"] == "Potion"
 
-    def test_get_effects_heal(self):  # type: ignore
+    def test_get_effects_heal(self) -> None:
         action = MenuAction("pokemon_center", "heal")
         effects = action.get_effects()
         assert effects["party_healed"] is True
@@ -362,13 +362,13 @@ class TestMenuAction:
 class TestDialogAction:
     """Tests for DialogAction"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         action = DialogAction(npc_name="Professor Oak", dialog_type="talk")
         assert action.npc_name == "Professor Oak"
         assert action.dialog_type == "talk"
         assert action.action_type == ActionType.DIALOG
 
-    def test_get_preconditions(self):  # type: ignore
+    def test_get_preconditions(self) -> None:
         action = DialogAction("Nurse Joy")
         preconditions = action.get_preconditions()
         assert "not_in_battle" in preconditions
@@ -377,7 +377,7 @@ class TestDialogAction:
 class TestPlan:
     """Tests for Plan class"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         actions = [NavigateAction("Route 1"), BattleAction()]
         plan = Plan(plan_id="plan-1", goal_id="goal-1", actions=actions)
         assert plan.plan_id == "plan-1"
@@ -386,25 +386,25 @@ class TestPlan:
         assert plan.status == PlanStatus.PENDING
         assert plan.current_action_index == 0
 
-    def test_get_current_action(self):  # type: ignore
+    def test_get_current_action(self) -> None:
         actions = [NavigateAction("Route 1")]
         plan = Plan(plan_id="plan-1", goal_id="goal-1", actions=actions)
         assert plan.get_current_action() == actions[0]
 
-    def test_get_current_action_complete(self):  # type: ignore
+    def test_get_current_action_complete(self) -> None:
         actions = [NavigateAction("Route 1")]
         plan = Plan(plan_id="plan-1", goal_id="goal-1", actions=actions)
         plan.current_action_index = 1
         assert plan.get_current_action() is None
 
-    def test_is_complete(self):  # type: ignore
+    def test_is_complete(self) -> None:
         actions = [NavigateAction("Route 1")]
         plan = Plan(plan_id="plan-1", goal_id="goal-1", actions=actions)
         assert plan.is_complete() is False
         plan.current_action_index = 1
         assert plan.is_complete() is True
 
-    def test_total_cost(self):  # type: ignore
+    def test_total_cost(self) -> None:
         actions = [NavigateAction("Route 1"), NavigateAction("Route 2"), BattleAction()]
         plan = Plan(plan_id="plan-1", goal_id="goal-1", actions=actions)
         assert plan.total_cost == 25.0
@@ -413,11 +413,11 @@ class TestPlan:
 class TestGoalStack:
     """Tests for GoalStack"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         stack = GoalStack()
         assert stack.is_empty()
 
-    def test_push_and_pop(self):  # type: ignore
+    def test_push_and_pop(self) -> None:
         stack = GoalStack()
         goal1 = Goal(name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         goal2 = Goal(name="Goal 2", description="", goal_type=GoalType.SHORT_TERM, priority=60)
@@ -428,7 +428,7 @@ class TestGoalStack:
         popped = stack.pop()
         assert popped == goal2
 
-    def test_push_duplicate_updates_priority(self):  # type: ignore
+    def test_push_duplicate_updates_priority(self) -> None:
         stack = GoalStack()
         goal1 = Goal(name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         goal2 = Goal(name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=80)
@@ -438,7 +438,7 @@ class TestGoalStack:
 
         assert stack.peek().priority == 80
 
-    def test_remove(self):  # type: ignore
+    def test_remove(self) -> None:
         stack = GoalStack()
         goal = Goal(goal_id="goal-1", name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         stack.push(goal)
@@ -446,7 +446,7 @@ class TestGoalStack:
         assert stack.is_empty()
         assert not stack.remove("nonexistent")
 
-    def test_get_all_goals_sorted(self):  # type: ignore
+    def test_get_all_goals_sorted(self) -> None:
         stack = GoalStack()
         goal1 = Goal(name="Low", description="", goal_type=GoalType.SHORT_TERM, priority=30)
         goal2 = Goal(name="High", description="", goal_type=GoalType.IMMEDIATE, priority=90)
@@ -463,18 +463,18 @@ class TestGoalStack:
 class TestGoalDAG:
     """Tests for GoalDAG"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         dag = GoalDAG()
         assert len(dag.nodes) == 0
         assert len(dag.edges) == 0
 
-    def test_add_goal(self):  # type: ignore
+    def test_add_goal(self) -> None:
         dag = GoalDAG()
         goal = Goal(goal_id="g1", name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         dag.add_goal(goal)
         assert "g1" in dag.nodes
 
-    def test_add_prerequisite(self):  # type: ignore
+    def test_add_prerequisite(self) -> None:
         dag = GoalDAG()
         goal1 = Goal(goal_id="g1", name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         goal2 = Goal(goal_id="g2", name="Goal 2", description="", goal_type=GoalType.MEDIUM_TERM, priority=60)
@@ -485,7 +485,7 @@ class TestGoalDAG:
         prereqs = dag.get_prerequisites("g2")
         assert "g1" in prereqs
 
-    def test_get_dependents(self):  # type: ignore
+    def test_get_dependents(self) -> None:
         dag = GoalDAG()
         goal1 = Goal(goal_id="g1", name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         goal2 = Goal(goal_id="g2", name="Goal 2", description="", goal_type=GoalType.MEDIUM_TERM, priority=60)
@@ -496,7 +496,7 @@ class TestGoalDAG:
         dependents = dag.get_dependents("g1")
         assert "g2" in dependents
 
-    def test_topological_sort(self):  # type: ignore
+    def test_topological_sort(self) -> None:
         dag = GoalDAG()
         goal1 = Goal(goal_id="g1", name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         goal2 = Goal(goal_id="g2", name="Goal 2", description="", goal_type=GoalType.SHORT_TERM, priority=60)
@@ -515,11 +515,11 @@ class TestGoalDAG:
 class TestPriorityQueue:
     """Tests for PriorityQueue"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         pq = PriorityQueue()
         assert pq.is_empty()
 
-    def test_push_and_pop(self):  # type: ignore
+    def test_push_and_pop(self) -> None:
         pq = PriorityQueue()
         goal1 = Goal(name="Low", description="", goal_type=GoalType.SHORT_TERM, priority=30)
         goal2 = Goal(name="High", description="", goal_type=GoalType.SHORT_TERM, priority=90)
@@ -530,7 +530,7 @@ class TestPriorityQueue:
         popped = pq.pop()
         assert popped == goal2
 
-    def test_update_priority(self):  # type: ignore
+    def test_update_priority(self) -> None:
         pq = PriorityQueue()
         goal = Goal(goal_id="g1", name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         pq.push(goal, 50)
@@ -545,18 +545,18 @@ class TestPriorityQueue:
 class TestGoalPriorityCalculator:
     """Tests for GoalPriorityCalculator"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         calc = GoalPriorityCalculator()
         assert len(calc.success_history) == 0
 
-    def test_calculate_priority_basic(self):  # type: ignore
+    def test_calculate_priority_basic(self) -> None:
         calc = GoalPriorityCalculator()
         goal = Goal(name="Test", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         state = GameState()
         priority = calc.calculate_priority(goal, state)
         assert priority > 0
 
-    def test_temporal_multiplier(self):  # type: ignore
+    def test_temporal_multiplier(self) -> None:
         calc = GoalPriorityCalculator()
         goal = Goal(name="Test", description="", goal_type=GoalType.IMMEDIATE, priority=50,
                     deadline=datetime.now() + timedelta(seconds=30))
@@ -564,7 +564,7 @@ class TestGoalPriorityCalculator:
         priority = calc.calculate_priority(goal, state)
         assert priority > 50
 
-    def test_record_success(self):  # type: ignore
+    def test_record_success(self) -> None:
         calc = GoalPriorityCalculator()
         goal = Goal(name="Test", description="", goal_type=GoalType.SHORT_TERM, priority=50)
         calc.record_success(goal, True)
@@ -576,12 +576,12 @@ class TestGoalPriorityCalculator:
 class TestGoalPrioritizer:
     """Tests for GoalPrioritizer"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         prioritizer = GoalPrioritizer()
         assert prioritizer.calculator is not None
         assert prioritizer.priority_queue is not None
 
-    def test_add_goal(self):  # type: ignore
+    def test_add_goal(self) -> None:
         prioritizer = GoalPrioritizer()
         goal = DefeatGymGoal(gym_name="Pewter City", gym_leader="Brock")
         state = GameState(party=[{"level": 15}])
@@ -590,7 +590,7 @@ class TestGoalPrioritizer:
         assert len(prioritizer.goal_dag.nodes) == 1
         assert not prioritizer.priority_queue.is_empty()
 
-    def test_select_next_goal(self):  # type: ignore
+    def test_select_next_goal(self) -> None:
         prioritizer = GoalPrioritizer()
         goal1 = HealPartyGoal()
         goal2 = DefeatGymGoal(gym_name="Pewter City", gym_leader="Brock")
@@ -606,12 +606,12 @@ class TestGoalPrioritizer:
 class TestPlanner:
     """Tests for Planner"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         assert planner.goal_prioritizer == prioritizer
 
-    def test_create_plan_gym(self):  # type: ignore
+    def test_create_plan_gym(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         goal = DefeatGymGoal(gym_name="Pewter City", gym_leader="Brock", required_level=12)
@@ -621,7 +621,7 @@ class TestPlanner:
         assert len(plan.actions) >= 2
         assert plan.goal_id == goal.goal_id
 
-    def test_create_plan_heal(self):  # type: ignore
+    def test_create_plan_heal(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         goal = HealPartyGoal()
@@ -630,7 +630,7 @@ class TestPlanner:
         plan = planner.create_plan(goal, state)
         assert len(plan.actions) == 2
 
-    def test_validate_plan(self):  # type: ignore
+    def test_validate_plan(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         goal = HealPartyGoal()
@@ -644,14 +644,14 @@ class TestPlanner:
 class TestPlanMonitor:
     """Tests for PlanMonitor"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         monitor = PlanMonitor(planner)
         assert monitor.replan_count == 0
         assert monitor.failure_count == 0
 
-    def test_monitor_execution_success(self):  # type: ignore
+    def test_monitor_execution_success(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         monitor = PlanMonitor(planner)
@@ -665,7 +665,7 @@ class TestPlanMonitor:
         assert new_plan is None
         assert plan.current_action_index == 1
 
-    def test_monitor_execution_complete(self):  # type: ignore
+    def test_monitor_execution_complete(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         monitor = PlanMonitor(planner)
@@ -678,7 +678,7 @@ class TestPlanMonitor:
         success, new_plan = monitor.monitor_execution(plan, state)
         assert success is True
 
-    def test_handle_interruption_random_battle(self):  # type: ignore
+    def test_handle_interruption_random_battle(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         monitor = PlanMonitor(planner)
@@ -687,7 +687,7 @@ class TestPlanMonitor:
         success, new_plan = monitor.handle_interruption("random_battle", state)
         assert success is True
 
-    def test_handle_interruption_low_hp(self):  # type: ignore
+    def test_handle_interruption_low_hp(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         monitor = PlanMonitor(planner)
@@ -697,7 +697,7 @@ class TestPlanMonitor:
         assert success is False
         assert new_plan is not None
 
-    def test_get_statistics(self):  # type: ignore
+    def test_get_statistics(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
         monitor = PlanMonitor(planner)
@@ -711,13 +711,13 @@ class TestPlanMonitor:
 class TestHierarchicalPlanner:
     """Tests for HierarchicalPlanner"""
 
-    def test_creation(self):  # type: ignore
+    def test_creation(self) -> None:
         planner = HierarchicalPlanner()
         assert planner.goal_prioritizer is not None
         assert planner.planner is not None
         assert planner.plan_monitor is not None
 
-    def test_plan_generates_plan(self):  # type: ignore
+    def test_plan_generates_plan(self) -> None:
         planner = HierarchicalPlanner()
         state = GameState(party=[{"level": 15}])
         goal = HealPartyGoal()
@@ -728,7 +728,7 @@ class TestHierarchicalPlanner:
         assert plan is not None
         assert len(plan.actions) >= 1
 
-    def test_execute_step(self):  # type: ignore
+    def test_execute_step(self) -> None:
         planner = HierarchicalPlanner()
         state = GameState(party=[{"level": 15}])
         goal = HealPartyGoal()
@@ -740,7 +740,7 @@ class TestHierarchicalPlanner:
         assert success is False
         assert new_plan is not None
 
-    def test_get_status(self):  # type: ignore
+    def test_get_status(self) -> None:
         planner = HierarchicalPlanner()
         status = planner.get_status()
         assert "current_plan" in status
@@ -751,14 +751,14 @@ class TestHierarchicalPlanner:
 class TestFactoryFunctions:
     """Tests for factory functions"""
 
-    def test_create_default_game_state(self):  # type: ignore
+    def test_create_default_game_state(self) -> None:
         state = create_default_game_state()
         assert state.location == "Pallet Town"
         assert state.money == 3000
         assert len(state.party) == 1
         assert state.party[0]["name"] == "Pikachu"
 
-    def test_create_goap_system(self):  # type: ignore
+    def test_create_goap_system(self) -> None:
         system = create_goap_system()
         assert isinstance(system, HierarchicalPlanner)
 
@@ -766,37 +766,37 @@ class TestFactoryFunctions:
 class TestEdgeCases:
     """Tests for edge cases and error conditions"""
 
-    def test_empty_stack_pop(self):  # type: ignore
+    def test_empty_stack_pop(self) -> None:
         stack = GoalStack()
         result = stack.pop()
         assert result is None
 
-    def test_empty_stack_peek(self):  # type: ignore
+    def test_empty_stack_peek(self) -> None:
         stack = GoalStack()
         result = stack.peek()
         assert result is None
 
-    def test_empty_queue_pop(self):  # type: ignore
+    def test_empty_queue_pop(self) -> None:
         pq = PriorityQueue()
         result = pq.pop()
         assert result is None
 
-    def test_goal_stack_max_size(self):  # type: ignore
+    def test_goal_stack_max_size(self) -> None:
         stack = GoalStack(max_size=3)
         for i in range(5):
             stack.push(Goal(name=f"Goal {i}", description="", goal_type=GoalType.SHORT_TERM, priority=50))
         assert len(stack.stack) == 3
 
-    def test_invalid_priority_update(self):  # type: ignore
+    def test_invalid_priority_update(self) -> None:
         pq = PriorityQueue()
         result = pq.update_priority("nonexistent", 100)
         assert result is False
 
-    def test_plan_with_no_actions(self):  # type: ignore
+    def test_plan_with_no_actions(self) -> None:
         plan = Plan(plan_id="p1", goal_id="g1", actions=[])
         assert plan.is_complete()
 
-    def test_action_max_retries(self):  # type: ignore
+    def test_action_max_retries(self) -> None:
         action = NavigateAction("Route 1")
         action.retry_count = 3
         action.max_retries = 3
