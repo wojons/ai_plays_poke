@@ -36,17 +36,11 @@
 **Files:** tests/test_edge_cases.py
 **Result:** Fixed all 7 ROM handling tests for the `EmulatorInterface`→`Emulator` class rename. Updated assertion patterns from `pyboy is None` checks to `pytest.raises(Exception)` wrappers (new class eagerly validates ROMs). Also fixed test_api_key_empty_string to clear both OPENAI_API_KEY and OPENROUTER_API_KEY. 297/298 tests pass (pre-existing test_database_locked failure).
 
-### [ ] LIVE-DEMO: End-to-end gameplay test with real API calls
+### [x] LIVE-DEMO: End-to-end gameplay test with real API calls ✅
 **Priority:** high
 **Model:** deepseek-v4-pro (foreman direct — test only)
 **Files:** tests/test_live_demo.py (new)
-**Verify:** `source venv/bin/activate && OPENROUTER_API_KEY=$(grep OPENROUTER_API_KEY .env | cut -d= -f2-) python -m pytest tests/test_live_demo.py -v`
-**AC:**
-- AC-010: DemoRunner.run() with real ROM + owl-alpha vision/thinking completes ≥1 cycle
-- AC-011: Decision loop produces valid tool calls (press_button, wait) from AI response
-- AC-012: Screenshots captured at each interval are valid numpy arrays (160×144×3 or 240×160×3)
-- AC-013: Demo summary includes screen_types_seen, success_rate, elapsed_s
-**Status:** ready — needs OPENROUTER_API_KEY in env (key exists in .env)
+**Result:** 4 live tests (AC-010 through AC-013) all pass — 269s with real ROM (GBA LeafGreen) + owl-alpha vision/thinking. Test file: +270 lines. Screenshots validated at (160,240,3) for GBA. Tool calls verified against TOOL_SCHEMA. Summary fields checked for completeness.
 
 ### [ ] COVERAGE: Add unit tests for ToolExecutor class
 **Priority:** medium
