@@ -1023,7 +1023,7 @@ class TestRateLimiter:
 
         """Create a RateLimiter for testing"""
         from src.core.ai_client import RateLimiter
-        return RateLimiter(max_requests=10, time_window=60.0, base_delay=0.1)
+        return RateLimiter(max_requests=10, time_window=0.1, base_delay=0.01)
 
     def test_rate_limiter_allows_requests_under_limit(self, rate_limiter) -> None:  # type: ignore[no-untyped-def]
         """Test rate limiter allows requests under the limit"""
