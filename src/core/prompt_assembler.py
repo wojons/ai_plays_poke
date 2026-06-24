@@ -96,6 +96,7 @@ class PromptStack:
     def __init__(self, configs_dir: str = "configs/prompts"):
         self._configs_dir = Path(configs_dir)
         self._cache: Dict[str, Dict[str, Any]] = {}
+        self._flow: str = self._load_flow()
 
     # ------------------------------------------------------------------
     # Public API
@@ -170,6 +171,11 @@ class PromptStack:
 
         # --- Assemble layers ---
         parts: List[str] = []
+
+        # Prepend game flow map first
+        if self._flow:
+            parts.append(self._flow)
+
         for layer in LAYER_ORDER:
             template = stack.get(layer, "")
             if template:
@@ -182,6 +188,15 @@ class PromptStack:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _load_flow(self) -> str:
+        """Load the game progression flow chart from flow.yaml."""
+        flow_path = self._configs_dir / "flow.yaml"
+        if not flow_path.exists():
+            return ""
+        with open(flow_path, "r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+        return data.get("flow", "") if isinstance(data, dict) else ""
 
     @staticmethod
     def _format_layer(template: Any, fmt: Dict[str, Any]) -> str:

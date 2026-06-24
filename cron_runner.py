@@ -11,6 +11,50 @@ import sys, os, time, json, traceback, base64, io
 from pathlib import Path
 from datetime import datetime
 
+# ── Suppress emulator SGB warnings ──────────────────────────────────
+# mGBA core prints "GB: Unimplemented SGB command: 0F" to stderr when
+# running SGB-enhanced ROMs. These are harmless noise in cron runs.
+class _SGBSuppress:
+    """Context manager that filters SGB warnings from stderr."""
+    def __init__(self):
+        # These get set in __enter__
+        self._real_stderr = sys.stderr
+        self._real_stderr_fd = -1
+        self._pipe_r = -1
+        self._pipe_w = -1
+        self._thread = None
+
+    def __enter__(self):
+        import threading
+        self._pipe_r, self._pipe_w = os.pipe()
+        self._real_stderr_fd = os.dup(2)
+        os.dup2(self._pipe_w, 2)
+        os.close(self._pipe_w)
+        self._buf = []
+
+        def _filter():
+            while True:
+                data = os.read(self._pipe_r, 4096)
+                if not data:
+                    break
+                for line in data.decode(errors="replace").split("\n"):
+                    if line and "Unimplemented SGB" not in line:
+                        self._buf.append(line)
+                        self._real_stderr.write(line + "\n")
+                        self._real_stderr.flush()
+
+        self._thread = threading.Thread(target=_filter, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, *args):
+        import threading
+        os.dup2(self._real_stderr_fd, 2)
+        os.close(self._real_stderr_fd)
+        if self._pipe_r:
+            os.close(self._pipe_r)
+        # thread is daemon — will exit on its own
+
 import yaml
 import numpy as np
 from PIL import Image
@@ -338,4 +382,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    with _SGBSuppress():
+        main()

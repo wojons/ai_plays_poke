@@ -570,25 +570,23 @@ class OpenRouterClient:
         tools: Optional[List[Dict[str, Any]]] = None,
     ) -> Dict[str, Any]:
         """
-        Make a chat completion request to OpenRouter
-
-        Args:
-            model: Model name (use self.models["vision"], self.models["thinking"], etc)
-            messages: List of message dicts with 'role' and 'content'
-            images: List of numpy arrays for vision inputs (only for vision models)
-            max_tokens: Maximum tokens to generate
-            temperature: Sampling temperature
-            stream: Whether to stream response
-            retry_count: Number of retries attempted
-
-        Returns:
-            Response dict with content, usage, etc.
+        Make a chat completion request to OpenRouter (or DeepSeek direct).
+        DeepSeek models are routed through api.deepseek.com for lower cost.
         """
         if not self.circuit_breaker.allow_request():
             raise Exception("Circuit breaker open - too many failures")
 
+        # Route DeepSeek models through DeepSeek API directly
+        deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
+        if deepseek_key and "deepseek" in model.lower():
+            base_url = "https://api.deepseek.com"
+            api_key = deepseek_key
+        else:
+            base_url = self.base_url
+            api_key = self.api_key
+
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://ai-plays-pokemon.com"
         }
@@ -604,6 +602,9 @@ class OpenRouterClient:
 
         if tools:
             payload["tools"] = tools
+            # NOTE: Do NOT set response_format when tools are present.
+            # response_format conflicts with tool_calls — the model must
+            # return tool_calls, not raw JSON content.
 
         if images and len(images) > 0:
             image_content = []
@@ -655,7 +656,7 @@ class OpenRouterClient:
 
         try:
             response = requests.post(
-                f"{self.base_url}/chat/completions",
+                f"{base_url}/chat/completions",
                 headers=headers,
                 json=payload,
                 timeout=30
@@ -691,10 +692,17 @@ class OpenRouterClient:
             if tool_calls:
                 first_tool = tool_calls[0]
                 func = first_tool.get("function", {})
+                raw_args = func.get("arguments", "{}")
+                if isinstance(raw_args, str):
+                    try:
+                        parsed_args = json.loads(raw_args)
+                    except (json.JSONDecodeError, TypeError):
+                        parsed_args = raw_args  # pass through as-is
+                else:
+                    parsed_args = raw_args
                 content = json.dumps({
                     "name": func.get("name", ""),
-                    "arguments": json.loads(func.get("arguments", "{}"))
-                        if isinstance(func.get("arguments"), str) else func.get("arguments", {}),
+                    "arguments": parsed_args,
                 })
             else:
                 content = message.get("content", "")
@@ -829,34 +837,38 @@ class OpenRouterClient:
     ) -> str:
         """Send a request with tool definitions and return the raw response text.
 
-        The entire *prompt* is sent as a single user message (no system/
-        user split — owl-alpha and similar text-only models handle this
-        best).  Tool definitions are added to the payload in OpenAI
-        function-calling format.
-
-        Args:
-            prompt: Full assembled prompt text.
-            tools: List of tool definitions (OpenAI function-calling format).
-            model: OpenRouter model ID (e.g. ``\"openrouter/owl-alpha\"``).
-            max_tokens: Maximum tokens to generate.
-            temperature: Sampling temperature.
-
-        Returns:
-            Raw text response from the model.
+        Splits the prompt into system (flow chart, rules, reference) and user
+        (observation, current state, instruction) roles for better instruction
+        following. Models follow system prompts more faithfully than single-role
+        messages.
         """
+        # Split prompt into system + user at the "observation:" boundary.
+        # Everything before "observation:" is the system prompt (flow chart, rules).
+        # Everything from "observation:" onward is the user message (current state).
+        obs_idx = prompt.find("observation:")
+        if obs_idx != -1:
+            system_prompt = prompt[:obs_idx].strip()
+            user_prompt = prompt[obs_idx:].strip()
+        else:
+            system_prompt = prompt
+            user_prompt = "Take action."
+
         messages = [
-            {
-                "role": "user",
-                "content": prompt,
-            }
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
         ]
+
+        # Models that don't support native function calling — strip tools
+        _TEXT_ONLY_MODELS = {"owl-alpha"}
+        model_lower = model.lower()
+        use_native_tools = not any(tag in model_lower for tag in _TEXT_ONLY_MODELS)
 
         result = self.chat_completion(
             model=model,
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature,
-            tools=tools,
+            tools=tools if use_native_tools else None,
         )
 
         return result["content"]

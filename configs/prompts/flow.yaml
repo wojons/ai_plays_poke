@@ -1,0 +1,65 @@
+# Game Progression Flow — Pokémon Gen 1 (Red/Blue/Yellow)
+# This flow is injected into every prompt so the AI always knows where it is
+# and what action advances to the next state.
+
+flow: |
+  POKéMON GEN 1 — GAME PROGRESSION MAP
+  ====================================
+
+  You are at step N in this flow. Your job: take the action shown to advance.
+
+  ```mermaid
+  flowchart TD
+      TITLE["🎮 TITLE SCREEN — 'PRESS START' visible"]
+      TITLE -->|"press START"| DIALOG["💬 DIALOG — Oak's intro speech"]
+      DIALOG -->|"press A repeatedly"| YOUR_NAME["⌨️ YOUR NAME? — letter grid"]
+      YOUR_NAME -->|"type 2-3 letters, then navigate to END + press A"| CONFIRM["✅ NAME CONFIRM — 'Right! So your name is...'"]
+      CONFIRM -->|"press A"| RIVAL_NAME["⌨️ RIVAL'S NAME? — letter grid"]
+      RIVAL_NAME -->|"type 2-3 letters, then navigate to END + press A"| RIVAL_OK["✅ RIVAL CONFIRM — press A"]
+      RIVAL_OK -->|"press A"| BEDROOM["🏠 BEDROOM — overworld, player's room"]
+      BEDROOM -->|"walk LEFT to stairs"| STAIRS["🪜 STAIRS — transition to downstairs"]
+      STAIRS -->|"walk down stairs"| DOWNSTAIRS["🏠 HOUSE DOWNSTAIRS — mom at table"]
+      DOWNSTAIRS -->|"walk SOUTH to door mat, press A"| PALLET["🌳 PALLET TOWN — outside!"]
+      PALLET -->|"walk NORTH to Route 1"| OAK_STOP["🛑 OAK STOPS YOU — 'Don't go out!'"]
+      OAK_STOP -->|"press A through dialog"| OAK_LAB["🔬 OAK'S LAB — follow Oak inside"]
+      OAK_LAB -->|"walk to Poké Ball table, press A"| STARTER["⭐ CHOOSE STARTER — Bulbasaur/Charmander/Squirtle"]
+      STARTER -->|"press A on chosen Poké Ball"| RIVAL_BATTLE["⚔️ RIVAL BATTLE — first fight!"]
+
+      style TITLE fill:#f9f,stroke:#333
+      style DIALOG fill:#bbf,stroke:#333
+      style YOUR_NAME fill:#bfb,stroke:#333
+      style CONFIRM fill:#bfb,stroke:#333
+      style RIVAL_NAME fill:#bfb,stroke:#333
+      style RIVAL_OK fill:#bfb,stroke:#333
+      style BEDROOM fill:#ff9,stroke:#333
+      style STAIRS fill:#ff9,stroke:#333
+      style DOWNSTAIRS fill:#ff9,stroke:#333
+      style PALLET fill:#ff9,stroke:#333
+      style OAK_STOP fill:#bbf,stroke:#333
+      style OAK_LAB fill:#ff9,stroke:#333
+      style STARTER fill:#f99,stroke:#333
+      style RIVAL_BATTLE fill:#f66,stroke:#333,stroke-width:3px
+  ```
+
+  CURRENT POSITION TRACKING:
+    If you see a text box with NO HP bars → you are in DIALOG
+    If you see a letter grid with "YOUR NAME?" → you are in YOUR_NAME
+    If you see a letter grid with "RIVAL'S NAME?" → you are in RIVAL_NAME
+    If you see "Right! So your name is" → you are in CONFIRM or RIVAL_OK
+    If you see bedroom tiles (pink diamond floor) → you are in BEDROOM
+    If you see a table and stairs going up → you are in DOWNSTAIRS
+    If you see trees, grass, houses outside → you are in PALLET
+    If you see "Don't go out!" or Oak's sprite → you are in OAK_STOP
+    If you see Poké Balls on a table → you are in STARTER
+    If you see HP bars and an enemy trainer → you are in RIVAL_BATTLE
+
+  RULE: Always take the action labeled on the arrow from your current state.
+  RULE: Do not skip steps. Each action must complete before the next state triggers.
+  RULE: If you're stuck in a state for 3+ actions with no visible change, something
+        is wrong — try a different button or re-check what screen you're on.
+
+  OUTPUT FORMAT: Return ONLY a raw JSON object. No markdown, no explanation.
+  {"name": "<tool>", "arguments": {"<key>": <value>}}
+  Valid tools: press_button, wait, combo
+  Valid buttons: a, b, up, down, left, right, start, select
+  {"name": "press_button", "arguments": {"button": "a", "duration": 5}}
