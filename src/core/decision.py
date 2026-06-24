@@ -5,8 +5,14 @@ tool call → emulator execution for AI Plays Pokémon.
 
 from __future__ import annotations
 
+import os
 import traceback
+from datetime import datetime
+from pathlib import Path
 from typing import Any
+
+import numpy as np
+from PIL import Image
 
 from src.core.emulator import Emulator
 from src.core.vision import VisionClient
@@ -39,6 +45,12 @@ class DecisionLoop:
         self.memory = GameMemory()
         self.client = OpenRouterClient()
 
+        # Screenshots directory — saved for Bane to review
+        self._run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self._screenshots_dir = Path("screenshots") / f"run_{self._run_id}"
+        self._screenshots_dir.mkdir(parents=True, exist_ok=True)
+        self._step_count = 0
+
         # Fallback state — persisted across cycles
         self._last_vision: dict[str, Any] = {"screen_type": "unknown"}
 
@@ -50,8 +62,18 @@ class DecisionLoop:
         """One full decision cycle.
 
         Returns a dictionary with keys:
-            vision, screen_type, prompt, raw_response, tool_call, action, success
+            vision, screen_type, prompt, raw_response, tool_call, action, success,
+            screenshot, run_dir
         """
+        self._step_count += 1
+
+        # 1. Capture screenshot
+        screenshot = self.emulator.capture()
+
+        # Save screenshot for review
+        ss_path = self._screenshots_dir / f"step_{self._step_count:04d}.png"
+        Image.fromarray(screenshot).save(str(ss_path))
+
         result: dict[str, Any] = {
             "vision": None,
             "screen_type": "unknown",
@@ -60,10 +82,9 @@ class DecisionLoop:
             "tool_call": None,
             "action": "",
             "success": False,
+            "screenshot": str(ss_path),
+            "run_dir": str(self._screenshots_dir),
         }
-
-        # 1. Capture screenshot
-        screenshot = self.emulator.capture()
 
         # 2. Vision: analyse screenshot
         try:
