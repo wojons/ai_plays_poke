@@ -261,16 +261,60 @@ class Emulator:
         """Compatibility: advance by N frames."""
         self.fast_forward(frames)
 
-    def save_state(self, path: str | Path) -> None:
-        """Compatibility: save emulator state."""
+    # ── save / load state (full emulator checkpoint) ─────────────────────
+
+    def save_state(self, slot: int) -> None:
+        """Save full emulator checkpoint to a numbered slot.
+
+        Uses pygba's :meth:`~mgba.core.Core.save_raw_state`, which captures
+        the complete emulator state (RAM, CPU registers, I/O, video) — not
+        just the game's SRAM.  The state is written to ``checkpoints/<slot>.raw``.
+
+        Args:
+            slot: An integer slot number (typically 0–4).
+
+        Raises:
+            OSError: If the checkpoint directory cannot be created or the
+                file cannot be written.
+        """
+        _cp_dir = Path("checkpoints")
+        _cp_dir.mkdir(parents=True, exist_ok=True)
+        raw = self._pygba.core.save_raw_state()
+        path = _cp_dir / f"{slot}.raw"
+        with open(path, "wb") as fh:
+            fh.write(bytes(raw))
+
+    def load_state(self, slot: int) -> None:
+        """Restore a full emulator checkpoint from a numbered slot.
+
+        Reads the raw state bytes from ``checkpoints/<slot>.raw`` and feeds
+        them to :meth:`~mgba.core.Core.load_raw_state`.
+
+        Args:
+            slot: The checkpoint slot to restore.
+
+        Raises:
+            FileNotFoundError: If no checkpoint exists for *slot*.
+        """
+        path = Path("checkpoints") / f"{slot}.raw"
+        if not path.is_file():
+            raise FileNotFoundError(f"Checkpoint slot {slot} not found: {path}")
+        with open(path, "rb") as fh:
+            raw = fh.read()
+        self._pygba.core.load_raw_state(raw)
+
+    # ── compatibility aliases ──────────────────────────────────────────
+
+    def _save_state_legacy(self, path: str | Path) -> None:
+        """Compatibility: save emulator state (SRAM only, not full checkpoint)."""
         import pickle
         data = self._pygba.core.savedata_copy()
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         with open(path, 'wb') as fh:
             pickle.dump(data, fh)
 
-    def load_state(self, path: str | Path) -> None:
-        """Compatibility: load emulator state."""
+    def _load_state_legacy(self, path: str | Path) -> None:
+        """Compatibility: load emulator state (SRAM only)."""
         import pickle
         p = Path(path)
         if not p.exists():
