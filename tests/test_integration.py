@@ -25,7 +25,7 @@ class TestFullTickCycle:
     """Tests for the complete tick cycle flow"""
 
     @pytest.fixture(autouse=True)
-    def _patch_emulator(self, monkeypatch) -> None:
+    def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
@@ -242,7 +242,7 @@ class TestBattleTransition:
     """Tests for battle state transitions"""
 
     @pytest.fixture(autouse=True)
-    def _patch_emulator(self, monkeypatch) -> None:
+    def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
@@ -464,7 +464,7 @@ class TestDialogFlow:
     """Tests for dialog handling flow"""
 
     @pytest.fixture(autouse=True)
-    def _patch_emulator(self, monkeypatch) -> None:
+    def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
@@ -614,7 +614,7 @@ class TestCommandExecution:
     """Tests for command execution system"""
 
     @pytest.fixture(autouse=True)
-    def _patch_emulator(self, monkeypatch) -> None:
+    def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
@@ -787,7 +787,7 @@ class TestErrorRecovery:
     """Tests for error handling and recovery mechanisms"""
 
     @pytest.fixture(autouse=True)
-    def _patch_emulator(self, monkeypatch) -> None:
+    def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)

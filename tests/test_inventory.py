@@ -150,28 +150,28 @@ class TestPartyState:
             money=5000,
         )
 
-    def test_get_avg_level(self, sample_party) -> None:
+    def test_get_avg_level(self, sample_party: "PartyState") -> None:
         avg = sample_party.get_avg_level()
         assert avg == pytest.approx(25.0, rel=0.01)
 
-    def test_get_avg_hp_percent(self, sample_party) -> None:
+    def test_get_avg_hp_percent(self, sample_party: "PartyState") -> None:
         avg = sample_party.get_avg_hp_percent()
         total_hp = 50 + 100 + 0
         max_hp = 80 + 120 + 60
         expected = total_hp / max_hp
         assert avg == pytest.approx(expected, rel=0.01)
 
-    def test_get_lowest_hp_percent(self, sample_party) -> None:
+    def test_get_lowest_hp_percent(self, sample_party: "PartyState") -> None:
         lowest = sample_party.get_lowest_hp_percent()
         assert lowest == pytest.approx(0.0, rel=0.01)
 
-    def test_get_fainted_count(self, sample_party) -> None:
+    def test_get_fainted_count(self, sample_party: "PartyState") -> None:
         assert sample_party.get_fainted_count() == 1
 
-    def test_get_status_count(self, sample_party) -> None:
+    def test_get_status_count(self, sample_party: "PartyState") -> None:
         assert sample_party.get_status_count() == 0
 
-    def test_get_healthy_count(self, sample_party) -> None:
+    def test_get_healthy_count(self, sample_party: "PartyState") -> None:
         assert sample_party.get_healthy_count() == 2
 
     def test_empty_party_returns_defaults(self) -> None:
@@ -305,6 +305,7 @@ class TestInventoryState:
         inv.obtain_key_item(ItemType.OLD_ROD)
         inv.use_key_item(ItemType.OLD_ROD, "Route 25")
         key_item = inv.get_key_item(ItemType.OLD_ROD)
+        assert key_item is not None
         assert key_item.used is True
         assert key_item.use_location == "Route 25"
     def test_get_bag_summary(self) -> None:
@@ -330,6 +331,7 @@ class TestInventoryState:
         inv.clear_inventory()
         inv.add_item(ItemType.FULL_HEAL, 5)
         item = inv.get_item(ItemType.FULL_HEAL)
+        assert item is not None
         item.quantity = -1
         is_valid, errors = inv.validate_inventory()
         assert is_valid is False
@@ -340,6 +342,7 @@ class TestInventoryState:
         inv.clear_inventory()
         inv.add_item(ItemType.FULL_RESTORE, 95)
         item = inv.get_item(ItemType.FULL_RESTORE)
+        assert item is not None
         item.quantity = 100
         is_valid, errors = inv.validate_inventory()
         assert is_valid is False
