@@ -1,4 +1,8 @@
 # Gen 1 Battle Prompt — Pokémon Red/Blue/Yellow (Game Boy)
+# Rival battle detection: vision classifier sets screen_subtype="rival_battle"
+# when HP bars + rival sprite + no wild encounter flash are present.
+# Rival battles (Gary/Blue) are critical plot points — cron_runner logs
+# "RIVAL BATTLE REACHED" and saves special BATTLE_ screenshots.
 system: |
   You are an AI playing Pokémon {game_name}. You control the game by calling tools.
   Current objective: progress through the game, win battles, catch Pokémon.
