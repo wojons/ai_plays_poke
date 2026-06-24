@@ -1030,7 +1030,7 @@ class RateLimiter:
         self.max_delay = max_delay
 
         self.request_times: List[float] = []
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
 
     def wait(self) -> float:
         """Wait if rate limit would be exceeded, return delay used"""
@@ -1774,7 +1774,7 @@ class CostOptimizer:
         self.cost_per_decision = 0.0
         self.cost_per_model: Dict[str, float] = {}
         self.cost_per_task_type: Dict[str, float] = {}
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
 
     def track_cost(self, model: str, task_type: str, input_tokens: int,
                    output_tokens: int) -> float:
@@ -1930,7 +1930,7 @@ class PerformanceTracker:
         self.task_metrics: Dict[str, Dict[str, PerformanceMetrics]] = {}
         self.recent_results: List[Dict[str, Any]] = []
         self.max_recent_results = 1000
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
 
     def record_result(self, model: str, task_type: str, success: bool,
                       latency_ms: float, tokens: int = 0) -> None:
@@ -2148,7 +2148,7 @@ class ResultMerger:
         self.confidence_threshold = confidence_threshold
         self.consensus_threshold = consensus_threshold
         self.merge_history: List[Dict[str, Any]] = []
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
 
     def merge_results(self, results: List[ModelResult]) -> MergedResult:
         """
