@@ -68,7 +68,7 @@ OBJECT_EMOJI: dict[str, str] = {
     "F": "🚧",   # fence / rail / barrier
     "N": "📺",   # TV / screen
     "P": "🪴",   # plant / decoration
-    "B": "📚",   # bookshelf
+    "K": "📚",   # bookshelf
     "R": "🪑",   # chair
     "T": "🪜",   # table
     "X": "❌",   # cut tree (HM01)
@@ -86,7 +86,7 @@ OBJECT_ASCII: dict[str, str] = {
     "F": "F",
     "N": "N",
     "P": "P",
-    "B": "B",
+    "K": "B",
     "R": "R",
     "T": "T",
     "X": "X",
@@ -273,6 +273,21 @@ def describe_tile(terrain: str, obj: str = " ", actor_kind: str = "") -> str:
     if actor_kind:
         parts.append(actor_to_emoji(actor_kind))
     return " ".join(parts)
+
+# ── TSV strip format reference ──────────────────────────────────────────────
+
+# Template showing the expected TSV output format for terrain strips.
+# The vision model can output either packed ("TTT....ggg....T") or
+# tab-separated ("T\tT\tT\t.\t.\t.\t.\tg\tg\tg\t.\t.\t.\t.\tT") —
+# the MapIntegrator accepts both.
+TSV_STRIP_REFERENCE = """
+TERRAIN STRIP FORMAT:
+  You may output terrain strips in either packed or TSV format.
+  Packed:  "TTT....ggg....T"  (one char per tile, no separators)
+  TSV:     "T<TAB>T<TAB>T<TAB>.<TAB>.<TAB>.<TAB>.<TAB>g<TAB>g<TAB>g<TAB>.<TAB>.<TAB>.<TAB>.<TAB>T"
+  The TSV format is unambiguous — "." means walkable tile, never confused with spaces.
+  Both formats are accepted.  Use whichever is clearer for you.
+"""
 
 # ── Symbol table for prompts ────────────────────────────────────────────────
 

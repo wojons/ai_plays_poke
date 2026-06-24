@@ -17,7 +17,8 @@ from pathlib import Path
 from typing import Any
 
 from .obs_patch import ObsPatch, validate_patch
-from .world_state import Actor, MovementEdge, WorldState
+from .world_state import Actor, WorldState
+from .tile_utils import normalize_strip_terrain
 
 
 class MapIntegrator:
@@ -171,20 +172,28 @@ class MapIntegrator:
         w.tick = patch.tick
 
     def _apply_strip(self, strip) -> None:
-        """Apply a single row/column of new data."""
+        """Apply a single row/column of new data.
+
+        Handles both packed strings (``"TTT....ggg"``) and TSV format
+        (``"T\\tT\\tT\\t.\\t.\\t.\\t.\\tg\\tg\\tg"``) transparently.
+        """
         w = self.world
         edge = strip.edge.upper()
 
+        # Normalize terrain/objects — accept TSV or packed
+        terrain_str = normalize_strip_terrain(strip.terrain) if strip.terrain else ""
+        objects_str = normalize_strip_terrain(strip.objects) if strip.objects else ""
+
         if edge in ("N", "S"):
             y = strip.global_y
-            if strip.terrain:
-                for i, ch in enumerate(strip.terrain):
+            if terrain_str:
+                for i, ch in enumerate(terrain_str):
                     x = strip.x_start + i
                     if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
                         if ch != "?" or w.terrain[y][x] == "?":
                             w.terrain[y][x] = ch
-            if strip.objects:
-                for i, ch in enumerate(strip.objects):
+            if objects_str:
+                for i, ch in enumerate(objects_str):
                     x = strip.x_start + i
                     if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
                         if ch != " " or w.objects[y][x] == " ":
@@ -192,14 +201,14 @@ class MapIntegrator:
 
         elif edge in ("E", "W"):
             x = strip.global_x
-            if strip.terrain:
-                for i, ch in enumerate(strip.terrain):
+            if terrain_str:
+                for i, ch in enumerate(terrain_str):
                     y = strip.y_start + i
                     if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
                         if ch != "?" or w.terrain[y][x] == "?":
                             w.terrain[y][x] = ch
-            if strip.objects:
-                for i, ch in enumerate(strip.objects):
+            if objects_str:
+                for i, ch in enumerate(objects_str):
                     y = strip.y_start + i
                     if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
                         if ch != " " or w.objects[y][x] == " ":
