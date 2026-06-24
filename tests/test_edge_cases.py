@@ -166,7 +166,8 @@ class TestAPIKeyHandling:
         """API key rate limited → retry with backoff"""
         call_count = 0
 
-        def raise_rate_limit(*args, **kwargs) -> None:
+        def raise_rate_limit(*args, **kwargs) :  # type: ignore[no-untyped-def]
+
             nonlocal call_count
             call_count += 1
             if call_count < 3:
@@ -208,7 +209,8 @@ class TestNetworkHandling:
         """Network timeout → retry logic, eventual fallback"""
         call_count = 0
 
-        def raise_timeout(*args, **kwargs) -> None:
+        def raise_timeout(*args, **kwargs) :  # type: ignore[no-untyped-def]
+
             nonlocal call_count
             call_count += 1
             if call_count < 2:
@@ -421,7 +423,7 @@ class TestScreenshotHandling:
         pipeline = VisionPipeline()
 
         with pytest.raises((TypeError, ValueError, AttributeError, Exception)):
-            pipeline.process(None)
+            pipeline.process(None)  # type: ignore
     def test_screenshot_memory_error(self) -> None:
         """Memory error during processing → graceful recovery"""
         from src.vision import VisionPipeline

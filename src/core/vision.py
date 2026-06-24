@@ -11,7 +11,7 @@ import json
 import base64
 import hashlib
 import re
-from typing import Optional, cast
+from typing import Optional, cast, Any
 
 import numpy as np
 from PIL import Image
@@ -68,7 +68,7 @@ class VisionClient:
         "no explanation."
     )
 
-    _FALLBACK_RESULT: dict = {"screen_type": "unknown"}
+    _FALLBACK_RESULT: dict[str, Any] = {"screen_type": "unknown"}
 
     def __init__(self, model: str = "google/gemma-3-12b-it") -> None:
         """Initialise the vision client.
@@ -92,11 +92,11 @@ class VisionClient:
 
         # Cache: avoid re-calling vision for unchanged screenshots.
         self._last_hash: Optional[str] = None
-        self._last_result: Optional[dict] = None
+        self._last_result: Optional[dict[str, Any]] = None
 
     # ── public API ──────────────────────────────────────────────────────────
 
-    def analyze(self, screenshot: np.ndarray, game: str = "gen1") -> dict:
+    def analyze(self, screenshot: np.ndarray, game: str = "gen1") -> dict[str, Any]:
         """Analyze a game screenshot and return structured game state.
 
         Args:
@@ -161,13 +161,13 @@ class VisionClient:
         if pil_img.size[0] > 1024:
             ratio = 1024 / pil_img.size[0]
             new_h = int(pil_img.size[1] * ratio)
-            pil_img = pil_img.resize((1024, new_h), Image.LANCZOS)
+            pil_img = pil_img.resize((1024, new_h), Image.Resampling.LANCZOS)
         buf = io.BytesIO()
         pil_img.save(buf, format="PNG")
         return base64.b64encode(buf.getvalue()).decode()
 
     @classmethod
-    def _parse_response(cls, text: str) -> Optional[dict]:
+    def _parse_response(cls, text: str) -> Optional[dict[str, Any]]:
         """Extract and parse a JSON object from the model response.
 
         Returns:
@@ -180,7 +180,7 @@ class VisionClient:
 
         # Direct parse.
         try:
-            return cast(dict, json.loads(cleaned))
+            return cast(dict[str, Any], json.loads(cleaned))
         except json.JSONDecodeError:
             pass
 
@@ -193,7 +193,7 @@ class VisionClient:
             match = re.search(pattern, cleaned, re.DOTALL)
             if match:
                 try:
-                    return cast(dict, json.loads(match.group()))
+                    return cast(dict[str, Any], json.loads(match.group()))
                 except json.JSONDecodeError:
                     continue
 
@@ -214,7 +214,7 @@ class VisionClient:
         return cleaned
 
     @staticmethod
-    def _regex_extract(text: str) -> Optional[dict]:
+    def _regex_extract(text: str) -> Optional[dict[str, Any]]:
         """Fallback: extract known fields from unstructured text via regex."""
         field_patterns = {
             "screen_type": r'"screen_type"\s*:\s*"(\w+)"',
@@ -225,7 +225,7 @@ class VisionClient:
             "adjacent_info": r'"adjacent_info"\s*:\s*"([^"]+)"',
         }
 
-        result: dict = {}
+        result: dict[str, Any] = {}
         for field, pattern in field_patterns.items():
             m = re.search(pattern, text, re.IGNORECASE)
             if m:

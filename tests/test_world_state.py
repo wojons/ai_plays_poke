@@ -568,7 +568,7 @@ class TestComposedViewCompact:
 class TestWorldStateSaveLoad:
     """Tests for WorldState.save and WorldState.load roundtrip."""
 
-    def test_save_and_load_roundtrip(self, tmp_path) -> None:
+    def test_save_and_load_roundtrip(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         ws = WorldState()
         ws.tick = 42
         ws.map_id = "route1"
@@ -611,7 +611,7 @@ class TestWorldStateSaveLoad:
         assert e is not None
         assert e.outcome == "blocked"
 
-    def test_load_empty_directory(self, tmp_path) -> None:
+    def test_load_empty_directory(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         d = tmp_path / "empty"
         d.mkdir()
         ws = WorldState.load(d)
@@ -673,8 +673,8 @@ movement:
 """
         patch = parse_obs_patch(yaml_str)
         assert patch.tick == 5
-        assert patch.movement.result == "moved"
-        assert patch.movement.player_delta == [1, 0]
+        assert patch.movement.result == "moved"  # type: ignore[union-attr]
+        assert patch.movement.player_delta == [1, 0]  # type: ignore[union-attr]
 class TestParseObsPatchBlocked:
     """parse_obs_patch with movement result: blocked."""
 
@@ -692,7 +692,7 @@ class TestParseObsPatchBlocked:
             ],
         }
         patch = parse_obs_patch(data)
-        assert patch.movement.result == "blocked"
+        assert patch.movement.result == "blocked"  # type: ignore[union-attr]
         assert len(patch.edges) == 1
         assert patch.edges[0].outcome == "blocked"
         assert patch.edges[0].reason == "tree"
@@ -1011,7 +1011,7 @@ class TestMapIntegratorInit:
         assert len(mi.world.terrain) == 200
         assert len(mi.world.terrain[0]) == 200
 
-    def test_init_from_directory(self, tmp_path) -> None:
+    def test_init_from_directory(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         ws = WorldState()
         ws.init_blank(10, 10)
         ws.set_terrain(5, 5, "g")
@@ -1286,7 +1286,7 @@ class TestMapIntegratorStats:
 class TestMapIntegratorSave:
     """Tests for MapIntegrator.save."""
 
-    def test_save_persists(self, tmp_path) -> None:
+    def test_save_persists(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         ws = WorldState()
         ws.init_blank(10, 10)
         ws.set_terrain(5, 5, "#")

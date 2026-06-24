@@ -7,6 +7,7 @@ Flow:
   3. Controller (DeepSeek V4 Flash) reads composed view → button press
   4. Non-overworld: existing StateWindow flow
 """
+from typing import Any
 import sys, os, time, json, traceback, base64, io
 from pathlib import Path
 from datetime import datetime
@@ -16,23 +17,23 @@ from datetime import datetime
 # running SGB-enhanced ROMs. These are harmless noise in cron runs.
 class _SGBSuppress:
     """Context manager that filters SGB warnings from stderr."""
-    def __init__(self):
+    def __init__(self) -> None:
         # These get set in __enter__
         self._real_stderr = sys.stderr
         self._real_stderr_fd = -1
         self._pipe_r = -1
         self._pipe_w = -1
-        self._thread = None
+        self._thread: threading.Thread | None = None
 
-    def __enter__(self):
+    def __enter__(self) -> '_SGBSuppress':
         import threading
         self._pipe_r, self._pipe_w = os.pipe()
         self._real_stderr_fd = os.dup(2)
         os.dup2(self._pipe_w, 2)
         os.close(self._pipe_w)
-        self._buf = []
+        self._buf: list[str] = []
 
-        def _filter():
+        def _filter() -> None:
             while True:
                 data = os.read(self._pipe_r, 4096)
                 if not data:
@@ -47,7 +48,7 @@ class _SGBSuppress:
         self._thread.start()
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: object) -> None:
         import threading
         os.dup2(self._real_stderr_fd, 2)
         os.close(self._real_stderr_fd)
@@ -106,7 +107,7 @@ def cartographer_analyze(
     screenshot: np.ndarray,
     world: WorldState,
     last_result: str = "unknown",
-) -> dict:
+) -> dict[str, Any]:
     """Send screenshot + world state to Gemma 12B, return OBS_PATCH dict."""
     # Build the user prompt
     current_terrain = world.composed_view()
@@ -154,7 +155,7 @@ def cartographer_analyze(
     return _extract_obs_patch(text)
 
 
-def _extract_obs_patch(text: str) -> dict:
+def _extract_obs_patch(text: str) -> dict[str, Any]:
     """Extract OBS_PATCH from model response (handles markdown fences)."""
     text = text.strip()
     # Strip ``` fences
@@ -167,7 +168,7 @@ def _extract_obs_patch(text: str) -> dict:
 
     # Try JSON first, then YAML
     try:
-        return json.loads(text)
+        return json.loads(text)  # type: ignore
     except (json.JSONDecodeError, ValueError):
         pass
 
@@ -182,7 +183,7 @@ def controller_decide(
     world_view: str,
     last_button: str = "",
     last_result: str = "",
-) -> dict:
+) -> dict[str, Any]:
     """Controller model (DeepSeek V4 Flash) decides next button press."""
     system = (
         "You are controlling a Pokémon game player character.\n\n"
@@ -224,14 +225,14 @@ def controller_decide(
         text = "\n".join(lines)
 
     try:
-        return json.loads(text)
+        return json.loads(text)  # type: ignore
     except json.JSONDecodeError:
         # Fallback: try to find "{...}" 
         import re
         m = re.search(r'\{[^}]+\}', text)
         if m:
             try:
-                return json.loads(m.group())
+                return json.loads(m.group())  # type: ignore
             except json.JSONDecodeError:
                 pass
         return {"button": "A", "intent": "parse_failure_fallback"}
@@ -239,7 +240,7 @@ def controller_decide(
 
 # ── Main ────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     results = []
     emu = Emulator(ROM)
 

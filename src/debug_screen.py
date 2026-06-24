@@ -12,7 +12,8 @@ from pyboy import PyBoy
 from PIL import Image
 import numpy as np
 
-def debug_screen(rom_path: str, num_ticks: int = 1000) -> None:
+def debug_screen(rom_path: str, num_ticks: int = 1000) -> bool:
+
     """Debug PyBoy screen data"""
     
     print(f"🎮 Debugging PyBoy screen data")

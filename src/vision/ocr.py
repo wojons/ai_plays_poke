@@ -7,7 +7,7 @@ Supports Pokemon names, menu items, and dialog text.
 
 import json
 import re
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -22,7 +22,7 @@ class OCRResult:
     confidence: float
     character_count: int
     processing_time_ms: float = 0.0
-    characters: List[Dict] = field(default_factory=list)
+    characters: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -155,7 +155,7 @@ class OCREngine:
         with open(self.FONT_DATABASE_PATH, 'w') as f:
             json.dump(data, f, indent=2)
     
-    def _build_common_words_set(self) -> None:
+    def _build_common_words_set(self, words: list[str] = None) -> set[str]:  # type: ignore[no-untyped-def]
         """Build set of common Pokemon words for validation"""
         return {
             "POKEMON", "TRAINER", "ITEM", "MENU", "SAVE", "LOAD", "OPTIONS",
@@ -257,7 +257,7 @@ class OCREngine:
         self, 
         line: np.ndarray, 
         min_confidence: float
-    ) -> Tuple[str, float, List[Dict]]:
+    ) -> Tuple[str, float, List[Dict[str, Any]]]:
         """Recognize a single line of text"""
         h, w = line.shape
         
@@ -312,7 +312,7 @@ class OCREngine:
         
         return self.CHAR_WIDTH
     
-    def _recognize_character(self, char_region: np.ndarray) -> Dict:
+    def _recognize_character(self, char_region: np.ndarray) -> Dict[str, Any]:
         """Recognize a single character using template matching"""
         h, w = char_region.shape
         

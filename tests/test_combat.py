@@ -607,7 +607,7 @@ class TestBattleStrategist:
             max_hp=30, current_hp=5, attack=30, defense=20,
             speed=50, special=20, moves=[]
         )
-        party = []
+        party = []  # type: ignore
         should_switch, reason, _ = self.strategist.should_switch(
             current, opponent, party, self.move_selector
         )

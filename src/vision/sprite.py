@@ -2,7 +2,7 @@
 Sprite Recognizer - Pokemon and UI Element Recognition
 """
 import json
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 import numpy as np
@@ -35,7 +35,7 @@ class SpriteRecognizer:
     
     def __init__(self) -> None:
         self.sprite_templates: Dict[str, np.ndarray] = {}
-        self.sprite_metadata: Dict[str, Dict] = {}
+        self.sprite_metadata: Dict[str, Dict[str, Any]] = {}
         self._load_sprite_database()
         self.hp_bar_colors = {
             "green": ((34, 139, 34), (50, 205, 50)),

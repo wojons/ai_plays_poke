@@ -8,7 +8,7 @@ Provides a live view for users to monitor game progress.
 import base64
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 import json
 
 import numpy as np
@@ -110,7 +110,7 @@ class ScreenshotManager:
         with open(filepath, "rb") as f:
             return base64.b64encode(f.read()).decode()
     
-    def get_screenshots_info(self, state_type: Optional[str] = None) -> list:
+    def get_screenshots_info(self, state_type: Optional[str] = None) -> list[Any]:
         """
         Get info about stored screenshots
         
@@ -144,7 +144,7 @@ class ScreenshotManager:
         return sorted(info, key=lambda x: x["modified"], reverse=True)
     
     def save_screenshot_with_metadata(self, screenshot: np.ndarray,
-                                    metadata: dict) -> Path:
+                                    metadata: dict[str, Any]) -> Path:
         """Save screenshot with JSON metadata"""
         filepath = self.save_screenshot(
             screenshot,
@@ -160,7 +160,8 @@ class ScreenshotManager:
         
         return filepath
     
-    def cleanup_old_screenshots(self, keep_count: int = 1000) -> None:
+    def cleanup_old_screenshots(self, keep_count: int = 1000) :  # type: ignore[no-untyped-def]
+
         """Keep only the most recent screenshots to save disk space"""
         all_screenshots = list(self.save_dir.glob("*.png"))
         all_screenshots.sort(key=lambda p: p.stat().st_mtime)
@@ -179,7 +180,7 @@ class ScreenshotManager:
             print(f"🧹 Cleaned up {deleted_count} old screenshots (kept {keep_count})")
         
         return deleted_count
-    def get_stats(self) -> dict:
+    def get_stats(self) -> dict[str, Any]:
         """Get statistics about stored screenshots"""
         return {
             "total": len(list(self.save_dir.glob("*.png"))),

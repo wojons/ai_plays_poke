@@ -6,7 +6,7 @@ using tile pattern matching and feature detection.
 """
 import json
 import time
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,7 +32,7 @@ class LocationDetector:
     AREA_DATABASE_PATH = Path(__file__).parent / "data" / "areas.json"
     
     def __init__(self) -> None:
-        self.area_database: Dict = {}
+        self.area_database: Dict[str, Any] = {}
         self.tile_templates: Dict[str, np.ndarray] = {}
         self._load_area_database()
         
@@ -309,7 +309,7 @@ class LocationDetector:
     def is_tile_interactive(self, tile_type: str) -> bool:
         return bool(self.tile_classifications.get(tile_type, {}).get("interactive", False))
     
-    def get_navigation_graph(self, screenshot: np.ndarray) -> Dict[Tuple[int, int], Dict]:
+    def get_navigation_graph(self, screenshot: np.ndarray) -> Dict[Tuple[int, int], Dict[str, Any]]:
         tiles = self._extract_tiles(screenshot)
         
         grid_width = int(screenshot.shape[1] / 16)
@@ -338,7 +338,7 @@ class LocationDetector:
         self,
         current_pos: Tuple[int, int],
         target_pos: Tuple[int, int],
-        navigation_graph: Dict[Tuple[int, int], Dict]
+        navigation_graph: Dict[Tuple[int, int], Dict[str, Any]]
     ) -> List[Tuple[int, int]]:
         path = [current_pos]
         

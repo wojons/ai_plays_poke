@@ -458,7 +458,7 @@ class TestCLIFlagParser:
         with pytest.raises(SystemExit):
             parser.parse_args(args)
 
-    def test_validate_valid_config(self, tmp_path) -> None:
+    def test_validate_valid_config(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         """Test validation of valid configuration."""
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
@@ -469,7 +469,7 @@ class TestCLIFlagParser:
 
         assert len(errors) == 0
 
-    def test_validate_verbose_quiet_conflict(self, tmp_path) -> None:
+    def test_validate_verbose_quiet_conflict(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         """Test validation catches verbose/quiet conflict."""
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
@@ -484,7 +484,7 @@ class TestCLIFlagParser:
 
         assert any("Cannot use both --verbose and --quiet" in e for e in errors)
 
-    def test_parse_and_validate_success(self, tmp_path) -> None:
+    def test_parse_and_validate_success(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         """Test parse_and_validate returns valid config."""
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
@@ -495,7 +495,7 @@ class TestCLIFlagParser:
         assert len(errors) == 0
         assert isinstance(config, FullConfig)
 
-    def test_parse_and_validate_error(self, tmp_path) -> None:
+    def test_parse_and_validate_error(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         """Test parse_and_validate returns errors for invalid config."""
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file

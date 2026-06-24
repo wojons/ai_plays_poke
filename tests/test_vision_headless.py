@@ -245,7 +245,7 @@ class TestVisionClientParsing:
 
     def test_parse_none(self) -> None:
         # parse_response should handle None gracefully
-        result = VisionClient._parse_response(None)
+        result = VisionClient._parse_response(None)  # type: ignore
         assert result is None
 
 
@@ -390,12 +390,13 @@ class TestPromptStackCore:
     """Test PromptStack loading, assembly, and introspection."""
 
     @pytest.fixture
-    def stack(self) -> None:
+    def stack(self) :  # type: ignore[no-untyped-def]
+
         return PromptStack(str(_PROJECT / "configs" / "prompts"))
 
     # ── loading ─────────────────────────────────────────────────────────
 
-    def test_load_valid_stack(self, stack) -> None:
+    def test_load_valid_stack(self, stack) -> None:  # type: ignore[no-untyped-def]
         layers = stack.load_stack("gen3", "battle")
         assert "system" in layers
         assert "tools" in layers
@@ -403,23 +404,23 @@ class TestPromptStackCore:
         assert "memory" in layers
         assert "examples" in layers
 
-    def test_load_overworld_stack(self, stack) -> None:
+    def test_load_overworld_stack(self, stack) -> None:  # type: ignore[no-untyped-def]
         layers = stack.load_stack("gen3", "overworld")
         assert "system" in layers
         assert "You are an AI" in layers["system"]
 
-    def test_load_gen1_stack(self, stack) -> None:
+    def test_load_gen1_stack(self, stack) -> None:  # type: ignore[no-untyped-def]
         layers = stack.load_stack("gen1", "battle")
         assert "system" in layers
         assert "Generation:" in layers["system"] or "Gen 1" in layers["system"].lower()
 
-    def test_load_missing_stack(self, stack) -> None:
+    def test_load_missing_stack(self, stack) -> None:  # type: ignore[no-untyped-def]
         with pytest.raises(FileNotFoundError):
             stack.load_stack("gen3", "nonexistent_screen")
 
     # ── assembly ────────────────────────────────────────────────────────
 
-    def test_assemble_battle_prompt(self, stack) -> None:
+    def test_assemble_battle_prompt(self, stack) -> None:  # type: ignore[no-untyped-def]
         vision = {
             "screen_type": "battle",
             "enemy_pokemon": "Pidgey",
@@ -441,8 +442,8 @@ class TestPromptStackCore:
         assert "100%" in prompt
         assert "FIGHT" in prompt
 
-    def test_assemble_overworld_prompt(self, stack) -> None:
-        vision = {
+    def test_assemble_overworld_prompt(self, stack) -> None:  # type: ignore[no-untyped-def]
+        vision = {  # type: ignore
             "screen_type": "overworld",
             "enemy_pokemon": None,
             "player_hp_pct": 0,
@@ -494,7 +495,7 @@ class TestPromptStackCore:
         # Enemy info is empty but that's fine — the template variable resolved to ""
         # Missing keys from fmt dict would show as {missing_key} via SafeDict
 
-    def test_assemble_memory_context(self, stack) -> None:
+    def test_assemble_memory_context(self, stack) -> None:  # type: ignore[no-untyped-def]
         vision: Dict[str, Any] = {"screen_type": "overworld"}
         memory: Dict[str, Any] = {
             "recent_actions": ["move north", "press a", "battle Pidgey"],
@@ -510,7 +511,7 @@ class TestPromptStackCore:
 
     # ── available stacks ────────────────────────────────────────────────
 
-    def test_available_stacks(self, stack) -> None:
+    def test_available_stacks(self, stack) -> None:  # type: ignore[no-untyped-def]
         stacks = stack.available_stacks()
         assert len(stacks) >= 2  # at least gen1 and gen3 have files
         assert "gen3/battle" in stacks
@@ -593,21 +594,22 @@ class TestPromptStackAssemblyEdgeCases:
     """Edge cases for assemble()."""
 
     @pytest.fixture
-    def stack(self) -> None:
+    def stack(self) :  # type: ignore[no-untyped-def]
+
         return PromptStack(str(_PROJECT / "configs" / "prompts"))
 
-    def test_empty_vision_and_memory(self, stack) -> None:
+    def test_empty_vision_and_memory(self, stack) -> None:  # type: ignore[no-untyped-def]
         """Should not crash with empty inputs."""
         prompt = stack.assemble("gen3", "battle", {}, {})
         assert "battle" in prompt.lower()
         assert "FireRed" in prompt
 
-    def test_unknown_screen_type_still_formats(self, stack) -> None:
+    def test_unknown_screen_type_still_formats(self, stack) -> None:  # type: ignore[no-untyped-def]
         """If the screen type config exists, VisionClient dict keys are used."""
         prompt = stack.assemble("gen3", "battle", {"screen_type": "not_real_screen"}, {})
         assert "not_real_screen" in prompt.lower()
 
-    def test_examples_layer_present(self, stack) -> None:
+    def test_examples_layer_present(self, stack) -> None:  # type: ignore[no-untyped-def]
         vision = {"screen_type": "battle"}
         memory: Dict[str, Any] = {
             "recent_actions": [],

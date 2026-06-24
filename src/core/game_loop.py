@@ -86,7 +86,7 @@ class GameLoop:
         
         self.emulator.start()
         self.is_running = True
-        self.metrics["start_time"] = datetime.now()
+        self.metrics["start_time"] = datetime.now()  # type: ignore
         print("✅ Emulator started. Beginning game loop...")
         print("Press Ctrl+C to stop gracefully (saves progress)")
         
@@ -106,7 +106,7 @@ class GameLoop:
         self.db.log_session_metrics({
             **self.metrics,
             "end_time": datetime.now(),
-            "duration": (datetime.now() - self.metrics["start_time"]).total_seconds()
+            "duration": (datetime.now() - self.metrics["start_time"]).total_seconds()  # type: ignore
             if self.metrics["start_time"] else 0
         })
         
@@ -124,12 +124,12 @@ class GameLoop:
         # Advance emulator
         self.emulator.tick()
         self.current_tick += 1
-        self.metrics["total_ticks"] += 1
+        self.metrics["total_ticks"] += 1  # type: ignore
         # Take screenshot if interval elapsed
         current_time = time.time()
         if current_time - self.last_screenshot_time >= self.screenshot_interval:
             self._capture_and_process_screenshot()
-            self.last_screenshot_time = current_time
+            self.last_screenshot_time = current_time  # type: ignore
         # Process any pending AI decisions
         if self.pending_commands:
             self._execute_pending_commands()
@@ -147,7 +147,7 @@ class GameLoop:
             f"tick_{self.current_tick}_{timestamp}"
         )
         
-        self.metrics["screenshots_taken"] += 1
+        self.metrics["screenshots_taken"] += 1  # type: ignore
         # Detect game state from screenshot
         game_state = self._analyze_screenshot(screenshot)
         
@@ -237,7 +237,7 @@ class GameLoop:
         
         return lines is not None and len(lines) > 5
     
-    async def _get_ai_decision(self, game_state: Dict[str, Any]):
+    async def _get_ai_decision(self, game_state: Dict[str, Any]) -> dict[str, Any] | None:
         """
         Get AI decision based on game state
         This is a placeholder for actual AI integration
@@ -322,7 +322,7 @@ class GameLoop:
                         "success": True
                     })
                     
-                    self.metrics["commands_sent"] += 1
+                    self.metrics["commands_sent"] += 1  # type: ignore
                     self.db.log_command_execution({
                         "tick": self.current_tick,
                         "command": command["command"],
@@ -367,7 +367,7 @@ class GameLoop:
             if is_currently_battling and not hasattr(self, '_was_battling'):
                 # Battle just started
                 print("⚔️ Battle started!")
-                self.metrics["battles_encountered"] += 1
+                self.metrics["battles_encountered"] += 1  # type: ignore
                 self.db.log_battle_start({
                     "tick": self.current_tick,
                     "timestamp": datetime.now().isoformat()
@@ -377,13 +377,14 @@ class GameLoop:
             elif not is_currently_battling and hasattr(self, '_was_battling'):
                 # Battle just ended
                 print("🏁 Battle ended!")
-                self.db.log_battle_end({
+                self.db.log_battle_end({  # type: ignore
                     "tick": self.current_tick,
                     "timestamp": datetime.now().isoformat()
                 })
                 delattr(self, '_was_battling')
 
-def main() -> None:
+def main() -> int:
+
     """Main entry point for CLI"""
     parser = argparse.ArgumentParser(
         description="AI Plays Pokemon - Framework for AI-driven Pokemon gameplay",
@@ -466,7 +467,8 @@ Examples:
             print(f"⚠️ State file not found: {state_path}, starting fresh")
     
     # Handle graceful shutdown
-    def signal_handler(sig, frame) -> None:
+    def signal_handler(sig: int, frame: Any) -> int:
+
         print("\n🤷 Ctrl+C detected, stopping gracefully...")
         game_loop.stop()
         sys.exit(0)

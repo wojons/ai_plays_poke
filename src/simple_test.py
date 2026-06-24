@@ -11,7 +11,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from pyboy import PyBoy
 from PIL import Image
 
-def simple_test() -> None:
+def simple_test() -> bool:
+
     """Simple test with Pokemon Blue ROM"""
     
     print("🧪 Simple PyBoy Screenshot Test")

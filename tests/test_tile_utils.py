@@ -242,6 +242,7 @@ class TestExtractTileStrip:
         screen = self._make_screen()
         x_px = (GB_VIEWPORT_TILES[0] - 1) * GB_TILE_PX
         strip = extract_tile_strip(screen, "E", x_px, start=0, length=9)
+        assert strip is not None
 
         # Height must be exactly one tile (16)
         assert strip.shape[0] == GB_TILE_PX

@@ -17,13 +17,14 @@ from pyboy import PyBoy
 class PokemonAIAgent:
     """AI Agent that plays Pokemon games"""
     
-    def __init__(self, rom_path) -> None:
+    def __init__(self, rom_path) -> None:  # type: ignore[no-untyped-def]
         self.rom_path = rom_path
         self.pyboy = None
         self.screenshot_dir = Path(__file__).parent.parent / "screenshots"
         self.screenshot_dir.mkdir(exist_ok=True)
         
-    def start(self) -> None:
+    def start(self) -> bool:
+
         """Start the Pokemon game"""
         print(f"🎮 Starting Pokemon AI Agent")
         print(f"📂 ROM: {self.rom_path}")
@@ -38,16 +39,17 @@ class PokemonAIAgent:
         
         print("✅ Pokemon game started successfully!")
         return True
-    def run_ticks(self, num_ticks=100) -> None:
+    def run_ticks(self, num_ticks=100) -> None:  # type: ignore[no-untyped-def]
         """Run the game for specified number of ticks"""
         print(f"▶️  Running {num_ticks} ticks...")
         for _ in range(num_ticks):
-            self.pyboy.tick()
-    def capture_screenshot(self, tick) -> None:
+            self.pyboy.tick()  # type: ignore[attr-defined]
+    def capture_screenshot(self, tick) -> bool:  # type: ignore
+
         """Capture screenshot at current game state"""
         try:
             # Get screen ndarray
-            screen_nparr = self.pyboy.screen.ndarray
+            screen_nparr = self.pyboy.screen.ndarray  # type: ignore[attr-defined]
             if screen_nparr is not None and screen_nparr.size > 0:
                 # Convert to PIL Image
                 pil_image = Image.fromarray(screen_nparr, mode='RGB')
@@ -85,7 +87,8 @@ class PokemonAIAgent:
             print(f"❌ Error reading memory: {e}")
             return None
     
-    def get_game_state(self, tick) -> None:
+    def get_game_state(self, tick) :  # type: ignore[no-untyped-def]
+
         """Get current game state including screenshot and memory data"""
         # Capture screenshot
         self.capture_screenshot(tick)

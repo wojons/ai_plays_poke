@@ -136,9 +136,9 @@ class BattleAnalyzer:
         
         is_shiny = False
         if is_enemy:
-            sprite_region = self.sprite_recognizer._extract_enemy_sprite_region(screenshot)
+            sprite_region = self.sprite_recognizer._extract_enemy_sprite_region(screenshot)  # type: ignore[attr-defined]
         else:
-            sprite_region = self.sprite_recognizer._extract_player_sprite_region(screenshot)
+            sprite_region = self.sprite_recognizer._extract_player_sprite_region(screenshot)  # type: ignore[attr-defined]
         if sprite_region is not None:
             is_shiny = self.sprite_recognizer.is_shiny(sprite_region)
         
@@ -185,7 +185,7 @@ class BattleAnalyzer:
         
         return BattleType.WILD
     
-    def _determine_battle_phase(self, screenshot: np.ndarray, hp_regions: Dict) -> BattlePhase:
+    def _determine_battle_phase(self, screenshot: np.ndarray, hp_regions: Dict[str, Any]) -> BattlePhase:
         h, w = screenshot.shape[:2]
         
         menu_region = screenshot[int(h*0.7):h, :]
@@ -251,7 +251,7 @@ class BattleAnalyzer:
         
         return damage
     
-    def get_super_effective_moves(self, player_moves: List[Dict], enemy_types: List[str]) -> List[Dict]:
+    def get_super_effective_moves(self, player_moves: List[Dict[str, Any]], enemy_types: List[str]) -> List[Dict[str, Any]]:
         super_effective = []
         for move in player_moves:
             effectiveness = self.get_type_effectiveness(move["type"], enemy_types)
