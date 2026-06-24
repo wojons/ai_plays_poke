@@ -7,7 +7,7 @@ for optimal vision model input.
 
 import hashlib
 import time
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Any
 from dataclasses import dataclass
 from pathlib import Path
 import signal
@@ -64,7 +64,7 @@ class VisionPipeline:
     def __init__(self, debug_dir: Optional[str] = None):
         """Initialize Vision Pipeline"""
         self.debug_dir = Path(debug_dir) if debug_dir else None
-        self.frame_history: list = []
+        self.frame_history: list[Any] = []
         self.max_history = 10
         self._stuck_counter = 0
         
@@ -245,7 +245,7 @@ class VisionPipeline:
         """
         self.validate_screenshot(raw_screenshot)
         
-        def timeout_handler(signum, frame) -> None:
+        def timeout_handler(signum, frame) -> None:  # type: ignore[no-untyped-def]
             raise ScreenshotProcessingError(
                 message=f"Screenshot processing timed out after {timeout} seconds",
                 error_type="timeout"

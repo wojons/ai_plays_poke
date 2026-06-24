@@ -10,7 +10,8 @@ from PIL import Image
 import yaml
 
 
-def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_interval: int = 100) -> None:
+def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_interval: int = 100) -> bool:
+
     """Run PyBoy test for a specific ROM"""
     
     print(f"\n{'='*60}")

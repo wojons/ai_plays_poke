@@ -14,13 +14,13 @@ from PIL import Image
 import yaml
 
 
-def get_rom_path() -> None:
+def get_rom_path() -> str:
     """Load ROM path from config"""
     config_path = Path(__file__).parent.parent / "config" / "settings.yaml"
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
-    return config['rom']['path']
-def run_test(num_ticks: int = 1000, screenshot_interval: int = 100) -> None:
+    return config['rom']['path']  # type: ignore
+def run_test(num_ticks: int = 1000, screenshot_interval: int = 100) -> bool:
     """Run basic PyBoy test with screenshots"""
     
     rom_path = get_rom_path()

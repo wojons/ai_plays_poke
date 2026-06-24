@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, cast
 
-from .obs_patch import ObsPatch, validate_patch
+from .obs_patch import ActorUpdate, Correction, ObsPatch, StripUpdate, validate_patch
 from .world_state import Actor, WorldState
 from .tile_utils import normalize_strip_terrain
 
@@ -173,7 +173,7 @@ class MapIntegrator:
 
         w.tick = patch.tick
 
-    def _apply_strip(self, strip) -> None:
+    def _apply_strip(self, strip: StripUpdate) -> None:
         """Apply a single row/column of new data.
 
         Handles both packed strings (``"TTT....ggg"``) and TSV format
@@ -216,7 +216,7 @@ class MapIntegrator:
                         if ch != " " or w.objects[y][x] == " ":
                             w.objects[y][x] = ch
 
-    def _apply_correction(self, corr) -> None:
+    def _apply_correction(self, corr: Correction) -> None:
         """Apply a correction to a previously-written tile."""
         w = self.world
         x, y = corr.at
@@ -241,7 +241,7 @@ class MapIntegrator:
         elif corr.layer == "visited":
             self._mark_visited(x, y, corr.to_char)
 
-    def _apply_actor_update(self, au, tick: int) -> None:
+    def _apply_actor_update(self, au: ActorUpdate, tick: int) -> None:
         """Update or create an actor."""
         w = self.world
         aid = au.id or f"actor_{au.pos[0]}_{au.pos[1]}"
@@ -249,7 +249,7 @@ class MapIntegrator:
         if aid in w.actors:
             actor = w.actors[aid]
             if au.pos:
-                actor.pos = tuple(au.pos)
+                actor.pos = cast(tuple[int, int], tuple(au.pos))
             if au.facing:
                 actor.facing = au.facing
             if au.kind:
@@ -260,7 +260,7 @@ class MapIntegrator:
             w.actors[aid] = Actor(
                 id=aid,
                 kind=au.kind,
-                pos=tuple(au.pos),
+                pos=cast(tuple[int, int], tuple(au.pos)),
                 facing=au.facing,
                 confidence=au.confidence,
                 last_seen_tick=tick,
@@ -296,7 +296,7 @@ def _parse_raw(raw: str) -> dict[str, Any]:
         raw = "\n".join(lines)
 
     try:
-        return json.loads(raw)
+        return cast(dict[str, Any], json.loads(raw))
     except (json.JSONDecodeError, ValueError):
         pass
 

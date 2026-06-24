@@ -17,7 +17,8 @@ class TestPromptSelection:
     """Tests for dynamic prompt selection based on game state"""
 
     @pytest.fixture
-    def mock_prompt_manager(self) -> None:
+    def mock_prompt_manager(self) :  # type: ignore[no-untyped-def]
+
         """Mock prompt manager for testing"""
         mock = MagicMock()
         mock.prompt_templates = []
@@ -26,7 +27,8 @@ class TestPromptSelection:
         return mock
 
     @pytest.fixture
-    def sample_game_contexts(self) -> None:
+    def sample_game_contexts(self) :  # type: ignore[no-untyped-def]
+
         """Sample game contexts for testing prompt selection"""
         return {
             "battle": {
@@ -52,7 +54,7 @@ class TestPromptSelection:
             }
         }
 
-    def test_select_battle_prompts(self, sample_game_contexts, mock_prompt_manager) -> None:
+    def test_select_battle_prompts(self, sample_game_contexts, mock_prompt_manager) -> None:  # type: ignore[no-untyped-def]
         """Test correct prompts are selected for battle state"""
         from src.core.prompt_manager import PromptManager, PromptTemplate
 
@@ -77,7 +79,7 @@ class TestPromptSelection:
 
             assert len(prompts) >= 0
 
-    def test_select_menu_prompts(self, sample_game_contexts) -> None:
+    def test_select_menu_prompts(self, sample_game_contexts) -> None:  # type: ignore[no-untyped-def]
         """Test correct prompts are selected for menu state"""
         from src.core.prompt_manager import PromptManager
 
@@ -93,7 +95,7 @@ class TestPromptSelection:
 
             assert isinstance(relevant, list)
 
-    def test_select_overworld_prompts(self, sample_game_contexts) -> None:
+    def test_select_overworld_prompts(self, sample_game_contexts) -> None:  # type: ignore[no-untyped-def]
         """Test correct prompts are selected for overworld state"""
         from src.core.prompt_manager import PromptManager
 
@@ -148,7 +150,8 @@ class TestResponseParsing:
     JSON_PARSING_THRESHOLD = 0.85
 
     @pytest.fixture
-    def mock_api_response(self) -> None:
+    def mock_api_response(self) :  # type: ignore[no-untyped-def]
+
         """Mock API response structure"""
         return {
             "content": "Sample AI response",
@@ -245,7 +248,7 @@ class TestResponseParsing:
         assert action is not None
         assert action.startswith("press:")
 
-    def _parse_tactical_response(self, response: str) -> tuple:
+    def _parse_tactical_response(self, response: str) -> tuple[Any, ...]:
         """Helper to parse tactical response"""
         lines = response.strip().split('\n')
 
@@ -335,7 +338,7 @@ class TestResponseParsing:
         try:
             json_match = re.search(r'\{[^{}]*\}', response)
             if json_match:
-                return json_module.loads(json_match.group())
+                return json_module.loads(json_match.group())  # type: ignore
         except json_module.JSONDecodeError:
             pass
 
@@ -349,7 +352,8 @@ class TestDecisionValidation:
     MIN_CONFIDENCE = 0.50
 
     @pytest.fixture
-    def valid_commands(self) -> None:
+    def valid_commands(self) :  # type: ignore[no-untyped-def]
+
         """List of valid command formats"""
         return [
             "press:A",
@@ -366,7 +370,8 @@ class TestDecisionValidation:
         ]
 
     @pytest.fixture
-    def invalid_commands(self) -> None:
+    def invalid_commands(self) :  # type: ignore[no-untyped-def]
+
         """List of invalid command formats"""
         return [
             "invalid:command",
@@ -378,13 +383,13 @@ class TestDecisionValidation:
             "sequence:UP,INVALID"
         ]
 
-    def test_valid_command_format(self, valid_commands) -> None:
+    def test_valid_command_format(self, valid_commands) -> None:  # type: ignore[no-untyped-def]
         """Test valid command formats are accepted"""
         for command in valid_commands:
             parsed = self._parse_command(command)
             assert parsed is not None, f"Failed to parse valid command: {command}"
 
-    def test_invalid_command_rejection(self, invalid_commands) -> None:
+    def test_invalid_command_rejection(self, invalid_commands) -> None:  # type: ignore[no-untyped-def]
         """Test invalid command formats are rejected"""
         for command in invalid_commands:
             if command:
@@ -411,13 +416,13 @@ class TestDecisionValidation:
             if "x" in params:
                 direction, steps = params.split("x")
                 result["batch_direction"] = direction
-                result["batch_steps"] = int(steps)
+                result["batch_steps"] = int(steps)  # type: ignore
                 return result
         elif command_type == "sequence":
             buttons = params.split(",")
             valid_buttons = ["A", "B", "UP", "DOWN", "LEFT", "RIGHT"]
             if all(b in valid_buttons for b in buttons):
-                result["button_sequence"] = buttons
+                result["button_sequence"] = buttons  # type: ignore
                 return result
 
         return None
@@ -448,10 +453,10 @@ class TestDecisionValidation:
         ]
 
         for decision in decisions:
-            if decision["confidence"] >= self.CONFIDENCE_THRESHOLD:
+            if decision["confidence"] >= self.CONFIDENCE_THRESHOLD:  # type: ignore
                 assert decision["action"].startswith("press:")
             else:
-                assert decision["confidence"] >= self.MIN_CONFIDENCE
+                assert decision["confidence"] >= self.MIN_CONFIDENCE  # type: ignore
     def test_confidence_score_range(self) -> None:
         """Test confidence scores are within valid range"""
         confidence_scores = [
@@ -510,7 +515,8 @@ class TestCostTracking:
     COST_CALCULATION_TOLERANCE = 0.0001
 
     @pytest.fixture
-    def sample_token_usage(self) -> None:
+    def sample_token_usage(self) :  # type: ignore[no-untyped-def]
+
         """Sample token usage data"""
         return [
             {"input_tokens": 100, "output_tokens": 50, "expected_cost": 0.000045},
@@ -519,7 +525,7 @@ class TestCostTracking:
             {"input_tokens": 2000, "output_tokens": 1000, "expected_cost": 0.0009}
         ]
 
-    def test_gpt_4o_mini_cost_calculation(self, sample_token_usage) -> None:
+    def test_gpt_4o_mini_cost_calculation(self, sample_token_usage) -> None:  # type: ignore[no-untyped-def]
         """Test GPT-4o-mini cost calculation accuracy"""
         input_cost_per_token = 0.00000015
         output_cost_per_token = 0.0000006
@@ -645,7 +651,8 @@ class TestAIIntegration:
     """Integration tests for AI system with mocked API responses"""
 
     @pytest.fixture
-    def mock_ai_client(self) -> None:
+    def mock_ai_client(self) :  # type: ignore[no-untyped-def]
+
         """Mock AI client with predefined responses"""
         client = MagicMock()
         client.generate_decision.return_value = {
@@ -658,7 +665,7 @@ class TestAIIntegration:
         client.get_tokens.return_value = {"input": 100, "output": 50}
         return client
 
-    def test_full_decision_flow_with_mocks(self, mock_ai_client) -> None:
+    def test_full_decision_flow_with_mocks(self, mock_ai_client) -> None:  # type: ignore[no-untyped-def]
         """Test complete decision flow with mocked API"""
         game_state = {
             "screen_type": "battle",
@@ -672,7 +679,7 @@ class TestAIIntegration:
         assert decision["confidence"] >= 0.70
         assert isinstance(decision["reasoning"], str)
 
-    def test_cost_tracking_with_mocks(self, mock_ai_client) -> None:
+    def test_cost_tracking_with_mocks(self, mock_ai_client) -> None:  # type: ignore[no-untyped-def]
         """Test cost tracking with mocked API"""
         tokens = mock_ai_client.get_tokens()
         cost = mock_ai_client.get_cost()
@@ -696,7 +703,7 @@ class TestAIIntegration:
     def _parse_for_integration(self, response: str) -> Optional[Dict[str, Any]]:
         """Parse response for integration test"""
         try:
-            return json.loads(response)
+            return json.loads(response)  # type: ignore
         except json.JSONDecodeError:
             pass
 
@@ -745,7 +752,8 @@ class TestClaudeIntegration:
     """Tests for Claude API integration with mocked responses"""
 
     @pytest.fixture
-    def mock_anthropic_client(self) -> None:
+    def mock_anthropic_client(self) :  # type: ignore[no-untyped-def]
+
         """Mock Anthropic client for testing"""
         mock = MagicMock()
         mock.models = {
@@ -771,7 +779,7 @@ class TestClaudeIntegration:
                 assert "vision" in client.models
                 assert "thinking" in client.models
 
-    def test_claude_chat_completion(self, mock_anthropic_client) -> None:
+    def test_claude_chat_completion(self, mock_anthropic_client) -> None:  # type: ignore[no-untyped-def]
         """Test Claude chat completion with mocked response"""
         from src.core.ai_client import ClaudeClient
 
@@ -800,7 +808,7 @@ class TestClaudeIntegration:
                 assert result["model"] == "claude-3-haiku-20240307"
                 assert "usage" in result
 
-    def test_claude_get_text_response(self, mock_anthropic_client) -> None:
+    def test_claude_get_text_response(self, mock_anthropic_client) -> None:  # type: ignore[no-untyped-def]
         """Test Claude text response generation"""
         from src.core.ai_client import ClaudeClient
 
@@ -829,19 +837,20 @@ class TestTokenTracker:
     """Tests for token usage tracking and cost calculation"""
 
     @pytest.fixture
-    def token_tracker(self) -> None:
+    def token_tracker(self) :  # type: ignore[no-untyped-def]
+
         """Create a fresh TokenTracker for testing"""
         from src.core.ai_client import TokenTracker
         return TokenTracker()
 
-    def test_token_tracker_initialization(self, token_tracker) -> None:
+    def test_token_tracker_initialization(self, token_tracker) -> None:  # type: ignore[no-untyped-def]
         """Test TokenTracker initializes with zero values"""
         stats = token_tracker.get_session_stats()
         assert stats["total_calls"] == 0
         assert stats["total_cost"] == 0.0
         assert stats["total_input_tokens"] == 0
 
-    def test_record_request_updates_stats(self, token_tracker) -> None:
+    def test_record_request_updates_stats(self, token_tracker) -> None:  # type: ignore[no-untyped-def]
         """Test recording a request updates all counters"""
         token_tracker.record_request(
             model="gpt-4o-mini",
@@ -857,7 +866,7 @@ class TestTokenTracker:
         assert stats["total_output_tokens"] == 50
         assert stats["total_cost"] == 0.000045
 
-    def test_multiple_requests_accumulate(self, token_tracker) -> None:
+    def test_multiple_requests_accumulate(self, token_tracker) -> None:  # type: ignore[no-untyped-def]
         """Test multiple requests accumulate correctly"""
         requests = [
             {"model": "gpt-4o-mini", "input": 100, "output": 50, "cost": 0.000045},
@@ -880,7 +889,7 @@ class TestTokenTracker:
         assert stats["total_output_tokens"] == 225
         assert abs(stats["total_cost"] - 0.0002025) < 0.000001
 
-    def test_cost_per_decision_calculation(self, token_tracker) -> None:
+    def test_cost_per_decision_calculation(self, token_tracker) -> None:  # type: ignore[no-untyped-def]
         """Test cost per decision is calculated accurately"""
         token_tracker.record_request(
             model="gpt-4o-mini",
@@ -896,7 +905,7 @@ class TestTokenTracker:
         cost_per_action = token_tracker.get_cost_per_decision(decisions=100)
         assert cost_per_action == 0.0000045
 
-    def test_reset_clears_all_data(self, token_tracker) -> None:
+    def test_reset_clears_all_data(self, token_tracker) -> None:  # type: ignore[no-untyped-def]
         """Test reset clears all tracking data"""
         token_tracker.record_request(
             model="gpt-4o-mini",
@@ -917,7 +926,8 @@ class TestJSONResponseParser:
     """Tests for structured JSON response parsing"""
 
     @pytest.fixture
-    def parser(self) -> None:
+    def parser(self) :  # type: ignore[no-untyped-def]
+
         """Create a JSONResponseParser for testing"""
         from src.core.ai_client import JSONResponseParser
         return JSONResponseParser(
@@ -931,7 +941,7 @@ class TestJSONResponseParser:
             max_retries=3
         )
 
-    def test_valid_json_parsing(self, parser) -> None:
+    def test_valid_json_parsing(self, parser) -> None:  # type: ignore[no-untyped-def]
         """Test parsing valid JSON response"""
         response = '''
         {
@@ -949,7 +959,7 @@ class TestJSONResponseParser:
         assert result["player_hp"] == 85
         assert result["enemy_hp"] == 50
 
-    def test_json_with_code_blocks(self, parser) -> None:
+    def test_json_with_code_blocks(self, parser) -> None:  # type: ignore[no-untyped-def]
         """Test parsing JSON wrapped in markdown code blocks"""
         response = '''
         ```json
@@ -964,7 +974,7 @@ class TestJSONResponseParser:
         assert result["screen_type"] == "menu"
         assert result["action"] == "press:DOWN"
 
-    def test_fallback_regex_extraction(self, parser) -> None:
+    def test_fallback_regex_extraction(self, parser) -> None:  # type: ignore[no-untyped-def]
         """Test regex fallback for malformed JSON"""
         response = '''
         Here's my analysis:
@@ -979,7 +989,7 @@ class TestJSONResponseParser:
         except ValueError:
             pass
 
-    def test_parse_success_rate_tracking(self, parser) -> None:
+    def test_parse_success_rate_tracking(self, parser) -> None:  # type: ignore[no-untyped-def]
         """Test parsing success rate is tracked"""
         responses = [
             '{"valid": true}',
@@ -995,7 +1005,7 @@ class TestJSONResponseParser:
         success_rate = parser.get_success_rate()
         assert success_rate >= 0.9
 
-    def test_schema_validation(self, parser) -> None:
+    def test_schema_validation(self, parser) -> None:  # type: ignore[no-untyped-def]
         """Test schema validation rejects invalid types"""
         response = '{"screen_type": 123, "player_hp": "high"}'
 
@@ -1009,18 +1019,19 @@ class TestRateLimiter:
     """Tests for rate limiting with exponential backoff"""
 
     @pytest.fixture
-    def rate_limiter(self) -> None:
+    def rate_limiter(self) :  # type: ignore[no-untyped-def]
+
         """Create a RateLimiter for testing"""
         from src.core.ai_client import RateLimiter
         return RateLimiter(max_requests=10, time_window=60.0, base_delay=0.1)
 
-    def test_rate_limiter_allows_requests_under_limit(self, rate_limiter) -> None:
+    def test_rate_limiter_allows_requests_under_limit(self, rate_limiter) -> None:  # type: ignore[no-untyped-def]
         """Test rate limiter allows requests under the limit"""
         for i in range(5):
             delay = rate_limiter.wait()
             assert delay == 0.0
 
-    def test_rate_limiter_blocks_over_limit(self, rate_limiter) -> None:
+    def test_rate_limiter_blocks_over_limit(self, rate_limiter) -> None:  # type: ignore[no-untyped-def]
         """Test rate limiter blocks requests over the limit"""
         rate_limiter.max_requests = 3
 
@@ -1030,7 +1041,7 @@ class TestRateLimiter:
         delay = rate_limiter.wait()
         assert delay > 0
 
-    def test_exponential_backoff(self, rate_limiter) -> None:
+    def test_exponential_backoff(self, rate_limiter) -> None:  # type: ignore[no-untyped-def]
         """Test exponential backoff increases delay"""
         delay1 = rate_limiter.get_delay(0)
         delay2 = rate_limiter.get_delay(1)
@@ -1045,16 +1056,17 @@ class TestCircuitBreaker:
     """Tests for circuit breaker pattern"""
 
     @pytest.fixture
-    def circuit_breaker(self) -> None:
+    def circuit_breaker(self) :  # type: ignore[no-untyped-def]
+
         """Create a CircuitBreaker for testing"""
         from src.core.ai_client import CircuitBreaker
         return CircuitBreaker(failure_threshold=3, recovery_time=0.1)
 
-    def test_circuit_breaker_allows_requests_initially(self, circuit_breaker) -> None:
+    def test_circuit_breaker_allows_requests_initially(self, circuit_breaker) -> None:  # type: ignore[no-untyped-def]
         """Test circuit breaker allows requests when closed"""
         assert circuit_breaker.allow_request() is True
 
-    def test_circuit_breaker_opens_after_failures(self, circuit_breaker) -> None:
+    def test_circuit_breaker_opens_after_failures(self, circuit_breaker) -> None:  # type: ignore[no-untyped-def]
         """Test circuit breaker opens after failure threshold"""
         for i in range(3):
             circuit_breaker.record_failure()
@@ -1062,7 +1074,7 @@ class TestCircuitBreaker:
         assert circuit_breaker.state == "open"
         assert circuit_breaker.allow_request() is False
 
-    def test_circuit_breaker_closes_on_success(self, circuit_breaker) -> None:
+    def test_circuit_breaker_closes_on_success(self, circuit_breaker) -> None:  # type: ignore[no-untyped-def]
         """Test circuit breaker closes on success"""
         circuit_breaker.record_failure()
         circuit_breaker.record_success()
@@ -1070,7 +1082,7 @@ class TestCircuitBreaker:
         assert circuit_breaker.state == "closed"
         assert circuit_breaker.allow_request() is True
 
-    def test_circuit_breaker_half_open_recovery(self, circuit_breaker) -> None:
+    def test_circuit_breaker_half_open_recovery(self, circuit_breaker) -> None:  # type: ignore[no-untyped-def]
         """Test circuit breaker enters half-open state after recovery time"""
         for i in range(3):
             circuit_breaker.record_failure()
@@ -1086,38 +1098,39 @@ class TestModelRouter:
     """Tests for model selection and routing"""
 
     @pytest.fixture
-    def model_router(self) -> None:
+    def model_router(self) :  # type: ignore[no-untyped-def]
+
         """Create a ModelRouter for testing"""
         from src.core.ai_client import ModelRouter
         return ModelRouter()
 
-    def test_select_model_for_speed(self, model_router) -> None:
+    def test_select_model_for_speed(self, model_router) -> None:  # type: ignore[no-untyped-def]
         """Test model selection prioritizes speed"""
         provider, model = model_router.select_model("vision", "speed")
 
         assert provider == "openrouter"
         assert "gpt-4o" in model or "mini" in model
 
-    def test_select_model_for_cost(self, model_router) -> None:
+    def test_select_model_for_cost(self, model_router) -> None:  # type: ignore[no-untyped-def]
         """Test model selection prioritizes cost"""
         provider, model = model_router.select_model("thinking", "cost")
 
         assert provider == "openrouter"
         assert "mini" in model
 
-    def test_select_model_for_quality(self, model_router) -> None:
+    def test_select_model_for_quality(self, model_router) -> None:  # type: ignore[no-untyped-def]
         """Test model selection prioritizes quality"""
         provider, model = model_router.select_model("vision", "quality")
 
         assert "claude" in model or "gpt-4o" in model
 
-    def test_select_model_balanced(self, model_router) -> None:
+    def test_select_model_balanced(self, model_router) -> None:  # type: ignore[no-untyped-def]
         """Test balanced model selection"""
         provider, model = model_router.select_model("acting", "balanced")
 
         assert provider in ["openrouter", "anthropic"]
 
-    def test_different_models_for_different_task_types(self, model_router) -> None:
+    def test_different_models_for_different_task_types(self, model_router) -> None:  # type: ignore[no-untyped-def]
         """Test different models selected for different task types"""
         _, vision_model = model_router.select_model("vision", "balanced")
         _, thinking_model = model_router.select_model("thinking", "balanced")

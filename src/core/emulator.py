@@ -246,3 +246,36 @@ class Emulator:
         if self._running:
             self._pygba.core.reset()
             self._running = False
+
+    # ── compatibility aliases ──────────────────────────────────────────
+
+    def start(self) -> None:
+        """Compatibility: start the emulator."""
+        self.reset()
+
+    def capture_screen(self) -> np.ndarray:
+        """Compatibility alias for :meth:`capture`."""
+        return self.capture()
+
+    def tick(self, frames: int = 1) -> None:
+        """Compatibility: advance by N frames."""
+        self.fast_forward(frames)
+
+    def save_state(self, path: str | Path) -> None:
+        """Compatibility: save emulator state."""
+        import pickle
+        data = self._pygba.core.savedata_copy()
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        with open(path, 'wb') as fh:
+            pickle.dump(data, fh)
+
+    def load_state(self, path: str | Path) -> None:
+        """Compatibility: load emulator state."""
+        import pickle
+        p = Path(path)
+        if not p.exists():
+            raise FileNotFoundError(f"State file not found: {path}")
+        with open(path, 'rb') as fh:
+            data = pickle.load(fh)
+        self._pygba.core.savedata_restore(data)
+

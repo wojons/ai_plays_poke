@@ -12,7 +12,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from pyboy import PyBoy
 from PIL import Image
 
-def generate_pokemon_yellow_screenshots(num_ticks=100000, screenshot_interval=1000) -> None:
+def generate_pokemon_yellow_screenshots(num_ticks: int = 100000, screenshot_interval: int = 1000) -> bool:
+
     """Generate high-quality screenshots for Pokemon Yellow"""
     
     print("🎮 Pokemon Yellow Screenshot Generator")

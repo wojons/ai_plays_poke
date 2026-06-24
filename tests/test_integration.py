@@ -30,9 +30,9 @@ class TestFullTickCycle:
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
 
-    def test_screenshot_to_state_detection(
+    def test_screenshot_to_state_detection(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
-    ):
+    ) -> None:
         """Test that screenshot capture leads to proper state detection"""
         from game_loop import GameLoop
         
@@ -48,7 +48,7 @@ class TestFullTickCycle:
             game_loop.emulator = mock_emulator
             mock_emulator.capture_screen.return_value = MagicMock()
 
-    def test_state_detection_to_ai_decision(
+    def test_state_detection_to_ai_decision(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that game state triggers AI decision"""
@@ -84,7 +84,7 @@ class TestFullTickCycle:
             assert 'confidence' in decision
             assert 0.0 <= decision['confidence'] <= 1.0
 
-    def test_command_to_execution(
+    def test_command_to_execution(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that pending commands are executed"""
@@ -118,7 +118,7 @@ class TestFullTickCycle:
             assert len(game_loop.pending_commands) == 0
             assert len(game_loop.command_history) == 1
 
-    def test_execution_to_logging(
+    def test_execution_to_logging(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that executed commands are logged to database"""
@@ -156,7 +156,7 @@ class TestFullTickCycle:
             assert call_args['tick'] == 10
             assert call_args['success'] is True
 
-    def test_full_tick_cycle_integration(
+    def test_full_tick_cycle_integration(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test complete tick cycle: screenshot -> state -> decision -> command -> log"""
@@ -188,7 +188,7 @@ class TestFullTickCycle:
             assert game_loop.current_tick == 1
             assert game_loop.metrics['total_ticks'] == 1
 
-    def test_database_entries_verification(
+    def test_database_entries_verification(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Verify database entries are created at each stage of the tick cycle"""
@@ -247,7 +247,7 @@ class TestBattleTransition:
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
 
-    def test_overworld_to_battle_detection(
+    def test_overworld_to_battle_detection(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of transition from overworld to battle"""
@@ -285,7 +285,7 @@ class TestBattleTransition:
             mock_db_connection.log_battle_start.assert_called_once()
             assert game_loop.battle_turn_count == 0
 
-    def test_battle_state_management(
+    def test_battle_state_management(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test proper state tracking during battle"""
@@ -320,7 +320,7 @@ class TestBattleTransition:
                     assert game_loop.current_battle_id == 1
                     assert game_loop.battle_turn_count == i + 1
 
-    def test_battle_end_to_overworld(
+    def test_battle_end_to_overworld(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of battle end and return to overworld"""
@@ -372,7 +372,7 @@ class TestBattleTransition:
                 assert game_loop.current_battle_id is None
                 mock_db_connection.log_battle_end.assert_called_once()
 
-    def test_battle_turn_tracking(
+    def test_battle_turn_tracking(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that battle turns are properly counted"""
@@ -407,7 +407,7 @@ class TestBattleTransition:
 
                 assert game_loop.battle_turn_count == 10
 
-    def test_battle_metrics_update(
+    def test_battle_metrics_update(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that battle metrics are updated correctly"""
@@ -469,7 +469,7 @@ class TestDialogFlow:
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
 
-    def test_dialog_initiation(
+    def test_dialog_initiation(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of dialog initiation"""
@@ -500,7 +500,7 @@ class TestDialogFlow:
 
             assert state.has_dialog is True
 
-    def test_text_advancement(
+    def test_text_advancement(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test AI decision to advance dialog text"""
@@ -535,7 +535,7 @@ class TestDialogFlow:
             assert decision['button'] == Button.A
             assert decision['confidence'] > 0.5
 
-    def test_dialog_completion(
+    def test_dialog_completion(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of dialog completion"""
@@ -577,7 +577,7 @@ class TestDialogFlow:
             assert state1.has_dialog is True
             assert state2.has_dialog is False
 
-    def test_dialog_advancement_multiple_pages(
+    def test_dialog_advancement_multiple_pages(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test multi-page dialog advancement"""
@@ -619,7 +619,7 @@ class TestCommandExecution:
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
 
-    def test_single_button_press(
+    def test_single_button_press(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test execution of single button press command"""
@@ -643,7 +643,7 @@ class TestCommandExecution:
             assert parsed['type'] == 'press'
             assert parsed['button'] == Button.A
 
-    def test_button_sequence_execution(
+    def test_button_sequence_execution(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test execution of button sequence commands (not implemented, returns None)"""
@@ -665,7 +665,7 @@ class TestCommandExecution:
             parsed = game_loop._parse_command("sequence:UP,DOWN,LEFT,RIGHT")
             assert parsed is None
 
-    def test_batch_command_execution(
+    def test_batch_command_execution(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test execution of batch movement commands (not implemented, returns None)"""
@@ -685,7 +685,7 @@ class TestCommandExecution:
             parsed = game_loop._parse_command("batch:UPx10")
             assert parsed is None
 
-    def test_command_timing(
+    def test_command_timing(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that command execution includes proper timing"""
@@ -723,7 +723,7 @@ class TestCommandExecution:
             assert 'execution_time_ms' in call_args
             assert call_args['execution_time_ms'] >= 0
 
-    def test_all_directions(
+    def test_all_directions(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test all directional button commands"""
@@ -747,7 +747,7 @@ class TestCommandExecution:
                 assert parsed is not None
                 assert parsed['button'] == getattr(Button, button)
 
-    def test_command_history_tracking(
+    def test_command_history_tracking(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that executed commands are tracked in history"""
@@ -792,7 +792,7 @@ class TestErrorRecovery:
         mock_emu = MagicMock()
         monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
 
-    def test_api_failure_stub_fallback(
+    def test_api_failure_stub_fallback(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test fallback to stub AI when API fails"""
@@ -826,7 +826,7 @@ class TestErrorRecovery:
             assert 'action' in decision
             assert 'reasoning' in decision
 
-    def test_emulator_error_graceful_shutdown(
+    def test_emulator_error_graceful_shutdown(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test graceful shutdown when emulator encounters error"""
@@ -857,7 +857,7 @@ class TestErrorRecovery:
 
             assert game_loop.is_running == initial_running or mock_emulator.stop.called
 
-    def test_database_error_retry(
+    def test_database_error_retry(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test retry logic when database operations fail"""
@@ -877,7 +877,7 @@ class TestErrorRecovery:
 
             call_count = [0]
 
-            def failing_log(*args, **kwargs) -> None:
+            def failing_log(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
                 call_count[0] += 1
                 if call_count[0] < 3:
                     raise Exception("Database temporarily unavailable")
@@ -903,7 +903,7 @@ class TestErrorRecovery:
                 except Exception:
                     pass
 
-    def test_invalid_command_handling(
+    def test_invalid_command_handling(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test handling of invalid command formats"""
@@ -926,7 +926,7 @@ class TestErrorRecovery:
             parsed = game_loop._parse_command("invalid:command")
             assert parsed is None
 
-    def test_unknown_button_handling(
+    def test_unknown_button_handling(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test handling of unknown button in command"""
@@ -946,7 +946,7 @@ class TestErrorRecovery:
             parsed = game_loop._parse_command("press:UNKNOWN")
             assert parsed is None
 
-    def test_command_execution_error_logging(
+    def test_command_execution_error_logging(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that command execution errors are properly logged"""
@@ -983,7 +983,7 @@ class TestErrorRecovery:
             assert call_args['success'] is False
             assert 'error_message' in call_args or 'error' in call_args
 
-    def test_state_analysis_error_handling(
+    def test_state_analysis_error_handling(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test error handling in state analysis"""
@@ -1005,7 +1005,7 @@ class TestErrorRecovery:
 
             assert isinstance(result, GameState)
 
-    def test_empty_pending_commands(
+    def test_empty_pending_commands(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that empty command list doesn't cause errors"""

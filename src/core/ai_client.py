@@ -27,17 +27,17 @@ try:
     VISION_AVAILABLE = True
 except ImportError:
     VISION_AVAILABLE = False
-    VisionPipeline = None
-    OCREngine = None
-    SpriteRecognizer = None
-    BattleAnalyzer = None
-    LocationDetector = None
+    VisionPipeline = None  # type: ignore
+    OCREngine = None  # type: ignore
+    SpriteRecognizer = None  # type: ignore
+    BattleAnalyzer = None  # type: ignore
+    LocationDetector = None  # type: ignore
 try:
     from anthropic import Anthropic
     ANTHROPIC_AVAILABLE = True
 except ImportError:
     ANTHROPIC_AVAILABLE = False
-    Anthropic = None
+    Anthropic = None  # type: ignore
 class APIError(Exception):
     """Exception raised for API-related errors"""
     pass
@@ -121,7 +121,7 @@ class TokenTracker:
         output_tokens: int,
         cost: float,
         duration_ms: float
-    ):
+    ) -> None:
         with self.lock:
             self.total_input_tokens += input_tokens
             self.total_output_tokens += output_tokens
@@ -167,7 +167,7 @@ class TokenTracker:
 
 
 def log_api_call(model: str, duration_ms: float, input_tokens: int,
-                 output_tokens: int, cost: float, success: bool = True):
+                 output_tokens: int, cost: float, success: bool = True) -> None:
     """Simple logging function for API calls"""
     print(f"📡 API: {model} | {duration_ms:.0f}ms | "
           f"In: {input_tokens} | Out: {output_tokens} | "
@@ -175,7 +175,7 @@ def log_api_call(model: str, duration_ms: float, input_tokens: int,
 
 
 def log_vision_analysis(screen_type: str, enemy_pokemon: str,
-                        player_hp: float, enemy_hp: float):
+                        player_hp: float, enemy_hp: float) -> None:
     """Simple logging function for vision analysis"""
     print(f"👁️ Vision: {screen_type} | Enemy: {enemy_pokemon or 'None'} | "
           f"HP: {player_hp:.0f}%/{enemy_hp:.0f}%")
@@ -202,7 +202,7 @@ except ImportError:
                         os.environ[key] = value
 
 
-def get_model_pricing(model: str) -> tuple:
+def get_model_pricing(model: str) -> tuple[Any, ...]:
     """Get input/output pricing per million tokens for a model"""
     model_lower = model.lower()
 
@@ -311,7 +311,7 @@ class AIModelClient:
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
-                json=payload,
+                json=payload,  # type: ignore
                 timeout=10
             )
 
@@ -365,12 +365,12 @@ class AIModelClient:
 
         for retry in range(max_retries):
             try:
-                result = self._client.chat_completion(
-                    model=self._client.models.get("acting", "openai/gpt-4o-mini"),
+                result = self._client.chat_completion(  # type: ignore[union-attr]
+                    model=self._client.models.get("acting", "openai/gpt-4o-mini"),  # type: ignore[union-attr]
                     messages=[{"role": "user", "content": json.dumps(payload)}],
                     max_tokens=300
                 )
-                return result  # type: ignore
+                return result
             except Exception as e:
                 if retry < max_retries - 1:
                     delay = 1.0 * (2 ** retry)
@@ -413,7 +413,7 @@ class AIModelClient:
             content = response.get("content", "")
             if isinstance(content, str):
                 try:
-                    return json.loads(content)
+                    return json.loads(content)  # type: ignore
                 except json.JSONDecodeError:
                     pass
 
@@ -473,7 +473,7 @@ class ClaudeClient:
                 model=model,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                messages=messages
+                messages=messages  # type: ignore
             )
 
             duration_ms = (time.time() - start_time) * 1000
@@ -485,7 +485,7 @@ class ClaudeClient:
             self.circuit_breaker.record_success()
 
             return {
-                "content": response.content[0].text,
+                "content": response.content[0].text,  # type: ignore[union-attr]
                 "finish_reason": response.stop_reason,
                 "model": model,
                 "usage": {
@@ -522,7 +522,7 @@ class ClaudeClient:
             max_tokens=max_tokens
         )
 
-        return result["content"]
+        return result["content"]  # type: ignore
 class OpenRouterClient:
     """
     Client for OpenRouter API
@@ -578,7 +578,7 @@ class OpenRouterClient:
             api_key = deepseek_key
         else:
             base_url = self.base_url
-            api_key = self.api_key
+            api_key = self.api_key  # type: ignore
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -743,7 +743,7 @@ class OpenRouterClient:
             max_tokens=max_tokens
         )
 
-        return result["content"]
+        return result["content"]  # type: ignore
     def send_vision_request(
         self,
         prompt: str,
@@ -787,7 +787,7 @@ class OpenRouterClient:
             temperature=temperature,
         )
 
-        return result["content"]
+        return result["content"]  # type: ignore
     def get_text_response(
         self,
         prompt: str,
@@ -817,11 +817,11 @@ class OpenRouterClient:
             temperature=temperature
         )
 
-        return result["content"]
+        return result["content"]  # type: ignore
     def send_tool_request(
         self,
         prompt: str,
-        tools: list[dict],
+        tools: list[dict[str, Any]],
         model: str,
         max_tokens: int = 300,
         temperature: float = 0.3,
@@ -862,7 +862,7 @@ class OpenRouterClient:
             tools=tools if use_native_tools else None,
         )
 
-        return result["content"]
+        return result["content"]  # type: ignore
 class JSONResponseParser:
     """Structured JSON response parser with validation and retry logic"""
 
@@ -908,14 +908,14 @@ class JSONResponseParser:
             result = json.loads(cleaned)
             if schema:
                 self._validate_against_schema(result, schema)
-            return result
+            return result  # type: ignore
         except json.JSONDecodeError:
             pass
 
         json_match = re.search(r'\{[^{}]*\}', response)
         if json_match:
             try:
-                return json.loads(json_match.group())
+                return json.loads(json_match.group())  # type: ignore
             except json.JSONDecodeError:
                 pass
 
@@ -961,7 +961,7 @@ class JSONResponseParser:
 
         if retry_count == 0:
             try:
-                return json.loads(cleaned)
+                return json.loads(cleaned)  # type: ignore
             except json.JSONDecodeError:
                 pass
 
@@ -974,7 +974,7 @@ class JSONResponseParser:
             match = re.search(pattern, response)
             if match:
                 try:
-                    return json.loads(match.group())
+                    return json.loads(match.group())  # type: ignore
                 except json.JSONDecodeError:
                     continue
 
@@ -1002,7 +1002,7 @@ class JSONResponseParser:
                 value = match.group(1)
                 if field in ["player_hp", "enemy_hp"]:
                     value = int(value)
-                result["extracted_fields"][field] = value
+                result["extracted_fields"][field] = value  # type: ignore
         self.parse_failure_count += 1
         return result
 
@@ -1070,7 +1070,7 @@ class ModelRouter:
         task_type: str,
         priority: str = "balanced",
         available_models: Optional[Dict[str, str]] = None
-    ) -> tuple:
+    ) -> tuple[Any, ...]:
         """
         Select best model for task
 
@@ -1104,7 +1104,7 @@ class ModelRouter:
         self,
         task_type: str,
         available_models: Dict[str, str]
-    ) -> tuple:
+    ) -> tuple[Any, ...]:
         """Select fastest model"""
         if task_type == "vision":
             return ("openrouter", available_models.get("openrouter_vision", "openai/gpt-4o-mini"))
@@ -1117,7 +1117,7 @@ class ModelRouter:
         self,
         task_type: str,
         available_models: Dict[str, str]
-    ) -> tuple:
+    ) -> tuple[Any, ...]:
         """Select cheapest model"""
         return self._select_for_speed(task_type, available_models)
 
@@ -1125,7 +1125,7 @@ class ModelRouter:
         self,
         task_type: str,
         available_models: Dict[str, str]
-    ) -> tuple:
+    ) -> tuple[Any, ...]:
         """Select highest quality model"""
         if task_type == "vision":
             return ("anthropic", available_models.get("anthropic_vision", "claude-3-sonnet-20240307"))
@@ -1138,7 +1138,7 @@ class ModelRouter:
         self,
         task_type: str,
         available_models: Dict[str, str]
-    ) -> tuple:
+    ) -> tuple[Any, ...]:
         """Select balanced model"""
         if task_type == "vision":
             return ("openrouter", available_models.get("openrouter_vision", "openai/gpt-4o"))
@@ -1197,9 +1197,9 @@ class GameAIManager:
                 print("✅ PromptManager initialized")
             except Exception as e:
                 print(f"⚠️  PromptManager initialization failed: {e}")
-                self.prompt_manager = None
+                self.prompt_manager = None  # type: ignore
         else:
-            self.prompt_manager = None
+            self.prompt_manager = None  # type: ignore
         self.ai_model_client = AIModelClient(api_key)
         self.openrouter_client = self.ai_model_client._client
 
@@ -1209,9 +1209,9 @@ class GameAIManager:
                 print("✅ Claude client initialized")
             except Exception as e:
                 print(f"⚠️  Claude client initialization failed: {e}")
-                self.claude_client = None
+                self.claude_client = None  # type: ignore
         else:
-            self.claude_client = None
+            self.claude_client = None  # type: ignore
         self.vision_model = "openai/gpt-4o"
         self.thinking_model = "openai/gpt-4o-mini"
         self.acting_model = "openai/gpt-4o-mini"
@@ -1300,14 +1300,15 @@ Format: REASONING: [explanation] ACTION: [button]
             self.battle_analyzer = None
             self.location_detector = None
 
-    def _get_client_for_model(self, model: str) -> None:
+    def _get_client_for_model(self, model: str) -> Any:
+
         """Get appropriate client for a model"""
         if "claude" in model.lower():
             return self.claude_client
         return self.openrouter_client
-    def _make_api_call_with_retry(
+    def _make_api_call_with_retry(  # type: ignore[no-untyped-def]
         self,
-        client_method: Callable,
+        client_method: Callable[..., Any],
         max_retries: int = 3,
         **kwargs
     ) -> Dict[str, Any]:
@@ -1331,7 +1332,7 @@ Format: REASONING: [explanation] ACTION: [button]
                         duration_ms=result.get("duration_ms", 0)
                     )
 
-                return result
+                return result  # type: ignore
             except Exception as e:
                 if retry < max_retries - 1:
                     delay = self.rate_limiter.get_delay(retry)
@@ -1367,7 +1368,7 @@ Format: REASONING: [explanation] ACTION: [button]
             if hasattr(client, 'get_vision_response'):
                 response = client.get_vision_response(prompt, screenshot, model=model)
             else:
-                response = self.openrouter_client.get_vision_response(prompt, screenshot, model=model)
+                response = self.openrouter_client.get_vision_response(prompt, screenshot, model=model)  # type: ignore[union-attr]
             print(f"📝 Vision response ({len(response)} chars): {response[:200]}...")
 
             result = self.json_parser.parse(response)
@@ -1441,7 +1442,7 @@ Format: REASONING: [explanation] ACTION: [button]
             if hasattr(client, 'get_text_response'):
                 response = client.get_text_response(prompt, model=model)
             else:
-                response = self.openrouter_client.get_text_response(prompt, model=model)
+                response = self.openrouter_client.get_text_response(prompt, model=model)  # type: ignore[union-attr]
             print(f"Strategic model response: {response[:200]}...")
 
             result = self._parse_strategic_response(response)
@@ -1521,7 +1522,7 @@ Format: REASONING: [explanation] ACTION: [button]
                     temperature=0.3
                 )
             else:
-                response = self.openrouter_client.get_text_response(
+                response = self.openrouter_client.get_text_response(  # type: ignore[union-attr]
                     prompt,
                     model=model,
                     max_tokens=300,
@@ -1932,7 +1933,7 @@ class PerformanceTracker:
         self.lock = threading.Lock()
 
     def record_result(self, model: str, task_type: str, success: bool,
-                      latency_ms: float, tokens: int = 0):
+                      latency_ms: float, tokens: int = 0) -> None:
         """
         Record performance result for a model on a task.
 

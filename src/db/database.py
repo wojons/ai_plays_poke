@@ -573,6 +573,21 @@ class GameDatabase:
             logger.warning("Session data save interrupted")
             raise
 
+    # ── compatibility wrappers ─────────────────────────────────────────
+
+    def log_session_metrics(self, metrics: Dict[str, Any]) -> None:
+        """Compatibility wrapper."""
+        pass  # No-op — use end_session() for final metrics
+
+    def log_screenshot_event(self, tick: int, file_path: str, game_state: Dict[str, Any]) -> None:
+        """Compatibility wrapper for log_screenshot."""
+        self.log_screenshot(tick, file_path, game_state)
+
+    def log_command_execution(self, command_data: Dict[str, Any]) -> None:
+        """Compatibility wrapper for log_command."""
+        self.log_command(command_data)
+
 
 # Create database instance with default path
 default_db = GameDatabase("./game_data.db")
+

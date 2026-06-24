@@ -43,7 +43,7 @@ def verify_api_key(x_api_key: str = Header(None)) -> bool:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI):  # type: ignore[misc]
     sessions.clear()
     connection_manager.clear()
     yield
@@ -196,12 +196,12 @@ def get_session(session_id: str = "default") -> DashboardSession:
 
 
 @app.get("/")
-async def root():
+async def root() -> FileResponse:
     return FileResponse("src/dashboard/static/index.html")
 
 
 @app.get("/status")
-async def get_status(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
+async def get_status(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any]:
     session = get_session(session_id)
     return session.get_status()
 
@@ -211,7 +211,7 @@ async def get_latest_screenshot(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     format: str = "json"
-):
+) -> dict[str, Any] | FileResponse | JSONResponse:
     session = get_session(session_id)
     screenshot_path = session.get_latest_screenshot_path()
     
@@ -238,7 +238,7 @@ async def get_latest_screenshot(
 
 
 @app.get("/screenshots/file")
-async def get_screenshot_file(path: str = Query(...)):
+async def get_screenshot_file(path: str = Query(...)) -> FileResponse:
     p = Path(path)
     if not p.exists():
         raise HTTPException(status_code=404, detail="Screenshot not found")
@@ -250,7 +250,7 @@ async def get_recent_actions(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     limit: int = 50
-):
+) -> Dict[str, Any]:
     session = get_session(session_id)
     return {
         "actions": session.get_recent_actions(limit),
@@ -259,13 +259,13 @@ async def get_recent_actions(
 
 
 @app.get("/metrics")
-async def get_metrics(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
+async def get_metrics(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any]:
     session = get_session(session_id)
     return session.get_metrics()
 
 
 @app.post("/control/pause")
-async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
+async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -274,7 +274,7 @@ async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: s
 
 
 @app.post("/control/resume")
-async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
+async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -283,7 +283,7 @@ async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: 
 
 
 @app.post("/control/stop")
-async def stop_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
+async def stop_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any]:
     session = get_session(session_id)
     session.stop()
     return {"status": "stopped", "session_id": session_id}
@@ -294,7 +294,7 @@ async def start_session(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     save_dir: str = "./game_saves"
-):
+) -> Dict[str, Any]:
     if session_id in dashboard_sessions:
         dashboard_sessions[session_id].stop()
     dashboard_sessions[session_id] = DashboardSession(session_id, save_dir)
@@ -307,7 +307,7 @@ async def send_command(
     command: Dict[str, Any],
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default"
-):
+) -> Dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"] or session.state["paused"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -323,7 +323,7 @@ async def send_command(
 
 
 @app.get("/sessions")
-async def list_sessions(x_api_key: bool = Depends(verify_api_key)):
+async def list_sessions(x_api_key: bool = Depends(verify_api_key)) -> Dict[str, List[Dict[str, Any]]]:
     return {
         "sessions": [
             {
@@ -336,7 +336,7 @@ async def list_sessions(x_api_key: bool = Depends(verify_api_key)):
 
 
 @app.websocket("/ws/screenshots/{session_id}")
-async def websocket_screenshot(websocket: WebSocket, session_id: str):
+async def websocket_screenshot(websocket: WebSocket, session_id: str) -> None:
     await websocket.accept()
     
     if session_id not in dashboard_sessions:
@@ -388,7 +388,7 @@ async def websocket_screenshot(websocket: WebSocket, session_id: str):
 
 
 @app.websocket("/ws/metrics/{session_id}")
-async def websocket_metrics(websocket: WebSocket, session_id: str):
+async def websocket_metrics(websocket: WebSocket, session_id: str) -> None:
     await websocket.accept()
     
     if session_id not in dashboard_sessions:
@@ -409,12 +409,12 @@ async def websocket_metrics(websocket: WebSocket, session_id: str):
 
 
 @app.get("/health")
-async def health_check():
+async def health_check() -> Dict[str, Any]:
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
 @app.get("/api/docs")
-async def api_docs():
+async def api_docs() -> Dict[str, Any]:
     return {
         "title": "PTP-01X Dashboard API",
         "version": "1.0.0",
