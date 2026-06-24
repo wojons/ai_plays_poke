@@ -36,8 +36,8 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
                     },
                     "duration": {
                         "type": "integer",
-                        "description": "Number of frames to hold the button (default: 5).",
-                        "default": 5,
+                        "description": "Number of frames to hold the button (default: 30, ~0.5s at 60fps).",
+                        "default": 30,
                     },
                 },
                 "required": ["button"],
@@ -54,8 +54,30 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
                 "properties": {
                     "frames": {
                         "type": "integer",
-                        "description": "Number of frames to wait.",
-                        "default": 5,
+                        "description": "Number of frames to wait (default: 60, ~1s at 60fps). Runs at max emulator speed.",
+                        "default": 60,
+                    },
+                },
+                "required": ["frames"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "fast_forward",
+            "description": (
+                "Run many frames at maximum emulator speed (~12,000 FPS) "
+                "to skip through animations, dialogue, or transitions. "
+                "Use this to advance game time quickly without waiting for real-time."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "frames": {
+                        "type": "integer",
+                        "description": "Number of frames to run (default: 180, ~3s at 60fps). Higher = more game progress per call.",
+                        "default": 180,
                     },
                 },
                 "required": ["frames"],
@@ -80,8 +102,8 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
                     },
                     "duration": {
                         "type": "integer",
-                        "description": "Number of frames to hold the combo (default: 5).",
-                        "default": 5,
+                        "description": "Number of frames to hold the combo (default: 30, ~0.5s at 60fps).",
+                        "default": 30,
                     },
                 },
                 "required": ["buttons"],
@@ -118,6 +140,11 @@ def execute_tool_call(emulator: Any, tool_name: str, arguments: dict[str, Any]) 
             frames = arguments["frames"]
             emulator.wait(frames)
             return f"Waited {frames} frames."
+
+        elif tool_name == "fast_forward":
+            frames = arguments["frames"]
+            emulator.fast_forward(frames)
+            return f"Fast-forwarded {frames} frames (~{frames/60:.1f}s game time)."
 
         elif tool_name == "combo":
             buttons = arguments["buttons"]
@@ -174,6 +201,34 @@ def parse_tool_call(response_text: str) -> dict[str, Any] | None:
                         "name": func.get("name", ""),
                         "arguments": func.get("arguments", {}),
                     }
+
+    # --- Owl-alpha XML tool call format --------------------------------------
+    # <longcat_tool_call>press_button<longcat_arg_key>button</longcat_arg_key>
+    # <longcat_arg_value>a</longcat_arg_value></longcat_tool_call>
+    xml_tool = re.search(
+        r"<longcat_tool_call>(.*?)</longcat_tool_call>", text, re.DOTALL
+    )
+    if xml_tool:
+        inner = xml_tool.group(1)
+        # Extract tool name (first text before any longcat tag)
+        tool_name = re.match(r"([^<]+)", inner)
+        name = tool_name.group(1).strip() if tool_name else ""
+        # Extract key-value pairs
+        args: dict[str, Any] = {}
+        for match in re.finditer(
+            r"<longcat_arg_key>(.*?)</longcat_arg_key>\s*<longcat_arg_value>(.*?)</longcat_arg_value>",
+            inner, re.DOTALL,
+        ):
+            k = match.group(1).strip()
+            v = match.group(2).strip()
+            # Try to parse int values
+            try:
+                v = int(v)
+            except ValueError:
+                pass
+            args[k] = v
+        if name:
+            return {"name": name, "arguments": args}
 
     # --- Code-fenced JSON ----------------------------------------------------
     m = _TOOL_CALL_JSON_RE.search(text)
