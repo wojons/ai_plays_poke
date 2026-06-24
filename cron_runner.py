@@ -8,9 +8,19 @@ Flow:
   4. Non-overworld: existing StateWindow flow
 """
 from typing import Any
-import sys, os, time, json, traceback, base64, io
+import sys
+import os
+import time
+import json
+import traceback
+import base64
+import io
+import threading
+import yaml
+import numpy as np
 from pathlib import Path
 from datetime import datetime
+from PIL import Image
 
 # ── Suppress emulator SGB warnings ──────────────────────────────────
 # mGBA core prints "GB: Unimplemented SGB command: 0F" to stderr when
@@ -26,7 +36,6 @@ class _SGBSuppress:
         self._thread: threading.Thread | None = None
 
     def __enter__(self) -> '_SGBSuppress':
-        import threading
         self._pipe_r, self._pipe_w = os.pipe()
         self._real_stderr_fd = os.dup(2)
         os.dup2(self._pipe_w, 2)
@@ -49,16 +58,11 @@ class _SGBSuppress:
         return self
 
     def __exit__(self, *args: object) -> None:
-        import threading
         os.dup2(self._real_stderr_fd, 2)
         os.close(self._real_stderr_fd)
         if self._pipe_r:
             os.close(self._pipe_r)
         # thread is daemon — will exit on its own
-
-import yaml
-import numpy as np
-from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).parent))
 from src.core.emulator import Emulator

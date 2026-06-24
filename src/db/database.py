@@ -579,9 +579,12 @@ class GameDatabase:
         """Compatibility wrapper."""
         pass  # No-op — use end_session() for final metrics
 
-    def log_screenshot_event(self, tick: int, file_path: str, game_state: Dict[str, Any]) -> None:
+    def log_screenshot_event(self, data: dict[str, Any]) -> None:
         """Compatibility wrapper for log_screenshot."""
-        self.log_screenshot(tick, file_path, game_state)
+        tick = data.get("tick", 0) if isinstance(data, dict) else 0
+        path = data.get("path", "") if isinstance(data, dict) else ""
+        game_state = data.get("game_state", {}) if isinstance(data, dict) else {}
+        self.log_screenshot(tick if isinstance(tick, int) else 0, str(path), game_state if isinstance(game_state, dict) else {})
 
     def log_command_execution(self, command_data: Dict[str, Any]) -> None:
         """Compatibility wrapper for log_command."""
