@@ -497,25 +497,32 @@ def main() -> None:
                         _same_dir = None
                         _same_dir_count = 0
 
+                    # Early warning: direction locking detected
+                    if _same_dir_count == 3:
+                        print(f"  [WARN] Direction-locking detected: {_same_dir} x3 (slots_available={_last_saved_slot is not None})")
+
                     # Recovery: load checkpoint if stuck in same direction
-                    if _same_dir_count >= MAX_SAME_DIRECTION and _last_saved_slot is not None:
-                        try:
-                            emu.load_state(_last_saved_slot)
-                            evt = {
-                                "cycle": cycle + 1,
-                                "event": "state_loaded",
-                                "slot": _last_saved_slot,
-                                "reason": f"blocked_{_same_dir}_x{_same_dir_count}",
-                            }
-                            results.append(evt)
-                            log_file.write(json.dumps(evt, default=str) + "\n")
-                            log_file.flush()
-                            print(f"  [RECOVER] Loaded checkpoint slot {_last_saved_slot} (blocked {_same_dir} x{_same_dir_count})")
-                            _same_dir = None
-                            _same_dir_count = 0
-                            break  # exit cartographer loop — let next cycle re-evaluate
-                        except Exception as exc:
-                            print(f"  [RECOVER] Failed to load slot {_last_saved_slot}: {exc}")
+                    if _same_dir_count >= MAX_SAME_DIRECTION:
+                        if _last_saved_slot is not None:
+                            try:
+                                emu.load_state(_last_saved_slot)
+                                evt = {
+                                    "cycle": cycle + 1,
+                                    "event": "state_loaded",
+                                    "slot": _last_saved_slot,
+                                    "reason": f"blocked_{_same_dir}_x{_same_dir_count}",
+                                }
+                                results.append(evt)
+                                log_file.write(json.dumps(evt, default=str) + "\n")
+                                log_file.flush()
+                                print(f"  [RECOVER] Loaded checkpoint slot {_last_saved_slot} (blocked {_same_dir} x{_same_dir_count})")
+                                _same_dir = None
+                                _same_dir_count = 0
+                                break  # exit cartographer loop — let next cycle re-evaluate
+                            except Exception as exc:
+                                print(f"  [RECOVER] Failed to load slot {_last_saved_slot}: {exc}")
+                        else:
+                            print(f"  [RECOVER] Direction-locked {_same_dir} x{_same_dir_count} but NO checkpoint available — cannot rollback")
 
                 elapsed = time.time() - t0
                 print(f"  [{cycle+1}/{CYCLES}] {st} | cartographer x{CART_STEPS} | {elapsed:.1f}s")

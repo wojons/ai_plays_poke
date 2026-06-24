@@ -6,7 +6,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, mock_open, patch, PropertyMock
 
 
 # ── helpers ────────────────────────────────────────────────────────────────
@@ -355,3 +355,111 @@ class TestCompatAliases:
         emu = _make_emu()
         emu.tick()
         assert emu._pygba.core.run_frame.call_count == 1
+
+
+class TestCheckpointing:
+    """save_state / load_state using pygba raw state serialization."""
+
+    @staticmethod
+    def _make_emu_with_raw_state() -> "Emulator":
+        """Construct Emulator with save_raw_state/load_raw_state mocked."""
+        with (
+            patch("pathlib.Path.is_file", return_value=True),
+            patch("pathlib.Path.resolve", return_value=Path("/fake/rom.gba")),
+            patch("pathlib.Path.mkdir"),
+            patch("src.core.emulator.PyGBA") as mock_pygba_cls,
+            patch("src.core.emulator.mgba") as mock_mgba,
+        ):
+            mock_pygba = MagicMock()
+            mock_pygba.core.desired_video_dimensions.return_value = (240, 160)
+            # Return a fresh buffer each call to simulate real state capture
+            _buf_counter: list[int] = [0]
+
+            def _fake_save() -> bytes:
+                _buf_counter[0] += 1
+                return f"raw_state_{_buf_counter[0]}".encode()
+
+            mock_pygba.core.save_raw_state.side_effect = _fake_save
+            mock_pygba_cls.load.return_value = mock_pygba
+
+            mock_fb = MagicMock()
+            mock_mgba.image.Image.return_value = mock_fb
+
+            from src.core.emulator import Emulator
+            return Emulator("/fake/rom.gba")
+
+    def test_save_state_calls_core_and_writes_to_disk(self) -> None:
+        """save_state(slot) calls core.save_raw_state() and writes to checkpoints/<slot>.raw."""
+        emu = self._make_emu_with_raw_state()
+        m_open = mock_open()
+        with patch("builtins.open", m_open):
+            emu.save_state(2)
+            emu._pygba.core.save_raw_state.assert_called_once()
+            m_open.assert_called_once()
+
+    def test_save_state_creates_checkpoint_directory(self) -> None:
+        """First save_state creates the checkpoints/ directory."""
+        emu = self._make_emu_with_raw_state()
+        m_open = mock_open()
+        with (
+            patch("builtins.open", m_open),
+            patch("pathlib.Path.mkdir") as mock_mkdir,
+        ):
+            emu.save_state(0)
+            mock_mkdir.assert_called()
+
+    def test_load_state_reads_from_disk_and_calls_core(self) -> None:
+        """load_state(slot) reads checkpoints/<slot>.raw and calls core.load_raw_state()."""
+        emu = self._make_emu_with_raw_state()
+        fake_bytes = b"fake_raw_bytes"
+        m_open = mock_open(read_data=fake_bytes)
+        with patch("builtins.open", m_open):
+            emu.load_state(0)
+            emu._pygba.core.load_raw_state.assert_called_once_with(fake_bytes)
+
+    def test_load_state_missing_slot_raises(self) -> None:
+        """FileNotFoundError when checkpoint slot doesn't exist."""
+        emu = self._make_emu_with_raw_state()
+        with pytest.raises(FileNotFoundError, match="Checkpoint slot 7 not found"):
+            emu.load_state(7)
+
+    def test_save_then_load_roundtrip(self) -> None:
+        """save_state(slot) + load_state(slot) round-trips correctly.
+
+        Verifies the full flow: core.save_raw_state() → write to file →
+        read from file → core.load_raw_state().
+        """
+        emu = self._make_emu_with_raw_state()
+        # Capture what was written to the file handle during save
+        handle = MagicMock()
+        m_save = mock_open()
+        m_save.return_value = handle
+
+        with patch("builtins.open", m_save):
+            emu.save_state(1)
+            emu._pygba.core.save_raw_state.assert_called_once()
+            # Collect all writes to the file handle
+            written = b"".join(
+                call.args[0] if call.args else b""
+                for call in handle.write.call_args_list
+            )
+
+        # Now feed those bytes back through load_state
+        m_load = mock_open(read_data=written)
+        with patch("builtins.open", m_load):
+            emu.load_state(1)
+            emu._pygba.core.load_raw_state.assert_called_once_with(written)
+
+    def test_multiple_slots_independent(self) -> None:
+        """save_state to different slots writes to different files."""
+        emu = self._make_emu_with_raw_state()
+        open_calls: list[str] = []
+        m_open = mock_open()
+        with patch("builtins.open", m_open):
+            emu.save_state(0)
+            emu.save_state(3)
+            for call_args in m_open.call_args_list:
+                if len(call_args.args) >= 1:
+                    open_calls.append(str(call_args.args[0]))
+        assert any("0.raw" in c for c in open_calls)
+        assert any("3.raw" in c for c in open_calls)
