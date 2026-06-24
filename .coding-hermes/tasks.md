@@ -47,3 +47,8 @@
 **Model:** deepseek-v4-pro (foreman direct — mechanical test file)
 **Files:** tests/test_tools.py (new)
 **Result:** 32 unit tests (0.03s) covering parse_tool_call (13 tests: code-fenced, bare JSON, OpenAI-style, edge cases) + execute_tool_call (10 tests: press_button, wait, combo, invalid tool, missing args) + TOOL_SCHEMA validation (5 tests) + extra combo+wait coverage (4 tests). No ToolExecutor class exists — tests cover the actual functions in src/core/tools.py.
+
+### [x] WIRE-AI: Wire game_loop.py AI stubs to VisionClient + OpenRouterClient ✅
+**Model:** deepseek-v4-pro (foreman direct)
+**Files:** src/game_loop.py (-42 lines stubs, +69 lines real pipeline)
+**Result:** Replaced 4 stub methods (_analyze_battle/menu/dialog/overworld_with_ai) with real pipeline: VisionClient.analyze() → PromptStack.assemble() → OpenRouterClient.send_tool_request() → parse_tool_call(). Added vision_client, prompt_stack, prompt_client to GameLoop.__init__. _get_stub_ai_decision and its 4 simple_* helpers preserved as fallback.

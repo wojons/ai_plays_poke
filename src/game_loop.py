@@ -12,7 +12,6 @@ Main game loop coordinator that handles:
 """
 
 import argparse
-import json
 import signal
 import sys
 import time
@@ -24,7 +23,6 @@ from typing import Dict, Any, Optional, cast
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-import numpy as np
 
 from db.database import GameDatabase
 from core.emulator import Emulator, Button
@@ -46,9 +44,11 @@ class EmulatorManager:
 from core.screenshots import ScreenshotManager, SimpleLiveView
 from core.ai_client import GameAIManager, OpenRouterClient
 from core.save_manager import SaveManager, SaveManagerConfig, SnapshotReason
+from src.core.vision import VisionClient
+from src.core.prompt_assembler import PromptStack
+from src.core.tools import TOOL_SCHEMA, parse_tool_call
 from schemas.commands import (
-    AICommand, AIThought, GameState, 
-    create_press_command, CommandType
+    AIThought, GameState
 )
 
 
@@ -77,7 +77,7 @@ class GameLoop:
         if config.get("multi_instance", False):
             count = config.get("instance_count", 3)
             self.emulator_mgr = EmulatorManager(rom_path, count)
-            self.current_instance = f"instance_0"
+            self.current_instance = "instance_0"
         else:
             self.emulator = Emulator(rom_path)
         
@@ -112,6 +112,20 @@ class GameLoop:
             self.ai_manager = None
             self.use_real_ai = False
             print("⚠️  No OpenRouter API key found. Using stub AI mode")
+
+        # Vision + decision pipeline (wired to real AI)
+        self._generation = "gen3"
+        self._thinking_model = "openrouter/owl-alpha"
+        if self.use_real_ai:
+            self.vision_client: Optional[VisionClient] = VisionClient(
+                model="google/gemma-3-12b-it"
+            )
+            self.prompt_stack: Optional[PromptStack] = PromptStack()
+            self.prompt_client: Optional[OpenRouterClient] = OpenRouterClient()
+        else:
+            self.vision_client = None
+            self.prompt_stack = None
+            self.prompt_client = None
         
         # State tracking
         self.current_tick = 0
@@ -145,7 +159,7 @@ class GameLoop:
         rom_name = Path(self.config["rom_path"]).name
         save_dir = Path(self.config["save_dir"])
         
-        print(f"🎮 AI Plays Pokemon - Starting...")
+        print("🎮 AI Plays Pokemon - Starting...")
         print(f"📁 ROM: {rom_name}")
         print(f"💾 Save Directory: {save_dir}")
         print(f"📊 Database: {save_dir}/game_data.db")
@@ -213,7 +227,7 @@ class GameLoop:
     def _print_final_stats(self) -> None:
         """Print final statistics"""
         print()
-        print(f"📊 Final Statistics:")
+        print("📊 Final Statistics:")
         print(f"   Session ID: {self.session_id}")
         print(f"   Total Ticks: {self.metrics['total_ticks']}")
         print(f"   Screenshots: {self.metrics['screenshots_taken']}")
@@ -349,7 +363,7 @@ class GameLoop:
             
             # Use real vision analysis if available
             if self.use_real_ai and self.ai_manager and screenshot is not None:
-                print(f"👀 Analyzing screenshot with AI vision...")
+                print("👀 Analyzing screenshot with AI vision...")
                 vision_result = self.ai_manager.analyze_screenshot(screenshot)
                 
                 # Extract game state from vision analysis
@@ -459,27 +473,61 @@ class GameLoop:
         print(f"✅ AI decision ({model_used}): {command['action']} - {command['reasoning']}")
     
     def _get_real_ai_decision(self, game_state: GameState) -> Dict[str, Any]:
+        """Get real AI decision using vision + thinking pipeline.
+
+        Captures a fresh screenshot, runs VisionClient for screen analysis,
+        assembles a context-aware prompt via PromptStack, calls the thinking
+        model (owl-alpha) with tool schemas, and parses the tool-call output.
         """
-        Get real AI decision using OpenRouter models
-        
-        Args:
-            game_state: Current game state
-            
-        Returns:
-            Command dictionary with action, reasoning, and confidence
-        """
+        if not (self.vision_client and self.prompt_stack and self.prompt_client):
+            return self._get_stub_ai_decision(game_state)
+
         try:
-            # For now, use simple AI analysis - this will be enhanced later
-            if game_state.is_battle:
-                # Use vision model if available
-                return self._analyze_battle_with_ai(game_state)
-            elif game_state.is_menu:
-                return self._analyze_menu_with_ai(game_state)
-            elif game_state.has_dialog:
-                return self._analyze_dialog_with_ai(game_state)
-            else:
-                return self._analyze_overworld_with_ai(game_state)
-                
+            # 1. Capture fresh screenshot
+            emulator = (
+                self.emulator_mgr.get_instance(self.current_instance)
+                if self.emulator_mgr
+                else self.emulator
+            )
+            screenshot = emulator.capture()
+
+            # 2. Vision: classify the screen
+            vision_output = self.vision_client.analyze(
+                screenshot, game=self._generation
+            )
+            screen_type = vision_output.get("screen_type", "overworld")
+
+            # 3. Assemble prompt for the thinking model
+            assembled = self.prompt_stack.assemble(
+                generation=self._generation,
+                screen_type=screen_type,
+                vision_output=vision_output,
+                memory_context={},
+            )
+
+            # 4. Call thinking model with tool schema
+            raw = self.prompt_client.send_tool_request(
+                prompt=assembled,
+                tools=TOOL_SCHEMA,
+                model=self._thinking_model,
+                max_tokens=200,
+                temperature=0.3,
+            )
+
+            # 5. Parse tool call output
+            tool_call = parse_tool_call(raw)
+            if tool_call is None:
+                tool_call = {"name": "press_button", "arguments": {"button": "a"}}
+
+            # 6. Convert to GameLoop command format
+            button_name = tool_call["arguments"].get("button", "a").upper()
+            return {
+                "action": f"press:{button_name}",
+                "button": getattr(Button, button_name, Button.A),
+                "reasoning": raw[:200] if raw else "AI decision (vision+thinking)",
+                "confidence": 0.7,
+            }
+
         except Exception as e:
             print(f"❌ Real AI decision failed: {e}, falling back to stub")
             return self._get_stub_ai_decision(game_state)
@@ -502,46 +550,6 @@ class GameLoop:
             return self._simple_dialog_ai(game_state)
         else:
             return self._simple_exploration_ai(game_state)
-    
-    def _analyze_battle_with_ai(self, game_state: GameState) -> Dict[str, Any]:
-        """Analyze battle state with AI (placeholder for now)"""
-        # TODO: Integrate with AI vision for battle analysis
-        return {
-            "action": "press:A",
-            "button": Button.A,
-            "reasoning": "AI battle analysis - default action",
-            "confidence": 0.6
-        }
-    
-    def _analyze_menu_with_ai(self, game_state: GameState) -> Dict[str, Any]:
-        """Analyze menu state with AI (placeholder for now)"""
-        # TODO: Integrate with AI vision for menu analysis
-        return {
-            "action": "press:DOWN",
-            "button": Button.DOWN,
-            "reasoning": "AI menu analysis - navigate cursor",
-            "confidence": 0.5
-        }
-    
-    def _analyze_dialog_with_ai(self, game_state: GameState) -> Dict[str, Any]:
-        """Analyze dialog state with AI (placeholder for now)"""
-        # TODO: Integrate with AI vision for dialog analysis
-        return {
-            "action": "press:A",
-            "button": Button.A,
-            "reasoning": "AI dialog analysis - advance text",
-            "confidence": 0.9
-        }
-    
-    def _analyze_overworld_with_ai(self, game_state: GameState) -> Dict[str, Any]:
-        """Analyze overworld state with AI (placeholder for now)"""
-        # TODO: Integrate with AI vision for exploration
-        return {
-            "action": "press:UP",
-            "button": Button.UP,
-            "reasoning": "AI overworld analysis - explore",
-            "confidence": 0.4
-        }
     
     def _simple_battle_ai(self, game_state: GameState) -> Dict[str, Any]:
         """Simple battle heuristic (stub)"""
