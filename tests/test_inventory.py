@@ -113,7 +113,7 @@ class TestPartyState:
     """Tests for PartyState dataclass"""
 
     @pytest.fixture
-    def sample_party(self) -> None:
+    def sample_party(self) -> "PartyState":
         return PartyState(
             pokemon=[
                 PokemonState(

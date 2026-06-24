@@ -67,21 +67,21 @@ class TestStateBaseClass:
 class TestHierarchicalStateMachine:
     """Tests for the HierarchicalStateMachine class"""
 
-    def test_hsm_creation(self, fresh_hsm) -> None:
+    def test_hsm_creation(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test HSM can be created and initialized"""
         assert fresh_hsm.name == "PTP-01X-HSM"
         assert fresh_hsm.get_current_state() is not None
 
-    def test_hsm_factory(self, fresh_hsm) -> None:
+    def test_hsm_factory(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test factory function creates HSM with all states"""
         stats = fresh_hsm.get_statistics()
         assert stats["total_states"] >= 69  # 7 parent states + sub-states
 
-    def test_initial_state_transition(self, fresh_hsm) -> None:
+    def test_initial_state_transition(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test HSM transitions to initial state on reset/create"""
         assert fresh_hsm.get_current_state_name() == "BOOT.INITIALIZE"
 
-    def test_bootstrap_sequence(self, fresh_hsm) -> None:
+    def test_bootstrap_sequence(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test complete bootstrap sequence transitions"""
         bootstrap_path = [
             "BOOT.INITIALIZE",
@@ -102,7 +102,7 @@ class TestHierarchicalStateMachine:
 
         assert fresh_hsm.get_current_state_name() == "OVERWORLD.IDLE"
 
-    def test_overworld_transitions(self, bootstrapped_hsm) -> None:
+    def test_overworld_transitions(self, bootstrapped_hsm: "HierarchicalStateMachine") -> None:
         """Test overworld state transitions"""
         assert bootstrapped_hsm.is_in_battle() is False
 
@@ -114,7 +114,7 @@ class TestHierarchicalStateMachine:
 
         bootstrapped_hsm.transition_to("OVERWORLD.IDLE")
 
-    def test_battle_transitions(self, bootstrapped_hsm) -> None:
+    def test_battle_transitions(self, bootstrapped_hsm: "HierarchicalStateMachine") -> None:
         """Test battle state transitions"""
         bootstrapped_hsm.transition_to("BATTLE.BATTLE_INTRO")
 
@@ -137,7 +137,7 @@ class TestHierarchicalStateMachine:
         bootstrapped_hsm.transition_to("OVERWORLD.IDLE")
         assert bootstrapped_hsm.is_in_battle() is False
 
-    def test_menu_transitions(self, bootstrapped_hsm) -> None:
+    def test_menu_transitions(self, bootstrapped_hsm: "HierarchicalStateMachine") -> None:
         """Test menu state transitions"""
         bootstrapped_hsm.transition_to("MENU.MAIN_MENU")
 
@@ -150,7 +150,7 @@ class TestHierarchicalStateMachine:
 
         assert bootstrapped_hsm.is_in_menu() is False
 
-    def test_dialog_transitions(self, bootstrapped_hsm) -> None:
+    def test_dialog_transitions(self, bootstrapped_hsm: "HierarchicalStateMachine") -> None:
         """Test dialog state transitions"""
         bootstrapped_hsm.transition_to("DIALOG.TEXT_DISPLAY")
 
@@ -162,7 +162,7 @@ class TestHierarchicalStateMachine:
 
         assert bootstrapped_hsm.is_in_dialog() is False
 
-    def test_invalid_transitions_blocked(self, fresh_hsm) -> None:
+    def test_invalid_transitions_blocked(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test that invalid transitions are blocked"""
         fresh_hsm.transition_to("BOOT.TITLE_SCREEN")
 
@@ -170,7 +170,7 @@ class TestHierarchicalStateMachine:
         assert result == StateTransitionResult.INVALID_TRANSITION
         assert fresh_hsm.get_current_state_name() == "BOOT.TITLE_SCREEN"
 
-    def test_emergency_interrupt(self, fresh_hsm) -> None:
+    def test_emergency_interrupt(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test emergency interrupt handling"""
         fresh_hsm.trigger_emergency("Test softlock")
 
@@ -181,7 +181,7 @@ class TestHierarchicalStateMachine:
         assert stats["emergency_triggered"] is True
         assert stats["emergency_reason"] == "Test softlock"
 
-    def test_emergency_recovery(self, fresh_hsm) -> None:
+    def test_emergency_recovery(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test recovering from emergency state"""
         fresh_hsm.trigger_emergency("Test")
         assert fresh_hsm.is_emergency() is True
@@ -192,7 +192,7 @@ class TestHierarchicalStateMachine:
         assert fresh_hsm.is_emergency() is False
         assert fresh_hsm.get_current_state_name() == "OVERWORLD.IDLE"
 
-    def test_state_history(self, fresh_hsm) -> None:
+    def test_state_history(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test state transition history is recorded"""
         fresh_hsm.transition_to("BOOT.TITLE_SCREEN")
         fresh_hsm.transition_to("BOOT.PRESS_START")
@@ -206,7 +206,7 @@ class TestHierarchicalStateMachine:
             assert transition.to_state is not None
             assert transition.timestamp is not None
 
-    def test_transition_counting(self, fresh_hsm) -> None:
+    def test_transition_counting(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test transition counts are tracked"""
         fresh_hsm.transition_to("BOOT.TITLE_SCREEN")
         fresh_hsm.transition_to("BOOT.PRESS_START")
@@ -215,7 +215,7 @@ class TestHierarchicalStateMachine:
         count = fresh_hsm.get_transition_count("BOOT.TITLE_SCREEN", "BOOT.PRESS_START")
         assert count >= 1
 
-    def test_state_stack_push_pop(self, bootstrapped_hsm) -> None:
+    def test_state_stack_push_pop(self, bootstrapped_hsm: "HierarchicalStateMachine") -> None:
         """Test state stack for interrupt handling"""
         bootstrapped_hsm.transition_to("DIALOG.TEXT_DISPLAY")
 
@@ -226,7 +226,7 @@ class TestHierarchicalStateMachine:
         assert popped is not None
         assert bootstrapped_hsm.get_current_state_name() == "DIALOG.TEXT_DISPLAY"
 
-    def test_update_method(self, fresh_hsm) -> None:
+    def test_update_method(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test HSM update method"""
         initial_state = fresh_hsm.get_current_state_name()
         updated_state = fresh_hsm.update()
@@ -235,15 +235,15 @@ class TestHierarchicalStateMachine:
         stats = fresh_hsm.get_statistics()
         assert stats["total_ticks"] >= 1
 
-    def test_callbacks(self, fresh_hsm) -> None:
+    def test_callbacks(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test transition and emergency callbacks"""
         transition_called = []
         emergency_called = []
 
-        def on_transition(from_state, to_state) -> None:
+        def on_transition(from_state: str, to_state: str) -> None:
             transition_called.append((from_state, to_state))
 
-        def on_emergency(reason) -> None:
+        def on_emergency(reason: str) -> None:
             emergency_called.append(reason)
 
         fresh_hsm.register_transition_callback(on_transition)
@@ -256,7 +256,7 @@ class TestHierarchicalStateMachine:
         assert len(emergency_called) == 1
         assert emergency_called[0] == "Test"
 
-    def test_statistics(self, fresh_hsm) -> None:
+    def test_statistics(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test HSM statistics generation"""
         fresh_hsm.transition_to("BOOT.TITLE_SCREEN")
         fresh_hsm.transition_to("BOOT.PRESS_START")
@@ -269,7 +269,7 @@ class TestHierarchicalStateMachine:
         assert "transition_count" in stats
         assert "total_states" in stats
 
-    def test_reset(self, fresh_hsm) -> None:
+    def test_reset(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test HSM reset functionality"""
         fresh_hsm.transition_to("BOOT.TITLE_SCREEN")
         fresh_hsm.transition_to("BOOT.PRESS_START")
@@ -278,14 +278,14 @@ class TestHierarchicalStateMachine:
 
         assert fresh_hsm.get_current_state_name() == "BOOT.INITIALIZE"
 
-    def test_available_transitions(self, fresh_hsm) -> None:
+    def test_available_transitions(self, fresh_hsm: "HierarchicalStateMachine") -> None:
         """Test getting available transitions from current state"""
         fresh_hsm.transition_to("BOOT.INITIALIZE")
 
         available = fresh_hsm.get_available_transitions()
         assert "BOOT.TITLE_SCREEN" in available
 
-    def test_is_in_methods(self, bootstrapped_hsm) -> None:
+    def test_is_in_methods(self, bootstrapped_hsm: "HierarchicalStateMachine") -> None:
         """Test is_in_* helper methods"""
         assert bootstrapped_hsm.is_in_battle() is False
         assert bootstrapped_hsm.is_in_menu() is False
@@ -299,7 +299,7 @@ class TestHierarchicalStateMachine:
         bootstrapped_hsm.transition_to("MENU.MAIN_MENU")
         assert bootstrapped_hsm.is_in_menu() is True
 
-    def test_battle_interrupt_from_overworld(self, bootstrapped_hsm) -> None:
+    def test_battle_interrupt_from_overworld(self, bootstrapped_hsm: "HierarchicalStateMachine") -> None:
         """Test battle can interrupt overworld navigation"""
         bootstrapped_hsm.transition_to("OVERWORLD.WALKING")
 
@@ -307,7 +307,7 @@ class TestHierarchicalStateMachine:
         assert result == StateTransitionResult.SUCCESS
         assert bootstrapped_hsm.is_in_battle() is True
 
-    def test_dialog_interrupt_from_overworld(self, bootstrapped_hsm) -> None:
+    def test_dialog_interrupt_from_overworld(self, bootstrapped_hsm: "HierarchicalStateMachine") -> None:
         """Test dialog can interrupt overworld navigation"""
         bootstrapped_hsm.transition_to("OVERWORLD.INTERACTING_SIGN")
 
