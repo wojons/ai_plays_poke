@@ -52,3 +52,45 @@
 **Model:** deepseek-v4-pro (foreman direct)
 **Files:** src/game_loop.py (-42 lines stubs, +69 lines real pipeline)
 **Result:** Replaced 4 stub methods (_analyze_battle/menu/dialog/overworld_with_ai) with real pipeline: VisionClient.analyze() → PromptStack.assemble() → OpenRouterClient.send_tool_request() → parse_tool_call(). Added vision_client, prompt_stack, prompt_client to GameLoop.__init__. _get_stub_ai_decision and its 4 simple_* helpers preserved as fallback.
+
+### [x] CHORE-2: Fix test_tool_schema + vision integration skips ✅ (70b40a6)
+**Model:** deepseek-v4-pro (foreman direct — mechanical fix)
+**Files:** tests/test_tools.py, tests/test_vision.py
+**Result:** Added `fast_forward` to expected tool names (TOOL_SCHEMA now includes it). Gated TestVisionIntegration behind `pytest.skip` when Docker screenshots path doesn't exist locally. 250 passed, 6 skipped.
+
+---
+
+## Active Queue
+
+### [ ] EMU-2: Add unit tests for Emulator uncovered methods
+**Priority:** high
+**Model:** deepseek-v4-pro (foreman direct)
+**Files:** tests/test_emulator.py (new)
+**AC:**
+1. Mock pygba to test `fast_forward(n)` calls tick with correct frame count
+2. Test `capture()` returns numpy array with expected GBA dimensions (160×240×3)
+3. Test `stop()` calls pygba stop + sets _running=False
+4. Test `press_button()` delegates to pygba with correct button mapping
+5. Test `skip_intro()` runs A-press loop for expected iterations
+6. Coverage: emulator.py 46% → 75%+
+
+### [ ] VISION-2: Add unit tests for VisionClient uncovered paths
+**Priority:** medium
+**Model:** deepseek-v4-pro (foreman direct)
+**Files:** tests/test_vision_client.py (new)
+**AC:**
+1. Test `_encode_image()` with numpy array → base64 string (actual encode path)
+2. Test `analyze()` with mocked OpenRouterClient — verify message format, tool schema injection
+3. Test `analyze()` error path — API failure returns fallback analysis
+4. Coverage: vision.py 69% → 85%+
+
+### [ ] TOOLS-2: Add unit tests for fast_forward tool execution
+**Priority:** medium
+**Model:** deepseek-v4-pro (foreman direct)
+**Files:** tests/test_tools.py (modify)
+**AC:**
+1. Test `execute_tool_call("fast_forward", {"frames": 60})` delegates to emulator
+2. Test `execute_tool_call("fast_forward", {})` uses default frames
+3. Test `execute_tool_call("fast_forward", {"frames": "invalid"})` handles parse error
+4. Test TOOL_SCHEMA fast_forward entry has correct JSON schema
+5. Coverage: tools.py 74% → 90%+
