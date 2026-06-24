@@ -73,10 +73,10 @@ from src.core.symbols import SYMBOL_REFERENCE
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 CYCLES = 20
 STATE_STEPS = 5
-FAST_FORWARD_FRAMES = 180  # ~3s game time, ~14ms wall time
-CART_STEPS = 8  # controller steps per overworld cycle
-PRESS_FRAMES = 60  # hold button for 1s game time
-STEP_FORWARD = 120  # fast-forward between steps (~2s game time)
+FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
+CART_STEPS = 12  # controller steps per overworld cycle
+PRESS_FRAMES = 120  # hold button for 2s game time
+STEP_FORWARD = 300  # fast-forward between steps (~5s game time)
 WORLD_DIR = Path("world")
 LOG_DIR = Path("cron_logs")
 LOG_DIR.mkdir(exist_ok=True)
@@ -256,7 +256,7 @@ def main():
     print(f"[{run_id}] Starting run with cartographer pipeline...")
 
     # Skip intro
-    emu.skip_intro(press_frames=30, wait_frames=60, repetitions=60)
+    emu.skip_intro(press_frames=10, wait_frames=30, repetitions=120)
 
     ctx = GlobalContext(generation="gen1", location="intro")
 
