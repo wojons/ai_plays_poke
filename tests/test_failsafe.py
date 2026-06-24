@@ -137,7 +137,7 @@ class TestConfidenceScorer:
         """Test trend calculation - improving"""
         scorer = ConfidenceScorer()
         for i in [0.5, 0.6, 0.7, 0.8, 0.85]:
-            scorer.calculate_confidence(ai_confidence=i, tick=i)
+            scorer.calculate_confidence(ai_confidence=i, tick=int(i * 100))
         trend = scorer.get_recent_confidence_trend()
         assert trend["trend"] == "improving"
         assert trend["avg"] is not None
@@ -148,7 +148,7 @@ class TestConfidenceScorer:
         """Test trend calculation - declining"""
         scorer = ConfidenceScorer()
         for i in [0.9, 0.85, 0.8, 0.7, 0.6]:
-            scorer.calculate_confidence(ai_confidence=i, tick=i)
+            scorer.calculate_confidence(ai_confidence=i, tick=int(i * 100))
         trend = scorer.get_recent_confidence_trend()
         assert trend["trend"] == "declining"
 

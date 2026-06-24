@@ -152,6 +152,7 @@ class TestDurationProfileLearner:
         for i in range(5):
             self.learner.update_profile("BATTLE", "WILD", 100.0 + i * 10)
         profile = self.learner.get_profile("BATTLE", "WILD")
+        assert profile is not None
         assert profile.sample_count == 5
         assert profile.mean_duration > 100.0
     def test_outlier_detection(self) -> None:
@@ -159,6 +160,7 @@ class TestDurationProfileLearner:
             self.learner.update_profile("BATTLE", "WILD", 100.0)
         self.learner.update_profile("BATTLE", "WILD", 1000.0)
         profile = self.learner.get_profile("BATTLE", "WILD")
+        assert profile is not None
         assert profile.sample_count == 10
     def test_get_thresholds_unknown_profile(self) -> None:
         thresholds = self.learner.get_thresholds("UNKNOWN", "MODE")
