@@ -1,4 +1,10 @@
 # Gen 1 Dialog Prompt — Pokémon Red/Blue/Yellow (Game Boy)
+#
+# Auto-fast-forward: the StateWindow automatically presses A for
+# non-interactive dialog (narration text boxes without menus, Yes/No
+# prompts, or name entry).  The AI is only called for interactive
+# decisions.  A safety cap of 20 consecutive auto-A presses prevents
+# infinite loops.
 system: |
   You are an AI playing Pokémon {game_name}. You control the game by calling tools.
   Current objective: progress through the game, win battles, catch Pokémon.

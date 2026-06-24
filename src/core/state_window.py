@@ -216,8 +216,30 @@ class StateWindow:
 
         Returns a result dict with 'outcome' and relevant data.
         """
+        _auto_a_count = 0  # consecutive auto-A presses (safety cap)
+        _MAX_AUTO_A = 20   # fall back to AI deliberation after this many
+
         for _ in range(self.max_steps):
             self._step_count += 1
+
+            # ── Fast-forward shortcut for non-interactive dialog ─────
+            if self.state_type == "dialog" and not self._is_interactive():
+                if _auto_a_count < _MAX_AUTO_A:
+                    self.emulator.press_button("a", frames=5)
+                    self.emulator.fast_forward(120)
+                    self._history.append({
+                        "step": self._step_count,
+                        "tool_call": {"name": "press_button", "arguments": {"button": "a", "duration": 5, "fast_forward": 120}},
+                        "action": "auto_a",
+                        "auto": True,
+                    })
+                    _auto_a_count += 1
+                    continue
+                else:
+                    # Safety cap: fall back to AI deliberation
+                    pass
+            else:
+                _auto_a_count = 0  # reset on interactive or non-dialog states
 
             # Build the focused prompt
             prompt = self._build_prompt()
@@ -362,6 +384,25 @@ class StateWindow:
         return compacted
 
     # ── Outcome detection ────────────────────────────────────────────
+
+    def _is_interactive(self) -> bool:
+        """Check if the current dialog requires AI deliberation.
+
+        Returns True when the vision output indicates the player needs
+        to make a choice (menu, Yes/No prompt, name entry, etc.).
+
+        Returns False for pure narration text boxes that just need
+        an A press to advance — these can be fast-forwarded.
+        """
+        if self.vision.get("menu_items"):
+            return True
+        if self.vision.get("dialog_prompt"):
+            return True
+        if self.vision.get("screen_subtype") in ("keyboard", "yes_no"):
+            return True
+        if self.vision.get("name_field"):
+            return True
+        return False
 
     def _check_outcome(self) -> dict[str, Any] | None:
         """Check if the state has been resolved based on recent history.

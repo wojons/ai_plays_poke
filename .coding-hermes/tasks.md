@@ -113,7 +113,7 @@
 4. Log state save/load events to cron_logs
 5. Works on GB ROMs (Pokémon Blue) — pygba supports save states for all cores
 
-### [ ] FAST-1: Fast-forward through non-interactive dialog in StateWindow
+### [x] FAST-1: Fast-forward through non-interactive dialog in StateWindow ✅ (pending)
 **Priority:** high
 **Why:** Intro takes 20-30 cycles just through Oak's speech. AI deliberates on each text box. Should fast-forward deterministic text and only deliberate on choices.
 **Files:** src/core/state_window.py, configs/prompts/gen1/dialog.yaml
