@@ -114,10 +114,11 @@ class SaveManager:
         self.emergency_dir = self.save_dir / "emergency_snapshots"
         self.metadata_file = self.snapshots_dir / "snapshots.json"
         
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._snapshot_cache: OrderedDict[str, SnapshotMetadata] = OrderedDict()
         self._last_snapshot_tick: int = 0
         self._tick_count: int = 0
+        self._snapshot_seq: int = 0
         
         self._setup_directories()
         self._load_snapshot_index()
@@ -128,9 +129,10 @@ class SaveManager:
         self.emergency_dir.mkdir(parents=True, exist_ok=True)
     
     def _generate_snapshot_id(self, reason: SnapshotReason) -> str:
-        """Generate unique snapshot ID"""
+        """Generate unique snapshot ID with monotonic counter to avoid collisions"""
+        self._snapshot_seq += 1
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        return f"{reason.value}_{timestamp}_{int(time.time() * 1000 % 10000)}"
+        return f"{reason.value}_{timestamp}_{self._snapshot_seq:05d}"
     
     def _load_snapshot_index(self) -> None:
         """Load existing snapshot metadata from index file"""
