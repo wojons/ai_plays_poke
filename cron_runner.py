@@ -31,6 +31,8 @@ CYCLES = 20
 STATE_STEPS = 5
 FAST_FORWARD_FRAMES = 180  # ~3s game time, ~14ms wall time
 CART_STEPS = 8  # controller steps per overworld cycle
+PRESS_FRAMES = 60  # hold button for 1s game time
+STEP_FORWARD = 120  # fast-forward between steps (~2s game time)
 WORLD_DIR = Path("world")
 LOG_DIR = Path("cron_logs")
 LOG_DIR.mkdir(exist_ok=True)
@@ -259,8 +261,8 @@ def main():
                         "A": "a", "B": "b", "START": "start", "SELECT": "select",
                     }
                     btn = btn_map.get(button, "a")
-                    emu.press_button(btn, frames=10)
-                    emu.fast_forward(30)  # let game respond
+                    emu.press_button(btn, frames=PRESS_FRAMES)
+                    emu.fast_forward(STEP_FORWARD)  # let game respond
 
                     world.last_button = button
                     results.append({
