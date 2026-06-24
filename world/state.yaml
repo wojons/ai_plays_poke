@@ -1,0 +1,22 @@
+last_button: S
+last_result: unknown
+lighting: normal
+map_id: pallet_town_unknown
+player:
+  facing: S
+  mode: walk
+  pos:
+  - 0
+  - 0
+  screen_pos:
+  - 0
+  - 0
+tick: 0
+viewport:
+  origin:
+  - 0
+  - 0
+  size:
+  - 15
+  - 11
+visibility_radius: 0

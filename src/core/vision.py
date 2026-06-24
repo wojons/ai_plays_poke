@@ -32,31 +32,38 @@ class VisionClient:
         "or explain.\n\n"
         "Return exactly this JSON structure:\n"
         "{\n"
-        '  "screen_type": "battle|overworld|menu|dialog|title|unknown",\n'
+        '  "screen_type": "battle|overworld|dialog|name_entry|name_confirm|menu|title|unknown",\n'
+        '  "screen_subtype": "start_menu|item_menu|battle_menu|yes_no|keyboard|or null",\n'
         '  "enemy_pokemon": "Pokemon name or null",\n'
         '  "player_hp_pct": 0-100,\n'
         '  "enemy_hp_pct": 0-100,\n'
         '  "text_lines": ["exact text line 1", "line 2", ...],\n'
         '  "menu_items": ["item1", "item2", ...],\n'
-        '  "adjacent_info": "what surrounds the player: grass, path, NPC, water, building",\n'
+        '  "adjacent_tiles": {"up": "wall|stairs|path|grass|npc|door|empty",\n'
+        '                     "down": "...", "left": "...", "right": "..."},\n'
+        '  "name_field": "text in name entry field or null",\n'
         '  "status_icons": ["par","slp","psn","brn","frz"],\n'
         '  "dialog_prompt": "yes/no question or null"\n'
         "}\n\n"
         "CRITICAL RULES:\n"
-        '- screen_type: "battle" if HP bars visible, "overworld" if walking '
-        'around, "menu" if start menu or bag, "dialog" if text box with no '
-        'HP bars, "title" if title screen\n'
-        "- player_hp_pct and enemy_hp_pct: estimate from HP bar fill "
-        "(0=empty, 100=full). Only fill for battle screens.\n"
-        "- text_lines: copy text verbatim from any visible text boxes. Top "
-        "line first. Use ALL CAPS where the game does.\n"
-        "- menu_items: list visible menu options in order. For battles: "
-        "FIGHT, BAG, POKéMON, RUN. Include the é.\n"
-        "- adjacent_info: one sentence about what tiles surround the player "
-        "(overworld only)\n"
-        "- status_icons: any status condition abbreviations visible on "
-        "battle screen\n"
-        '- dialog_prompt: if there\'s a yes/no choice, what\'s the question?\n\n'
+        '- screen_type: "battle" if HP bars visible. '
+        '"overworld" if walking around (no text boxes). '
+        '"name_entry" if a letter grid/keyboard is visible with "YOUR NAME?" '
+        'or "RIVAL\'S NAME?" at top. '
+        '"name_confirm" if text says "Right! So your name is..."'
+        '"dialog" if text box visible but NO letter grid and NO HP bars. '
+        '"menu" if a list menu (POKéDEX, ITEM, SAVE etc) is open. '
+        '"title" if title screen.\n'
+        "- screen_subtype: for menus, specify which kind. "
+        "For name_entry, always \"keyboard\".\n"
+        "- adjacent_tiles: for overworld ONLY. Describe what is ONE TILE in "
+        "each direction from the player. Use: wall, stairs, path, grass, "
+        "npc, door, empty, bed, table, pc, plant.\n"
+        "- name_field: for name_entry/name_confirm screens, copy the name "
+        "text from the entry field.\n"
+        "- text_lines: copy text verbatim from any visible text boxes.\n"
+        "- menu_items: list visible menu options in order.\n"
+        "- dialog_prompt: if there's a yes/no choice, what's the question?\n\n"
         "DO NOT write anything except the JSON object. No markdown fences, "
         "no explanation."
     )

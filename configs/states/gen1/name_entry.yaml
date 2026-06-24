@@ -1,0 +1,35 @@
+# Name Entry State Workflow — Gen 1
+# Loaded when the agent encounters a name entry screen (YOUR NAME? or RIVAL'S NAME?)
+
+workflow: |
+  NAME ENTRY — KEYBOARD INPUT
+  ===========================
+
+  You are on a name entry screen. A grid of letters A-Z is visible with
+  a cursor. You must type a name and confirm it.
+
+  ```mermaid
+  flowchart TD
+      START["CURSOR IS ON A LETTER"]
+      START -->|"press A"| TYPED["LETTER ENTERED"]
+      TYPED -->|"if < 3 letters typed"| START
+      TYPED -->|"if 3+ letters typed"| NAV["NAVIGATE TO END"]
+      NAV -->|"press DOWN repeatedly\nuntil bottom row"| BOTTOM["CURSOR ON BOTTOM ROW"]
+      BOTTOM -->|"press RIGHT repeatedly\nuntil END is highlighted"| END["CURSOR ON END"]
+      END -->|"press A"| DONE["NAME CONFIRMED ✓"]
+
+      TYPED -->|"if wrong letter"| DEL["MOVE TO × (delete)"]
+      DEL -->|"press A"| START
+  ```
+
+  KEY RULES:
+  - Type 2-3 letters ONLY. Do not type more than 3.
+  - After typing, navigate to END: press DOWN past all letter rows,
+    then RIGHT to reach END, then press A.
+  - If you typed a wrong letter, navigate to the × symbol and press A to delete.
+  - The name field text shows what you've typed so far.
+  - Once you press A on END, the screen will transition to name confirmation.
+
+  TARGET OUTPUT: call press_button or combo to navigate and type.
+  Example: {"name": "press_button", "arguments": {"button": "a", "duration": 5}}
+  Example: {"name": "combo", "arguments": {"buttons": ["down", "down", "down", "down", "down", "right", "right", "right", "right", "right", "a"], "duration": 5}}

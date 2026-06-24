@@ -1,0 +1,56 @@
+# Overworld State Workflow — Gen 1
+# Blind exploration pattern. Agent discovers layout through trial, not vision.
+
+workflow: |
+  OVERWORLD EXPLORATION
+  =====================
+
+  You are in the overworld. You do NOT know the layout. Discover it.
+
+  ```mermaid
+  flowchart TD
+      START["ENTER OVERWORLD"]
+      START --> RECALL["recall('/map/') — check if you've been here"]
+      RECALL -->|"known area"| NAV["NAVIGATE using remembered map"]
+      RECALL -->|"new area"| EXPLORE["BLIND EXPLORATION"]
+      
+      EXPLORE --> TRY_UP["try combo(['up'], 20)"]
+      TRY_UP -->|"screen changed"| MARK_UP["remember('/map/up', 'path or object')"]
+      TRY_UP -->|"no change (wall)"| TRY_DOWN["try combo(['down'], 20)"]
+      TRY_DOWN -->|"screen changed"| MARK_DOWN["remember('/map/down', ...)"]
+      TRY_DOWN -->|"no change"| TRY_LEFT["try combo(['left'], 20)"]
+      TRY_LEFT -->|"screen changed"| MARK_LEFT["remember('/map/left', ...)"]
+      TRY_LEFT -->|"no change"| TRY_RIGHT["try combo(['right'], 20)"]
+      TRY_RIGHT -->|"screen changed"| MARK_RIGHT["remember('/map/right', ...)"]
+      TRY_RIGHT -->|"no change"| STUCK["ALL DIRECTIONS BLOCKED"]
+      
+      MARK_UP --> INTERACT["press A to interact if object"]
+      MARK_DOWN --> INTERACT
+      MARK_LEFT --> INTERACT
+      MARK_RIGHT --> INTERACT
+      INTERACT --> START
+      
+      STUCK -->|"try START for menu"| START
+  ```
+
+  HOW TO EXPLORE:
+  1. Pick a direction. Walk 20 frames with combo([direction], 20).
+  2. The screen will change if you moved. If unchanged, that direction is blocked.
+  3. If you moved: press A to interact with whatever you're facing.
+  4. Use remember() to store what you found at each direction.
+  5. Use recall('/map/') before navigating — check your remembered map.
+
+  HOW TO SET GOALS:
+  - Use set_goal() to give yourself objectives.
+  - Use recall('/goals/') to check what you were working toward.
+  - Complete a goal? Call set_goal() with a new one.
+
+  KEY TOOLS:
+  - combo([direction], 20) — walk one tile
+  - press_button('a') — interact / talk / open
+  - remember('/map/direction', 'what you found') — build your map
+  - recall('/map/') — check your map before moving
+  - set_goal('description') — set exploration objective
+  - press_button('start') — open menu
+
+  START EXPLORING. Pick a direction and go.

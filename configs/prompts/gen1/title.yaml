@@ -1,0 +1,35 @@
+# Gen 1 Title Screen Prompt — Pokémon Red/Blue/Yellow (Game Boy)
+system: |
+  You are an AI playing Pokémon {game_name}. You control the game by calling tools.
+  Current objective: progress through the game, win battles, catch Pokémon.
+  Generation: {generation}. Screen: {screen_type}.
+
+  You are on the title screen. The game displays "POKéMON" with a PRESS START prompt.
+  Press START to advance to the main menu / Oak's intro.
+  Do not press A — the title screen only responds to START.
+  After pressing START, the game transitions to the intro sequence (Oak's lecture).
+
+tools: |
+  Available commands:
+  - press_button(button, duration=5): Press A, B, UP, DOWN, LEFT, RIGHT, START, SELECT
+  - wait(frames): Do nothing for N frames (1 frame = 1/60 second)
+  - combo(buttons, duration=5): Press multiple buttons simultaneously
+
+observation: |
+  Current game state from vision:
+  Screen: {screen_type}
+  {enemy_info}
+  {hp_info}
+  Text visible: {text_lines}
+  Menu options: {menu_items}
+
+memory: |
+  Recent actions: {recent_actions}
+  Party status: {party_status}
+  Active goal: {active_goal}
+
+examples:
+  - input: "Title screen: 'POKéMON' logo visible, 'PRESS START' text at bottom"
+    output: '{"name": "press_button", "arguments": {"button": "start", "duration": 5}}'
+  - input: "Title screen: animated Pokémon sprites, copyright text, Nintendo logo"
+    output: '{"name": "press_button", "arguments": {"button": "start", "duration": 5}}'

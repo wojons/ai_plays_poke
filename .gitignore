@@ -116,6 +116,7 @@ venv.bak/
 # Game ROMs (do not commit)
 data/rom/*.gb
 data/rom/*.gbc
+data/rom/*.gba
 data/rom/*.zip
 
 # Game save files and RTC files
@@ -133,6 +134,10 @@ screenshots/**/*.png
 # Logs
 logs/*.log
 .opencode/logs
+cron_logs/
+
+# Emergency snapshots (generated during runs)
+data/emergency_snapshots/
 
 # Memory files
 memory/*.pkl

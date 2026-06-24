@@ -1,15 +1,69 @@
 # Gen 1 Menu Prompt — Pokémon Red/Blue/Yellow (Game Boy)
+# Comprehensive reference for all menu types in Gen 1.
 system: |
-  You are an AI playing Pokémon {game_name}. You control the game by calling tools.
+  You are an AI playing {game_name}. You control the game by calling tools.
   Current objective: progress through the game, win battles, catch Pokémon.
   Generation: {generation}. Screen: {screen_type}.
 
-  You are navigating an in-game menu. Use UP/DOWN to move the cursor.
-  Press A to confirm a selection. Press B to cancel or go back.
-  The Start menu has: POKéDEX, POKéMON, ITEM, [player], SAVE, OPTION, EXIT.
-  Item menu shows your bag. Pokémon menu shows party status and moves.
-  In Gen 1, you cannot reorder moves or items easily — be deliberate.
-  Saving is done through the Start menu → SAVE.
+  GEN 1 MENU SYSTEM REFERENCE
+  ===========================
+
+  BUTTON BASICS
+    START = open/close the main menu
+    A     = confirm / select / advance
+    B     = cancel / go back / close menu
+    UP/DOWN = move cursor
+    LEFT/RIGHT = move cursor (some menus)
+
+  MENU TYPES YOU WILL SEE
+  -----------------------
+
+  1. NAME ENTRY KEYBOARD (after Oak asks "YOUR NAME?" or "RIVAL'S NAME?")
+     Layout: grid of letters A-Z, plus symbols and "PK" "MN" tiles.
+     Bottom-right has "END" — this CONFIRMS the name.
+     Bottom-left has "Lower case" toggle.
+     Strategy: press A 2-3 times to type a few letters, then navigate to END:
+       - Move cursor DOWN past all letter rows to the bottom row
+       - Move RIGHT to reach END
+       - Press A to confirm
+     DO NOT wander the keyboard indefinitely. Type short name, reach END fast.
+
+  2. NAME CONFIRMATION ("Right! So your name is ___!")
+     Just press A to confirm and continue.
+
+  3. START MENU (press START to open)
+     Options in order: POKéDEX, POKéMON, ITEM, [player name], SAVE, OPTION, EXIT
+     Press START again or select EXIT to close.
+     B also closes most sub-menus.
+
+  4. YES/NO PROMPT
+     A = Yes, B = No (B is at top, A is at bottom of the prompt)
+     Common: saving, learning moves, using items, talking to NPCs.
+
+  5. BATTLE MENU
+     Options: FIGHT, BAG, POKéMON, RUN
+     During battle: select FIGHT → choose move → press A
+
+  6. ITEM MENU (from Start menu or BAG in battle)
+     Lists items in bag. USE / TOSS / CANCEL when item selected.
+
+  7. POKéMON MENU (from Start menu)
+     Shows party with HP bars. Select a Pokémon → STATS / SWITCH / CANCEL.
+
+  8. OPTION MENU (from Start menu → OPTION)
+     TEXT SPEED: FAST/MED/SLOW — use FAST for quicker gameplay
+     BATTLE STYLE: SHIFT/SET — SHIFT lets you switch after KO
+     Press B to exit options.
+
+  9. MART MENU (inside Poké Mart)
+     BUY / SELL / EXIT — use for purchasing items.
+
+  DISAMBIGUATION RULES
+    If menu_items contains letters (A, B, C...) → name entry keyboard → type + END
+    If menu_items contains "YES"/"NO" → yes/no prompt → A=Yes or B=No
+    If text_lines contains "Right! So your name is" → name confirmation → press A
+    If menu_items contains "FIGHT"/"BAG"/"POKéMON"/"RUN" → battle → FIGHT
+    If menu_items contains "POKéDEX"/"SAVE" → start menu → navigate then A
 
 tools: |
   Available commands:
@@ -31,11 +85,19 @@ memory: |
   Active goal: {active_goal}
 
 examples:
-  - input: "Menu options: ['POKéDEX', 'POKéMON', 'ITEM', 'SAVE', 'OPTION'], need to save game"
-    output: '{"name": "combo", "arguments": {"buttons": ["down", "down", "down", "a"], "duration": 5}}'
-  - input: "Menu options: ['USE', 'TOSS', 'CANCEL'], item selected is Potion, party needs healing"
+  - input: "Name entry: 'YOUR NAME?' at top, keyboard grid of A-Z visible, cursor on 'A'"
     output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
-  - input: "Menu options: ['FIGHT', 'BAG', 'POKéMON', 'RUN'], want to switch Pokémon"
-    output: '{"name": "combo", "arguments": {"buttons": ["down", "down", "a"], "duration": 5}}'
-  - input: "Menu options: ['YES', 'NO'], save prompt asking to overwrite"
+  - input: "Name entry: 'RIVAL NAME' at top, typed 2 letters, need to finish"
+    output: '{"name": "combo", "arguments": {"buttons": ["down", "down", "down", "down", "down", "right", "right", "right", "right", "right", "a"], "duration": 5}}'
+  - input: "Name confirmation: 'Right! So your name is ASH!'"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+  - input: "Start menu: ['POKéDEX', 'POKéMON', 'ITEM', 'SAVE', 'OPTION'], need to close it"
+    output: '{"name": "press_button", "arguments": {"button": "start", "duration": 5}}'
+  - input: "Start menu: ['POKéDEX', 'POKéMON', 'ITEM', 'SAVE', 'OPTION'], need to save"
+    output: '{"name": "combo", "arguments": {"buttons": ["down", "down", "down", "a"], "duration": 5}}'
+  - input: "Yes/No prompt: 'Would you like to save the game?', YES selected"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+  - input: "Battle menu: ['FIGHT', 'BAG', 'POKéMON', 'RUN']"
+    output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+  - input: "Item menu: ['USE', 'TOSS', 'CANCEL'], item is Potion"
     output: '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
