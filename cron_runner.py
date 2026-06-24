@@ -76,8 +76,8 @@ from src.core.symbols import SYMBOL_REFERENCE
 
 # ── Config ──────────────────────────────────────────────────────────
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
-CYCLES = 20
-STATE_STEPS = 5
+CYCLES = 100
+STATE_STEPS = 10
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 12  # controller steps per overworld cycle
 PRESS_FRAMES = 120  # hold button for 2s game time
