@@ -189,6 +189,21 @@ def _extract_obs_patch(text: str) -> dict[str, Any]:
         return {"_parse_error": text[:500]}
 
 
+
+
+
+def _unknown_tile_pct(terrain: list[list[str]]) -> float:
+    """Return percentage of terrain tiles that are unknown ('?')."""
+    total = 0
+    unknown = 0
+    for row in terrain:
+        for tile in row:
+            total += 1
+            if tile == "?":
+                unknown += 1
+    return (unknown / total * 100) if total > 0 else 0.0
+
+
 def controller_decide(
     client: OpenRouterClient,
     world_view: str,
@@ -273,6 +288,10 @@ def main() -> None:
     _checkpoint_slot: int = 0
     _last_saved_slot: int | None = None
 
+    # ── Void state recovery tracking ──────────────────────────────
+    _void_cycles: int = 0       # consecutive cycles with >95% unknown tiles
+    _recovery_attempts: int = 0  # recovery attempts in current void sequence
+
     # No blind intro skip — let the AI navigate title/dialog/name_entry
     # via the StateWindow pipeline like any other game state
 
@@ -316,6 +335,51 @@ def main() -> None:
 
                 # Save world state
                 integrator.save(WORLD_DIR)
+
+                # ── Void state detection ──────────────────────────
+                unknown_pct = _unknown_tile_pct(world.terrain)
+                if unknown_pct > 95:
+                    _void_cycles += 1
+                    print(f"  [VOID] {unknown_pct:.0f}% unknown tiles (cycle {_void_cycles}/3)")
+                else:
+                    _void_cycles = 0
+                    _recovery_attempts = 0
+
+                if _void_cycles >= 3:
+                    _recovery_attempts += 1
+                    if _recovery_attempts <= 3:
+                        # Strategy 1: open menu, close menu (force redraw)
+                        emu.press_button("start", frames=30)
+                        emu.wait(60)
+                        emu.press_button("b", frames=10)
+                        emu.wait(30)
+                        emu.press_button("b", frames=10)
+                        emu.wait(30)
+                        strategy = "menu_redraw"
+                    else:
+                        # Strategy 2: soft reset sequence (menu + cancel menu)
+                        emu.press_button("start", frames=30)
+                        emu.wait(60)
+                        emu.press_button("b", frames=10)
+                        emu.wait(30)
+                        emu.press_button("b", frames=10)
+                        emu.wait(30)
+                        emu.press_button("a", frames=10)
+                        emu.wait(60)
+                        strategy = "soft_reset"
+
+                    evt = {
+                        "cycle": cycle + 1,
+                        "event": "void_recovery",
+                        "unknown_pct": round(unknown_pct, 1),
+                        "recovery_attempt": _recovery_attempts,
+                        "strategy": strategy,
+                    }
+                    results.append(evt)
+                    log_file.write(json.dumps(evt, default=str) + "\n")
+                    log_file.flush()
+                    print(f"  [RECOVER] Void recovery attempt {_recovery_attempts}: {strategy} ({unknown_pct:.0f}% unknown)")
+                    _void_cycles = 0  # reset after recovery attempt
 
                 # Step 2b: Controller decides actions (multiple steps)
                 for _ in range(CART_STEPS):
