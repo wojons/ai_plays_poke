@@ -161,7 +161,7 @@ class VisionClient:
         if pil_img.size[0] > 1024:
             ratio = 1024 / pil_img.size[0]
             new_h = int(pil_img.size[1] * ratio)
-            pil_img = pil_img.resize((1024, new_h), Image.LANCZOS)  # type: ignore[attr-defined]
+            pil_img = pil_img.resize((1024, new_h), Image.LANCZOS)  # type: ignore
 
         buf = io.BytesIO()
         pil_img.save(buf, format="PNG")

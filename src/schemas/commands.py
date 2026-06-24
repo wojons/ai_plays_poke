@@ -144,7 +144,7 @@ class GameState:
     enemy_hp_percent: Optional[float] = None
     player_hp_percent: Optional[float] = None
     menu_type: Optional[str] = None  # "pokemon", "bag", "main", "options", etc
-    cursor_position: Optional[tuple] = None  # (x, y) on menu grid
+    cursor_position: Optional[tuple[int, int]] = None  # (x, y) on menu grid  # type: ignore
     dialog_text: Optional[str] = None
     location: Optional[str] = None
     

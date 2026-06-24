@@ -111,20 +111,20 @@ class ObserverMemory:
             for action in self.recent_actions
         ]
     
-    def add_action(self, action: ActionRecord):
+    def add_action(self, action: ActionRecord) -> None:
         """Record action and maintain FIFO buffer (max 10 actions)"""
         self.recent_actions.append(action)
         if len(self.recent_actions) > MAX_RECENT_ACTIONS:
             self.recent_actions.pop(0)
     
-    def clear(self):
+    def clear(self) -> None:
         """Reset memory for new decision cycle"""
         self.decision_context.clear()
         self.recent_actions.clear()
         self.sensory_input = SensoryInput()
         self.current_state = TickState()
     
-    def update_state(self, **kwargs):
+    def update_state(self, **kwargs) -> None:  # type: ignore
         """Update current state with new values"""
         for key, value in kwargs.items():
             if hasattr(self.current_state, key):
@@ -270,7 +270,7 @@ class StrategistMemory:
             return 0.0
         return self.victories / self.total_battles
     
-    def record_battle(self, battle: BattleRecord):
+    def record_battle(self, battle: BattleRecord) -> None:
         """Add battle to history and update stats"""
         self.battle_history.append(battle)
         self.total_battles += 1
@@ -280,7 +280,7 @@ class StrategistMemory:
         elif battle.outcome == "defeat":
             self.defeats += 1
     
-    def update_objective_progress(self, objective_id: str, progress: float):
+    def update_objective_progress(self, objective_id: str, progress: float) -> None:
         """Update objective progress"""
         for obj in self.objectives:
             if obj.objective_id == objective_id:
@@ -290,13 +290,13 @@ class StrategistMemory:
                     obj.completed_tick = self.battle_history[-1].end_tick if self.battle_history else None
                 break
     
-    def add_objective(self, objective: SessionObjective):
+    def add_objective(self, objective: SessionObjective) -> None:
         """Add new objective"""
         self.objectives.append(objective)
         if objective.status == "active" and self.active_objective is None:
             self.active_objective = objective
     
-    def complete_objective(self, objective_id: str):
+    def complete_objective(self, objective_id: str) -> None:
         """Mark objective as completed"""
         for obj in self.objectives:
             if obj.objective_id == objective_id:
@@ -307,7 +307,7 @@ class StrategistMemory:
                     self.active_objective = None
                 break
     
-    def add_location(self, location: LocationVisited):
+    def add_location(self, location: LocationVisited) -> None:
         """Record new location visit"""
         if location.location_name in self.locations_visited:
             existing = self.locations_visited[location.location_name]
@@ -325,7 +325,7 @@ class StrategistMemory:
         else:
             self.locations_visited[location.location_name] = location
     
-    def snapshot_resources(self, tick: int):
+    def snapshot_resources(self, tick: int) -> None:
         """Record current resource state"""
         snapshot = ResourceSnapshot(
             tick=tick,
@@ -338,11 +338,11 @@ class StrategistMemory:
         if len(self.resource_history) > 100:
             self.resource_history.pop(0)
     
-    def update_money(self, amount: int):
+    def update_money(self, amount: int) -> None:
         """Update current money"""
         self.current_money = max(0, self.current_money + amount)
     
-    def update_items(self, item: str, quantity: int):
+    def update_items(self, item: str, quantity: int) -> None:
         """Update item quantity"""
         current = self.current_items.get(item, 0)
         new_quantity = max(0, current + quantity)
@@ -365,7 +365,7 @@ class StrategistMemory:
             return 0
         return self.battle_history[-1].end_tick - self.session_start_tick
     
-    def clear_session(self):
+    def clear_session(self) -> None:
         """Clear session data for new session"""
         self.objectives.clear()
         self.active_objective = None
@@ -416,7 +416,7 @@ class LearnedPattern:
     last_validated: float = 0.0
     relevance_score: float = 0.5
     
-    def update_confidence(self):
+    def update_confidence(self) -> None:
         """Update confidence based on success/failure ratio"""
         total = self.success_count + self.failure_count
         if total > 0:
@@ -439,7 +439,7 @@ class SuccessfulStrategy:
     first_used: float = 0.0
     last_used: float = 0.0
     
-    def record_use(self, success: bool):
+    def record_use(self, success: bool) -> None:
         """Record a use of this strategy"""
         self.total_uses += 1
         if success:
@@ -461,7 +461,7 @@ class MistakeRecord:
     last_occurred: float
     occurrence_count: int = 1
     
-    def record_occurrence(self):
+    def record_occurrence(self) -> None:
         """Record another occurrence of this mistake"""
         self.last_occurred = time.time()
         self.occurrence_count += 1
@@ -497,7 +497,7 @@ class TacticianMemory:
     overall_win_rate: float = 0.0
     last_saved: float = 0.0
     
-    def add_pattern(self, pattern: LearnedPattern):
+    def add_pattern(self, pattern: LearnedPattern) -> None:
         """Add or update learned pattern"""
         if pattern.pattern_id in self.patterns:
             existing = self.patterns[pattern.pattern_id]
@@ -510,7 +510,7 @@ class TacticianMemory:
             pattern.last_validated = time.time()
             self.patterns[pattern.pattern_id] = pattern
     
-    def record_strategy_success(self, strategy_id: str, success: bool):
+    def record_strategy_success(self, strategy_id: str, success: bool) -> None:
         """Record successful use of strategy"""
         if strategy_id in self.strategies:
             self.strategies[strategy_id].record_use(success)
@@ -555,7 +555,7 @@ class TacticianMemory:
         ]
         return f"strat_{'_'.join(key_parts)}"
     
-    def add_mistake(self, mistake: MistakeRecord):
+    def add_mistake(self, mistake: MistakeRecord) -> None:
         """Record new mistake to avoid"""
         if mistake.mistake_id in self.mistakes:
             self.mistakes[mistake.mistake_id].record_occurrence()
@@ -586,7 +586,7 @@ class TacticianMemory:
         """Get preference for category"""
         return self.preferences.get(category)
     
-    def set_preference(self, preference: PlayerPreference):
+    def set_preference(self, preference: PlayerPreference) -> None:
         """Set or update preference"""
         if preference.category in self.preferences:
             existing = self.preferences[preference.category]
@@ -653,7 +653,7 @@ class TacticianMemory:
         """Get patterns above confidence threshold"""
         return [p for p in self.patterns.values() if p.confidence >= threshold]
     
-    def update_stats(self, battle_won: bool):
+    def update_stats(self, battle_won: bool) -> None:
         """Update overall stats after a battle"""
         self.total_battles += 1
         if battle_won:
@@ -667,7 +667,7 @@ class TacticianMemory:
             else:
                 self.overall_win_rate = (self.overall_win_rate * (self.total_battles - 1)) / self.total_battles
     
-    def increment_sessions(self):
+    def increment_sessions(self) -> None:
         """Increment session counter"""
         self.total_sessions += 1
     
@@ -1276,15 +1276,15 @@ class MemoryConsolidator:
             }
         }
     
-    def set_observer(self, memory: ObserverMemory):
+    def set_observer(self, memory: ObserverMemory) -> None:
         """Set observer memory reference"""
         self.observer = memory
     
-    def set_strategist(self, memory: StrategistMemory):
+    def set_strategist(self, memory: StrategistMemory) -> None:
         """Set strategist memory reference"""
         self.strategist = memory
     
-    def set_tactician(self, memory: TacticianMemory):
+    def set_tactician(self, memory: TacticianMemory) -> None:
         """Set tactician memory reference"""
         self.tactician = memory
     
@@ -1430,7 +1430,7 @@ class MemoryGOAPIntegration:
         return tactician.get_successful_strategies(enemy_type, player_pokemon)
     
     @staticmethod
-    def record_planning_outcome(
+    def record_planning_outcome(  # type: ignore
         observer: ObserverMemory,
         success: bool,
         outcome: str

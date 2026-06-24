@@ -21,7 +21,7 @@ class PromptTemplate:
     priority: int = 1  # Higher priority = more relevant
     use_cases: List[str] = field(default_factory=list)  # When to use this prompt
     
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Initialize default use_cases if empty"""
         if not self.use_cases:
             self.use_cases = [self.category]
@@ -51,7 +51,7 @@ class PromptManager:
         # Usage tracking for analytics
         self.prompt_usage_stats: Dict[str, Any] = {}
     
-    def load_prompts(self):
+    def load_prompts(self) -> None:
         """Load all prompt templates from filesystem"""
         if not self.prompts_dir.exists():
             print(f"⚠️  Prompts directory not found: {self.prompts_dir}")
@@ -179,7 +179,7 @@ class PromptManager:
         
         return selected_prompts
     
-    def track_prompt_usage(self, prompt_name: str, effectiveness: float = 1.0):
+    def track_prompt_usage(self, prompt_name: str, effectiveness: float = 1.0) -> None:
         """Track prompt usage for analytics"""
         if prompt_name not in self.prompt_usage_stats:
             self.prompt_usage_stats[prompt_name] = {

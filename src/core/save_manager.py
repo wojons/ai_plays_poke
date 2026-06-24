@@ -158,7 +158,7 @@ class SaveManager:
         with self._lock:
             self._tick_count = tick_count
     
-    def save_snapshot(
+    def save_snapshot(  # type: ignore
         self,
         emulator,
         tick_count: int,
@@ -250,7 +250,7 @@ class SaveManager:
         
         return max(0, len(self._snapshot_cache) - max_snapshots)
     
-    def load_snapshot(self, snapshot_id: str, emulator) -> bool:
+    def load_snapshot(self, snapshot_id: str, emulator) -> bool:  # type: ignore
         """
         Restore emulator from a specific snapshot
         
@@ -366,7 +366,7 @@ class SaveManager:
             logger.info(f"Deleted snapshot: {snapshot_id}")
             return True
     
-    def save_emergency_snapshot(
+    def save_emergency_snapshot(  # type: ignore
         self,
         emulator,
         tick_count: int,

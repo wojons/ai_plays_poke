@@ -170,7 +170,7 @@ class State(ABC):
         return self._parent
 
     @parent.setter
-    def parent(self, value: Optional[State]):
+    def parent(self, value: Optional[State]) -> None:
         self._parent = value
 
     @property

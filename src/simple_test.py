@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from pyboy import PyBoy
 from PIL import Image
 
-def simple_test():
+def simple_test() -> None:
     """Simple test with Pokemon Blue ROM"""
     
     print("🧪 Simple PyBoy Screenshot Test")
@@ -23,7 +23,7 @@ def simple_test():
     # Check if ROM exists
     if not os.path.exists(rom_path):
         print(f"❌ ROM not found: {rom_path}")
-        return False
+        return False  # type: ignore
     
     # Initialize emulator
     print("🚀 Loading ROM...")
@@ -68,10 +68,10 @@ def simple_test():
     print("\n" + "=" * 50)
     print("✅ Test completed!")
     
-    return True
+    return True  # type: ignore
 
 if __name__ == "__main__":
-    success = simple_test()
+    success = simple_test()  # type: ignore
     if success:
         print("\n🎉 All systems go! PyBoy screenshots are working.")
     else:

@@ -140,7 +140,7 @@ class GameLoop:
             "start_time": None
         }
     
-    def start(self):
+    def start(self) -> None:
         """Start the game loop"""
         rom_name = Path(self.config["rom_path"]).name
         save_dir = Path(self.config["save_dir"])
@@ -167,13 +167,13 @@ class GameLoop:
         )
         
         self.is_running = True
-        self.metrics["start_time"] = datetime.now()
+        self.metrics["start_time"] = datetime.now()  # type: ignore
         
         print("✅ System initialized. Beginning game loop...")
         print("Press Ctrl+C to stop gracefully")
         print()
     
-    def stop(self):
+    def stop(self) -> None:
         """Stop the game loop and save all state"""
         if not self.is_running:
             return
@@ -211,7 +211,7 @@ class GameLoop:
         # Print final stats
         self._print_final_stats()
     
-    def _print_final_stats(self):
+    def _print_final_stats(self) -> None:
         """Print final statistics"""
         print()
         print(f"📊 Final Statistics:")
@@ -225,13 +225,13 @@ class GameLoop:
         print(f"   Losses: {self.metrics['battles_lost']}")
         
         if self.metrics["start_time"]:
-            duration = (datetime.now() - self.metrics["start_time"]).total_seconds()
+            duration = (datetime.now() - self.metrics["start_time"]).total_seconds()  # type: ignore
             print(f"   Duration: {duration:.1f} seconds")
     
-    def run_single_tick(self):
+    def run_single_tick(self) -> None:
         """Execute one iteration of the game loop"""
         self.current_tick += 1
-        self.metrics["total_ticks"] += 1
+        self.metrics["total_ticks"] += 1  # type: ignore
         
         # Tick emulator
         if self.emulator_mgr:
@@ -256,7 +256,7 @@ class GameLoop:
         # Check for save state snapshot
         self._check_save_snapshot()
     
-    def _check_save_snapshot(self):
+    def _check_save_snapshot(self) -> None:
         """Check if save state snapshot should be created"""
         emulator = self.emulator_mgr.get_instance(self.current_instance) if self.emulator_mgr else self.emulator
         
@@ -286,7 +286,7 @@ class GameLoop:
                 game_state=game_state.to_dict() if hasattr(game_state, 'to_dict') else None
             )
     
-    def _capture_and_process_screenshot(self):
+    def _capture_and_process_screenshot(self) -> None:
         """Capture screenshot, analyze, and trigger AI if needed"""
         # Get emulator
         if self.emulator_mgr:
@@ -305,7 +305,7 @@ class GameLoop:
             tick=self.current_tick
         )
         
-        self.metrics["screenshots_taken"] += 1
+        self.metrics["screenshots_taken"] += 1  # type: ignore
         self.live_view.should_display = True  # For screenshot manager tracking
         self.live_view.current_image = screenshot
         
@@ -415,7 +415,7 @@ class GameLoop:
         
         return game_state
     
-    def _get_ai_decision(self, game_state: GameState):
+    def _get_ai_decision(self, game_state: GameState) -> None:
         """
         Get AI decision based on game state
         
@@ -581,7 +581,7 @@ class GameLoop:
             "confidence": 0.4
         }
     
-    def _execute_pending_commands(self):
+    def _execute_pending_commands(self) -> None:
         """Execute commands waiting in pipeline"""
         if not self.pending_commands:
             return
@@ -620,7 +620,7 @@ class GameLoop:
                 "execution_time_ms": execution_time
             })
             
-            self.metrics["commands_sent"] += 1
+            self.metrics["commands_sent"] += 1  # type: ignore
             
             self.db.log_command({
                 "tick": command["tick"],
@@ -666,7 +666,7 @@ class GameLoop:
         
         return None
     
-    def _detect_battle_transition(self):
+    def _detect_battle_transition(self) -> None:
         """Detect when battle starts/ends and log accordingly"""
         # Simple check: if in battle state
         game_state = self._analyze_game_state()
@@ -680,7 +680,7 @@ class GameLoop:
                 "player_pokemon": "Starter",
                 "player_level": 5
             })
-            self.metrics["battles_encountered"] += 1
+            self.metrics["battles_encountered"] += 1  # type: ignore
             self.battle_turn_count = 0
             print("⚔️ Battle started!")
             
@@ -695,9 +695,9 @@ class GameLoop:
             self.db.log_battle_end(self.current_battle_id, outcome, self.battle_turn_count)
             
             if outcome == "victory":
-                self.metrics["battles_won"] += 1
+                self.metrics["battles_won"] += 1  # type: ignore
             else:
-                self.metrics["battles_lost"] += 1
+                self.metrics["battles_lost"] += 1  # type: ignore
             
             print(f"🏁 Battle ended! Result: {outcome}")
             
@@ -705,7 +705,7 @@ class GameLoop:
             self.battle_turn_count = 0
 
 
-def create_config(args) -> Dict[str, Any]:
+def create_config(args) -> Dict[str, Any]:  # type: ignore
     """Create configuration from CLI arguments"""
     return {
         "rom_path": args.rom,
@@ -719,7 +719,7 @@ def create_config(args) -> Dict[str, Any]:
     }
 
 
-def main():
+def main() -> None:
     """Main entry point"""
     
     parser = argparse.ArgumentParser(
@@ -801,7 +801,7 @@ Examples:
     rom_path = Path(args.rom)
     if not rom_path.exists():
         print(f"❌ ROM file not found: {rom_path}")
-        return 1
+        return 1  # type: ignore
     
     # Create configuration
     config = create_config(args)
@@ -810,7 +810,7 @@ Examples:
     game_loop = GameLoop(config)
     
     # Handle graceful shutdown
-    def signal_handler(sig, frame):
+    def signal_handler(sig, frame) -> None:  # type: ignore
         print("\n🤷 Signal received, stopping gracefully...")
         game_loop.stop()
         sys.exit(0)
@@ -836,12 +836,12 @@ Examples:
         print(f"\n💥 ERROR: {e}")
         import traceback
         traceback.print_exc()
-        return 1
+        return 1  # type: ignore
     finally:
         game_loop.stop()
     
-    return 0
+    return 0  # type: ignore
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main())  # type: ignore

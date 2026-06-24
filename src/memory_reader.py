@@ -39,7 +39,7 @@ def scan_memory_for_pokemon_data(pyboy: "PyBoy", scan_range: tuple[int, int] = (
     
     return memory_data
 
-def read_pokemon_stats(pyboy):
+def read_pokemon_stats(pyboy: "PyBoy") -> "dict[str, Any] | None":
     """Read Pokemon game stats from memory"""
     
     memory = pyboy.memory
@@ -66,7 +66,7 @@ def read_pokemon_stats(pyboy):
         print(f"❌ Error reading Pokemon stats: {e}")
         return None
 
-def test_memory_scanning():
+def test_memory_scanning() -> bool:
     """Test memory scanning functionality"""
     
     print("🧪 Memory Scanning Test")

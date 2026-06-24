@@ -10,7 +10,7 @@ from PIL import Image
 import yaml
 
 
-def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_interval: int = 100):
+def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_interval: int = 100) -> None:
     """Run PyBoy test for a specific ROM"""
     
     print(f"\n{'='*60}")
@@ -23,7 +23,7 @@ def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_inte
     # Check if ROM exists
     if not os.path.exists(rom_path):
         print(f"❌ ROM not found: {rom_path}")
-        return False
+        return False  # type: ignore
     
     # Create screenshots directory for this ROM
     base_screenshot_dir = Path(__file__).parent.parent / "screenshots"
@@ -67,10 +67,10 @@ def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_inte
     print(f"\n✅ {rom_name} test completed!")
     print(f"📁 Screenshots: {screenshot_dir}")
     
-    return True
+    return True  # type: ignore
 
 
-def main():
+def main() -> None:
     """Test all available ROMs"""
     
     print("🧪 Testing All Available ROMs (3000 ticks each)")
@@ -90,11 +90,11 @@ def main():
     
     for rom_path, rom_name in roms:
         if os.path.exists(rom_path):
-            success = test_rom(rom_path, rom_name, num_ticks=3000, screenshot_interval=1000)
+            success = test_rom(rom_path, rom_name, num_ticks=3000, screenshot_interval=1000)  # type: ignore
             results.append((rom_name, success))
         else:
             print(f"\n⚠️  ROM not found: {rom_path}")
-            results.append((rom_name, False))
+            results.append((rom_name, False))  # type: ignore
     
     # Summary
     print(f"\n{'='*60}")

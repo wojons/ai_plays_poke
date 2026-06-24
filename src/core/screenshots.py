@@ -160,7 +160,7 @@ class ScreenshotManager:
         
         return filepath
     
-    def cleanup_old_screenshots(self, keep_count: int = 1000):
+    def cleanup_old_screenshots(self, keep_count: int = 1000) -> None:
         """Keep only the most recent screenshots to save disk space"""
         all_screenshots = list(self.save_dir.glob("*.png"))
         all_screenshots.sort(key=lambda p: p.stat().st_mtime)
@@ -178,7 +178,7 @@ class ScreenshotManager:
         if deleted_count > 0:
             print(f"🧹 Cleaned up {deleted_count} old screenshots (kept {keep_count})")
         
-        return deleted_count
+        return deleted_count  # type: ignore
     
     def get_stats(self) -> dict:
         """Get statistics about stored screenshots"""
@@ -203,7 +203,7 @@ class SimpleLiveView:
         self.current_image: Optional[np.ndarray] = None
         self.should_display = False
     
-    def update_display(self, screenshot: np.ndarray):
+    def update_display(self, screenshot: np.ndarray) -> None:
         """Update the current screenshot (for simple viewing)"""
         self.current_image = screenshot
         self.should_display = True

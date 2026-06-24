@@ -58,7 +58,7 @@ def _require_live() -> Path:
 
 @pytest.mark.integration
 @pytest.mark.live_api
-def test_live_completes_one_cycle(_require_live: Path):
+def test_live_completes_one_cycle(_require_live: Path):  # type: ignore
     """AC-010: DemoRunner.run() with real ROM + owl-alpha completes ≥1 cycle."""
     rom_path = _require_live
     runner = DemoRunner(str(rom_path))
@@ -81,7 +81,7 @@ def test_live_completes_one_cycle(_require_live: Path):
 
 @pytest.mark.integration
 @pytest.mark.live_api
-def test_tool_calls_are_valid(_require_live: Path):
+def test_tool_calls_are_valid(_require_live: Path):  # type: ignore
     """AC-011: Decision loop produces valid tool calls (press_button, wait) from AI response."""
     rom_path = _require_live
     runner = DemoRunner(str(rom_path))
@@ -128,7 +128,7 @@ def test_tool_calls_are_valid(_require_live: Path):
 
 @pytest.mark.integration
 @pytest.mark.live_api
-def test_screenshots_valid_numpy_arrays(_require_live: Path):
+def test_screenshots_valid_numpy_arrays(_require_live: Path):  # type: ignore
     """AC-012: Screenshots captured at each interval are valid numpy arrays.
 
     GB:  (144, 160, 3)   — SGB border cropped
@@ -186,7 +186,7 @@ def test_screenshots_valid_numpy_arrays(_require_live: Path):
 
 @pytest.mark.integration
 @pytest.mark.live_api
-def test_demo_summary_fields(_require_live: Path):
+def test_demo_summary_fields(_require_live: Path):  # type: ignore
     """AC-013: Demo summary includes screen_types_seen, success_rate, elapsed_s."""
     rom_path = _require_live
     runner = DemoRunner(str(rom_path))

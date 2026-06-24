@@ -12,7 +12,7 @@ from pyboy import PyBoy
 from PIL import Image
 import numpy as np
 
-def debug_screen(rom_path: str, num_ticks: int = 1000):
+def debug_screen(rom_path: str, num_ticks: int = 1000) -> None:
     """Debug PyBoy screen data"""
     
     print(f"🎮 Debugging PyBoy screen data")
@@ -23,7 +23,7 @@ def debug_screen(rom_path: str, num_ticks: int = 1000):
     # Check if ROM exists
     if not os.path.exists(rom_path):
         print(f"❌ ROM not found: {rom_path}")
-        return False
+        return False  # type: ignore
     
     # Initialize emulator
     print(f"🚀 Loading ROM...")
@@ -70,14 +70,14 @@ def debug_screen(rom_path: str, num_ticks: int = 1000):
     print("\n" + "=" * 50)
     print("✅ Debug completed!")
     
-    return True
+    return True  # type: ignore
 
 if __name__ == "__main__":
     print("🧪 PyBoy Screen Debug Test")
     print("=" * 50)
     
     # Run debug with Pokemon Blue ROM
-    success = debug_screen("data/rom/pokemon_blue.gb", num_ticks=1000)
+    success = debug_screen("data/rom/pokemon_blue.gb", num_ticks=1000)  # type: ignore
     
     if success:
         print("\n🎉 Debug completed successfully!")

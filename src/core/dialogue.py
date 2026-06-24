@@ -180,7 +180,7 @@ class DialogParser:
     - Identify intents and actions
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._pokemon_names = self._build_pokemon_database()
         self._location_names = self._build_location_database()
         self._item_names = self._build_item_database()
@@ -391,7 +391,7 @@ class DialogParser:
         for intent, keywords in self._keyword_patterns.items():
             for keyword in keywords:
                 if keyword in text_lower:
-                    return intent  # type: ignore[no-any-return]
+                    return intent  # type: ignore
         
         return None
 
@@ -594,7 +594,7 @@ class TextSpeedController:
     - Text box detection
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._speed_settings = {
             'instant': {'text_delay': 0.0, 'auto_advance': True, 'skip_threshold': 5},
             'fast': {'text_delay': 0.05, 'auto_advance': True, 'skip_threshold': 3},
@@ -612,7 +612,7 @@ class TextSpeedController:
         important_lines = sum(1 for line in dialog_entry.lines if line.is_important)
         
         if important_lines > 0 and important_lines == line_count:
-            return self._speed_settings['normal'].copy()  # type: ignore[no-any-return]
+            return self._speed_settings['normal'].copy()  # type: ignore
         
         if line_count > self._speed_settings[self._current_setting]['skip_threshold']:
             if self._skip_read_first and line_count > 1:
@@ -624,7 +624,7 @@ class TextSpeedController:
                 }
         
         self._dialog_advance_count += 1
-        return self._speed_settings[self._current_setting].copy()  # type: ignore[no-any-return]
+        return self._speed_settings[self._current_setting].copy()  # type: ignore
 
     def calculate_button_presses(self, dialog_entry: DialogEntry) -> List[NavigationButton]:
         """Calculate button presses needed to advance dialog"""
@@ -686,7 +686,7 @@ class MenuNavigator:
     - Menu type detection
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._menu_coordinate_maps: Dict[MenuType, Dict[str, Tuple[int, int]]] = {}
         self._menu_cache: Dict[str, List[NavigationButton]] = {}
         self._menu_statistics = {
@@ -1078,7 +1078,7 @@ class DialogueManager:
     - NPCInteraction for NPC management
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.dialog_parser = DialogParser()
         self.text_speed = TextSpeedController()
         self.menu_navigator = MenuNavigator()
@@ -1103,16 +1103,16 @@ class DialogueManager:
         count = len(self._dialog_history)
         self._system_stats['avg_processing_time_ms'] = total_time / count if count > 0 else 0.0
         
-        return entry  # type: ignore[no-any-return]
+        return entry  # type: ignore
 
     def advance_dialog(self, dialog_entry: DialogEntry) -> List[NavigationButton]:
         """Get button presses to advance through dialog"""
-        return self.text_speed.calculate_button_presses(dialog_entry)  # type: ignore[no-any-return]
+        return self.text_speed.calculate_button_presses(dialog_entry)  # type: ignore
 
     def handle_npc_interaction(self, npc_name: str, dialog_text: str, 
                                 context: Optional[Dict[str, Any]] = None) -> InteractionResult:
         """Handle interaction with an NPC"""
-        return self.npc_interaction.interact_with_npc(npc_name, dialog_text, context)  # type: ignore[no-any-return]
+        return self.npc_interaction.interact_with_npc(npc_name, dialog_text, context)  # type: ignore
 
     def navigate_menu(self, menu_text: str, target_option: str) -> Tuple[bool, List[NavigationButton]]:
         """Navigate to a specific menu option"""
@@ -1124,7 +1124,7 @@ class DialogueManager:
         options = self._extract_menu_options(menu_text)
         menu_state = self.menu_navigator.create_menu_state(menu_type, options)
         
-        return self.menu_navigator.navigate_to_option(menu_state, target_option)  # type: ignore[no-any-return]
+        return self.menu_navigator.navigate_to_option(menu_state, target_option)  # type: ignore
 
     def _extract_menu_options(self, menu_text: str) -> List[str]:
         """Extract menu options from text"""

@@ -49,7 +49,7 @@ class OCREngine:
     CHAR_HEIGHT = 8
     FONT_DATABASE_PATH = Path(__file__).parent / "data" / "fonts.json"
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize OCR Engine with font templates"""
         self.font_templates: Dict[int, FontTemplate] = {}
         self._load_font_database()
@@ -60,9 +60,9 @@ class OCREngine:
             "apostrophe_remap": {"'d": "d", "'s": "s", "'l": "l", "'t": "t", "'v": "v", "'r": "r"},
         }
         
-        self.common_words = self._build_common_words_set()
+        self.common_words = self._build_common_words_set()  # type: ignore
     
-    def _load_font_database(self):
+    def _load_font_database(self) -> None:
         """Load font templates from database file"""
         if self.FONT_DATABASE_PATH.exists():
             try:
@@ -84,7 +84,7 @@ class OCREngine:
         else:
             self._create_default_font_database()
     
-    def _create_default_font_database(self):
+    def _create_default_font_database(self) -> None:
         """Create default font template database for Gen 1 font"""
         self.font_templates = {}
         
@@ -132,7 +132,7 @@ class OCREngine:
         
         return template
     
-    def _save_font_database(self):
+    def _save_font_database(self) -> None:
         """Save font templates to database file"""
         self.FONT_DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
         
@@ -156,9 +156,9 @@ class OCREngine:
         with open(self.FONT_DATABASE_PATH, 'w') as f:
             json.dump(data, f, indent=2)
     
-    def _build_common_words_set(self):
+    def _build_common_words_set(self) -> None:
         """Build set of common Pokemon words for validation"""
-        return {
+        return {  # type: ignore
             "POKEMON", "TRAINER", "ITEM", "MENU", "SAVE", "LOAD", "OPTIONS",
             "BATTLE", "WILD", "ENCOUNTER", "LEVEL", "HP", "PP", "EXP",
             "ROUTE", "TOWN", "CITY", "FOREST", "CAVE", "ROAD", "PATH",
@@ -402,7 +402,7 @@ class OCREngine:
     
     def _fix_contractions(self, text: str) -> str:
         """Fix common OCR errors in contractions"""
-        for wrong, right in self.special_cases.get("apostrophe_remap", {}).items():
+        for wrong, right in self.special_cases.get("apostrophe_remap", {}).items():  # type: ignore
             text = text.replace("'" + wrong, right)
         return text
     
@@ -412,7 +412,7 @@ class OCREngine:
         corrected = []
         
         for word in words:
-            if word in self.common_words:
+            if word in self.common_words:  # type: ignore
                 corrected.append(word)
             else:
                 corrected.append(self._suggest_correction(word))

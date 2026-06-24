@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from typing import Any, Iterator
 
 # ── Tool schema (OpenAI function-calling format) ─────────────────────────────
 
@@ -255,7 +255,7 @@ def parse_tool_call(response_text: str) -> dict[str, Any] | None:
     return None
 
 
-def _iter_json_objects(text: str):
+def _iter_json_objects(text: str) -> "Iterator[dict[str, Any]]":
     """Yield JSON objects found in *text*, attempting from each ``{``."""
     idx = 0
     while idx < len(text):

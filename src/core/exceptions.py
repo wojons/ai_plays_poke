@@ -34,6 +34,8 @@ Exception Hierarchy:
 """
 
 
+from typing import Any
+
 class PokemonAIError(Exception):
     """Base exception for all PTP-01X errors.
     
@@ -60,7 +62,7 @@ class PokemonAIError(Exception):
             )
     """
     
-    def __init__(self, message: str = "An unspecified PTP-01X error occurred", code: int | None = None, **context):
+    def __init__(self, message: str = "An unspecified PTP-01X error occurred", code: int | None = None, **context: Any) -> None:
         """Initialize PokemonAIError with message, code, and context.
         
         Args:

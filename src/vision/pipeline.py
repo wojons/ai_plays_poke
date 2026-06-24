@@ -245,7 +245,7 @@ class VisionPipeline:
         """
         self.validate_screenshot(raw_screenshot)
         
-        def timeout_handler(signum, frame):
+        def timeout_handler(signum, frame) -> None:  # type: ignore
             raise ScreenshotProcessingError(
                 message=f"Screenshot processing timed out after {timeout} seconds",
                 error_type="timeout"
@@ -303,7 +303,7 @@ class VisionPipeline:
                 return True
         return False
     
-    def _update_frame_history(self, frame_hash: str):
+    def _update_frame_history(self, frame_hash: str) -> None:
         """Update frame history for duplicate detection"""
         self.frame_history.append(frame_hash)
         if len(self.frame_history) > self.max_history:
@@ -421,7 +421,7 @@ class VisionPipeline:
         """Detect potential softlock condition"""
         return self._stuck_counter > 10
     
-    def reset_softlock_counter(self):
+    def reset_softlock_counter(self) -> None:
         """Reset softlock detection counter"""
         self._stuck_counter = 0
     

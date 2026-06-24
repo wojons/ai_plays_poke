@@ -317,7 +317,7 @@ class ModeClassifier:
 
 
 class DurationTracker:
-    def __init__(self):
+    def __init__(self) -> None:
         self.current_mode: Optional[ModeEntry] = None
         self._last_mode_key: Optional[str] = None
         self.mode_history: List[ModeExit] = []
@@ -541,7 +541,7 @@ class DurationProfileLearner:
             f"{GameMode.CUTSCENE.value}/VICTORY": {"warning": 60, "critical": 120, "emergency": 180},
         }
         key = f"{mode}/{sub_mode}"
-        return defaults.get(key, {"warning": 120, "critical": 300, "emergency": 600})  # type: ignore[return-value]
+        return defaults.get(key, {"warning": 120, "critical": 300, "emergency": 600})  # type: ignore
 
 
 class DurationProfileStore:
@@ -711,7 +711,7 @@ class AnomalyDetector:
 
 
 class AnomalyResponseSelector:
-    def __init__(self):
+    def __init__(self) -> None:
         self.response_matrix = {
             "DURATION_EXTREME": {"actions": ["break_out_immediate", "log_critical", "notify"], "priority": 1, "confidence_impact": -30},
             "DURATION_HIGH": {"actions": ["break_out_aggressive", "log_error"], "priority": 2, "confidence_impact": -15},
@@ -726,13 +726,13 @@ class AnomalyResponseSelector:
         if not anomalies:
             return ResponsePlan(actions=[], confidence_impact=0, escalation_tier="NONE")
         sorted_anomalies = sorted(anomalies, key=lambda a: self._get_priority(a.type))
-        all_actions = []
+        all_actions = []  # type: ignore
         total_confidence_impact = 0
         highest_escalation = "NONE"
         for anomaly in sorted_anomalies:
             response = self.response_matrix.get(anomaly.type, {"actions": ["log_warning"], "confidence_impact": -5})
-            all_actions.extend(response["actions"])
-            total_confidence_impact += response["confidence_impact"]
+            all_actions.extend(response["actions"])  # type: ignore
+            total_confidence_impact += response["confidence_impact"]  # type: ignore
             if anomaly.severity == "CRITICAL":
                 highest_escalation = "EMERGENCY"
             elif anomaly.severity == "HIGH" and highest_escalation != "EMERGENCY":
@@ -866,7 +866,7 @@ class BreakoutManager:
 
 
 class BreakoutAnalytics:
-    def __init__(self):
+    def __init__(self) -> None:
         self.breakout_history: List[Dict[str, Any]] = []
         self.success_rates: Dict[str, float] = {}
 

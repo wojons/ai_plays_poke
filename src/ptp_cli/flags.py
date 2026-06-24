@@ -390,7 +390,7 @@ class CLIFlagParser:
     Implements all flags from ptp_01x_cli_control_infrastructure.md
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.parser = argparse.ArgumentParser(
             description="PTP-01X Autonomous Pokemon AI System",
             formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -419,7 +419,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
         )
         self._setup_flag_groups()
 
-    def _add_tick_rate_flags(self):
+    def _add_tick_rate_flags(self) -> None:
         """Add tick rate control flags."""
         group = self.parser.add_argument_group(
             "Tick Rate Control",
@@ -469,7 +469,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             help="Maximum budget in dollars per period (required with --tick-rate-budget)"
         )
 
-    def _add_screenshot_flags(self):
+    def _add_screenshot_flags(self) -> None:
         """Add screenshot control flags."""
         group = self.parser.add_argument_group(
             "Screenshot Control",
@@ -534,7 +534,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             help="Compress old screenshots to save storage"
         )
 
-    def _add_command_buffer_flags(self):
+    def _add_command_buffer_flags(self) -> None:
         """Add command buffer control flags."""
         group = self.parser.add_argument_group(
             "Command Buffer Control",
@@ -583,7 +583,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             help="Seconds before command is considered stale (default: 2)"
         )
 
-    def _add_limit_flags(self):
+    def _add_limit_flags(self) -> None:
         """Add run limit flags."""
         group = self.parser.add_argument_group(
             "Run Limits",
@@ -647,7 +647,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             help="Seconds to finish current decision before stopping (default: 30)"
         )
 
-    def _add_snapshot_flags(self):
+    def _add_snapshot_flags(self) -> None:
         """Add snapshot management flags."""
         group = self.parser.add_argument_group(
             "Snapshot Management",
@@ -724,7 +724,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             help="Name for creating a named snapshot"
         )
 
-    def _add_save_state_flags(self):
+    def _add_save_state_flags(self) -> None:
         """Add save state control flags."""
         group = self.parser.add_argument_group(
             "Save State Control",
@@ -773,7 +773,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             help="Compress old save states to save storage"
         )
 
-    def _add_experiment_flags(self):
+    def _add_experiment_flags(self) -> None:
         """Add experiment orchestration flags."""
         group = self.parser.add_argument_group(
             "Experiment Orchestration",
@@ -866,7 +866,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             help="Output format for exported results (default: json)"
         )
 
-    def _add_system_flags(self):
+    def _add_system_flags(self) -> None:
         """Add system-level flags."""
         group = self.parser.add_argument_group(
             "System Flags",
@@ -910,7 +910,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             help="Random seed for reproducibility"
         )
 
-    def _add_required_flags(self):
+    def _add_required_flags(self) -> None:
         """Add required positional/optional arguments."""
         self.parser.add_argument(
             "--rom",
@@ -926,7 +926,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             help="Directory for saves, database, and screenshots (default: ./game_saves)"
         )
 
-    def _setup_flag_groups(self):
+    def _setup_flag_groups(self) -> None:
         """Setup all flag groups."""
         self._add_required_flags()
         self._add_tick_rate_flags()

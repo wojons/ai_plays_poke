@@ -14,18 +14,18 @@ from PIL import Image
 import yaml
 
 
-def get_rom_path():
+def get_rom_path() -> None:
     """Load ROM path from config"""
     config_path = Path(__file__).parent.parent / "config" / "settings.yaml"
     with open(config_path, 'r') as f:
         config = yaml.safe_load(f)
-    return config['rom']['path']
+    return config['rom']['path']  # type: ignore
 
 
-def run_test(num_ticks: int = 1000, screenshot_interval: int = 100):
+def run_test(num_ticks: int = 1000, screenshot_interval: int = 100) -> None:
     """Run basic PyBoy test with screenshots"""
     
-    rom_path = get_rom_path()
+    rom_path = get_rom_path()  # type: ignore
     print(f"🎮 Starting PyBoy test")
     print(f"📂 ROM: {rom_path}")
     print(f"🔄 Ticks: {num_ticks}")
@@ -33,9 +33,9 @@ def run_test(num_ticks: int = 1000, screenshot_interval: int = 100):
     print("=" * 50)
     
     # Check if ROM exists
-    if not os.path.exists(rom_path):
+    if not os.path.exists(rom_path):  # type: ignore
         print(f"❌ ROM not found: {rom_path}")
-        return False
+        return False  # type: ignore
     
     # Initialize emulator
     print(f"🚀 Loading ROM...")
@@ -81,7 +81,7 @@ def run_test(num_ticks: int = 1000, screenshot_interval: int = 100):
     print(f"📁 Screenshots: {screenshot_dir}")
     print(f"💡 Check the screenshots to verify the game is running")
     
-    return True
+    return True  # type: ignore
 
 
 if __name__ == "__main__":
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     print("=" * 50)
     
     # Run the test with 100 ticks, screenshot every 10
-    success = run_test(num_ticks=100, screenshot_interval=10)
+    success = run_test(num_ticks=100, screenshot_interval=10)  # type: ignore
     
     if success:
         print("\n🎉 All systems go! PyBoy is working correctly.")

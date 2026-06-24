@@ -33,7 +33,7 @@ class MenuCursorResult:
 class SpriteRecognizer:
     SPRITE_DATABASE_PATH = Path(__file__).parent / "data" / "sprites.json"
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.sprite_templates: Dict[str, np.ndarray] = {}
         self.sprite_metadata: Dict[str, Dict] = {}
         self._load_sprite_database()
@@ -43,7 +43,7 @@ class SpriteRecognizer:
             "red": ((220, 20, 60), (255, 69, 0)),
         }
     
-    def _load_sprite_database(self):
+    def _load_sprite_database(self) -> None:
         if self.SPRITE_DATABASE_PATH.exists():
             try:
                 with open(self.SPRITE_DATABASE_PATH, 'r') as f:
@@ -63,7 +63,7 @@ class SpriteRecognizer:
         else:
             self._create_default_sprite_database()
     
-    def _create_default_sprite_database(self):
+    def _create_default_sprite_database(self) -> None:
         self.sprite_templates = {}
         self.sprite_metadata = {}
         common_gen1 = [
@@ -93,7 +93,7 @@ class SpriteRecognizer:
         }
         self._save_sprite_database()
     
-    def _save_sprite_database(self):
+    def _save_sprite_database(self) -> None:
         self.SPRITE_DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
         sprite_list = []
         for name, template in self.sprite_templates.items():

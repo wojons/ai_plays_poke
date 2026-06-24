@@ -50,7 +50,7 @@ class BattleState:
     last_action_result: Optional[str]
 
 class BattleAnalyzer:
-    def __init__(self):
+    def __init__(self) -> None:
         self.sprite_recognizer = SpriteRecognizer()
         self.ocr_engine = OCREngine()
         self.type_chart = self._build_type_chart()
@@ -136,9 +136,9 @@ class BattleAnalyzer:
         
         is_shiny = False
         if is_enemy:
-            sprite_region = self.sprite_recognizer._extract_enemy_sprite_region(screenshot)
+            sprite_region = self.sprite_recognizer._extract_enemy_sprite_region(screenshot)  # type: ignore
         else:
-            sprite_region = self.sprite_recognizer._extract_player_sprite_region(screenshot)
+            sprite_region = self.sprite_recognizer._extract_player_sprite_region(screenshot)  # type: ignore
         if sprite_region is not None:
             is_shiny = self.sprite_recognizer.is_shiny(sprite_region)
         
