@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pyboy import PyBoy
 
-def scan_memory_for_pokemon_data(pyboy, scan_range=(0xD000, 0xE000)):
+def scan_memory_for_pokemon_data(pyboy: "PyBoy", scan_range: tuple[int, int] = (0xD000, 0xE000)) -> dict:
     """Scan memory for Pokemon-related data"""
     
     memory = pyboy.memory

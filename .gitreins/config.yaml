@@ -1,0 +1,18 @@
+guards:
+  secrets: true
+  lint: true
+  tests: true
+  test_mode: diff
+  test_command: ./venv/bin/pytest -x --tb=short
+  static_analysis: false
+  static_analysis_tools:
+    python:
+    - mypy
+    - pyright
+evaluator:
+  max_iterations: 25
+  static_analysis_diagnostics: false
+history:
+  enabled: true
+  storage: git
+  max_verdicts: 1000
