@@ -286,3 +286,50 @@ class TestToolSchema:
         combo = next(t for t in TOOL_SCHEMA if t["function"]["name"] == "combo")
         required = combo["function"]["parameters"].get("required", [])
         assert "buttons" in required
+
+    def test_fast_forward_has_required_frames(self) -> None:
+        ff = next(t for t in TOOL_SCHEMA if t["function"]["name"] == "fast_forward")
+        required = ff["function"]["parameters"].get("required", [])
+        assert "frames" in required
+
+    def test_fast_forward_default_frames(self) -> None:
+        ff = next(t for t in TOOL_SCHEMA if t["function"]["name"] == "fast_forward")
+        default = ff["function"]["parameters"]["properties"]["frames"].get("default")
+        assert default == 180
+
+
+# ── fast_forward tool execution ────────────────────────────────────────────
+
+class TestExecuteToolCallFastForward:
+    """fast_forward execution delegates to emulator.fast_forward."""
+
+    def test_fast_forward_with_frames(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "fast_forward", {"frames": 60})
+        assert "Fast-forwarded 60 frames" in result
+        emu.fast_forward.assert_called_once_with(60)
+
+    def test_fast_forward_large_frames(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "fast_forward", {"frames": 600})
+        assert "Fast-forwarded 600 frames" in result
+        emu.fast_forward.assert_called_once_with(600)
+
+    def test_fast_forward_zero_frames(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "fast_forward", {"frames": 0})
+        assert "Fast-forwarded 0 frames" in result
+        emu.fast_forward.assert_called_once_with(0)
+
+    def test_fast_forward_missing_frames_raises(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "fast_forward", {})
+        assert result.startswith("Error:")
+        emu.fast_forward.assert_not_called()
+
+    def test_fast_forward_invalid_frames(self) -> None:
+        """String frames value — the tool passes it through; emulator handles it."""
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "fast_forward", {"frames": "invalid"})
+        # Should still attempt the call — error comes from emulator
+        emu.fast_forward.assert_called_once_with("invalid")
