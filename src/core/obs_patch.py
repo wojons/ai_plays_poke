@@ -157,15 +157,34 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
     strip = data.get("strip")
     if isinstance(strip, dict):
         edge = strip.get("edge", "")
+        # Accept terrain_tsv (tab-separated) as an alternative to terrain (packed)
+        terrain_raw = strip.get("terrain", "")
+        terrain_tsv = strip.get("terrain_tsv", "")
+        if terrain_tsv and not terrain_raw:
+            from .tile_utils import tsv_to_strip
+            terrain_raw = tsv_to_strip(terrain_tsv)
+
+        objects_raw = strip.get("objects", "")
+        objects_tsv = strip.get("objects_tsv", "")
+        if objects_tsv and not objects_raw:
+            from .tile_utils import tsv_to_strip
+            objects_raw = tsv_to_strip(objects_tsv)
+
+        actors_raw = strip.get("actors", "")
+        actors_tsv = strip.get("actors_tsv", "")
+        if actors_tsv and not actors_raw:
+            from .tile_utils import tsv_to_strip
+            actors_raw = tsv_to_strip(actors_tsv)
+
         patch.strip = StripUpdate(
             edge=edge,
             global_y=strip.get("global_y", 0),
             global_x=strip.get("global_x", 0),
             x_start=strip.get("x_start", 0),
             y_start=strip.get("y_start", 0),
-            terrain=strip.get("terrain", ""),
-            objects=strip.get("objects", ""),
-            actors=strip.get("actors", ""),
+            terrain=terrain_raw,
+            objects=objects_raw,
+            actors=actors_raw,
         )
 
     # Visited

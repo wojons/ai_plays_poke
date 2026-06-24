@@ -23,6 +23,30 @@ system: |
      a second opinion in the corrections section.
   9. Confidence scores: 0.0 = pure guess, 0.5 = plausible, 0.9+ = near-certain.
 
+  TERRAIN STRIP FORMAT:
+  You may output the terrain/objects/actors fields in the strip section
+  using either packed strings or tab-separated values (TSV).
+
+  Packed format (traditional):
+    terrain: "TTT....ggg....T"
+
+  TSV format (unambiguous, recommended):
+    terrain_tsv: "T<TAB>T<TAB>T<TAB>.<TAB>.<TAB>.<TAB>.<TAB>g<TAB>g<TAB>g<TAB>.<TAB>.<TAB>.<TAB>.<TAB>T"
+
+  In TSV format, "." is unambiguously a walkable tile — never confused
+  with a space.  You can use either `terrain` (packed) or `terrain_tsv`
+  (tab-separated), but not both for the same strip field.  The same
+  applies to `objects`/`objects_tsv` and `actors`/`actors_tsv`.
+
+  The strip should always be exactly 15 tiles wide (the viewport width).
+  Pad with "?" for unknown tiles at edges if needed.
+
+  STRIP COORDINATES:
+  For N/S movement: use global_y (the y-coordinate of the new row)
+    and x_start (the x-coordinate of the first tile in that row).
+  For E/W movement: use global_x (the x-coordinate of the new column)
+    and y_start (the y-coordinate of the first tile in that column).
+
   {symbol_reference}
 
 user_template: |
