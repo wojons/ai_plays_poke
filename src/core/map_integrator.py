@@ -14,7 +14,7 @@ The integrator enforces safety rules:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from .obs_patch import ObsPatch, validate_patch
 from .world_state import Actor, WorldState
@@ -145,12 +145,14 @@ class MapIntegrator:
     def _apply_resync(self, patch: ObsPatch) -> None:
         """Full resync — clear and rebuild from full_viewport."""
         resync = patch.resync
+        if resync is None:
+            return
         w = self.world
 
         w.map_id = resync.new_map_id or w.map_id
-        w.player.pos = tuple(resync.player_pos)
+        w.player.pos = cast(tuple[int, int], tuple(resync.player_pos))
         w.player.facing = resync.player_facing
-        w.viewport.origin = tuple(resync.viewport_origin)
+        w.viewport.origin = cast(tuple[int, int], tuple(resync.viewport_origin))
 
         fv = resync.full_viewport
         if "terrain" in fv:
@@ -294,12 +296,12 @@ def _parse_raw(raw: str) -> dict[str, Any]:
         raw = "\n".join(lines)
 
     try:
-        return json.loads(raw)
+        return json.loads(raw)  # type: ignore[no-any-return]
     except (json.JSONDecodeError, ValueError):
         pass
 
     try:
-        return _yaml.safe_load(raw) or {}
+        return _yaml.safe_load(raw) or {}  # type: ignore[no-any-return]
     except Exception:
         return {}
 

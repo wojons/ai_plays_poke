@@ -79,7 +79,7 @@ class GameState:
     def get_avg_party_level(self) -> float:
         if not self.party:
             return 0.0
-        return sum(p.get("level", 1) for p in self.party) / len(self.party)
+        return sum(cast(int, p.get("level", 1)) for p in self.party) / len(self.party)
 
     def get_party_hp_percent(self) -> float:
         if not self.party:
@@ -450,7 +450,7 @@ class MenuAction(Action):
         return {}
 
     def get_effects(self) -> Dict[str, Any]:
-        effects = {}
+        effects: Dict[str, Any] = {}
         if self.menu_type == "shop" and self.action == "buy":
             effects["item_obtained"] = self.target
         elif self.menu_type == "pokemon_center" and self.action == "heal":
@@ -626,7 +626,7 @@ class GoalDAG:
                 if distance[prereq_id] + 1 > distance[goal_id]:
                     distance[goal_id] = distance[prereq_id] + 1
 
-        max_distance_goal = max(distance, key=distance.get)
+        max_distance_goal = max(distance, key=lambda k: distance[k])
 
         critical_path = []
         current = max_distance_goal
@@ -703,7 +703,7 @@ class GoalPriorityCalculator:
     """Calculates priority scores for goals using multi-factor analysis"""
 
     def __init__(self):
-        self.success_history: Dict[str, Tuple[int, int]] = {}
+        self.success_history: Dict[str, List[int]] = {}
 
     def calculate_priority(self, goal: Goal, state: GameState) -> float:
         base_priority = goal.priority
@@ -818,7 +818,7 @@ class GoalPrioritizer:
             if goal:
                 feasible, _ = goal.is_feasible(state)
                 if feasible:
-                    return goal
+                    return goal  # type: ignore[no-any-return]
         return None
 
     def reprioritize(self, state: GameState) -> None:
@@ -1062,7 +1062,7 @@ class HierarchicalPlanner:
             return None
 
         self.current_plan = plan
-        return plan
+        return plan  # type: ignore[no-any-return]
 
     def execute_step(self, state: GameState) -> Tuple[bool, Optional[Plan], GameState]:
         if not self.current_plan:
@@ -1087,7 +1087,7 @@ class HierarchicalPlanner:
         return False, self.current_plan, state
 
     def handle_interruption(self, interruption_type: str, state: GameState) -> Tuple[bool, Optional[Plan]]:
-        return self.plan_monitor.handle_interruption(interruption_type, state)
+        return self.plan_monitor.handle_interruption(interruption_type, state)  # type: ignore[no-any-return]
 
     def add_goal(self, goal: Goal, state: GameState) -> None:
         self.goal_prioritizer.add_goal(goal, state)

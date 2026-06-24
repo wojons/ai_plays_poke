@@ -24,6 +24,12 @@ from schemas.commands import (
 class TestFullTickCycle:
     """Tests for the complete tick cycle flow"""
 
+    @pytest.fixture(autouse=True)
+    def _patch_emulator(self, monkeypatch):
+        """Patch Emulator constructor so tests don't need real ROMs."""
+        mock_emu = MagicMock()
+        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
+
     def test_screenshot_to_state_detection(
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
@@ -234,6 +240,12 @@ class TestFullTickCycle:
 
 class TestBattleTransition:
     """Tests for battle state transitions"""
+
+    @pytest.fixture(autouse=True)
+    def _patch_emulator(self, monkeypatch):
+        """Patch Emulator constructor so tests don't need real ROMs."""
+        mock_emu = MagicMock()
+        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
 
     def test_overworld_to_battle_detection(
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
@@ -451,6 +463,12 @@ class TestBattleTransition:
 class TestDialogFlow:
     """Tests for dialog handling flow"""
 
+    @pytest.fixture(autouse=True)
+    def _patch_emulator(self, monkeypatch):
+        """Patch Emulator constructor so tests don't need real ROMs."""
+        mock_emu = MagicMock()
+        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
+
     def test_dialog_initiation(
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
@@ -594,6 +612,12 @@ class TestDialogFlow:
 
 class TestCommandExecution:
     """Tests for command execution system"""
+
+    @pytest.fixture(autouse=True)
+    def _patch_emulator(self, monkeypatch):
+        """Patch Emulator constructor so tests don't need real ROMs."""
+        mock_emu = MagicMock()
+        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
 
     def test_single_button_press(
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
@@ -761,6 +785,12 @@ class TestCommandExecution:
 
 class TestErrorRecovery:
     """Tests for error handling and recovery mechanisms"""
+
+    @pytest.fixture(autouse=True)
+    def _patch_emulator(self, monkeypatch):
+        """Patch Emulator constructor so tests don't need real ROMs."""
+        mock_emu = MagicMock()
+        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
 
     def test_api_failure_stub_fallback(
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection

@@ -120,6 +120,7 @@ class OCREngine:
         try:
             from PIL import ImageDraw, ImageFont
             draw = ImageDraw.Draw(img)
+            font: ImageFont.FreeTypeFont | ImageFont.ImageFont
             try:
                 font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size)
             except Exception:
@@ -317,7 +318,7 @@ class OCREngine:
         h, w = char_region.shape
         
         best_match = None
-        best_score = 0
+        best_score = 0.0
         
         for unicode_val, template in self.font_templates.items():
             score = self._template_match(char_region, template.template)
@@ -362,7 +363,7 @@ class OCREngine:
         if denominator == 0:
             return 0.0
         
-        return max(0.0, numerator / denominator)
+        return float(max(0.0, numerator / denominator))
     
     def _resize_to_match(
         self, 

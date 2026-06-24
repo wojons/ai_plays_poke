@@ -221,7 +221,7 @@ class BattleAnalyzer:
         
         result = self.sprite_recognizer.detect_menu_cursor(menu_region)
         if result:
-            return result.position
+            return int(result.position)
         return 0
     
     def get_type_effectiveness(self, attack_type: str, defender_types: List[str]) -> float:

@@ -743,7 +743,7 @@ class DeathSpiralPreventer:
         - recommended_action: suggested action
         """
         with self._lock:
-            result = {
+            result: dict[str, Any] = {
                 "status": "healthy",
                 "alerts": [],
                 "should_heal": False,
@@ -895,7 +895,7 @@ class SystemHealthMonitor:
         self.api_latency_critical_ms = api_latency_critical_ms
         
         self._lock = threading.Lock()
-        self._api_latency_history: deque = deque(maxlen=50)
+        self._api_latency_history: deque[float] = deque(maxlen=50)
         self._health_history: List[HealthMetrics] = []
         self._process = psutil.Process(os.getpid())
 

@@ -96,7 +96,7 @@ class ScreenshotManager:
             "dialog": self.dialog_dir
         }
         
-        search_dir = state_dirs.get(state_type, self.save_dir)
+        search_dir: Path = state_dirs.get(state_type, self.save_dir) if state_type is not None else self.save_dir
         screenshots = list(search_dir.glob("*.png"))
         
         if not screenshots:
@@ -127,9 +127,11 @@ class ScreenshotManager:
             "dialog": self.dialog_dir
         }
         
-        search_dir = state_dirs.get(state_type, self.save_dir)
+        if state_type is not None:
+            search_dir = state_dirs.get(state_type, self.save_dir)
+        else:
+            search_dir = self.save_dir
         screenshots = list(search_dir.glob("*.png"))
-        
         info = []
         for filepath in screenshots:
             info.append({
@@ -198,7 +200,7 @@ class SimpleLiveView:
     
     def __init__(self, screenshot_manager: ScreenshotManager):
         self.screenshot_manager = screenshot_manager
-        self.current_image = None
+        self.current_image: Optional[np.ndarray] = None
         self.should_display = False
     
     def update_display(self, screenshot: np.ndarray):

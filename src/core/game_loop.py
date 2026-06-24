@@ -21,7 +21,7 @@ import cv2
 import numpy as np
 from PIL import Image
 
-from .emulator import EmulatorInterface, Button
+from .emulator import Emulator, Button  # type: ignore[attr-defined]
 from ..db.database import GameDatabase
 from .screenshot_manager import ScreenshotManager
 
@@ -55,7 +55,7 @@ class GameLoop:
         self.save_dir.mkdir(parents=True, exist_ok=True)
         
         # Initialize components
-        self.emulator = EmulatorInterface(str(self.rom_path))
+        self.emulator = Emulator(str(self.rom_path))
         self.db = GameDatabase(str(self.save_dir / "game_data.db"))
         self.screenshot_manager = ScreenshotManager(str(self.save_dir / "screenshots"))
         
@@ -218,7 +218,7 @@ class GameLoop:
         red_pixels = np.sum(red_mask > 0)
         green_pixels = np.sum(green_mask > 0)
         
-        return (red_pixels + green_pixels) > 50  # Threshold
+        return bool((red_pixels + green_pixels) > 50)  # Threshold
     
     def _detect_text(self, region: np.ndarray) -> bool:
         """Detect if region contains text (dialog box)"""
@@ -227,7 +227,7 @@ class GameLoop:
         
         # Check for high contrast (text characteristics)
         std_dev = np.std(gray)
-        return std_dev > 30  # Text regions have higher contrast
+        return bool(std_dev > 30)  # Text regions have higher contrast
     
     def _detect_menu_pattern(self, region: np.ndarray) -> bool:
         """Detect menu grid patterns"""

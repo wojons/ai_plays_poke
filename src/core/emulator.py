@@ -40,6 +40,21 @@ def _is_gb_dimensions(dims: tuple[int, int]) -> bool:
 
 # ── Emulator class ───────────────────────────────────────────────────────────
 
+# Legacy Button compat — buttons are just lowercase strings internally
+class _ButtonCompat:
+    A = "A"
+    B = "B"
+    START = "START"
+    SELECT = "SELECT"
+    UP = "UP"
+    DOWN = "DOWN"
+    LEFT = "LEFT"
+    RIGHT = "RIGHT"
+    L = "L"
+    R = "R"
+
+Button = _ButtonCompat()
+
 
 class Emulator:
     """
