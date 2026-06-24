@@ -234,6 +234,120 @@ class Emulator:
             self.press_button("a", frames=press_frames)
             self.wait(wait_frames)
 
+    def bypass_title(self) -> None:
+        """Press START to get past the Gen 1 title screen.
+
+        On Pokémon Red/Blue, the title screen shows the Pokémon logo and
+        waits for a START press.  After START is pressed, a brief animation
+        plays (the logo flashes), then the game transitions to Professor
+        Oak's introduction.
+
+        This is deterministic — no AI deliberation needed.
+        """
+        self.press_button("start", frames=30)
+        self.wait(90)  # title animation plays
+        # Some ROMs need a second press if timing is off
+        self.press_button("start", frames=15)
+        self.wait(60)
+
+    def enter_name(self, name: str = "ASH") -> None:
+        """Mechanically enter a name on the Gen 1 keyboard screen.
+
+        Pokémon Red/Blue/Yellow use a fixed keyboard grid for name entry.
+        The cursor starts at the top-left cell (letter "A").  This method
+        navigates to each character and presses A, then selects END.
+
+        Keyboard layout (Gen 1 English):
+
+            Row 0:  A  B  C  D  E  F  G  H  I  J
+            Row 1:  K  L  M  N  O  P  Q  R  S  T
+            Row 2:  U  V  W  X  Y  Z  (  )  :  ;
+            Row 3:  [  ]  a  b  c  d  e  f  g  h
+            Row 4:  i  j  k  l  m  n  o  p  q  r
+            Row 5:  s  t  u  v  w  x  y  z     É
+            Row 6: 'd 'l 'm 'r 's 't 'v  s  PK MN END
+
+        Args:
+            name: The name to enter (1-7 characters, uppercase).
+                  Defaults to "ASH".
+        """
+        name = name.upper()[:7]  # max 7 chars in Gen 1
+
+        # Keyboard grid — (row, col) → character
+        _grid: dict[str, tuple[int, int]] = {
+            # Row 0
+            "A": (0, 0), "B": (0, 1), "C": (0, 2), "D": (0, 3),
+            "E": (0, 4), "F": (0, 5), "G": (0, 6), "H": (0, 7),
+            "I": (0, 8), "J": (0, 9),
+            # Row 1
+            "K": (1, 0), "L": (1, 1), "M": (1, 2), "N": (1, 3),
+            "O": (1, 4), "P": (1, 5), "Q": (1, 6), "R": (1, 7),
+            "S": (1, 8), "T": (1, 9),
+            # Row 2
+            "U": (2, 0), "V": (2, 1), "W": (2, 2), "X": (2, 3),
+            "Y": (2, 4), "Z": (2, 5),
+            # Row 3
+            "a": (3, 2), "b": (3, 3), "c": (3, 4), "d": (3, 5),
+            "e": (3, 6), "f": (3, 7), "g": (3, 8), "h": (3, 9),
+            # Row 4
+            "i": (4, 0), "j": (4, 1), "k": (4, 2), "l": (4, 3),
+            "m": (4, 4), "n": (4, 5), "o": (4, 6), "p": (4, 7),
+            "q": (4, 8), "r": (4, 9),
+            # Row 5
+            "s": (5, 0), "t": (5, 1), "u": (5, 2), "v": (5, 3),
+            "w": (5, 4), "x": (5, 5), "y": (5, 6), "z": (5, 7),
+        }
+        _END_POS = (6, 9)  # END button
+
+        cur_r, cur_c = 0, 0  # cursor starts at (0,0) = "A"
+
+        for ch in name:
+            target = _grid.get(ch)
+            if target is None:
+                continue  # skip unmapped characters
+            tr, tc = target
+
+            # Navigate to target
+            dr = tr - cur_r
+            dc = tc - cur_c
+            if dc > 0:
+                for _ in range(dc):
+                    self.press_button("right", frames=4)
+            elif dc < 0:
+                for _ in range(-dc):
+                    self.press_button("left", frames=4)
+            if dr > 0:
+                for _ in range(dr):
+                    self.press_button("down", frames=4)
+            elif dr < 0:
+                for _ in range(-dr):
+                    self.press_button("up", frames=4)
+
+            self.wait(6)
+            self.press_button("a", frames=8)
+            self.wait(12)
+            cur_r, cur_c = tr, tc
+
+        # Navigate to END and confirm
+        dr = _END_POS[0] - cur_r
+        dc = _END_POS[1] - cur_c
+        if dc > 0:
+            for _ in range(dc):
+                self.press_button("right", frames=4)
+        elif dc < 0:
+            for _ in range(-dc):
+                self.press_button("left", frames=4)
+        if dr > 0:
+            for _ in range(dr):
+                self.press_button("down", frames=4)
+        elif dr < 0:
+            for _ in range(-dr):
+                self.press_button("up", frames=4)
+
+        self.wait(6)
+        self.press_button("a", frames=8)
+        self.wait(30)
+
     # ── lifecycle ────────────────────────────────────────────────────────
 
     def reset(self) -> None:

@@ -248,6 +248,60 @@ class TestSkipIntro:
         assert emu._pygba.wait.call_count == 1
 
 
+class TestBypassTitle:
+    """bypass_title() presses START to get past the title screen."""
+
+    def test_bypass_title_presses_start(self) -> None:
+        emu = _make_emu()
+        emu.bypass_title()
+        # Two START presses
+        assert emu._pygba.press_start.call_count == 2
+        assert emu._pygba.wait.call_count == 2
+
+    def test_bypass_title_press_frames(self) -> None:
+        emu = _make_emu()
+        emu.bypass_title()
+        # First press: 30 frames, second: 15 frames
+        calls = emu._pygba.press_start.call_args_list
+        assert calls[0] == ((30,),) or calls[0].args == (30,)
+        assert calls[1] == ((15,),) or calls[1].args == (15,)
+
+
+class TestEnterName:
+    """enter_name() mechanically navigates the name-entry keyboard grid."""
+
+    def test_enter_name_default_ash(self) -> None:
+        """Entering 'ASH' should navigate grid and press A for each char + END."""
+        emu = _make_emu()
+        emu.enter_name()  # default "ASH"
+
+        # Should press A 4 times: A, S, H, END
+        assert emu._pygba.press_a.call_count == 4
+
+        # Navigation: 8 right + 1 down to reach S, then 1 left + 1 up to reach H,
+        # then 6 down + 1 right to reach END
+        assert emu._pygba.press_right.call_count > 0, "Need right presses"
+        assert emu._pygba.press_left.call_count > 0, "Need left presses"
+        assert emu._pygba.press_down.call_count > 0, "Need down presses"
+
+    def test_enter_name_single_a(self) -> None:
+        """Entering 'A' (already at cursor) just presses A then END."""
+        emu = _make_emu()
+        emu.enter_name("A")
+
+        # A press for the letter + A press for END = 2
+        assert emu._pygba.press_a.call_count == 2
+        # Navigation: just down×6 + right×1 to reach END from (0,0)
+        assert emu._pygba.press_down.call_count == 6
+
+    def test_enter_name_case_insensitive(self) -> None:
+        """Lowercase input is uppercased, same navigation as uppercase."""
+        emu = _make_emu()
+        emu.enter_name("ash")
+        # Same as "ASH" — 4 A presses
+        assert emu._pygba.press_a.call_count == 4
+
+
 class TestCombo:
     """combo() presses multiple buttons simultaneously.
 
