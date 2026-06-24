@@ -91,6 +91,7 @@ class TestDurationTracker:
     def test_enter_and_exit_mode(self) -> None:
         self.tracker.enter_mode("BATTLE", "WILD", tick=100)
         assert self.tracker.current_mode is not None
+        assert self.tracker.current_mode is not None
         assert self.tracker.current_mode.mode == "BATTLE"
         assert self.tracker.current_mode.sub_mode == "WILD"
         time.sleep(0.1)
@@ -129,9 +130,12 @@ class TestDurationTracker:
         self.tracker.enter_mode("OVERWORLD", "NAVIGATION", tick=100)
         time.sleep(0.1)
         interrupt_exit = self.tracker.enter_mode("BATTLE", "WILD", tick=110)
+        assert self.tracker.current_mode is not None
         assert self.tracker.current_mode.mode == "BATTLE"
+        assert interrupt_exit is not None
         assert interrupt_exit.exit_reason == "interrupt"
         exit_record = self.tracker.exit_mode(reason="natural", tick=200)
+        assert exit_record is not None
         assert exit_record.exit_reason == "natural"
 class TestDurationProfileLearner:
     def setup_method(self) -> None:

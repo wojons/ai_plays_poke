@@ -389,7 +389,7 @@ class SaveManager:
         snapshot_id = f"emergency_{reason}_{int(time.time() * 1000)}"
         state_path = self.emergency_dir / f"{snapshot_id}.state"
         
-        state_bytes = emulator.get_state_bytes()
+        state_bytes = emulator.get_state_bytes()  # type: ignore[attr-defined]
         if not state_bytes:
             logger.error("Failed to get state bytes for emergency snapshot")
             return ""
