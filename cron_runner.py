@@ -147,7 +147,7 @@ def cartographer_analyze(
             },
         ],
         temperature=0.1,
-        max_tokens=1500,
+        max_tokens=4000,
     )
 
     text = response.get("content", "")
@@ -211,7 +211,7 @@ def controller_decide(
             {"role": "user", "content": msg},
         ],
         temperature=0.3,
-        max_tokens=200,
+        max_tokens=500,
     )
 
     text = response.get("content", "{}")
