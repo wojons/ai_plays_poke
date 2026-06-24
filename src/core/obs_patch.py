@@ -9,7 +9,7 @@ touches canonical state directly — it only proposes patches.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 import yaml
 
@@ -119,10 +119,11 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
     patch = ObsPatch()
 
     if isinstance(data, str):
+        raw_str: str = data
         try:
-            data = yaml.safe_load(data)
+            data = yaml.safe_load(raw_str)
         except Exception:
-            patch.raw["_errors"] = [f"Failed to parse patch: {data[:200]}"]
+            patch.raw["_errors"] = [f"Failed to parse patch: {raw_str[:200]}"]
             return patch
         if not isinstance(data, dict):
             patch.raw["_errors"] = ["Patch is not a dict"]
@@ -200,8 +201,8 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
         for e in edges:
             if isinstance(e, dict):
                 patch.edges.append(EdgeUpdate(
-                    from_pos=e.get("from", e.get("from_pos", [0, 0])),
-                    dir=e.get("dir", e.get("direction", "N")),
+                    from_pos=cast(list[int], e.get("from", e.get("from_pos", [0, 0]))),
+                    dir=cast(str, e.get("dir", e.get("direction", "N"))),
                     outcome=e.get("outcome", "unknown"),
                     reason=e.get("reason", ""),
                 ))

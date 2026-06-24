@@ -19,7 +19,7 @@ import logging
 import threading
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List, Union, cast
+from typing import Optional, Dict, Any, List, Union, cast, Callable
 from functools import wraps
 from pathlib import Path as FilePath
 import traceback
@@ -375,15 +375,15 @@ class AILogger:
     def _add_console_handler(self) -> None:
         """Add console handler"""
         console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setLevel(self._config.get("console_log_level", logging.INFO))
+        console_handler.setLevel(cast(int, self._config.get("console_log_level", logging.INFO)))
         console_handler.setFormatter(PlainFormatter())
         self.logger.addHandler(console_handler)
     
     def _add_file_handlers(self) -> None:
         """Add file handlers for different log types"""
-        log_level = self._config.get("file_log_level", logging.DEBUG)
-        max_bytes = self._config.get("max_file_size", LogRotation.MAX_FILE_SIZE)
-        max_backups = self._config.get("max_backups", LogRotation.MAX_BACKUPS)
+        log_level = cast(int, self._config.get("file_log_level", logging.DEBUG))
+        max_bytes = cast(int, self._config.get("max_file_size", LogRotation.MAX_FILE_SIZE))
+        max_backups = cast(int, self._config.get("max_backups", LogRotation.MAX_BACKUPS))
         
         # Main log file (text format)
         main_log_file = self._base_log_dir / "main.log"
@@ -403,7 +403,7 @@ class AILogger:
             max_bytes=max_bytes,
             backup_count=max_backups
         )
-        json_handler.setLevel(self._config.get("json_log_level", logging.INFO))
+        json_handler.setLevel(cast(int, self._config.get("json_log_level", logging.INFO)))
         json_handler.setFormatter(JSONFormatter())
         self.logger.addHandler(json_handler)
         
@@ -430,7 +430,7 @@ class AILogger:
         self.logger.addHandler(handler)
     
     def _log_with_category(self, level: int, message: str, category: str,
-                           tick: int = 0, **extra) -> None:
+                           tick: int = 0, **extra: Any) -> None:
         """Internal logging method with category support"""
         # Build extra dict with our custom fields
         extra_data = extra.copy()
@@ -444,27 +444,27 @@ class AILogger:
     # ============ Logging Methods ============
     
     def debug(self, message: str, category: str = LogCategory.MAIN,
-              tick: int = 0, **extra) -> None:
+              tick: int = 0, **extra: Any) -> None:
         """Log debug message"""
         self._log_with_category(logging.DEBUG, message, category, tick, **extra)
     
     def info(self, message: str, category: str = LogCategory.MAIN,
-             tick: int = 0, **extra) -> None:
+             tick: int = 0, **extra: Any) -> None:
         """Log info message"""
         self._log_with_category(logging.INFO, message, category, tick, **extra)
     
     def warning(self, message: str, category: str = LogCategory.MAIN,
-                tick: int = 0, **extra) -> None:
+                tick: int = 0, **extra: Any) -> None:
         """Log warning message"""
         self._log_with_category(logging.WARNING, message, category, tick, **extra)
     
     def error(self, message: str, category: str = LogCategory.ERRORS,
-              tick: int = 0, **extra) -> None:
+              tick: int = 0, **extra: Any) -> None:
         """Log error message"""
         self._log_with_category(logging.ERROR, message, category, tick, **extra)
     
     def critical(self, message: str, category: str = LogCategory.ERRORS,
-                 tick: int = 0, **extra) -> None:
+                 tick: int = 0, **extra: Any) -> None:
         """Log critical message"""
         self._log_with_category(logging.CRITICAL, message, category, tick, **extra)
     
@@ -617,7 +617,7 @@ class AILogger:
 # ============ Decorators for Easy Logging ============
 
 def log_function_call(category: str = LogCategory.MAIN,
-                      log_args: bool = False, log_result: bool = True):
+                      log_args: bool = False, log_result: bool = True) -> "Callable[..., Any]":
     """
     Decorator to log function calls
     
@@ -626,9 +626,9 @@ def log_function_call(category: str = LogCategory.MAIN,
         log_args: Whether to log function arguments
         log_result: Whether to log function result
     """
-    def decorator(func) -> None:
+    def decorator(func: "Callable[..., Any]") -> "Callable[..., Any]":
         @wraps(func)
-        def wrapper(*args, **kwargs) -> None:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             logger = get_logger()
             
             # Log function call

@@ -715,7 +715,7 @@ def create_config(args: Any) -> Dict[str, Any]:
     }
 
 
-def main() -> None:
+def main() -> int:
     """Main entry point"""
     
     parser = argparse.ArgumentParser(
@@ -805,7 +805,7 @@ Examples:
     game_loop = GameLoop(config)
     
     # Handle graceful shutdown
-    def signal_handler(sig, frame) -> None:
+    def signal_handler(sig: int, frame: object) -> None:
         print("\n🤷 Signal received, stopping gracefully...")
         game_loop.stop()
         sys.exit(0)
