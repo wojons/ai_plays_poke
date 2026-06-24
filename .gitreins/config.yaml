@@ -1,6 +1,8 @@
 guards:
   secrets: true
   lint: true
+  lsp: true
+  lsp_tools: ["pylsp"]
   tests: true
   test_mode: diff
   test_command: ./venv/bin/pytest -x --tb=short
@@ -11,6 +13,7 @@ guards:
     - pyright
 evaluator:
   max_iterations: 25
+  lsp_diagnostics: true
   static_analysis_diagnostics: false
 history:
   enabled: true
