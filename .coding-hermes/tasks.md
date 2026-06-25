@@ -255,9 +255,21 @@
 **Files:** tests/test_decision.py (new)
 **Result:** 25 tests across 8 test classes: Constructor (3), StepHappyPath (9), StepVisionFailure (2), StepPromptFailure (1), StepThinkingFailure (2), StepToolParseFailure (2), StepExecutionResult (2), Run (3), ScreenshotPaths (1). Coverage: 100% (78 stmts, 0 missed, all 6 branches covered). Tests cover all 7 pipeline phases + 3 fallback paths (vision, prompt, thinking) + parse failure + execution error detection + run loop exception handling.
 
-### [x] COV-9: Add unit tests for screenshot_manager.py (0% → ~85%) + duckbrain_client.py (0% → ~90%) ✅ (85a9abe)
+## Active Queue (Jun 25 — Coverage Gap Fill Continued)
+
+### [ ] COV-10: Add unit tests for screenshots.py (29% → 85%+)
 **Priority:** medium
-**Why:** ScreenshotManager handles capture/storage/grid/cleanup — 150 lines at 0%. DuckBrain client writes/reads JSONL — 81 lines at 0%. Both are pure file-I/O, mechanical to test with temp dirs.
+**Why:** ScreenshotManager + SimpleLiveView handle capture/storage/retrieval for the cron runner. 102 stmts at 29% — pure file I/O, no ROM/API needed, mechanical to test with tmp_path.
 **Model:** deepseek-v4-pro (foreman direct — mechanical test file)
-**Files:** tests/test_screenshot_manager.py (new), tests/test_duckbrain_client.py (new)
-**Result:** 47 tests for ScreenshotManager (init, save, get_latest, base64, grid, cleanup, stats, LiveView) + 31 tests for duckbrain_client (remember, recall, list_keys, tombstones, corrupt JSON, dedup). 78 total. All pass in 0.34s.
+**Files:** tests/test_screenshots.py (new)
+**AC:**
+1. Test ScreenshotManager.__init__ creates all 5 subdirectories (battles, overworld, menus, dialogs, latest)
+2. Test save_screenshot writes PNG file, returns Path, saves to correct state dir, also writes latest_<type>.png
+3. Test get_latest_screenshot returns most recent PNG, returns None for empty dir
+4. Test get_screenshot_as_base64 returns non-empty base64 string
+5. Test get_screenshots_info returns sorted list with path/name/size_bytes/modified
+6. Test save_screenshot_with_metadata writes JSON alongside PNG
+7. Test cleanup_old_screenshots deletes old files, keeps keep_count newest
+8. Test get_stats returns dict with counts for each state type
+9. Test SimpleLiveView.update_display saves current.png to latest dir
+10. Coverage: screenshots.py 29% → 85%+
