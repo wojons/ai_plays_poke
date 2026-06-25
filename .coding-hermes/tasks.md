@@ -222,7 +222,7 @@
 
 ## Active Queue (Jun 25 — Coverage Gap Fill)
 
-### [ ] COV-5: Add unit tests for exceptions.py (0% → 90%+)
+### [x] COV-5: Add unit tests for exceptions.py (0% → 100%) ✅ (ef0953e)
 **Priority:** high
 **Why:** 12 custom exception classes with rich docstrings — all `pass` bodies. Hierarchy testing and attribute coverage is pure mechanical.
 **Model:** deepseek-v4-pro (foreman direct — trivial test file)
