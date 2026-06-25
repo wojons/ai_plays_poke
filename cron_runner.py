@@ -205,37 +205,49 @@ def _unknown_tile_pct(terrain: list[list[str]]) -> float:
     return (unknown / total * 100) if total > 0 else 0.0
 
 
-def controller_decide(
+def controller_plan(
     client: OpenRouterClient,
     world_view: str,
     last_button: str = "",
     last_result: str = "",
     blocked_dir: str = "",
     blocked_count: int = 0,
+    max_actions: int = 12,
 ) -> dict[str, Any]:
-    """Controller model (DeepSeek V4 Flash) decides next button press."""
+    """Controller model (DeepSeek V4 Flash) outputs a movement PLAN.
+
+    Returns a dict with 'plan' (list of button strings) and 'intent'.
+    Single API call replaces 12 individual controller calls per cycle.
+    """
     system = (
         "You are controlling a Pokémon game player character.\n\n"
-        "Given the current world map and state, output exactly one button press.\n"
+        "Given the current world map and state, output a MOVEMENT PLAN — "
+        "a sequence of button presses to execute before the next vision check.\n\n"
         "Respond with ONLY a JSON object:\n"
-        '{"button": "UP|DOWN|LEFT|RIGHT|A|B|START|SELECT", "intent": "short reason"}\n\n'
-        "EXPLORATION STRATEGY (clockwise rotation):\n"
-        "- When all directions are unknown, try UP first, then RIGHT, then DOWN, then LEFT.\n"
-        "- NEVER repeat a direction that was already tried and had no visible effect.\n"
-        "- If a direction is blocked, rotate clockwise to the next one.\n\n"
-        "BLOCKED-DIRECTION RULE (CRITICAL):\n"
-        "- If told you've been blocked in a direction 3+ times, you MUST choose a different direction.\n"
-        "- Rotate: UP→RIGHT→DOWN→LEFT→UP. Pick the next unblocked direction.\n\n"
-        "INTERACTION:\n"
-        "- Use A to interact with signs/doors/NPCs when adjacent.\n"
-        "- Use START to open menu if needed.\n"
+        '{"plan": ["UP","DOWN","LEFT","RIGHT","A","B","START","SELECT",...], "intent": "reason"}\n\n'
+        "RULES:\n"
+        f"- Maximum {max_actions} actions in the plan.\n"
+        "- D-pad buttons (UP/DOWN/LEFT/RIGHT) move one tile each.\n"
+        "- A interacts with adjacent signs/doors/NPCs.\n"
+        "- START opens the menu, B cancels.\n\n"
+        "EXPLORATION STRATEGY:\n"
+        "- Prefer exploring unvisited tiles (shown as ? in LOCAL MAP).\n"
+        "- When all directions are unknown, try them clockwise: UP, RIGHT, DOWN, LEFT.\n"
+        "- If a movement edge says 'blocked', skip that direction.\n"
+        "- Walk to visible exits (doors, paths, stairs) when you see them.\n"
+        "- Interact (A) with objects when adjacent.\n\n"
+        "PLAN FORMAT:\n"
+        "- Group same-direction moves: [\"UP\",\"UP\",\"UP\"] not [\"UP\"] repeated.\n"
+        "- Limit consecutive same-direction moves to 4-5 before switching.\n"
+        "- A complete plan might look like: [\"UP\",\"UP\",\"RIGHT\",\"RIGHT\",\"A\"].\n"
     )
 
     blocked_msg = ""
     if blocked_dir and blocked_count >= 2:
         blocked_msg = (
-            f"\n⚠️  WARNING: You pressed {blocked_dir} {blocked_count} times in a row "
-            f"with no progress. That direction is BLOCKED or WRONG. "
+            f"\n⚠️  WARNING: Previously pressed {blocked_dir} {blocked_count}+ times "
+            f"with no progress. That direction is likely BLOCKED. "
+            f"Do NOT include {blocked_dir} in your plan. "
             f"Try the next direction clockwise from {blocked_dir}.\n"
         )
 
@@ -244,7 +256,7 @@ def controller_decide(
         f"LAST BUTTON: {last_button or 'none'}\n"
         f"LAST RESULT: {last_result or 'unknown'}\n"
         f"{blocked_msg}\n"
-        "What button should I press next?  Output JSON only."
+        f"Output a movement plan (max {max_actions} actions). JSON only."
     )
 
     response = client.chat_completion(
@@ -267,17 +279,26 @@ def controller_decide(
         text = "\n".join(lines)
 
     try:
-        return json.loads(text)  # type: ignore
+        result = json.loads(text)
+        # Accept both {"plan": [...]} and legacy {"button": "UP"} format
+        if "plan" in result:
+            return result  # type: ignore[no-any-return]
+        if "button" in result:
+            return {"plan": [result["button"]], "intent": result.get("intent", "")}
+        return {"plan": ["A"], "intent": "parse_fallback"}
     except json.JSONDecodeError:
-        # Fallback: try to find "{...}" 
         import re
         m = re.search(r'\{[^}]+\}', text)
         if m:
             try:
-                return json.loads(m.group())  # type: ignore
+                result = json.loads(m.group())
+                if "plan" in result:
+                    return result  # type: ignore[no-any-return]
+                if "button" in result:
+                    return {"plan": [result["button"]], "intent": result.get("intent", "")}
             except json.JSONDecodeError:
                 pass
-        return {"button": "A", "intent": "parse_failure_fallback"}
+        return {"plan": ["A"], "intent": "parse_failure_fallback"}
 
 
 # ── Main ────────────────────────────────────────────────────────────
@@ -470,40 +491,42 @@ def main() -> None:
                     print(f"  [RECOVER] Void recovery attempt {_recovery_attempts}: {strategy} ({unknown_pct:.0f}% unknown)")
                     _void_cycles = 0  # reset after recovery attempt
 
-                # Step 2b: Controller decides actions (multiple steps)
-                for _ in range(CART_STEPS):
-                    world_view = integrator.compose_for_controller()
-                    decision = controller_decide(
-                        controller_client, world_view,
-                        world.last_button, world.last_result,
-                        blocked_dir=_same_dir or "",
-                        blocked_count=_same_dir_count,
-                    )
-                    button = decision.get("button", "A").upper()
-                    intent = decision.get("intent", "")
+                # Step 2b: Controller outputs a movement PLAN (single API call)
+                world_view = integrator.compose_for_controller()
+                decision = controller_plan(
+                    controller_client, world_view,
+                    world.last_button, world.last_result,
+                    blocked_dir=_same_dir or "",
+                    blocked_count=_same_dir_count,
+                    max_actions=CART_STEPS,
+                )
+                plan = decision.get("plan", ["A"])
+                intent = decision.get("intent", "")
 
-                    # Execute
-                    btn_map = {
-                        "UP": "up", "DOWN": "down", "LEFT": "left", "RIGHT": "right",
-                        "A": "a", "B": "b", "START": "start", "SELECT": "select",
-                    }
+                plan_entry = {
+                    "cycle": cycle + 1,
+                    "screen": st,
+                    "pipeline": "cartographer",
+                    "plan": plan,
+                    "intent": intent,
+                }
+                results.append(plan_entry)
+                log_file.write(json.dumps(plan_entry, default=str) + "\n")
+                log_file.flush()
+
+                # ── Execute the plan ──────────────────────────────
+                btn_map = {
+                    "UP": "up", "DOWN": "down", "LEFT": "left", "RIGHT": "right",
+                    "A": "a", "B": "b", "START": "start", "SELECT": "select",
+                }
+                for button in plan:
+                    button = button.upper()
                     btn = btn_map.get(button, "a")
                     emu.press_button(btn, frames=PRESS_FRAMES)
-                    emu.fast_forward(STEP_FORWARD)  # let game respond
-
+                    emu.fast_forward(STEP_FORWARD)
                     world.last_button = button
-                    entry = {
-                        "cycle": cycle + 1,
-                        "screen": st,
-                        "pipeline": "cartographer",
-                        "button": button,
-                        "intent": intent,
-                    }
-                    results.append(entry)
-                    log_file.write(json.dumps(entry, default=str) + "\n")
-                    log_file.flush()
 
-                    # Blocked-direction tracking
+                    # Blocked-direction tracking (per-button for recovery)
                     if button in ("UP", "DOWN", "LEFT", "RIGHT"):
                         if button == _same_dir:
                             _same_dir_count += 1
@@ -514,11 +537,9 @@ def main() -> None:
                         _same_dir = None
                         _same_dir_count = 0
 
-                    # Early warning: direction locking detected
                     if _same_dir_count == 3:
-                        print(f"  [WARN] Direction-locking detected: {_same_dir} x3 (slots_available={_last_saved_slot is not None})")
+                        print(f"  [WARN] Direction-locking detected: {_same_dir} x3")
 
-                    # Recovery: load checkpoint if stuck in same direction
                     if _same_dir_count >= MAX_SAME_DIRECTION:
                         if _last_saved_slot is not None:
                             try:
@@ -535,11 +556,11 @@ def main() -> None:
                                 print(f"  [RECOVER] Loaded checkpoint slot {_last_saved_slot} (blocked {_same_dir} x{_same_dir_count})")
                                 _same_dir = None
                                 _same_dir_count = 0
-                                break  # exit cartographer loop — let next cycle re-evaluate
+                                break  # exit plan execution early
                             except Exception as exc:
                                 print(f"  [RECOVER] Failed to load slot {_last_saved_slot}: {exc}")
                         else:
-                            print(f"  [RECOVER] Direction-locked {_same_dir} x{_same_dir_count} but NO checkpoint available — cannot rollback")
+                            print(f"  [RECOVER] Direction-locked {_same_dir} x{_same_dir_count} but NO checkpoint available")
 
                 elapsed = time.time() - t0
                 print(f"  [{cycle+1}/{CYCLES}] {st} | cartographer x{CART_STEPS} | {elapsed:.1f}s")
