@@ -234,11 +234,12 @@
 4. Test isinstance checks against base and intermediate
 5. Coverage: exceptions.py 0% → 90%+
 
-### [ ] COV-6: Add unit tests for global_context.py (26% → 85%+)
+### [x] COV-6: Add unit tests for global_context.py (26% → 100%) ✅ (b8b9173)
 **Priority:** medium
 **Why:** Global context is injected into every state window — dataclass with compact(), record_action(), add_goal(), complete_goal(), set_flag(), update_party(), set_location()
 **Model:** deepseek-v4-pro (foreman direct)
 **Files:** tests/test_global_context.py (new)
+**Result:** 61 tests across 9 test classes: Constructor (8), Compact (21), RecordAction (6), AddGoal (5), CompleteGoal (6), SetFlag (4), UpdateParty (4), SetLocation (4), Integration (3). Coverage: 100% (72 stmts, 0 missed, all 30 branches covered).
 
 ### [ ] COV-7: Add unit tests for prompt_loader.py (54% → 80%+)
 **Priority:** low
