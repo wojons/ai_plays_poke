@@ -241,11 +241,12 @@
 **Files:** tests/test_global_context.py (new)
 **Result:** 61 tests across 9 test classes: Constructor (8), Compact (21), RecordAction (6), AddGoal (5), CompleteGoal (6), SetFlag (4), UpdateParty (4), SetLocation (4), Integration (3). Coverage: 100% (72 stmts, 0 missed, all 30 branches covered).
 
-### [ ] COV-7: Add unit tests for prompt_loader.py (54% → 80%+)
+### [x] COV-7: Add unit tests for prompt_loader.py (54% → 100%) ✅ (71d7a00)
 **Priority:** low
 **Why:** Prompt loader reads YAML files — small file, mechanical to test with temp directories.
 **Model:** deepseek-v4-pro (foreman direct)
 **Files:** tests/test_prompt_loader.py (new)
+**Result:** 40 tests across 4 test classes: GetTextContent (10), LoadYamlSystem (8), LoadSystemPrompt (15), EdgeCases (5). Coverage: 100% (36 stmts, 0 missed, all 16 branches covered). Tests cover hint level stacking, cache behavior, missing/malformed YAML, system_extra fallback, negative hint levels, real fixture smoke tests.
 
 ### [ ] COV-8: Add unit tests for decision.py (21% → 60%+)
 **Priority:** low
