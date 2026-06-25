@@ -31,18 +31,18 @@
 **Result:** 67 tests across 14 test classes — _classify_tile (10), _extract_tiles (4), _identify_tile_patterns (2), _compute_pattern_hash (2), _compute_tile_hash (2), _detect_features (3), _match_area (6), detect_location (5), tile lookups (7), nav graph (4), pathfinding (5), screen detection (9), constructor (5), dataclasses (3). All pass in 0.16s. Bug documented: is_in_menu shape[:0] → ValueError.
 **AC:** All 5 satisfied — town detection, route detection, unknown detection, hash/features in result, coverage 49% → 70%+.
 
-### [ ] COV-4: Add unit tests for vision/ocr.py (54% → 75%+)
+### [x] COV-4: Add unit tests for vision/ocr.py (54% → 93%) ✅ (0ec78c0)
 **Priority:** medium
 **Why:** OCR reads dialog text, menu items, and battle messages from screen.
 **Model:** deepseek-v4-pro (foreman direct — test file)
 **Files:** tests/test_ocr.py (new)
 **AC:**
-1. Test extract_text with known text image → returns expected string
-2. Test extract_text with empty image → returns empty string
-3. Test extract_menu_items with menu image → returns list of menu options
-4. Test extract_dialog_text with dialog image → returns speaker + text
-5. Test edge case: garbled image → graceful fallback
-6. Coverage: vision/ocr.py 54% → 75%+
+1. ✅ Test extract_text with known text image → returns expected string
+2. ✅ Test extract_text with empty image → returns empty string
+3. ✅ Test extract_dialog with dialog image → returns text string (adapted — no extract_menu_items in API)
+4. ✅ Test extract_dialog_text with dialog image → returns text (adapted — no speaker+text API)
+5. ✅ Test edge case: garbled image → graceful fallback (OCRResult returned)
+6. ✅ Coverage: vision/ocr.py 54% → 93% (231 stmts, 15 missed, 6 partial)
 
 ---
 
