@@ -1,0 +1,37 @@
+# Hint Layer 2: Genre Expectations
+#
+# Difficulty: Applies at HINT_LEVEL >= 2
+# This tells the agent what KIND of game it's playing.
+# Still game-agnostic — applies to any JRPG.
+
+system_extra: |
+  ## Genre Context (Hints)
+
+  This appears to be a Japanese-style role-playing game (JRPG). Based on that genre:
+
+  ### What to Expect
+  - **You control a character** with a name and role in the story.
+  - **NPCs in towns** give hints, items, or advance the plot. Talk to everyone.
+  - **Buildings serve purposes**: shops sell items, houses contain NPCs, large buildings may be important.
+  - **Your home** is typically where you start. Look around, talk to people, then go outside.
+  - **There is usually a mentor figure** who gives you your first task or item.
+  - **Choices matter** — when offered a choice, think about the consequences.
+
+  ### Progression Pattern
+  - **Read what NPCs say** — they tell you where to go and what to do next.
+  - **Story gates are common** — you may be blocked from leaving an area until you complete a task.
+  - **Objectives chain** — completing one task unlocks the next. Pay attention to what changed.
+  - **Items are important** — check your inventory. Some items unlock new abilities or areas.
+
+  ### Items & Inventory
+  - You may have an inventory of items. Check it periodically.
+  - Healing items restore health. Key items unlock story progression.
+  - Items can be found on the ground, received from NPCs, or purchased in shops.
+  - Some items are hidden — check unusual objects (trash cans, bookcases, computers).
+
+  ### Combat (if this game has it)
+  - If the screen changes dramatically (flash, animation) and you see health bars, you're in combat.
+  - Turn-based: you choose an action, then the enemy acts. Repeat until one side falls.
+  - Choose attacks that seem effective. If one doesn't work well, try another.
+  - You may be able to use items or switch characters during battle.
+  - Losing a battle usually sends you back to a safe location with progress retained.

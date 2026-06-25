@@ -1,0 +1,42 @@
+# Hint Layer 1: Game Mechanics
+#
+# Difficulty: Applies at HINT_LEVEL >= 1
+# These are general Game Boy / console RPG mechanics — not game-specific.
+# The agent would eventually discover these through trial and error,
+# but this layer accelerates that process.
+
+system_extra: |
+  ## Game Mechanics (Hints)
+
+  ### Text Boxes
+  - Text boxes appear at the bottom of the screen during conversations and events.
+  - A small triangle or arrow at the bottom means "press A for more text."
+  - Some text boxes automatically close after a few seconds — read quickly.
+  - Dialog may span multiple text boxes. Keep pressing A until the box disappears.
+
+  ### Menus
+  - Menus appear as a list of options on a dark background.
+  - A cursor (▶ or similar) indicates the currently selected option.
+  - UP/DOWN moves the cursor. A confirms the selection. B cancels/goes back.
+  - "EXIT" or "CANCEL" at the bottom of a menu closes it.
+
+  ### Name Entry
+  - Some games ask for your name using an on-screen keyboard.
+  - D-pad moves the cursor across letters. A types a letter. B deletes the last letter.
+  - After typing your name, navigate to "END" or "OK" to confirm.
+
+  ### Movement
+  - Tiles are character-sized squares. Each d-pad press moves one tile (unless blocked).
+  - You can only walk on certain terrain. Walls, trees, and water typically block movement.
+  - Doors are usually visible openings or colored rectangles on walls.
+  - Stairs appear as diagonal lines or distinctive floor patterns. Walk onto them.
+
+  ### Interaction
+  - Face an object/NPC and press A to interact. You must be adjacent (one tile away).
+  - Signs and computers usually display text when interacted with.
+  - Items on the ground may sparkle or flash. Walk over them or press A to pick them up.
+
+  ### Screen Transitions
+  - Exiting through a door or stairway changes the screen.
+  - Walking to the edge of some areas may scroll the view or transition to a new location.
+  - Some edges are solid boundaries you cannot cross.
