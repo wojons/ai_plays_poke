@@ -69,7 +69,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.core.emulator import Emulator
 from src.core.global_context import GlobalContext
 from src.core.state_window import StateWindow
-from src.core.vision import VisionClient
 from src.core.ai_client import OpenRouterClient
 from src.core.world_state import WorldState
 from src.core.map_integrator import MapIntegrator
@@ -314,7 +313,6 @@ def main() -> None:
     integrator = MapIntegrator(world)
 
     # Init AI clients
-    vision = VisionClient()
     controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
 
     print(f"[{run_id}] Starting run with cartographer pipeline...")
@@ -332,68 +330,69 @@ def main() -> None:
     _recovery_attempts: int = 0  # recovery attempts in current void sequence
 
     # ── Deterministic intro bypass ──────────────────────────────────
-    # The intro sequence (title → Oak dialog → name entry → overworld)
-    # is deterministic.  Don't waste AI cycles deliberating on it.
-    print(f"[{run_id}] Bypassing intro deterministically...")
+    # Use the cartographer (Gemma 12B) for screen classification since
+    # VisionClient misclassifies Oak's close-up as "overworld".
+    # Batch mechanical A-presses between cartographer checks to minimize API calls.
+    print(f"[{run_id}] Bypassing intro via cartographer...")
 
     # Step 1: Title screen → press START
     emu.bypass_title()
     emu.wait(120)  # let Oak appear
 
-    # Step 2: Mechanical intro loop — advance through dialog + name entry
-    _intro_steps = 0
-    _MAX_INTRO_STEPS = 60  # generous safety cap
     _player_named = False
     _rival_named = False
+    _intro_checks = 0
+    _MAX_INTRO_CHECKS = 12  # max cartographer calls for intro
 
-    while _intro_steps < _MAX_INTRO_STEPS:
-        _intro_steps += 1
+    while _intro_checks < _MAX_INTRO_CHECKS:
+        _intro_checks += 1
         screenshot = emu.capture()
 
-        # Quick screen classification
-        intro_vis = vision.analyze(screenshot, game="gen1")
-        st = intro_vis.get("screen_type", "unknown")
+        # Use cartographer for reliable screen classification
+        patch_data = cartographer_analyze(
+            controller_client, screenshot, world, world.last_result
+        )
+        st = patch_data.get("result", "unknown")
 
         if st == "overworld":
-            print(f"  [{_intro_steps}] Reached overworld — intro complete")
+            print(f"  [intro] Cartographer says overworld — intro complete ({_intro_checks} checks)")
             break
-        elif st == "title":
-            # Shouldn't happen after bypass_title, but handle gracefully
-            emu.press_button("start", frames=30)
-            emu.wait(90)
-        elif st in ("dialog", "name_confirm"):
-            # Advance dialog mechanically
-            emu.press_button("a", frames=5)
-            emu.fast_forward(180)
+        elif st in ("dialog", "name_confirm", "cutscene"):
+            # Mechanical A-press batch through dialog
+            for _ in range(10):
+                emu.press_button("a", frames=5)
+                emu.fast_forward(180)
         elif st == "name_entry":
             if not _player_named:
-                print(f"  [{_intro_steps}] Entering player name ASH...")
+                print(f"  [intro] Entering player name ASH...")
                 emu.enter_name("ASH")
                 _player_named = True
                 emu.wait(60)
-                # Confirm the name (press A on the confirm prompt)
                 emu.press_button("a", frames=10)
                 emu.wait(120)
             elif not _rival_named:
-                print(f"  [{_intro_steps}] Entering rival name GARY...")
+                print(f"  [intro] Entering rival name GARY...")
                 emu.enter_name("GARY")
                 _rival_named = True
                 emu.wait(60)
                 emu.press_button("a", frames=10)
                 emu.wait(120)
             else:
-                # Unexpected third name entry — press A to dismiss
                 emu.press_button("a", frames=10)
                 emu.wait(60)
+        elif st == "title":
+            emu.press_button("start", frames=30)
+            emu.wait(90)
         else:
-            # Unknown state — press A and hope
-            emu.press_button("a", frames=10)
-            emu.wait(60)
+            # Unknown — press A mechanically
+            for _ in range(5):
+                emu.press_button("a", frames=5)
+                emu.fast_forward(180)
 
-    if _intro_steps >= _MAX_INTRO_STEPS:
-        print(f"  [!] Intro bypass hit {_MAX_INTRO_STEPS} step cap — proceeding anyway")
+    if _intro_checks >= _MAX_INTRO_CHECKS:
+        print(f"  [!] Intro bypass hit {_MAX_INTRO_CHECKS} check cap — proceeding anyway")
     else:
-        print(f"  Intro bypass complete in {_intro_steps} steps")
+        print(f"  Intro bypass complete in {_intro_checks} checks")
 
     # Save state after intro
     try:
@@ -423,19 +422,17 @@ def main() -> None:
             img = Image.fromarray(screenshot)
             img.save(SCREENSHOT_DIR / f"step_{cycle+1:04d}.png")
 
-            # Step 1: Quick screen classification
-            vis = vision.analyze(screenshot, game="gen1")
-            st = vis.get("screen_type", "unknown")
+            # Step 1: Cartographer classifies screen + analyzes terrain
+            patch_data = cartographer_analyze(
+                controller_client, screenshot, world, world.last_result
+            )
+            st = patch_data.get("result", "unknown")
 
             t0 = time.time()
 
             if st == "overworld":
                 # ── Cartographer pipeline ──────────────────────────
-                # Step 2a: Cartographer → OBS_PATCH
-                patch_data = cartographer_analyze(
-                    controller_client, screenshot, world, world.last_result
-                )
-
+                # Patch already fetched above, now apply it
                 if not patch_data.get("_parse_error"):
                     ok = integrator.apply(patch_data)
                     if not ok:
@@ -593,14 +590,22 @@ def main() -> None:
 
             else:
                 # ── Traditional StateWindow flow ───────────────────
+                # Build StateWindow-compatible vision dict from cartographer output
+                vis_dict = {
+                    "screen_type": st,
+                    "screen_subtype": patch_data.get("screen_subtype", ""),
+                    "name_field": patch_data.get("name_field", ""),
+                    "text_lines": patch_data.get("text_lines", []),
+                    "menu_items": patch_data.get("menu_items", []),
+                    "adjacent_tiles": patch_data.get("adjacent_tiles", {}),
+                }
                 state_type = st
-                if vis.get("screen_subtype") == "keyboard":
+                if vis_dict.get("screen_subtype") == "keyboard":
                     state_type = "name_entry"
 
                 # ── Rival battle detection ────────────────────────
-                if vis.get("screen_subtype") == "rival_battle":
+                if vis_dict.get("screen_subtype") == "rival_battle":
                     ctx.set_location("rival_battle")
-                    # Save special BATTLE_ screenshot
                     battle_png = SCREENSHOT_DIR / f"BATTLE_{cycle+1:04d}.png"
                     img.save(battle_png)
                     evt = {
@@ -612,7 +617,7 @@ def main() -> None:
                     log_file.flush()
                     print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle+1}")
 
-                win = StateWindow(state_type, ctx, emu, vis, generation="gen1", max_steps=STATE_STEPS)
+                win = StateWindow(state_type, ctx, emu, vis_dict, generation="gen1", max_steps=STATE_STEPS)
                 win.run()
                 emu.fast_forward(FAST_FORWARD_FRAMES)
                 elapsed = time.time() - t0
@@ -638,11 +643,11 @@ def main() -> None:
                 print(f"  [{cycle+1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s")
 
             # Handle progression
-            if st == "name_confirm" and vis.get("name_field"):
+            if st == "name_confirm" and patch_data.get("name_field"):
                 if not ctx.player_name:
-                    ctx.player_name = vis["name_field"]
+                    ctx.player_name = patch_data["name_field"]
                 elif not ctx.rival_name:
-                    ctx.rival_name = vis["name_field"]
+                    ctx.rival_name = patch_data["name_field"]
 
             if st == "overworld" and ctx.location in ("title", "intro"):
                 ctx.set_location("bedroom")
