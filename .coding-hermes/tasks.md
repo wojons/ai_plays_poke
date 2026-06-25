@@ -257,19 +257,10 @@
 
 ## Active Queue (Jun 25 — Coverage Gap Fill Continued)
 
-### [ ] COV-10: Add unit tests for screenshots.py (29% → 85%+)
+### [x] COV-10: Add unit tests for screenshots.py (29% → 87%) ✅ (ed501ce)
 **Priority:** medium
 **Why:** ScreenshotManager + SimpleLiveView handle capture/storage/retrieval for the cron runner. 102 stmts at 29% — pure file I/O, no ROM/API needed, mechanical to test with tmp_path.
 **Model:** deepseek-v4-pro (foreman direct — mechanical test file)
 **Files:** tests/test_screenshots.py (new)
-**AC:**
-1. Test ScreenshotManager.__init__ creates all 5 subdirectories (battles, overworld, menus, dialogs, latest)
-2. Test save_screenshot writes PNG file, returns Path, saves to correct state dir, also writes latest_<type>.png
-3. Test get_latest_screenshot returns most recent PNG, returns None for empty dir
-4. Test get_screenshot_as_base64 returns non-empty base64 string
-5. Test get_screenshots_info returns sorted list with path/name/size_bytes/modified
-6. Test save_screenshot_with_metadata writes JSON alongside PNG
-7. Test cleanup_old_screenshots deletes old files, keeps keep_count newest
-8. Test get_stats returns dict with counts for each state type
-9. Test SimpleLiveView.update_display saves current.png to latest dir
-10. Coverage: screenshots.py 29% → 85%+
+**Result:** 49 tests across 9 test classes: Init (3), SaveScreenshot (9), GetLatestScreenshot (7), GetScreenshotAsBase64 (3), GetScreenshotsInfo (6), SaveWithMetadata (4), CleanupOldScreenshots (5), GetStats (6), SimpleLiveView (6). Coverage: 87% (102 stmts, 12 missed — font fallback + __main__ guard). All pass in 0.14s.
+**AC:** All 10 satisfied — subdirs, PNG save, latest retrieval, base64, info list, metadata JSON, cleanup, stats, live view, coverage 29%→87%.
