@@ -248,8 +248,9 @@
 **Files:** tests/test_prompt_loader.py (new)
 **Result:** 40 tests across 4 test classes: GetTextContent (10), LoadYamlSystem (8), LoadSystemPrompt (15), EdgeCases (5). Coverage: 100% (36 stmts, 0 missed, all 16 branches covered). Tests cover hint level stacking, cache behavior, missing/malformed YAML, system_extra fallback, negative hint levels, real fixture smoke tests.
 
-### [ ] COV-8: Add unit tests for decision.py (21% → 60%+)
+### [x] COV-8: Add unit tests for decision.py (21% → 100%) ✅ (67f48fb)
 **Priority:** low
 **Why:** Decision pipeline that wires vision → prompt → API — medium complexity, needs mocking.
-**Model:** ollama-cloud/glm-5.2 (delegate_task)
+**Model:** deepseek-v4-pro (foreman direct)
 **Files:** tests/test_decision.py (new)
+**Result:** 25 tests across 8 test classes: Constructor (3), StepHappyPath (9), StepVisionFailure (2), StepPromptFailure (1), StepThinkingFailure (2), StepToolParseFailure (2), StepExecutionResult (2), Run (3), ScreenshotPaths (1). Coverage: 100% (78 stmts, 0 missed, all 6 branches covered). Tests cover all 7 pipeline phases + 3 fallback paths (vision, prompt, thinking) + parse failure + execution error detection + run loop exception handling.
