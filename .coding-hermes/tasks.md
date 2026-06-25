@@ -264,3 +264,35 @@
 **Files:** tests/test_screenshots.py (new)
 **Result:** 49 tests across 9 test classes: Init (3), SaveScreenshot (9), GetLatestScreenshot (7), GetScreenshotAsBase64 (3), GetScreenshotsInfo (6), SaveWithMetadata (4), CleanupOldScreenshots (5), GetStats (6), SimpleLiveView (6). Coverage: 87% (102 stmts, 12 missed — font fallback + __main__ guard). All pass in 0.14s.
 **AC:** All 10 satisfied — subdirs, PNG save, latest retrieval, base64, info list, metadata JSON, cleanup, stats, live view, coverage 29%→87%.
+
+---
+
+## Active Queue (Jun 25 — Cartographer Redesign)
+
+### [x] CART-REF: Replace OBS_PATCH map integrator with visual-reference cartographer ✅
+**Priority:** highest
+**Why:** OBS_PATCH structured tile extraction had high failure rates — tiles misclassified, patches rejected, void states undetected. Vision models can already see walls/doors/stairs — we just needed to ask the right questions.
+**Model:** deepseek-v4-pro (foreman direct — major refactor)
+**Files:** cron_runner.py (-135/+106), configs/prompts/gen1/cartographer.yaml (rewrite), world/state.yaml
+**New assets:** reference/bedroom_overworld.png, configs/prompts/gen1/ref_sprites/* (8 sprite references), guides/ (game maps for context)
+**Result:** Removed WorldState, MapIntegrator, SYMBOL_REFERENCE imports from cron_runner. Replaced OBS_PATCH terrain parsing with visual-reference prompt: send reference image + live screenshot to Gemma 12B, ask it to describe adjacent tiles, visible exits, text, menus, and suggested action. Eliminates terrain parsing, patch rejection, and all structured tile extraction failure modes. Cartographer now returns simple spatial JSON. Controller decision fed directly from spatial description — no MapIntegrator intermediary. Void detection simplified. 1907/1907 tests pass.
+**AC:**
+1. Remove WorldState, MapIntegrator, SYMBOL_REFERENCE dependencies from cron_runner.py
+2. Rewrite cartographer.yaml from OBS_PATCH structured tile system to visual-reference screen classifier
+3. cartographer_analyze() takes reference image + live screenshot → returns spatial JSON (adjacent, exits, text, menus)
+4. Replace integrator.apply() / integrator.compose_for_controller() with direct spatial data → controller_plan()
+5. All existing tests pass — no regression
+6. Reference image (bedroom_overworld.png) and sprite references are committed
+
+### [ ] CART-TEST: Add tests for new cartographer_analyze() function
+**Priority:** medium
+**Why:** The cartographer_analyze function was rewritten — needs unit tests for the new visual-reference pipeline.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_cartographer.py (new)
+**AC:**
+1. Test cartographer_analyze with mocked OpenRouterClient — verify reference image is sent as the first image in the message
+2. Test spatial JSON parsing from valid response
+3. Test fallback when API returns malformed JSON
+4. Test fallback when API call fails (network error)
+5. Test that adjacent tiles are correctly parsed (up/down/left/right)
+6. Test that result field is correctly extracted (overworld/dialog/battle/menu/etc.)

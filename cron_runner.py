@@ -70,9 +70,6 @@ from src.core.emulator import Emulator
 from src.core.global_context import GlobalContext
 from src.core.state_window import StateWindow
 from src.core.ai_client import OpenRouterClient
-from src.core.world_state import WorldState
-from src.core.map_integrator import MapIntegrator
-from src.core.symbols import SYMBOL_REFERENCE
 from src.core.prompt_loader import load_system_prompt
 
 # ── Config ──────────────────────────────────────────────────────────
@@ -85,10 +82,8 @@ FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 12  # controller steps per overworld cycle
 PRESS_FRAMES = 120  # hold button for 2s game time
 STEP_FORWARD = 300  # fast-forward between steps (~5s game time)
-WORLD_DIR = Path("world")
 LOG_DIR = Path("cron_logs")
 LOG_DIR.mkdir(exist_ok=True)
-WORLD_DIR.mkdir(exist_ok=True)
 run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_path = LOG_DIR / f"run_{run_id}.jsonl"
 SCREENSHOT_DIR = Path("screenshots") / f"run_{run_id}"
@@ -103,12 +98,18 @@ CHECKPOINT_INTERVAL = 10   # save state every N cycles
 CHECKPOINT_SLOTS = 5       # rotating slots 0-4
 MAX_SAME_DIRECTION = 5     # blocked-direction threshold before rollback
 
-# ── Load cartographer prompt ────────────────────────────────────────
+# ── Load visual-reference cartographer prompt ────────────────────────
 _carto_cfg = yaml.safe_load(
     Path("configs/prompts/gen1/cartographer.yaml").read_text()
 )
-CARTOGRAPHER_SYSTEM = _carto_cfg["system"].format(symbol_reference=SYMBOL_REFERENCE)
+CARTOGRAPHER_SYSTEM = _carto_cfg["system"]
 CARTOGRAPHER_TEMPLATE = _carto_cfg["user_template"]
+
+# ── Load reference image (bedroom overworld — shows walls, doors, stairs, character) ──
+_ref_img = Image.open("reference/bedroom_overworld.png")
+_ref_buf = io.BytesIO()
+_ref_img.save(_ref_buf, format="PNG")
+REFERENCE_IMAGE_B64 = base64.b64encode(_ref_buf.getvalue()).decode()
 
 # ── Helpers ─────────────────────────────────────────────────────────
 
@@ -123,36 +124,14 @@ def screenshot_to_base64(screenshot: np.ndarray) -> str:
 def cartographer_analyze(
     client: OpenRouterClient,
     screenshot: np.ndarray,
-    world: WorldState,
-    last_result: str = "unknown",
 ) -> tuple[dict[str, Any], str]:
-    """Send screenshot + world state to Gemma 12B, return (OBS_PATCH dict, raw_text)."""
-    # Build the user prompt
-    current_terrain = world.composed_view()
-    current_objects = "\n".join("".join(row) for row in world.objects[:15])
-    current_actors = "\n".join(
-        f"  {a.kind} at {a.pos} facing {a.facing} (conf={a.confidence:.0%})"
-        for a in list(world.actors.values())[:10]
-    )
+    """Send reference image + live screenshot to Gemma 12B.
 
-    user_prompt = CARTOGRAPHER_TEMPLATE.format(
-        prev_tick=world.tick,
-        map_id=world.map_id,
-        player_pos=str(list(world.player.pos)),
-        player_facing=world.player.facing,
-        player_mode=world.player.mode,
-        viewport_origin=str(list(world.viewport.origin)),
-        viewport_size=str(list(world.viewport.size)),
-        last_button=world.last_button,
-        last_result=last_result,
-        current_terrain=current_terrain,
-        current_objects=current_objects or "(empty)",
-        current_actors=current_actors or "(none)",
-    )
-
+    Returns (parsed spatial JSON, raw_text). No WorldState dependency —
+    the vision model looks at the game directly and describes what it sees.
+    """
     img_b64 = screenshot_to_base64(screenshot)
 
-    # Call Gemma 12B vision with OBS_PATCH prompt
     response = client.chat_completion(
         model="google/gemma-3-12b-it",
         messages=[
@@ -160,67 +139,65 @@ def cartographer_analyze(
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": user_prompt},
+                    {"type": "text", "text": CARTOGRAPHER_TEMPLATE},
+                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{REFERENCE_IMAGE_B64}"}},
                     {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
                 ],
             },
         ],
         temperature=0.1,
-        max_tokens=8192,
+        max_tokens=2048,
     )
 
     text = response.get("content", "")
-    return _extract_obs_patch(text), text
+    return _extract_spatial_json(text), text
 
 
-def _extract_obs_patch(text: str) -> dict[str, Any]:
-    """Extract OBS_PATCH from model response (handles markdown fences, YAML wrappers)."""
+def _extract_spatial_json(text: str) -> dict[str, Any]:
+    """Extract spatial observation JSON from model response.
+
+    Handles markdown fences, leading/trailing text, and partial JSON.
+    Much simpler than the old OBS_PATCH parser — just finds the JSON object.
+    """
     text = text.strip()
+
     # Strip ``` fences
     if text.startswith("```"):
         lines = text.split("\n")
         lines = lines[1:] if len(lines) > 1 else lines
-        if lines and lines[-1].strip() in ("```", "```yaml", "```json"):
+        if lines and lines[-1].strip() in ("```", "```json", "```yaml"):
             lines = lines[:-1]
         text = "\n".join(lines)
 
-    # Try JSON first, then YAML
-    data: dict[str, Any] = {}
+    # Try whole-string JSON first
     try:
-        data = json.loads(text)
+        return json.loads(text)
     except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Try finding JSON object with regex
+    import re
+    m = re.search(r'\{[^{}]*\}', text, re.DOTALL)
+    if m:
         try:
-            data = yaml.safe_load(text) or {}
-        except Exception:
-            return {"_parse_error": text[:500]}
+            return json.loads(m.group())
+        except (json.JSONDecodeError, ValueError):
+            pass
 
-    # Unwrap obs_patch_v1 / obs_patch wrapper if present
-    if isinstance(data, dict) and len(data) == 1:
-        key = next(iter(data))
-        if key in ("obs_patch_v1", "obs_patch", "patch") and isinstance(data[key], dict):
-            return data[key]
+    # Try YAML fallback
+    try:
+        data = yaml.safe_load(text)
+        if isinstance(data, dict):
+            return data
+    except Exception:
+        pass
 
-    return data
-
-
-
-
-
-def _unknown_tile_pct(terrain: list[list[str]]) -> float:
-    """Return percentage of terrain tiles that are unknown ('?')."""
-    total = 0
-    unknown = 0
-    for row in terrain:
-        for tile in row:
-            total += 1
-            if tile == "?":
-                unknown += 1
-    return (unknown / total * 100) if total > 0 else 0.0
+    return {"result": "unknown", "_parse_error": text[:500]}
 
 
 def controller_plan(
     client: OpenRouterClient,
-    world_view: str,
+    spatial_desc: dict[str, Any],
     last_button: str = "",
     last_result: str = "",
     blocked_dir: str = "",
@@ -229,38 +206,50 @@ def controller_plan(
 ) -> dict[str, Any]:
     """Controller model (DeepSeek V4 Flash) outputs a movement PLAN.
 
-    Returns a dict with 'plan' (list of button strings) and 'intent'.
-    Single API call replaces 12 individual controller calls per cycle.
+    Now takes the cartographer's spatial JSON directly (adjacent tiles,
+    visible_exits, player_facing, suggested_action) instead of an ASCII
+    tile map. The model gets richer, more accurate spatial info.
     """
+    # Build a compact spatial summary string
+    facing = spatial_desc.get("player_facing", "?")
+    adj = spatial_desc.get("adjacent", {})
+    exits = spatial_desc.get("visible_exits", [])
+    suggested = spatial_desc.get("suggested_action", "")
+    text = spatial_desc.get("text_content", [])
+
+    adj_str = ", ".join(f"{d}={adj.get(d, '?')}" for d in ["up", "down", "left", "right"])
+    exits_str = "; ".join(exits) if exits else "none visible"
+    text_str = " | ".join(text) if text else "none"
+
+    spatial_summary = (
+        f"PLAYER FACING: {facing}\n"
+        f"ADJACENT TILES: {adj_str}\n"
+        f"VISIBLE EXITS: {exits_str}\n"
+        f"SCREEN TEXT: {text_str}\n"
+        f"SUGGESTED ACTION: {suggested}"
+    )
+
     system = load_system_prompt(hint_level=HINT_LEVEL) + "\n\n" + (
         "You are controlling a Game Boy game player character.\n\n"
-        "Given the current world map and state, output a MOVEMENT PLAN — "
-        "a sequence of button presses to execute before the next vision check.\n\n"
+        "You receive a SPATIAL OBSERVATION describing what's around the player.\n"
+        "Output a MOVEMENT PLAN — a sequence of button presses to execute.\n\n"
         "Respond with ONLY a JSON object:\n"
         '{"plan": ["UP","DOWN","LEFT","RIGHT","A","B","START","SELECT",...], "intent": "reason"}\n\n'
         "RULES:\n"
         f"- Maximum {max_actions} actions in the plan.\n"
-        "- D-pad buttons (UP/DOWN/LEFT/RIGHT) move one tile each.\n"
-        "- A interacts with adjacent signs/doors/NPCs.\n"
-        "- START opens the menu, B cancels.\n\n"
-        "EXPLORATION STRATEGY:\\n"
-        "- Start with SHORT moves (2-3 tiles) when in a new area, not 12.\\n"
-        "- You're likely in a small room — walls are close. Test gently.\\n"
-        "- Look at OBJECTS (D=door, M=NPC/monster, S=stair, ?=unknown) for exits.\\n"
-        "- If a door or stair is visible, walk toward it.\\n"
-        "- When all directions are blocked: press A to interact with what's in front of you.\\n"
-        "- Interact (A) with NPCs (M) when adjacent — they give quests and info.\\n"
-        "- After interacting with an object, step AWAY (different direction) next action.\\n\\n"
-        "INTERACTION LOOP WARNING:\\n"
-        "- NEVER spam A while facing an interactive object (TV, sign, PC, NPC).\\n"
-        "- Pressing A repeatedly on the same object triggers the same text box in an infinite loop.\\n"
-        "- If you interact with an object, the NEXT action MUST be a direction (move away).\\n"
-        "- Pattern: [..., \\\"A\\\", \\\"DOWN\\\", \\\"DOWN\\\", ...] — interact, then step away.\\n"
-        "- A single A press is enough; never chain multiple A's on the same tile.\\n\\n"
-        "PLAN FORMAT:\\n"
-        "- Group same-direction moves: [\\\"UP\\\",\\\"UP\\\",\\\"UP\\\"] not [\\\"UP\\\"] repeated.\\n"
-        "- Limit consecutive same-direction moves to 4-5 before switching.\\n"
-        "- A complete plan might look like: [\\\"UP\\\",\\\"UP\\\",\\\"RIGHT\\\",\\\"RIGHT\\\",\\\"A\\\"].\\n"
+        "- UP/DOWN/LEFT/RIGHT move one tile in that direction.\n"
+        "- A interacts with adjacent objects/NPCs/doors.\n"
+        "- B cancels, START opens menu.\n\n"
+        "EXPLORATION STRATEGY:\n"
+        "- Start with SHORT moves (2-3 tiles) in new areas.\n"
+        "- Walk toward visible exits (doors, stairs, paths).\n"
+        "- If adjacent tile is 'wall' in one direction, do NOT try that direction.\n"
+        "- If adjacent tile is 'door', walk into it (or press A on it).\n"
+        "- If adjacent tile is 'npc', walk toward it and press A to talk.\n"
+        "- If adjacent tile is 'stair', walk onto it.\n"
+        "- When ALL directions are blocked (walls/objects all around): press A.\n"
+        "- NEVER spam repeated button presses — plan one action per tile.\n"
+        "- After interacting (A), next action should move away.\n"
     )
 
     blocked_msg = ""
@@ -268,12 +257,11 @@ def controller_plan(
         blocked_msg = (
             f"\n⚠️  WARNING: Previously pressed {blocked_dir} {blocked_count}+ times "
             f"with no progress. That direction is likely BLOCKED. "
-            f"Do NOT include {blocked_dir} in your plan. "
-            f"Try the next direction clockwise from {blocked_dir}.\n"
+            f"Do NOT include {blocked_dir} in your plan.\n"
         )
 
     msg = (
-        f"{world_view}\n\n"
+        f"{spatial_summary}\n\n"
         f"LAST BUTTON: {last_button or 'none'}\n"
         f"LAST RESULT: {last_result or 'unknown'}\n"
         f"{blocked_msg}\n"
@@ -330,18 +318,13 @@ def main() -> None:
     results = []
     emu = Emulator(ROM)
 
-    # Init world state
-    world = WorldState()
-    world.init_blank(300, 280)  # generous for any Gen 1 map
-    world.map_id = "pallet_town_unknown"
-    integrator = MapIntegrator(world)
-
     # Init AI clients
     if USE_VISION_CLIENT:
         vision = VisionClient()  # noqa: F841 — conditionally enabled debug classifier
     controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
 
-    print(f"[{run_id}] Starting run with cartographer pipeline...")
+    print(f"[{run_id}] Starting run with visual-reference cartographer pipeline...")
+    print(f"  Reference image: reference/bedroom_overworld.png")
 
     # ── Checkpoint / recovery state ────────────────────────────────
     _same_dir: str | None = None
@@ -350,6 +333,8 @@ def main() -> None:
     _last_saved_slot: int | None = None
     _dir_blacklist: set[str] = set()  # directions that caused checkpoint recovery
     _dir_rotation = {"UP": "RIGHT", "RIGHT": "DOWN", "DOWN": "LEFT", "LEFT": "UP"}
+    _last_direction: str = ""  # last direction pressed (for controller context)
+    _last_result: str = "unknown"  # last movement result
 
     # ── Void state recovery tracking ──────────────────────────────
     _void_cycles: int = 0       # consecutive cycles with >95% unknown tiles
@@ -387,7 +372,7 @@ def main() -> None:
 
         # Use cartographer for reliable screen classification
         patch_data, carto_raw = cartographer_analyze(
-            controller_client, screenshot, world, world.last_result
+            controller_client, screenshot
         )
         st = patch_data.get("result", "unknown")
 
@@ -487,79 +472,56 @@ def main() -> None:
             img = Image.fromarray(screenshot)
             img.save(SCREENSHOT_DIR / f"step_{cycle+1:04d}.png")
 
-            # Step 1: Cartographer classifies screen + analyzes terrain
+            # Step 1: Cartographer classifies screen + spatial analysis
             patch_data, carto_raw = cartographer_analyze(
-                controller_client, screenshot, world, world.last_result
+                controller_client, screenshot
             )
             st = patch_data.get("result", "unknown")
 
             t0 = time.time()
 
             if st == "overworld":
-                # ── Cartographer pipeline ──────────────────────────
-                # Patch already fetched above, now apply it
-                if not patch_data.get("_parse_error"):
-                    ok = integrator.apply(patch_data)
-                    if not ok:
-                        print(f"  [!] Patch rejected: {integrator.stats['recent_rejections'][-1:] if integrator.stats['recent_rejections'] else 'unknown'}")
+                # ── Visual-Reference Pipeline ──────────────────────
+                # Cartographer already gave us spatial info (adjacent tiles,
+                # visible_exits, player_facing, suggested_action).
+                # Feed this directly to the controller — no MapIntegrator needed.
 
-                # Mark visited at player position
-                px, py = world.player.pos
-                integrator.world.visited[py][px] = "@" if 0 <= py < len(integrator.world.visited) and 0 <= px < len(integrator.world.visited[0]) else "?"
-
-                # Save world state
-                integrator.save(WORLD_DIR)
-
-                # ── Void state detection ──────────────────────────
-                unknown_pct = _unknown_tile_pct(world.terrain)
-                if unknown_pct > 95:
+                # ── Void state detection (simplified: check if cartographer classified correctly) ──
+                if st == "unknown":
                     _void_cycles += 1
-                    print(f"  [VOID] {unknown_pct:.0f}% unknown tiles (cycle {_void_cycles}/3)")
+                    print(f"  [VOID] Cartographer returned unknown (cycle {_void_cycles}/3)")
                 else:
                     _void_cycles = 0
                     _recovery_attempts = 0
 
                 if _void_cycles >= 3:
                     _recovery_attempts += 1
-                    if _recovery_attempts <= 3:
-                        # Strategy 1: open menu, close menu (force redraw)
-                        emu.press_button("start", frames=30)
-                        emu.wait(60)
-                        emu.press_button("b", frames=10)
-                        emu.wait(30)
-                        emu.press_button("b", frames=10)
-                        emu.wait(30)
-                        strategy = "menu_redraw"
-                    else:
-                        # Strategy 2: soft reset sequence (menu + cancel menu)
-                        emu.press_button("start", frames=30)
-                        emu.wait(60)
-                        emu.press_button("b", frames=10)
-                        emu.wait(30)
-                        emu.press_button("b", frames=10)
-                        emu.wait(30)
-                        emu.press_button("a", frames=10)
-                        emu.wait(60)
-                        strategy = "soft_reset"
+                    # Strategy: open/close menu to force redraw
+                    emu.press_button("start", frames=30)
+                    emu.wait(60)
+                    emu.press_button("b", frames=10)
+                    emu.wait(30)
+                    emu.press_button("b", frames=10)
+                    emu.wait(30)
+                    strategy = "menu_redraw"
 
                     evt = {
                         "cycle": cycle + 1,
                         "event": "void_recovery",
-                        "unknown_pct": round(unknown_pct, 1),
                         "recovery_attempt": _recovery_attempts,
                         "strategy": strategy,
                     }
                     results.append(evt)
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
-                    print(f"  [RECOVER] Void recovery attempt {_recovery_attempts}: {strategy} ({unknown_pct:.0f}% unknown)")
-                    _void_cycles = 0  # reset after recovery attempt
+                    print(f"  [RECOVER] Void recovery attempt {_recovery_attempts}: {strategy}")
+                    _void_cycles = 0
 
-                # Step 2b: Controller outputs a movement PLAN (single API call)
-                world_view = integrator.compose_for_controller()
+                # Step 2b: Controller outputs movement PLAN from spatial description
                 decision = controller_plan(
-                    controller_client, world_view,
-                    world.last_button, world.last_result,
+                    controller_client, patch_data,
+                    _last_direction or "",
+                    _last_result,
                     blocked_dir=_same_dir or "",
                     blocked_count=_same_dir_count,
                     max_actions=CART_STEPS,
@@ -612,7 +574,7 @@ def main() -> None:
                     btn = btn_map.get(button, "a")
                     emu.press_button(btn, frames=PRESS_FRAMES)
                     emu.fast_forward(STEP_FORWARD)
-                    world.last_button = button
+                    _last_direction = button
 
                     # Blocked-direction tracking (per-button for recovery)
                     if button in ("UP", "DOWN", "LEFT", "RIGHT"):
@@ -784,12 +746,9 @@ def main() -> None:
 
     # Summary
     screens = set(r.get("screen", "?") for r in results)
-    buttons = [r.get("button", r.get("action", "?")) for r in results if r.get("button")]
     print(f"\n[{run_id}] Done. {len(results)} actions. Screens: {screens}")
-    print(f"Buttons: {buttons[-20:] if len(buttons) > 20 else buttons}")
-    print(f"Integrator stats: {integrator.stats}")
-    print(f"World saved to: {WORLD_DIR}")
     print(f"Log: {log_path}")
+    print(f"Screenshots: {SCREENSHOT_DIR}")
 
 
 if __name__ == "__main__":
