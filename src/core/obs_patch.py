@@ -237,7 +237,10 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
 
     # Resync
     resync = data.get("resync")
-    if isinstance(resync, dict):
+    if resync is True:
+        # Boolean resync — signal to re-observe without full data
+        patch.resync = Resync(reason="signal")
+    elif isinstance(resync, dict):
         patch.resync = Resync(
             reason=resync.get("reason", ""),
             new_map_id=resync.get("new_map_id", ""),
