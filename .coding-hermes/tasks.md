@@ -254,3 +254,10 @@
 **Model:** deepseek-v4-pro (foreman direct)
 **Files:** tests/test_decision.py (new)
 **Result:** 25 tests across 8 test classes: Constructor (3), StepHappyPath (9), StepVisionFailure (2), StepPromptFailure (1), StepThinkingFailure (2), StepToolParseFailure (2), StepExecutionResult (2), Run (3), ScreenshotPaths (1). Coverage: 100% (78 stmts, 0 missed, all 6 branches covered). Tests cover all 7 pipeline phases + 3 fallback paths (vision, prompt, thinking) + parse failure + execution error detection + run loop exception handling.
+
+### [x] COV-9: Add unit tests for screenshot_manager.py (0% → ~85%) + duckbrain_client.py (0% → ~90%) ✅ (85a9abe)
+**Priority:** medium
+**Why:** ScreenshotManager handles capture/storage/grid/cleanup — 150 lines at 0%. DuckBrain client writes/reads JSONL — 81 lines at 0%. Both are pure file-I/O, mechanical to test with temp dirs.
+**Model:** deepseek-v4-pro (foreman direct — mechanical test file)
+**Files:** tests/test_screenshot_manager.py (new), tests/test_duckbrain_client.py (new)
+**Result:** 47 tests for ScreenshotManager (init, save, get_latest, base64, grid, cleanup, stats, LiveView) + 31 tests for duckbrain_client (remember, recall, list_keys, tombstones, corrupt JSON, dedup). 78 total. All pass in 0.34s.
