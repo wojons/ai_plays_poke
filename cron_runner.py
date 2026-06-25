@@ -361,13 +361,14 @@ def main() -> None:
     # A-presses between checks so the intro progresses during API waits.
     print(f"[{run_id}] Bypassing intro via cartographer...")
 
-    # Step 1: Title screen → press START, then select NEW GAME
+    # Step 1: Title screen → press START
     emu.bypass_title()
-    # Ensure we select NEW GAME, not CONTINUE (in case save file exists)
-    emu.press_button("down", frames=15)  # move cursor from CONTINUE to NEW GAME
-    emu.wait(15)
-    emu.press_button("a", frames=15)    # select NEW GAME
-    emu.wait(120)  # let Oak appear
+    # Wait for Oak's intro to finish and main menu to appear
+    emu.wait(120)
+    # Press A — if no save file, this selects NEW GAME directly.
+    # If save exists, cursor is on CONTINUE — we'll detect old save below.
+    emu.press_button("a", frames=15)
+    emu.wait(120)  # let game load (or Oak appear)
 
     _player_named = False
     _rival_named = False
@@ -376,6 +377,7 @@ def main() -> None:
     _A_BURST = 60       # A-presses per batch (was 10 — not enough for full intro)
     _A_FRAMES = 20      # hold A for 20 frames each press
     _FF_FRAMES = 120    # fast-forward between presses
+    _save_detected = False  # set True if we loaded a save file by mistake
 
     while _intro_checks < _MAX_INTRO_CHECKS:
         _intro_checks += 1
@@ -386,6 +388,26 @@ def main() -> None:
             controller_client, screenshot, world, world.last_result
         )
         st = patch_data.get("result", "unknown")
+
+        # ── Save file detection: if we're in overworld without naming ──
+        if st == "overworld" and not _player_named:
+            tc = patch_data.get("text_content", [])
+            if not tc:  # no dialog — definitely not intro
+                if not _save_detected:
+                    _save_detected = True
+                    print("  [intro] SAVE DETECTED — restarting with NEW GAME")
+                    # Reset the emulator from scratch
+                    emu.stop()
+                    emu = Emulator(ROM)
+                    emu.bypass_title()
+                    emu.wait(120)
+                    # Move cursor from CONTINUE (default) to NEW GAME
+                    emu.press_button("down", frames=15)
+                    emu.wait(15)
+                    emu.press_button("a", frames=15)
+                    emu.wait(120)
+                    _intro_checks = 0  # reset counter
+                    continue
 
         if st == "overworld":
             print(f"  [intro] Cartographer says overworld — intro complete ({_intro_checks} checks)")
