@@ -78,6 +78,7 @@ from src.core.symbols import SYMBOL_REFERENCE
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 CYCLES = 200
 STATE_STEPS = 12
+USE_VISION_CLIENT = False  # True = debug mode (cheap classifier), False = Gemma 12B cartographer
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 12  # controller steps per overworld cycle
 PRESS_FRAMES = 120  # hold button for 2s game time
@@ -90,6 +91,10 @@ run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_path = LOG_DIR / f"run_{run_id}.jsonl"
 SCREENSHOT_DIR = Path("screenshots") / f"run_{run_id}"
 SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
+
+# ── Debug: optional VisionClient (cheap classifier, disabled by default) ──
+if USE_VISION_CLIENT:
+    from src.core.vision import VisionClient  # noqa: E402
 
 # ── Checkpointing ───────────────────────────────────────────────────
 CHECKPOINT_INTERVAL = 10   # save state every N cycles
@@ -313,6 +318,8 @@ def main() -> None:
     integrator = MapIntegrator(world)
 
     # Init AI clients
+    if USE_VISION_CLIENT:
+        vision = VisionClient()
     controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
 
     print(f"[{run_id}] Starting run with cartographer pipeline...")
