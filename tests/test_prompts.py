@@ -47,7 +47,7 @@ for gen in ["gen1", "gen3"]:
 # Test available_stacks
 stacks = ps.available_stacks()
 print("Available stacks:", stacks)
-assert len(stacks) == 10  # gen1: battle, cartographer, dialog, menu, overworld, title (6) + gen3: battle, dialog, menu, overworld (4)
+assert len(stacks) == 11  # gen1: battle, cartographer, core, dialog, menu, overworld, title (7) + gen3: battle, dialog, menu, overworld (4)
 
 # Test missing placeholder handling
 prompt2 = ps.assemble(
