@@ -324,6 +324,8 @@ def main() -> None:
     _same_dir_count: int = 0
     _checkpoint_slot: int = 0
     _last_saved_slot: int | None = None
+    _dir_blacklist: set[str] = set()  # directions that caused checkpoint recovery
+    _dir_rotation = {"UP": "RIGHT", "RIGHT": "DOWN", "DOWN": "LEFT", "LEFT": "UP"}
 
     # ── Void state recovery tracking ──────────────────────────────
     _void_cycles: int = 0       # consecutive cycles with >95% unknown tiles
@@ -503,6 +505,22 @@ def main() -> None:
                 plan = decision.get("plan", ["A"])
                 intent = decision.get("intent", "")
 
+                # ── Programmatic direction override ───────────────
+                # If a direction has triggered checkpoint recovery,
+                # do NOT let the controller press it again. Rotate it.
+                if _dir_blacklist:
+                    filtered_plan = []
+                    for btn in plan:
+                        btn_upper = btn.upper()
+                        if btn_upper in _dir_blacklist and btn_upper in _dir_rotation:
+                            replacement = _dir_rotation[btn_upper]
+                            filtered_plan.append(replacement)
+                        else:
+                            filtered_plan.append(btn_upper)
+                    if filtered_plan != [b.upper() for b in plan]:
+                        print(f"  [OVERRIDE] Blacklisted {_dir_blacklist}, plan {plan[:6]}→{filtered_plan[:6]}...")
+                    plan = filtered_plan
+
                 plan_entry = {
                     "cycle": cycle + 1,
                     "screen": st,
@@ -554,8 +572,12 @@ def main() -> None:
                                 log_file.write(json.dumps(evt, default=str) + "\n")
                                 log_file.flush()
                                 print(f"  [RECOVER] Loaded checkpoint slot {_last_saved_slot} (blocked {_same_dir} x{_same_dir_count})")
+                                blocked = _same_dir
                                 _same_dir = None
                                 _same_dir_count = 0
+                                if blocked and blocked in _dir_rotation:
+                                    _dir_blacklist.add(blocked)
+                                    print(f"  [BLACKLIST] {blocked} added to blacklist: {_dir_blacklist}")
                                 break  # exit plan execution early
                             except Exception as exc:
                                 print(f"  [RECOVER] Failed to load slot {_last_saved_slot}: {exc}")
