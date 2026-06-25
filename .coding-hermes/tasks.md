@@ -3,15 +3,11 @@
 
 ## Active Queue
 
-### [ ] FIX-4: Audit remaining threading.Lock in CircuitBreaker + TokenTracker
+### [x] FIX-4: Audit remaining threading.Lock in CircuitBreaker + TokenTracker ✅
 **Priority:** medium
 **Model:** deepseek-v4-pro (foreman direct — mechanical)
 **Files:** src/core/ai_client.py
-**AC:**
-1. Audit all threading.Lock() usage in ai_client.py — 2 remaining: CircuitBreaker (line 81), TokenTracker (line 115)
-2. Verify no method in CircuitBreaker calls another CircuitBreaker method that acquires lock
-3. Verify no method in TokenTracker calls another TokenTracker method that acquires lock
-4. If safe after audit, no changes needed — tests already pass
+**Result:** Audit complete — both SAFE. CircuitBreaker (line 79): 3 methods (record_success, record_failure, allow_request) each acquire lock independently, none calls another. TokenTracker (line 113): 4 methods (record_request, get_cost_per_decision, get_session_stats, reset) — get_cost_per_decision doesn't acquire lock (reads atomic float), no cross-calls. No self-deadlock risk. No changes needed. 86 tests pass (emulator+tools).
 
 ### [ ] COV-1: Add unit tests for state_window.py (0% → 50%+)
 **Priority:** high
