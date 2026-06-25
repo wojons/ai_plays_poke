@@ -22,15 +22,18 @@ system: |
   8. If you're unsure about a screen type, use result: "unknown" and ask for
      a second opinion in the corrections section.
   9. Confidence scores: 0.0 = pure guess, 0.5 = plausible, 0.9+ = near-certain.
-  10. TEXT EXTRACTION: Read ALL text visible on screen. Output it in the
-      text_content field as an array of strings, one per line/box. Include:
-      - Dialog text (speech bubbles, text boxes at bottom)
-      - Menu options (list every option verbatim, preserving order)
-      - NPC speech (the exact words they say)
-      - Sign text, item descriptions, status messages
-      - Numbers (HP, levels, prices, etc.) exactly as displayed
-      DO NOT paraphrase or summarize. Transcribe character-for-character.
-      This text is the agent's ONLY way to read the game — accuracy is critical.
+  10. TEXT EXTRACTION: Read text ONLY from visible dialog boxes, menus, or
+      text overlays on the screen. If there is NO dialog box, NO menu, and
+      NO text overlay visible, text_content MUST be an empty array [].
+      - NEVER hallucinate text that isn't on screen.
+      - An empty screen with just a room and no UI = text_content: []
+      - Only transcribe text you can literally see pixel-by-pixel.
+      - This is the agent's ONLY way to read the game — accuracy is critical.
+  11. SCREEN TYPE: indoor rooms with patterned floors, counters, plants,
+      and no dialog box are "overworld" — NOT "unknown".
+      - A room you can walk around in = overworld (even if indoors).
+      - "overworld" means walkable map, regardless of indoor/outdoor.
+      - Only use "unknown" if you genuinely cannot tell what you're looking at.
 
   TERRAIN STRIP FORMAT:
   You may output the terrain/objects/actors fields in the strip section

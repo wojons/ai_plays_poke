@@ -174,7 +174,7 @@ def cartographer_analyze(
 
 
 def _extract_obs_patch(text: str) -> dict[str, Any]:
-    """Extract OBS_PATCH from model response (handles markdown fences)."""
+    """Extract OBS_PATCH from model response (handles markdown fences, YAML wrappers)."""
     text = text.strip()
     # Strip ``` fences
     if text.startswith("```"):
@@ -185,15 +185,22 @@ def _extract_obs_patch(text: str) -> dict[str, Any]:
         text = "\n".join(lines)
 
     # Try JSON first, then YAML
+    data: dict[str, Any] = {}
     try:
-        return json.loads(text)  # type: ignore
+        data = json.loads(text)
     except (json.JSONDecodeError, ValueError):
-        pass
+        try:
+            data = yaml.safe_load(text) or {}
+        except Exception:
+            return {"_parse_error": text[:500]}
 
-    try:
-        return yaml.safe_load(text) or {}
-    except Exception:
-        return {"_parse_error": text[:500]}
+    # Unwrap obs_patch_v1 / obs_patch wrapper if present
+    if isinstance(data, dict) and len(data) == 1:
+        key = next(iter(data))
+        if key in ("obs_patch_v1", "obs_patch", "patch") and isinstance(data[key], dict):
+            return data[key]
+
+    return data
 
 
 
@@ -345,6 +352,8 @@ def main() -> None:
     # ── Void state recovery tracking ──────────────────────────────
     _void_cycles: int = 0       # consecutive cycles with >95% unknown tiles
     _recovery_attempts: int = 0  # recovery attempts in current void sequence
+    _stuck_cycles: int = 0       # consecutive cycles with same screen + no progress
+    _last_screen_type: str = ""  # for stuck detection
 
     # ── Deterministic intro bypass ──────────────────────────────────
     # Decoupled: A-mash aggressively in large batches, sparse cartographer
@@ -352,8 +361,12 @@ def main() -> None:
     # A-presses between checks so the intro progresses during API waits.
     print(f"[{run_id}] Bypassing intro via cartographer...")
 
-    # Step 1: Title screen → press START
+    # Step 1: Title screen → press START, then select NEW GAME
     emu.bypass_title()
+    # Ensure we select NEW GAME, not CONTINUE (in case save file exists)
+    emu.press_button("down", frames=15)  # move cursor from CONTINUE to NEW GAME
+    emu.wait(15)
+    emu.press_button("a", frames=15)    # select NEW GAME
     emu.wait(120)  # let Oak appear
 
     _player_named = False
@@ -630,6 +643,28 @@ def main() -> None:
                     "menu_items": patch_data.get("menu_items", []),
                     "adjacent_tiles": patch_data.get("adjacent_tiles", {}),
                 }
+
+                # ── Stuck detection: if same non-overworld screen for 5+ cycles, break out ──
+                if st == _last_screen_type and st != "overworld":
+                    _stuck_cycles += 1
+                else:
+                    _stuck_cycles = 0
+                _last_screen_type = st
+
+                if _stuck_cycles >= 5:
+                    print(f"  [STUCK] Same screen ({st}) for {_stuck_cycles} cycles — injecting breakout")
+                    emu.press_button("b", frames=30)  # close any lingering dialog
+                    emu.wait(30)
+                    emu.press_button("down", frames=30)  # move away
+                    emu.fast_forward(120)
+                    _stuck_cycles = 0
+                    # Log it
+                    evt = {"cycle": cycle + 1, "event": "stuck_breakout", "screen": st}
+                    results.append(evt)
+                    log_file.write(json.dumps(evt, default=str) + "\n")
+                    log_file.flush()
+                    continue  # skip StateWindow, let next cycle re-classify
+
                 state_type = st
                 if vis_dict.get("screen_subtype") == "keyboard":
                     state_type = "name_entry"
