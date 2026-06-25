@@ -217,3 +217,37 @@
 **Model:** deepseek-v4-pro (foreman direct)
 **Files:** cron_runner.py, tests/test_emulator.py, tests/test_recovery.py
 **Result:** Root cause: recovery check required both _same_dir_count>=5 AND _last_saved_slot not None, but when _last_saved_slot was None (silent save_state failure), the check did nothing — no debug print, no warning. Fixed by: (1) early warning at count=3, (2) warning when threshold reached but no checkpoint, (3) 6 new emulator checkpointing tests, (4) 23 new recovery logic tests. 132 tests pass (47 emu + 23 recovery + 39 tools + 23 other).
+
+---
+
+## Active Queue (Jun 25 — Coverage Gap Fill)
+
+### [ ] COV-5: Add unit tests for exceptions.py (0% → 90%+)
+**Priority:** high
+**Why:** 12 custom exception classes with rich docstrings — all `pass` bodies. Hierarchy testing and attribute coverage is pure mechanical.
+**Model:** deepseek-v4-pro (foreman direct — trivial test file)
+**Files:** tests/test_exceptions.py (new)
+**AC:**
+1. Test PokemonAIError base class: default message, custom message, code, context kwargs, message+code+context combo
+2. Test each of the 12 subclasses inherits from PokemonAIError
+3. Test each subclass preserves message/code/context through __init__
+4. Test isinstance checks against base and intermediate
+5. Coverage: exceptions.py 0% → 90%+
+
+### [ ] COV-6: Add unit tests for global_context.py (26% → 85%+)
+**Priority:** medium
+**Why:** Global context is injected into every state window — dataclass with compact(), record_action(), add_goal(), complete_goal(), set_flag(), update_party(), set_location()
+**Model:** deepseek-v4-pro (foreman direct)
+**Files:** tests/test_global_context.py (new)
+
+### [ ] COV-7: Add unit tests for prompt_loader.py (54% → 80%+)
+**Priority:** low
+**Why:** Prompt loader reads YAML files — small file, mechanical to test with temp directories.
+**Model:** deepseek-v4-pro (foreman direct)
+**Files:** tests/test_prompt_loader.py (new)
+
+### [ ] COV-8: Add unit tests for decision.py (21% → 60%+)
+**Priority:** low
+**Why:** Decision pipeline that wires vision → prompt → API — medium complexity, needs mocking.
+**Model:** ollama-cloud/glm-5.2 (delegate_task)
+**Files:** tests/test_decision.py (new)
