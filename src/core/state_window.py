@@ -193,6 +193,7 @@ class StateWindow:
         generation: str = "gen1",
         thinking_model: str = "deepseek-v4-flash",
         max_steps: int = 15,
+        hint_level: int = 0,
     ) -> None:
         self.state_type = state_type
         self.global_ctx = global_ctx
@@ -201,13 +202,19 @@ class StateWindow:
         self.generation = generation
         self.thinking_model = thinking_model
         self.max_steps = max_steps
+        self.hint_level = hint_level
 
         self.client = OpenRouterClient()
         self._step_count = 0
         self._history: list[dict[str, Any]] = []
+        self._raw_responses: list[str] = []  # raw LLM text per step
 
         # Load state workflow
         self._workflow = _load_state_workflow(state_type, generation)
+
+        # Load core + hint system prompt
+        from src.core.prompt_loader import load_system_prompt
+        self._system_prompt = load_system_prompt(hint_level=hint_level)
 
     # ── Public API ────────────────────────────────────────────────────
 
@@ -225,11 +232,12 @@ class StateWindow:
             # ── Fast-forward shortcut for non-interactive dialog ─────
             if self.state_type == "dialog" and not self._is_interactive():
                 if _auto_a_count < _MAX_AUTO_A:
-                    self.emulator.press_button("a", frames=5)
+                    self.emulator.press_button("a", frames=30)
+                    self.emulator.wait(10)   # let game register
                     self.emulator.fast_forward(120)
                     self._history.append({
                         "step": self._step_count,
-                        "tool_call": {"name": "press_button", "arguments": {"button": "a", "duration": 5, "fast_forward": 120}},
+                        "tool_call": {"name": "press_button", "arguments": {"button": "a", "duration": 30, "fast_forward": 120}},
                         "action": "auto_a",
                         "auto": True,
                     })
@@ -252,6 +260,8 @@ class StateWindow:
                 max_tokens=2000,
                 temperature=0.3,
             )
+
+            self._raw_responses.append(response or "")
 
             # Parse tool call
             from src.core.tools import parse_tool_call
@@ -323,8 +333,12 @@ class StateWindow:
         """Assemble the focused state window prompt."""
         parts: list[str] = []
 
+        # 0. Core system prompt + hints (from core.yaml + hint layers)
+        if self._system_prompt:
+            parts.append(self._system_prompt)
+
         # 1. Compacted global context (system role)
-        parts.append("GLOBAL STATE:\n" + self.global_ctx.compact())
+        parts.append("\nGLOBAL STATE:\n" + self.global_ctx.compact())
 
         # 2. State workflow
         if self._workflow:
@@ -337,9 +351,15 @@ class StateWindow:
             parts.append(f"  Subtype: {self.vision['screen_subtype']}")
         if self.vision.get("name_field"):
             parts.append(f"  Name field: {self.vision['name_field']}")
-        text_lines = self.vision.get("text_lines", [])
-        if text_lines:
-            parts.append(f"  Text: {text_lines}")
+
+        # Text content — the agent reads this to make decisions
+        from src.core.prompt_loader import get_text_content
+        tc = get_text_content(self.vision)
+        if tc:
+            parts.append("\n  SCREEN TEXT (read this — it tells you what to do):")
+            for line in tc:
+                parts.append(f"    > {line}")
+
         menu_items = self.vision.get("menu_items", [])
         if menu_items:
             parts.append(f"  Menu: {menu_items}")
@@ -368,8 +388,8 @@ class StateWindow:
 
         # 6. Output instruction
         parts.append(
-            "\nOUTPUT: Call a tool. If you need info from global state "
-            "that isn't shown above, use query_global."
+            "\nOUTPUT: Call a tool. Use DuckBrain to remember things or set goals. "
+            "If you need info from global state that isn't shown above, use query_global."
         )
 
         return "\n".join(parts)

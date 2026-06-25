@@ -73,12 +73,14 @@ from src.core.ai_client import OpenRouterClient
 from src.core.world_state import WorldState
 from src.core.map_integrator import MapIntegrator
 from src.core.symbols import SYMBOL_REFERENCE
+from src.core.prompt_loader import load_system_prompt
 
 # ── Config ──────────────────────────────────────────────────────────
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 CYCLES = 200
 STATE_STEPS = 12
 USE_VISION_CLIENT = False  # True = debug mode (cheap classifier), False = Gemma 12B cartographer
+HINT_LEVEL = 4  # 0=benchmark, 1=mechanics, 2=genre, 3=starter, 4=navigation
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 12  # controller steps per overworld cycle
 PRESS_FRAMES = 120  # hold button for 2s game time
@@ -123,8 +125,8 @@ def cartographer_analyze(
     screenshot: np.ndarray,
     world: WorldState,
     last_result: str = "unknown",
-) -> dict[str, Any]:
-    """Send screenshot + world state to Gemma 12B, return OBS_PATCH dict."""
+) -> tuple[dict[str, Any], str]:
+    """Send screenshot + world state to Gemma 12B, return (OBS_PATCH dict, raw_text)."""
     # Build the user prompt
     current_terrain = world.composed_view()
     current_objects = "\n".join("".join(row) for row in world.objects[:15])
@@ -168,7 +170,7 @@ def cartographer_analyze(
     )
 
     text = response.get("content", "")
-    return _extract_obs_patch(text)
+    return _extract_obs_patch(text), text
 
 
 def _extract_obs_patch(text: str) -> dict[str, Any]:
@@ -223,8 +225,8 @@ def controller_plan(
     Returns a dict with 'plan' (list of button strings) and 'intent'.
     Single API call replaces 12 individual controller calls per cycle.
     """
-    system = (
-        "You are controlling a Pokémon game player character.\n\n"
+    system = load_system_prompt(hint_level=HINT_LEVEL) + "\n\n" + (
+        "You are controlling a Game Boy game player character.\n\n"
         "Given the current world map and state, output a MOVEMENT PLAN — "
         "a sequence of button presses to execute before the next vision check.\n\n"
         "Respond with ONLY a JSON object:\n"
@@ -234,16 +236,22 @@ def controller_plan(
         "- D-pad buttons (UP/DOWN/LEFT/RIGHT) move one tile each.\n"
         "- A interacts with adjacent signs/doors/NPCs.\n"
         "- START opens the menu, B cancels.\n\n"
-        "EXPLORATION STRATEGY:\n"
-        "- Prefer exploring unvisited tiles (shown as ? in LOCAL MAP).\n"
-        "- When all directions are unknown, try them clockwise: UP, RIGHT, DOWN, LEFT.\n"
-        "- If a movement edge says 'blocked', skip that direction.\n"
-        "- Walk to visible exits (doors, paths, stairs) when you see them.\n"
-        "- Interact (A) with objects when adjacent.\n\n"
-        "PLAN FORMAT:\n"
-        "- Group same-direction moves: [\"UP\",\"UP\",\"UP\"] not [\"UP\"] repeated.\n"
-        "- Limit consecutive same-direction moves to 4-5 before switching.\n"
-        "- A complete plan might look like: [\"UP\",\"UP\",\"RIGHT\",\"RIGHT\",\"A\"].\n"
+        "EXPLORATION STRATEGY:\\n"
+        "- Prefer exploring unvisited tiles (shown as ? in LOCAL MAP).\\n"
+        "- When all directions are unknown, try them clockwise: UP, RIGHT, DOWN, LEFT.\\n"
+        "- If a movement edge says 'blocked', skip that direction.\\n"
+        "- Walk to visible exits (doors, paths, stairs) when you see them.\\n"
+        "- Interact (A) with objects when adjacent.\\n\\n"
+        "INTERACTION LOOP WARNING:\\n"
+        "- NEVER spam A while facing an interactive object (TV, sign, PC, NPC).\\n"
+        "- Pressing A repeatedly on the same object triggers the same text box in an infinite loop.\\n"
+        "- If you interact with an object, the NEXT action MUST be a direction (move away).\\n"
+        "- Pattern: [..., \\\"A\\\", \\\"DOWN\\\", \\\"DOWN\\\", ...] — interact, then step away.\\n"
+        "- A single A press is enough; never chain multiple A's on the same tile.\\n\\n"
+        "PLAN FORMAT:\\n"
+        "- Group same-direction moves: [\\\"UP\\\",\\\"UP\\\",\\\"UP\\\"] not [\\\"UP\\\"] repeated.\\n"
+        "- Limit consecutive same-direction moves to 4-5 before switching.\\n"
+        "- A complete plan might look like: [\\\"UP\\\",\\\"UP\\\",\\\"RIGHT\\\",\\\"RIGHT\\\",\\\"A\\\"].\\n"
     )
 
     blocked_msg = ""
@@ -286,10 +294,11 @@ def controller_plan(
         result = json.loads(text)
         # Accept both {"plan": [...]} and legacy {"button": "UP"} format
         if "plan" in result:
+            result["raw_response"] = text
             return result  # type: ignore[no-any-return]
         if "button" in result:
-            return {"plan": [result["button"]], "intent": result.get("intent", "")}
-        return {"plan": ["A"], "intent": "parse_fallback"}
+            return {"plan": [result["button"]], "intent": result.get("intent", ""), "raw_response": text}
+        return {"plan": ["A"], "intent": "parse_fallback", "raw_response": text}
     except json.JSONDecodeError:
         import re
         m = re.search(r'\{[^}]+\}', text)
@@ -297,12 +306,13 @@ def controller_plan(
             try:
                 result = json.loads(m.group())
                 if "plan" in result:
+                    result["raw_response"] = text
                     return result  # type: ignore[no-any-return]
                 if "button" in result:
-                    return {"plan": [result["button"]], "intent": result.get("intent", "")}
+                    return {"plan": [result["button"]], "intent": result.get("intent", ""), "raw_response": text}
             except json.JSONDecodeError:
                 pass
-        return {"plan": ["A"], "intent": "parse_failure_fallback"}
+        return {"plan": ["A"], "intent": "parse_failure_fallback", "raw_response": text}
 
 
 # ── Main ────────────────────────────────────────────────────────────
@@ -319,7 +329,7 @@ def main() -> None:
 
     # Init AI clients
     if USE_VISION_CLIENT:
-        vision = VisionClient()
+        vision = VisionClient()  # noqa: F841 — conditionally enabled debug classifier
     controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
 
     print(f"[{run_id}] Starting run with cartographer pipeline...")
@@ -337,9 +347,9 @@ def main() -> None:
     _recovery_attempts: int = 0  # recovery attempts in current void sequence
 
     # ── Deterministic intro bypass ──────────────────────────────────
-    # Use the cartographer (Gemma 12B) for screen classification since
-    # VisionClient misclassifies Oak's close-up as "overworld".
-    # Batch mechanical A-presses between cartographer checks to minimize API calls.
+    # Decoupled: A-mash aggressively in large batches, sparse cartographer
+    # checks. Each cartographer call has 1-60s latency; we maximize
+    # A-presses between checks so the intro progresses during API waits.
     print(f"[{run_id}] Bypassing intro via cartographer...")
 
     # Step 1: Title screen → press START
@@ -349,14 +359,17 @@ def main() -> None:
     _player_named = False
     _rival_named = False
     _intro_checks = 0
-    _MAX_INTRO_CHECKS = 12  # max cartographer calls for intro
+    _MAX_INTRO_CHECKS = 12
+    _A_BURST = 60       # A-presses per batch (was 10 — not enough for full intro)
+    _A_FRAMES = 20      # hold A for 20 frames each press
+    _FF_FRAMES = 120    # fast-forward between presses
 
     while _intro_checks < _MAX_INTRO_CHECKS:
         _intro_checks += 1
         screenshot = emu.capture()
 
         # Use cartographer for reliable screen classification
-        patch_data = cartographer_analyze(
+        patch_data, carto_raw = cartographer_analyze(
             controller_client, screenshot, world, world.last_result
         )
         st = patch_data.get("result", "unknown")
@@ -364,42 +377,50 @@ def main() -> None:
         if st == "overworld":
             print(f"  [intro] Cartographer says overworld — intro complete ({_intro_checks} checks)")
             break
-        elif st in ("dialog", "name_confirm", "cutscene"):
-            # Mechanical A-press batch through dialog
-            for _ in range(10):
-                emu.press_button("a", frames=5)
-                emu.fast_forward(180)
         elif st == "name_entry":
             if not _player_named:
-                print(f"  [intro] Entering player name ASH...")
+                print("  [intro] Entering player name ASH...")
                 emu.enter_name("ASH")
                 _player_named = True
                 emu.wait(60)
-                emu.press_button("a", frames=10)
+                emu.press_button("a", frames=30)
                 emu.wait(120)
             elif not _rival_named:
-                print(f"  [intro] Entering rival name GARY...")
+                print("  [intro] Entering rival name GARY...")
                 emu.enter_name("GARY")
                 _rival_named = True
                 emu.wait(60)
-                emu.press_button("a", frames=10)
+                emu.press_button("a", frames=30)
                 emu.wait(120)
             else:
-                emu.press_button("a", frames=10)
-                emu.wait(60)
+                # Already named both — A-mash through naming screen
+                for _ in range(_A_BURST):
+                    emu.press_button("a", frames=_A_FRAMES)
+                    emu.fast_forward(_FF_FRAMES)
         elif st == "title":
             emu.press_button("start", frames=30)
             emu.wait(90)
         else:
-            # Unknown — press A mechanically
-            for _ in range(5):
-                emu.press_button("a", frames=5)
-                emu.fast_forward(180)
+            # dialog / name_confirm / cutscene / unknown — A-mash aggressively
+            for _ in range(_A_BURST):
+                emu.press_button("a", frames=_A_FRAMES)
+                emu.fast_forward(_FF_FRAMES)
 
     if _intro_checks >= _MAX_INTRO_CHECKS:
         print(f"  [!] Intro bypass hit {_MAX_INTRO_CHECKS} check cap — proceeding anyway")
     else:
         print(f"  Intro bypass complete in {_intro_checks} checks")
+
+    # ── Step away from whatever we're facing ──────────────────────
+    # The bedroom start position faces the TV; A-pressing creates an
+    # infinite TV-interaction loop. Walk DOWN to get clear.
+    print("  [intro] Stepping away from start position...")
+    for _ in range(4):
+        emu.press_button("down", frames=30)
+        emu.fast_forward(60)
+    # Clear any lingering dialog box
+    emu.press_button("b", frames=30)
+    emu.wait(30)
 
     # Save state after intro
     try:
@@ -430,7 +451,7 @@ def main() -> None:
             img.save(SCREENSHOT_DIR / f"step_{cycle+1:04d}.png")
 
             # Step 1: Cartographer classifies screen + analyzes terrain
-            patch_data = cartographer_analyze(
+            patch_data, carto_raw = cartographer_analyze(
                 controller_client, screenshot, world, world.last_result
             )
             st = patch_data.get("result", "unknown")
@@ -535,6 +556,8 @@ def main() -> None:
                     "pipeline": "cartographer",
                     "plan": plan,
                     "intent": intent,
+                    "controller_raw": decision.get("raw_response", ""),
+                    "cartographer_raw": carto_raw,
                 }
                 results.append(plan_entry)
                 log_file.write(json.dumps(plan_entry, default=str) + "\n")
@@ -603,6 +626,7 @@ def main() -> None:
                     "screen_subtype": patch_data.get("screen_subtype", ""),
                     "name_field": patch_data.get("name_field", ""),
                     "text_lines": patch_data.get("text_lines", []),
+                    "text_content": patch_data.get("text_content", patch_data.get("text_lines", [])),
                     "menu_items": patch_data.get("menu_items", []),
                     "adjacent_tiles": patch_data.get("adjacent_tiles", {}),
                 }
@@ -624,7 +648,7 @@ def main() -> None:
                     log_file.flush()
                     print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle+1}")
 
-                win = StateWindow(state_type, ctx, emu, vis_dict, generation="gen1", max_steps=STATE_STEPS)
+                win = StateWindow(state_type, ctx, emu, vis_dict, generation="gen1", max_steps=STATE_STEPS, hint_level=HINT_LEVEL)
                 win.run()
                 emu.fast_forward(FAST_FORWARD_FRAMES)
                 elapsed = time.time() - t0
@@ -643,6 +667,8 @@ def main() -> None:
                     "state": state_type,
                     "action": last_action,
                     "elapsed_s": round(elapsed, 1),
+                    "cartographer_raw": carto_raw,
+                    "state_window_raw": "\n\n---\n".join(win._raw_responses) if getattr(win, '_raw_responses', None) else "",
                 }
                 results.append(entry)
                 log_file.write(json.dumps(entry, default=str) + "\n")

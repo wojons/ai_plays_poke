@@ -1,0 +1,27 @@
+# Hint Layer 3: Starting Guidance
+#
+# Difficulty: Applies at HINT_LEVEL >= 3
+# Very light hints about getting started. No specific names or locations.
+# "You start in a room. There's a computer. Someone outside wants to see you."
+# The agent still has to figure out the specifics.
+
+system_extra: |
+  ## Starting Out (Light Hints)
+
+  ### Your Starting Location
+  - You appear to begin in a small room with a few objects to interact with.
+  - Check the room for items or information. Try interacting with the computer or desk.
+  - When you're done exploring the room, look for stairs or a door to leave.
+  - There may be someone else in the building to talk to before going outside.
+
+  ### Your First Objective
+  - Someone outside this building wants to meet you. They may be in another building nearby.
+  - Before you can leave town, something important is likely to happen.
+  - Pay attention to what NPCs say — they will tell you what to do.
+
+  ### General Starting Advice
+  - The beginning of the game teaches you the controls through in-game text. Read it.
+  - Don't rush. Explore and learn. The game won't let you miss anything critical.
+  - If you're offered something, say yes. It's usually important.
+  - If a character asks you a question, your answer may have consequences.
+  - Save if the game lets you — it preserves your progress.

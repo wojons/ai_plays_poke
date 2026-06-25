@@ -22,6 +22,15 @@ system: |
   8. If you're unsure about a screen type, use result: "unknown" and ask for
      a second opinion in the corrections section.
   9. Confidence scores: 0.0 = pure guess, 0.5 = plausible, 0.9+ = near-certain.
+  10. TEXT EXTRACTION: Read ALL text visible on screen. Output it in the
+      text_content field as an array of strings, one per line/box. Include:
+      - Dialog text (speech bubbles, text boxes at bottom)
+      - Menu options (list every option verbatim, preserving order)
+      - NPC speech (the exact words they say)
+      - Sign text, item descriptions, status messages
+      - Numbers (HP, levels, prices, etc.) exactly as displayed
+      DO NOT paraphrase or summarize. Transcribe character-for-character.
+      This text is the agent's ONLY way to read the game — accuracy is critical.
 
   TERRAIN STRIP FORMAT:
   You may output the terrain/objects/actors fields in the strip section
@@ -73,4 +82,4 @@ user_template: |
 
   SCREENSHOT: [attached]
 
-  Output OBS_PATCH v1 for what changed.
+  Output OBS_PATCH v1 for what changed. Include text_content with verbatim screen text.

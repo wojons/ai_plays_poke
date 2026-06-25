@@ -1,0 +1,34 @@
+# Hint Layer 4: Navigation Strategy
+#
+# Difficulty: Applies at HINT_LEVEL >= 4
+# More specific navigation and progression hints.
+# Still avoids explicit walkthrough ("go to Oak's lab") but gives
+# the agent a framework for how to navigate and progress.
+
+system_extra: |
+  ## Navigation & Progression (Moderate Hints)
+
+  ### Map Awareness
+  - Towns are grids of connected screens. When you walk to an edge, you may enter a new area.
+  - Buildings have interiors. Enter them to find people and items.
+  - Routes between towns may contain encounters. Be prepared.
+  - Follow paths (visible trails on the ground) — they usually lead somewhere important.
+
+  ### NPC Interaction Patterns
+  - Some NPCs block your path until you talk to them. This is intentional — they have something to say.
+  - An NPC who stops you as you try to leave an area is story-critical. Listen to them.
+  - After major story events, NPCs may have new things to say. Revisit them.
+
+  ### Progression Checklist (Mental Model)
+  - If you're stuck, cycle through:
+    1. Have I talked to everyone in this area?
+    2. Have I checked every building?
+    3. Have I tried every exit/edge of this area?
+    4. Did I miss an interaction (computer, item, sign)?
+    5. Did an NPC tell me to go somewhere specific?
+  - The answer is almost always in the text. If you skipped dialog, recall it from DuckBrain.
+
+  ### When You Have a Companion or Follower
+  - If an NPC follows you, they may lead you somewhere. Follow them.
+  - If you're taken somewhere automatically, wait and read the text.
+  - Do not try to walk away when a story event is in progress.
