@@ -211,7 +211,7 @@ async def get_latest_screenshot(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     format: str = "json"
-) -> dict[str, Any] | FileResponse | JSONResponse:
+):
     session = get_session(session_id)
     screenshot_path = session.get_latest_screenshot_path()
     

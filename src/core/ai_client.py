@@ -9,13 +9,11 @@ import time
 import base64
 import json
 import re
-import asyncio
 import threading
 from typing import Optional, Dict, Any, List, Callable
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, field
-from functools import wraps
 import hashlib
 
 import numpy as np
@@ -336,7 +334,7 @@ class AIModelClient:
 
         try:
             self._client = OpenRouterClient(self._api_key)
-        except ValueError as e:
+        except ValueError:
             self._stub_mode = True
             self._client = None
 
@@ -480,7 +478,7 @@ class ClaudeClient:
 
             input_tokens = response.usage.input_tokens
             output_tokens = response.usage.output_tokens
-            cost = calculate_cost(model, input_tokens, output_tokens)
+            calculate_cost(model, input_tokens, output_tokens)
 
             self.circuit_breaker.record_success()
 
@@ -496,7 +494,7 @@ class ClaudeClient:
                 "request_id": response.id
             }
 
-        except Exception as e:
+        except Exception:
             self.circuit_breaker.record_failure()
             raise
 
@@ -905,7 +903,7 @@ class JSONResponseParser:
             if result:
                 self.parse_success_count += 1
                 return result
-        except Exception as e:
+        except Exception:
             pass
 
         self.parse_failure_count += 1
@@ -1352,7 +1350,7 @@ Format: REASONING: [explanation] ACTION: [button]
                     )
 
                 return result  # type: ignore
-            except Exception as e:
+            except Exception:
                 if retry < max_retries - 1:
                     delay = self.rate_limiter.get_delay(retry)
                     time.sleep(delay)
@@ -1432,7 +1430,7 @@ Format: REASONING: [explanation] ACTION: [button]
         model: Optional[str] = None
     ) -> Dict[str, Any]:
         """Make strategic planning decision using thinking model"""
-        print(f"🧠 Strategic planning with thinking model...")
+        print("🧠 Strategic planning with thinking model...")
 
         prompt = self.prompts["strategic_planning"].format(
             journey_summary=journey_summary or "No journey summary yet",
@@ -2361,7 +2359,7 @@ class ResultMerger:
             return results[0]
         weighted_content = ""
         for r in results:
-            weight = r.confidence / total_confidence
+            r.confidence / total_confidence
             weighted_content += f"[{r.model} (conf:{r.confidence:.2f})]: {r.content}\n"
 
         selected = max(results, key=lambda r: r.confidence)
