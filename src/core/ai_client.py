@@ -647,72 +647,91 @@ class OpenRouterClient:
                 })
 
         start_time = time.time()
+        last_error = None
 
-        try:
-            response = requests.post(
-                f"{base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=30
-            )
-            duration_ms = (time.time() - start_time) * 1000
+        for attempt in range(3):  # up to 3 retries with backoff
+            try:
+                response = requests.post(
+                    f"{base_url}/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=30
+                )
+                duration_ms = (time.time() - start_time) * 1000
 
-            if response.status_code == 429:
-                self.circuit_breaker.record_failure()
-                raise Exception(f"Rate limited - retry {retry_count + 1}")
+                if response.status_code == 429:
+                    wait = 2 ** attempt  # 1s, 2s, 4s
+                    print(f"  [API] Rate limited (429), backing off {wait}s (attempt {attempt+1}/3)")
+                    time.sleep(wait)
+                    continue
 
-            if response.status_code != 200:
-                error_info = response.json() if response.content else response.text
-                print(f"OpenRouter API error {response.status_code}: {error_info}")
-                raise Exception(f"OpenRouter API error {response.status_code}: {error_info}")
+                if response.status_code >= 500 and attempt < 2:
+                    wait = 1 * (attempt + 1)
+                    print(f"  [API] Server error {response.status_code}, retrying in {wait}s (attempt {attempt+1}/3)")
+                    time.sleep(wait)
+                    continue
 
-            result = response.json()
+                if response.status_code != 200:
+                    error_info = response.json() if response.content else response.text
+                    print(f"OpenRouter API error {response.status_code}: {error_info}")
+                    raise Exception(f"OpenRouter API error {response.status_code}: {error_info}")
 
-            usage = result.get("usage", {})
-            input_tokens = usage.get("prompt_tokens", 0)
-            output_tokens = usage.get("completion_tokens", 0)
-            cost = calculate_cost(model, input_tokens, output_tokens)
+                result = response.json()
 
-            self.circuit_breaker.record_success()
+                usage = result.get("usage", {})
+                input_tokens = usage.get("prompt_tokens", 0)
+                output_tokens = usage.get("completion_tokens", 0)
+                cost = calculate_cost(model, input_tokens, output_tokens)
 
-            log_api_call(model, duration_ms, input_tokens, output_tokens, cost, True)
+                self.circuit_breaker.record_success()
 
-            choices = result.get("choices", [])
-            first_choice = choices[0] if choices else {}
-            message = first_choice.get("message", {})
+                log_api_call(model, duration_ms, input_tokens, output_tokens, cost, True)
 
-            # Check for tool_calls FIRST (proper OpenAI function calling)
-            tool_calls = message.get("tool_calls", [])
-            if tool_calls:
-                first_tool = tool_calls[0]
-                func = first_tool.get("function", {})
-                raw_args = func.get("arguments", "{}")
-                if isinstance(raw_args, str):
-                    try:
-                        parsed_args = json.loads(raw_args)
-                    except (json.JSONDecodeError, TypeError):
-                        parsed_args = raw_args  # pass through as-is
+                choices = result.get("choices", [])
+                first_choice = choices[0] if choices else {}
+                message = first_choice.get("message", {})
+
+                # Check for tool_calls FIRST (proper OpenAI function calling)
+                tool_calls = message.get("tool_calls", [])
+                if tool_calls:
+                    first_tool = tool_calls[0]
+                    func = first_tool.get("function", {})
+                    raw_args = func.get("arguments", "{}")
+                    if isinstance(raw_args, str):
+                        try:
+                            parsed_args = json.loads(raw_args)
+                        except (json.JSONDecodeError, TypeError):
+                            parsed_args = raw_args
+                    else:
+                        parsed_args = raw_args
+                    content = json.dumps({
+                        "name": func.get("name", ""),
+                        "arguments": parsed_args,
+                    })
                 else:
-                    parsed_args = raw_args
-                content = json.dumps({
-                    "name": func.get("name", ""),
-                    "arguments": parsed_args,
-                })
-            else:
-                content = message.get("content", "")
+                    content = message.get("content", "")
 
-            return {
-                "content": content,
-                "finish_reason": first_choice.get("finish_reason", "stop"),
-                "model": result.get("model", model),
-                "usage": usage,
-                "duration_ms": duration_ms,
-                "request_id": result.get("id", "")
-            }
+                return {
+                    "content": content,
+                    "finish_reason": first_choice.get("finish_reason", "stop"),
+                    "model": result.get("model", model),
+                    "usage": usage,
+                    "duration_ms": duration_ms,
+                    "request_id": result.get("id", "")
+                }
 
-        except Exception as e:
-            print(f"OpenRouter request failed: {e}")
-            raise
+            except Exception as e:
+                last_error = e
+                if attempt < 2:
+                    wait = 2 ** attempt
+                    print(f"  [API] Request failed: {e}, retrying in {wait}s (attempt {attempt+1}/3)")
+                    time.sleep(wait)
+                else:
+                    print(f"  [API] Request failed after 3 attempts: {e}")
+
+        # All retries exhausted
+        self.circuit_breaker.record_failure()
+        raise last_error or Exception("All API retries exhausted")
 
     def get_vision_response(
         self,
