@@ -244,11 +244,13 @@ def controller_plan(
         "- A interacts with adjacent signs/doors/NPCs.\n"
         "- START opens the menu, B cancels.\n\n"
         "EXPLORATION STRATEGY:\\n"
-        "- Prefer exploring unvisited tiles (shown as ? in LOCAL MAP).\\n"
-        "- When all directions are unknown, try them clockwise: UP, RIGHT, DOWN, LEFT.\\n"
-        "- If a movement edge says 'blocked', skip that direction.\\n"
-        "- Walk to visible exits (doors, paths, stairs) when you see them.\\n"
-        "- Interact (A) with objects when adjacent.\\n\\n"
+        "- Start with SHORT moves (2-3 tiles) when in a new area, not 12.\\n"
+        "- You're likely in a small room — walls are close. Test gently.\\n"
+        "- Look at OBJECTS (D=door, M=NPC/monster, S=stair, ?=unknown) for exits.\\n"
+        "- If a door or stair is visible, walk toward it.\\n"
+        "- When all directions are blocked: press A to interact with what's in front of you.\\n"
+        "- Interact (A) with NPCs (M) when adjacent — they give quests and info.\\n"
+        "- After interacting with an object, step AWAY (different direction) next action.\\n\\n"
         "INTERACTION LOOP WARNING:\\n"
         "- NEVER spam A while facing an interactive object (TV, sign, PC, NPC).\\n"
         "- Pressing A repeatedly on the same object triggers the same text box in an infinite loop.\\n"
@@ -566,20 +568,22 @@ def main() -> None:
                 intent = decision.get("intent", "")
 
                 # ── Programmatic direction override ───────────────
-                # If a direction has triggered checkpoint recovery,
-                # do NOT let the controller press it again. Chain-rotate:
-                # UP→RIGHT→DOWN→LEFT→UP until we land on a non-blacklisted dir.
+                # Chain-rotate through blacklist. If ALL 4 directions
+                # blacklisted, use A (interact) instead — stop walking.
                 if _dir_blacklist:
                     filtered_plan = []
                     for btn in plan:
                         btn_upper = btn.upper()
                         direction = btn_upper
-                        # Chain-rotate through blacklist
-                        for _ in range(4):  # max 4 rotations to avoid infinite loop
-                            if direction in _dir_blacklist and direction in _dir_rotation:
-                                direction = _dir_rotation[direction]
-                            else:
-                                break
+                        if direction in ("UP", "DOWN", "LEFT", "RIGHT"):
+                            for _ in range(4):
+                                if direction in _dir_blacklist and direction in _dir_rotation:
+                                    direction = _dir_rotation[direction]
+                                else:
+                                    break
+                            # If we cycled back to a blacklisted direction, all 4 blocked
+                            if direction in _dir_blacklist:
+                                direction = "A"  # interact instead
                         filtered_plan.append(direction)
                     if filtered_plan != [b.upper() for b in plan]:
                         print(f"  [OVERRIDE] Blacklisted {_dir_blacklist}, plan {plan[:6]}→{filtered_plan[:6]}...")
