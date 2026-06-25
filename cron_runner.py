@@ -507,16 +507,20 @@ def main() -> None:
 
                 # ── Programmatic direction override ───────────────
                 # If a direction has triggered checkpoint recovery,
-                # do NOT let the controller press it again. Rotate it.
+                # do NOT let the controller press it again. Chain-rotate:
+                # UP→RIGHT→DOWN→LEFT→UP until we land on a non-blacklisted dir.
                 if _dir_blacklist:
                     filtered_plan = []
                     for btn in plan:
                         btn_upper = btn.upper()
-                        if btn_upper in _dir_blacklist and btn_upper in _dir_rotation:
-                            replacement = _dir_rotation[btn_upper]
-                            filtered_plan.append(replacement)
-                        else:
-                            filtered_plan.append(btn_upper)
+                        direction = btn_upper
+                        # Chain-rotate through blacklist
+                        for _ in range(4):  # max 4 rotations to avoid infinite loop
+                            if direction in _dir_blacklist and direction in _dir_rotation:
+                                direction = _dir_rotation[direction]
+                            else:
+                                break
+                        filtered_plan.append(direction)
                     if filtered_plan != [b.upper() for b in plan]:
                         print(f"  [OVERRIDE] Blacklisted {_dir_blacklist}, plan {plan[:6]}→{filtered_plan[:6]}...")
                     plan = filtered_plan
