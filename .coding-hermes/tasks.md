@@ -9,19 +9,12 @@
 **Files:** src/core/ai_client.py
 **Result:** Audit complete — both SAFE. CircuitBreaker (line 79): 3 methods (record_success, record_failure, allow_request) each acquire lock independently, none calls another. TokenTracker (line 113): 4 methods (record_request, get_cost_per_decision, get_session_stats, reset) — get_cost_per_decision doesn't acquire lock (reads atomic float), no cross-calls. No self-deadlock risk. No changes needed. 86 tests pass (emulator+tools).
 
-### [ ] COV-1: Add unit tests for state_window.py (0% → 50%+)
+### [x] COV-1: Add unit tests for state_window.py (0% → 50%+) ✅
 **Priority:** high
 **Why:** Core AI decision module for game state windows (battle, dialog, overworld). 143 lines at 0% coverage.
 **Model:** deepseek-v4-pro (foreman direct — test file)
 **Files:** tests/test_state_window.py (new)
-**AC:**
-1. Test StateWindow.__init__ with battle screen context → verify hp_info, enemy_info populated
-2. Test StateWindow.__init__ with dialog screen context → verify text, speaker extracted
-3. Test StateWindow.__init__ with overworld screen context → verify location, map data
-4. Test assemble_prompt returns string with expected sections (hp_info, enemy, context)
-5. Test assemble_prompt with empty context → returns minimal valid prompt
-6. Test assemble_prompt with full context → includes all sections
-7. Coverage: state_window.py 0% → 50%+
+**Result:** 53 tests across 6 test classes — Init (12), BuildPrompt (21), IsInteractive (8), CheckOutcome (3), DuckbrainTools (5), LoadStateWorkflow (4). All pass in 0.48s. Coverage: 50% (up from 0%). Uncovered: run() loop (requires emulator+API mocks), _answer_global_query (trivial passthrough).
 
 ### [ ] COV-2: Add unit tests for vision/sprite.py (52% → 75%+)
 **Priority:** medium
