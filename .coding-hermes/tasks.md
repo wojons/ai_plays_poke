@@ -324,3 +324,23 @@
 7. ✅ Coverage: logger.py 20% → ~65% (110 tests, 0.15s)
 **Result:** 110 tests across 18 test classes — Constants (5), JSONFormatter (15), PlainFormatter (5), CategoryFilter (7), RotationFileHandler (12), AILogger singleton/init/setup/log/specialized/session/utility (42), log_function_call (4), setup_from_env (10). Documents 3 pre-existing production bugs. All pass in 0.15s. Full suite 2085/2085.
 
+### [x] COV-11: Add unit tests for vision/battle.py (25% → 69%) ✅ (pending)
+**Priority:** medium
+**Why:** BattleAnalyzer handles move selection, type effectiveness, damage calculation — core battle AI. 262 lines at 25% coverage.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_battle_analyzer.py (new)
+**AC:**
+1. ✅ Test BattleType/BattlePhase enums — all values, distinctness
+2. ✅ Test PokemonInfo/BattleState dataclasses — construction, defaults
+3. ✅ Test _build_type_chart() — all 18 types present, key matchups (super effective, not very effective, immune)
+4. ✅ Test get_type_effectiveness() — neutral, 2x, 0.5x, 0x, dual type stacking, unknown types
+5. ✅ Test calculate_damage() — basic, level scaling, power scaling, critical, immunity floor, edge levels
+6. ✅ Test get_super_effective_moves() — single, multiple, none, mixed, empty, 4x, non-mutation
+7. ✅ Test _extract_hp_bar_regions() — GBA/GB dimensions, region shapes, tiny screens, disjointness
+8. ✅ Test _determine_battle_type() — wild default, trainer threshold, below threshold
+9. ✅ Test _determine_battle_phase() — intro, move selection, menu, animation, mid-brightness
+10. ✅ Test _extract_available_moves() — default list, standard screen
+11. ✅ Test _get_cursor_position() — empty region returns 0
+12. ✅ Coverage: 25% → 69% (80 tests, 0.21s). Uncovered: analyze_battle + _extract_pokemon_info (need SpriteRecognizer with sprite DB).
+**Result:** 80 tests across 11 test classes: BattleType (4), BattlePhase (8), PokemonInfo (3), BattleState (3), BuildTypeChart (10), GetTypeEffectiveness (11), CalculateDamage (10), GetSuperEffectiveMoves (8), ExtractHPBarRegions (8), DetermineBattleType (4), DetermineBattlePhase (6), ExtractAvailableMoves (3), GetCursorPosition (1). Documents immune-damage-floor behavior (+2 always applied).
+
