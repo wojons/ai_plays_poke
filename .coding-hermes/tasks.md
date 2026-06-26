@@ -344,3 +344,23 @@
 12. ✅ Coverage: 25% → 69% (80 tests, 0.21s). Uncovered: analyze_battle + _extract_pokemon_info (need SpriteRecognizer with sprite DB).
 **Result:** 80 tests across 11 test classes: BattleType (4), BattlePhase (8), PokemonInfo (3), BattleState (3), BuildTypeChart (10), GetTypeEffectiveness (11), CalculateDamage (10), GetSuperEffectiveMoves (8), ExtractHPBarRegions (8), DetermineBattleType (4), DetermineBattlePhase (6), ExtractAvailableMoves (3), GetCursorPosition (1). Documents immune-damage-floor behavior (+2 always applied).
 
+---
+
+## Active Queue (Jun 26 — Coverage Gap Fill)
+
+### [ ] COV-12: Add unit tests for prompt_manager.py (60% → 85%+)
+**Priority:** medium
+**Why:** PromptManager loads YAML prompts, selects/tracks them, provides analytics. 219 lines at 60% — mechanical to test with temp YAML dirs.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_prompt_manager.py (new)
+**AC:**
+1. Test PromptTemplate dataclass — construction, post_init
+2. Test PromptManager.__init__ — default dir, custom dir, missing dir
+3. Test load_prompts — scans YAML files, parses categories, skips non-YAML
+4. Test _load_prompt_file — valid YAML, missing file, malformed YAML
+5. Test get_relevant_prompts — exact match, category match, context filtering
+6. Test select_prompts_for_ai — balanced, aggressive, conservative modes
+7. Test track_prompt_usage — increments, caps, multi-prompt
+8. Test get_prompt_analytics — structure, most used, least used
+9. Coverage: prompt_manager.py 60% → 85%+
+
