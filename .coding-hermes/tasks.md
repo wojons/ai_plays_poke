@@ -304,3 +304,23 @@
 5. ✅ Test that adjacent tiles are correctly parsed (up/down/left/right)
 6. ✅ Test that result field is correctly extracted (overworld/dialog/battle/menu/etc.)
 **Result:** 41 tests across 3 test classes: _extract_spatial_json (21 tests: JSON, markdown-fenced, regex, YAML fallback, unparseable, all result types, adjacent directions), cartographer_analyze (18 tests: happy path, reference image ordering, model/temperature/max_tokens, malformed/empty/none content, network error, adjacent parsing, 5 result-field types, base64 encoding validation), screenshot_to_base64 (2 tests: PNG base64, 3x scaling). All pass in 0.58s. Full suite 1983/1983.
+
+---
+
+## Active Queue (Jun 26 — Coverage Gap Fill)
+
+### [x] COV-9: Add unit tests for logger.py (20% → 65%) ✅ (32d6e6c)
+**Priority:** medium
+**Why:** 790 lines of logging infrastructure at 20% coverage. Formatters, filters, rotation, and AILogger class are all testable with tmp_path + mock LogRecord — no ROM/API needed.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_logger.py (new)
+**AC:**
+1. ✅ Test JSONFormatter.format() with LogRecord → produces valid JSON with all expected fields
+2. ✅ Test PlainFormatter.format() → produces human-readable string with category
+3. ✅ Test CategoryFilter — include/exclude modes
+4. ✅ Test RotationFileHandler — writes to file, rotation on size threshold
+5. ✅ Test AILogger — file logging, category filtering, log levels
+6. ✅ Test get_logger() singleton behavior
+7. ✅ Coverage: logger.py 20% → ~65% (110 tests, 0.15s)
+**Result:** 110 tests across 18 test classes — Constants (5), JSONFormatter (15), PlainFormatter (5), CategoryFilter (7), RotationFileHandler (12), AILogger singleton/init/setup/log/specialized/session/utility (42), log_function_call (4), setup_from_env (10). Documents 3 pre-existing production bugs. All pass in 0.15s. Full suite 2085/2085.
+
