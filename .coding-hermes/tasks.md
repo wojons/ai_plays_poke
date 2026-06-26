@@ -284,15 +284,16 @@
 5. All existing tests pass — no regression
 6. Reference image (bedroom_overworld.png) and sprite references are committed
 
-### [ ] CART-TEST: Add tests for new cartographer_analyze() function
+### [x] CART-TEST: Add tests for new cartographer_analyze() function ✅ (pending)
 **Priority:** medium
 **Why:** The cartographer_analyze function was rewritten — needs unit tests for the new visual-reference pipeline.
 **Model:** deepseek-v4-pro (foreman direct — test file)
 **Files:** tests/test_cartographer.py (new)
 **AC:**
-1. Test cartographer_analyze with mocked OpenRouterClient — verify reference image is sent as the first image in the message
-2. Test spatial JSON parsing from valid response
-3. Test fallback when API returns malformed JSON
-4. Test fallback when API call fails (network error)
-5. Test that adjacent tiles are correctly parsed (up/down/left/right)
-6. Test that result field is correctly extracted (overworld/dialog/battle/menu/etc.)
+1. ✅ Test cartographer_analyze with mocked OpenRouterClient — verify reference image is sent as the first image in the message
+2. ✅ Test spatial JSON parsing from valid response
+3. ✅ Test fallback when API returns malformed JSON
+4. ✅ Test fallback when API call fails (network error)
+5. ✅ Test that adjacent tiles are correctly parsed (up/down/left/right)
+6. ✅ Test that result field is correctly extracted (overworld/dialog/battle/menu/etc.)
+**Result:** 41 tests across 3 test classes: _extract_spatial_json (21 tests: JSON, markdown-fenced, regex, YAML fallback, unparseable, all result types, adjacent directions), cartographer_analyze (18 tests: happy path, reference image ordering, model/temperature/max_tokens, malformed/empty/none content, network error, adjacent parsing, 5 result-field types, base64 encoding validation), screenshot_to_base64 (2 tests: PNG base64, 3x scaling). All pass in 0.58s. Full suite 1983/1983.
