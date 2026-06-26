@@ -7,6 +7,15 @@ Flow:
   3. Controller (DeepSeek V4 Flash) reads composed view → button press
   4. Non-overworld: existing StateWindow flow
 """
+import builtins as _builtins
+_original_print = _builtins.print
+def safe_print(*args, **kwargs):
+    """Print that survives broken stdout (piped background processes)."""
+    try:
+        _original_print(*args, **kwargs)
+    except (BrokenPipeError, OSError):
+        pass
+
 from typing import Any
 import sys
 import os
@@ -79,7 +88,7 @@ STATE_STEPS = 12
 USE_VISION_CLIENT = False  # True = debug mode (cheap classifier), False = Gemma 12B cartographer
 HINT_LEVEL = 4  # 0=benchmark, 1=mechanics, 2=genre, 3=starter, 4=navigation
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
-CART_STEPS = 12  # controller steps per overworld cycle
+CART_STEPS = 6  # controller steps per overworld cycle (reduced from 12 — short moves, more cartographer feedback)
 PRESS_FRAMES = 120  # hold button for 2s game time
 STEP_FORWARD = 300  # fast-forward between steps (~5s game time)
 LOG_DIR = Path("cron_logs")
@@ -116,6 +125,9 @@ REFERENCE_IMAGE_B64 = base64.b64encode(_ref_buf.getvalue()).decode()
 def screenshot_to_base64(screenshot: np.ndarray) -> str:
     """Convert numpy RGB screenshot to base64 data URL."""
     img = Image.fromarray(screenshot)
+    # Scale 3x with nearest-neighbor (pixel-perfect) so the vision model
+    # can distinguish wall edges from floor seams at 144x160 native res.
+    img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode()
@@ -242,14 +254,17 @@ def controller_plan(
         "- B cancels, START opens menu.\n\n"
         "EXPLORATION STRATEGY:\n"
         "- Start with SHORT moves (2-3 tiles) in new areas.\n"
+        "- MAX 3 of the SAME direction in a plan. Never 4+ of any direction.\n"
+        "- If you hit a wall, switch directions immediately.\n"
         "- Walk toward visible exits (doors, stairs, paths).\n"
         "- If adjacent tile is 'wall' in one direction, do NOT try that direction.\n"
         "- If adjacent tile is 'door', walk into it (or press A on it).\n"
         "- If adjacent tile is 'npc', walk toward it and press A to talk.\n"
         "- If adjacent tile is 'stair', walk onto it.\n"
         "- When ALL directions are blocked (walls/objects all around): press A.\n"
-        "- NEVER spam repeated button presses — plan one action per tile.\n"
         "- After interacting (A), next action should move away.\n"
+        "- INDOOR rooms are small (3-6 tiles wide). Plan 2-3 tile moves.\n"
+        "- OUTDOOR areas (grass, paths visible): 4-6 tile moves OK.\n"
     )
 
     blocked_msg = ""
@@ -323,8 +338,8 @@ def main() -> None:
         vision = VisionClient()  # noqa: F841 — conditionally enabled debug classifier
     controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
 
-    print(f"[{run_id}] Starting run with visual-reference cartographer pipeline...")
-    print(f"  Reference image: reference/bedroom_overworld.png")
+    safe_print(f"[{run_id}] Starting run with visual-reference cartographer pipeline...")
+    safe_print(f"  Reference image: reference/bedroom_overworld.png")
 
     # ── Checkpoint / recovery state ────────────────────────────────
     _same_dir: str | None = None
@@ -341,12 +356,15 @@ def main() -> None:
     _recovery_attempts: int = 0  # recovery attempts in current void sequence
     _stuck_cycles: int = 0       # consecutive cycles with same screen + no progress
     _last_screen_type: str = ""  # for stuck detection
+    _last_frame_hash: str = ""   # for frame hashing — skip cartographer on identical frames
+    _cached_patch: dict[str, Any] = {}  # cached cartographer output
+    _cached_carto_raw: str = ""  # cached raw cartographer text
 
     # ── Deterministic intro bypass ──────────────────────────────────
     # Decoupled: A-mash aggressively in large batches, sparse cartographer
     # checks. Each cartographer call has 1-60s latency; we maximize
     # A-presses between checks so the intro progresses during API waits.
-    print(f"[{run_id}] Bypassing intro via cartographer...")
+    safe_print(f"[{run_id}] Bypassing intro via cartographer...")
 
     # Step 1: Title screen → press START
     emu.bypass_title()
@@ -400,25 +418,16 @@ def main() -> None:
             print(f"  [intro] Cartographer says overworld — intro complete ({_intro_checks} checks)")
             break
         elif st == "name_entry":
+            # A-mash through name entry screens during intro bypass.
+            # The proper keyboard navigation (StateWindow + keyboard_grid)
+            # handles naming in the main loop. Here we just rush past.
             if not _player_named:
-                print("  [intro] Entering player name ASH...")
-                emu.enter_name("ASH")
                 _player_named = True
-                emu.wait(60)
-                emu.press_button("a", frames=30)
-                emu.wait(120)
             elif not _rival_named:
-                print("  [intro] Entering rival name GARY...")
-                emu.enter_name("GARY")
                 _rival_named = True
-                emu.wait(60)
-                emu.press_button("a", frames=30)
-                emu.wait(120)
-            else:
-                # Already named both — A-mash through naming screen
-                for _ in range(_A_BURST):
-                    emu.press_button("a", frames=_A_FRAMES)
-                    emu.fast_forward(_FF_FRAMES)
+            for _ in range(_A_BURST):
+                emu.press_button("a", frames=_A_FRAMES)
+                emu.fast_forward(_FF_FRAMES)
         elif st == "title":
             emu.press_button("start", frames=30)
             emu.wait(90)
@@ -433,24 +442,41 @@ def main() -> None:
     else:
         print(f"  Intro bypass complete in {_intro_checks} checks")
 
-    # ── Step away from whatever we're facing ──────────────────────
-    # The bedroom start position faces the TV; A-pressing creates an
-    # infinite TV-interaction loop. Walk DOWN to get clear.
-    print("  [intro] Stepping away from start position...")
-    for _ in range(4):
-        emu.press_button("down", frames=30)
-        emu.fast_forward(60)
-    # Clear any lingering dialog box
-    emu.press_button("b", frames=30)
-    emu.wait(30)
-
-    # Save state after intro
+    # ── Save state at center of bedroom (before moving) ──────────
+    # The bedroom start position faces the TV; saving before we move
+    # gives the controller a clean starting position to navigate from.
     try:
         emu.save_state(0)
         _last_saved_slot = 0
         print("  [CKPT] Post-intro state saved to slot 0")
     except Exception as exc:
         print(f"  [CKPT] Failed to save post-intro state: {exc}")
+
+    # ── Step away from what we're facing ─────────────────────────
+    # Walk LEFT (toward the bed/stairs area). The stairs down are on
+    # the left side of the bedroom; walking LEFT avoids the TV loop
+    # AND positions the character near the exit.
+    safe_print("  [intro] Stepping away from TV...")
+    emu.press_button("up", frames=15)   # face away from TV
+    emu.fast_forward(30)
+    # Clear any lingering dialog box
+    emu.press_button("b", frames=30)
+    emu.wait(30)
+
+    # ── Leave bedroom ────────────────────────────────────────────
+    # Path: center → DOWN to bottom row → LEFT along bottom to stairs.
+    # Sleeping Pokémon Red/Blue speedrun strat. DOWN from center is
+    # obstacle-free; LEFT traverses the bottom row to the stairs at
+    # bottom-left. Stairs auto-transition on contact.
+    safe_print("  [intro] Walking to bedroom stairs (DOWN then LEFT)...")
+    for _ in range(5):
+        emu.press_button("down", frames=30)
+        emu.fast_forward(60)
+    emu.wait(15)
+    for _ in range(4):
+        emu.press_button("left", frames=30)
+        emu.fast_forward(60)
+    emu.wait(90)  # let the stairs transition happen
 
     ctx = GlobalContext(generation="gen1", location="bedroom")
     # If we bypassed the intro, set player/rival names
@@ -473,9 +499,30 @@ def main() -> None:
             img.save(SCREENSHOT_DIR / f"step_{cycle+1:04d}.png")
 
             # Step 1: Cartographer classifies screen + spatial analysis
-            patch_data, carto_raw = cartographer_analyze(
-                controller_client, screenshot
-            )
+            # ── Frame hashing: skip cartographer if nothing changed ──
+            # Hash the raw screenshot bytes. If identical to last frame,
+            # the character hasn't moved — reuse cached observation.
+            # Works for ALL screen types including battles. During battle idle
+            # (both Pokémon standing, same HP), the frame is identical and
+            # the cached observation is still valid. The Controller/StateWindow
+            # still runs and makes decisions — we just skip re-observing.
+            import hashlib
+            frame_bytes = screenshot.tobytes()
+            frame_hash = hashlib.md5(frame_bytes).hexdigest()
+            
+            if _last_frame_hash != frame_hash or not _cached_patch:
+                # Frame changed (or first cycle) — call cartographer
+                patch_data, carto_raw = cartographer_analyze(
+                    controller_client, screenshot
+                )
+                _cached_patch = patch_data
+                _cached_carto_raw = carto_raw
+                _last_frame_hash = frame_hash
+            else:
+                # Frame unchanged — reuse cached observation
+                patch_data = _cached_patch
+                carto_raw = _cached_carto_raw
+                safe_print(f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result','?')})")
             st = patch_data.get("result", "unknown")
 
             t0 = time.time()
@@ -489,7 +536,7 @@ def main() -> None:
                 # ── Void state detection (simplified: check if cartographer classified correctly) ──
                 if st == "unknown":
                     _void_cycles += 1
-                    print(f"  [VOID] Cartographer returned unknown (cycle {_void_cycles}/3)")
+                    safe_print(f"  [VOID] Cartographer returned unknown (cycle {_void_cycles}/3)")
                 else:
                     _void_cycles = 0
                     _recovery_attempts = 0
@@ -514,7 +561,7 @@ def main() -> None:
                     results.append(evt)
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
-                    print(f"  [RECOVER] Void recovery attempt {_recovery_attempts}: {strategy}")
+                    safe_print(f"  [RECOVER] Void recovery attempt {_recovery_attempts}: {strategy}")
                     _void_cycles = 0
 
                 # Step 2b: Controller outputs movement PLAN from spatial description
@@ -548,8 +595,45 @@ def main() -> None:
                                 direction = "A"  # interact instead
                         filtered_plan.append(direction)
                     if filtered_plan != [b.upper() for b in plan]:
-                        print(f"  [OVERRIDE] Blacklisted {_dir_blacklist}, plan {plan[:6]}→{filtered_plan[:6]}...")
+                        safe_print(f"  [OVERRIDE] Blacklisted {_dir_blacklist}, plan {plan[:6]}→{filtered_plan[:6]}...")
                     plan = filtered_plan
+
+                # ── Spatial pre-filter: strip wall/object directions ──
+                # The cartographer tells us what's actually adjacent. If it says
+                # a tile is "wall" or "object", walking there is impossible.
+                # Strip those directions BEFORE execution regardless of LLM output.
+                adj_data = patch_data.get("adjacent", {})
+                _blocked_spatial = {d for d, v in adj_data.items()
+                                    if v in ("wall", "object")}
+                if _blocked_spatial:
+                    _before_filter = plan[:]
+                    _blocked_upper = {d.upper() for d in _blocked_spatial}
+                    _filtered = [b for b in plan
+                            if b.upper() not in _blocked_upper
+                            or b.upper() not in ("UP", "DOWN", "LEFT", "RIGHT")]
+                    # If filtering removed everything, keep the original plan.
+                    # The cartographer's adjacent data can be wrong (e.g. bed
+                    # mislabeled as "wall"), and the LLM may know better.
+                    if _filtered:
+                        plan = _filtered
+                    if len(plan) < len(_before_filter):
+                        safe_print(f"  [SPATIAL] Removed {_blocked_spatial} from "
+                              f"plan {_before_filter[:3]}→{plan[:3]}...")
+
+                # ── Run-length cap: max 3 consecutive same direction ──
+                # The cartographer only sees the immediate adjacent tile.
+                # Long plans (6x RIGHT) walk into walls 2-3 tiles away.
+                # Cap consecutive same-direction moves to 3 regardless of LLM.
+                _rle = 1
+                for i in range(1, len(plan)):
+                    if plan[i].upper() == plan[i-1].upper() and plan[i].upper() in ("UP","DOWN","LEFT","RIGHT"):
+                        _rle += 1
+                    else:
+                        _rle = 1
+                    if _rle > 3:
+                        plan[i] = "A"  # replace with interact
+                        _rle = 1
+                        safe_print(f"  [CAP] Truncated same-direction run at position {i}")
 
                 plan_entry = {
                     "cycle": cycle + 1,
@@ -588,7 +672,7 @@ def main() -> None:
                         _same_dir_count = 0
 
                     if _same_dir_count == 3:
-                        print(f"  [WARN] Direction-locking detected: {_same_dir} x3")
+                        safe_print(f"  [WARN] Direction-locking detected: {_same_dir} x3")
 
                     if _same_dir_count >= MAX_SAME_DIRECTION:
                         if _last_saved_slot is not None:
@@ -603,21 +687,45 @@ def main() -> None:
                                 results.append(evt)
                                 log_file.write(json.dumps(evt, default=str) + "\n")
                                 log_file.flush()
-                                print(f"  [RECOVER] Loaded checkpoint slot {_last_saved_slot} (blocked {_same_dir} x{_same_dir_count})")
+                                safe_print(f"  [RECOVER] Loaded checkpoint slot {_last_saved_slot} (blocked {_same_dir} x{_same_dir_count})")
                                 blocked = _same_dir
                                 _same_dir = None
                                 _same_dir_count = 0
                                 if blocked and blocked in _dir_rotation:
                                     _dir_blacklist.add(blocked)
-                                    print(f"  [BLACKLIST] {blocked} added to blacklist: {_dir_blacklist}")
+                                    safe_print(f"  [BLACKLIST] {blocked} added to blacklist: {_dir_blacklist}")
                                 break  # exit plan execution early
                             except Exception as exc:
-                                print(f"  [RECOVER] Failed to load slot {_last_saved_slot}: {exc}")
+                                safe_print(f"  [RECOVER] Failed to load slot {_last_saved_slot}: {exc}")
                         else:
-                            print(f"  [RECOVER] Direction-locked {_same_dir} x{_same_dir_count} but NO checkpoint available")
+                            safe_print(f"  [RECOVER] Direction-locked {_same_dir} x{_same_dir_count} but NO checkpoint available")
 
                 elapsed = time.time() - t0
-                print(f"  [{cycle+1}/{CYCLES}] {st} | cartographer x{CART_STEPS} | {elapsed:.1f}s")
+                safe_print(f"  [{cycle+1}/{CYCLES}] {st} | cartographer x{CART_STEPS} | {elapsed:.1f}s")
+
+            elif st == "name_entry":
+                # ── Name entry bypass ─────────────────────────────
+                # pygba/mGBA doesn't register directional input on the
+                # name entry keyboard. The cursor never moves with
+                # press_button('down', frames=N). So we A-mash through
+                # name entry just like the intro bypass: 60 rapid A
+                # presses to type characters, eventually filling the
+                # name field and advancing past the screen.
+                for _ in range(_A_BURST):
+                    emu.press_button("a", frames=_A_FRAMES)
+                    emu.fast_forward(_FF_FRAMES)
+                elapsed = time.time() - t0
+                entry = {
+                    "cycle": cycle + 1,
+                    "screen": st,
+                    "action": "name_bypass",
+                    "elapsed_s": round(elapsed, 1),
+                    "cartographer_raw": carto_raw,
+                }
+                results.append(entry)
+                log_file.write(json.dumps(entry, default=str) + "\n")
+                log_file.flush()
+                safe_print(f"  [{cycle+1}/{CYCLES}] {st} | name_bypass (x{_A_BURST}) | {elapsed:.1f}s")
 
             else:
                 # ── Traditional StateWindow flow ───────────────────
@@ -630,6 +738,7 @@ def main() -> None:
                     "text_content": patch_data.get("text_content", patch_data.get("text_lines", [])),
                     "menu_items": patch_data.get("menu_items", []),
                     "adjacent_tiles": patch_data.get("adjacent_tiles", {}),
+                    "keyboard_grid": patch_data.get("keyboard_grid", {}),
                 }
 
                 # ── Stuck detection: if same non-overworld screen for 5+ cycles, break out ──
@@ -640,7 +749,7 @@ def main() -> None:
                 _last_screen_type = st
 
                 if _stuck_cycles >= 5:
-                    print(f"  [STUCK] Same screen ({st}) for {_stuck_cycles} cycles — injecting breakout")
+                    safe_print(f"  [STUCK] Same screen ({st}) for {_stuck_cycles} cycles — injecting breakout")
                     emu.press_button("b", frames=30)  # close any lingering dialog
                     emu.wait(30)
                     emu.press_button("down", frames=30)  # move away
@@ -669,9 +778,9 @@ def main() -> None:
                     results.append(evt)
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
-                    print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle+1}")
+                    safe_print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle+1}")
 
-                win = StateWindow(state_type, ctx, emu, vis_dict, generation="gen1", max_steps=STATE_STEPS, hint_level=HINT_LEVEL)
+                win = StateWindow(state_type, ctx, emu, vis_dict, generation="gen1", max_steps=(1 if state_type == "name_entry" else STATE_STEPS), hint_level=HINT_LEVEL)
                 win.run()
                 emu.fast_forward(FAST_FORWARD_FRAMES)
                 elapsed = time.time() - t0
@@ -696,7 +805,7 @@ def main() -> None:
                 results.append(entry)
                 log_file.write(json.dumps(entry, default=str) + "\n")
                 log_file.flush()
-                print(f"  [{cycle+1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s")
+                safe_print(f"  [{cycle+1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s")
 
             # Handle progression
             if st == "name_confirm" and patch_data.get("name_field"):
@@ -722,11 +831,11 @@ def main() -> None:
                     results.append(evt)
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
-                    print(f"  [CKPT] Saved state to slot {_checkpoint_slot}")
+                    safe_print(f"  [CKPT] Saved state to slot {_checkpoint_slot}")
                     _last_saved_slot = _checkpoint_slot
                     _checkpoint_slot = (_checkpoint_slot + 1) % CHECKPOINT_SLOTS
                 except Exception as exc:
-                    print(f"  [CKPT] Failed to save state: {exc}")
+                    safe_print(f"  [CKPT] Failed to save state: {exc}")
 
         except Exception:
             traceback.print_exc()
@@ -746,9 +855,9 @@ def main() -> None:
 
     # Summary
     screens = set(r.get("screen", "?") for r in results)
-    print(f"\n[{run_id}] Done. {len(results)} actions. Screens: {screens}")
-    print(f"Log: {log_path}")
-    print(f"Screenshots: {SCREENSHOT_DIR}")
+    safe_print(f"\n[{run_id}] Done. {len(results)} actions. Screens: {screens}")
+    safe_print(f"Log: {log_path}")
+    safe_print(f"Screenshots: {SCREENSHOT_DIR}")
 
 
 if __name__ == "__main__":

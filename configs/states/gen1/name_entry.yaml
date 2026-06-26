@@ -1,35 +1,70 @@
 # Name Entry State Workflow — Gen 1
-# Loaded when the agent encounters a name entry screen (YOUR NAME? or RIVAL'S NAME?)
+# The StateWindow receives keyboard_grid and name_field from the cartographer,
+# which gives it exact cursor position and keyboard layout.
 
 workflow: |
-  NAME ENTRY — KEYBOARD INPUT
-  ===========================
+  NAME ENTRY — TYPE YOUR NAME LETTER BY LETTER
+  ============================================
 
-  You are on a name entry screen. A grid of letters A-Z is visible with
-  a cursor. You must type a name and confirm it.
+  You are typing a name using an on-screen keyboard grid. You receive
+  keyboard_grid (the grid layout + cursor position) and name_field
+  (what's been typed so far) from the vision system.
+
+  HOW THE KEYBOARD WORKS:
+    - D-PAD (up/down/left/right) moves the cursor on the keyboard grid.
+    - Press A on a letter to type it. The letter appears in the name field
+      at the TOP of the screen.
+    - The bottom row has: UPPER CASE (toggle), LOWER CASE (toggle), END (confirm).
+    - Navigate to END and press A to confirm the name.
 
   ```mermaid
   flowchart TD
-      START["CURSOR IS ON A LETTER"]
-      START -->|"press A"| TYPED["LETTER ENTERED"]
-      TYPED -->|"if < 3 letters typed"| START
-      TYPED -->|"if 3+ letters typed"| NAV["NAVIGATE TO END"]
-      NAV -->|"press DOWN repeatedly\nuntil bottom row"| BOTTOM["CURSOR ON BOTTOM ROW"]
-      BOTTOM -->|"press RIGHT repeatedly\nuntil END is highlighted"| END["CURSOR ON END"]
-      END -->|"press A"| DONE["NAME CONFIRMED ✓"]
-
-      TYPED -->|"if wrong letter"| DEL["MOVE TO × (delete)"]
-      DEL -->|"press A"| START
+      LOOK["Look at name_field: what's typed?"]
+      LOOK -->|"Nothing typed yet"| PICK1["Pick first letter"]
+      LOOK -->|"1-2 letters typed"| PICKN["Pick next letter"]
+      LOOK -->|"3+ letters typed"| GOTOEND["Navigate to END"]
+      
+      PICK1 --> PLAN["Plan: count d-pad moves from\ncurrent_cursor to target letter"]
+      PICKN --> PLAN
+      
+      PLAN --> NAV["Execute: press direction buttons\nEXACT NUMBER of times to reach letter"]
+      NAV --> TAP["Press A to type the letter"]
+      TAP --> LOOK
+      
+      GOTOEND --> GOBOTTOM["Press DOWN repeatedly\nto reach bottom row"]
+      GOBOTTOM --> GORIGHT["Press RIGHT repeatedly\nto reach END"]
+      GORIGHT --> CONF["Press A to confirm"]
+      CONF --> DONE["NAME CONFIRMED ✓"]
+      
+      PICK1 -->|"Wrong letter pressed"| DEL["Move to ␡ (delete key)\nthen press A"]
+      PICKN -->|"Wrong letter pressed"| DEL
+      DEL --> LOOK
   ```
 
-  KEY RULES:
-  - Type 2-3 letters ONLY. Do not type more than 3.
-  - After typing, navigate to END: press DOWN past all letter rows,
-    then RIGHT to reach END, then press A.
-  - If you typed a wrong letter, navigate to the × symbol and press A to delete.
-  - The name field text shows what you've typed so far.
-  - Once you press A on END, the screen will transition to name confirmation.
+  CRITICAL RULES:
+  - TYPE ONE LETTER AT A TIME. Do not spam A — A types whatever letter
+    the cursor is on, so you MUST move the cursor FIRST.
+  - Look at keyboard_grid.current_cursor to know where the cursor IS.
+  - Look at keyboard_grid.rows[row][col] to find target letters.
+  - Count EXACT moves: to go from (0,0) to letter G at (0,6):
+    press RIGHT 6 times, then A. ONE letter typed per plan.
+  - After typing 3+ letters, navigate to END to confirm:
+    press DOWN past all letter rows to bottom row, then RIGHT to END, then A.
+  - If you type a wrong letter, go to ␡ (delete) and press A to erase it.
+  - The name_field shows what you've typed — use it to decide what's next.
 
-  TARGET OUTPUT: call press_button or combo to navigate and type.
-  Example: {"name": "press_button", "arguments": {"button": "a", "duration": 5}}
-  Example: {"name": "combo", "arguments": {"buttons": ["down", "down", "down", "down", "down", "right", "right", "right", "right", "right", "a"], "duration": 5}}
+  EXAMPLE — typing "ASH":
+    1. Cursor at (0,0)='A'. Press A. → A appears in name_field.
+    2. Cursor still at (0,0). Need 'S' at (2,0): press DOWN 2 times. Press A. → AS
+    3. Cursor at (2,0). Need 'H' at (0,7): press UP 2 times, RIGHT 7 times. Press A. → ASH
+    4. Navigate to END: press DOWN past all rows, RIGHT to END, press A.
+
+  TARGET OUTPUT: call press_button with direction buttons and A.
+  Use query_global if you need to know what name to type.
+  Use recall to check DuckBrain for any discovered name preferences.
+
+  Type 3-4 letters ONLY — then confirm with END.
+
+  DEFAULT NAME: If you don't know what name to use (query_global returns
+  nothing, recall finds nothing), type "ASH" as the default name.
+  ASH = A(0,0) → S(2,0) → H(0,7), then END.

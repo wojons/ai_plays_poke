@@ -166,17 +166,23 @@ class TokenTracker:
 
 def log_api_call(model: str, duration_ms: float, input_tokens: int,
                  output_tokens: int, cost: float, success: bool = True) -> None:
-    """Simple logging function for API calls"""
-    print(f"📡 API: {model} | {duration_ms:.0f}ms | "
-          f"In: {input_tokens} | Out: {output_tokens} | "
-          f"${cost:.6f} | Success: {success}")
+    """Simple logging function for API calls (survives broken stdout)"""
+    try:
+        print(f"📡 API: {model} | {duration_ms:.0f}ms | "
+              f"In: {input_tokens} | Out: {output_tokens} | "
+              f"${cost:.6f} | Success: {success}")
+    except (BrokenPipeError, OSError):
+        pass
 
 
 def log_vision_analysis(screen_type: str, enemy_pokemon: str,
                         player_hp: float, enemy_hp: float) -> None:
-    """Simple logging function for vision analysis"""
-    print(f"👁️ Vision: {screen_type} | Enemy: {enemy_pokemon or 'None'} | "
-          f"HP: {player_hp:.0f}%/{enemy_hp:.0f}%")
+    """Simple logging function for vision analysis (survives broken stdout)"""
+    try:
+        print(f"👁️ Vision: {screen_type} | Enemy: {enemy_pokemon or 'None'} | "
+              f"HP: {player_hp:.0f}%/{enemy_hp:.0f}%")
+    except (BrokenPipeError, OSError):
+        pass
 
 
 # Load environment variables from .env file
@@ -722,10 +728,16 @@ class OpenRouterClient:
                 last_error = e
                 if attempt < 2:
                     wait = 2 ** attempt
-                    print(f"  [API] Request failed: {e}, retrying in {wait}s (attempt {attempt+1}/3)")
+                    try:
+                        print(f"  [API] Request failed: {e}, retrying in {wait}s (attempt {attempt+1}/3)")
+                    except (BrokenPipeError, OSError):
+                        pass
                     time.sleep(wait)
                 else:
-                    print(f"  [API] Request failed after 3 attempts: {e}")
+                    try:
+                        print(f"  [API] Request failed after 3 attempts: {e}")
+                    except (BrokenPipeError, OSError):
+                        pass
 
         # All retries exhausted
         self.circuit_breaker.record_failure()

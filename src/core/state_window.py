@@ -246,6 +246,68 @@ class StateWindow:
                 else:
                     # Safety cap: fall back to AI deliberation
                     pass
+            elif self.state_type == "name_entry":
+                self.emulator.press_button("a", frames=30)
+                self.emulator.wait(10)
+                self.emulator.fast_forward(120)
+                self._history.append({"step":self._step_count,"tool_call":{"name":"press_button","arguments":{"button":"a","duration":30,"fast_forward":120}},"action":"name_entry_a_mash"})
+                _auto_a_count += 1
+                continue
+
+                # ── Programmatic name entry keyboard navigation ────
+                # DeepSeek ignores keyboard_grid instructions, so we
+                # compute the correct button press here directly.
+                kg = self.vision.get("keyboard_grid", {})
+                if kg:
+                    rows = kg.get("rows", [])
+                    cursor = kg.get("current_cursor", {"row": 0, "col": 0})
+                    cr, cc = cursor.get("row", 0), cursor.get("col", 0)
+                    name_field = self.vision.get("name_field", "")
+                    target_name = "ASH"
+
+                    # Determine what to do
+                    if name_field and len(name_field) >= len(target_name):
+                        # All letters typed — navigate to END
+                        button, dur = "down", 10
+                    elif name_field:
+                        # Find next letter
+                        next_letter = target_name[len(name_field)]
+                        tr, tc = -1, -1
+                        for ri, row in enumerate(rows):
+                            for ci, letter in enumerate(row):
+                                if letter.upper() == next_letter.upper():
+                                    tr, tc = ri, ci
+                                    break
+                            if tr >= 0:
+                                break
+                        if tr >= 0:
+                            if tr == cr and tc == cc:
+                                button, dur = "a", 30
+                            elif tr > cr:
+                                button, dur = "down", 10
+                            elif tr < cr:
+                                button, dur = "up", 10
+                            elif tc > cc:
+                                button, dur = "right", 10
+                            elif tc < cc:
+                                button, dur = "left", 10
+                            else:
+                                button, dur = "a", 30
+                        else:
+                            button, dur = "down", 10
+                    else:
+                        # Nothing typed yet — cursor should be on A, press it
+                        button, dur = "a", 30
+
+                    self.emulator.press_button(button, frames=dur)
+                    self.emulator.wait(10)
+                    self._history.append({
+                        "step": self._step_count,
+                        "tool_call": {"name": "press_button", "arguments": {"button": button, "duration": dur}},
+                        "action": f"name_entry_auto_{button}",
+                    })
+                    continue
+                # No keyboard_grid — fall through to LLM
             else:
                 _auto_a_count = 0  # reset on interactive or non-dialog states
 
@@ -351,6 +413,95 @@ class StateWindow:
             parts.append(f"  Subtype: {self.vision['screen_subtype']}")
         if self.vision.get("name_field"):
             parts.append(f"  Name field: {self.vision['name_field']}")
+
+        # Keyboard grid — critical for name_entry navigation
+        kg = self.vision.get("keyboard_grid", {})
+        if kg:
+            cursor = kg.get("current_cursor", {"row": 0, "col": 0})
+            cr, cc = cursor.get("row", 0), cursor.get("col", 0)
+            rows = kg.get("rows", [])
+            name_field = self.vision.get("name_field", "")
+            
+            # Figure out what letter the cursor is on
+            cursor_letter = "?"
+            if rows and cr < len(rows) and cc < len(rows[cr]):
+                cursor_letter = rows[cr][cc]
+            
+            parts.append("\n  ⌨️ NAME ENTRY KEYBOARD — TYPE ONE LETTER AT A TIME:")
+            parts.append(f"  CURSOR IS ON LETTER: '{cursor_letter}' at row={cr}, col={cc}")
+            parts.append(f"  ALREADY TYPED: '{name_field}'")
+            
+            # Determine target name and next action
+            target_name = "ASH"  # default
+            if name_field and len(name_field) > 0:
+                typed_count = len(name_field)
+                if typed_count < len(target_name):
+                    next_letter = target_name[typed_count]
+                    # Find next_letter in the grid
+                    tr, tc = -1, -1
+                    for ri, row in enumerate(rows):
+                        for ci, letter in enumerate(row):
+                            if letter.upper() == next_letter.upper():
+                                tr, tc = ri, ci
+                                break
+                        if tr >= 0:
+                            break
+                    if tr >= 0:
+                        dr = tr - cr  # delta rows (negative = UP, positive = DOWN)
+                        dc = tc - cc  # delta cols (negative = LEFT, positive = RIGHT)
+                        dirs = []
+                        if dr < 0:
+                            dirs.append(f"press UP {abs(dr)} time(s)")
+                        elif dr > 0:
+                            dirs.append(f"press DOWN {dr} time(s)")
+                        if dc < 0:
+                            dirs.append(f"press LEFT {abs(dc)} time(s)")
+                        elif dc > 0:
+                            dirs.append(f"press RIGHT {dc} time(s)")
+                        parts.append(f"  NEXT LETTER TO TYPE: '{next_letter}' at row={tr}, col={tc}")
+                        if not dirs:
+                            parts.append(f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!")
+                        else:
+                            parts.append(f"  TO REACH '{next_letter}': {' then '.join(dirs)}")
+                            parts.append(f"  After reaching it, press A to type the letter.")
+                    else:
+                        parts.append(f"  NEXT LETTER '{next_letter}' not found — navigate to END")
+                else:
+                    parts.append(f"  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A.")
+            else:
+                # Nothing typed yet — first letter of target
+                tr, tc = -1, -1
+                first_letter = target_name[0]
+                for ri, row in enumerate(rows):
+                    for ci, letter in enumerate(row):
+                        if letter.upper() == first_letter.upper():
+                            tr, tc = ri, ci
+                            break
+                    if tr >= 0:
+                        break
+                if tr >= 0:
+                    dr = tr - cr
+                    dc = tc - cc
+                    needed = []
+                    if dr < 0:
+                        needed.append(f"UP {abs(dr)}")
+                    elif dr > 0:
+                        needed.append(f"DOWN {dr}")
+                    if dc < 0:
+                        needed.append(f"LEFT {abs(dc)}")
+                    elif dc > 0:
+                        needed.append(f"RIGHT {dc}")
+                    parts.append(f"  TARGET NAME: '{target_name}' — first letter is '{first_letter}' at row={tr}, col={cc}")
+                    if not needed:
+                        parts.append(f"  ⚡ CURSOR IS ON '{first_letter}' — press A NOW!")
+                    else:
+                        parts.append(f"  MOVE TO '{first_letter}': {' then '.join(needed)} — then press A.")
+            
+            if rows:
+                parts.append("  Grid reference:")
+                for ri, row in enumerate(rows):
+                    parts.append(f"    Row {ri}: {row}")
+            parts.append(f"  Bottom row: {kg.get('bottom_row', [])}")
 
         # Text content — the agent reads this to make decisions
         from src.core.prompt_loader import get_text_content
