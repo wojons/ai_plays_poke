@@ -269,6 +269,13 @@
 
 ## Active Queue (Jun 25 — Cartographer Redesign)
 
+### [x] NAME-NAV: Programmatic name entry keyboard navigation + frame hashing + spatial pre-filter + run-length cap + safe_print ✅ (8991589)
+**Priority:** high
+**Why:** DeepSeek ignores keyboard_grid instructions in name entry prompts. Frame hashing saves cartographer API calls. Spatial pre-filter prevents walking into walls. Run-length cap prevents 6x direction plans. Safe_print survives broken stdout.
+**Model:** deepseek-v4-pro (foreman direct — runtime fixes)
+**Files:** cron_runner.py (+173/-108), src/core/state_window.py (+151), src/core/ai_client.py (+30/-7), configs/prompts/gen1/cartographer.yaml (+27/-17), configs/states/gen1/name_entry.yaml (+56/-31), data/duration_profiles.json (+16/-8)
+**Result:** 6 files, +435/-108 lines. Name entry keyboard nav in StateWindow with programmatic cursor tracking. Frame MD5 hashing with cartographer cache. Spatial pre-filter to block wall/object directions. Run-length cap at 3 consecutive same direction. Bedroom exit LEFT path. Screenshot 3x nearest-neighbor scaling. safe_print wrappers for all print calls. 1983/1983 tests pass.
+
 ### [x] CART-REF: Replace OBS_PATCH map integrator with visual-reference cartographer ✅
 **Priority:** highest
 **Why:** OBS_PATCH structured tile extraction had high failure rates — tiles misclassified, patches rejected, void states undetected. Vision models can already see walls/doors/stairs — we just needed to ask the right questions.
