@@ -139,6 +139,17 @@ class TestGetLatestScreenshot:
         # battle dir should be empty
         assert sm.get_latest_screenshot(game_state="battle") is None
 
+    def test_filter_by_menu(self, tmp_path):
+        sm = ScreenshotManager(str(tmp_path / "ss"))
+        sm.save_screenshot(_fake_screen(), "menu1", game_state="menu")
+        latest = sm.get_latest_screenshot(game_state="menu")
+        assert latest is not None
+        assert "menus" in str(latest)
+
+    def test_filter_by_menu_empty(self, tmp_path):
+        sm = ScreenshotManager(str(tmp_path / "ss"))
+        assert sm.get_latest_screenshot(game_state="menu") is None
+
 
 class TestGetScreenshotAsBase64:
     def test_returns_string(self, tmp_path):
@@ -210,6 +221,29 @@ class TestCreateGridView:
             sm.save_screenshot(_fake_screen(), f"limit_{i}")
         # Should not crash with count > total
         grid_path = sm.create_grid_view(recent_count=3)
+        assert grid_path.exists()
+
+    def test_corrupted_image_skipped(self, tmp_path):
+        """Broken PNG file → cv2.imread returns None → skipped."""
+        sm = ScreenshotManager(str(tmp_path / "ss"))
+        # Save a valid PNG first so grid has at least one image
+        sm.save_screenshot(_fake_screen(), "valid")
+        # Corrupt it by truncating
+        broken = list(sm.screenshot_dir.glob("*.png"))[0]
+        broken.write_bytes(b"")  # empty file → cv2.imread returns None
+
+        # Create a second valid image so we still have something to grid
+        sm.save_screenshot(_fake_screen(), "g5")
+        grid_path = sm.create_grid_view(recent_count=2)
+        assert grid_path.exists()
+
+    def test_timestamp_unknown_fallback(self, tmp_path):
+        """Filename with no timestamp → 'Unknown' fallback."""
+        sm = ScreenshotManager(str(tmp_path / "ss"))
+        # Create a PNG with a stem that splits to <2 elements (e.g., "simple")
+        weird_path = sm.screenshot_dir / "simple.png"
+        _save_png(weird_path, _fake_screen())
+        grid_path = sm.create_grid_view(recent_count=1)
         assert grid_path.exists()
 
 
@@ -351,6 +385,21 @@ class TestLiveViewUpdateDisplay:
              mock.patch("cv2.putText"):
             lv.update_display(_fake_screen())
             mock_imshow.assert_called_once()
+
+    def test_q_key_stops_display(self, tmp_path):
+        """Pressing 'q' in the live view stops the display."""
+        sm = ScreenshotManager(str(tmp_path / "ss"))
+        lv = LiveView(sm)
+        lv.is_displaying = True
+        with mock.patch("cv2.imshow"), \
+             mock.patch("cv2.waitKey", return_value=ord("q")), \
+             mock.patch("cv2.resize", side_effect=lambda x, size, **kw: x), \
+             mock.patch("cv2.cvtColor", side_effect=lambda x, code: x), \
+             mock.patch("cv2.putText"), \
+             mock.patch("cv2.destroyWindow") as mock_destroy:
+            lv.update_display(_fake_screen())
+            mock_destroy.assert_called_once()
+            assert lv.is_displaying is False
 
 
 class TestLiveViewStartStop:
