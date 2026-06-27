@@ -421,32 +421,34 @@
 8. ✅ Test _merge_results composite output (via PreprocessingResult all-fields)
 9. ✅ Coverage: vision/pipeline.py 75% → 90%+
 
-### [ ] COV-18: Add unit tests for db/database.py (48% → 65%+)
+### [x] COV-18: Add unit tests for db/database.py (48% → 89%) ✅ (dcc78d8)
 **Priority:** low
 **Why:** GameDatabase wraps SQLite for session metrics, screenshots, AI thoughts, and command logging. 596 lines at 48% — in-memory SQLite testing with real queries but no ROM/emulator deps.
 **Model:** deepseek-v4-pro (foreman direct — test file, in-memory SQLite)
 **Files:** tests/test_game_database.py (new)
+**Result:** 44 tests across 12 test classes: Init (4: tables, indexes, idempotent, parent dirs), SessionLifecycle (8: start, persist, end, defaults, get, not-found, save, unknown defaults), ScreenshotLogging (4: write row, no session, compat, empty dict), CommandLogging (4: full data, defaults, failure, compat), AIThoughtLogging (3: full data, defaults, game_context None), BattleTracking (4: full lifecycle, minimal start, minimal turn, defeat), SessionSummary (3: empty, with battles, unknown), ExportSessionData (2: double-fetchone bug documented, empty session), CompatibilityWrappers (3: noop, delegate, non-dict), Close (2: idempotent, logs info), ErrorHandling (3: constraint, db error, cursor), MultiSession (2: independent, latest session), MissingACMethods (2: get_recent_actions and get_session_stats not implemented). All pass in 0.18s. Documents: BUG — _get_session_data double-fetchone TypeError (line 472). Coverage: 89% (161 stmts, 17 missed — error exception classes + _get_session_data bug blocks export reach + __main__ guard).
 **AC:**
-1. Test GameDatabase.__init__ — creates tables via schema
-2. Test log_session_metrics — insert + query round-trip
-3. Test log_screenshot_event — insert + verify fields
-4. Test log_ai_thought — reasoning, confidence, model tracking
-5. Test log_command — action, parameters, success/failure
-6. Test get_recent_actions — ordered by timestamp, limit
-7. Test get_session_stats — aggregated metrics query
-8. Coverage: db/database.py 48% → 65%+
+1. ✅ Test GameDatabase.__init__ — creates tables via schema (8 tables + 6 indexes verified)
+2. ✅ Test start_session — insert + query round-trip (log_session_metrics is a no-op — documented)
+3. ✅ Test log_screenshot_event — insert + verify fields (4 tests)
+4. ✅ Test log_ai_thought — reasoning, confidence, model tracking (3 tests)
+5. ✅ Test log_command — action, parameters, success/failure (4 tests)
+6. ⚠️ AC item "get_recent_actions" — method does not exist in GameDatabase (documented)
+7. ⚠️ AC item "get_session_stats" — method does not exist; equivalent: get_session_summary (tested)
+8. ✅ Coverage: 48% → 89% (target: 65%+)
 
-### [ ] COV-19: Add unit tests for screenshot_manager.py (66% → 85%+)
+### [x] COV-19: Add unit tests for screenshot_manager.py (66% → 87%) ✅ (dcc78d8)
 **Priority:** low
 **Why:** ScreenshotManager handles PNG save/load with metadata. 150 lines at 66%. Testable with tmp_path — no ROM/API needed.
-**Model:** deepseek-v4-pro (foreman direct — test file)
-**Files:** tests/test_screenshot_manager.py (modify — existing tests)
+**Model:** deepseek-v4-pro (foreman direct — test file extension)
+**Files:** tests/test_screenshot_manager.py (modify — existing 47 tests)
+**Result:** Added 5 tests: get_latest_screenshot menu filter (2), create_grid_view corrupted image skip, timestamp unknown fallback, update_display q-key stops display. Total: 52 tests. Coverage: 87% (150 stmts, 23 missed — all in __main__ guard). Existing tests already covered all 7 AC items; new tests fill remaining branch gaps.
 **AC:**
-1. Test save_screenshot with numpy array → PNG written
-2. Test load_screenshot round-trip
-3. Test save_screenshot with metadata dict
-4. Test get_latest_screenshots with limit
-5. Test cleanup_old_screenshots with max_age
-6. Test edge case: empty directory → empty list
-7. Coverage: screenshot_manager.py 66% → 85%+
+1. ✅ Test save_screenshot with numpy array → PNG written (existing test)
+2. ✅ Test load_screenshot round-trip (existing test)
+3. ✅ Test save_screenshot with metadata dict (existing test)
+4. ✅ Test get_latest_screenshots with limit (existing test)
+5. ✅ Test cleanup_old_screenshots with max_age (existing test)
+6. ✅ Test edge case: empty directory → empty list (existing test)
+7. ✅ Coverage: 66% → 87% (target: 85%+)
 
