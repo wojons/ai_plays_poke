@@ -53,6 +53,7 @@ markers = [
     "vision: marks tests as vision-related",
     "ai: marks tests as AI-related",
     "live_api: marks tests that require live API keys (OPENROUTER_API_KEY)",
+    "asyncio: marks tests as async (uses pytest-asyncio or asyncio)",
 ]
 junit_family = "xunit2"
 cache_dir = ".pytest_cache"

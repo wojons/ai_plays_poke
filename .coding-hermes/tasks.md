@@ -379,7 +379,28 @@
 
 ---
 
-## Active Queue (Jun 27 — Coverage Gap Fill)
+## Active Queue (Jun 27 — Coverage Gap Fill Continued)
+
+### [x] COV-20: Add unit tests for core/game_loop.py (0% → 75%) ✅ (pending)
+**Priority:** high
+**Why:** src/core/game_loop.py is the Core Game Loop Manager — 503 lines at 0% coverage. Handles emulator coordination, AI decision routing, command execution, and database logging.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_core_game_loop.py (new), pyproject.toml (add asyncio marker)
+**AC:**
+1. ✅ Test _detect_hp_bars() — red bars, green bars, mixed, black/blue/white, below threshold, tiny region (9 tests)
+2. ✅ Test _detect_text() — high contrast text, low contrast, solid black/white, alternating pattern, just below threshold (6 tests)
+3. ✅ Test _detect_menu_pattern() — grid pattern, blank, noise, tiny region (4 tests)
+4. ✅ Test _analyze_screenshot() — empty screen, battle, dialog, all states, tiny/wide screen (6 tests)
+5. ✅ Test _simple_battle_ai, _simple_menu_ai, _simple_exploration_ai — return values, distinct actions (4 tests)
+6. ✅ Test constructor — rom_path, emulator/db creation, defaults, custom intervals, initial state, metrics (7 tests)
+7. ✅ Test lifecycle — start/stop with mocked emulator+db (8 tests)
+8. ✅ Test run_single_tick — counter, emulator tick, metrics, screenshot interval, pending commands, battle detection (8 tests)
+9. ✅ Test _execute_pending_commands — empty, press buttons, unknown button, sequence/batch, history, metrics (11 tests)
+10. ✅ Test _get_ai_decision — battle/menu/default routing, priority, pending commands (5 tests via asyncio.run)
+11. ✅ Test _detect_battle_transition — skip at tick 42, check at tick 60, battle start/end (4 tests)
+12. ✅ Test full lifecycle integration (1 test)
+13. ✅ Coverage: 0% → 75% (204 stmts, 48 missed — _capture_and_process_screenshot + main() CLI)
+**Result:** 73 tests across 12 test classes in 0.29s. All pass. Full non-ROM suite 2484/2484. Coverage: src/core/game_loop.py 0% → 75%. Missed: _capture_and_process_screenshot (coupled to emulator+DB+SS manager) and main() CLI entrypoint.
 
 ### [x] COV-14: Add unit tests for rom_detect.py (35% → 80%) ✅ (pending)
 **Priority:** high
