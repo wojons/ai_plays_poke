@@ -23,6 +23,81 @@ from core.goap import (
 )
 
 
+class TestGoalTypeEnum:
+    """Tests for GoalType enum (AC-1)"""
+
+    def test_all_four_members(self) -> None:
+        members = list(GoalType)
+        assert len(members) == 4
+        names = {m.name for m in members}
+        assert names == {"IMMEDIATE", "SHORT_TERM", "MEDIUM_TERM", "LONG_TERM"}
+
+    def test_values_distinct(self) -> None:
+        values = [m.value for m in GoalType]
+        assert len(values) == len(set(values))
+
+    def test_member_identity(self) -> None:
+        assert GoalType.IMMEDIATE is GoalType.IMMEDIATE
+        assert GoalType.SHORT_TERM is not GoalType.LONG_TERM
+
+
+class TestActionTypeEnum:
+    """Tests for ActionType enum (AC-2)"""
+
+    def test_all_five_members(self) -> None:
+        members = list(ActionType)
+        assert len(members) == 5
+        names = {m.name for m in members}
+        assert names == {"NAVIGATION", "BATTLE", "MENU", "DIALOG", "WAIT"}
+
+    def test_values_distinct(self) -> None:
+        values = [m.value for m in ActionType]
+        assert len(values) == len(set(values))
+
+
+class TestPlanStatusEnum:
+    """Tests for PlanStatus enum (AC-3)"""
+
+    def test_all_five_members(self) -> None:
+        members = list(PlanStatus)
+        assert len(members) == 5
+        names = {m.name for m in members}
+        assert names == {"PENDING", "EXECUTING", "COMPLETED", "FAILED", "ABORTED"}
+
+    def test_values_distinct(self) -> None:
+        values = [m.value for m in PlanStatus]
+        assert len(values) == len(set(values))
+
+
+class TestPriorityLevelEnum:
+    """Tests for PriorityLevel enum (AC-4)"""
+
+    def test_critical_value(self) -> None:
+        assert PriorityLevel.CRITICAL.value == 95
+
+    def test_high_value(self) -> None:
+        assert PriorityLevel.HIGH.value == 70
+
+    def test_medium_value(self) -> None:
+        assert PriorityLevel.MEDIUM.value == 40
+
+    def test_low_value(self) -> None:
+        assert PriorityLevel.LOW.value == 0
+
+    def test_all_four_members(self) -> None:
+        members = list(PriorityLevel)
+        assert len(members) == 4
+
+    def test_values_distinct(self) -> None:
+        values = [m.value for m in PriorityLevel]
+        assert len(values) == len(set(values))
+
+    def test_ordering(self) -> None:
+        assert PriorityLevel.CRITICAL.value > PriorityLevel.HIGH.value
+        assert PriorityLevel.HIGH.value > PriorityLevel.MEDIUM.value
+        assert PriorityLevel.MEDIUM.value > PriorityLevel.LOW.value
+
+
 class TestGameState:
     """Tests for GameState dataclass"""
 
@@ -33,6 +108,18 @@ class TestGameState:
         assert state.badges == 0
         assert state.money == 0
         assert state.party == []
+
+    def test_avg_party_level_empty(self) -> None:
+        state = GameState()
+        assert state.get_avg_party_level() == 0.0
+
+    def test_party_hp_percent_empty(self) -> None:
+        state = GameState()
+        assert state.get_party_hp_percent() == 0.0
+
+    def test_fainted_count_empty(self) -> None:
+        state = GameState()
+        assert state.get_fainted_count() == 0
 
     def test_game_state_with_party(self) -> None:
         state = GameState(
@@ -181,6 +268,77 @@ class TestGoal:
         state = GameState()
         utility = goal.calculate_utility(state)
         assert utility == 100.0
+
+    def test_calculate_utility_zero_cost(self) -> None:
+        goal = Goal(
+            name="Test Goal",
+            description="A test goal",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+            estimated_cost=0.0,
+            estimated_value=200.0
+        )
+        state = GameState()
+        utility = goal.calculate_utility(state)
+        assert utility == 10000.0
+
+    def test_to_dict(self) -> None:
+        goal = Goal(
+            goal_id="test-1",
+            name="Test Goal",
+            description="A test goal",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+            estimated_cost=100.0,
+            estimated_value=200.0,
+            prerequisites=["goal-a"],
+            dependencies=["goal-b"],
+        )
+        result = goal.to_dict()
+        assert result["goal_id"] == "test-1"
+        assert result["name"] == "Test Goal"
+        assert result["goal_type"] == "SHORT_TERM"
+        assert result["priority"] == 50
+        assert result["estimated_cost"] == 100.0
+        assert result["prerequisites"] == ["goal-a"]
+
+    def test_is_feasible_with_badges_requirement(self) -> None:
+        goal = Goal(
+            name="Enter Gym",
+            description="Need 2 badges",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+            required_resources={"badges": 2}
+        )
+        state = GameState(badges=1)
+        feasible, missing = goal.is_feasible(state)
+        assert feasible is False
+        assert missing["badges"] == 1
+
+    def test_is_feasible_with_pokemon_species(self) -> None:
+        goal = Goal(
+            name="Use Surf",
+            description="Need water pokemon",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+            required_resources={"pokemon_species": "Squirtle"}
+        )
+        state = GameState(party=[{"species": "Pikachu"}])
+        feasible, missing = goal.is_feasible(state)
+        assert feasible is False
+        assert missing["pokemon_species"] == "Squirtle"
+
+    def test_is_feasible_with_pokemon_species_present(self) -> None:
+        goal = Goal(
+            name="Use Surf",
+            description="Need water pokemon",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+            required_resources={"pokemon_species": "Squirtle"}
+        )
+        state = GameState(party=[{"species": "Squirtle"}])
+        feasible, missing = goal.is_feasible(state)
+        assert feasible is True
 
 
 class TestDefeatGymGoal:
@@ -408,6 +566,16 @@ class TestPlan:
         actions = [NavigateAction("Route 1"), NavigateAction("Route 2"), BattleAction()]
         plan = Plan(plan_id="plan-1", goal_id="goal-1", actions=actions)
         assert plan.total_cost == 25.0
+
+    def test_to_dict(self) -> None:
+        actions = [NavigateAction("Route 1")]
+        plan = Plan(plan_id="plan-1", goal_id="goal-1", actions=actions)
+        result = plan.to_dict()
+        assert result["plan_id"] == "plan-1"
+        assert result["goal_id"] == "goal-1"
+        assert result["status"] == "PENDING"
+        assert result["total_actions"] == 1
+        assert result["current_action"] == 0
 
 
 class TestGoalStack:
