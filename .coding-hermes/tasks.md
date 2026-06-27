@@ -377,3 +377,92 @@
 8. ✅ Test GameState dataclass — get/set, empty-party edge cases (adapted from WorldState)
 9. ✅ Coverage: goap.py estimated ~72%+ (from existing ~65% + enum/data gaps filled)
 
+---
+
+## Active Queue (Jun 27 — Coverage Gap Fill)
+
+### [x] COV-14: Add unit tests for rom_detect.py (35% → 80%) ✅ (pending)
+**Priority:** high
+**Why:** Pure functions — detect_platform() and get_game_name() read cartridge headers. 76 lines at 35%, testable with tmp binary files, zero infrastructure.
+**Model:** deepseek-v4-pro (foreman direct — execute-immediately)
+**Files:** tests/test_rom_detect.py (new)
+**Result:** 24 tests across 3 test classes: TestDetectPlatform (10: GB/GBA detection, oversized, string path, missing/dir), TestGetGameName (11: GB/GBA titles, null-termination, all-nulls, non-ASCII), TestIntegration (3: GB/GBA workflows, unknown title). Coverage: 80% (30 stmts, 5 missed = __main__ guard). All pass in 0.25s. Full suite 2211/2211.
+
+### [ ] COV-15: Add unit tests for prompt_assembler.py (86% → 95%+)
+**Priority:** high
+**Why:** PromptStack loads YAML configs and assembles prompts with live data injection. 232 lines at 86% — mostly tested via integration tests. Dedicated unit tests with temp YAML dirs can fill the remaining gaps (flow loading edge cases, SafeDict, _build_enemy_info/_build_hp_info edge cases, available_stacks).
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_prompt_assembler.py (new)
+**AC:**
+1. Test PromptStack.load_stack() with temp YAML dirs — happy path + missing file
+2. Test PromptStack.assemble() with all layers — verify format_map injection, flow prepending
+3. Test SafeDict missing key behavior
+4. Test _build_hp_info / _build_enemy_info edge cases (missing keys, composite fallbacks, None values)
+5. Test _join_list (None, empty, string, list)
+6. Test available_stacks() with populated dir
+7. Test _load_flow() with missing flow.yaml → empty string
+8. Test _format_layer with example list (non-format_map path)
+9. Coverage: prompt_assembler.py 86% → 95%+
+
+### [ ] COV-16: Add unit tests for game_loop.py (0% → 40%+)
+**Priority:** medium
+**Why:** Core game loop at 0% coverage — 504 lines, all untested. Heavily coupled to Emulator + GameDatabase + ScreenshotManager. Mock all three to test tick loop, screenshot capture, AI decision routing, and metrics tracking.
+**Model:** deepseek-v4-pro (foreman direct — test file, heavy mocking)
+**Files:** tests/test_game_loop.py (new)
+**AC:**
+1. Test GameLoop.__init__ — creates save dir, initializes components
+2. Test run_single_tick — advances emulator, captures at interval, processes commands
+3. Test _capture_and_process_screenshot — saves screenshot, analyzes state, triggers AI if needed
+4. Test _analyze_screenshot — battle/dialog/menu detection from screen regions
+5. Test _detect_hp_bars — red/green pixel detection
+6. Test _detect_text — contrast-based text detection
+7. Test _detect_menu_pattern — edge detection + line counting
+8. Test _get_ai_decision — routes to battle/menu/exploration AI
+9. Test stop() — saves state, logs metrics, stops emulator
+10. Coverage: game_loop.py 0% → 40%+
+
+### [ ] COV-17: Add unit tests for vision/pipeline.py (75% → 90%+)
+**Priority:** medium
+**Why:** VisionPipeline orchestrates screen classification → OCR → sprite detection. 197 lines at 75%. Mostly integration-tested; dedicated unit tests with mocked sub-components can fill remaining branches (error paths, fallback chains).
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_vision_pipeline.py (new)
+**AC:**
+1. Test VisionPipeline.__init__ with default and custom config
+2. Test analyze() happy path — all classifiers return results
+3. Test analyze() with classifier failure → fallback to next
+4. Test analyze() with all classifiers fail → returns error result
+5. Test _classify_screen stage
+6. Test _extract_text stage
+7. Test _detect_sprites stage
+8. Test _merge_results composite output
+9. Coverage: vision/pipeline.py 75% → 90%+
+
+### [ ] COV-18: Add unit tests for db/database.py (48% → 65%+)
+**Priority:** low
+**Why:** GameDatabase wraps SQLite for session metrics, screenshots, AI thoughts, and command logging. 596 lines at 48% — in-memory SQLite testing with real queries but no ROM/emulator deps.
+**Model:** deepseek-v4-pro (foreman direct — test file, in-memory SQLite)
+**Files:** tests/test_game_database.py (new)
+**AC:**
+1. Test GameDatabase.__init__ — creates tables via schema
+2. Test log_session_metrics — insert + query round-trip
+3. Test log_screenshot_event — insert + verify fields
+4. Test log_ai_thought — reasoning, confidence, model tracking
+5. Test log_command — action, parameters, success/failure
+6. Test get_recent_actions — ordered by timestamp, limit
+7. Test get_session_stats — aggregated metrics query
+8. Coverage: db/database.py 48% → 65%+
+
+### [ ] COV-19: Add unit tests for screenshot_manager.py (66% → 85%+)
+**Priority:** low
+**Why:** ScreenshotManager handles PNG save/load with metadata. 150 lines at 66%. Testable with tmp_path — no ROM/API needed.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_screenshot_manager.py (modify — existing tests)
+**AC:**
+1. Test save_screenshot with numpy array → PNG written
+2. Test load_screenshot round-trip
+3. Test save_screenshot with metadata dict
+4. Test get_latest_screenshots with limit
+5. Test cleanup_old_screenshots with max_age
+6. Test edge case: empty directory → empty list
+7. Coverage: screenshot_manager.py 66% → 85%+
+
