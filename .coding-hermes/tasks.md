@@ -356,3 +356,23 @@
 **Result:** 61 tests across 11 test classes: PromptTemplate (8), PromptManagerInit (6), LoadPrompts (7), LoadPromptFile (10), GetRelevantPrompts (8), SelectPromptsForAI (6), TrackPromptUsage (6), GetPromptAnalytics (6), Integration (4). Coverage: 91% (106 stmts, 10 missed — exception handler, BUG-1 broken regex inside try, __main__ guard). Documents 1 pre-existing bug: BUG-1 — priority regex `r'**Priority:\s*(\d+)'` unescaped leading `*` causes re.error; files with `**Priority:` never load.
 **AC:** All 9 satisfied — 60% → 91% (target: 85%+).
 
+---
+
+## Active Queue (Jun 27 — Coverage Gap Fill)
+
+### [ ] COV-13: Add unit tests for goap.py enums + dataclasses (65% → 75%+)
+**Priority:** medium
+**Why:** GOAP planner has 744 stmts at 65% — enums (GoalType, ActionType, PlanStatus, PriorityLevel) and dataclasses (Goal, Action, Plan, WorldState) are pure data with no ROM/API deps.
+**Model:** deepseek-v4-pro (foreman direct — test file)
+**Files:** tests/test_goap.py (new)
+**AC:**
+1. Test GoalType enum — all 4 members, values distinct
+2. Test ActionType enum — all 5 members
+3. Test PlanStatus enum — all 5 members
+4. Test PriorityLevel enum — CRITICAL=95, HIGH=70, MEDIUM=40, LOW=0
+5. Test Goal dataclass — construction, defaults, to_dict/from_dict
+6. Test Action dataclass — construction, preconditions, effects
+7. Test Plan dataclass — status, steps, cost
+8. Test WorldState dataclass — get/set, satisfies
+9. Coverage: goap.py 65% → 75%+
+
