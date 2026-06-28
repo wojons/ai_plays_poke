@@ -6,8 +6,8 @@ player:
   facing: S
   mode: walk
   pos:
-  - 0
-  - 0
+  - 7
+  - 10
   screen_pos:
   - 0
   - 0
