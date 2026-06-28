@@ -473,3 +473,45 @@
 6. ✅ Test edge case: empty directory → empty list (existing test)
 7. ✅ Coverage: 66% → 87% (target: 85%+)
 
+---
+
+## Active Queue (Jun 27 — Pathfinding & Planner Coverage)
+
+### [x] COV-21: Add find_path_with_warps + _find_warp_sequence tests (69% → 78%+) ✅ (done)
+- **Priority:** high
+- **Why:** Multi-map pathfinding via warps is untested — 2 methods, pure BFS + path composition logic
+- **Model:** deepseek-v4-pro (foreman direct — test file extension)
+- **Files:** tests/test_navigation.py (modify)
+- **Result:** 9 tests in TestWarpPathfinding class — find_path_with_warps same-map, cross-map, composes-cost, no-warp-route, unreachable-via-warp. _find_warp_sequence same-map, cross-map, unreachable, two-hop. All pass in 0.08s. 2493 non-ROM pass. Warps are graph edges — normal find_path traverses them; find_path_with_warps composition code reached only when find_path fails. Total: 63 navigation tests.
+- **AC:**
+  1. Test find_path_with_warps same map → delegates to find_path
+  2. Test find_path_with_warps cross-map with warps → composes multi-segment path
+  3. Test find_path_with_warps no warp route → returns failure PathResult
+  4. Test _find_warp_sequence same map → returns empty list
+  5. Test _find_warp_sequence cross-map → returns warp positions
+  6. Test _find_warp_sequence unreachable map → returns empty list
+  7. Coverage: navigation.py 69% → 78%+
+
+### [ ] COV-22: Add RouteOptimizer edge cases (TSP ordering, safety)
+- **Priority:** medium
+- **Why:** Route optimizer has untested clustering and safety calculation branches
+- **Model:** deepseek-v4-pro (foreman direct — test file extension)
+- **Files:** tests/test_navigation.py (modify)
+- **AC:**
+  1. Test optimize_route with 2+ objectives visited in optimal order
+  2. Test cluster_objectives with objectives on different maps
+  3. Test calculate_route_safety with all-dangerous segments
+  4. Coverage: navigation.py 78% → 85%+
+
+### [ ] COV-23: Add goap.py action selection + plan execution tests (67% → 80%+)
+- **Priority:** medium
+- **Why:** GOAP planner action selection, cost calculation, and plan execution branches untested
+- **Model:** deepseek-v4-pro (foreman direct — test file extension)
+- **Files:** tests/test_goap.py (modify)
+- **AC:**
+  1. Test action selection with multiple actions matching goal
+  2. Test cost comparison picks cheapest action
+  3. Test plan execution step-by-step with state transitions
+  4. Test plan status transitions (pending → in_progress → completed/failed)
+  5. Coverage: goap.py 67% → 80%+
+
