@@ -561,3 +561,25 @@
   4. Test parse_tool_call with malformed XML (no name) → returns None or graceful
   5. Coverage: tools.py 77% → 85%+
 
+### [x] COV-27: Add unit tests for state_machine.py (85% → 99%) ✅ (pending)
+- **Priority:** high
+- **Why:** Hierarchical state machine at 432 stmts/85% — 46 missed. All State/HSM/Classifier code is pure logic — zero emulator/API deps. Enums, dataclasses, state transitions, emergency handling, push/pop, callbacks all testable.
+- **Model:** deepseek-v4-pro (foreman direct — test file)
+- **Files:** tests/test_state_machine.py (new)
+- **Result:** 105 tests across 34 test classes: 9 enum tests (StateType, BootSubState, TitleSubState, MenuSubState, DialogSubState, OverworldSubState, BattleSubState, EmergencySubState, StateTransitionResult), 3 dataclass tests (StateTransition, TransitionCondition), 14 State base class tests, 65 HSM tests (constructor, states, can_transition, transition_to, callbacks, emergency, is_in_*, push/pop, update, reset, available_transitions, statistics), 8 GameStateClassifier tests, 1 factory test, 3 full-chain tests. All pass in 0.12s. Coverage: 99% (432 stmts, 0 missed, 5 partial branches — unreachable edge cases in _reset/_init alias). Full suite 2804 passed, 8 skipped.
+- **AC:**
+  1. ✅ Test all 8 enums (StateType, 5 SubState families, StateTransitionResult) — member count + distinctness
+  2. ✅ Test StateTransition + TransitionCondition dataclasses — defaults, full fields
+  3. ✅ Test State base class — properties (entry_time, tick_count), add/remove_child, on_enter/exit/update, get_available_transitions, __str__/__repr__
+  4. ✅ Test HSM constructor + state creation — all 50+ states, parent/child, battle menu alias
+  5. ✅ Test HSM transition_to — valid, invalid, state_not_found, same-state, emergency interrupt, reason tracking
+  6. ✅ Test HSM can_transition — valid, invalid, None/\"None\" from_state
+  7. ✅ Test HSM emergency — trigger, clear, is_emergency, callback invocation + exception
+  8. ✅ Test HSM push/pop — valid push, nonexistent push, pop_returns_previous, empty_stack
+  9. ✅ Test HSM update — tick increment, explicit tick, invalid tick, no_current_state, on_update transition
+  10. ✅ Test HSM reset — clears history/stack, resets to INITIALIZE, missing initial state edge case
+  11. ✅ Test HSM is_in_battle/menu/dialog — true/false, None current_state
+  12. ✅ Test GameStateClassifier — constructor, classify (rate limit, no state change, valid transition, invalid transition, emergency detection), _determine_state
+  13. ✅ Test full transition chains — overworld→battle→overworld, dialog flow, push/pop menu flow
+  14. ✅ Coverage: state_machine.py 85% → 99% (target: 95%+)
+
