@@ -765,5 +765,183 @@ class TestTileType:
         assert TileType.HM_BLOCK is not None
 
 
+class TestWarpPathfinding:
+    """Tests for multi-map pathfinding via warps."""
+
+    def setup_method(self) -> None:
+        self.graph = WorldGraph()
+        self.pathfinder = AStarPathfinder(self.graph)
+
+    def _create_two_map_grid(self) -> None:
+        """Create two connected maps with a warp between them."""
+        # Map A: 5x5 grid
+        for x in range(5):
+            for y in range(5):
+                pos = Position(x, y, "map_a")
+                node = GraphNode(position=pos, tile_type=TileType.PASSABLE)
+                self.graph.add_node(node)
+                if x < 4:
+                    edge = GraphEdge(from_node=pos, to_node=Position(x + 1, y, "map_a"))
+                    self.graph.add_edge(edge)
+                    edge_rev = GraphEdge(from_node=Position(x + 1, y, "map_a"), to_node=pos)
+                    self.graph.add_edge(edge_rev)
+                if y < 4:
+                    edge = GraphEdge(from_node=pos, to_node=Position(x, y + 1, "map_a"))
+                    self.graph.add_edge(edge)
+                    edge_rev = GraphEdge(from_node=Position(x, y + 1, "map_a"), to_node=pos)
+                    self.graph.add_edge(edge_rev)
+
+        # Map B: 5x5 grid
+        for x in range(5):
+            for y in range(5):
+                pos = Position(x, y, "map_b")
+                node = GraphNode(position=pos, tile_type=TileType.PASSABLE)
+                self.graph.add_node(node)
+                if x < 4:
+                    edge = GraphEdge(from_node=pos, to_node=Position(x + 1, y, "map_b"))
+                    self.graph.add_edge(edge)
+                    edge_rev = GraphEdge(from_node=Position(x + 1, y, "map_b"), to_node=pos)
+                    self.graph.add_edge(edge_rev)
+                if y < 4:
+                    edge = GraphEdge(from_node=pos, to_node=Position(x, y + 1, "map_b"))
+                    self.graph.add_edge(edge)
+                    edge_rev = GraphEdge(from_node=Position(x, y + 1, "map_b"), to_node=pos)
+                    self.graph.add_edge(edge_rev)
+
+        # Warp: (4,4) on map_a → (0,0) on map_b
+        warp_src = Position(4, 4, "map_a")
+        warp_dst = Position(0, 0, "map_b")
+        warp_edge = GraphEdge(from_node=warp_src, to_node=warp_dst, is_warp=True)
+        self.graph.add_edge(warp_edge)
+
+    # -- find_path_with_warps tests --
+
+    def test_find_path_with_warps_same_map(self) -> None:
+        """Same map delegates to normal find_path."""
+        self._create_two_map_grid()
+        start = Position(0, 0, "map_a")
+        goal = Position(3, 0, "map_a")
+        context = PathfindingContext()
+
+        result = self.pathfinder.find_path_with_warps(start, goal, context)
+
+        assert result.success is True
+        assert result.path[0] == start
+        assert result.path[-1] == goal
+        # No multi-map warning on same-map paths
+        assert "Multi-map" not in str(result.warnings)
+
+    def test_find_path_with_warps_cross_map(self) -> None:
+        """Cross-map path finds warp route between maps (warps are graph edges)."""
+        self._create_two_map_grid()
+        start = Position(0, 0, "map_a")
+        goal = Position(2, 2, "map_b")
+        context = PathfindingContext()
+
+        result = self.pathfinder.find_path_with_warps(start, goal, context)
+
+        assert result.success is True
+        assert result.path[0] == start
+        assert result.path[-1] == goal
+        # Path spans both maps (via warp edge)
+        map_ids_in_path = {p.map_id for p in result.path}
+        assert "map_a" in map_ids_in_path
+        assert "map_b" in map_ids_in_path
+
+    def test_find_path_with_warps_cross_map_composes_cost(self) -> None:
+        """Cross-map path total_cost sums all segments."""
+        self._create_two_map_grid()
+        start = Position(0, 0, "map_a")
+        goal = Position(2, 2, "map_b")
+        context = PathfindingContext()
+
+        result = self.pathfinder.find_path_with_warps(start, goal, context)
+
+        assert result.success is True
+        assert result.total_cost > 0
+
+    def test_find_path_with_warps_no_warp_route(self) -> None:
+        """Maps with no warps connecting them returns failure."""
+        self._create_two_map_grid()
+        start = Position(0, 0, "map_a")
+        goal = Position(0, 0, "map_c")  # map_c has no nodes/edges
+        context = PathfindingContext()
+
+        result = self.pathfinder.find_path_with_warps(start, goal, context)
+
+        assert result.success is False
+        assert "No multi-map path" in str(result.warnings)
+
+    def test_find_path_with_warps_unreachable_via_warp(self) -> None:
+        """Start map has nodes, but goal map has no warp connection."""
+        self._create_two_map_grid()
+        # map_c exists but has no warps to it
+        gnode = GraphNode(position=Position(0, 0, "map_c"), tile_type=TileType.PASSABLE)
+        self.graph.add_node(gnode)
+        start = Position(0, 0, "map_a")
+        goal = Position(0, 0, "map_c")
+        context = PathfindingContext()
+
+        result = self.pathfinder.find_path_with_warps(start, goal, context)
+
+        assert result.success is False
+
+    # -- _find_warp_sequence tests --
+
+    def test_find_warp_sequence_same_map(self) -> None:
+        """Same start and goal map returns empty list."""
+        self._create_two_map_grid()
+        context = PathfindingContext()
+
+        seq = self.pathfinder._find_warp_sequence("map_a", "map_a", context)
+
+        assert seq == []
+
+    def test_find_warp_sequence_cross_map(self) -> None:
+        """Cross-map BFS finds warp positions."""
+        self._create_two_map_grid()
+        context = PathfindingContext()
+
+        seq = self.pathfinder._find_warp_sequence("map_a", "map_b", context)
+
+        assert len(seq) == 1
+        assert seq[0].map_id == "map_a"
+
+    def test_find_warp_sequence_unreachable(self) -> None:
+        """Unreachable map returns empty list."""
+        self._create_two_map_grid()
+        context = PathfindingContext()
+
+        seq = self.pathfinder._find_warp_sequence("map_a", "map_c", context)
+
+        assert seq == []
+
+    def test_find_warp_sequence_two_hop(self) -> None:
+        """Two-hop warp (A→B→C) returns both warp sources."""
+        self._create_two_map_grid()
+        # Add map C + warp B→C
+        for x in range(3):
+            for y in range(3):
+                pos = Position(x, y, "map_c")
+                node = GraphNode(position=pos, tile_type=TileType.PASSABLE)
+                self.graph.add_node(node)
+                if x < 2:
+                    edge = GraphEdge(from_node=pos, to_node=Position(x + 1, y, "map_c"))
+                    self.graph.add_edge(edge)
+        warp_bc = GraphEdge(
+            from_node=Position(2, 0, "map_b"),
+            to_node=Position(0, 0, "map_c"),
+            is_warp=True,
+        )
+        self.graph.add_edge(warp_bc)
+        context = PathfindingContext()
+
+        seq = self.pathfinder._find_warp_sequence("map_a", "map_c", context)
+
+        assert len(seq) == 2
+        assert seq[0].map_id == "map_a"
+        assert seq[1].map_id == "map_b"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
