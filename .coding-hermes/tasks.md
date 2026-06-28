@@ -477,7 +477,7 @@
 
 ## Active Queue (Jun 28 — Coverage Gap Fill)
 
-### [x] COV-28: Add unit tests for _parse_raw + _dict_to_patch in map_integrator.py (73% → 82%+) ✅ (pending)
+### [x] COV-28: Add unit tests for _parse_raw + _dict_to_patch in map_integrator.py (73% → 82%+) ✅ (07c3b3e)
 - **Priority:** medium
 - **Why:** `_parse_raw()` and `_dict_to_patch()` are pure functions (string→dict, dict→ObsPatch) — mechanically testable with plain strings. 316 lines at 73%, 35 missed. The markdown-fence stripping, YAML fallback, and JSON parsing branches are untested.
 - **Model:** deepseek-v4-pro (foreman direct — trivial test file)
