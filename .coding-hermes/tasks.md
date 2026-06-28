@@ -517,3 +517,24 @@
   4. ✅ Test plan status transitions — 7 PlanStatusTransitions tests (pending→executing→completed/failed/aborted)
   5. ✅ Coverage: goap.py 67% → 86% (target: 80%+)
 
+---
+
+## Active Queue (Jun 27 — Coverage Gap Fill Continued)
+
+### [ ] COV-24: Add unit tests for symbols.py (0% → 90%+)
+- **Priority:** medium
+- **Why:** 349 lines of pure data dicts + 8 conversion functions. Zero dependencies — no ROM, no API, no emulator. Mechanical to test with plain asserts.
+- **Model:** deepseek-v4-pro (foreman direct — test file)
+- **Files:** tests/test_symbols.py (new)
+- **AC:**
+  1. Test TERRAIN_EMOJI/TERRAIN_ASCII dicts — all keys present, lookup correctness
+  2. Test OBJECT_EMOJI/OBJECT_ASCII + ACTOR_EMOJI/ACTOR_ASCII — key coverage
+  3. Test terrain_to_emoji/terrain_to_ascii — known keys, unknown fallback
+  4. Test object_to_emoji/object_to_ascii — space handling, known keys
+  5. Test actor_to_emoji/actor_to_ascii — known kinds, empty string fallback
+  6. Test facing_emoji/facing_ascii — N/S/E/W directions
+  7. Test mode_emoji, edge_emoji, visited_emoji/visited_ascii — all modes
+  8. Test describe_tile — terrain-only, terrain+object, terrain+object+actor
+  9. Test SYMBOL_REFERENCE string contains key terrain symbols
+  10. Coverage: symbols.py 0% → 90%+
+
