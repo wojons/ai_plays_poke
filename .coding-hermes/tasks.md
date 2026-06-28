@@ -539,3 +539,14 @@
   9. ✅ Test SYMBOL_REFERENCE string contains key terrain symbols
   10. ✅ Coverage: symbols.py 0% → 90%+ (achieved: 100%)
 
+---
+
+## Active Queue (Jun 28 — Coverage Gap Fill)
+
+### [x] COV-25: Add unit tests for screenshot_manager.py (69% → 86%) ✅ (pending)
+- **Priority:** high
+- **Why:** 315 lines at 69% — ScreenshotManager + LiveView classes used by game_loop and dashboard. Pure file I/O + numpy — fully testable with tmp_path, no ROM/API needed. 49 stmts missed.
+- **Model:** deepseek-v4-pro (foreman direct — test file)
+- **Files:** tests/test_ss_manager.py (new)
+- **Result:** 47 tests across 13 test classes: Init (3), SaveScreenshot (7), GetLatest (7), GetBase64 (3), CreateGridView (7), CleanupOld (4), GetStats (4), LiveViewInit (3), LiveViewUpdateDisplay (2), LiveViewStartStop (3), LiveViewDisplayScreenshot (2), Integration (2). All pass in 0.22s. Coverage: 86% (150 stmts, 24 missed — __main__ guard + cv2.waitKey in update_display). Full suite 2734 passed + 47 = ~2781.
+
