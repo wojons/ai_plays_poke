@@ -492,16 +492,17 @@
   6. Test _find_warp_sequence unreachable map → returns empty list
   7. Coverage: navigation.py 69% → 78%+
 
-### [ ] COV-22: Add RouteOptimizer edge cases (TSP ordering, safety)
+### [x] COV-22: Add RouteOptimizer edge cases (TSP ordering, safety) ✅ (e4c4b40)
 - **Priority:** medium
 - **Why:** Route optimizer has untested clustering and safety calculation branches
 - **Model:** deepseek-v4-pro (foreman direct — test file extension)
 - **Files:** tests/test_navigation.py (modify)
+- **Result:** 8 tests: optimize_route_optimal_order (nearest-neighbor picks closest first), optimize_route_priority_ordering (high-priority first regardless of distance), optimize_route_empty_objectives, cluster_objectives_different_maps (spatial distance across maps, narrow/wide radii), cluster_objectives_empty, calculate_route_safety_all_dangerous (danger_level=5 on all nodes → -20 score), calculate_route_safety_empty, calculate_route_safety_multiple_segments (avg across 2 safe segments = 10.0). 71/71 navigation tests pass in 0.14s. 2501 non-ROM pass.
 - **AC:**
-  1. Test optimize_route with 2+ objectives visited in optimal order
-  2. Test cluster_objectives with objectives on different maps
-  3. Test calculate_route_safety with all-dangerous segments
-  4. Coverage: navigation.py 78% → 85%+
+  1. ✅ Test optimize_route with 2+ objectives visited in optimal order
+  2. ✅ Test cluster_objectives with objectives on different maps
+  3. ✅ Test calculate_route_safety with all-dangerous segments
+  4. ✅ Coverage: navigation.py 78% → 85%+
 
 ### [ ] COV-23: Add goap.py action selection + plan execution tests (67% → 80%+)
 - **Priority:** medium
