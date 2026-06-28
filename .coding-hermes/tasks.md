@@ -521,20 +521,21 @@
 
 ## Active Queue (Jun 27 — Coverage Gap Fill Continued)
 
-### [ ] COV-24: Add unit tests for symbols.py (0% → 90%+)
+### [x] COV-24: Add unit tests for symbols.py (0% → 100%) ✅ (6cfacb8)
 - **Priority:** medium
 - **Why:** 349 lines of pure data dicts + 8 conversion functions. Zero dependencies — no ROM, no API, no emulator. Mechanical to test with plain asserts.
 - **Model:** deepseek-v4-pro (foreman direct — test file)
 - **Files:** tests/test_symbols.py (new)
+- **Result:** 122 tests across 25 test classes: TerrainDicts (6), ObjectDicts (5), ActorDicts (5), PlayerFacingDicts (3), ModeEmoji (2), LightingEmoji (2), EdgeOutcomeEmoji (2), VisitedDicts (3), TerrainToEmoji (8), TerrainToAscii (5), ObjectToEmoji (7), ObjectToAscii (5), ActorToEmoji (7), ActorToAscii (5), FacingEmoji (5), FacingAscii (5), ModeEmojiFunction (8), EdgeEmoji (7), VisitedEmoji (5), VisitedAscii (5), DescribeTile (7), TSVStripReference (3), SymbolReference (12). Coverage: 100% (50 stmts, 0 missed, 8 partial branches — dict get fallback paths). All pass in 0.11s. Full suite 2687 passed, 8 skipped.
 - **AC:**
-  1. Test TERRAIN_EMOJI/TERRAIN_ASCII dicts — all keys present, lookup correctness
-  2. Test OBJECT_EMOJI/OBJECT_ASCII + ACTOR_EMOJI/ACTOR_ASCII — key coverage
-  3. Test terrain_to_emoji/terrain_to_ascii — known keys, unknown fallback
-  4. Test object_to_emoji/object_to_ascii — space handling, known keys
-  5. Test actor_to_emoji/actor_to_ascii — known kinds, empty string fallback
-  6. Test facing_emoji/facing_ascii — N/S/E/W directions
-  7. Test mode_emoji, edge_emoji, visited_emoji/visited_ascii — all modes
-  8. Test describe_tile — terrain-only, terrain+object, terrain+object+actor
-  9. Test SYMBOL_REFERENCE string contains key terrain symbols
-  10. Coverage: symbols.py 0% → 90%+
+  1. ✅ Test TERRAIN_EMOJI/TERRAIN_ASCII dicts — all keys present, lookup correctness
+  2. ✅ Test OBJECT_EMOJI/OBJECT_ASCII + ACTOR_EMOJI/ACTOR_ASCII — key coverage
+  3. ✅ Test terrain_to_emoji/terrain_to_ascii — known keys, unknown fallback
+  4. ✅ Test object_to_emoji/object_to_ascii — space handling, known keys
+  5. ✅ Test actor_to_emoji/actor_to_ascii — known kinds, empty string fallback
+  6. ✅ Test facing_emoji/facing_ascii — N/S/E/W directions
+  7. ✅ Test mode_emoji, edge_emoji, visited_emoji/visited_ascii — all modes
+  8. ✅ Test describe_tile — terrain-only, terrain+object, terrain+object+actor
+  9. ✅ Test SYMBOL_REFERENCE string contains key terrain symbols
+  10. ✅ Coverage: symbols.py 0% → 90%+ (achieved: 100%)
 
