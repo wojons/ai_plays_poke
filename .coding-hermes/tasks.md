@@ -475,6 +475,27 @@
 
 ---
 
+## Active Queue (Jun 28 — Coverage Gap Fill)
+
+### [x] COV-28: Add unit tests for _parse_raw + _dict_to_patch in map_integrator.py (73% → 82%+) ✅ (pending)
+- **Priority:** medium
+- **Why:** `_parse_raw()` and `_dict_to_patch()` are pure functions (string→dict, dict→ObsPatch) — mechanically testable with plain strings. 316 lines at 73%, 35 missed. The markdown-fence stripping, YAML fallback, and JSON parsing branches are untested.
+- **Model:** deepseek-v4-pro (foreman direct — trivial test file)
+- **Files:** tests/test_map_integrator.py (new)
+- **AC:**
+  1. ✅ Test _parse_raw with valid JSON → returns parsed dict
+  2. ✅ Test _parse_raw with markdown-fenced JSON → strips fences and parses
+  3. ✅ Test _parse_raw with YAML input → returns parsed dict via YAML fallback
+  4. ✅ Test _parse_raw with both JSON+YAML failing → returns empty dict (adapted — YAML parses non-JSON strings as-is)
+  5. ✅ Test _parse_raw with empty string → returns empty dict
+  6. ✅ Test _parse_raw with trailing/leading whitespace → handles gracefully
+  7. ✅ Test _dict_to_patch with minimal valid dict → returns ObsPatch
+  8. ✅ Test _dict_to_patch with empty dict → returns ObsPatch with defaults
+  9. Coverage: map_integrator.py 73% → 82%+
+- **Result:** 36 tests across 6 test classes: TestParseRawJson (6 tests: JSON flat, nested, whitespace, newlines, YAML fallback, array-returns-list), TestParseRawMarkdownFenced (6: fenced JSON, language-tag, YAML, non-JSON YAML, empty, only-opening-fence), TestParseRawEmptyAndEdgeCases (8: empty, whitespace, null/true/42 scalars, single-line-fence, mixed-content), TestParseRawYamlFallback (6: simple, nested, list, literal-block, None-for-empty, boolean), TestDictToPatch (10: minimal, movement, viewport, strip, edges, actors, corrections, resync, empty, visited_add+both-formats). All pass in 0.07s. Documents: _parse_raw cast() is no-op at runtime — non-dict JSON/YAML values returned as-is (null, bool, int, str, list). Full suite 2840 passed, 8 skipped.
+
+---
+
 ## Active Queue (Jun 27 — Pathfinding & Planner Coverage)
 
 ### [x] COV-21: Add find_path_with_warps + _find_warp_sequence tests (69% → 78%+) ✅ (done)
