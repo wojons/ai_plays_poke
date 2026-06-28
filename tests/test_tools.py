@@ -140,6 +140,87 @@ class TestParseToolCallInline:
         assert result is None
 
 
+# ── COV-26: parse_tool_call XML (owl-alpha) format ──────────────────────────
+
+class TestParseToolCallXML:
+    """COV-26: longcat XML tool call format parsing."""
+
+    def test_xml_press_button(self) -> None:
+        """Basic XML format: press_button with string arg."""
+        resp = (
+            "<longcat_tool_call>press_button"
+            "<longcat_arg_key>button</longcat_arg_key>"
+            "<longcat_arg_value>a</longcat_arg_value>"
+            "</longcat_tool_call>"
+        )
+        result = parse_tool_call(resp)
+        assert result is not None
+        assert result["name"] == "press_button"
+        assert result["arguments"] == {"button": "a"}
+
+    def test_xml_wait_with_int_value(self) -> None:
+        """XML format with int arg value — should be parsed as int."""
+        resp = (
+            "<longcat_tool_call>wait"
+            "<longcat_arg_key>frames</longcat_arg_key>"
+            "<longcat_arg_value>60</longcat_arg_value>"
+            "</longcat_tool_call>"
+        )
+        result = parse_tool_call(resp)
+        assert result is not None
+        assert result["name"] == "wait"
+        assert result["arguments"] == {"frames": 60}
+
+    def test_xml_multiple_args(self) -> None:
+        """XML format with multiple key-value pairs."""
+        resp = (
+            "<longcat_tool_call>combo"
+            "<longcat_arg_key>buttons</longcat_arg_key>"
+            "<longcat_arg_value>up</longcat_arg_value>"
+            "<longcat_arg_key>duration</longcat_arg_key>"
+            "<longcat_arg_value>10</longcat_arg_value>"
+            "</longcat_tool_call>"
+        )
+        result = parse_tool_call(resp)
+        assert result is not None
+        assert result["name"] == "combo"
+        assert result["arguments"] == {"buttons": "up", "duration": 10}
+
+    def test_xml_with_extra_text(self) -> None:
+        """XML call embedded in natural language text."""
+        resp = (
+            "I'll press the A button.\n"
+            "<longcat_tool_call>press_button"
+            "<longcat_arg_key>button</longcat_arg_key>"
+            "<longcat_arg_value>a</longcat_arg_value>"
+            "</longcat_tool_call>\n"
+            "That should advance the dialog."
+        )
+        result = parse_tool_call(resp)
+        assert result is not None
+        assert result["name"] == "press_button"
+        assert result["arguments"] == {"button": "a"}
+
+    def test_xml_malformed_no_longcat_tag_returns_none(self) -> None:
+        """Text without longcat tags returns None."""
+        resp = "Just some regular text, no XML tools here."
+        result = parse_tool_call(resp)
+        assert result is None
+
+    def test_xml_malformed_no_name(self) -> None:
+        """XML with no tool name before first arg tag — returns None or empty name."""
+        resp = (
+            "<longcat_tool_call>"
+            "<longcat_arg_key>button</longcat_arg_key>"
+            "<longcat_arg_value>a</longcat_arg_value>"
+            "</longcat_tool_call>"
+        )
+        result = parse_tool_call(resp)
+        # With empty tool name, the parser may return None or a dict with empty name
+        if result is not None:
+            assert result["name"] == ""
+
+
 # ── AC-016: execute_tool_call press_button ──────────────────────────────────
 
 class TestExecuteToolCallPressButton:
