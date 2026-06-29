@@ -604,3 +604,14 @@
   13. ✅ Test full transition chains — overworld→battle→overworld, dialog flow, push/pop menu flow
   14. ✅ Coverage: state_machine.py 85% → 99% (target: 95%+)
 
+
+---
+
+## Active Queue
+
+### [x] COV-29: Add unit tests for state_window.py run() + keyboard grid _build_prompt branches (19% → 35%+) ✅ (92c52d0)
+- **Priority:** medium
+- **Why:** StateWindow is the core AI decision loop — run() and _build_prompt() keyboard nav had 0 test coverage against ~170 lines of complex branching.
+- **Model:** deepseek-v4-pro (foreman direct)
+- **Files:** tests/test_state_window.py (modify — 53 → 81 tests)
+- **Result:** 28 new tests. Non-interactive auto-A, interactive→LLM, name_entry mash, query_global skip, safety cap fallback, keyboard grid cursor/directions/END/crash-safety, history rendering (remember/recall/set_goal/query_global/auto_a). All pass in 0.52s. Full suite 2853 passed, 8 skipped.
