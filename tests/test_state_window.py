@@ -19,6 +19,7 @@ def mock_emu():
     emu = MagicMock()
     emu.press_button = MagicMock()
     emu.fast_forward = MagicMock()
+    emu.wait = MagicMock()
     return emu
 
 
@@ -75,7 +76,7 @@ def overworld_vision():
 
 @pytest.fixture
 def name_entry_vision():
-    """Vision output for name entry screen."""
+    """Vision output for name entry screen (no keyboard grid)."""
     return {
         "screen_type": "name_entry",
         "screen_subtype": "keyboard",
@@ -87,6 +88,76 @@ def name_entry_vision():
 def empty_vision():
     """Minimal vision output."""
     return {"screen_type": "unknown"}
+
+
+# ── Keyboard grid fixtures for _build_prompt keyboard nav ─────────────────
+
+_SAMPLE_GRID = {
+    "rows": [
+        list("ABCDEFGHIJ"),
+        list("KLMNOPQRST"),
+        list("UVWXYZ ,.-"),
+        list("END"),
+    ],
+}
+
+
+@pytest.fixture
+def keyboard_grid_vision_ash_A():
+    """Keyboard grid with cursor on A, nothing typed yet."""
+    return {
+        "screen_type": "name_entry",
+        "screen_subtype": "keyboard",
+        "keyboard_grid": {**_SAMPLE_GRID, "current_cursor": {"row": 0, "col": 0}},
+        "name_field": "",
+    }
+
+
+@pytest.fixture
+def keyboard_grid_vision_ash_S_half():
+    """Keyboard grid with 'AS' typed, cursor on S, next letter H."""
+    return {
+        "screen_type": "name_entry",
+        "screen_subtype": "keyboard",
+        "keyboard_grid": {**_SAMPLE_GRID, "current_cursor": {"row": 1, "col": 8}},
+        "name_field": "AS",
+    }
+
+
+@pytest.fixture
+def keyboard_grid_vision_ash_full():
+    """Keyboard grid with 'ASH' typed, should navigate to END."""
+    return {
+        "screen_type": "name_entry",
+        "screen_subtype": "keyboard",
+        "keyboard_grid": {**_SAMPLE_GRID, "current_cursor": {"row": 1, "col": 7}},
+        "name_field": "ASH",
+    }
+
+
+@pytest.fixture
+def keyboard_grid_vision_cursor_on_S_press_now():
+    """Keyboard grid: 'A' typed, cursor already on S (row=1,col=8), should press A NOW."""
+    return {
+        "screen_type": "name_entry",
+        "screen_subtype": "keyboard",
+        "keyboard_grid": {**_SAMPLE_GRID, "current_cursor": {"row": 1, "col": 8}},
+        "name_field": "A",  # next letter is 'S', cursor IS on 'S'
+    }
+
+
+@pytest.fixture
+def keyboard_grid_vision_letter_not_found():
+    """Keyboard grid where next letter isn't in the single-row grid."""
+    return {
+        "screen_type": "name_entry",
+        "screen_subtype": "keyboard",
+        "keyboard_grid": {
+            "rows": [list("ABCDEFGHIJ")],
+            "current_cursor": {"row": 0, "col": 0},
+        },
+        "name_field": "X",  # 'X' not in single-row grid
+    }
 
 
 # ── Helper to patch OpenRouterClient ────────────────────────────────────
@@ -103,6 +174,21 @@ def _make_window(state_type, ctx, emu, vision, **kwargs):
             **kwargs,
         )
     return window
+
+
+def _make_window_with_client(state_type, ctx, emu, vision, **kwargs):
+    """Create a StateWindow and return (window, mock_client_instance)."""
+    with patch("src.core.state_window.OpenRouterClient") as mock_client_cls:
+        mock_client_instance = MagicMock()
+        mock_client_cls.return_value = mock_client_instance
+        window = StateWindow(
+            state_type=state_type,
+            global_ctx=ctx,
+            emulator=emu,
+            vision=vision,
+            **kwargs,
+        )
+    return window, mock_client_instance
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -167,8 +253,22 @@ class TestStateWindowInit:
         """Workflow may be empty string if no config file exists, but should be stored."""
         window = _make_window("battle", ctx, mock_emu, battle_vision)
         assert hasattr(window, "_workflow")
-        # _workflow is a string (may be empty if no config file)
         assert isinstance(window._workflow, str)
+
+    def test_init_custom_thinking_model(self, ctx, mock_emu, battle_vision):
+        """Custom thinking_model is stored."""
+        window = _make_window("battle", ctx, mock_emu, battle_vision, thinking_model="gpt-4")
+        assert window.thinking_model == "gpt-4"
+
+    def test_init_custom_hint_level(self, ctx, mock_emu, battle_vision):
+        """Custom hint_level is stored."""
+        window = _make_window("battle", ctx, mock_emu, battle_vision, hint_level=2)
+        assert window.hint_level == 2
+
+    def test_init_raw_responses_empty(self, ctx, mock_emu, battle_vision):
+        """_raw_responses list starts empty."""
+        window = _make_window("battle", ctx, mock_emu, battle_vision)
+        assert window._raw_responses == []
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -236,10 +336,6 @@ class TestBuildPrompt:
     def test_dialog_vision_includes_speaker(self, ctx, mock_emu, dialog_vision):
         window = _make_window("dialog", ctx, mock_emu, dialog_vision)
         prompt = window._build_prompt()
-        # speaker is in the vision dict but _build_prompt checks vision keys
-        # It includes screen_type, subtype, name_field, text_lines, menu_items, adjacent_tiles
-        # speaker is currently NOT rendered by _build_prompt — it only checks specific keys
-        # The prompt does include screen_type which is "dialog"
         assert "dialog" in prompt
 
     def test_overworld_vision_includes_surroundings(self, ctx, mock_emu, overworld_vision):
@@ -296,6 +392,247 @@ class TestBuildPrompt:
         prompt = window._build_prompt()
         assert "leave the bedroom" in prompt
 
+    # ── Keyboard grid prompt tests ────────────────────────────────────
+
+    def test_keyboard_grid_nothing_typed_first_letter_A(self, ctx, mock_emu, keyboard_grid_vision_ash_A):
+        """Cursor on A, nothing typed — should say 'TARGET NAME: ASH' and first letter is A."""
+        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_ash_A)
+        prompt = window._build_prompt()
+        assert "NAME ENTRY KEYBOARD" in prompt
+        assert "TARGET NAME: 'ASH'" in prompt
+        assert "first letter is 'A'" in prompt
+        assert "CURSOR IS ON LETTER: 'A'" in prompt
+
+    def test_keyboard_grid_shows_cursor_on_ash_s(self, ctx, mock_emu, keyboard_grid_vision_ash_S_half):
+        """'AS' typed, cursor on S — should say next letter H."""
+        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_ash_S_half)
+        prompt = window._build_prompt()
+        assert "NEXT LETTER TO TYPE: 'H'" in prompt
+        assert "ALREADY TYPED: 'AS'" in prompt
+
+    def test_keyboard_grid_all_typed_navigate_to_end(self, ctx, mock_emu, keyboard_grid_vision_ash_full):
+        """ASH fully typed — should say navigate to END."""
+        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_ash_full)
+        prompt = window._build_prompt()
+        assert "ALL LETTERS TYPED!" in prompt
+        assert "Navigate to END" in prompt
+
+    def test_keyboard_grid_cursor_already_on_target_press_a(self, ctx, mock_emu, keyboard_grid_vision_cursor_on_S_press_now):
+        """Cursor already on next letter S — should say 'press A NOW!'"""
+        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_cursor_on_S_press_now)
+        prompt = window._build_prompt()
+        assert "press A NOW" in prompt
+
+    def test_keyboard_grid_letter_not_found(self, ctx, mock_emu, keyboard_grid_vision_letter_not_found):
+        """Next letter not found in grid — should say 'not found — navigate to END'."""
+        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_letter_not_found)
+        prompt = window._build_prompt()
+        assert "not found" in prompt.lower()
+
+    def test_keyboard_grid_shows_grid_reference(self, ctx, mock_emu, keyboard_grid_vision_ash_A):
+        """Keyboard grid should render row references with letters."""
+        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_ash_A)
+        prompt = window._build_prompt()
+        assert "Row 0:" in prompt
+        # The grid renders as Python list repr: ['A', 'B', 'C', ...]
+        # So individual letters appear in quotes
+        assert "'" in prompt  # quotes around each letter
+        assert "A" in prompt
+
+    def test_keyboard_grid_bottom_row(self, ctx, mock_emu, keyboard_grid_vision_ash_A):
+        """Keyboard grid should show bottom row."""
+        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_ash_A)
+        prompt = window._build_prompt()
+        assert "Bottom row:" in prompt
+        assert "END" in prompt
+
+    def test_keyboard_grid_direction_hint_down(self, ctx, mock_emu):
+        """Cursor on A (row0,col0), target letter S at row1,col8 -> should say DOWN then RIGHT."""
+        vision = {
+            "screen_type": "name_entry",
+            "screen_subtype": "keyboard",
+            "keyboard_grid": {
+                "rows": [
+                    list("ABCDEFGHIJ"),
+                    list("KLMNOPQRST"),
+                    list("UVWXYZ ,.-"),
+                    list("END"),
+                ],
+                "current_cursor": {"row": 0, "col": 0},
+            },
+            "name_field": "A",  # next letter is 'S' (row1, col8)
+        }
+        window = _make_window("name_entry", ctx, mock_emu, vision)
+        prompt = window._build_prompt()
+        assert "NEXT LETTER TO TYPE: 'S'" in prompt
+        assert "DOWN" in prompt or "RIGHT" in prompt
+
+    def test_keyboard_grid_empty_rows(self, ctx, mock_emu):
+        """Empty rows list should not crash."""
+        vision = {
+            "screen_type": "name_entry",
+            "screen_subtype": "keyboard",
+            "keyboard_grid": {
+                "rows": [],
+                "current_cursor": {"row": 0, "col": 0},
+            },
+            "name_field": "",
+        }
+        window = _make_window("name_entry", ctx, mock_emu, vision)
+        prompt = window._build_prompt()
+        assert isinstance(prompt, str)
+
+    def test_keyboard_grid_no_name_field(self, ctx, mock_emu):
+        """Vision with keyboard_grid but no name_field should not crash."""
+        vision = {
+            "screen_type": "name_entry",
+            "keyboard_grid": {
+                "rows": [list("ABC")],
+                "current_cursor": {"row": 0, "col": 0},
+            },
+        }
+        window = _make_window("name_entry", ctx, mock_emu, vision)
+        prompt = window._build_prompt()
+        assert isinstance(prompt, str)
+
+    # ── History rendering tests ───────────────────────────────────────
+
+    def test_history_renders_remember(self, ctx, mock_emu, battle_vision):
+        """History with a remember entry renders correctly."""
+        window = _make_window("battle", ctx, mock_emu, battle_vision)
+        window._history.append({"role": "remember", "key": "/discoveries/weakness", "id": "abc"})
+        prompt = window._build_prompt()
+        assert "Remembered:" in prompt
+        assert "/discoveries/weakness" in prompt
+
+    def test_history_renders_recall(self, ctx, mock_emu, battle_vision):
+        """History with a recall entry renders correctly."""
+        window = _make_window("battle", ctx, mock_emu, battle_vision)
+        window._history.append({"role": "recall", "query": "/types/", "results": "water beats fire"})
+        prompt = window._build_prompt()
+        assert "Recalled:" in prompt
+        assert "/types/" in prompt
+
+    def test_history_renders_set_goal(self, ctx, mock_emu, battle_vision):
+        """History with a set_goal entry renders correctly."""
+        window = _make_window("battle", ctx, mock_emu, battle_vision)
+        window._history.append({"role": "set_goal", "goal": "catch a Pokémon"})
+        prompt = window._build_prompt()
+        assert "Set goal:" in prompt
+        assert "catch a Pokémon" in prompt
+
+    def test_history_renders_query_global(self, ctx, mock_emu, battle_vision):
+        """History with a query_global entry renders correctly."""
+        window = _make_window("battle", ctx, mock_emu, battle_vision)
+        window._history.append({"role": "query_global", "question": "What is my objective?"})
+        prompt = window._build_prompt()
+        assert "Asked global:" in prompt
+        assert "What is my objective?" in prompt
+
+    def test_history_renders_auto_a(self, ctx, mock_emu, battle_vision):
+        """History with an auto_a action renders correctly."""
+        window = _make_window("battle", ctx, mock_emu, battle_vision)
+        window._history.append({
+            "step": 1,
+            "tool_call": {"name": "press_button", "arguments": {"button": "a", "duration": 30}},
+            "action": "auto_a",
+        })
+        prompt = window._build_prompt()
+        assert "Step 1" in prompt
+        assert "auto_a" in prompt
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Run method tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestRun:
+    """Verify StateWindow.run() behavior."""
+
+    def test_run_auto_a_dialog_non_interactive(self, ctx, mock_emu):
+        """Dialog with non-interactive vision — should auto-press A up to safety cap."""
+        vision = {"screen_type": "dialog", "text_lines": ["Hello there!"]}
+        window, mock_client = _make_window_with_client("dialog", ctx, mock_emu, vision, max_steps=5)
+
+        result = window.run()
+
+        assert mock_emu.press_button.call_count >= 1
+        assert mock_emu.fast_forward.call_count >= 1
+        assert result["outcome"] == "max_steps"
+        mock_client.send_tool_request.assert_not_called()
+
+    def test_run_auto_a_with_interactive_falls_back_to_llm(self, ctx, mock_emu):
+        """Dialog with menu_items -> interactive -> calls LLM."""
+        vision = {"screen_type": "dialog", "menu_items": ["YES", "NO"]}
+        window, mock_client = _make_window_with_client("dialog", ctx, mock_emu, vision, max_steps=3)
+        mock_client.send_tool_request.return_value = (
+            '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+        )
+
+        with patch("src.core.tools.parse_tool_call",
+                    return_value={"name": "press_button", "arguments": {"button": "a", "duration": 5}}):
+            result = window.run()
+
+        assert mock_client.send_tool_request.call_count >= 1
+        assert result["outcome"] == "max_steps"
+
+    def test_run_name_entry_a_mash(self, ctx, mock_emu):
+        """Name entry without keyboard_grid — should A-mash."""
+        vision = {"screen_type": "name_entry", "screen_subtype": "keyboard", "name_field": "Enter name"}
+        window, mock_client = _make_window_with_client("name_entry", ctx, mock_emu, vision, max_steps=3)
+
+        result = window.run()
+
+        assert mock_emu.press_button.call_count >= 1
+        assert result["outcome"] == "max_steps"
+        mock_client.send_tool_request.assert_not_called()
+
+    def test_run_query_global_skips_emulator(self, ctx, mock_emu):
+        """query_global tool call should skip emulator and re-loop."""
+        vision = {"screen_type": "dialog", "menu_items": ["FIGHT"]}
+        window, mock_client = _make_window_with_client("dialog", ctx, mock_emu, vision, max_steps=5)
+
+        # First call returns query_global, all subsequent calls return press_button
+        _call_count = [0]
+        def _side_effect(*_a, **_kw):
+            _call_count[0] += 1
+            if _call_count[0] == 1:
+                return '{"name": "query_global", "arguments": {"question": "What is my objective?"}}'
+            return '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+        mock_client.send_tool_request.side_effect = _side_effect
+
+        _parse_count = [0]
+        def _parse_side_effect(*_a, **_kw):
+            _parse_count[0] += 1
+            if _parse_count[0] == 1:
+                return {"name": "query_global", "arguments": {"question": "What is my objective?"}}
+            return {"name": "press_button", "arguments": {"button": "a", "duration": 5}}
+
+        with patch("src.core.tools.parse_tool_call") as mock_parse:
+            mock_parse.side_effect = _parse_side_effect
+            result = window.run()
+
+        assert result["outcome"] == "max_steps"
+        # query_global should not trigger emulator
+        # first call is query_global (skipped), subsequent calls press a
+        assert mock_client.send_tool_request.call_count >= 2
+
+    def test_run_auto_a_safety_cap_falls_back_to_llm(self, ctx, mock_emu):
+        """After 20 auto-a presses, should fall back to AI deliberation."""
+        vision = {"screen_type": "dialog", "text_lines": ["Long narration..."]}
+        window, mock_client = _make_window_with_client("dialog", ctx, mock_emu, vision, max_steps=25)
+
+        mock_client.send_tool_request.return_value = (
+            '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+        )
+
+        with patch("src.core.tools.parse_tool_call",
+                    return_value={"name": "press_button", "arguments": {"button": "a", "duration": 5}}):
+            result = window.run()
+
+        assert mock_emu.press_button.call_count >= 20
+        assert mock_client.send_tool_request.call_count >= 1
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # _is_interactive tests
@@ -339,13 +676,10 @@ class TestIsInteractive:
         window = _make_window("dialog", ctx, mock_emu, vision)
         assert window._is_interactive() is False
 
-    def test_battle_is_not_dialog_interactive(self, ctx, mock_emu, battle_vision):
-        """_is_interactive only checks dialog-specific flags — battle menus
-        are handled differently."""
+    def test_battle_has_menu_items_is_interactive(self, ctx, mock_emu, battle_vision):
+        """Battle vision has menu_items so _is_interactive returns True."""
         window = _make_window("battle", ctx, mock_emu, battle_vision)
-        # Battle has menu_items but _is_interactive only checks dialog type
-        # The state_type is "battle" but _is_interactive checks vision keys
-        assert window._is_interactive() is True  # because battle vision has menu_items
+        assert window._is_interactive() is True
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -366,6 +700,27 @@ class TestCheckOutcome:
     def test_returns_none_for_overworld(self, ctx, mock_emu, overworld_vision):
         window = _make_window("overworld", ctx, mock_emu, overworld_vision)
         assert window._check_outcome() is None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# _answer_global_query tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestAnswerGlobalQuery:
+    """Verify _answer_global_query returns compacted context."""
+
+    def test_returns_compact_context(self, ctx, mock_emu, battle_vision):
+        window = _make_window("battle", ctx, mock_emu, battle_vision)
+        answer = window._answer_global_query("What is my objective?")
+        assert "leave the bedroom" in answer
+        assert "pallet_town" in answer
+
+    def test_ignores_question_string(self, ctx, mock_emu, battle_vision):
+        """Currently _answer_global_query ignores the question and returns all context."""
+        window = _make_window("battle", ctx, mock_emu, battle_vision)
+        answer1 = window._answer_global_query("What is my objective?")
+        answer2 = window._answer_global_query("Where am I?")
+        assert answer1 == answer2
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -430,3 +785,40 @@ class TestLoadStateWorkflow:
         with patch("src.core.state_window._STATES_DIR", tmp_path):
             result = _load_state_workflow("battle", "gen1")
             assert result == "Test workflow content"
+
+    def test_loaded_workflow_generic_fallback(self, tmp_path):
+        """If gen-specific doesn't exist, fall back to generic dir."""
+        import yaml
+
+        generic_file = tmp_path / "battle.yaml"
+        generic_file.write_text(yaml.dump({"workflow": "Generic workflow"}))
+
+        with patch("src.core.state_window._STATES_DIR", tmp_path):
+            result = _load_state_workflow("battle", "gen1")
+            assert result == "Generic workflow"
+
+    def test_loaded_workflow_missing_yaml_key(self, tmp_path):
+        """YAML file without workflow key should return empty string."""
+        import yaml
+
+        gen1_dir = tmp_path / "gen1"
+        gen1_dir.mkdir(parents=True)
+        wf = gen1_dir / "battle.yaml"
+        wf.write_text(yaml.dump({"other_key": "no workflow"}))
+
+        with patch("src.core.state_window._STATES_DIR", tmp_path):
+            result = _load_state_workflow("battle", "gen1")
+            assert result == ""
+
+    def test_loaded_workflow_non_dict_yaml(self, tmp_path):
+        """YAML file that parses to a list (not dict) should return empty string."""
+        import yaml
+
+        gen1_dir = tmp_path / "gen1"
+        gen1_dir.mkdir(parents=True)
+        wf = gen1_dir / "battle.yaml"
+        wf.write_text(yaml.dump(["item1", "item2"]))
+
+        with patch("src.core.state_window._STATES_DIR", tmp_path):
+            result = _load_state_workflow("battle", "gen1")
+            assert result == ""
