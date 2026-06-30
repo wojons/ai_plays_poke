@@ -618,14 +618,15 @@
 618|
 619|## Active Queue (Jun 30 — Coverage Gap Fill)
 620|
-621|### [ ] COV-30: Add unit tests for demo_runner.py init/cleanup/demo_summary (0%→67% testable fraction)
-622|**Priority:** medium
-623|**Why:** DemoRunner wraps the end-to-end gameplay demo. Pure functions (demo_summary) and mockable parts (__init__, cleanup, run/run_headless FileNotFoundError) have no unit tests.
-624|**Model:** deepseek-v4-pro (foreman direct — mechanical test file)
-625|**Files:** tests/test_demo_runner.py (new)
-626|**AC:**
-627|1. Test DemoRunner.__init__ with default and custom params
-628|2. Test cleanup() with None and twice (idempotent)
-629|3. Test demo_summary() with empty, minimal, zero rates, partial types, missing keys
-630|4. Test run() and run_headless() with missing ROM → FileNotFoundError
+|### [x] COV-30: Add unit tests for demo_runner.py init/cleanup/demo_summary ✅ (e9668a9)
+|**Priority:** medium
+|**Why:** DemoRunner wraps the end-to-end gameplay demo. Pure functions (demo_summary) and mockable parts (__init__, cleanup, run/run_headless FileNotFoundError) have no unit tests.
+|**Model:** deepseek-v4-pro (foreman direct — mechanical test file)
+|**Files:** tests/test_demo_runner.py (new)
+|**AC:**
+|1. ✅ Test DemoRunner.__init__ with default and custom params
+|2. ✅ Test cleanup() with None and twice (idempotent)
+|3. ✅ Test demo_summary() with empty, minimal, zero rates, partial types, missing keys
+|4. ✅ Test run() and run_headless() with missing ROM → FileNotFoundError
+|**Result:** 13 tests, 0.53s. All pass. Full suite: 2853 passed, 8 skipped.
 631|
