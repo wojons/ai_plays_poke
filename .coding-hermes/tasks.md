@@ -630,3 +630,19 @@
 |4. ✅ Test run() and run_headless() with missing ROM → FileNotFoundError
 |**Result:** 13 tests, 0.53s. All pass. Full suite: 2853 passed, 8 skipped.
 631|
+## [x] Upgrade deps: ai_plays_poke — 26 outdated Python packages ✅
+- **Priority:** medium
+- **Result:** All 26 outdated packages upgraded. 3 dependency conflicts noted (pre-existing from dev tooling — python-lsp-server, pylint, datasets). pydantic-core kept at 2.46.4 (pydantic 2.13.4 cap). Full suite: 2864 passed, 8 skipped, 89.04s. Committed at <SHA>.
+- **Details:**
+  - anthropic  0.111.0 → 0.115.0
+  - anyio      4.14.0  → 4.14.1
+  - ast_serialize 0.5.0 → 0.6.0
+  - fastapi    0.138.0 → 0.138.2
+  - flake8     7.1.2   → 7.3.0
+  - huggingface_hub 1.20.1 → 1.21.0
+  - mcp        1.28.0  → 1.28.1
+  - ruff       0.15.18 → 0.15.20
+  - pydantic_core 2.46.4 → 2.47.0
+  - setuptools 79.0.1  → 82.0.1
+  - typer      0.25.1  → 0.26.8
+  - (13 more minor updates)
