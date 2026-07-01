@@ -632,7 +632,7 @@
 631|
 ## [x] Upgrade deps: ai_plays_poke — 26 outdated Python packages ✅
 - **Priority:** medium
-- **Result:** All 26 outdated packages upgraded. 3 dependency conflicts noted (pre-existing from dev tooling — python-lsp-server, pylint, datasets). pydantic-core kept at 2.46.4 (pydantic 2.13.4 cap). Full suite: 2864 passed, 8 skipped, 89.04s. Committed at <SHA>.
+- **Result:** All 26 outdated packages upgraded. 3 dependency conflicts noted (pre-existing from dev tooling — python-lsp-server, pylint, datasets). pydantic-core kept at 2.46.4 (pydantic 2.13.4 cap). Full suite: 2864 passed, 8 skipped, 89.04s. Committed at 3512615.
 - **Details:**
   - anthropic  0.111.0 → 0.115.0
   - anyio      4.14.0  → 4.14.1
