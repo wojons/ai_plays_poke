@@ -1,5 +1,11 @@
 # AI Plays Pokémon — Coding Hermes Tasks
-# Foreman: deepseek-v4-pro | Coding model: ollama-cloud/glm-5.2
+# Foreman: deepseek-v4-flash (slowdown — 0 pending, active commits) | Schedule: every 120m
+
+## [x] Upgrade deps: pydantic_core 2.46.4 → 2.47.0 — BLOCKED by pydantic pin ✅
+- **Priority:** low
+- **Package:** pydantic_core 2.46.4 → 2.47.0
+- **Result:** pydantic 2.13.4 has `pydantic-core==2.46.4` exact pin. pydantic itself has no newer version on PyPI. Cannot upgrade pydantic_core without also upgrading pydantic, which has no release compatible with pydantic-core 2.47.0. Reverted to 2.46.4. When pydantic 2.14+ releases, re-check this task.
+- **Note:** Automated dep check 2026-07-01.
 
 ## Active Queue
 
