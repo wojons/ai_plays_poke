@@ -652,3 +652,9 @@
   - setuptools 79.0.1  → 82.0.1
   - typer      0.25.1  → 0.26.8
   - (13 more minor updates)
+
+## [x] Upgrade deps: ai_plays_poke — anthropic 0.115.0→0.115.1 ✅
+- **Priority:** low
+- **Found:** 2026-07-02 supervisor run
+- **anthropic:** 0.115.0→0.115.1 ✅ — upgraded successfully, 2864 tests pass
+- **pydantic_core 2.46.4→2.47.0:** ❌ Still BLOCKED — pydantic 2.13.4 hard-blocks 2.47.0 at import time (`SystemError` in `pydantic/version.py:94`). No newer pydantic release available.
