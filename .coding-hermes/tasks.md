@@ -665,7 +665,9 @@
 - **anthropic:** 0.115.1 → 0.116.0 ✅
 - **coverage:** 7.14.3 → 7.15.0 ✅
 - **filelock:** 3.29.4 → 3.29.5 ✅
-- **opencv-python:** 4.13.0.92 → 5.0.0.93 ✅
-- **pydantic_core:** 2.46.4 → 2.47.0 ❌ BLOCKED — pydantic 2.13.4 hard-pins pydantic-core==2.46.4
-- **typing_extensions:** 4.15.0 → 4.16.0 ✅
-- **Result:** 5/6 upgraded. pydantic_core blocked. 2863/2864 pass (1 pre-existing timing threshold bumped 0.05→0.15s). Committed 2026-07-03.
+
+## [x] Upgrade deps: ai_plays_poke — huggingface_hub 1.21.0→1.22.0 ✅
+- **Priority:** low
+- **Found:** 2026-07-03 supervisor run (new minor version)
+- **huggingface_hub:** 1.21.0 → 1.22.0 ✅ — upgraded, 2864 tests pass (95.90s)
+- **pydantic_core 2.46.4→2.47.0:** Still BLOCKED (pydantic 2.13.4 hard pin)
