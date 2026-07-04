@@ -671,3 +671,10 @@
 - **Found:** 2026-07-03 supervisor run (new minor version)
 - **huggingface_hub:** 1.21.0 → 1.22.0 ✅ — upgraded, 2864 tests pass (95.90s)
 - **pydantic_core 2.46.4→2.47.0:** Still BLOCKED (pydantic 2.13.4 hard pin)
+|
+
+## [x] Upgrade deps: ai_plays_poke — uvicorn 0.49.0→0.50.0 ✅
+- **Priority:** low
+- **Packages:** uvicorn 0.49.0→0.50.0 — upgraded successfully, 2864 tests pass
+- **Pinned/blocked:** pydantic_core 2.46.4→2.47.0 — still blocked by pydantic 2.13.4 exact pin. No pydantic release compatible with 2.47.0.
+|
