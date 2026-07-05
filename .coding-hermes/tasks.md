@@ -359,7 +359,7 @@
 **Why:** PromptManager loads YAML prompts, selects/tracks them, provides analytics. 219 lines at 60% — mechanical to test with temp YAML dirs.
 **Model:** deepseek-v4-pro (foreman direct — test file)
 **Files:** tests/test_prompt_manager.py (new)
-**Result:** 61 tests across 11 test classes: PromptTemplate (8), PromptManagerInit (6), LoadPrompts (7), LoadPromptFile (10), GetRelevantPrompts (8), SelectPromptsForAI (6), TrackPromptUsage (6), GetPromptAnalytics (6), Integration (4). Coverage: 91% (106 stmts, 10 missed — exception handler, BUG-1 broken regex inside try, __main__ guard). Documents 1 pre-existing bug: BUG-1 — priority regex `r'**Priority:\s*(\d+)'` unescaped leading `*` causes re.error; files with `**Priority:` never load.
+**Result:** 61 tests across 11 test classes: PromptTemplate (8), PromptManagerInit (6), LoadPrompts (7), LoadPromptFile (10), GetRelevantPrompts (8), SelectPromptsForAI (6), TrackPromptUsage (6), GetPromptAnalytics (6), Integration (4). Coverage: 91% (106 stmts, 10 missed — exception handler, BUG-1 broken regex inside try, __main__ guard). Documents 1 pre-existing bug: BUG-1 — priority regex `r'**Priority:\\s*(\\d+)'` unescaped leading `*` causes re.error; files with `**Priority:` never load.
 **AC:** All 9 satisfied — 60% → 91% (target: 85%+).
 
 ---
@@ -498,6 +498,16 @@
   7. ✅ Test _dict_to_patch with minimal valid dict → returns ObsPatch
   8. ✅ Test _dict_to_patch with empty dict → returns ObsPatch with defaults
   9. Coverage: map_integrator.py 73% → 82%+
+
+---
+
+## Active Queue (Jun 28 — Coverage Gap Fill Continued)
+
+### [x] COV-28: Add unit tests for _parse_raw + _dict_to_patch in map_integrator.py (73% → 82%+) ✅ (07c3b3e)
+- **Priority:** medium
+- **Why:** `_parse_raw()` and `_dict_to_patch()` are pure functions (string→dict, dict→ObsPatch)
+- **Model:** deepseek-v4-pro (foreman direct — trivial test file)
+- **Files:** tests/test_map_integrator.py (new)
 - **Result:** 36 tests across 6 test classes: TestParseRawJson (6 tests: JSON flat, nested, whitespace, newlines, YAML fallback, array-returns-list), TestParseRawMarkdownFenced (6: fenced JSON, language-tag, YAML, non-JSON YAML, empty, only-opening-fence), TestParseRawEmptyAndEdgeCases (8: empty, whitespace, null/true/42 scalars, single-line-fence, mixed-content), TestParseRawYamlFallback (6: simple, nested, list, literal-block, None-for-empty, boolean), TestDictToPatch (10: minimal, movement, viewport, strip, edges, actors, corrections, resync, empty, visited_add+both-formats). All pass in 0.07s. Documents: _parse_raw cast() is no-op at runtime — non-dict JSON/YAML values returned as-is (null, bool, int, str, list). Full suite 2840 passed, 8 skipped.
 
 ---
@@ -620,22 +630,24 @@
 - **Why:** StateWindow is the core AI decision loop — run() and _build_prompt() keyboard nav had 0 test coverage against ~170 lines of complex branching.
 - **Model:** deepseek-v4-pro (foreman direct)
 - **Files:** tests/test_state_window.py (modify — 53 → 81 tests)
-617|- **Result:** 28 new tests. Non-interactive auto-A, interactive→LLM, name_entry mash, query_global skip, safety cap fallback, keyboard grid cursor/directions/END/crash-safety, history rendering (remember/recall/set_goal/query_global/auto_a). All pass in 0.52s. Full suite 2853 passed, 8 skipped.
-618|
-619|## Active Queue (Jun 30 — Coverage Gap Fill)
-620|
-|### [x] COV-30: Add unit tests for demo_runner.py init/cleanup/demo_summary ✅ (e9668a9)
-|**Priority:** medium
-|**Why:** DemoRunner wraps the end-to-end gameplay demo. Pure functions (demo_summary) and mockable parts (__init__, cleanup, run/run_headless FileNotFoundError) have no unit tests.
-|**Model:** deepseek-v4-pro (foreman direct — mechanical test file)
-|**Files:** tests/test_demo_runner.py (new)
-|**AC:**
-|1. ✅ Test DemoRunner.__init__ with default and custom params
-|2. ✅ Test cleanup() with None and twice (idempotent)
-|3. ✅ Test demo_summary() with empty, minimal, zero rates, partial types, missing keys
-|4. ✅ Test run() and run_headless() with missing ROM → FileNotFoundError
-|**Result:** 13 tests, 0.53s. All pass. Full suite: 2853 passed, 8 skipped.
-631|
+- **Result:** 28 new tests. Non-interactive auto-A, interactive→LLM, name_entry mash, query_global skip, safety cap fallback, keyboard grid cursor/directions/END/crash-safety, history rendering (remember/recall/set_goal/query_global/auto_a). All pass in 0.52s. Full suite 2853 passed, 8 skipped.
+
+---
+
+## Active Queue (Jun 30 — Coverage Gap Fill)
+
+### [x] COV-30: Add unit tests for demo_runner.py init/cleanup/demo_summary ✅ (e9668a9)
+**Priority:** medium
+**Why:** DemoRunner wraps the end-to-end gameplay demo. Pure functions (demo_summary) and mockable parts (__init__, cleanup, run/run_headless FileNotFoundError) have no unit tests.
+**Model:** deepseek-v4-pro (foreman direct — mechanical test file)
+**Files:** tests/test_demo_runner.py (new)
+**AC:**
+1. ✅ Test DemoRunner.__init__ with default and custom params
+2. ✅ Test cleanup() with None and twice (idempotent)
+3. ✅ Test demo_summary() with empty, minimal, zero rates, partial types, missing keys
+4. ✅ Test run() and run_headless() with missing ROM → FileNotFoundError
+**Result:** 13 tests, 0.53s. All pass. Full suite: 2853 passed, 8 skipped.
+
 ## [x] Upgrade deps: ai_plays_poke — 26 outdated Python packages ✅
 - **Priority:** medium
 - **Result:** All 26 outdated packages upgraded. 3 dependency conflicts noted (pre-existing from dev tooling — python-lsp-server, pylint, datasets). pydantic-core kept at 2.46.4 (pydantic 2.13.4 cap). Full suite: 2864 passed, 8 skipped, 89.04s. Committed at 3512615.
@@ -671,7 +683,8 @@
 - **Found:** 2026-07-03 supervisor run (new minor version)
 - **huggingface_hub:** 1.21.0 → 1.22.0 ✅ — upgraded, 2864 tests pass (95.90s)
 - **pydantic_core 2.46.4→2.47.0:** Still BLOCKED (pydantic 2.13.4 hard pin)
-|
+
+---
 
 ## [x] Upgrade deps: ai_plays_poke — uvicorn 0.49.0→0.50.0 ✅
 - **Priority:** low
@@ -679,8 +692,21 @@
 - **Pinned/blocked:** pydantic_core 2.46.4→2.47.0 — still blocked by pydantic 2.13.4 exact pin. No pydantic release compatible with 2.47.0.
 
 ### [x] Upgrade deps: ai_plays_poke — setuptools 82.0.1→83.0.0 + pydantic_core still BLOCKED
-|- **Priority:** low
-|- **Found:** 2026-07-05 supervisor run
-|- **Packages:** 
-|  - setuptools 82.0.1→83.0.0 ✅ — upgraded, 2864 tests pass
-|  - pydantic_core 2.46.4→2.47.0 — still BLOCKED by pydantic 2.13.4 exact pin (unchanged)
+- **Priority:** low
+- **Found:** 2026-07-05 supervisor run
+- **Packages:** 
+  - setuptools 82.0.1→83.0.0 ✅ — upgraded, 2864 tests pass
+  - pydantic_core 2.46.4→2.47.0 — still BLOCKED by pydantic 2.13.4 exact pin (unchanged)
+
+---
+
+### [x] RAM-READER: Add RAMReader + read_u8/read_u16 emulator methods + unit tests ✅
+**Priority:** high
+**Why:** Emulator.py had uncommitted `read_u8`/`read_u16` (pre-req for RAM-based game state) and `ram_reader.py` (467-line Gen 1 RAM state reader) was sitting untracked. No tests existed.
+**Model:** deepseek-v4-pro (foreman direct)
+**Files:** src/core/emulator.py (+17 lines: read_u8, read_u16), src/core/ram_reader.py (new, 467 lines), tests/test_ram_reader.py (new, 48 tests)
+**Result:** 
+- Emulator: `read_u8(addr)` and `read_u16(addr)` using mGBA's core memory view (avoids pygba stale cache)
+- RAMReader: ROM map parser + player state reader + screen type detection + ASCII minimap + full structured observation (drop-in for vision cartographer)
+- 48 unit tests across 17 test classes — _MapDB static helpers, ROM parsing, block classification, RAMReader player state, facing, screen type, adjacency, minimap, observe()
+- All 2908 non-ROM tests pass
