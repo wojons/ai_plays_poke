@@ -417,6 +417,23 @@ class Emulator:
             raw = fh.read()
         self._pygba.core.load_raw_state(raw)
 
+    # ── RAM reading (for game state extraction) ───────────────────────
+
+    def read_u8(self, addr: int) -> int:
+        """Read a single byte from the emulated Game Boy's memory at *addr*.
+
+        Uses mGBA's core memory view directly because pygba's read_u8
+        caches memory on first access and never refreshes.
+        """
+        mem = self._pygba.core.memory
+        return mem.u8.raw_read(addr, 1)
+
+    def read_u16(self, addr: int) -> int:
+        """Read a 16-bit little-endian word from memory at *addr*."""
+        lo = self.read_u8(addr)
+        hi = self.read_u8(addr + 1)
+        return (hi << 8) | lo
+
     # ── compatibility aliases ──────────────────────────────────────────
 
     def _save_state_legacy(self, path: str | Path) -> None:
