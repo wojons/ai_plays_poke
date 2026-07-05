@@ -1,5 +1,5 @@
 # AI Plays Pokémon — Coding Hermes Tasks
-# Foreman: deepseek-v4-flash (slowdown — 0 pending, active commits) | Schedule: every 120m
+# Foreman: deepseek-v4-flash (slowdown — no pending tasks) | Schedule: every 120m
 
 ## [x] Upgrade deps: pydantic_core 2.46.4 → 2.47.0 — BLOCKED by pydantic pin ✅
 - **Priority:** low
@@ -677,4 +677,10 @@
 - **Priority:** low
 - **Packages:** uvicorn 0.49.0→0.50.0 — upgraded successfully, 2864 tests pass
 - **Pinned/blocked:** pydantic_core 2.46.4→2.47.0 — still blocked by pydantic 2.13.4 exact pin. No pydantic release compatible with 2.47.0.
-|
+
+### [x] Upgrade deps: ai_plays_poke — setuptools 82.0.1→83.0.0 + pydantic_core still BLOCKED
+|- **Priority:** low
+|- **Found:** 2026-07-05 supervisor run
+|- **Packages:** 
+|  - setuptools 82.0.1→83.0.0 ✅ — upgraded, 2864 tests pass
+|  - pydantic_core 2.46.4→2.47.0 — still BLOCKED by pydantic 2.13.4 exact pin (unchanged)
