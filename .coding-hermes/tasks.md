@@ -9,6 +9,16 @@
 
 ## Active Queue
 
+## [ ] Upgrade deps: ai_plays_poke — 6 outdated
+- **Priority:** low
+- **cffi:** 2.0.0 → 2.1.0
+- **charset-normalizer:** 3.4.7 → 3.4.8
+- **filelock:** 3.29.5 → 3.29.6
+- **pydantic_core:** 2.46.4 → 2.47.0 (check pydantic pin)
+- **uvicorn:** 0.50.0 → 0.50.2
+- **xxhash:** 3.8.0 → 3.8.1
+- **Source:** supervisor dep check 2026-07-07
+
 ### [x] FIX-4: Audit remaining threading.Lock in CircuitBreaker + TokenTracker ✅
 **Priority:** medium
 **Model:** deepseek-v4-pro (foreman direct — mechanical)
