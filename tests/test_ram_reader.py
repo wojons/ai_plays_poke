@@ -692,3 +692,314 @@ class TestRAMReaderObserve:
             # Player at (2,2): all adjacent are 0x0F→floor — no exits
             assert obs["visible_exits"] == []
             assert "explore the area" in obs["suggested_action"]
+
+
+# ── Tileset 0 classification tests ──────────────────────────────────────
+
+
+class TestMapDBClassifyTileset0:
+    def test_grass_blocks(self) -> None:
+        from src.core.ram_reader import _MapDB
+
+        db = _MapDB.__new__(_MapDB)
+        assert db.classify_block(0x00, 0) == "grass"
+        assert db.classify_block(0x01, 0) == "grass"
+        assert db.classify_block(0x02, 0) == "grass"
+        assert db.classify_block(0x03, 0) == "grass"
+
+    def test_floor_blocks(self) -> None:
+        from src.core.ram_reader import _MapDB
+
+        db = _MapDB.__new__(_MapDB)
+        assert db.classify_block(0x0F, 0) == "floor"
+        assert db.classify_block(0x10, 0) == "floor"
+        assert db.classify_block(0x0C, 0) == "floor"
+
+    def test_tree_blocks(self) -> None:
+        from src.core.ram_reader import _MapDB
+
+        db = _MapDB.__new__(_MapDB)
+        assert db.classify_block(0x32, 0) == "tree"
+        assert db.classify_block(0x33, 0) == "tree"
+        assert db.classify_block(0x3E, 0) == "tree"
+
+    def test_water_blocks(self) -> None:
+        from src.core.ram_reader import _MapDB
+
+        db = _MapDB.__new__(_MapDB)
+        assert db.classify_block(0x2B, 0) == "water"
+        assert db.classify_block(0x48, 0) == "water"
+
+    def test_wall_blocks(self) -> None:
+        from src.core.ram_reader import _MapDB
+
+        db = _MapDB.__new__(_MapDB)
+        assert db.classify_block(0x14, 0) == "wall"
+        assert db.classify_block(0x1A, 0) == "wall"
+        assert db.classify_block(0x1F, 0) == "wall"
+        assert db.classify_block(0x50, 0) == "wall"  # fence
+
+    def test_door_blocks(self) -> None:
+        from src.core.ram_reader import _MapDB
+
+        db = _MapDB.__new__(_MapDB)
+        assert db.classify_block(0x5C, 0) == "door"
+
+    def test_object_blocks(self) -> None:
+        from src.core.ram_reader import _MapDB
+
+        db = _MapDB.__new__(_MapDB)
+        assert db.classify_block(0x60, 0) == "object"  # signpost
+
+    def test_unknown_block(self) -> None:
+        from src.core.ram_reader import _MapDB
+
+        db = _MapDB.__new__(_MapDB)
+        assert db.classify_block(0xFF, 0) == "unknown"
+
+
+# ── render_overworld tests ──────────────────────────────────────────────
+
+
+class TestRenderOverworld:
+    def test_indoor_grid(self, mock_emu: MagicMock) -> None:
+        """Player at (2,2) on 4×4 indoor map, facing down."""
+        _MEMORY[0xD361] = 6  # y = 2
+        _MEMORY[0xD362] = 6  # x = 2
+        _MEMORY[0xC109] = 0x00  # facing down
+
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = {
+                "tileset": 4,
+                "width": 4,
+                "height": 4,
+                "block_data": [
+                    0x0F, 0x10, 0x0F, 0x10,
+                    0x10, 0x0D, 0x10, 0x0F,
+                    0x0F, 0x10, 0x12, 0x0F,
+                    0x10, 0x0F, 0x0F, 0x10,
+                ],
+            }
+            mock_db.classify_block.side_effect = lambda b, t: {
+                0x0F: "floor", 0x10: "wall", 0x0D: "stairs", 0x12: "object",
+            }.get(b, "unknown")
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_overworld()
+
+            # Header checks
+            assert "Map:" in output
+            assert "Pos:" in output
+            assert "Facing:" in output
+            assert "Legend:" in output
+
+            lines = output.split("\n")
+            grid_lines = [
+                l for l in lines
+                if l.strip() and not l.startswith("Map")
+                and not l.startswith("Pos") and not l.startswith("Legend")
+            ]
+            assert len(grid_lines) == 5
+
+            # Row index 2 (dy=0) → center row, has @
+            center = grid_lines[2].split()
+            assert center[2] == "@"
+
+            # Row index 3 (dy=+1) has ↓ at col 2
+            down = grid_lines[3].split()
+            assert down[2] == "↓"
+
+            # Check some classified blocks
+            # Row 0 (dy=-2): block_data[0] = 0x0F floor = .
+            top = grid_lines[0].split()
+            assert top[0] == "."  # (0,0) is floor
+
+    def test_outdoor_grid(self, mock_emu: MagicMock) -> None:
+        """Player at (6,5) on 10×9 outdoor map, facing down."""
+        _MEMORY[0xD361] = 9   # y = 5
+        _MEMORY[0xD362] = 10  # x = 6
+        _MEMORY[0xC109] = 0x00  # facing down
+
+        from src.core.ram_reader import RAMReader, _MapDB as RealMapDB
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            w, h = 10, 9
+            block_data = [0x0F] * (w * h)
+            # Tree at (4,3) → gy=3, gx=4 → dy=-2, dx=-2 → grid[0][0]
+            block_data[3 * w + 4] = 0x32  # tree
+            # Grass at (7,3) → gy=3, gx=7 → dy=-2, dx=+1 → grid[0][3]
+            block_data[3 * w + 7] = 0x01  # grass
+            # Sign at (6,6) → gy=6, gx=6 → dy=+1, dx=0 → grid[3][2] (but arrow takes priority)
+
+            mock_db.get_map.return_value = {
+                "tileset": 0,
+                "width": w,
+                "height": h,
+                "block_data": block_data,
+            }
+            real_db = RealMapDB.__new__(RealMapDB)
+            mock_db.classify_block.side_effect = real_db.classify_block
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_overworld()
+
+            lines = output.split("\n")
+            grid_lines = [
+                l for l in lines
+                if l.strip() and not l.startswith("Map")
+                and not l.startswith("Pos") and not l.startswith("Legend")
+            ]
+
+            center = grid_lines[2].split()
+            assert center[2] == "@"
+
+            # Top row (dy=-2, gy=3): gx=4→tree=T, gx=5→floor=., gx=6→floor=., gx=7→grass=G, gx=8→floor=.
+            top = grid_lines[0].split()
+            assert top[0] == "T"  # tree at (4,3)
+            assert top[3] == "G"  # grass at (7,3)
+
+            # Arrow below player
+            down = grid_lines[3].split()
+            assert down[2] == "↓"
+
+    def test_facing_arrows(self, mock_emu: MagicMock) -> None:
+        """Each facing direction shows the correct arrow."""
+        from src.core.ram_reader import RAMReader
+
+        directions = [
+            (0x00, "↓", "down"),
+            (0x04, "↑", "up"),
+            (0x08, "←", "left"),
+            (0x0C, "→", "right"),
+        ]
+
+        for facing_byte, expected_arrow, facing_name in directions:
+            _MEMORY[0xD361] = 6  # y = 2
+            _MEMORY[0xD362] = 6  # x = 2
+            _MEMORY[0xC109] = facing_byte
+
+            with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+                mock_db = MagicMock()
+                mock_db.get_map.return_value = {
+                    "tileset": 4,
+                    "width": 4,
+                    "height": 4,
+                    "block_data": [0x0F] * 16,
+                }
+                mock_db.classify_block.return_value = "floor"
+                mock_mapdb_cls.return_value = mock_db
+
+                reader = RAMReader(mock_emu, "/fake/rom.gb")
+                output = reader.render_overworld()
+
+                lines = output.split("\n")
+                grid_lines = [
+                    l for l in lines
+                    if l.strip() and not l.startswith("Map")
+                    and not l.startswith("Pos") and not l.startswith("Legend")
+                ]
+
+                center = grid_lines[2].split()
+                assert center[2] == "@", f"Facing {facing_name}: @ not at center"
+
+                # Arrow should be in adjacent cell in facing direction
+                if facing_byte == 0x00:  # down → row 3, col 2
+                    assert grid_lines[3].split()[2] == expected_arrow
+                elif facing_byte == 0x04:  # up → row 1, col 2
+                    assert grid_lines[1].split()[2] == expected_arrow
+                elif facing_byte == 0x08:  # left → row 2, col 1
+                    assert grid_lines[2].split()[1] == expected_arrow
+                elif facing_byte == 0x0C:  # right → row 2, col 3
+                    assert grid_lines[2].split()[3] == expected_arrow
+
+    def test_unknown_map(self, mock_emu: MagicMock) -> None:
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = None
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_overworld()
+            assert "No map data" in output
+
+    def test_overworld_grid_alias(self, mock_emu: MagicMock) -> None:
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = {
+                "tileset": 4,
+                "width": 4,
+                "height": 4,
+                "block_data": [0x0F] * 16,
+            }
+            mock_db.classify_block.return_value = "floor"
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.overworld_grid() == reader.render_overworld()
+
+    def test_out_of_bounds_shows_question_mark(self, mock_emu: MagicMock) -> None:
+        """Player at (1,1) on 4×4 map — cells at dx=-2 and dy=-2 are '?'."""
+        _MEMORY[0xD361] = 5  # y = 1
+        _MEMORY[0xD362] = 5  # x = 1
+
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = {
+                "tileset": 4,
+                "width": 4,
+                "height": 4,
+                "block_data": [0x0F] * 16,
+            }
+            mock_db.classify_block.return_value = "floor"
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_overworld()
+
+            lines = output.split("\n")
+            grid_lines = [
+                l for l in lines
+                if l.strip() and not l.startswith("Map")
+                and not l.startswith("Pos") and not l.startswith("Legend")
+            ]
+
+            # Row 0 (dy=-2): gy=-1 → all ?, except dx=-2 which is also ?
+            top = grid_lines[0].split()
+            assert all(c == "?" for c in top), f"Expected all ?, got {top}"
+
+            # Row 2 (dy=0): col 0 (dx=-2) = ?, col 1 (dx=-1) = .
+            center = grid_lines[2].split()
+            assert center[0] == "?"
+            assert center[1] == "."
+
+    def test_observe_includes_overworld_grid(self, mock_emu: MagicMock) -> None:
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = {
+                "tileset": 4,
+                "width": 4,
+                "height": 4,
+                "block_data": [0x0F] * 16,
+            }
+            mock_db.classify_block.return_value = "floor"
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            obs = reader.observe()
+            assert "overworld_grid" in obs
+            assert "Map:" in obs["overworld_grid"]
+            assert "@" in obs["overworld_grid"]

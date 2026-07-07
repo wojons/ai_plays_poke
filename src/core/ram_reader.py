@@ -58,6 +58,29 @@ FACING_DIRECTIONS: dict[int, str] = {
     0x0C: "right",
 }
 
+FACING_ARROWS: dict[str, str] = {
+    "down": "↓",
+    "up": "↑",
+    "left": "←",
+    "right": "→",
+}
+
+# Classification → single-letter symbol for the 5×5 overworld grid
+CLASS_SYMBOLS: dict[str, str] = {
+    "floor": ".",
+    "wall": "B",
+    "stairs": "D",
+    "door": "D",
+    "warp": "D",
+    "water": "W",
+    "grass": "G",
+    "ledge": "B",
+    "object": "S",
+    "tree": "T",
+    "unknown": "?",
+    "void": "?",
+}
+
 # ── Screen type constants ────────────────────────────────────────────────
 
 SCREEN_OVERWORLD = "overworld"
@@ -191,10 +214,41 @@ class _MapDB:
         0x12: "object",  # bottom-right object
     }
 
+    # Known block → classification for tileset 0 (outdoor: towns, routes)
+    # Source: pret/pokered disassembly block sets
+    _TILESET0_CLASSES: dict[int, str] = {
+        # Tall grass
+        0x00: "grass", 0x01: "grass", 0x02: "grass", 0x03: "grass",
+        # Path / floor (plain ground)
+        0x0C: "floor", 0x0D: "floor", 0x0E: "floor", 0x0F: "floor",
+        0x10: "floor", 0x11: "floor",
+        # Building walls / roof pieces
+        0x14: "wall", 0x15: "wall", 0x16: "wall", 0x17: "wall",
+        0x18: "wall", 0x19: "wall", 0x1A: "wall", 0x1B: "wall",
+        0x1C: "wall", 0x1D: "wall", 0x1E: "wall", 0x1F: "wall",
+        # Water
+        0x2B: "water", 0x2C: "water",
+        0x48: "water", 0x49: "water",
+        # Trees
+        0x32: "tree", 0x33: "tree", 0x34: "tree", 0x35: "tree",
+        0x3E: "tree", 0x3F: "tree",
+        # Ledge
+        0x4A: "ledge", 0x4B: "ledge", 0x4C: "ledge",
+        0x4D: "ledge", 0x4E: "ledge", 0x4F: "ledge",
+        # Signposts / objects
+        0x60: "object", 0x61: "object",
+        # Doors / entrances
+        0x5C: "door", 0x5D: "door",
+        # Fences / hedges
+        0x50: "wall", 0x51: "wall", 0x52: "wall", 0x53: "wall",
+    }
+
     def classify_block(self, block_id: int, tileset: int) -> str:
         """Classify a block ID as floor/wall/stairs/etc. for the given tileset."""
         if tileset == 4:
             return self._TILESET4_CLASSES.get(block_id, "unknown")
+        if tileset == 0:
+            return self._TILESET0_CLASSES.get(block_id, "unknown")
         # Generic heuristic: if block_id is 0x0F, assume floor
         if block_id == 0x0F:
             return "floor"
@@ -331,6 +385,10 @@ class RAMReader:
         mid = self.current_map_id()
         return self._mapdb.get_map(mid)
 
+    def overworld_grid(self) -> str:
+        """Alias for :meth:`render_overworld`."""
+        return self.render_overworld()
+
     def build_minimap(self, radius: int = 3) -> str:
         """Build an ASCII minimap centred on the player using ROM block data.
 
@@ -381,6 +439,85 @@ class RAMReader:
                     row_parts.append(BLOCK_SYMBOLS.get(classification, "??"))
             lines.append("".join(row_parts))
 
+        return "\n".join(lines)
+
+    def render_overworld(self) -> str:
+        """Render a compact 5×5 text grid using single-letter symbols.
+
+        Centres the grid on the player's block position (wXCoord-4, wYCoord-4).
+        The player is shown as ``@`` and the block the player faces is an arrow
+        (``↑↓←→``). Out-of-bounds cells are ``?``.
+
+        Example output::
+
+            Map: Pallet Town (10×9)
+            Pos: (5,4) Facing: South ↓
+
+             .  .  .  G  G
+             .  .  @  G  G
+             .  .  ↓  .  .
+             B  B  .  S  .
+             .  .  .  .  .
+        """
+        mid = self.current_map_id()
+        info = self._mapdb.get_map(mid)
+        if info is None:
+            return f"[No map data for map {mid:#04x}]"
+
+        w, h = info["width"], info["height"]
+        tileset = info["tileset"]
+        block_data = info["block_data"]
+        px, py = self.player_x(), self.player_y()
+        facing = self.player_facing()
+        mname = self.current_map_name()
+        arrow = FACING_ARROWS.get(facing, "?")
+
+        lines = [
+            f"Map: {mname} ({w}×{h})",
+            f"Pos: ({px},{py}) Facing: {facing.capitalize()} {arrow}",
+            "",
+        ]
+
+        # Build 5×5 grid rows (dy=-2..2, dx=-2..2)
+        for dy in range(-2, 3):
+            row_parts: list[str] = []
+            for dx in range(-2, 3):
+                gx, gy = px + dx, py + dy
+
+                # Player's own cell
+                if dx == 0 and dy == 0:
+                    row_parts.append("@")
+                    continue
+
+                # Cell the player is facing
+                if (
+                    (dx == 0 and dy == -1 and facing == "up")
+                    or (dx == 0 and dy == 1 and facing == "down")
+                    or (dx == -1 and dy == 0 and facing == "left")
+                    or (dx == 1 and dy == 0 and facing == "right")
+                ):
+                    row_parts.append(arrow)
+                    continue
+
+                # Out of bounds
+                if not (0 <= gx < w and 0 <= gy < h):
+                    row_parts.append("?")
+                    continue
+
+                # Classify the block and map to a single letter
+                block_id = block_data[gy * w + gx]
+                classification = self._mapdb.classify_block(block_id, tileset)
+                row_parts.append(CLASS_SYMBOLS.get(classification, "?"))
+
+            lines.append(" ".join(row_parts))
+
+        lines.append("")
+        legend_parts = [
+            "Legend: ",
+            ".=floor ", "G=grass ", "T=tree ", "W=water ",
+            "B=wall ", "S=sign/object ", "D=door ", "@=you",
+        ]
+        lines.append("".join(legend_parts))
         return "\n".join(lines)
 
     def adjacent_blocks(self) -> dict[str, str]:
@@ -434,6 +571,7 @@ class RAMReader:
             "map_name": mname,
             "adjacent": self.adjacent_blocks(),
             "minimap": self.build_minimap(radius=2),
+            "overworld_grid": self.render_overworld(),
             "visible_exits": [],
             "text_content": [],
             "menu_items": [],
