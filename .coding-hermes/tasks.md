@@ -9,15 +9,16 @@
 
 ## Active Queue
 
-## [ ] Upgrade deps: ai_plays_poke — 6 outdated
+## [x] Upgrade deps: ai_plays_poke — 5 upgraded, 1 blocked ✅
 - **Priority:** low
-- **cffi:** 2.0.0 → 2.1.0
-- **charset-normalizer:** 3.4.7 → 3.4.8
-- **filelock:** 3.29.5 → 3.29.6
-- **pydantic_core:** 2.46.4 → 2.47.0 (check pydantic pin)
-- **uvicorn:** 0.50.0 → 0.50.2
-- **xxhash:** 3.8.0 → 3.8.1
-- **Source:** supervisor dep check 2026-07-07
+- **cffi:** 2.0.0 → 2.1.0 ✅
+- **charset-normalizer:** 3.4.7 — already current, no 3.4.8 on PyPI
+- **filelock:** 3.29.5 → 3.29.6 ✅
+- **pydantic_core:** 2.46.4 → 2.47.0 ❌ BLOCKED (pydantic 2.13.4 exact pin)
+- **tqdm:** 4.68.3 → 4.68.4 ✅ (new — not in original list)
+- **uvicorn:** 0.50.0 → 0.50.2 ✅
+- **xxhash:** 3.8.0 → 3.8.1 ✅
+- **Result:** 5 packages upgraded. 2923 tests pass (88s). pydantic_core remains blocked — pydantic 2.13.4 hard-blocks 2.47.0 at import. No newer pydantic release available. charset-normalizer 3.4.7 is already latest (3.4.8 not on PyPI). Committed at CURRENT.
 
 ### [x] FIX-4: Audit remaining threading.Lock in CircuitBreaker + TokenTracker ✅
 **Priority:** medium
