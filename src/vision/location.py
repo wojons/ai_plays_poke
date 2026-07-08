@@ -146,7 +146,9 @@ class LocationDetector:
         
         location_name, location_type, confidence = self._match_area(tile_patterns, features, pattern_hash)
         
-        processing_time = (time.perf_counter() - start_time) * 1000
+        # processing_time deliberately discarded — we keep start_time for
+        # the caller if they want it, but this is an internal tracking var
+        _ = (time.perf_counter() - start_time) * 1000
         
         return LocationResult(
             location_name=location_name,
@@ -180,7 +182,7 @@ class LocationDetector:
         pattern_counts: Dict[str, int] = {}
         
         for tile in tiles:
-            tile_hash = self._compute_tile_hash(tile)
+            _ = self._compute_tile_hash(tile)
             
             tile_type = self._classify_tile(tile)
             
