@@ -1,5 +1,5 @@
 # AI Plays Pokémon — Coding Hermes Tasks
-# Foreman: deepseek-v4-flash (slowdown — no pending tasks) | Schedule: every 120m
+# Foreman: deepseek-v4-flash | Schedule: every 120m
 
 ## [x] Upgrade deps: pydantic_core 2.46.4 → 2.47.0 — BLOCKED by pydantic pin ✅
 - **Priority:** low
@@ -19,6 +19,22 @@
 - **uvicorn:** 0.50.0 → 0.50.2 ✅
 - **xxhash:** 3.8.0 → 3.8.1 ✅
 - **Result:** 5 packages upgraded. 2923 tests pass (88s). pydantic_core remains blocked — pydantic 2.13.4 hard-blocks 2.47.0 at import. No newer pydantic release available. charset-normalizer 3.4.7 is already latest (3.4.8 not on PyPI). Committed at CURRENT.
+
+### [ ] BUGFIX: Fix headless ROM test — PyBoy rejects cartridge checksum
+- **Priority:** medium
+- **Why:** After PyBoy migration, `test_headless_smoke` fails with "Cartridge header checksum mismatch!" PyBoy is stricter than pygba about cartridge validation.
+- **Model:** deepseek-v4-pro (foreman direct — diagnose)
+- **Files:** data/rom/pokemon_red.gb, tests/test_gameplay_demo.py
+- **AC:**
+  1. Check if ROM is corrupted or PyBoy needs a different checksum mode
+  2. If ROM is stale, replace with known-good dump
+  3. If PyBoy rejects valid GB ROMs, add disable-checksum flag to Emulator constructor
+  4. test_headless_smoke passes with ROM
+
+### [ ] COV-NEXT: Add unit tests for ram_reader.py uncovered paths
+- **Priority:** medium
+- **Why:** 604 lines at unknown coverage — 63 tests exist but coverage gaps unknown
+- **Model:** deepseek-v4-pro (foreman direct)
 
 ### [x] FIX-4: Audit remaining threading.Lock in CircuitBreaker + TokenTracker ✅
 **Priority:** medium
