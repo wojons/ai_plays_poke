@@ -144,3 +144,20 @@ checkpoints/
 
 # Memory files
 memory/*.pkl
+
+# Exploration scripts (development/analysis tools, not project code)
+_*.py
+run_cycle.py
+run_step.py
+simple_viewer.py
+live_viewer.py
+live_viewer.html
+web_viewer.py
+test_buttons.py
+push_intro.py
+dream_gen.py
+db_count.py
+loader.py
+intro_blast.py
+ram_map_server.py
+ram_map_viewer.html
