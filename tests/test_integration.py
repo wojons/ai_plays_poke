@@ -16,9 +16,10 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch, AsyncMock
 
 from schemas.commands import (
-    AICommand, CommandType, Button, GameState, BattleState,
+    AICommand, CommandType, GameState, BattleState,
     AIThought, CommandExecutionResult
 )
+from core.emulator import Button as EmulatorButton
 
 
 class TestFullTickCycle:
@@ -114,7 +115,7 @@ class TestFullTickCycle:
             mock_emulator.press_button = MagicMock()
             game_loop._execute_pending_commands()
 
-            mock_emulator.press_button.assert_called_once_with(Button.A)
+            mock_emulator.press_button.assert_called_once_with(EmulatorButton.A)
             assert len(game_loop.pending_commands) == 0
             assert len(game_loop.command_history) == 1
 
@@ -532,7 +533,7 @@ class TestDialogFlow:
             decision = game_loop._simple_dialog_ai(dialog_state)
 
             assert decision['action'] == 'press:A'
-            assert decision['button'] == Button.A
+            assert decision['button'] == EmulatorButton.A
             assert decision['confidence'] > 0.5
 
     def test_dialog_completion(  # type: ignore[no-untyped-def]
@@ -641,7 +642,7 @@ class TestCommandExecution:
             parsed = game_loop._parse_command("press:A")
             assert parsed is not None
             assert parsed['type'] == 'press'
-            assert parsed['button'] == Button.A
+            assert parsed['button'] == EmulatorButton.A
 
     def test_button_sequence_execution(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
@@ -745,7 +746,7 @@ class TestCommandExecution:
             for button in buttons:
                 parsed = game_loop._parse_command(f"press:{button}")
                 assert parsed is not None
-                assert parsed['button'] == getattr(Button, button)
+                assert parsed['button'] == getattr(EmulatorButton, button)
 
     def test_command_history_tracking(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
