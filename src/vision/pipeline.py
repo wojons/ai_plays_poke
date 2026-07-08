@@ -7,7 +7,7 @@ for optimal vision model input.
 
 import hashlib
 import time
-from typing import Optional, Tuple, Union, Any
+from typing import Optional, Tuple, Any
 from dataclasses import dataclass
 from pathlib import Path
 import signal
