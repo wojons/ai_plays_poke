@@ -10,10 +10,9 @@ Implements comprehensive navigation including:
 """
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, Tuple, Callable, cast
+from typing import Any, Dict, List, Optional, Set, Tuple, cast
 from heapq import heappush, heappop
 from collections import deque
 import json

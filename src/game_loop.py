@@ -24,8 +24,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 
-from db.database import GameDatabase
-from core.emulator import Emulator, Button
+from db.database import GameDatabase  # noqa: E402
+from core.emulator import Emulator, Button  # noqa: E402
 
 
 class EmulatorManager:
@@ -41,13 +41,13 @@ class EmulatorManager:
 
     def get_instance(self, instance_id: str) -> "Emulator":
         raise NotImplementedError
-from core.screenshots import ScreenshotManager, SimpleLiveView
-from core.ai_client import GameAIManager, OpenRouterClient
-from core.save_manager import SaveManager, SaveManagerConfig, SnapshotReason
-from src.core.vision import VisionClient
-from src.core.prompt_assembler import PromptStack
-from src.core.tools import TOOL_SCHEMA, parse_tool_call
-from schemas.commands import (
+from core.screenshots import ScreenshotManager, SimpleLiveView  # noqa: E402
+from core.ai_client import GameAIManager, OpenRouterClient  # noqa: E402
+from core.save_manager import SaveManager, SaveManagerConfig, SnapshotReason  # noqa: E402
+from src.core.vision import VisionClient  # noqa: E402
+from src.core.prompt_assembler import PromptStack  # noqa: E402
+from src.core.tools import TOOL_SCHEMA, parse_tool_call  # noqa: E402
+from schemas.commands import (  # noqa: E402
     AIThought, GameState
 )
 
@@ -169,11 +169,9 @@ class GameLoop:
         # Start emulator(s)
         if self.emulator_mgr:
             self.emulator_mgr.start_all()
-            emulator = self.emulator_mgr.get_instance(self.current_instance)
         else:
             self.emulator.start()
-            emulator = self.emulator
-        
+
         # Start database session
         self.session_id = self.db.start_session(
             rom_path=str(self.config["rom_path"]),

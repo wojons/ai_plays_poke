@@ -17,7 +17,6 @@ Integration Points:
 """
 
 import json
-import os
 import time
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
@@ -84,7 +83,7 @@ class SaveManagerConfig:
     emergency_snapshot_count: int = 3
 
 
-from src.core.emulator import Emulator
+from src.core.emulator import Emulator  # noqa: E402
 
 
 class SaveManager:
@@ -245,8 +244,8 @@ class SaveManager:
         
         while len(self._snapshot_cache) > max_snapshots:
             oldest_id = next(iter(self._snapshot_cache))
-            metadata = self._snapshot_cache.pop(oldest_id)
-            
+            self._snapshot_cache.pop(oldest_id)
+
             state_file = self.snapshots_dir / f"{oldest_id}.state"
             if state_file.exists():
                 state_file.unlink()
@@ -271,8 +270,7 @@ class SaveManager:
                 if snapshot_id not in self._snapshot_cache:
                     logger.error(f"Snapshot not found: {snapshot_id}")
                     return False
-                
-                metadata = self._snapshot_cache[snapshot_id]
+
                 state_path = self.snapshots_dir / f"{snapshot_id}.state"
                 
                 if not state_path.exists():
@@ -360,9 +358,8 @@ class SaveManager:
         with self._lock:
             if snapshot_id not in self._snapshot_cache:
                 return False
-            
-            metadata = self._snapshot_cache.pop(snapshot_id)
-            
+
+            self._snapshot_cache.pop(snapshot_id)
             state_file = self.snapshots_dir / f"{snapshot_id}.state"
             if state_file.exists():
                 state_file.unlink()

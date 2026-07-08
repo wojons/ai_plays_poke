@@ -5,13 +5,11 @@ tool call → emulator execution for AI Plays Pokémon.
 
 from __future__ import annotations
 
-import os
 import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 from PIL import Image
 
 from src.core.emulator import Emulator

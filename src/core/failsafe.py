@@ -12,19 +12,17 @@ Provides comprehensive safety mechanisms:
 import json
 import time
 import threading
-import traceback
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Any, Tuple, Set
-from collections import defaultdict, deque
+from typing import Dict, List, Optional, Any, Tuple
+from collections import deque
 from enum import Enum
 import logging
 import psutil
 import os
 
-from src.core.logger import get_logger, LogCategory
+from src.core.logger import LogCategory
 from src.core.state_machine import (
-    HierarchicalStateMachine, StateType, EmergencySubState,
-    StateTransitionResult
+    HierarchicalStateMachine
 )
 
 

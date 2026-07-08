@@ -18,10 +18,9 @@ import shutil
 import logging
 import threading
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, Dict, Any, List, Union, cast, Callable
 from functools import wraps
-from pathlib import Path as FilePath
 import traceback
 
 
@@ -126,9 +125,6 @@ class PlainFormatter(logging.Formatter):
     
     def format(self, record: logging.LogRecord) -> str:
         """Format log record as human-readable string"""
-        # Add category to record
-        category = getattr(record, "category", LogCategory.MAIN)
-        
         # Create formatted message
         formatter = logging.Formatter(self._fmt, self.datefmt)
         base_format = formatter.format(record)

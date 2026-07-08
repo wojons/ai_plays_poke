@@ -4,7 +4,6 @@ Battle Analyzer - Pokemon Battle State Analysis
 Analyzes battle screen state including Pokemon identification,
 HP parsing, move selection, and type inference.
 """
-import time
 from typing import Optional, Dict, List, Any
 from dataclasses import dataclass
 from enum import Enum
@@ -12,7 +11,7 @@ from enum import Enum
 import numpy as np
 
 from .sprite import SpriteRecognizer, SpriteMatch, HPBarResult
-from .ocr import OCREngine, OCRResult
+from .ocr import OCREngine
 
 class BattleType(Enum):
     WILD = "wild"
@@ -78,8 +77,7 @@ class BattleAnalyzer:
         }
     
     def analyze_battle(self, screenshot: np.ndarray) -> BattleState:
-        start_time = time.perf_counter()
-        
+
         sprites = self.sprite_recognizer.find_pokemon_sprites(screenshot, is_battle=True)
         
         enemy_sprite = None
@@ -112,9 +110,7 @@ class BattleAnalyzer:
         cursor_pos = self._get_cursor_position(screenshot)
         
         is_our_turn = phase in [BattlePhase.MENU, BattlePhase.MOVE_SELECTION]
-        
-        processing_time = (time.perf_counter() - start_time) * 1000
-        
+
         return BattleState(
             battle_type=battle_type,
             phase=phase,

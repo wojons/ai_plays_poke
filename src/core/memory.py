@@ -17,12 +17,10 @@ Performance Specifications:
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any, Tuple, cast
-from datetime import datetime
 import json
 import time
 import logging
 import sqlite3
-import uuid
 from enum import Enum, auto
 from collections import defaultdict
 
@@ -1211,12 +1209,8 @@ class MemoryConsolidator:
         if not self.tactician:
             return result
         
-        start_count = len(self.tactician.patterns) + len(self.tactician.strategies) + len(self.tactician.mistakes)
-        
         pruned = self.tactician.prune_low_value(self.config)
         result.memories_pruned = pruned
-        
-        end_count = len(self.tactician.patterns) + len(self.tactician.strategies) + len(self.tactician.mistakes)
         
         result.details["patterns"] = len(self.tactician.patterns)
         result.details["strategies"] = len(self.tactician.strategies)

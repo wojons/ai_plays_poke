@@ -11,7 +11,6 @@ Provides REST endpoints and WebSocket streaming for:
 
 import asyncio
 import base64
-import json
 import os
 import time
 from contextlib import asynccontextmanager
@@ -19,13 +18,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import cv2
-import numpy as np
 from fastapi import FastAPI, HTTPException, Depends, Header, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from PIL import Image
 
 from src.db.database import GameDatabase
 from src.core.screenshot_manager import ScreenshotManager

@@ -8,18 +8,15 @@ and database logging. Provides CLI interface for running experiments.
 
 import argparse
 import asyncio
-import sqlite3
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, List
-import json
+from typing import Dict, Any, List
 import signal
 import sys
 
 import cv2
 import numpy as np
-from PIL import Image
 
 from .emulator import Emulator, Button
 from ..db.database import GameDatabase
@@ -80,7 +77,7 @@ class GameLoop:
         
     def start(self) -> None:
         """Start the game loop"""
-        print(f"🎮 Starting AI Plays Pokemon")
+        print("🎮 Starting AI Plays Pokemon")
         print(f"📁 ROM: {self.rom_path}")
         print(f"💾 Save Directory: {self.save_dir}")
         
@@ -113,7 +110,7 @@ class GameLoop:
         self.is_running = False
         self.emulator.stop()
         
-        print(f"📊 Final Stats:")
+        print("📊 Final Stats:")
         print(f"   Ticks: {self.metrics['total_ticks']}")
         print(f"   Screenshots: {self.metrics['screenshots_taken']}")
         print(f"   Commands: {self.metrics['commands_sent']}")

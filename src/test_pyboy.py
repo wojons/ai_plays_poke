@@ -24,7 +24,7 @@ def run_test(num_ticks: int = 1000, screenshot_interval: int = 100) -> bool:
     """Run basic PyBoy test with screenshots"""
     
     rom_path = get_rom_path()
-    print(f"🎮 Starting PyBoy test")
+    print("🎮 Starting PyBoy test")
     print(f"📂 ROM: {rom_path}")
     print(f"🔄 Ticks: {num_ticks}")
     print(f"📸 Screenshot every: {screenshot_interval} ticks")
@@ -35,7 +35,7 @@ def run_test(num_ticks: int = 1000, screenshot_interval: int = 100) -> bool:
         print(f"❌ ROM not found: {rom_path}")
         return False
     # Initialize emulator
-    print(f"🚀 Loading ROM...")
+    print("🚀 Loading ROM...")
     pyboy = PyBoy(rom_path)
     
     # Create screenshots directory
@@ -76,7 +76,7 @@ def run_test(num_ticks: int = 1000, screenshot_interval: int = 100) -> bool:
     print("\n" + "=" * 50)
     print("✅ Test completed successfully!")
     print(f"📁 Screenshots: {screenshot_dir}")
-    print(f"💡 Check the screenshots to verify the game is running")
+    print("💡 Check the screenshots to verify the game is running")
     
     return True
 if __name__ == "__main__":

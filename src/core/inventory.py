@@ -23,7 +23,6 @@ Performance Targets:
 """
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Set, Tuple, cast
@@ -754,7 +753,6 @@ class InventoryState:
 
     def get_tms(self) -> List[TMData]:
         """Get all obtained TMs"""
-        tm_types = {data.item_type for data in InventoryState.TM_DATABASE.values()}
         obtained = []
         for tm_number, tm_data in InventoryState.TM_DATABASE.items():
             if self.has_item(tm_data.item_type):
@@ -1692,7 +1690,6 @@ class ItemUsageStrategy:
         if not available_potions:
             return None
 
-        hp_percent = pokemon.current_hp / pokemon.max_hp if pokemon.max_hp > 0 else 0
         missing_hp = pokemon.max_hp - pokemon.current_hp
 
         potion_power: Dict[ItemType, int] = {
