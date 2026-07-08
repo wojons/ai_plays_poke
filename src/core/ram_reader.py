@@ -127,6 +127,14 @@ class _MapDB:
         self._rom = Path(rom_path).read_bytes()
         self._cache: dict[int, dict[str, Any]] = {}
 
+    @classmethod
+    def from_bytes(cls, rom_bytes: bytes) -> _MapDB:
+        """Construct _MapDB from pre-loaded ROM bytes (for testing)."""
+        self = cls.__new__(cls)
+        self._rom = rom_bytes
+        self._cache = {}
+        return self
+
     # ── ROM helpers ──────────────────────────────────────────────────
 
     @staticmethod

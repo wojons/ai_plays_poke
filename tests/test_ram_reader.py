@@ -693,11 +693,50 @@ class TestRAMReaderObserve:
             assert obs["visible_exits"] == []
             assert "explore the area" in obs["suggested_action"]
 
+    def test_exits_detected_with_doors(self, mock_emu: MagicMock) -> None:
+        """Player at (2,2) with a door to the right — exits should be found."""
+        _MEMORY[0xD361] = 6  # y = 2
+        _MEMORY[0xD362] = 6  # x = 2
+
+        from src.core.ram_reader import RAMReader, _MapDB
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            block_data = [0x0F] * 16
+            block_data[11] = 0x10  # right adjacent (idx = 2*4+3 = 11) — make it non-floor
+            mock_db.get_map.return_value = {
+                "tileset": 4,
+                "width": 4,
+                "height": 4,
+                "block_data": block_data,
+            }
+            mock_db.classify_block.side_effect = \
+                lambda b, t: {0x0F: "floor", 0x10: "door"}.get(b, "unknown")
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            obs = reader.observe()
+
+            # Player at (2,2): right is a door — should be in visible_exits
+            assert "right" in obs["visible_exits"]
+            assert len(obs["visible_exits"]) >= 1
+            assert "exits at right" in obs["suggested_action"]
+            assert "explore" in obs["suggested_action"]
+
 
 # ── Tileset 0 classification tests ──────────────────────────────────────
 
 
 class TestMapDBClassifyTileset0:
+    def test_from_bytes(self) -> None:
+        """_MapDB.from_bytes() creates a working instance."""
+        from src.core.ram_reader import _MapDB
+
+        db = _MapDB.from_bytes(b"\x00" * 512 * 1024)
+        assert db._rom is not None
+        assert db._cache == {}
+        assert db._rom == b"\x00" * 512 * 1024
+
     def test_grass_blocks(self) -> None:
         from src.core.ram_reader import _MapDB
 
