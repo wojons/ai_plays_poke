@@ -739,3 +739,27 @@
 - RAMReader: ROM map parser + player state reader + screen type detection + ASCII minimap + full structured observation (drop-in for vision cartographer)
 - 48 unit tests across 17 test classes — _MapDB static helpers, ROM parsing, block classification, RAMReader player state, facing, screen type, adjacency, minimap, observe()
 - All 2908 non-ROM tests pass
+
+### [x] WIRE-RAM: Wire RAM reader into cron_runner.py — replace vision cartographer ✅
+- **Priority:** high
+- **Why:** Cartographer calls Gemma 12B (vision LLM) every cycle for spatial data — slow (~1-60s) and expensive. RAMReader.observe() reads game state from emulator memory directly (instant, free) and returns the same schema. The observe() method was designed as a drop-in replacement. Wiring it saves the LLM call on every cycle.
+- **Model:** deepseek-v4-pro (foreman direct — single file refactor)
+- **Files:** cron_runner.py
+- **Result:**
+  - Added `USE_RAM_READER = True` flag (default on, cartographer as fallback)
+  - `ram_reader = RAMReader(emu, ROM)` created after emulator init
+  - Intro loop and main loop both branch on `USE_RAM_READER`: RAM reader path uses `ram_reader.observe()` (instant), cartographer path keeps frame-hashing cache
+  - Cartographer prompt + reference image loading conditional on `not USE_RAM_READER`
+  - Pipeline labels in log entries use dynamic `pipeline_name` ("RAM reader" or "cartographer")
+  - Module docstring updated
+  - 2927 tests pass (87s)
+  - GitReins config changed to `test_mode: full` (autonomous coding best practice)
+- **AC:**
+  1. ✅ Added `USE_RAM_READER = True` config flag (default on, cartographer as fallback)
+  2. ✅ Created RAMReader instance after emulator init
+  3. ✅ Intro loop: replaced `cartographer_analyze()` with `ram_reader.observe()` when USE_RAM_READER is True
+  4. ✅ Main loop: replaced `cartographer_analyze()` with `ram_reader.observe()` when USE_RAM_READER is True (no frame hashing needed)
+  5. ✅ Cartographer prompt + reference image only load when USE_RAM_READER is False
+  6. ✅ Pipeline labels in log entries reflect the active pipeline
+  7. ✅ `USE_VISION_CLIENT` preserved as-is (separate debug flag)
+  8. ✅ All 2927 non-ROM tests pass

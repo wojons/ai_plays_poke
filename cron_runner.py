@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Cron-friendly Pokemon AI runner with cartographer → controller pipeline.
+"""Cron-friendly Pokemon AI runner with RAM reader / cartographer → controller pipeline.
 
 Flow:
-  1. Screenshot → classify screen type (VisionClient)
-  2. If overworld: cartographer mode (Gemma 12B → OBS_PATCH → MapIntegrator)
-  3. Controller (DeepSeek V4 Flash) reads composed view → button press
+  1. Observe game state (RAM reader OR Gemma 12B cartographer)
+  2. If overworld: controller (DeepSeek V4 Flash) reads spatial data → button plan
+  3. Execute plan with direction-locking detection, checkpoint rollback
   4. Non-overworld: existing StateWindow flow
 """
 import builtins as _builtins
@@ -80,12 +80,14 @@ from src.core.global_context import GlobalContext
 from src.core.state_window import StateWindow
 from src.core.ai_client import OpenRouterClient
 from src.core.prompt_loader import load_system_prompt
+from src.core.ram_reader import RAMReader
 
 # ── Config ──────────────────────────────────────────────────────────
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 CYCLES = 200
 STATE_STEPS = 12
 USE_VISION_CLIENT = False  # True = debug mode (cheap classifier), False = Gemma 12B cartographer
+USE_RAM_READER = True   # True = RAM-based state reader (instant, free), False = Gemma 12B cartographer
 HINT_LEVEL = 4  # 0=benchmark, 1=mechanics, 2=genre, 3=starter, 4=navigation
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 6  # controller steps per overworld cycle (reduced from 12 — short moves, more cartographer feedback)
@@ -107,18 +109,23 @@ CHECKPOINT_INTERVAL = 10   # save state every N cycles
 CHECKPOINT_SLOTS = 5       # rotating slots 0-4
 MAX_SAME_DIRECTION = 5     # blocked-direction threshold before rollback
 
-# ── Load visual-reference cartographer prompt ────────────────────────
-_carto_cfg = yaml.safe_load(
-    Path("configs/prompts/gen1/cartographer.yaml").read_text()
-)
-CARTOGRAPHER_SYSTEM = _carto_cfg["system"]
-CARTOGRAPHER_TEMPLATE = _carto_cfg["user_template"]
+# ── Load visual-reference cartographer prompt (only if not using RAM reader) ──
+if not USE_RAM_READER:
+    _carto_cfg = yaml.safe_load(
+        Path("configs/prompts/gen1/cartographer.yaml").read_text()
+    )
+    CARTOGRAPHER_SYSTEM = _carto_cfg["system"]
+    CARTOGRAPHER_TEMPLATE = _carto_cfg["user_template"]
 
-# ── Load reference image (bedroom overworld — shows walls, doors, stairs, character) ──
-_ref_img = Image.open("reference/bedroom_overworld.png")
-_ref_buf = io.BytesIO()
-_ref_img.save(_ref_buf, format="PNG")
-REFERENCE_IMAGE_B64 = base64.b64encode(_ref_buf.getvalue()).decode()
+    # ── Load reference image (bedroom overworld — shows walls, doors, stairs, character) ──
+    _ref_img = Image.open("reference/bedroom_overworld.png")
+    _ref_buf = io.BytesIO()
+    _ref_img.save(_ref_buf, format="PNG")
+    REFERENCE_IMAGE_B64 = base64.b64encode(_ref_buf.getvalue()).decode()
+else:
+    CARTOGRAPHER_SYSTEM = ""
+    CARTOGRAPHER_TEMPLATE = ""
+    REFERENCE_IMAGE_B64 = ""
 
 # ── Helpers ─────────────────────────────────────────────────────────
 
@@ -333,13 +340,21 @@ def main() -> None:
     results = []
     emu = Emulator(ROM)
 
+    # Init RAM reader (instant state reads) or fall back to vision cartographer
+    pipeline_name: str
+    if USE_RAM_READER:
+        ram_reader = RAMReader(emu, ROM)
+        pipeline_name = "RAM reader"
+        safe_print(f"[{run_id}] Starting run with RAM reader pipeline...")
+    else:
+        pipeline_name = "cartographer"
+        safe_print(f"[{run_id}] Starting run with visual-reference cartographer pipeline...")
+        safe_print("  Reference image: reference/bedroom_overworld.png")
+
     # Init AI clients
     if USE_VISION_CLIENT:
         vision = VisionClient()  # noqa: F841 — conditionally enabled debug classifier
     controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
-
-    safe_print(f"[{run_id}] Starting run with visual-reference cartographer pipeline...")
-    safe_print(f"  Reference image: reference/bedroom_overworld.png")
 
     # ── Checkpoint / recovery state ────────────────────────────────
     _same_dir: str | None = None
@@ -361,10 +376,10 @@ def main() -> None:
     _cached_carto_raw: str = ""  # cached raw cartographer text
 
     # ── Deterministic intro bypass ──────────────────────────────────
-    # Decoupled: A-mash aggressively in large batches, sparse cartographer
-    # checks. Each cartographer call has 1-60s latency; we maximize
-    # A-presses between checks so the intro progresses during API waits.
-    safe_print(f"[{run_id}] Bypassing intro via cartographer...")
+    # Decoupled: A-mash aggressively in large batches, sparse
+    # observation checks (RAM reader is instant, cartographer has 1-60s latency).
+    # RAM reader path: instant state reads, no LLM calls.
+    safe_print(f"[{run_id}] Bypassing intro via {pipeline_name}...")
 
     # Step 1: Title screen → press START
     emu.bypass_title()
@@ -388,16 +403,20 @@ def main() -> None:
         _intro_checks += 1
         screenshot = emu.capture()
 
-        # Use cartographer for reliable screen classification
-        patch_data, carto_raw = cartographer_analyze(
-            controller_client, screenshot
-        )
+        # Use RAM reader or cartographer for screen classification
+        if USE_RAM_READER:
+            patch_data = ram_reader.observe()
+            carto_raw = json.dumps({"source": "ram_reader", "result": patch_data.get("result")})
+        else:
+            patch_data, carto_raw = cartographer_analyze(
+                controller_client, screenshot
+            )
         st = patch_data.get("result", "unknown")
 
         # ── Save file detection: if we're in overworld without naming ──
         if st == "overworld" and not _player_named:
             tc = patch_data.get("text_content", [])
-            if not tc:  # no dialog — definitely not intro
+            if not tc and not USE_RAM_READER:  # RAM reader always returns empty text_content
                 if not _save_detected:
                     _save_detected = True
                     print("  [intro] SAVE DETECTED — restarting with NEW GAME")
@@ -415,7 +434,7 @@ def main() -> None:
                     continue
 
         if st == "overworld":
-            print(f"  [intro] Cartographer says overworld — intro complete ({_intro_checks} checks)")
+            print(f"  [intro] {pipeline_name} says overworld — intro complete ({_intro_checks} checks)")
             break
         elif st == "name_entry":
             # A-mash through name entry screens during intro bypass.
@@ -498,31 +517,35 @@ def main() -> None:
             img = Image.fromarray(screenshot)
             img.save(SCREENSHOT_DIR / f"step_{cycle+1:04d}.png")
 
-            # Step 1: Cartographer classifies screen + spatial analysis
-            # ── Frame hashing: skip cartographer if nothing changed ──
-            # Hash the raw screenshot bytes. If identical to last frame,
-            # the character hasn't moved — reuse cached observation.
-            # Works for ALL screen types including battles. During battle idle
-            # (both Pokémon standing, same HP), the frame is identical and
-            # the cached observation is still valid. The Controller/StateWindow
-            # still runs and makes decisions — we just skip re-observing.
-            import hashlib
-            frame_bytes = screenshot.tobytes()
-            frame_hash = hashlib.md5(frame_bytes).hexdigest()
-            
-            if _last_frame_hash != frame_hash or not _cached_patch:
-                # Frame changed (or first cycle) — call cartographer
-                patch_data, carto_raw = cartographer_analyze(
-                    controller_client, screenshot
-                )
-                _cached_patch = patch_data
-                _cached_carto_raw = carto_raw
-                _last_frame_hash = frame_hash
+            # Step 1: Classify screen + spatial analysis
+            # RAM reader: instant reads, no frame hashing needed.
+            # Cartographer: Gemma 12B vision model with frame hashing cache.
+            if USE_RAM_READER:
+                # RAM reader is instant — always re-observe for accurate state
+                patch_data = ram_reader.observe()
+                carto_raw = json.dumps({"source": "ram_reader", "result": patch_data.get("result")})
             else:
-                # Frame unchanged — reuse cached observation
-                patch_data = _cached_patch
-                carto_raw = _cached_carto_raw
-                safe_print(f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result','?')})")
+                # ── Frame hashing: skip cartographer if nothing changed ──
+                # Hash the raw screenshot bytes. If identical to last frame,
+                # the character hasn't moved — reuse cached observation.
+                # Works for ALL screen types including battles. During battle idle
+                # (both Pokémon standing, same HP), the frame is identical and
+                # the cached observation is still valid. The Controller/StateWindow
+                # still runs and makes decisions — we just skip re-observing.
+                import hashlib
+                frame_bytes = screenshot.tobytes()
+                frame_hash = hashlib.md5(frame_bytes).hexdigest()
+                if _last_frame_hash != frame_hash or not _cached_patch:
+                    # Frame changed (or first cycle) — call cartographer
+                    patch_data, carto_raw = cartographer_analyze(controller_client, screenshot)
+                    _cached_patch = patch_data
+                    _cached_carto_raw = carto_raw
+                    _last_frame_hash = frame_hash
+                else:
+                    # Frame unchanged — reuse cached observation
+                    patch_data = _cached_patch
+                    carto_raw = _cached_carto_raw
+                    safe_print(f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result','?')})")
             st = patch_data.get("result", "unknown")
 
             t0 = time.time()
@@ -638,7 +661,7 @@ def main() -> None:
                 plan_entry = {
                     "cycle": cycle + 1,
                     "screen": st,
-                    "pipeline": "cartographer",
+                    "pipeline": pipeline_name,
                     "plan": plan,
                     "intent": intent,
                     "controller_raw": decision.get("raw_response", ""),
@@ -701,7 +724,7 @@ def main() -> None:
                             safe_print(f"  [RECOVER] Direction-locked {_same_dir} x{_same_dir_count} but NO checkpoint available")
 
                 elapsed = time.time() - t0
-                safe_print(f"  [{cycle+1}/{CYCLES}] {st} | cartographer x{CART_STEPS} | {elapsed:.1f}s")
+                safe_print(f"  [{cycle+1}/{CYCLES}] {st} | {pipeline_name} x{CART_STEPS} | {elapsed:.1f}s")
 
             elif st == "name_entry":
                 # ── Name entry bypass ─────────────────────────────
