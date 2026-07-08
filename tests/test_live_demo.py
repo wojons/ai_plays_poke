@@ -29,10 +29,13 @@ _PROJECT = _HERE.parent
 
 
 def _find_rom() -> Path | None:
-    """Return the first available ROM, or None."""
-    candidates = sorted(_PROJECT.glob("data/rom/*.gba")) + sorted(
-        _PROJECT.glob("data/rom/*.gb")
-    ) + sorted(_PROJECT.glob("data/rom/*.gbc"))
+    """Return the first available ROM, or None.
+
+    PyBoy is GB/GBC-only, so prefer .gb and .gbc over .gba.
+    """
+    candidates = sorted(_PROJECT.glob("data/rom/*.gb")) + sorted(
+        _PROJECT.glob("data/rom/*.gbc")
+    ) + sorted(_PROJECT.glob("data/rom/*.gba"))
     return candidates[0] if candidates else None
 
 

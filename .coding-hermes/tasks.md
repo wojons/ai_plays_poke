@@ -20,21 +20,23 @@
 - **xxhash:** 3.8.0 → 3.8.1 ✅
 - **Result:** 5 packages upgraded. 2923 tests pass (88s). pydantic_core remains blocked — pydantic 2.13.4 hard-blocks 2.47.0 at import. No newer pydantic release available. charset-normalizer 3.4.7 is already latest (3.4.8 not on PyPI). Committed at CURRENT.
 
-### [ ] BUGFIX: Fix headless ROM test — PyBoy rejects cartridge checksum
+### [x] BUGFIX: Fix headless ROM test — swapped _find_rom() GBA priority ✅
 - **Priority:** medium
-- **Why:** After PyBoy migration, `test_headless_smoke` fails with "Cartridge header checksum mismatch!" PyBoy is stricter than pygba about cartridge validation.
-- **Model:** deepseek-v4-pro (foreman direct — diagnose)
-- **Files:** data/rom/pokemon_red.gb, tests/test_gameplay_demo.py
+- **Why:** After PyBoy migration, `test_headless_smoke` failed because `_find_rom()` returned the GBA ROM (LeafGreen) first. PyBoy is GB/GBC-only and can't load GBA.
+- **Model:** deepseek-v4-pro (foreman direct)
+- **Files:** tests/test_gameplay_demo.py, tests/test_live_demo.py
+- **Result:** Root cause: `_find_rom()` tried `.gba` files before `.gb` files. PyBoy loads GB/GBC ROMs fine — the "checksum mismatch" error was from attempting to load a GBA ROM as if it were GB. Fixed by reordering candidates to `.gb` → `.gbc` → `.gba`. Both test files patched. 2 headless ROM tests pass. Full suite 3256/3256.
 - **AC:**
-  1. Check if ROM is corrupted or PyBoy needs a different checksum mode
-  2. If ROM is stale, replace with known-good dump
-  3. If PyBoy rejects valid GB ROMs, add disable-checksum flag to Emulator constructor
-  4. test_headless_smoke passes with ROM
+  1. ✅ Check if ROM is corrupted or PyBoy needs a different checksum mode — ROM is fine. PyBoy rejects GBA ROMs.
+  2. ✅ If ROM is stale, replace with known-good dump — Not needed. GB ROMs are valid.
+  3. ✅ If PyBoy rejects valid GB ROMs, add disable-checksum flag — Not needed. Issue was wrong ROM type.
+  4. ✅ test_headless_smoke passes with ROM (2 headless tests pass)
 
-### [ ] COV-NEXT: Add unit tests for ram_reader.py uncovered paths
+### [x] COV-NEXT: Add unit tests for ram_reader.py uncovered paths ✅
 - **Priority:** medium
 - **Why:** 604 lines at unknown coverage — 63 tests exist but coverage gaps unknown
 - **Model:** deepseek-v4-pro (foreman direct)
+- **Result:** Coverage assessed at 98% (229 stmts, 4 missed). Added 2 new tests: `test_exits_detected_with_doors` (overworld exits-found branch) and `test_from_bytes` (_MapDB factory). Added `_MapDB.from_bytes()` classmethod for testing. Coverage now 99% (235 stmts, 2 missed — file-read __init__ lines 127-128, a 2-line boilerplate path impractical to test without a real ROM). 65 ram_reader tests pass.
 
 ### [x] FIX-4: Audit remaining threading.Lock in CircuitBreaker + TokenTracker ✅
 **Priority:** medium
