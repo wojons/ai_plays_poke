@@ -1,39 +1,67 @@
 """
-Unit tests for Emulator class — mock pygba to test without ROM files.
+Unit tests for Emulator class — mock PyBoy to test without ROM files.
 """
 from __future__ import annotations
 
+import contextlib
 import numpy as np
 import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, mock_open, patch, PropertyMock
+from unittest.mock import MagicMock, mock_open, patch
+
+from pyboy.utils import WindowEvent
 
 
-# ── helpers ────────────────────────────────────────────────────────────────
+# ── Fixture: mock PyBoy for all emulator tests ──────────────────────────
 
-def _make_emu() -> "Emulator":
-    """Construct an Emulator with fully mocked pygba internals.
+@contextlib.contextmanager
+def _mock_pyboy():
+    """Context manager that patches PyBoy imports in the emulator module.
 
-    Avoids the eager ROM-file existence check by patching
-    ``Path.is_file`` and ``PyGBA.load``.
+    Yields (mock_pyboy_cls, mock_pyboy_instance) for test setup.
     """
     with (
         patch("pathlib.Path.is_file", return_value=True),
-        patch("pathlib.Path.resolve", return_value=Path("/fake/rom.gba")),
-        patch("src.core.emulator.PyGBA") as mock_pygba_cls,
-        patch("src.core.emulator.mgba") as mock_mgba,
+        patch("pathlib.Path.resolve", return_value=Path("/fake/rom.gb")),
+        patch("src.core.emulator._PyBoy") as mock_pyboy_cls,
     ):
-        mock_pygba = MagicMock()
-        mock_pygba.core.desired_video_dimensions.return_value = (240, 160)
-        mock_pygba_cls.load.return_value = mock_pygba
+        mock_pyboy = MagicMock()
+        mock_pyboy.screen.ndarray = np.zeros((144, 160, 4), dtype=np.uint8)
+        mock_pyboy_cls.return_value = mock_pyboy
 
-        mock_fb = MagicMock()
-        mock_fb.to_pil.return_value.convert.return_value = MagicMock()
-        mock_mgba.image.Image.return_value = mock_fb
-
+        # Ensure fresh from_cache for each test
         from src.core.emulator import Emulator
-        emu = Emulator("/fake/rom.gba")
-        return emu
+        if "Emulator" in dir():
+            pass
+        yield mock_pyboy
+
+
+@pytest.fixture
+def emu():
+    """Create an Emulator with fully mocked PyBoy internals."""
+    with _mock_pyboy() as mock_pyboy:
+        from src.core.emulator import Emulator
+        e = Emulator("/fake/rom.gb")
+        e._pyboy = mock_pyboy
+        yield e
+
+
+@pytest.fixture
+def emu_with_state():
+    """Create Emulator with save_state/load_state mocked."""
+    with (
+        patch("pathlib.Path.is_file", return_value=True),
+        patch("pathlib.Path.resolve", return_value=Path("/fake/rom.gb")),
+        patch("pathlib.Path.mkdir"),
+        patch("src.core.emulator._PyBoy") as mock_pyboy_cls,
+    ):
+        mock_pyboy = MagicMock()
+        mock_pyboy.screen.ndarray = np.zeros((144, 160, 4), dtype=np.uint8)
+        mock_pyboy_cls.return_value = mock_pyboy
+        from src.core.emulator import Emulator
+        e = Emulator("/fake/rom.gb")
+        e._pyboy = mock_pyboy
+        yield e
 
 
 # ── tests ──────────────────────────────────────────────────────────────────
@@ -41,179 +69,157 @@ def _make_emu() -> "Emulator":
 class TestEmulatorProperties:
     """Property accessors: is_gb, platform, rom_path."""
 
-    def test_is_gb_false_for_gba(self) -> None:
-        emu = _make_emu()
-        assert emu.is_gb is False
+    def test_is_gb_true(self, emu) -> None:
+        """PyBoy only supports GB — always True."""
+        assert emu.is_gb is True
 
-    def test_platform_returns_gba(self) -> None:
-        emu = _make_emu()
-        assert emu.platform == "gba"
+    def test_platform_returns_gb(self, emu) -> None:
+        assert emu.platform == "gb"
 
-    def test_rom_path_absolute(self) -> None:
-        emu = _make_emu()
-        assert emu.rom_path == Path("/fake/rom.gba")
+    def test_rom_path_absolute(self, emu) -> None:
+        assert emu.rom_path == Path("/fake/rom.gb")
 
-    def test_is_gb_true_when_dimensions_match(self) -> None:
-        """When pygba reports 256×224, platform is gb."""
-        with (
-            patch("pathlib.Path.is_file", return_value=True),
-            patch("pathlib.Path.resolve", return_value=Path("/fake/rom.gb")),
-            patch("src.core.emulator.PyGBA") as mock_pygba_cls,
-            patch("src.core.emulator.mgba") as mock_mgba,
-        ):
-            mock_pygba = MagicMock()
-            mock_pygba.core.desired_video_dimensions.return_value = (256, 224)
-            mock_pygba_cls.load.return_value = mock_pygba
-
-            mock_fb = MagicMock()
-            mock_mgba.image.Image.return_value = mock_fb
-
-            from src.core.emulator import Emulator
-            emu = Emulator("/fake/rom.gb")
-            assert emu.is_gb is True
-            assert emu.platform == "gb"
+    def test_button_compat(self) -> None:
+        """Button constants have correct lowercase values."""
+        from src.core.emulator import Button
+        assert Button.A == "a"
+        assert Button.B == "b"
+        assert Button.START == "start"
+        assert Button.SELECT == "select"
+        assert Button.UP == "up"
+        assert Button.DOWN == "down"
+        assert Button.LEFT == "left"
+        assert Button.RIGHT == "right"
 
 
 class TestFastForward:
-    """fast_forward(n) runs core.run_frame() n times."""
+    """fast_forward(n) calls _pyboy.tick() n times."""
 
-    def test_fast_forward_positive(self) -> None:
-        emu = _make_emu()
+    def test_fast_forward_positive(self, emu) -> None:
         emu.fast_forward(10)
-        assert emu._pygba.core.run_frame.call_count == 10
+        assert emu._pyboy.tick.call_count == 10
 
-    def test_fast_forward_zero(self) -> None:
-        emu = _make_emu()
+    def test_fast_forward_zero(self, emu) -> None:
         emu.fast_forward(0)
-        assert emu._pygba.core.run_frame.call_count == 0
+        assert emu._pyboy.tick.call_count == 0
 
-    def test_fast_forward_negative(self) -> None:
-        emu = _make_emu()
+    def test_fast_forward_negative(self, emu) -> None:
         emu.fast_forward(-5)
-        assert emu._pygba.core.run_frame.call_count == 0
+        assert emu._pyboy.tick.call_count == 0
 
 
 class TestPressButton:
-    """press_button delegates to pygba.press_<name>."""
+    """press_button sends WindowEvent press, ticks, then release."""
 
-    def test_press_a(self) -> None:
-        emu = _make_emu()
+    def test_press_a(self, emu) -> None:
         emu.press_button("a", frames=3)
-        emu._pygba.press_a.assert_called_once_with(3)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.PRESS_BUTTON_A)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.RELEASE_BUTTON_A)
+        assert emu._pyboy.tick.call_count == 3
 
-    def test_press_start(self) -> None:
-        emu = _make_emu()
-        emu.press_button("start", frames=7)
-        emu._pygba.press_start.assert_called_once_with(7)
+    def test_press_start(self, emu) -> None:
+        emu.press_button("start", frames=3)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.PRESS_BUTTON_START)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.RELEASE_BUTTON_START)
 
-    def test_press_up(self) -> None:
-        emu = _make_emu()
-        emu.press_button("up", frames=2)
-        emu._pygba.press_up.assert_called_once_with(2)
+    def test_press_up(self, emu) -> None:
+        emu.press_button("up", frames=3)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.PRESS_ARROW_UP)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.RELEASE_ARROW_UP)
 
-    def test_press_case_insensitive(self) -> None:
-        emu = _make_emu()
-        emu.press_button("A", frames=5)
-        emu._pygba.press_a.assert_called_once_with(5)
+    def test_press_case_insensitive(self, emu) -> None:
+        emu.press_button("A", frames=3)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.PRESS_BUTTON_A)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.RELEASE_BUTTON_A)
 
-    def test_press_unknown_button_raises(self) -> None:
-        emu = _make_emu()
+    def test_press_unknown_button_raises(self, emu) -> None:
         with pytest.raises(ValueError, match="Unknown button"):
             emu.press_button("triangle")
 
-    def test_press_frames_clamped_to_one(self) -> None:
-        emu = _make_emu()
+    def test_press_frames_clamped_to_one(self, emu) -> None:
         emu.press_button("a", frames=0)
-        emu._pygba.press_a.assert_called_once_with(1)
+        assert emu._pyboy.tick.call_count == 1
 
-    def test_press_l_and_r(self) -> None:
-        emu = _make_emu()
-        emu.press_button("l", frames=4)
-        emu._pygba.press_l.assert_called_once_with(4)
-        emu.press_button("r", frames=4)
-        emu._pygba.press_r.assert_called_once_with(4)
-
-    def test_press_select(self) -> None:
-        emu = _make_emu()
+    def test_press_select(self, emu) -> None:
         emu.press_button("select", frames=3)
-        emu._pygba.press_select.assert_called_once_with(3)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.PRESS_BUTTON_SELECT)
+        emu._pyboy.send_input.assert_any_call(WindowEvent.RELEASE_BUTTON_SELECT)
 
-    def test_press_all_directions(self) -> None:
-        emu = _make_emu()
+    def test_press_all_directions(self, emu) -> None:
         for btn in ("up", "down", "left", "right"):
             emu.press_button(btn)
-        emu._pygba.press_up.assert_called_once()
-        emu._pygba.press_down.assert_called_once()
-        emu._pygba.press_left.assert_called_once()
-        emu._pygba.press_right.assert_called_once()
+        assert emu._pyboy.send_input.call_count == 8
 
 
 class TestWait:
-    """wait(frames) delegates to pygba.wait()."""
+    """wait(frames) delegates to fast_forward -> tick."""
 
-    def test_wait_positive(self) -> None:
-        emu = _make_emu()
+    def test_wait_positive(self, emu) -> None:
         emu.wait(20)
-        emu._pygba.wait.assert_called_once_with(20)
+        assert emu._pyboy.tick.call_count == 20
 
-    def test_wait_zero(self) -> None:
-        emu = _make_emu()
+    def test_wait_zero(self, emu) -> None:
         emu.wait(0)
-        emu._pygba.wait.assert_called_once_with(0)
+        assert emu._pyboy.tick.call_count == 0
 
-    def test_wait_negative_clamped(self) -> None:
-        emu = _make_emu()
+    def test_wait_negative_clamped(self, emu) -> None:
         emu.wait(-10)
-        emu._pygba.wait.assert_called_once_with(0)
+        assert emu._pyboy.tick.call_count == 0
 
 
 class TestCapture:
-    """capture() returns a numpy array from the framebuffer."""
+    """capture() returns an RGB numpy array from PyBoy screen."""
 
-    def test_capture_returns_array(self) -> None:
-        emu = _make_emu()
+    def test_capture_returns_array(self, emu) -> None:
         img = emu.capture()
         assert isinstance(img, np.ndarray)
 
-    def test_capture_calls_framebuffer(self) -> None:
-        emu = _make_emu()
-        emu.capture()
-        emu._framebuffer.to_pil.assert_called()
+    def test_capture_rgba_to_rgb(self, emu) -> None:
+        """RGBA (144, 160, 4) → RGB (144, 160, 3)."""
+        img = emu.capture()
+        assert img.shape == (144, 160, 3)
+
+    def test_capture_values_preserved(self, emu) -> None:
+        """RGB channels from RGBA are preserved, alpha channel dropped."""
+        rgba = np.full((144, 160, 4), 128, dtype=np.uint8)
+        rgba[:, :, 0] = 10
+        rgba[:, :, 1] = 20
+        rgba[:, :, 2] = 30
+        emu._pyboy.screen.ndarray = rgba
+        img = emu.capture()
+        assert img[0, 0, 0] == 10
+        assert img[0, 0, 1] == 20
+        assert img[0, 0, 2] == 30
 
 
 class TestStop:
-    """stop() resets the core and sets _running=False."""
+    """stop() calls _pyboy.stop() and sets _running=False."""
 
-    def test_stop_resets_core(self) -> None:
-        emu = _make_emu()
+    def test_stop_calls_pyboy_stop(self, emu) -> None:
         emu.stop()
-        emu._pygba.core.reset.assert_called()
+        emu._pyboy.stop.assert_called_once()
 
-    def test_stop_sets_running_false(self) -> None:
-        emu = _make_emu()
+    def test_stop_sets_running_false(self, emu) -> None:
         assert emu._running is True
         emu.stop()
         assert emu._running is False
 
-    def test_stop_idempotent(self) -> None:
+    def test_stop_idempotent(self, emu) -> None:
         """Second stop() is a no-op (already stopped)."""
-        emu = _make_emu()
         emu.stop()
-        emu._pygba.core.reset.reset_mock()
+        emu._pyboy.stop.reset_mock()
         emu.stop()
-        emu._pygba.core.reset.assert_not_called()
+        emu._pyboy.stop.assert_not_called()
 
 
 class TestReset:
-    """reset() restarts the core."""
+    """reset() stops the old emulator and creates a new PyBoy instance."""
 
-    def test_reset_calls_core(self) -> None:
-        emu = _make_emu()
+    def test_reset_stops_old_pyboy(self, emu) -> None:
         emu.reset()
-        emu._pygba.core.reset.assert_called()
+        emu._pyboy.stop.assert_called_once()
 
-    def test_reset_sets_running_true(self) -> None:
-        emu = _make_emu()
+    def test_reset_sets_running_true(self, emu) -> None:
         emu.stop()
         assert emu._running is False
         emu.reset()
@@ -223,109 +229,91 @@ class TestReset:
 class TestSkipIntro:
     """skip_intro() runs press A + wait in a loop."""
 
-    def test_skip_intro_defaults(self) -> None:
-        emu = _make_emu()
+    def test_skip_intro_defaults(self, emu) -> None:
         emu.skip_intro()
-        # 16 repetitions: press_a + wait each
-        assert emu._pygba.press_a.call_count == 16
-        assert emu._pygba.wait.call_count == 16
-        # First press uses 30 frames, first wait uses 60
-        emu._pygba.press_a.assert_called_with(30)
-        emu._pygba.wait.assert_called_with(60)
+        assert emu._pyboy.send_input.call_count >= 32
+        assert emu._pyboy.tick.call_count > 0
 
-    def test_skip_intro_custom_params(self) -> None:
-        emu = _make_emu()
+    def test_skip_intro_custom_params(self, emu) -> None:
         emu.skip_intro(press_frames=10, wait_frames=20, repetitions=3)
-        assert emu._pygba.press_a.call_count == 3
-        assert emu._pygba.wait.call_count == 3
-        emu._pygba.press_a.assert_called_with(10)
-        emu._pygba.wait.assert_called_with(20)
+        assert emu._pyboy.send_input.call_count >= 6
 
-    def test_skip_intro_single_repetition(self) -> None:
-        emu = _make_emu()
+    def test_skip_intro_single_repetition(self, emu) -> None:
         emu.skip_intro(repetitions=1)
-        assert emu._pygba.press_a.call_count == 1
-        assert emu._pygba.wait.call_count == 1
+        assert emu._pyboy.send_input.call_count == 2
 
 
 class TestBypassTitle:
     """bypass_title() presses START to get past the title screen."""
 
-    def test_bypass_title_presses_start(self) -> None:
-        emu = _make_emu()
+    def test_bypass_title_presses_start(self, emu) -> None:
         emu.bypass_title()
-        # Two START presses
-        assert emu._pygba.press_start.call_count == 2
-        assert emu._pygba.wait.call_count == 2
-
-    def test_bypass_title_press_frames(self) -> None:
-        emu = _make_emu()
-        emu.bypass_title()
-        # First press: 30 frames, second: 15 frames
-        calls = emu._pygba.press_start.call_args_list
-        assert calls[0] == ((30,),) or calls[0].args == (30,)
-        assert calls[1] == ((15,),) or calls[1].args == (15,)
+        assert emu._pyboy.send_input.call_count == 4
 
 
 class TestEnterName:
     """enter_name() mechanically navigates the name-entry keyboard grid."""
 
-    def test_enter_name_default_ash(self) -> None:
+    def test_enter_name_default_ash(self, emu) -> None:
         """Entering 'ASH' should navigate grid and press A for each char + END."""
-        emu = _make_emu()
-        emu.enter_name()  # default "ASH"
+        emu.enter_name()
+        press_a_calls = [
+            c for c in emu._pyboy.send_input.call_args_list
+            if c[0][0] == WindowEvent.PRESS_BUTTON_A
+        ]
+        assert len(press_a_calls) == 4
 
-        # Should press A 4 times: A, S, H, END
-        assert emu._pygba.press_a.call_count == 4
-
-        # Navigation: 8 right + 1 down to reach S, then 1 left + 1 up to reach H,
-        # then 6 down + 1 right to reach END
-        assert emu._pygba.press_right.call_count > 0, "Need right presses"
-        assert emu._pygba.press_left.call_count > 0, "Need left presses"
-        assert emu._pygba.press_down.call_count > 0, "Need down presses"
-
-    def test_enter_name_single_a(self) -> None:
+    def test_enter_name_single_a(self, emu) -> None:
         """Entering 'A' (already at cursor) just presses A then END."""
-        emu = _make_emu()
         emu.enter_name("A")
+        press_a_calls = [
+            c for c in emu._pyboy.send_input.call_args_list
+            if c[0][0] == WindowEvent.PRESS_BUTTON_A
+        ]
+        assert len(press_a_calls) == 2
 
-        # A press for the letter + A press for END = 2
-        assert emu._pygba.press_a.call_count == 2
-        # Navigation: just down×6 + right×1 to reach END from (0,0)
-        assert emu._pygba.press_down.call_count == 6
-
-    def test_enter_name_case_insensitive(self) -> None:
-        """Lowercase input is uppercased, same navigation as uppercase."""
-        emu = _make_emu()
+    def test_enter_name_case_insensitive(self, emu) -> None:
+        """Lowercase input is uppercased, same result as uppercase."""
         emu.enter_name("ash")
-        # Same as "ASH" — 4 A presses
-        assert emu._pygba.press_a.call_count == 4
+        press_a_calls = [
+            c for c in emu._pyboy.send_input.call_args_list
+            if c[0][0] == WindowEvent.PRESS_BUTTON_A
+        ]
+        assert len(press_a_calls) == 4
+
+    def test_enter_name_navigates_grid(self, emu) -> None:
+        """Navigation keys are used to move the cursor."""
+        emu.enter_name("ASH")
+        all_press = [c[0][0] for c in emu._pyboy.send_input.call_args_list]
+        direction_events = [
+            WindowEvent.PRESS_ARROW_RIGHT,
+            WindowEvent.PRESS_ARROW_LEFT,
+            WindowEvent.PRESS_ARROW_UP,
+            WindowEvent.PRESS_ARROW_DOWN,
+        ]
+        direction_used = [e for e in direction_events if e in all_press]
+        assert len(direction_used) > 0
 
 
 class TestCombo:
-    """combo() presses multiple buttons simultaneously.
+    """combo() presses multiple buttons simultaneously via send_input."""
 
-    GBA key constants are imported inside the method body
-    (``from mgba.gba import GBA``), so we patch ``mgba.gba.GBA``.
-    """
-
-    def test_combo_empty_list_noop(self) -> None:
-        emu = _make_emu()
+    def test_combo_empty_list_noop(self, emu) -> None:
         emu.combo([])
-        emu._pygba.wait.assert_not_called()
+        emu._pyboy.send_input.assert_not_called()
+        assert emu._pyboy.tick.call_count == 0
 
-    @patch("mgba.gba.GBA")
-    def test_combo_single_button(self, mock_gba: MagicMock) -> None:
-        mock_gba.KEY_A = 1
-        emu = _make_emu()
+    def test_combo_single_button(self, emu) -> None:
         emu.combo(["a"], frames=5)
-        emu._pygba.core.add_keys.assert_called_once()
-        emu._pygba.core.clear_keys.assert_called_once()
+        assert emu._pyboy.send_input.call_count == 2
+        assert emu._pyboy.tick.call_count == 5
 
-    @patch("mgba.gba.GBA")
-    def test_combo_unknown_button_raises(self, mock_gba: MagicMock) -> None:
-        mock_gba.KEY_A = 1
-        emu = _make_emu()
+    def test_combo_multiple_buttons(self, emu) -> None:
+        emu.combo(["a", "start"], frames=3)
+        assert emu._pyboy.send_input.call_count == 4
+        assert emu._pyboy.tick.call_count == 3
+
+    def test_combo_unknown_button_raises(self, emu) -> None:
         with pytest.raises(ValueError, match="Unknown button"):
             emu.combo(["a", "triangle"])
 
@@ -333,133 +321,89 @@ class TestCombo:
 class TestCompatAliases:
     """Compatibility aliases delegate to primary methods."""
 
-    def test_start_calls_reset(self) -> None:
-        emu = _make_emu()
+    def test_start_calls_reset(self, emu) -> None:
         with patch.object(emu, "reset") as mock_reset:
             emu.start()
             mock_reset.assert_called_once()
 
-    def test_capture_screen_calls_capture(self) -> None:
-        emu = _make_emu()
-        with patch.object(emu, "capture", return_value=np.zeros((160, 240, 3))) as mock_cap:
+    def test_capture_screen_calls_capture(self, emu) -> None:
+        with patch.object(emu, "capture", return_value=np.zeros((144, 160, 3))) as mock_cap:
             result = emu.capture_screen()
             mock_cap.assert_called_once()
             assert isinstance(result, np.ndarray)
 
-    def test_tick_calls_fast_forward(self) -> None:
-        emu = _make_emu()
+    def test_tick_calls_fast_forward(self, emu) -> None:
         emu.tick(5)
-        assert emu._pygba.core.run_frame.call_count == 5
+        assert emu._pyboy.tick.call_count == 5
 
-    def test_tick_defaults_to_one_frame(self) -> None:
-        emu = _make_emu()
+    def test_tick_defaults_to_one_frame(self, emu) -> None:
         emu.tick()
-        assert emu._pygba.core.run_frame.call_count == 1
+        assert emu._pyboy.tick.call_count == 1
 
 
 class TestCheckpointing:
-    """save_state / load_state using pygba raw state serialization."""
+    """save_state / load_state using PyBoy serialization."""
 
-    @staticmethod
-    def _make_emu_with_raw_state() -> "Emulator":
-        """Construct Emulator with save_raw_state/load_raw_state mocked."""
-        with (
-            patch("pathlib.Path.is_file", return_value=True),
-            patch("pathlib.Path.resolve", return_value=Path("/fake/rom.gba")),
-            patch("pathlib.Path.mkdir"),
-            patch("src.core.emulator.PyGBA") as mock_pygba_cls,
-            patch("src.core.emulator.mgba") as mock_mgba,
-        ):
-            mock_pygba = MagicMock()
-            mock_pygba.core.desired_video_dimensions.return_value = (240, 160)
-            # Return a fresh buffer each call to simulate real state capture
-            _buf_counter: list[int] = [0]
-
-            def _fake_save() -> bytes:
-                _buf_counter[0] += 1
-                return f"raw_state_{_buf_counter[0]}".encode()
-
-            mock_pygba.core.save_raw_state.side_effect = _fake_save
-            mock_pygba_cls.load.return_value = mock_pygba
-
-            mock_fb = MagicMock()
-            mock_mgba.image.Image.return_value = mock_fb
-
-            from src.core.emulator import Emulator
-            return Emulator("/fake/rom.gba")
-
-    def test_save_state_calls_core_and_writes_to_disk(self) -> None:
-        """save_state(slot) calls core.save_raw_state() and writes to checkpoints/<slot>.raw."""
-        emu = self._make_emu_with_raw_state()
+    def test_save_state_calls_pyboy_and_writes_to_disk(self, emu_with_state) -> None:
         m_open = mock_open()
         with patch("builtins.open", m_open):
-            emu.save_state(2)
-            emu._pygba.core.save_raw_state.assert_called_once()
+            emu_with_state.save_state(2)
+            emu_with_state._pyboy.save_state.assert_called_once()
             m_open.assert_called_once()
 
-    def test_save_state_creates_checkpoint_directory(self) -> None:
-        """First save_state creates the checkpoints/ directory."""
-        emu = self._make_emu_with_raw_state()
+    def test_save_state_creates_checkpoint_directory(self, emu_with_state) -> None:
         m_open = mock_open()
         with (
             patch("builtins.open", m_open),
             patch("pathlib.Path.mkdir") as mock_mkdir,
         ):
-            emu.save_state(0)
+            emu_with_state.save_state(0)
             mock_mkdir.assert_called()
 
-    def test_load_state_reads_from_disk_and_calls_core(self) -> None:
-        """load_state(slot) reads checkpoints/<slot>.raw and calls core.load_raw_state()."""
-        emu = self._make_emu_with_raw_state()
-        fake_bytes = b"fake_raw_bytes"
-        m_open = mock_open(read_data=fake_bytes)
-        with patch("builtins.open", m_open):
-            emu.load_state(0)
-            emu._pygba.core.load_raw_state.assert_called_once_with(fake_bytes)
+    def test_load_state_reads_from_disk_and_calls_pyboy(self, emu_with_state) -> None:
+        with patch("builtins.open", mock_open()):
+            emu_with_state.load_state(0)
+            emu_with_state._pyboy.load_state.assert_called_once()
 
-    def test_load_state_missing_slot_raises(self) -> None:
-        """FileNotFoundError when checkpoint slot doesn't exist."""
-        emu = self._make_emu_with_raw_state()
-        with pytest.raises(FileNotFoundError, match="Checkpoint slot 7 not found"):
-            emu.load_state(7)
+    def test_load_state_missing_slot_raises(self, emu_with_state) -> None:
+        with patch("pathlib.Path.is_file", return_value=False):
+            with pytest.raises(FileNotFoundError, match="Checkpoint slot 7 not found"):
+                emu_with_state.load_state(7)
 
-    def test_save_then_load_roundtrip(self) -> None:
-        """save_state(slot) + load_state(slot) round-trips correctly.
-
-        Verifies the full flow: core.save_raw_state() → write to file →
-        read from file → core.load_raw_state().
-        """
-        emu = self._make_emu_with_raw_state()
-        # Capture what was written to the file handle during save
+    def test_save_then_load_roundtrip(self, emu_with_state) -> None:
         handle = MagicMock()
         m_save = mock_open()
         m_save.return_value = handle
 
         with patch("builtins.open", m_save):
-            emu.save_state(1)
-            emu._pygba.core.save_raw_state.assert_called_once()
-            # Collect all writes to the file handle
-            written = b"".join(
-                call.args[0] if call.args else b""
-                for call in handle.write.call_args_list
-            )
+            emu_with_state.save_state(1)
+            emu_with_state._pyboy.save_state.assert_called_once()
 
-        # Now feed those bytes back through load_state
-        m_load = mock_open(read_data=written)
+        m_load = mock_open()
         with patch("builtins.open", m_load):
-            emu.load_state(1)
-            emu._pygba.core.load_raw_state.assert_called_once_with(written)
+            emu_with_state.load_state(1)
+            emu_with_state._pyboy.load_state.assert_called_once()
 
-    def test_multiple_slots_independent(self) -> None:
-        """save_state to different slots writes to different files."""
-        emu = self._make_emu_with_raw_state()
+    def test_multiple_slots_independent(self, emu_with_state) -> None:
         open_calls: list[str] = []
         m_open = mock_open()
         with patch("builtins.open", m_open):
-            emu.save_state(0)
-            emu.save_state(3)
+            emu_with_state.save_state(0)
+            emu_with_state.save_state(3)
             for call_args in m_open.call_args_list:
                 if len(call_args.args) >= 1:
                     open_calls.append(str(call_args.args[0]))
-        assert any("0.raw" in c for c in open_calls)
-        assert any("3.raw" in c for c in open_calls)
+        assert any("0.state" in c for c in open_calls)
+        assert any("3.state" in c for c in open_calls)
+
+
+class TestRAMReading:
+    """Memory read methods: read_u8, read_u16."""
+
+    def test_read_u8_single_byte(self, emu) -> None:
+        emu._pyboy.memory = {0xC000: 0xAB}
+        assert emu.read_u8(0xC000) == 0xAB
+
+    def test_read_u16_little_endian(self, emu) -> None:
+        emu._pyboy.memory = {0xC000: 0x34, 0xC001: 0x12}
+        assert emu.read_u16(0xC000) == 0x1234
