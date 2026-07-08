@@ -977,7 +977,7 @@ class JSONResponseParser:
                 if isinstance(expected_type, list):
                     if not isinstance(result[key], tuple(expected_type)):
                         raise ValueError(f"Key '{key}' has wrong type")
-                elif not isinstance(result[key], expected_type if expected_type != str else str):
+                elif not isinstance(result[key], expected_type if expected_type is not str else str):
                     raise ValueError(f"Key '{key}' has wrong type")
 
     def _parse_with_fallback(
@@ -1025,7 +1025,7 @@ class JSONResponseParser:
             "enemy_hp": r'enemy_hp["\s]*:\s*(\d+)'
         }
 
-        for field, pattern in field_patterns.items():
+        for field_name, pattern in field_patterns.items():
             match = re.search(pattern, response, re.IGNORECASE)
             if match:
                 value = match.group(1)

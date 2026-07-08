@@ -763,3 +763,16 @@
   6. ✅ Pipeline labels in log entries reflect the active pipeline
   7. ✅ `USE_VISION_CLIENT` preserved as-is (separate debug flag)
   8. ✅ All 2927 non-ROM tests pass
+
+---
+
+### [x] LINT-1: Fix 106 ruff lint errors + upgrade 4 outdated packages ✅
+**Priority:** medium
+**Model:** deepseek-v4-pro (foreman direct)
+**Files:** 33 files across src/
+**Result:**
+- 80 auto-fixable errors (unused imports) fixed with `ruff check --fix`
+- 26 remaining errors fixed manually: 2 F601 duplicate dict key bugs (dialogue.py, state_machine.py), 11 F841 unused variables, 1 E721 type comparison, 1 E722 bare except, 10 E402 import ordering suppressed (intentional architecture), 1 unused import removed
+- Upgraded 4 packages: filelock 3.29.6→3.29.7, librt 0.12.0→0.13.0, uvicorn 0.50.2→0.51.0, mypy 2.1.0→2.2.0 (pydantic_core still BLOCKED by pydantic 2.13.4 pin)
+- 2927 tests pass, 8 skipped, ruff check clean (0 errors)
+

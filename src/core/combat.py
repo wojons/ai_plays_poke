@@ -12,9 +12,8 @@ Implements combat decision-making logic with survival-first priority:
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from enum import Enum, auto
-from typing import Dict, List, Optional, Tuple, Any, Union
-import random
+from enum import Enum
+from typing import Dict, List, Optional, Tuple, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -921,7 +920,7 @@ class BattleStrategist:
                     return False, "Can KO opponent", None
 
         threat_calculator = EnemyPredictor(self.type_chart)
-        threat = threat_calculator.predict_threat_level(opponent, current)
+        threat_calculator.predict_threat_level(opponent, current)
 
         incoming_damage = 0
         most_threatening_move_type = opponent.moves[0].move_type if opponent.moves else PokemonType.NORMAL
@@ -987,10 +986,10 @@ class BattleStrategist:
 
             if type_effectiveness <= 0.5:
                 matchup_bonus = 0.5
-                reasoning = f"Resists opponent (0.5x effectiveness)"
+                reasoning = "Resists opponent (0.5x effectiveness)"
             elif type_effectiveness >= 2.0:
                 matchup_bonus = 1.2
-                reasoning = f"Strong matchup (2x effectiveness)"
+                reasoning = "Strong matchup (2x effectiveness)"
             else:
                 matchup_bonus = 1.0
                 reasoning = "Neutral matchup"

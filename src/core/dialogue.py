@@ -17,7 +17,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Set, Tuple
-from datetime import datetime
 import time
 import logging
 import re
@@ -256,7 +255,6 @@ class DialogParser:
             "LASS": {"aggression": 0.5, "badge_req": 0},
             "BUG CATCHER": {"aggression": 0.4, "badge_req": 0},
             "HIKER": {"aggression": 0.8, "badge_req": 1},
-            "YOUNGSTER": {"aggression": 0.7, "badge_req": 0},
             "RIVAL": {"aggression": 0.85, "badge_req": 0},
             "GYM LEADER": {"aggression": 0.9, "badge_req": 0},
             "CHAMPION": {"aggression": 0.95, "badge_req": 8},

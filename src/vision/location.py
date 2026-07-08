@@ -6,12 +6,11 @@ using tile pattern matching and feature detection.
 """
 import json
 import time
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw
 
 @dataclass
 class LocationResult:

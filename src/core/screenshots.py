@@ -210,7 +210,7 @@ class SimpleLiveView:
         
         # Save to 'latest' for easy viewing
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        latest_path = self.screenshot_manager.save_dir / "latest" / f"current.png"
+        latest_path = self.screenshot_manager.save_dir / "latest" / "current.png"
         image = Image.fromarray(screenshot)
         
         # Add timestamp overlay
@@ -220,7 +220,7 @@ class SimpleLiveView:
         try:
             # Try to use default font
             font = ImageFont.load_default()
-        except:
+        except Exception:
             font = None
         
         text = f"Tick: {getattr(self, 'tick', 0)} | Time: {timestamp}"

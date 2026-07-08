@@ -5,8 +5,6 @@ Manages prompt templates for different game scenarios and enables
 AI to dynamically choose relevant prompts for each screenshot.
 """
 
-import os
-import json
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field

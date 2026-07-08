@@ -10,7 +10,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pyboy import PyBoy
-from PIL import Image
 
 def generate_pokemon_yellow_screenshots(num_ticks: int = 100000, screenshot_interval: int = 1000) -> bool:
 
@@ -35,12 +34,12 @@ def generate_pokemon_yellow_screenshots(num_ticks: int = 100000, screenshot_inte
     print(f"📁 Screenshots will be saved to: {screenshot_dir}")
     
     # Initialize emulator
-    print(f"\n🚀 Loading Pokemon Yellow ROM...")
+    print("\n🚀 Loading Pokemon Yellow ROM...")
     pyboy = PyBoy(rom_path)
     
     # Run the game loop
     print(f"\n▶️  Running {num_ticks:,} ticks...")
-    print(f"⏳ This may take several minutes...\n")
+    print("⏳ This may take several minutes...\n")
     
     screenshot_count = 0
     
@@ -70,7 +69,7 @@ def generate_pokemon_yellow_screenshots(num_ticks: int = 100000, screenshot_inte
                 print(f"  ❌ Error at tick {tick}: {e}")
     
     # Clean up
-    print(f"\n🛑 Stopping emulator...")
+    print("\n🛑 Stopping emulator...")
     pyboy.stop()
     
     print("\n" + "=" * 60)

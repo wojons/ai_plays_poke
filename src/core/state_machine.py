@@ -11,7 +11,7 @@ Implements a comprehensive state machine with:
 """
 
 from __future__ import annotations
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Any, Dict, List, Optional, Set, Tuple, Callable
@@ -287,7 +287,7 @@ class HierarchicalStateMachine:
     def _setup_legal_transitions(self) -> None:
         """Define valid state transitions"""
         self._legal_transitions: Dict[str, Set[str]] = {
-            "BOOT.INITIALIZE": {"BOOT.TITLE_SCREEN"},
+            "BOOT.INITIALIZE": {"BOOT.TITLE_SCREEN", "OVERWORLD.IDLE", "BATTLE.MENU"},
             "BOOT.TITLE_SCREEN": {"BOOT.PRESS_START", "BOOT.DETECT_CONTINUE"},
             "BOOT.PRESS_START": {"BOOT.SELECT_GAME_MODE"},
             "BOOT.DETECT_CONTINUE": {"BOOT.SELECT_GAME_MODE"},
@@ -300,8 +300,6 @@ class HierarchicalStateMachine:
             "BOOT.INITIALIZE_CLOCK": {"BOOT.BOOT_COMPLETE"},
             "BOOT.HANDLE_CORRUPT_SAVE": {"BOOT.NEW_GAME"},
             "BOOT.BOOT_COMPLETE": {"OVERWORLD.IDLE"},
-            "BOOT.INITIALIZE": {"BOOT.TITLE_SCREEN", "OVERWORLD.IDLE", "BATTLE.MENU"},
-
             "TITLE.SHOWING_LOGO": {"TITLE.WAITING_FOR_START"},
             "TITLE.WAITING_FOR_START": {"TITLE.GAME_MODE_MENU"},
             "TITLE.GAME_MODE_MENU": {"MENU.MAIN_MENU"},

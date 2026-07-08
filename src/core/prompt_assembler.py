@@ -5,9 +5,8 @@ Loads YAML prompt configs organized by generation and screen type,
 then assembles them into a full prompt string with injected game state.
 """
 
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import yaml
 

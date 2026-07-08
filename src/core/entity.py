@@ -24,8 +24,8 @@ Performance:
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-from enum import Enum, auto
+from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Any
 import logging
 

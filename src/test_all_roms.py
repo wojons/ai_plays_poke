@@ -3,11 +3,9 @@ Run PyBoy test for all available ROMs (faster version)
 """
 
 import os
-import sys
 from pathlib import Path
 from pyboy import PyBoy
 from PIL import Image
-import yaml
 
 
 def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_interval: int = 100) -> bool:
@@ -31,7 +29,7 @@ def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_inte
     screenshot_dir.mkdir(exist_ok=True)
     
     # Initialize emulator
-    print(f"🚀 Loading ROM...")
+    print("🚀 Loading ROM...")
     pyboy = PyBoy(rom_path)
     
     # Run the test loop
@@ -61,7 +59,7 @@ def test_rom(rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_inte
                 print(f"  ❌ Error: {e}")
     
     # Clean up
-    print(f"🛑 Stopping emulator...")
+    print("🛑 Stopping emulator...")
     pyboy.stop()
     
     print(f"\n✅ {rom_name} test completed!")

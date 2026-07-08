@@ -4,10 +4,8 @@ Combines screenshot capture, memory reading, and vision processing
 """
 import os
 import sys
-import time
 from pathlib import Path
 from PIL import Image
-import numpy as np
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -26,7 +24,7 @@ class PokemonAIAgent:
     def start(self) -> bool:
 
         """Start the Pokemon game"""
-        print(f"🎮 Starting Pokemon AI Agent")
+        print("🎮 Starting Pokemon AI Agent")
         print(f"📂 ROM: {self.rom_path}")
         
         # Check if ROM exists

@@ -14,7 +14,6 @@ is resolved (e.g., name entered, dialog advanced, battle won).
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +22,8 @@ import yaml
 from src.core.ai_client import OpenRouterClient
 from src.core.global_context import GlobalContext
 from src.core.tools import TOOL_SCHEMA, execute_tool_call
-import subprocess, json, os
+import subprocess
+import os
 
 # ── DuckBrain CLI wrapper ──────────────────────────────────────────────────
 
@@ -463,11 +463,11 @@ class StateWindow:
                             parts.append(f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!")
                         else:
                             parts.append(f"  TO REACH '{next_letter}': {' then '.join(dirs)}")
-                            parts.append(f"  After reaching it, press A to type the letter.")
+                            parts.append("  After reaching it, press A to type the letter.")
                     else:
                         parts.append(f"  NEXT LETTER '{next_letter}' not found — navigate to END")
                 else:
-                    parts.append(f"  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A.")
+                    parts.append("  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A.")
             else:
                 # Nothing typed yet — first letter of target
                 tr, tc = -1, -1

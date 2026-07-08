@@ -8,7 +8,6 @@ Same API surface for drop-in compatibility.
 from __future__ import annotations
 
 from pathlib import Path
-import io
 import numpy as np
 from pyboy import PyBoy as _PyBoy
 from pyboy.utils import WindowEvent

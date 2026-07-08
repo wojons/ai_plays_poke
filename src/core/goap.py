@@ -13,13 +13,12 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, List, Optional, Any, Tuple, Set, Callable, cast
+from typing import Dict, List, Optional, Any, Tuple, cast
 from datetime import datetime
 import time
 import logging
 import uuid
 import heapq
-from collections import defaultdict
 
 
 logger = logging.getLogger(__name__)
