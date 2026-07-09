@@ -796,3 +796,45 @@
 - Upgraded 4 packages: filelock 3.29.6→3.29.7, librt 0.12.0→0.13.0, uvicorn 0.50.2→0.51.0, mypy 2.1.0→2.2.0 (pydantic_core still BLOCKED by pydantic 2.13.4 pin)
 - 2927 tests pass, 8 skipped, ruff check clean (0 errors)
 
+### [x] RAM-BATTLE: Expand RAM reader with battle, dialog, menu, name-entry state ✅ (7d1ef56)
+- **Priority:** high
+- **Why:** Uncommitted work from prior session — expanded ram_reader.py with comprehensive game state reading for all screen types.
+- **Files:** src/core/ram_reader.py (+453/-17), tests/test_ram_reader.py (+2/-1), data/duration_profiles.json
+- **Result:**
+  - Battle state: 26 new memory addresses for player/enemy mon (species, HP, types, level, moves, PP, DVs, status)
+  - `read_battle_state()` — parses full player+enemy battle mon state
+  - `render_battle()` — formatted fight/moves/HP text for LLM
+  - `read_dialog_text()` — reads wStringBuffer + wTextScrollPrompt for dialog text
+  - `render_dialog()` — shows text + YES/NO prompt detection
+  - `read_menu_state()` — menu cursor, item count, list menu ID from RAM
+  - `render_menu()` — numbered menu items with cursor
+  - `read_name_entry()` — keyboard grid, case, characters
+  - `render_name_entry()` — formatted name entry screen
+  - observe() now populates battle_state/menu_state/render fields per screen type
+  - New methods are registered on RAMReader class, 9/9 verification points pass
+  - Lint clean, mypy --strict clean, 65 ram_reader tests pass
+  - Full suite: 2855 passed, 8 skipped
+
+### [ ] COV-RAM-2: Add unit tests for new battle/dialog/menu/name-entry RAM reader methods
+- **Priority:** high
+- **Why:** read_battle_state(), render_battle(), read_dialog_text(), render_dialog(), read_menu_state(), render_menu(), read_name_entry(), render_name_entry() all lack dedicated unit tests.
+- **Files:** tests/test_ram_reader.py (modify — 65 → ~100 tests)
+- **Model:** MiniMax M3 or Grok 4.5
+- **AC:**
+  1. Test read_battle_state() with mocked emulator — verify player mon fields (species, HP, level, types, moves, PP)
+  2. Test read_battle_state() enemy mon fields — verify enemy species, HP, level, types
+  3. Test render_battle() produces expected formatted output string
+  4. Test read_dialog_text() with wStringBuffer populated — returns decoded text
+  5. Test read_dialog_text() with empty buffer — falls back to wTextScrollPrompt
+  6. Test render_dialog() with YES/NO text — includes prompt detection hint
+  7. Test read_menu_state() with active menu (menu_id > 0) — returns cursor/item/num
+  8. Test read_menu_state() with no menu (menu_id == 0) — returns empty menu
+  9. Test read_name_entry() with mocked emulator — returns keyboard grid, name, case
+  10. Test render_name_entry() produces formatted output string
+  11. Test observe() returns battle_state populated when in battle screen type
+  12. Test observe() returns menu_state when menu is active
+  13. Coverage: ram_reader.py ~85% → 92%+
+
+---
+
+
