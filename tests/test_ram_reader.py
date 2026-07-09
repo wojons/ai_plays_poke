@@ -665,7 +665,7 @@ class TestRAMReaderObserve:
             reader = RAMReader(mock_emu, "/fake/rom.gb")
             obs = reader.observe()
             assert obs["result"] == "name_entry"
-            assert obs["suggested_action"] == "enter a name"
+            assert obs["suggested_action"] == "enter a name and press START"
 
     def test_exits_detected(self, mock_emu: MagicMock) -> None:
         """Player at (2,2) adjacent to stairs and door."""
