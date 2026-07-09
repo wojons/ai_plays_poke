@@ -815,7 +815,7 @@
   - Lint clean, mypy --strict clean, 65 ram_reader tests pass
   - Full suite: 2855 passed, 8 skipped
 
-### [ ] COV-RAM-2: Add unit tests for new battle/dialog/menu/name-entry RAM reader methods
+### [x] COV-RAM-2: Add unit tests for new battle/dialog/menu/name-entry RAM reader methods ✅
 - **Priority:** high
 - **Why:** read_battle_state(), render_battle(), read_dialog_text(), render_dialog(), read_menu_state(), render_menu(), read_name_entry(), render_name_entry() all lack dedicated unit tests.
 - **Files:** tests/test_ram_reader.py (modify — 65 → ~100 tests)
@@ -834,6 +834,7 @@
   11. Test observe() returns battle_state populated when in battle screen type
   12. Test observe() returns menu_state when menu is active
   13. Coverage: ram_reader.py ~85% → 92%+
+- **Result:** 68 new tests (65→133 total) across 9 new test classes: TestReadBattleState (17 tests — player/enemy mons, HP, levels, types, moves, PP, status), TestRenderBattle (7), TestReadDialogText (7), TestRenderDialog (4), TestReadMenuState (3), TestRenderMenu (5), TestReadNameEntry (10), TestRenderNameEntry (6), TestObserveExtended (5 — battle_state, menu_state, render fields in observe() output). All 133 pass in 0.24s. Ruff lint clean. Full suite: 2992 passed, 8 skipped (98s). Covers all 12 AC items.
 
 ---
 

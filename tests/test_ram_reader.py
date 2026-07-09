@@ -7,7 +7,6 @@ real .gb file is needed.
 from __future__ import annotations
 
 import pytest
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 
@@ -170,7 +169,7 @@ class TestMapDBParseHeader:
 
     @pytest.fixture
     def db(self) -> object:
-        rom = _make_rom_bytes()
+        from src.core.ram_reader import _MapDB
         return _MapDB.__new__(_MapDB)  # skip __init__, inject _rom
 
     def _patch_rom(self, db: object, rom: bytes) -> None:
@@ -474,7 +473,7 @@ class TestRAMReaderAdjacentBlocks:
     def test_adjacent_returns_blocks(self, mock_emu: MagicMock) -> None:
         """Player at (5, 3) on a 4×4 map: (5,3) is just outside map bounds
         (player is at map edge or during transition)."""
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         # Mock _MapDB directly with known map data
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
@@ -501,7 +500,7 @@ class TestRAMReaderAdjacentBlocks:
         _MEMORY[0xD361] = 6  # y = 2
         _MEMORY[0xD362] = 6  # x = 2
 
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -536,7 +535,7 @@ class TestRAMReaderBuildMinimap:
         _MEMORY[0xD361] = 6  # y = 2
         _MEMORY[0xD362] = 6  # x = 2
 
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -564,7 +563,7 @@ class TestRAMReaderBuildMinimap:
             assert "··" in minimap  # some floor
 
     def test_minimap_unknown_map(self, mock_emu: MagicMock) -> None:
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -577,7 +576,7 @@ class TestRAMReaderBuildMinimap:
 
     def test_minimap_player_outside_bounds(self, mock_emu: MagicMock) -> None:
         """Player at (5,3) on 4×4 map — outside message shown."""
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -597,7 +596,7 @@ class TestRAMReaderBuildMinimap:
 
 class TestRAMReaderObserve:
     def test_returns_structured_dict(self, mock_emu: MagicMock) -> None:
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -627,7 +626,7 @@ class TestRAMReaderObserve:
 
     def test_battle_observe(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xD057] = 1
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -641,7 +640,7 @@ class TestRAMReaderObserve:
 
     def test_dialog_observe(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCF2B] = 1
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -655,7 +654,7 @@ class TestRAMReaderObserve:
 
     def test_name_entry_observe(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCC47] = 1
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -672,7 +671,7 @@ class TestRAMReaderObserve:
         _MEMORY[0xD361] = 6  # y = 2
         _MEMORY[0xD362] = 6  # x = 2
 
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -698,7 +697,7 @@ class TestRAMReaderObserve:
         _MEMORY[0xD361] = 6  # y = 2
         _MEMORY[0xD362] = 6  # x = 2
 
-        from src.core.ram_reader import RAMReader, _MapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
@@ -838,9 +837,9 @@ class TestRenderOverworld:
 
             lines = output.split("\n")
             grid_lines = [
-                l for l in lines
-                if l.strip() and not l.startswith("Map")
-                and not l.startswith("Pos") and not l.startswith("Legend")
+                line for line in lines
+                if line.strip() and not line.startswith("Map")
+                and not line.startswith("Pos") and not line.startswith("Legend")
             ]
             assert len(grid_lines) == 5
 
@@ -890,9 +889,9 @@ class TestRenderOverworld:
 
             lines = output.split("\n")
             grid_lines = [
-                l for l in lines
-                if l.strip() and not l.startswith("Map")
-                and not l.startswith("Pos") and not l.startswith("Legend")
+                line for line in lines
+                if line.strip() and not line.startswith("Map")
+                and not line.startswith("Pos") and not line.startswith("Legend")
             ]
 
             center = grid_lines[2].split()
@@ -939,9 +938,9 @@ class TestRenderOverworld:
 
                 lines = output.split("\n")
                 grid_lines = [
-                    l for l in lines
-                    if l.strip() and not l.startswith("Map")
-                    and not l.startswith("Pos") and not l.startswith("Legend")
+                    line for line in lines
+                    if line.strip() and not line.startswith("Map")
+                    and not line.startswith("Pos") and not line.startswith("Legend")
                 ]
 
                 center = grid_lines[2].split()
@@ -1009,9 +1008,9 @@ class TestRenderOverworld:
 
             lines = output.split("\n")
             grid_lines = [
-                l for l in lines
-                if l.strip() and not l.startswith("Map")
-                and not l.startswith("Pos") and not l.startswith("Legend")
+                line for line in lines
+                if line.strip() and not line.startswith("Map")
+                and not line.startswith("Pos") and not line.startswith("Legend")
             ]
 
             # Row 0 (dy=-2): gy=-1 → all ?, except dx=-2 which is also ?
@@ -1042,3 +1041,982 @@ class TestRenderOverworld:
             assert "overworld_grid" in obs
             assert "Map:" in obs["overworld_grid"]
             assert "@" in obs["overworld_grid"]
+
+
+# ── read_battle_state tests ─────────────────────────────────────────────
+
+
+class TestReadBattleState:
+    """Tests for RAMReader.read_battle_state()."""
+
+    def test_returns_dict_with_player_and_enemy(self, mock_emu: MagicMock) -> None:
+        from src.core.ram_reader import RAMReader
+
+        _MEMORY[0xD057] = 1  # in battle (wild)
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            result = reader.read_battle_state()
+
+        assert isinstance(result, dict)
+        assert "player" in result
+        assert "enemy" in result
+        assert "battle_type" in result
+
+    def test_battle_type_wild(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD057] = 1
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["battle_type"] == "wild"
+
+    def test_battle_type_trainer(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD05A] = 2  # ADDR_BATTLE_TYPE
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["battle_type"] == "trainer"
+
+    def test_player_species_lookups(self, mock_emu: MagicMock) -> None:
+        # Pikachu = species 79
+        _MEMORY[0xD016] = 79  # ADDR_BATTLE_MON_SPECIES
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["player"]["name"] == "Pikachu"
+
+    def test_player_unknown_species(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD016] = 200  # missing index
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["player"]["name"] == "#200"
+
+    def test_player_hp_full(self, mock_emu: MagicMock) -> None:
+        # HP = 0x0028 (40), max HP = 0x0028 (40) → 100%
+        _MEMORY[0xD017] = 40  # ADDR_BATTLE_MON_HP low byte
+        _MEMORY[0xD018] = 0   # HP high byte
+        _MEMORY[0xD025] = 40  # ADDR_BATTLE_MON_MAX_HP low byte
+        _MEMORY[0xD026] = 0   # max HP high byte
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_battle_state()
+
+        assert state["player"]["hp"] == 40
+        assert state["player"]["max_hp"] == 40
+        assert state["player"]["hp_pct"] == 100
+
+    def test_player_hp_partial(self, mock_emu: MagicMock) -> None:
+        # HP = 14/40 = 35% (avoids banker's rounding edge case at .5)
+        _MEMORY[0xD017] = 14
+        _MEMORY[0xD025] = 40
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_battle_state()
+
+        assert state["player"]["hp"] == 14
+        assert state["player"]["max_hp"] == 40
+        assert state["player"]["hp_pct"] == 35
+
+    def test_player_hp_zero_max_hp_protection(self, mock_emu: MagicMock) -> None:
+        # Avoid divide by zero — max_hp is 0 so % should be 0 (round(0/1 *100))
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_battle_state()
+
+        assert state["player"]["hp_pct"] == 0
+
+    def test_player_hp_u16_little_endian(self, mock_emu: MagicMock) -> None:
+        # HP = 0x0100 = 256 (verify u16 little-endian: low=0, high=1)
+        _MEMORY[0xD017] = 0x00
+        _MEMORY[0xD018] = 0x01
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_battle_state()
+
+        assert state["player"]["hp"] == 0x0100
+
+    def test_player_level(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD024] = 25  # ADDR_BATTLE_MON_LEVEL
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["player"]["level"] == 25
+
+    def test_player_stats(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD027] = 50   # attack low
+        _MEMORY[0xD029] = 60   # defense low
+        _MEMORY[0xD02B] = 70   # speed low
+        _MEMORY[0xD02D] = 80   # special low
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            p = reader.read_battle_state()["player"]
+
+        assert p["attack"] == 50
+        assert p["defense"] == 60
+        assert p["speed"] == 70
+        assert p["special"] == 80
+
+    def test_player_type_same(self, mock_emu: MagicMock) -> None:
+        # Same primary/secondary type → single type reported
+        _MEMORY[0xD01B] = 20  # type1 = Fire
+        _MEMORY[0xD01C] = 20  # type2 = Fire
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["player"]["type"] == "Fire"
+
+    def test_player_type_dual(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD01B] = 20  # Fire
+        _MEMORY[0xD01C] = 2   # Flying
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["player"]["type"] == "Fire/Flying"
+
+    def test_player_status(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD01A] = 7  # status = 7 (freeze+poison+burn bits)
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["player"]["status"] == 7
+
+    def test_player_moves_with_pp(self, mock_emu: MagicMock) -> None:
+        # Move slots at 0xD01E-0xD021
+        _MEMORY[0xD01E] = 85   # Thunderbolt (move ID 85)
+        _MEMORY[0xD01F] = 45   # Growl
+        _MEMORY[0xD020] = 0    # empty slot
+        _MEMORY[0xD021] = 0    # empty slot
+        # PP at 0xD02F-0xD032
+        _MEMORY[0xD02F] = 15   # PP for Thunderbolt
+        _MEMORY[0xD030] = 40   # PP for Growl
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            moves = reader.read_battle_state()["player"]["moves"]
+
+        assert len(moves) == 2
+        assert moves[0]["name"] == "Thunderbolt"
+        assert moves[0]["pp"] == 15
+        assert moves[0]["slot"] == 1
+        assert moves[1]["name"] == "Growl"
+        assert moves[1]["pp"] == 40
+        assert moves[1]["slot"] == 2
+
+    def test_player_no_moves(self, mock_emu: MagicMock) -> None:
+        # All four move slots are 0
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["player"]["moves"] == []
+
+    def test_player_unknown_move(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD01E] = 250  # not in MOVE_NAMES table
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            moves = reader.read_battle_state()["player"]["moves"]
+
+        assert moves[0]["name"] == "Move#250"
+
+    def test_enemy_full_read(self, mock_emu: MagicMock) -> None:
+        # Enemy Pidgey (species 36), Lv3, half HP
+        _MEMORY[0xCFE7] = 36   # Pidgey
+        _MEMORY[0xCFE8] = 14   # HP
+        _MEMORY[0xCFE9] = 0    # HP high byte
+        _MEMORY[0xCFF6] = 28   # max HP low
+        _MEMORY[0xCFF7] = 0    # max HP high
+        _MEMORY[0xCFF5] = 3    # level
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            enemy = reader.read_battle_state()["enemy"]
+
+        assert enemy["name"] == "Pidgey"
+        assert enemy["hp"] == 14
+        assert enemy["max_hp"] == 28
+        assert enemy["hp_pct"] == 50  # 14/28 = 50.0
+        assert enemy["level"] == 3
+
+    def test_enemy_type_dual(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCFEC] = 3   # Poison
+        _MEMORY[0xCFED] = 4   # Ground
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["enemy"]["type"] == "Poison/Ground"
+
+
+# ── render_battle tests ────────────────────────────────────────────────
+
+
+class TestRenderBattle:
+    """Tests for RAMReader.render_battle()."""
+
+    def test_starts_with_battle_header(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD057] = 1   # wild battle
+        _MEMORY[0xCFE7] = 79  # Pikachu (enemy)
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_battle()
+
+        assert "⚔" in output
+        assert "BATTLE" in output
+        assert "Wild" in output
+        assert "Pikachu" in output
+
+    def test_trainer_battle_label(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD05A] = 2  # trainer battle
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_battle()
+
+        assert "Trainer" in output
+
+    def test_includes_player_info(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD016] = 1   # Rhydon (player)
+        _MEMORY[0xD024] = 42  # level
+        _MEMORY[0xD025] = 100 # max_hp
+        _MEMORY[0xD026] = 0
+        _MEMORY[0xD017] = 50  # hp
+        _MEMORY[0xD018] = 0
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_battle()
+
+        assert "Your Rhydon" in output
+        assert "Lv42" in output
+        assert "50/100" in output
+
+    def test_includes_enemy_info(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCFE7] = 79  # Pikachu (enemy)
+        _MEMORY[0xCFF5] = 12  # enemy level
+        _MEMORY[0xCFF6] = 35  # enemy max_hp
+        _MEMORY[0xCFF7] = 0
+        _MEMORY[0xCFE8] = 17  # enemy hp
+        _MEMORY[0xCFE9] = 0
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_battle()
+
+        assert "Enemy Pikachu" in output
+        assert "Lv12" in output
+        assert "17/35" in output
+
+    def test_includes_moves(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD01E] = 33   # Tackle
+        _MEMORY[0xD01F] = 45   # Growl
+        _MEMORY[0xD02F] = 35   # Tackle PP (max 35)
+        _MEMORY[0xD030] = 40   # Growl PP (max 40)
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_battle()
+
+        assert "Moves:" in output
+        assert "Tackle" in output
+        assert "35PP" in output
+        assert "Growl" in output
+
+    def test_no_moves_shows_none(self, mock_emu: MagicMock) -> None:
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_battle()
+
+        assert "None" in output
+
+    def test_includes_options_line(self, mock_emu: MagicMock) -> None:
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_battle()
+
+        assert "FIGHT" in output
+        assert "BAG" in output
+        assert "PKMN" in output
+        assert "RUN" in output
+
+
+# ── read_dialog_text tests ─────────────────────────────────────────────
+
+
+class TestReadDialogText:
+    """Tests for RAMReader.read_dialog_text()."""
+
+    def test_returns_string(self, mock_emu: MagicMock) -> None:
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            result = reader.read_dialog_text()
+
+        assert isinstance(result, str)
+
+    def test_decodes_uppercase_letters_from_string_buffer(
+        self, mock_emu: MagicMock
+    ) -> None:
+        # "HELLO" in Pokemon text encoding: H=0x87, E=0x84, L=0x8B, L=0x8B, O=0x8E
+        _MEMORY[0xCE00] = 0x87  # H
+        _MEMORY[0xCE01] = 0x84  # E
+        _MEMORY[0xCE02] = 0x8B  # L
+        _MEMORY[0xCE03] = 0x8B  # L
+        _MEMORY[0xCE04] = 0x8E  # O
+        _MEMORY[0xCE05] = 0x50  # terminator
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            text = reader.read_dialog_text()
+
+        assert "HELLO" in text
+
+    def test_decodes_lowercase_letters(self, mock_emu: MagicMock) -> None:
+        # Write enough uppercase+lowercase letters so first decode has >= 3
+        # chars and avoids the fallback path. 'A'=0x80, 'B'=0x81, 'C'=0x82,
+        # 'i' (0xA0 + 8) = 0xA8
+        _MEMORY[0xCE00] = 0xA8  # i
+        _MEMORY[0xCE01] = 0xA8  # i
+        _MEMORY[0xCE02] = 0xA8  # i
+        _MEMORY[0xCE03] = 0xA8  # i
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            text = reader.read_dialog_text()
+
+        assert "i" in text
+
+    def test_decodes_digits(self, mock_emu: MagicMock) -> None:
+        # 0x07 = '7'. Write a sequence of digits (>= 3) and expect "7" in result.
+        _MEMORY[0xCE00] = 0x07
+        _MEMORY[0xCE01] = 0x08
+        _MEMORY[0xCE02] = 0x09
+        _MEMORY[0xCE03] = 0x07
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert "7" in reader.read_dialog_text()
+
+    def test_decodes_spaces(self, mock_emu: MagicMock) -> None:
+        # 0x7F = space. Build " A B" (>= 3 chars) to avoid fallback.
+        _MEMORY[0xCE00] = 0x7F  # space
+        _MEMORY[0xCE01] = 0x80  # A
+        _MEMORY[0xCE02] = 0x7F  # space
+        _MEMORY[0xCE03] = 0x81  # B
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            text = reader.read_dialog_text()
+        assert " A" in text
+
+    def test_falls_back_to_text_prompt_when_buffer_empty(
+        self, mock_emu: MagicMock
+    ) -> None:
+        # When wStringBuffer decode < 3 chars (all zeros → "000" which is 3 chars,
+        # we need < 3). Use a terminator at offset 0 → 0 length → fallback.
+        _MEMORY[0xCE00] = 0x50  # immediate terminator at start
+        _MEMORY[0xCF4C] = 0x80  # A
+        _MEMORY[0xCF4D] = 0x82  # C
+        _MEMORY[0xCF4E] = 0x84  # E
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            text = reader.read_dialog_text()
+
+        assert "ACE" in text
+
+    def test_empty_returns_zero_string(self, mock_emu: MagicMock) -> None:
+        # With nothing in either region, both decode to "0"s (default zeros)
+        # but the first decode has length 20 (all zeros → "000...0")
+        # which is >= 3, so fallback doesn't trigger → text is 20 zeros.
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            text = reader.read_dialog_text()
+
+        # Default-zero memory → zeros in decoded output (no real letters)
+        assert text.replace("0", "") == ""
+        assert len(text) > 0
+
+
+# ── render_dialog tests ───────────────────────────────────────────────
+
+
+class TestRenderDialog:
+    """Tests for RAMReader.render_dialog()."""
+
+    def test_includes_dialog_header(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCE00] = 0x87  # H
+        _MEMORY[0xCE01] = 0x80  # A
+        _MEMORY[0xCE02] = 0x50  # terminator
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_dialog()
+
+        assert "💬" in output
+        assert "DIALOG" in output
+
+    def test_shows_a_to_continue_for_plain_text(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCE00] = 0x88  # I
+        _MEMORY[0xCE01] = 0x50
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_dialog()
+
+        assert "A to continue" in output
+        assert "Yes/No" not in output
+
+    def test_detects_yes_no_prompt(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCE00] = 0x98  # Y
+        _MEMORY[0xCE01] = 0x84  # E
+        _MEMORY[0xCE02] = 0x92  # S
+        _MEMORY[0xCE03] = 0x50  # terminator
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_dialog()
+
+        assert "Yes/No" in output
+
+    def test_quotes_text_content(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCE00] = 0x80  # A
+        _MEMORY[0xCE01] = 0x50
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_dialog()
+
+        assert '"' in output
+
+
+# ── read_menu_state tests ─────────────────────────────────────────────
+
+
+class TestReadMenuState:
+    """Tests for RAMReader.read_menu_state()."""
+
+    def test_no_menu_returns_empty_dict(self, mock_emu: MagicMock) -> None:
+        # menu_id = 0 means no menu is active
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_menu_state()
+
+        assert state["menu_id"] == 0
+        assert state["num_items"] == 0
+        assert state["current_item"] == 0
+        # No "active" key when no menu is present
+        assert "active" not in state
+
+    def test_active_menu_fields(self, mock_emu: MagicMock) -> None:
+        # Active start menu: 3 items (SAVE/OPTION/EXIT → max_item=2)
+        _MEMORY[0xCF88] = 1   # ADDR_LIST_MENU_ID = 1 (active menu)
+        _MEMORY[0xCC28] = 2   # ADDR_MAX_MENU_ITEM = 2
+        _MEMORY[0xCC26] = 1   # ADDR_CURRENT_MENU_ITEM = 1 (cursor on 2nd item)
+        _MEMORY[0xCC24] = 5   # ADDR_TOP_MENU_ITEM_Y
+        _MEMORY[0xCC25] = 10  # ADDR_TOP_MENU_ITEM_X
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_menu_state()
+
+        assert state["menu_id"] == 1
+        assert state["num_items"] == 3  # max_item=2 → 3 items
+        assert state["current_item"] == 1
+        assert state["cursor_pos"] == (10, 5)
+        assert state["active"] is True
+
+    def test_max_item_zero_returns_no_items(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCF88] = 5  # active menu
+        _MEMORY[0xCC28] = 0  # max_item = 0 → 0 items (guard: >0)
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_menu_state()
+
+        assert state["menu_id"] == 5
+        # max_item == 0 with the guard: num_items = max_item+1 if max_item>0 else 0 → 0
+        assert state["num_items"] == 0
+
+
+# ── render_menu tests ────────────────────────────────────────────────
+
+
+class TestRenderMenu:
+    """Tests for RAMReader.render_menu()."""
+
+    def test_header_present(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCF88] = 1  # active menu
+        _MEMORY[0xCC28] = 2  # 3 items
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_menu()
+
+        assert "📋" in output
+        assert "MENU" in output
+
+    def test_numbered_items(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCF88] = 1
+        _MEMORY[0xCC28] = 2  # 3 items
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_menu()
+
+        assert "[1]" in output
+        assert "[2]" in output
+        assert "[3]" in output
+
+    def test_cursor_arrow_on_current(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCF88] = 1   # active
+        _MEMORY[0xCC28] = 3   # 4 items
+        _MEMORY[0xCC26] = 1   # cursor on 2nd item (index 1)
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_menu()
+
+        lines = output.split("\n")
+        # Verify arrow appears on the [2] line specifically
+        assert any("→" in line and "[2]" in line for line in lines), \
+            "Expected → marker on item 2"
+
+    def test_includes_navigation_hint(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCF88] = 1
+        _MEMORY[0xCC28] = 1
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_menu()
+
+        assert "UP" in output
+        assert "DOWN" in output
+        assert "A" in output
+
+    def test_no_menu_renders_empty_items(self, mock_emu: MagicMock) -> None:
+        # menu_id = 0 → 0 items
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_menu()
+
+        # Header still rendered, but no numbered items
+        assert "MENU" in output
+        assert "[1]" not in output
+
+
+# ── read_name_entry tests ────────────────────────────────────────────
+
+
+class TestReadNameEntry:
+    """Tests for RAMReader.read_name_entry()."""
+
+    def test_returns_expected_keys(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1  # name entry screen active
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_name_entry()
+
+        assert "screen" in state
+        assert "name_so_far" in state
+        assert "length" in state
+        assert "case" in state
+        assert "ready_to_submit" in state
+        assert "grid_rows" in state
+
+    def test_screen_value(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_name_entry()["screen"] == "name_entry"
+
+    def test_upper_case(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4D] = 0  # ADDR_ALPHABET_CASE = 0 (uppercase)
+        _MEMORY[0xCC4F] = 0  # letter ∈ {0,1}
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_name_entry()
+
+        assert state["case"] == "UPPER"
+        # Uppercase rows: A-I, J-R, S-Z + space
+        assert state["grid_rows"][0][0] == "A"
+
+    def test_lower_case(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4D] = 1   # lowercase
+        _MEMORY[0xCC4F] = 0   # letter
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_name_entry()
+
+        assert state["case"] == "lower"
+        assert state["grid_rows"][0][0] == "a"
+
+    def test_numerals_case(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4D] = 0
+        _MEMORY[0xCC4F] = 2   # numerals
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_name_entry()
+
+        # Numerals row should start with "0"
+        assert state["grid_rows"][0][0] == "0"
+        assert state["grid_rows"][1][0] == "9"
+
+    def test_symbols_case(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4D] = 0
+        _MEMORY[0xCC4F] = 3   # symbols
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_name_entry()
+
+        # Symbols rows contain "ED" and "PK"
+        flat = [c for row in state["grid_rows"] for c in row]
+        assert "ED" in flat
+        assert "PK" in flat
+
+    def test_ready_to_submit_true(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4A] = 1  # ADDR_NAMING_SUBMIT — non-zero
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_name_entry()["ready_to_submit"] is True
+
+    def test_ready_to_submit_false(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4A] = 0
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_name_entry()["ready_to_submit"] is False
+
+    def test_name_so_far_decoded(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        # wStringBuffer at 0xCE00 spells "RED". The decode reads 20 bytes
+        # with max_len=11, so the trailing zeros (default 0) decode as "0".
+        # Verify "RED" is a prefix rather than exact match.
+        _MEMORY[0xCE00] = 0x91  # R
+        _MEMORY[0xCE01] = 0x84  # E
+        _MEMORY[0xCE02] = 0x83  # D
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            name = reader.read_name_entry()["name_so_far"]
+
+        assert name.startswith("RED")
+
+    def test_length(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC48] = 4  # ADDR_NAMING_NAME_LENGTH
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_name_entry()["length"] == 4
+
+    def test_grid_rows_length(self, mock_emu: MagicMock) -> None:
+        # Always returns 2 rows for the visible row pair
+        _MEMORY[0xCC47] = 1
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_name_entry()
+
+        assert len(state["grid_rows"]) == 2
+        for row in state["grid_rows"]:
+            assert len(row) == 9
+
+
+# ── render_name_entry tests ────────────────────────────────────────
+
+
+class TestRenderNameEntry:
+    """Tests for RAMReader.render_name_entry()."""
+
+    def test_header_includes_keyboard_glyph(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_name_entry()
+
+        assert "⌨" in output
+        assert "NAME ENTRY" in output
+
+    def test_shows_name_so_far(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC48] = 5  # ADDR_NAMING_NAME_LENGTH = 5 chars
+        # A=0x80, B=0x81, L=0x8B, O=0x8E, I=0x88, Q=0x90
+        _MEMORY[0xCE00] = 0x80  # A
+        _MEMORY[0xCE01] = 0x8B  # L
+        _MEMORY[0xCE02] = 0x8E  # O
+        _MEMORY[0xCE03] = 0x88  # I
+        _MEMORY[0xCE04] = 0x90  # Q (was 0x90 thinking 'P'; P=0x8F)
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_name_entry()
+
+        assert "ALOIQ" in output
+        assert "5 chars" in output
+
+    def test_includes_case_label(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4D] = 0  # UPPER
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_name_entry()
+
+        assert "Case:" in output
+        assert "UPPER" in output
+
+    def test_includes_status_message(self, mock_emu: MagicMock) -> None:
+        # Ready to submit → "READY to submit"
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4A] = 1
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_name_entry()
+
+        assert "READY" in output
+
+    def test_still_editing_message(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4A] = 0
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_name_entry()
+
+        assert "still editing" in output
+
+    def test_includes_keyboard_grid(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4D] = 0  # uppercase rows
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_name_entry()
+
+        assert "Keyboard:" in output
+        lines = output.split("\n")
+        assert any("A B C D E F G H I" in line for line in lines), \
+            f"Expected uppercase row, got lines: {lines}"
+
+    def test_navigation_hint(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCC47] = 1
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            output = reader.render_name_entry()
+
+        assert "D-pad" in output
+        assert "START" in output
+
+
+# ── observe() extended coverage for new fields ──────────────────────
+
+
+class TestObserveExtended:
+    """Tests for the extended observe() output (battle_state/menu_state/render)."""
+
+    def test_battle_observe_includes_battle_state(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD057] = 1   # wild battle
+        _MEMORY[0xD016] = 79  # Pikachu
+        _MEMORY[0xCFE7] = 36  # Pidgey (enemy, species 36)
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = None
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            obs = reader.observe()
+
+        assert obs["result"] == "battle"
+        assert obs["battle_state"] != {}
+        assert obs["battle_state"]["player"]["name"] == "Pikachu"
+        assert obs["battle_state"]["enemy"]["name"] == "Pidgey"
+        assert "⚔" in obs["render"]
+        assert "BATTLE" in obs["render"]
+
+    def test_dialog_observe_includes_render(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCF2B] = 1   # dialog screen
+        # Write enough content (>= 3 chars) so first decode avoids the fallback
+        # path. read_dialog_text reads 60 bytes and decodes up to 20.
+        _MEMORY[0xCE00] = 0x88  # I
+        _MEMORY[0xCE01] = 0x80  # A
+        _MEMORY[0xCE02] = 0x80  # A
+        _MEMORY[0xCE03] = 0x80  # A
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = None
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            obs = reader.observe()
+
+        assert obs["result"] == "dialog"
+        assert "💬" in obs["render"]
+        assert "IAAAA" in obs["text_content"][0] or "IAAA" in obs["text_content"][0]
+
+    def test_name_entry_observe_includes_render_and_keyboard(
+        self, mock_emu: MagicMock
+    ) -> None:
+        _MEMORY[0xCC47] = 1
+        _MEMORY[0xCC4D] = 0  # uppercase
+        _MEMORY[0xCC48] = 0  # length = 0
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = None
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            obs = reader.observe()
+
+        assert obs["result"] == "name_entry"
+        # Default buffer → "name_so_far" is zeros, but obs grabs the raw string
+        assert "rows" in obs["keyboard_grid"]
+        assert len(obs["keyboard_grid"]["rows"]) == 2
+        assert "⌨" in obs["render"]
+        assert "NAME ENTRY" in obs["render"]  # fallback to zeros, but no real content
+
+    def test_overworld_with_menu_overlay(self, mock_emu: MagicMock) -> None:
+        # When overworld has an active menu overlay, menu_state should be populated
+        _MEMORY[0xCF88] = 1  # menu_id active
+        _MEMORY[0xCC28] = 2  # 3 items
+        _MEMORY[0xCC26] = 0
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = {
+                "tileset": 4,
+                "width": 4,
+                "height": 4,
+                "block_data": [0x0F] * 16,
+            }
+            mock_db.classify_block.return_value = "floor"
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            obs = reader.observe()
+
+        assert obs["result"] == "overworld"
+        assert obs["menu_state"]["menu_id"] == 1
+        assert obs["menu_state"]["num_items"] == 3
+        # render should include both overworld grid and menu
+        assert "📋" in obs["render"]
+        assert "MENU" in obs["render"]
+
+    def test_overworld_without_menu(self, mock_emu: MagicMock) -> None:
+        # Default memory: menu_id = 0, no menu state
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.get_map.return_value = {
+                "tileset": 4,
+                "width": 4,
+                "height": 4,
+                "block_data": [0x0F] * 16,
+            }
+            mock_db.classify_block.return_value = "floor"
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            obs = reader.observe()
+
+        assert obs["result"] == "overworld"
+        assert obs["menu_state"] == {}
+        # menu_items is empty when no menu present
+        assert obs["menu_items"] == []
+        # render should NOT include menu section
+        assert "📋" not in obs["render"]
