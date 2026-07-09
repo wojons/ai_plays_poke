@@ -9,6 +9,19 @@
 
 ## Active Queue
 
+## [x] MYPY-1: Fix 11 mypy strict-mode errors in 6 files — 2 real bugs found ✅ (430862e)
+- **Priority:** medium
+- **Why:** Board was empty; Tick 1.6 lint sweep found 11 mypy `--strict` errors across 6 files
+- **Files:** .gitignore, src/core/ai_client.py, src/core/emulator.py, src/core/game_loop.py, src/core/ram_reader.py, src/core/state_window.py, src/dashboard/main.py
+- **Real bugs fixed:**
+  1. ai_client.py `_extract_with_regex_fallback`: used undefined `field` (should be `field_name`) — would NameError at runtime
+  2. state_window.py `_build_prompt`: `tc` used as both target-column int and text-content list[str] — type conflict
+  3. game_loop.py: `save_state(str)` / `load_state(str)` passed file paths but Emulator API expects int slot number
+- **Type hygiene:** Added no-any-return ignores for PyBoy wrappers, explicit dict type hints, JSONResponse wrappers, return annotations
+- **Mypy result:** 11 errors → 0 errors (58 source files clean)
+- **Tests:** 2927 passed, 8 skipped — no regression
+- **Lint:** ruff check — all checks passed
+
 ## [x] Upgrade deps: ai_plays_poke — 5 upgraded, 1 blocked ✅
 - **Priority:** low
 - **cffi:** 2.0.0 → 2.1.0 ✅
