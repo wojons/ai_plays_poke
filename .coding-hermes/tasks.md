@@ -838,4 +838,38 @@
 
 ---
 
+## Active Queue (Jul 09 — Discovery Sweep)
+
+### [ ] CI-1: Set up GitHub Actions CI workflow
+- **Priority:** medium
+- **Why:** No CI configured — `gh run list` returns empty. Need basic test+lint pipeline.
+- **Files:** .github/workflows/ci.yml (new)
+- **AC:**
+  1. Workflow runs on push to main and PRs
+  2. Steps: checkout → setup Python 3.11 → install deps → ruff check → mypy --strict → pytest
+  3. Full test suite passes in CI (3357 tests, 8 skipped)
+  4. Workflow shows green on next push
+
+### [ ] FEAT-1: Integrate serverboy.js for web-based live emulator viewer
+- **Priority:** low
+- **Why:** User's Option B — web-based live viewer would replace ram_map_server.py with a full browser emulator. Currently ram_map_server serves static map data; serverboy.js would show actual game screen with overlay.
+- **Files:** web/ (new directory)
+- **AC:**
+  1. serverboy.js loads Pokémon Red ROM and renders in browser
+  2. RAM reader state overlaid on game screen (player position, map name, screen type)
+  3. Works without Python backend (pure client-side)
+  4. README updated with new viewer instructions
+
+### [ ] USABILITY-1: Create usability-tests.md for ram_map_server
+- **Priority:** low
+- **Why:** No `.coding-hermes/usability-tests.md` exists. The ram_map_server is a runnable service — should document endpoint tests.
+- **Files:** .coding-hermes/usability-tests.md (new)
+- **AC:**
+  1. Document `/` endpoint — returns HTML with injected fetch script
+  2. Document `/data.json` endpoint — returns valid JSON with map_name, player_x, player_y, blocks, block_types
+  3. Test that server boots emulator and reaches overworld state
+  4. Test that 404 is returned for unknown paths
+
+---
+
 
