@@ -161,3 +161,7 @@ loader.py
 intro_blast.py
 ram_map_server.py
 ram_map_viewer.html
+# Game database files (generated during runs)
+game_data.db
+# Diagnostic scripts (ad-hoc exploration)
+diag_*.py

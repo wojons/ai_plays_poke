@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException, Depends, Header, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from src.db.database import GameDatabase
 from src.core.screenshot_manager import ScreenshotManager
@@ -206,7 +206,7 @@ async def get_latest_screenshot(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     format: str = "json"
-):
+) -> Response:
     session = get_session(session_id)
     screenshot_path = session.get_latest_screenshot_path()
     
@@ -217,19 +217,19 @@ async def get_latest_screenshot(
         try:
             with open(screenshot_path, "rb") as f:
                 encoded = base64.b64encode(f.read()).decode()
-            return {
+            return JSONResponse(content={
                 "image": f"data:image/png;base64,{encoded}",
                 "path": str(screenshot_path),
                 "timestamp": datetime.fromtimestamp(screenshot_path.stat().st_mtime).isoformat()
-            }
+            })
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to read screenshot: {e}")
     else:
-        return {
+        return JSONResponse(content={
             "path": str(screenshot_path),
             "url": f"/screenshots/file?path={screenshot_path}",
             "timestamp": datetime.fromtimestamp(screenshot_path.stat().st_mtime).isoformat()
-        }
+        })
 
 
 @app.get("/screenshots/file")

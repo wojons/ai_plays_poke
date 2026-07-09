@@ -97,7 +97,7 @@ class Emulator:
         # PyBoy screen is (144, 160, 4) RGBA, no SGB border
         screen = self._pyboy.screen.ndarray
         # Convert RGBA → RGB
-        return screen[:, :, :3].copy()
+        return screen[:, :, :3].copy()  # type: ignore[no-any-return]
 
     # ── timing ───────────────────────────────────────────────────────
 
@@ -279,7 +279,7 @@ class Emulator:
 
     def read_u8(self, addr: int) -> int:
         """Read a single byte from emulated Game Boy memory."""
-        return self._pyboy.memory[addr]
+        return self._pyboy.memory[addr]  # type: ignore[no-any-return]
 
     def read_u16(self, addr: int) -> int:
         """Read a 16-bit little-endian word from memory."""
