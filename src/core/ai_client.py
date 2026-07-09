@@ -1011,7 +1011,7 @@ class JSONResponseParser:
 
     def _extract_with_regex_fallback(self, response: str) -> Dict[str, Any]:
         """Final fallback using regex extraction"""
-        result = {
+        result: dict[str, Any] = {
             "raw_response": response[:500],
             "extracted_fields": {}
         }
@@ -1029,10 +1029,10 @@ class JSONResponseParser:
             match = re.search(pattern, response, re.IGNORECASE)
             if match:
                 value = match.group(1)
-                if field in ["player_hp", "enemy_hp"]:
+                if field_name in ("player_hp", "enemy_hp"):
                     value = int(value)
-                result["extracted_fields"][field] = value  # type: ignore
-        self.parse_failure_count += 1
+                result["extracted_fields"][field_name] = value
+                break
         return result
 
     def get_success_rate(self) -> float:

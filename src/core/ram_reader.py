@@ -205,7 +205,7 @@ class _MapDB:
         w, h = info["width"], info["height"]
         if not (0 <= x < w and 0 <= y < h):
             return None
-        return info["block_data"][y * w + x]
+        return info["block_data"][y * w + x]  # type: ignore[no-any-return]
 
     # ── Block classification ─────────────────────────────────────────
 
@@ -340,10 +340,10 @@ class RAMReader:
     # ── Low-level memory reads ───────────────────────────────────────
 
     def read_u8(self, addr: int) -> int:
-        return self._emu.read_u8(addr)
+        return self._emu.read_u8(addr)  # type: ignore[no-any-return]
 
     def read_u16(self, addr: int) -> int:
-        return self._emu.read_u16(addr)
+        return self._emu.read_u16(addr)  # type: ignore[no-any-return]
 
     # ── Player state ────────────────────────────────────────────────
 

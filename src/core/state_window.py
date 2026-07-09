@@ -505,10 +505,10 @@ class StateWindow:
 
         # Text content — the agent reads this to make decisions
         from src.core.prompt_loader import get_text_content
-        tc = get_text_content(self.vision)
-        if tc:
+        content = get_text_content(self.vision)
+        if content:
             parts.append("\n  SCREEN TEXT (read this — it tells you what to do):")
-            for line in tc:
+            for line in content:
                 parts.append(f"    > {line}")
 
         menu_items = self.vision.get("menu_items", [])

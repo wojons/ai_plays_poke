@@ -94,10 +94,9 @@ class GameLoop:
             
         print("\n🛑 Stopping game loop...")
         
-        # Save emulator state
-        save_path = self.save_dir / "emulator_state.state"
-        self.emulator.save_state(str(save_path))
-        print(f"💾 Emulator state saved to {save_path}")
+        # Save emulator state to rotating slot 0
+        self.emulator.save_state(0)
+        print("💾 Emulator state saved to slot 0")
         
         # Log final metrics
         self.db.log_session_metrics({
@@ -457,12 +456,11 @@ Examples:
     
     # Load state if provided
     if args.load_state:
-        state_path = Path(args.load_state)
-        if state_path.exists():
-            print(f"📂 Loading state from {state_path}")
-            game_loop.emulator.load_state(str(state_path))
-        else:
-            print(f"⚠️ State file not found: {state_path}, starting fresh")
+        try:
+            game_loop.emulator.load_state(0)
+            print("📂 Loaded emulator state from slot 0")
+        except FileNotFoundError:
+            print("⚠️ No saved state in slot 0, starting fresh")
     
     # Handle graceful shutdown
     def signal_handler(sig: int, frame: Any) -> int:
