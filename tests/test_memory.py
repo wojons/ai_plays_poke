@@ -9,32 +9,23 @@ import sys
 import tempfile
 import os
 from pathlib import Path
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
-from datetime import datetime
 import time
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from src.core.memory import (
     ObserverMemory,
-    StrategistMemory,
-    TacticianMemory,
-    MemoryConsolidator,
     ConsolidationConfig,
-    ConsolidationResult,
     TickState,
     ActionRecord,
     SensoryInput,
     SessionObjective,
     BattleRecord,
     LocationVisited,
-    ResourceSnapshot,
     LearnedPattern,
     SuccessfulStrategy,
     MistakeRecord,
     PlayerPreference,
-    MemoryDatabaseMixin,
     MemoryGOAPIntegration,
     MemoryAIIntegration,
     create_observer_memory,
@@ -1986,7 +1977,7 @@ class TestPerformance:
         
         start = time.perf_counter()
         result = consolidator.consolidate_all()
-        elapsed = (time.perf_counter() - start) * 1000
+        (time.perf_counter() - start) * 1000
         
         assert result.consolidation_time_ms < 100.0, f"Consolidation took {result.consolidation_time_ms:.2f}ms"
 

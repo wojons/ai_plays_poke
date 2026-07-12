@@ -165,3 +165,4 @@ ram_map_viewer.html
 game_data.db
 # Diagnostic scripts (ad-hoc exploration)
 diag_*.py
+.vfs/

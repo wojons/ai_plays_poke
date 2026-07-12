@@ -19,8 +19,7 @@ import time
 import threading
 import sqlite3
 import numpy as np
-from unittest.mock import Mock, MagicMock, patch
-from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 
 class TestROMHandling:
@@ -180,7 +179,7 @@ class TestAPIKeyHandling:
         with patch('src.core.ai_client.requests.post', side_effect=raise_rate_limit):
             from src.core.ai_client import AIModelClient
             client = AIModelClient(api_key="sk-test-key")
-            result = client._make_request_with_retry("test", {})
+            client._make_request_with_retry("test", {})
             assert call_count >= 1
 
     def test_api_key_environment_override(self) -> None:
@@ -189,7 +188,7 @@ class TestAPIKeyHandling:
             from src.core.ai_client import AIModelClient
 
             with patch('src.core.ai_client.AIModelClient._load_api_key', return_value="sk-test-env-key") as mock_load:
-                client = AIModelClient()
+                AIModelClient()
                 mock_load.assert_called_once()
 
     def test_api_key_with_special_chars(self) -> None:
@@ -223,7 +222,7 @@ class TestNetworkHandling:
         with patch('src.core.ai_client.requests.post', side_effect=raise_timeout):
             from src.core.ai_client import AIModelClient
             client = AIModelClient(api_key="sk-test")
-            result = client._make_request_with_retry("test", {})
+            client._make_request_with_retry("test", {})
             assert call_count >= 1
 
     def test_connection_refused(self) -> None:
@@ -318,7 +317,6 @@ class TestDatabaseHandling:
     def test_database_locked(self) -> None:
         """DB locked by another process → retry or fail gracefully"""
         import sqlite3
-        import threading
 
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
             db_path = f.name
@@ -331,7 +329,7 @@ class TestDatabaseHandling:
                 time.sleep(0.2)
                 try:
                     conn.close()
-                except:
+                except Exception:
                     pass
 
             threading.Thread(target=release_lock, daemon=True).start()
@@ -343,7 +341,7 @@ class TestDatabaseHandling:
             if os.path.exists(db_path):
                 try:
                     conn.close()
-                except:
+                except Exception:
                     pass
                 os.unlink(db_path)
 
@@ -369,7 +367,6 @@ class TestDatabaseHandling:
 
     def test_database_interrupt_recovery(self) -> None:
         """Database operation interrupted → recovery attempt"""
-        import sqlite3
 
         with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
             db_path = f.name
@@ -387,7 +384,7 @@ class TestDatabaseHandling:
             if os.path.exists(db_path):
                 try:
                     os.unlink(db_path)
-                except:
+                except Exception:
                     pass
 
     def test_database_missing_table(self) -> None:

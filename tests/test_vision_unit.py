@@ -18,8 +18,8 @@ try:
     vc = VisionClient()
     print("FAIL: Should have raised ValueError")
     sys.exit(1)
-except ValueError as e:
-    print(f"OK: Correctly raised ValueError for missing key")
+except ValueError:
+    print("OK: Correctly raised ValueError for missing key")
 os.environ["OPENROUTER_API_KEY"] = old_key  # type: ignore
 # Test 2: basic creation
 vc = VisionClient()
@@ -30,7 +30,7 @@ fake_screen = np.zeros((144, 160, 3), dtype=np.uint8)
 h1 = vc._compute_hash(fake_screen)
 h2 = vc._compute_hash(fake_screen)
 assert h1 == h2, "Hash inconsistent"
-print(f"OK: Hash consistent")
+print("OK: Hash consistent")
 
 # Test 4: image encoding
 b64 = vc._encode_image(fake_screen)

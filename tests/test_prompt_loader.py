@@ -1,6 +1,5 @@
 """Unit tests for prompt_loader.py — YAML-based system prompt loading."""
 
-import pytest
 import yaml
 
 import src.core.prompt_loader as pl

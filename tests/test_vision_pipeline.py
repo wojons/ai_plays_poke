@@ -6,13 +6,10 @@ in src/vision/pipeline.py.
 """
 from __future__ import annotations
 
-import hashlib
 import signal
-from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
-from PIL import Image
 
 from src.vision.pipeline import (
     VisionPipeline,
@@ -158,7 +155,7 @@ class TestVisionPipelineInit:
     def test_debug_dir_already_exists(self, tmp_path) -> None:
         debug = tmp_path / "existing"
         debug.mkdir()
-        vp = VisionPipeline(debug_dir=str(debug))
+        VisionPipeline(debug_dir=str(debug))
         assert debug.exists()  # no error
 
     def test_class_constants(self) -> None:

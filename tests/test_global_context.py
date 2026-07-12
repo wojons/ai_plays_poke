@@ -1,8 +1,6 @@
 """Unit tests for GlobalContext — compacted game state manager."""
 
-from datetime import datetime
 
-import pytest
 
 from src.core.global_context import GlobalContext
 

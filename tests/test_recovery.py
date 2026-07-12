@@ -6,7 +6,6 @@ pure-function behavior without needing an emulator or ROM.
 """
 from __future__ import annotations
 
-import pytest
 
 # ── Constants matching cron_runner.py ─────────────────────────────────────
 MAX_SAME_DIRECTION = 5

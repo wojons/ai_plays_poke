@@ -9,8 +9,7 @@ import pytest
 import json
 import re
 from unittest.mock import MagicMock, patch
-from typing import Dict, Any, List, Optional
-from datetime import datetime
+from typing import Dict, Any, Optional
 
 
 class TestPromptSelection:
@@ -734,7 +733,7 @@ class TestAIIntegration:
 
     def test_ai_client_initialization(self) -> None:
         """Test AI client can be initialized with mocks"""
-        from src.core.ai_client import OpenRouterClient, GameAIManager
+        from src.core.ai_client import OpenRouterClient
 
         with patch.object(OpenRouterClient, '__init__', lambda self, key=None: None):
             client = OpenRouterClient.__new__(OpenRouterClient)
@@ -1010,7 +1009,7 @@ class TestJSONResponseParser:
         response = '{"screen_type": 123, "player_hp": "high"}'
 
         try:
-            result = parser.parse(response)
+            parser.parse(response)
         except (ValueError, TypeError):
             pass
 

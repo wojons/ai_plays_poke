@@ -29,20 +29,20 @@ def _save_png(path: Path, arr: np.ndarray) -> None:
 class TestScreenshotManagerInit:
     def test_creates_main_dir(self, tmp_path):
         d = tmp_path / "ss"
-        sm = ScreenshotManager(str(d))
+        ScreenshotManager(str(d))
         assert d.exists()
 
     def test_creates_subdirs(self, tmp_path):
         d = tmp_path / "ss"
-        sm = ScreenshotManager(str(d))
+        ScreenshotManager(str(d))
         assert (d / "battles").exists()
         assert (d / "overworld").exists()
         assert (d / "menus").exists()
 
     def test_idempotent_init(self, tmp_path):
         d = tmp_path / "ss"
-        sm1 = ScreenshotManager(str(d))
-        sm2 = ScreenshotManager(str(d))  # no error
+        ScreenshotManager(str(d))
+        ScreenshotManager(str(d))  # no error
         assert d.exists()
 
     def test_dirs_are_path_objects(self, tmp_path):
@@ -114,7 +114,7 @@ class TestGetLatestScreenshot:
 
     def test_returns_latest_by_mtime(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path / "ss"))
-        p1 = sm.save_screenshot(_fake_screen(), "first")
+        sm.save_screenshot(_fake_screen(), "first")
         time.sleep(0.01)
         p2 = sm.save_screenshot(_fake_screen(), "second")
         latest = sm.get_latest_screenshot()

@@ -3,13 +3,10 @@ Unit tests for VisionClient — encode, parse, clean, and regex extraction paths
 """
 from __future__ import annotations
 
-import json
 import base64
 import io
-from unittest.mock import MagicMock, patch
 
 import numpy as np
-import pytest
 from PIL import Image
 
 from src.core.vision import VisionClient

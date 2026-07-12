@@ -13,15 +13,10 @@ Covers:
 Total: 35 tests for comprehensive coverage
 """
 
-import pytest
-import time
-import os
 import json
 import tempfile
-import shutil
 from pathlib import Path
-from unittest.mock import Mock, MagicMock, patch
-from dataclasses import asdict
+from unittest.mock import Mock
 
 from src.core.save_manager import (
     SaveManager, SaveManagerConfig, SnapshotMetadata, SnapshotReason

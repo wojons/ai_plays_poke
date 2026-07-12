@@ -411,6 +411,6 @@ class TestExecuteToolCallFastForward:
     def test_fast_forward_invalid_frames(self) -> None:
         """String frames value — the tool passes it through; emulator handles it."""
         emu = _mock_emulator()
-        result = execute_tool_call(emu, "fast_forward", {"frames": "invalid"})
+        execute_tool_call(emu, "fast_forward", {"frames": "invalid"})
         # Should still attempt the call — error comes from emulator
         emu.fast_forward.assert_called_once_with("invalid")

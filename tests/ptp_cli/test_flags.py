@@ -5,10 +5,9 @@ Unit tests for CLI Flag System
 Tests for flag parsing, validation, and configuration.
 """
 
-import pytest
-import sys
-import os
-from pathlib import Path
+import pytest  # noqa: E402
+import sys  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 # Add project root and src to path
 project_root = Path(__file__).parent.parent.parent
@@ -16,7 +15,7 @@ src_root = project_root / "src"
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(src_root))
 
-from ptp_cli.flags import (
+from ptp_cli.flags import (  # noqa: E402
     CLIFlagParser,
     FullConfig,
     TickRateConfig,
@@ -25,7 +24,6 @@ from ptp_cli.flags import (
     RunLimitsConfig,
     SnapshotConfig,
     ExperimentConfig,
-    SystemConfig,
     LimitAction,
     FailMode,
     BudgetMode,

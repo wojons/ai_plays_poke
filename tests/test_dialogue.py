@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.core.dialogue import (
     DialogParser, TextSpeedController, MenuNavigator, NPCInteraction, DialogueManager,
-    DialogType, SpeakerType, DialogIntent, MenuType, NavigationButton,
+    DialogType, DialogIntent, MenuType, NavigationButton,
     DialogLine, DialogEntry, MenuOption, MenuState, NPCInfo, InteractionResult,
     create_dialogue_system, create_dialog_parser, create_text_speed_controller,
     create_menu_navigator, create_npc_interaction
@@ -218,7 +218,7 @@ class TestTextSpeedController:
         
         speed = self.controller.get_optimal_speed(dialog)
         
-        assert speed['auto_advance'] == True
+        assert speed['auto_advance']
 
     def test_get_optimal_speed_long_dialog(self) -> None:
         """Should skip long dialogs"""
@@ -234,7 +234,7 @@ class TestTextSpeedController:
         
         speed = self.controller.get_optimal_speed(dialog)
         
-        assert speed.get('read_first_line_only') == True
+        assert speed.get('read_first_line_only')
 
     def test_calculate_button_presses(self) -> None:
         """Should calculate correct button presses"""
@@ -257,10 +257,10 @@ class TestTextSpeedController:
     def test_set_speed_setting(self) -> None:
         """Should change speed setting"""
         result = self.controller.set_speed_setting("instant")
-        assert result == True
+        assert result
         
         result = self.controller.set_speed_setting("invalid")
-        assert result == False
+        assert not result
 
     def test_get_speed_stats(self) -> None:
         """Should return statistics"""
@@ -284,7 +284,7 @@ class TestTextSpeedController:
         
         should_skip, count = self.controller.should_skip_remaining(dialog)
         
-        assert should_skip == True
+        assert should_skip
         assert count == 9
 
 
@@ -344,7 +344,7 @@ class TestMenuNavigator:
         
         success, path = self.navigator.navigate_to_option(state, "BAG")
         
-        assert success == True
+        assert success
         assert len(path) > 0
 
     def test_select_current_option(self) -> None:
@@ -392,7 +392,7 @@ class TestMenuNavigator:
         
         success, path = self.navigator.navigate_to_option(state, "INVALID")
         
-        assert success == False
+        assert not success
         assert len(path) == 0
 
     def test_cache_clearing(self) -> None:
@@ -423,7 +423,7 @@ class TestNPCInteraction:
             "Hello there! Welcome to the world of Pokemon!"
         )
         
-        assert result.success == True
+        assert result.success
         assert result.npc_info is not None
         assert result.npc_info.name == "PROFESSOR OAK"
 
@@ -434,7 +434,7 @@ class TestNPCInteraction:
             "Let's battle! I challenge you!"
         )
         
-        assert result.battle_initiated == True
+        assert result.battle_initiated
 
     def test_extract_gift(self) -> None:
         """Should extract gift information"""
@@ -467,7 +467,7 @@ class TestNPCInteraction:
         
         assert npc_info is not None
         assert npc_info.name == "BROCK"
-        assert npc_info.is_trainer == True
+        assert npc_info.is_trainer
 
     def test_get_interaction_history(self) -> None:
         """Should return interaction history"""
@@ -520,7 +520,7 @@ class TestNPCInteraction:
         """Should handle empty dialog"""
         result = self.interaction.interact_with_npc("NPC", "")
         
-        assert result.success == True
+        assert result.success
 
     def test_quest_detection(self) -> None:
         """Should detect quest start"""
@@ -559,7 +559,7 @@ class TestDialogueManager:
             "Welcome to the world of Pokemon!"
         )
         
-        assert result.success == True
+        assert result.success
         assert result.npc_info is not None
 
     def test_navigate_menu(self) -> None:
@@ -569,7 +569,7 @@ class TestDialogueManager:
             "BAG"
         )
         
-        assert success == True or success == False
+        assert success or not success
 
     def test_get_system_stats(self) -> None:
         """Should return system statistics"""
@@ -837,7 +837,7 @@ class TestMenuState:
         )
         
         assert option.index == 0
-        assert option.is_selected == True
+        assert option.is_selected
 
 
 class TestNPCInfo:
@@ -854,7 +854,7 @@ class TestNPCInfo:
         )
         
         assert npc.name == "BROCK"
-        assert npc.is_trainer == True
+        assert npc.is_trainer
 
     def test_npc_with_hints(self) -> None:
         """Should store hints correctly"""
@@ -884,7 +884,7 @@ class TestInteractionResult:
             action_taken="accept"
         )
         
-        assert result.success == True
+        assert result.success
         assert result.gift_received == "Potion"
         assert len(result.information_gained) == 1
 

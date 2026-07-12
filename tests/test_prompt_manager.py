@@ -18,11 +18,9 @@ Documents 1 pre-existing bug:
           causes _load_prompt_file to return None (caught by except Exception).
 """
 
-import os
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 
 from src.core.prompt_manager import PromptTemplate, PromptManager
 

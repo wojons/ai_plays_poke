@@ -6,7 +6,6 @@ Tests the goal hierarchy, action hierarchy, planning, prioritization, and monito
 
 import pytest
 from datetime import datetime, timedelta
-from unittest.mock import Mock, MagicMock, patch
 import sys
 import os
 
@@ -16,7 +15,7 @@ from core.goap import (
     GoalType, ActionType, PlanStatus, PriorityLevel,
     GameState, Goal, DefeatGymGoal, CatchPokemonGoal, ReachLocationGoal,
     HealPartyGoal, TrainPokemonGoal, ObtainItemGoal,
-    Action, NavigateAction, BattleAction, MenuAction, DialogAction,
+    NavigateAction, BattleAction, MenuAction, DialogAction,
     Plan, GoalStack, GoalDAG, PriorityQueue, GoalPriorityCalculator,
     GoalPrioritizer, Planner, PlanMonitor, HierarchicalPlanner,
     create_default_game_state, create_goap_system
@@ -902,7 +901,7 @@ class TestHierarchicalPlanner:
         goal = HealPartyGoal()
 
         planner.add_goal(goal, state)
-        plan = planner.plan(state)
+        planner.plan(state)
 
         success, new_plan, new_state = planner.execute_step(state)
         assert success is False
@@ -1306,7 +1305,6 @@ class TestActionExecution:
         """Simulate exception during action execution — verify status becomes FAILED."""
         action = NavigateAction("Route 1")
         # Override logger to force exception
-        original_execute = action.execute
         def failing_execute(state):
             action.status = "FAILED"
             action.error_message = "Simulated failure"
@@ -1600,7 +1598,7 @@ class TestActionCanExecute:
 
     def test_can_execute_not_enough_money(self) -> None:
         # Create action that tests money precondition
-        action = NavigateAction("Route 1")  # preconditions: not_in_battle (no money check)
+        NavigateAction("Route 1")  # preconditions: not_in_battle (no money check)
         # Can't test money directly via NavigateAction. Use base class with custom preconditions mock.
         # Actually Action.can_execute has money check — let's test via a subclass that doesn't override preconditions
         # All concrete subclasses override get_preconditions. The money branch may be dead code.

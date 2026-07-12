@@ -241,7 +241,7 @@ class TestStateWindowInit:
     def test_init_creates_openrouter_client(self, ctx, mock_emu, battle_vision):
         with patch("src.core.state_window.OpenRouterClient") as mock_client:
             mock_client.return_value = MagicMock()
-            window = StateWindow(
+            StateWindow(
                 state_type="battle",
                 global_ctx=ctx,
                 emulator=mock_emu,
@@ -628,7 +628,7 @@ class TestRun:
 
         with patch("src.core.tools.parse_tool_call",
                     return_value={"name": "press_button", "arguments": {"button": "a", "duration": 5}}):
-            result = window.run()
+            window.run()
 
         assert mock_emu.press_button.call_count >= 20
         assert mock_client.send_tool_request.call_count >= 1

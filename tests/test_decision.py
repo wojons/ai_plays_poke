@@ -3,7 +3,6 @@
 from unittest.mock import MagicMock, patch, call
 
 import numpy as np
-import pytest
 
 from src.core.decision import DecisionLoop
 
@@ -18,12 +17,12 @@ def mock_screenshot():
 def create_decision_loop(**overrides):
     """Create a DecisionLoop with all dependencies mocked."""
     with (
-        patch("src.core.decision.VisionClient") as mock_vision_cls,
-        patch("src.core.decision.PromptStack") as mock_prompt_cls,
-        patch("src.core.decision.GameMemory") as mock_memory_cls,
-        patch("src.core.decision.OpenRouterClient") as mock_client_cls,
-        patch("src.core.decision.Path.mkdir") as mock_mkdir,
-        patch("src.core.decision.Image") as mock_image,
+        patch("src.core.decision.VisionClient"),
+        patch("src.core.decision.PromptStack"),
+        patch("src.core.decision.GameMemory"),
+        patch("src.core.decision.OpenRouterClient"),
+        patch("src.core.decision.Path.mkdir"),
+        patch("src.core.decision.Image"),
         patch("src.core.decision.datetime") as mock_dt,
     ):
         mock_dt.now.return_value.strftime.return_value = "20260101_000000"
@@ -221,7 +220,7 @@ class TestStepHappyPath:
                 mock_parse.return_value = {"name": "wait", "arguments": {"frames": 30}}
                 mock_exec.return_value = "waited 30 frames"
 
-                result = loop.step()
+                loop.step()
                 mock_exec.assert_called_once_with(
                     loop._mock_emu,
                     tool_name="wait",
@@ -370,7 +369,7 @@ class TestStepThinkingFailure:
             loop._mock_memory.snapshot.return_value = {}
             loop._mock_client.send_tool_request.side_effect = RuntimeError("API down")
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
+            with patch("src.core.decision.parse_tool_call"), \
                  patch("src.core.decision.execute_tool_call") as mock_exec, \
                  patch("src.core.decision.Image.fromarray"):
                 mock_exec.return_value = "pressed a (5 frames)"
@@ -561,7 +560,7 @@ class TestScreenshotPaths:
 
             with patch("src.core.decision.parse_tool_call") as mock_parse, \
                  patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray") as mock_img:
+                 patch("src.core.decision.Image.fromarray"):
                 mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
                 mock_exec.return_value = "OK"
 

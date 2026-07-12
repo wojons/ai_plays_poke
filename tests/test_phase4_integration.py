@@ -2,14 +2,14 @@
 
 Tests emulator boot, GameMemory, PromptStack, Tool parsing, and code structure.
 """
-import sys
+import sys  # noqa: E402
 sys.path.insert(0, "/home/kara/ai_plays_poke")
 
 print("=== PHASE 4 INTEGRATION VERIFICATION ===\n")
 
 # ── 1. Emulator boot ──────────────────────────────────────────────────────
 print("1. Loading emulator...")
-from src.core.emulator import Emulator
+from src.core.emulator import Emulator  # noqa: E402
 e = Emulator("data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
 print(f"   platform={e.platform}, is_gb={e.is_gb}")
 screen = e.capture()
@@ -25,7 +25,7 @@ print("   Game booted (past title screen) ✓")
 
 # ── 2. GameMemory ─────────────────────────────────────────────────────────
 print("\n2. GameMemory...")
-from src.core.memory import GameMemory
+from src.core.memory import GameMemory  # noqa: E402
 m = GameMemory()
 m.record_action("Pressed A for 5 frames")
 m.record_action("Pressed up for 20 frames")
@@ -43,7 +43,7 @@ print("   GameMemory ✓")
 
 # ── 3. Prompt assembly (no API) ───────────────────────────────────────────
 print("\n3. PromptStack assembly...")
-from src.core.prompt_assembler import PromptStack
+from src.core.prompt_assembler import PromptStack  # noqa: E402
 ps = PromptStack()
 test_vision = {
     "screen_type": "overworld",
@@ -69,7 +69,7 @@ except Exception as exc:
 
 # ── 4. Tool parsing ───────────────────────────────────────────────────────
 print("\n4. Tool-call parsing...")
-from src.core.tools import TOOL_SCHEMA, parse_tool_call, execute_tool_call
+from src.core.tools import parse_tool_call, execute_tool_call  # noqa: E402
 
 # Test code-fenced JSON
 resp1 = '```json\n{"name": "press_button", "arguments": {"button": "a", "duration": 5}}\n```'
@@ -101,8 +101,8 @@ print("   Nil-case fallback ✓")
 
 # ── 5. DecisionLoop code structure ────────────────────────────────────────
 print("\n5. DecisionLoop code review...")
-import inspect
-from src.core.decision import DecisionLoop
+import inspect  # noqa: E402
+from src.core.decision import DecisionLoop  # noqa: E402
 
 # Check step() has all 7 phases
 step_src = inspect.getsource(DecisionLoop.step)
@@ -134,7 +134,7 @@ print("   run() method correct ✓")
 
 # ── 6. send_tool_request method ───────────────────────────────────────────
 print("\n6. send_tool_request...")
-from src.core.ai_client import OpenRouterClient
+from src.core.ai_client import OpenRouterClient  # noqa: E402
 assert hasattr(OpenRouterClient, "send_tool_request")
 # Verify signature
 sig = inspect.signature(OpenRouterClient.send_tool_request)

@@ -11,12 +11,6 @@ Tests for:
 """
 
 import pytest
-import json
-import time
-from unittest.mock import MagicMock, patch
-from typing import Dict, Any, List, Optional
-from datetime import datetime
-from dataclasses import dataclass, field
 
 
 @pytest.mark.skip(reason="EnhancedModelRouter class does not exist")
@@ -678,7 +672,7 @@ class TestEdgeCases:
         """Test handling zero budget"""
         from src.core.ai_client import CostOptimizer, RoutingConfig
 
-        config = RoutingConfig(budget=0.0)
+        RoutingConfig(budget=0.0)
         optimizer = CostOptimizer(budget=0.0)
 
         remaining = optimizer.get_remaining_budget()

@@ -5,7 +5,6 @@ Unit tests for src/core/symbols.py — terrain/object/actor symbol dicts + conve
 Pure data with zero dependencies — no ROM, no API, no emulator.
 """
 
-import pytest
 from src.core.symbols import (
     TERRAIN_EMOJI,
     TERRAIN_ASCII,

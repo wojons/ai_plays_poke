@@ -2,10 +2,7 @@
 
 import json
 import sqlite3
-import tempfile
-import os
 from pathlib import Path
-from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -650,7 +647,6 @@ class TestExportSessionData:
         for sessions that have data.
         """
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        from src.db.database import GameDatabase
         with pytest.raises(TypeError, match="'NoneType' object is not iterable"):
             db.export_session_data(1)
 
