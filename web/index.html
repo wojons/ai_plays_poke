@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Plays Pokémon — Live Game Boy Viewer</title>
+  <link rel="preconnect" href="https://cdn.emulatorjs.org">
+  <link rel="preload" as="script" href="https://cdn.emulatorjs.org/stable/data/emulator.min.js" crossorigin>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050806;
+      --panel: #08140c;
+      --panel-2: #0c1b11;
+      --green: #65ff7a;
+      --green-dim: #2abf45;
+      --text: #d3ffd8;
+      --muted: #83ad89;
+      --border: rgba(101, 255, 122, 0.35);
+      --shadow: rgba(0, 255, 80, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(36, 255, 87, 0.09), transparent 34rem),
+        linear-gradient(180deg, #020402 0%, var(--bg) 100%);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    body {
+      padding: 24px;
+    }
+
+    .app {
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 14px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--green);
+      font-size: clamp(1.35rem, 3vw, 2.15rem);
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 18px var(--shadow);
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(8, 20, 12, 0.82);
+      box-shadow: 0 0 28px rgba(0, 0, 0, 0.28);
+    }
+
+    button,
+    .file-label {
+      appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: linear-gradient(180deg, #12331a 0%, #071208 100%);
+      color: var(--green);
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      padding: 10px 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    button:hover,
+    .file-label:hover,
+    button:focus-visible,
+    .file-label:focus-visible {
+      border-color: var(--green);
+      box-shadow: 0 0 0 2px rgba(101, 255, 122, 0.18), 0 0 18px var(--shadow);
+      outline: none;
+    }
+
+    input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+
+    .status {
+      min-width: min(100%, 28rem);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .viewer-shell {
+      position: relative;
+      min-height: 560px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background:
+        linear-gradient(rgba(101, 255, 122, 0.025) 50%, rgba(0, 0, 0, 0.025) 50%),
+        #000;
+      background-size: 100% 4px;
+      box-shadow: 0 20px 70px rgba(0, 0, 0, 0.45), inset 0 0 24px rgba(101, 255, 122, 0.06);
+    }
+
+    #game {
+      position: relative;
+      width: 100%;
+      min-height: 560px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .empty-state {
+      max-width: 34rem;
+      padding: 28px;
+      border: 1px dashed rgba(101, 255, 122, 0.3);
+      border-radius: 12px;
+      color: var(--muted);
+      text-align: center;
+      background: rgba(5, 8, 6, 0.74);
+    }
+
+    .empty-state strong {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--green);
+      font-size: 1.08rem;
+    }
+
+    .hints {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 10px;
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .hint-card {
+      border: 1px solid rgba(101, 255, 122, 0.2);
+      border-radius: 10px;
+      padding: 12px;
+      background: rgba(8, 20, 12, 0.65);
+    }
+
+    .hint-card b {
+      color: var(--green);
+    }
+
+    code {
+      color: var(--green);
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>AI Plays Pokémon // Game Boy Live Viewer</h1>
+        <p class="subtitle">Client-side EmulatorJS Game Boy core with RAM reader overlay. No backend, no build step.</p>
+      </div>
+    </header>
+
+    <section class="toolbar" aria-label="Viewer controls">
+      <label class="file-label" for="rom-input">Load ROM</label>
+      <input id="rom-input" type="file" accept=".gb,application/octet-stream">
+      <button id="toggle-overlay" type="button" aria-pressed="true">Toggle Overlay</button>
+      <span id="status" class="status">Select a Pokémon Red/Blue <code>.gb</code> ROM to start EmulatorJS.</span>
+    </section>
+
+    <section id="viewer-shell" class="viewer-shell">
+      <div id="game">
+        <div class="empty-state">
+          <strong>Awaiting ROM</strong>
+          Use the Load ROM button above. The emulator and RAM overlay run entirely in this browser tab.
+        </div>
+      </div>
+    </section>
+
+    <section class="hints" aria-label="Keyboard controls">
+      <div class="hint-card"><b>D-Pad:</b> Arrow keys</div>
+      <div class="hint-card"><b>A / B:</b> Z / X</div>
+      <div class="hint-card"><b>Start / Select:</b> Enter / Shift</div>
+      <div class="hint-card"><b>RAM Overlay:</b> <code>/</code> or Toggle Overlay</div>
+    </section>
+  </main>
+
+  <script>
+    window.EJS_player = '#game';
+    window.EJS_core = 'gb';
+    window.EJS_biosUrl = '';
+    window.EJS_gameUrl = '';
+    window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+    window.EJS_startOnLoaded = true;
+    window.EJS_lightgun = false;
+
+    const ROM_INPUT = document.getElementById('rom-input');
+    const STATUS = document.getElementById('status');
+    const GAME = document.getElementById('game');
+    let currentRomUrl = null;
+
+    function setStatus(message) {
+      STATUS.textContent = message;
+    }
+
+    function loadEmulatorJS() {
+      const oldLoader = document.getElementById('emulatorjs-loader');
+      if (oldLoader) {
+        oldLoader.remove();
+      }
+
+      const loader = document.createElement('script');
+      loader.id = 'emulatorjs-loader';
+      loader.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+      loader.async = true;
+      loader.onload = () => setStatus('EmulatorJS loaded. Use the keyboard controls below the screen.');
+      loader.onerror = () => setStatus('Failed to load EmulatorJS CDN. Check your network connection.');
+      document.body.appendChild(loader);
+    }
+
+    function startRom(file) {
+      if (!file) {
+        return;
+      }
+
+      if (currentRomUrl) {
+        URL.revokeObjectURL(currentRomUrl);
+      }
+
+      currentRomUrl = URL.createObjectURL(file);
+      window.EJS_gameUrl = currentRomUrl;
+      window.EJS_gameName = file.name.replace(/\.gb$/i, '');
+      window.EJS_core = 'gb';
+      window.EJS_player = '#game';
+      window.EJS_biosUrl = '';
+      window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+      window.EJS_startOnLoaded = true;
+      window.EJS_lightgun = false;
+
+      GAME.innerHTML = '';
+      setStatus(`Loading ${file.name} with EmulatorJS Game Boy core...`);
+      loadEmulatorJS();
+    }
+
+    ROM_INPUT.addEventListener('change', (event) => {
+      const [file] = event.target.files || [];
+      startRom(file);
+    });
+
+    window.addEventListener('beforeunload', () => {
+      if (currentRomUrl) {
+        URL.revokeObjectURL(currentRomUrl);
+      }
+    });
+  </script>
+  <script src="ram-bridge.js"></script>
+  <script src="ram-overlay.js"></script>
+</body>
+</html>

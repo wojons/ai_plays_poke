@@ -127,6 +127,17 @@ Statistical deviation detection for anomaly handling:
 
 **To change games:** Edit `config/settings.yaml` and change `rom.path`
 
+## Web-Based Live Viewer
+
+Open `web/index.html` in a browser to run a live Game Boy emulator with RAM state overlay.
+
+1. Open `web/index.html` in Chrome/Firefox/Edge
+2. Click "Load ROM" and select a Pokémon Red/Blue .gb ROM
+3. Use keyboard controls: Arrow keys = D-Pad, Z = A, X = B, Enter = Start, Shift = Select
+4. Press `/` or click "Toggle Overlay" to show/hide RAM state information
+
+The overlay shows player position, current map, screen type, and party Pokémon — the same data the Python RAM reader extracts.
+
 ## Quick Start
 
 ```bash
