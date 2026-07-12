@@ -10,7 +10,6 @@ import time
 from pathlib import Path
 
 import numpy as np
-import pytest
 from PIL import Image
 
 from src.core.screenshots import ScreenshotManager, SimpleLiveView
@@ -32,7 +31,7 @@ class TestInit:
     """Test ScreenshotManager.__init__ creates all subdirectories."""
 
     def test_creates_all_subdirs(self, tmp_path):
-        sm = ScreenshotManager(str(tmp_path))
+        ScreenshotManager(str(tmp_path))
         for sub in ["battles", "overworld", "menus", "dialogs", "latest"]:
             p = tmp_path / sub
             assert p.exists(), f"Missing subdirectory: {sub}"
@@ -48,7 +47,7 @@ class TestInit:
     def test_creates_parent_dirs(self, tmp_path):
         """mkdir(parents=True) creates intermediate directories."""
         deep = tmp_path / "a" / "b" / "screenshots"
-        sm = ScreenshotManager(str(deep))
+        ScreenshotManager(str(deep))
         assert deep.exists()
 
 
@@ -128,7 +127,7 @@ class TestGetLatestScreenshot:
 
     def test_returns_latest_by_mtime_in_subdir(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path))
-        p1 = sm.save_screenshot(_make_screen(), "first", state_type="battle", tick=1)
+        sm.save_screenshot(_make_screen(), "first", state_type="battle", tick=1)
         time.sleep(0.002)
         p2 = sm.save_screenshot(_make_screen(), "second", state_type="battle", tick=2)
         # get_latest_screenshot without state_type searches save_dir root (empty)

@@ -30,7 +30,6 @@ def _mock_pyboy():
         mock_pyboy_cls.return_value = mock_pyboy
 
         # Ensure fresh from_cache for each test
-        from src.core.emulator import Emulator
         if "Emulator" in dir():
             pass
         yield mock_pyboy

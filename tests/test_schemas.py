@@ -5,9 +5,7 @@ Tests command validation, game state dataclass integrity,
 and serialization/deserialization functionality.
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import MagicMock
 
 from src.schemas.commands import (
     AICommand,

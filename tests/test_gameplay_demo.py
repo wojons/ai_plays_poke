@@ -9,7 +9,6 @@ gated behind a ROM file check and API key check.
 from __future__ import annotations
 
 import os
-import sys
 from pathlib import Path
 
 import pytest
@@ -215,7 +214,7 @@ class TestLiveGameplay:
                 skip_intro=True,
             )
             # After skipping intro we should be past the title screen
-            first_type = result["results"][0].get("screen_type", "")
+            result["results"][0].get("screen_type", "")
             # It's OK if vision fails — we just verify the pipeline didn't crash
             assert result["cycles_completed"] == 5
         finally:

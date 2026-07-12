@@ -7,10 +7,7 @@ character recognition, template matching, post-processing, and all
 private helper methods.
 """
 
-import json
-import time
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import pytest

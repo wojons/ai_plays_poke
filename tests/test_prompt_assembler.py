@@ -5,8 +5,6 @@ Tests using temp YAML directories (not real configs) for better isolation,
 plus edge cases for internal helpers that aren't covered by existing integration tests.
 """
 
-import os
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
 

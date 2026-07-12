@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from src.core.combat import (
     PokemonType, StatusCondition, MoveCategory, StatStage,
-    Move, Pokemon, DamageRange, MoveScore, SwitchCandidate, CatchAttempt,
+    Move, Pokemon, CatchAttempt,
     TypeChart, DamageCalculator, MoveSelector, EnemyPredictor, BattleStrategist,
     CombatManager
 )

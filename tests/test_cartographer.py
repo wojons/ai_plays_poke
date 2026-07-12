@@ -5,7 +5,7 @@ Tests the visual-reference cartographer pipeline that sends a reference image
 + live screenshot to Gemma 12B and parses the spatial JSON response.
 """
 
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock
 
 import json
 import numpy as np

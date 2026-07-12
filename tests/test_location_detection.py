@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Generator
+from typing import Generator
 from unittest.mock import patch
 
 import numpy as np
@@ -646,7 +646,7 @@ class TestConstructor:
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "subdir" / "areas.json"
             with patch.object(LocationDetector, 'AREA_DATABASE_PATH', db_path):
-                det = LocationDetector()
+                LocationDetector()
                 assert db_path.exists()
 
     def test_tile_classifications_always_populated(self) -> None:

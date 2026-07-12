@@ -17,18 +17,15 @@ import time
 import threading
 import os
 import json
-from unittest.mock import Mock, MagicMock, patch
-from dataclasses import asdict
 
 from src.core.failsafe import (
-    ConfidenceScorer, ConfidenceBreakdown, ConfidenceLevel,
+    ConfidenceScorer, ConfidenceLevel,
     SoftlockDetector, SoftlockInfo,
-    EmergencyRecovery, RecoveryState, RecoveryResult,
-    DeathSpiralPreventer,
+    EmergencyRecovery, RecoveryState, DeathSpiralPreventer,
     SystemHealthMonitor, HealthMetrics,
     FailsafeManager
 )
-from src.core.state_machine import HierarchicalStateMachine, StateType
+from src.core.state_machine import HierarchicalStateMachine
 
 
 class TestConfidenceScorer:
@@ -165,7 +162,7 @@ class TestConfidenceScorer:
     def test_get_last_confidence(self) -> None:
         """Test getting the most recent confidence breakdown"""
         scorer = ConfidenceScorer()
-        result = scorer.calculate_confidence(ai_confidence=0.95, tick=999)
+        scorer.calculate_confidence(ai_confidence=0.95, tick=999)
         
         last = scorer.get_last_confidence()
         assert last is not None
@@ -421,7 +418,7 @@ class TestSoftlockDetector:
         detector = SoftlockDetector()
         
         for i in range(100):
-            result = detector.check_softlock(
+            detector.check_softlock(
                 current_mode="OVERWORLD",
                 current_sub_mode="NAVIGATION",
                 current_duration=5.0,

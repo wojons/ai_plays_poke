@@ -14,14 +14,9 @@ Total: 9 active performance tests (16 skipped as integration tests)
 
 import pytest
 import time
-import tempfile
 import numpy as np
 import psutil
-import threading
 import gc
-from unittest.mock import Mock, MagicMock, patch
-from typing import List, Dict
-from pathlib import Path
 
 
 class TestScreenshotProcessing:
@@ -36,7 +31,7 @@ class TestScreenshotProcessing:
         
         ocr = OCREngine()
         start_time = time.time()
-        result = ocr.extract_text(screenshot)
+        ocr.extract_text(screenshot)
         processing_time = time.time() - start_time
         
         assert processing_time < 0.5, f"OCR took {processing_time:.2f}s (>500ms)"
@@ -61,7 +56,7 @@ class TestScreenshotProcessing:
         pipeline.process(screenshot)
         
         start_time = time.time()
-        result = pipeline.process(screenshot)
+        pipeline.process(screenshot)
         processing_time = time.time() - start_time
         
         assert processing_time < 1.0, f"Vision pipeline took {processing_time:.2f}s (>1s, warm)"
@@ -82,7 +77,7 @@ class TestScreenshotProcessing:
         
         detector = LocationDetector()
         start_time = time.time()
-        result = detector.detect_location(screenshot)
+        detector.detect_location(screenshot)
         processing_time = time.time() - start_time
         
         assert processing_time < 0.2, f"Location detection took {processing_time:.2f}s (>200ms)"
@@ -99,7 +94,7 @@ class TestAIDecisionTime:
         
         pm = PromptManager()
         start_time = time.time()
-        prompts = pm.get_relevant_prompts("exploration", game_state)
+        pm.get_relevant_prompts("exploration", game_state)
         selection_time = time.time() - start_time
         
         assert selection_time < 0.05, f"Prompt selection took {selection_time:.2f}s (>50ms)"
@@ -109,7 +104,7 @@ class TestAIDecisionTime:
         from src.core.ai_client import GameAIManager
         
         start_time = time.time()
-        ai_manager = GameAIManager()
+        GameAIManager()
         init_time = time.time() - start_time
         
         assert init_time < 0.15, f"AI manager initialization took {init_time:.2f}s (>150ms)"

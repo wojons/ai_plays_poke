@@ -8,7 +8,6 @@ Tests cover:
 - MapIntegrator: apply success/rejection, compose_for_controller, stats, save
 """
 
-import pytest
 import os
 import sys
 
@@ -31,16 +30,8 @@ from src.core.symbols import (
     SYMBOL_REFERENCE,
     TERRAIN_EMOJI,
     TERRAIN_ASCII,
-    OBJECT_EMOJI,
-    OBJECT_ASCII,
     ACTOR_EMOJI,
     ACTOR_ASCII,
-    PLAYER_FACING_EMOJI,
-    PLAYER_FACING_ASCII,
-    MODE_EMOJI,
-    EDGE_OUTCOME_EMOJI,
-    VISITED_EMOJI,
-    VISITED_ASCII,
 )
 from src.core.world_state import (
     WorldState,
@@ -56,9 +47,6 @@ from src.core.obs_patch import (
     Movement,
     ViewportDelta,
     StripUpdate,
-    EdgeUpdate,
-    ActorUpdate,
-    Correction,
     Resync,
 )
 from src.core.map_integrator import MapIntegrator
@@ -1206,7 +1194,6 @@ class TestMapIntegratorApplyRejection:
 
     def test_apply_rejects_turned_only_with_delta(self) -> None:
         mi = MapIntegrator()
-        ws = mi.world
         data = {
             "tick": 1,
             "movement": {"input": "LEFT", "result": "turned_only", "player_delta": [1, 0]},

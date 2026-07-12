@@ -1,5 +1,6 @@
 """Verification script for the stacked prompt config system."""
-import os, sys
+import os
+import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from src.core.prompt_assembler import PromptStack

@@ -16,7 +16,6 @@ from src.core.inventory import (
     ItemType,
     HealingPriority,
     ShoppingPriority,
-    ItemData,
     InventoryItem,
     TMData,
     KeyItem,

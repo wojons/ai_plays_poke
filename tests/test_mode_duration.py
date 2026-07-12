@@ -6,12 +6,11 @@ import pytest
 import time
 import tempfile
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from src.core.mode_duration import (
     GameMode, OverworldSubMode, BattleSubMode, DialogSubMode, MenuSubMode, CutsceneSubMode,
-    AnomalySeverity, EscalationTier, BreakoutStrategy,
-    ModeClassification, ModeEntry, ModeExit, ModeDurationProfile, Anomaly, BreakoutResult, ResponsePlan,
-    ModeClassifier, DurationTracker, DurationProfileLearner, DurationProfileStore,
+    EscalationTier, BreakoutStrategy,
+    ModeClassification, ModeDurationProfile, Anomaly, BreakoutResult, ModeClassifier, DurationTracker, DurationProfileLearner, DurationProfileStore,
     AnomalyDetector, AnomalyResponseSelector, BreakoutManager, BreakoutAnalytics,
     ModeDurationEscalation, ModeDurationTrackingSystem,
 )

@@ -17,7 +17,6 @@ import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import cv2
 import numpy as np
 import pytest
 
@@ -34,7 +33,6 @@ class TestDetectHPBars:
 
     @pytest.fixture
     def gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -91,7 +89,6 @@ class TestDetectText:
 
     @pytest.fixture
     def gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -132,7 +129,6 @@ class TestDetectMenuPattern:
 
     @pytest.fixture
     def gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -171,7 +167,6 @@ class TestAnalyzeScreenshot:
 
     @pytest.fixture
     def gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -227,7 +222,6 @@ class TestSimpleAIHeuristics:
 
     @pytest.fixture
     def gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -268,7 +262,6 @@ class TestGameLoopInit:
     """Tests for GameLoop.__init__ with mocked dependencies."""
 
     def test_constructor_stores_rom_path(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -276,23 +269,20 @@ class TestGameLoopInit:
             assert gl.rom_path == Path("/fake/rom.gb")
 
     def test_constructor_creates_emulator(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator") as mock_emu, \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
-            gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
+            GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             mock_emu.assert_called_once_with(str(Path("/fake/rom.gb")))
 
     def test_constructor_creates_database(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase") as mock_db, \
              patch("src.core.game_loop.ScreenshotManager"):
-            gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp/saves"))
+            GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp/saves"))
             mock_db.assert_called_once()
 
     def test_default_interval_values(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -301,7 +291,6 @@ class TestGameLoopInit:
             assert gl.ai_response_delay == 0.5
 
     def test_custom_interval_values(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -311,7 +300,6 @@ class TestGameLoopInit:
             assert gl.ai_response_delay == 0.1
 
     def test_initial_state_values(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -324,7 +312,6 @@ class TestGameLoopInit:
             assert gl.command_history == []
 
     def test_metrics_initialized(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -340,7 +327,6 @@ class TestGameLoopLifecycle:
     """Tests for start() and stop() with mocked dependencies."""
 
     def _make_gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -405,7 +391,6 @@ class TestRunSingleTick:
     """Tests for run_single_tick() with mocked dependencies."""
 
     def _make_gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -467,7 +452,6 @@ class TestExecutePendingCommands:
     """Tests for _execute_pending_commands() with mocked emulator + DB."""
 
     def _make_gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -547,7 +531,6 @@ class TestGetAIDecision:
     """Tests for _get_ai_decision() async routing — using asyncio.run()."""
 
     def _make_gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -593,7 +576,6 @@ class TestDetectBattleTransition:
     """Tests for _detect_battle_transition() with mocked deps."""
 
     def _make_gl(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator"), \
              patch("src.core.game_loop.GameDatabase"), \
              patch("src.core.game_loop.ScreenshotManager"):
@@ -643,7 +625,6 @@ class TestGameLoopIntegration:
     """End-to-end tests with all deps mocked."""
 
     def test_full_lifecycle(self):
-        from src.core.game_loop import GameLoop
         with patch("src.core.game_loop.Emulator") as mock_emu_cls, \
              patch("src.core.game_loop.GameDatabase") as mock_db_cls, \
              patch("src.core.game_loop.ScreenshotManager") as mock_ss_cls:

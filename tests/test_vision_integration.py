@@ -1,6 +1,6 @@
 """Integration test: Emulator + VisionClient with real API call."""
-import os
-import sys
+import os  # noqa: E402
+import sys  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -22,10 +22,10 @@ if not api_key:
 os.environ["OPENROUTER_API_KEY"] = api_key
 print(f"API key loaded ({len(api_key)} chars)")
 
-from src.core.emulator import Emulator
-from src.core.vision import VisionClient
-from src.core.rom_detect import detect_platform
-import time
+from src.core.emulator import Emulator  # noqa: E402
+from src.core.vision import VisionClient  # noqa: E402
+from src.core.rom_detect import detect_platform  # noqa: E402
+import time  # noqa: E402
 
 ROM_PATH = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 print(f"ROM: {ROM_PATH}")
@@ -40,7 +40,7 @@ print(f"Screen captured: shape={screen.shape}, dtype={screen.dtype}")
 print(f"Pixel range: {screen.min()}-{screen.max()}")
 
 # Save screenshot for debugging
-from PIL import Image
+from PIL import Image  # noqa: E402
 Image.fromarray(screen).save("/tmp/pokemon_blue_capture.png")
 print("Saved screenshot to /tmp/pokemon_blue_capture.png")
 
@@ -54,7 +54,7 @@ result = vc.analyze(screen, "gen1")
 elapsed = time.time() - start
 
 print(f"\nVision call took {elapsed:.1f}s")
-print(f"Vision result:")
+print("Vision result:")
 for k, v in result.items():
     print(f"  {k}: {v!r}")
 

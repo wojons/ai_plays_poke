@@ -7,11 +7,9 @@ emulator dependencies. All tests use plain string inputs and temp dirs.
 
 from __future__ import annotations
 
-import json
 
-import pytest
 
-from src.core.map_integrator import MapIntegrator, _dict_to_patch, _parse_raw
+from src.core.map_integrator import _dict_to_patch, _parse_raw
 
 
 # ── _parse_raw tests ────────────────────────────────────────────────────────

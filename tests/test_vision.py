@@ -10,7 +10,6 @@ import numpy as np
 from pathlib import Path
 from PIL import Image
 from unittest.mock import MagicMock, patch
-from typing import Dict, Any, Optional
 
 
 class TestScreenClassification:
@@ -179,7 +178,7 @@ class TestOCRAccuracy:
         ]
 
         for phrase in expected_phrases:
-            mock_result = {
+            {
                 "text_detected": True,
                 "text_content": phrase,
                 "confidence": 0.95,
@@ -204,7 +203,7 @@ class TestOCRAccuracy:
         ]
 
         for name in pokemon_names:
-            mock_result = {
+            {
                 "text_detected": True,
                 "text_content": name,
                 "confidence": 0.92,
@@ -229,7 +228,7 @@ class TestOCRAccuracy:
         ]
 
         for move in move_names:
-            mock_result = {
+            {
                 "text_detected": True,
                 "text_content": move,
                 "confidence": 0.91,
@@ -574,7 +573,7 @@ class TestVisionIntegration:
     def test_vision_analysis_on_real_screenshot(self, real_screenshot_path) -> None:  # type: ignore[no-untyped-def]
         """Test vision analysis on real screenshot"""
         img = Image.open(real_screenshot_path)
-        screenshot = np.array(img)
+        np.array(img)
 
         mock_result = {
             "screen_type": "overworld",

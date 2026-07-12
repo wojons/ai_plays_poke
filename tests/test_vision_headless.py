@@ -212,7 +212,6 @@ class TestVisionClientParsing:
         assert result.get("screen_type") == "overworld"
 
     def test_regex_extract_hp_values(self) -> None:
-        text = '{"screen_type": "battle", "player_hp_pct": 42, "enemy_hp_pct": 88}'
         # This parses cleanly, but also verify regex fallback works
         # by breaking the JSON just enough
         broken = '"screen_type": "battle",\n"player_hp_pct": 42,\n"enemy_hp_pct": 88'

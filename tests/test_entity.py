@@ -11,16 +11,13 @@ Tests cover:
 """
 
 import pytest
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Any
-from unittest.mock import MagicMock, patch
+from typing import List, Optional
 
 from src.core.entity import (
     PokemonType,
     StatusCondition,
     MoveCategory,
     GrowthRate,
-    TeamRole,
     PokemonStats,
     BaseStats,
     IndividualValues,
@@ -1310,7 +1307,7 @@ class TestEdgeCases:
         
         coverage = optimizer.analyze_type_coverage(empty_party)
         distribution = optimizer.calculate_stat_distribution(empty_party)
-        overlaps = optimizer.detect_move_overlap(empty_party)
+        optimizer.detect_move_overlap(empty_party)
         
         assert coverage.coverage_percentage == 0.0
         assert distribution["attack"] == 0.0

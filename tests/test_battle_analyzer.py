@@ -6,7 +6,6 @@ Untestable without ROM: analyze_battle (full pipeline), _extract_pokemon_info (n
 """
 import numpy as np
 import pytest
-from unittest.mock import MagicMock, patch, PropertyMock
 
 from src.vision.battle import (
     BattleType,
@@ -248,14 +247,14 @@ class TestCalculateDamage:
         assert isinstance(dmg, float)
 
     def test_damage_monotonic_with_power(self, analyzer):
-        dmg_40 = analyzer.calculate_damage(50, 40, "Normal", ["Normal"])
-        dmg_80 = analyzer.calculate_damage(50, 80, "Normal", ["Normal"])
+        analyzer.calculate_damage(50, 40, "Normal", ["Normal"])
+        analyzer.calculate_damage(50, 80, "Normal", ["Normal"])
         # With random factor, not perfectly monotonic, but average should be higher
         # We'll test the formula structure without random
 
     def test_damage_monotonic_with_level(self, analyzer):
-        dmg_10 = analyzer.calculate_damage(10, 80, "Normal", ["Normal"])
-        dmg_50 = analyzer.calculate_damage(50, 80, "Normal", ["Normal"])
+        analyzer.calculate_damage(10, 80, "Normal", ["Normal"])
+        analyzer.calculate_damage(50, 80, "Normal", ["Normal"])
 
     def test_critical_increases_damage(self, analyzer):
         # Critical removes the random factor and multiplies by 1.5
@@ -392,7 +391,7 @@ class TestExtractHPBarRegions:
     def test_tiny_screenshot_produces_none_regions(self, analyzer):
         """Screenshot too small for valid regions → None."""
         screenshot = np.zeros((10, 10, 3), dtype=np.uint8)
-        regions = analyzer._extract_hp_bar_regions(screenshot)
+        analyzer._extract_hp_bar_regions(screenshot)
         # Both regions should be None because start < end check fails
         # h*0.02 = 0, h*0.15 = 1 — that's fine actually
         # Let's check: enemy_hp_y_start=0, enemy_hp_y_end=1 → 0<1 OK

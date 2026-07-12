@@ -96,7 +96,7 @@ class TestRemember:
         assert record["status"] == "active"
 
     def test_normalizes_key_without_leading_slash(self, duckbrain_tmp):
-        mem_id = dbc.remember(
+        dbc.remember(
             key="no-leading-slash",
             domain="raw_note",
             attributes={},

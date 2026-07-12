@@ -3,11 +3,10 @@ Unit tests for src/core/screenshot_manager.py
 Tests ScreenshotManager + LiveView classes with tmp_path — no ROM/API needed.
 """
 import base64
-import io
 import os
 import time
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import cv2
 import numpy as np
@@ -110,7 +109,7 @@ class TestGetLatestScreenshot:
     def test_returns_latest_by_mtime(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path / "ss"))
         img = _make_rgb()
-        p1 = sm.save_screenshot(img, "first")
+        sm.save_screenshot(img, "first")
         time.sleep(0.01)
         p2 = sm.save_screenshot(img, "second")
         result = sm.get_latest_screenshot()
@@ -406,7 +405,7 @@ class TestIntegration:
     def test_save_and_get_latest(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path / "ss"))
         img = _make_rgb()
-        p1 = sm.save_screenshot(img, "one", "overworld")
+        sm.save_screenshot(img, "one", "overworld")
         time.sleep(0.01)
         p2 = sm.save_screenshot(img, "two", "overworld")
         assert sm.get_latest_screenshot("overworld") == p2

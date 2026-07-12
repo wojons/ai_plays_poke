@@ -603,7 +603,7 @@ class TestHSMUpdate:
 
     def test_update_with_explicit_tick(self):
         hsm = HierarchicalStateMachine()
-        result = hsm.update(tick=42)
+        hsm.update(tick=42)
         assert hsm._tick == 42
 
     def test_update_invalid_tick(self):

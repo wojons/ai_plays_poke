@@ -13,11 +13,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 import pytest
 import time
 from datetime import datetime
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import MagicMock, patch
 
 from schemas.commands import (
-    AICommand, CommandType, GameState, BattleState,
-    AIThought, CommandExecutionResult
+    GameState
 )
 from core.emulator import Button as EmulatorButton
 
@@ -718,7 +717,7 @@ class TestCommandExecution:
 
             start_time = time.time()
             game_loop._execute_pending_commands()
-            execution_time = (time.time() - start_time) * 1000
+            (time.time() - start_time) * 1000
 
             call_args = mock_db_connection.log_command.call_args[0][0]
             assert 'execution_time_ms' in call_args

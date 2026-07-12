@@ -11,12 +11,12 @@ Tests cover:
 - Stub game state analysis (_analyze_game_state_stub)
 """
 
-import sys
-from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import MagicMock, patch
+import sys  # noqa: E402
+from pathlib import Path  # noqa: E402
+from typing import Any, Dict  # noqa: E402
+from unittest.mock import MagicMock, patch  # noqa: E402
 
-import pytest
+import pytest  # noqa: E402
 
 # game_loop.py inserts project root into sys.path for db.* imports
 # Tests need src/ on sys.path for db.database, core.*, src.* imports
@@ -24,7 +24,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 sys.path.insert(0, str(project_root))
 
-from src.schemas.commands import GameState
+from src.schemas.commands import GameState  # noqa: E402
 
 # Import after mocking external dependencies to avoid import-time side effects
 with patch("db.database.GameDatabase", MagicMock()), \
@@ -412,7 +412,7 @@ class TestGameLoopInit:
         # EmulatorManager raises NotImplementedError in __init__
         # but that's expected — just verify the branch is reachable
         try:
-            gl = GameLoop(config)
+            GameLoop(config)
         except NotImplementedError:
             pass  # Expected — EmulatorManager is a stub
 
