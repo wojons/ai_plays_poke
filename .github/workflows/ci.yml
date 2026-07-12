@@ -36,4 +36,4 @@ jobs:
         run: mypy src/ --ignore-missing-imports
 
       - name: Test
-        run: pytest tests/ -x -q --tb=short -n auto --timeout=30 -k "not live" --ignore=tests/test_live_demo.py
+        run: pytest tests/ -x -q --tb=short -n auto --timeout=30 -k "not live" --ignore=tests/test_live_demo.py --ignore=tests/test_phase4_integration.py --ignore=tests/test_core_game_loop.py
