@@ -869,18 +869,18 @@
 
 ## Active Queue (Jul 12 — Discovery Sweep)
 
-### [ ] DEPS-1: Upgrade 8 outdated Python packages
+### [x] DEPS-1: Upgrade 9 outdated Python packages ✅ (2026-07-13)
 - **Priority:** low
-- **Why:** Discovery sweep found 8 outdated packages. pydantic_core remains BLOCKED by pydantic 2.13.4 exact pin.
-- **Packages:**
-  - anyio 4.14.1→4.14.2 (patch)
-  - build 1.5.0→1.5.1 (patch)
-  - coverage 7.15.0→7.15.1 (patch)
-  - huggingface_hub 1.22.0→1.23.0 (minor)
-  - importlib_metadata 8.9.0→9.0.0 (major)
-  - pyarrow 24.0.0→25.0.0 (major)
-  - ruff 0.15.20→0.15.21 (patch)
-  - websockets 16.0→16.1 (minor)
-  - pydantic_core 2.46.4→2.47.0 ❌ BLOCKED (pydantic 2.13.4 exact pin)
-- **AC:** Upgrade all 8 packages. Run full test suite. Revert any that break tests.
+- **Result:** All 9 packages upgraded successfully (8 original + mypy 2.2.0→2.3.0). 2992 tests pass, 8 skipped (100s). pydantic_core remains BLOCKED. Minor pip warning: litellm pins importlib-metadata<9.0 but 9.0.0 works in tests.
+- **Upgraded:**
+  - anyio 4.14.1→4.14.2 ✅
+  - build 1.5.0→1.5.1 ✅
+  - coverage 7.15.0→7.15.1 ✅
+  - huggingface_hub 1.22.0→1.23.0 ✅
+  - importlib_metadata 8.9.0→9.0.0 ✅ (litellm warns but 2992 tests pass)
+  - mypy 2.2.0→2.3.0 ✅ (new — not in original list)
+  - pyarrow 24.0.0→25.0.0 ✅
+  - ruff 0.15.20→0.15.21 ✅
+  - websockets 16.0→16.1 ✅
+  - pydantic_core 2.46.4→2.47.0 ❌ STILL BLOCKED
 
