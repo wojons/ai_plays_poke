@@ -867,4 +867,20 @@
 
 ---
 
+## Active Queue (Jul 12 — Discovery Sweep)
+
+### [ ] DEPS-1: Upgrade 8 outdated Python packages
+- **Priority:** low
+- **Why:** Discovery sweep found 8 outdated packages. pydantic_core remains BLOCKED by pydantic 2.13.4 exact pin.
+- **Packages:**
+  - anyio 4.14.1→4.14.2 (patch)
+  - build 1.5.0→1.5.1 (patch)
+  - coverage 7.15.0→7.15.1 (patch)
+  - huggingface_hub 1.22.0→1.23.0 (minor)
+  - importlib_metadata 8.9.0→9.0.0 (major)
+  - pyarrow 24.0.0→25.0.0 (major)
+  - ruff 0.15.20→0.15.21 (patch)
+  - websockets 16.0→16.1 (minor)
+  - pydantic_core 2.46.4→2.47.0 ❌ BLOCKED (pydantic 2.13.4 exact pin)
+- **AC:** Upgrade all 8 packages. Run full test suite. Revert any that break tests.
 
