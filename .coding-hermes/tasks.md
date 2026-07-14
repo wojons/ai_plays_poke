@@ -891,5 +891,19 @@
 ### [x] DEPS-2: Upgrade gitreins 0.8.2→0.10.2 + jaraco.functools 4.5.0→4.6.0 ✅
 - **Priority:** low
 - **Why:** 2 outdated packages flagged in discovery sweep.
-- **Result:** gitreins 0.8.2→0.10.2 ✅, jaraco.functools 4.5.0→4.6.0 ✅. 2992 tests pass, ruff clean, mypy clean (58 files). gitreins guard: secrets/lint/tests/lsp pass. static_analysis fail on diag_lcd.py is pre-existing (root-level diagnostic script, not in src/). pydantic_core still BLOCKED.
+|- **Result:** gitreins 0.8.2→0.10.2 ✅, jaraco.functools 4.5.0→4.6.0 ✅. 2992 tests pass, ruff clean, mypy clean (58 files). gitreins guard: secrets/lint/tests/lsp pass. static_analysis fail on diag_lcd.py is pre-existing (root-level diagnostic script, not in src/). pydantic_core still BLOCKED.
+
+---
+
+## Active Queue (Jul 14 — Discovery Sweep)
+
+### [ ] DEPS-3: Upgrade httpcore2 2.5.0→2.7.0 + httpx2 2.5.0→2.7.0
+- **Priority:** low
+- **Why:** 2 outdated packages flagged in discovery sweep. pydantic_core still BLOCKED.
+- **Files:** pyproject.toml (or requirements.txt), venv
+- **AC:**
+  1. Upgrade httpcore2 2.5.0→2.7.0
+  2. Upgrade httpx2 2.5.0→2.7.0
+  3. All 2992 non-ROM tests pass
+  4. ruff check clean, mypy clean
 
