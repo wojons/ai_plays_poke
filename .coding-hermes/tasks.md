@@ -884,3 +884,12 @@
   - websockets 16.0→16.1 ✅
   - pydantic_core 2.46.4→2.47.0 ❌ STILL BLOCKED
 
+---
+
+## Active Queue (Jul 13 — Discovery Sweep)
+
+### [x] DEPS-2: Upgrade gitreins 0.8.2→0.10.2 + jaraco.functools 4.5.0→4.6.0 ✅
+- **Priority:** low
+- **Why:** 2 outdated packages flagged in discovery sweep.
+- **Result:** gitreins 0.8.2→0.10.2 ✅, jaraco.functools 4.5.0→4.6.0 ✅. 2992 tests pass, ruff clean, mypy clean (58 files). gitreins guard: secrets/lint/tests/lsp pass. static_analysis fail on diag_lcd.py is pre-existing (root-level diagnostic script, not in src/). pydantic_core still BLOCKED.
+
