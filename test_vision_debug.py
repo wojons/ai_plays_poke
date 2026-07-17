@@ -55,7 +55,7 @@ def test_vision_image_encoding() -> bool:
         print("\n🤖 Calling vision API...")
         result = ai_manager.analyze_screenshot(screenshot)
         
-        print(f"\n✅ Vision API call succeeded!")
+        print("\n✅ Vision API call succeeded!")
         print(f"📊 Result: {result}")
         
         # Check if result makes sense
@@ -94,7 +94,7 @@ def test_image_encoding_pipeline() -> bool:
     
     # Step 1: Convert to PIL
     pil_img = Image.fromarray(screenshot)
-    print(f"\n2. PIL Image:")
+    print("\n2. PIL Image:")
     print(f"   Size: {pil_img.size}")
     print(f"   Mode: {pil_img.mode}")
     
@@ -108,22 +108,22 @@ def test_image_encoding_pipeline() -> bool:
     pil_img.save(buffered, format="PNG")
     image_base64 = base64.b64encode(buffered.getvalue()).decode()
     
-    print(f"\n3. Base64 encoded:")
+    print("\n3. Base64 encoded:")
     print(f"   Length: {len(image_base64)} characters")
     print(f"   Preview: {image_base64[:100]}...")
     
     # Step 4: Create data URL
     data_url = f"data:image/png;base64,{image_base64}"
-    print(f"\n4. Data URL:")
+    print("\n4. Data URL:")
     print(f"   Length: {len(data_url)} characters")
     print(f"   Preview: {data_url[:100]}...")
     
     # Verify it's valid base64
     try:
         decoded = base64.b64decode(image_base64)
-        print(f"\n5. Verification:")
+        print("\n5. Verification:")
         print(f"   Decoded length: {len(decoded)} bytes")
-        print(f"   ✅ Base64 encoding is valid")
+        print("   ✅ Base64 encoding is valid")
         return True
     except Exception as e:
         print(f"\n5. Verification FAILED: {e}")
