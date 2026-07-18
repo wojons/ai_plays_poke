@@ -37,16 +37,17 @@
   4. ✅ State transitions logged to DuckBrain via register_transition_callback → _log_hsm_transition
   5. ✅ 105 HSM tests pass, 88 state_window tests pass, full suite 2999/2999
 
-### [ ] STUCK-RECOVER: Reliable stuck detection with escalating recovery
+### [x] STUCK-RECOVER: Reliable stuck detection with escalating recovery ✅ (cafdee6)
 - **Priority:** high
 - **Why:** The controller gets direction-locked (5+ same-direction presses), void-locked (unknown tiles), and screen-locked (same screen for 5+ cycles). Current recovery is basic menu-redraw. Need escalating recovery: direction blocked → try different direction → open/close menu → save state → load previous state → soft reset.
-- **Files:** cron_runner.py
+- **Files:** cron_runner.py (+234/-81)
+- **Result:** Added unified stuck-detection system with 3 independent dimensions (same-direction count, same-screen count, void-tile percentage). Implemented `_escalating_recovery()` with 5-level ladder: alternate direction → menu redraw → step back → load checkpoint → A-mash. State-change detection resets recovery counter. Gave-up tracking reports `recovery_exhausted` after 5 failures. Both pipeline paths (cartographer overworld + StateWindow) unified. 2999/2999 tests pass.
 - **AC:**
-  1. Track same-direction count, same-screen count, void-tile percentage separately
-  2. Esclating recovery: try alternate direction → open/close menu (START+B+B) → step back (opposite direction) → load checkpoint → A-mash (dialog stuck)
-  3. Each recovery step logged with reason
-  4. Recovery counter resets on any successful state change
-  5. Max 5 recovery attempts before giving up and reporting
+  1. ✅ Track same-direction count, same-screen count, void-tile percentage separately
+  2. ✅ Escalating recovery: try alternate direction → open/close menu (START+B+B) → step back (opposite direction) → load checkpoint → A-mash (dialog stuck)
+  3. ✅ Each recovery step logged with reason
+  4. ✅ Recovery counter resets on any successful state change
+  5. ✅ Max 5 recovery attempts before giving up and reporting
 
 ### [ ] BATTLE-AGENT: Wire battle state reading to actual battle decisions
 - **Priority:** high
