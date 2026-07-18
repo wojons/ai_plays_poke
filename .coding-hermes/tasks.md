@@ -3,16 +3,16 @@
 
 ## Active Queue (Jul 18 — Discovery Sweep)
 
-### [ ] GAMEPLAY-ARCH: Design reliable gameplay architecture (planning task, no code)
+### [x] GAMEPLAY-ARCH: Design reliable gameplay architecture (planning task, no code) ✅ (this tick)
 - **Priority:** highest
 - **Why:** Current system boots + reads RAM perfectly but the controller LLM doesn't produce reliable gameplay. We need a design that matches the architecture to the problem: RAM reader gives us perfect state → compact prompt → LLM picks from a small decision space → execute. No vision, no spatial reasoning, just state data → action mapping.
-- **Goal:** Produce a 1-page architecture doc (.coding-hermes/gameplay-architecture.md) that defines:
-  1. What state data flows to the controller (coordinates, adjacent tiles, map name, dialog text, battle HP/stats, menu cursor)
-  2. What the controller outputs (single button press: direction/A/B/START/SELECT)
-  3. How the controller uses DuckBrain context (past decisions, map knowledge)
-  4. State machine integration: which HSM state triggers what prompt template
-  5. Recovery: what happens when controller produces invalid or stuck actions
-- **Files:** .coding-hermes/gameplay-architecture.md (new)
+- **Result:** Architecture doc written at `.coding-hermes/gameplay-architecture.md` — 10 sections covering data flow, HSM integration, controller memory window, recovery as HSM state, DuckBrain context, token budget, and phased implementation plan (Phases A-F) for 6 downstream tasks.
+- **AC:**
+  1. ✅ State data flow defined: RAM reader output fields → controller prompt (Section 2)
+  2. ✅ Controller output defined: movement plan JSON, battle actions, menu selections (Section 2.3)
+  3. ✅ DuckBrain context integration: pre-decision recall + post-run remember (Section 6)
+  4. ✅ HSM integration: 11-state mapping table with prompt template selection (Section 3.3)
+  5. ✅ Recovery architecture: 6-level escalation ladder through HSM EMERGENCY states (Section 5)
 
 ### [ ] PROMPT-COMPACT: Create compact controller prompts using RAM data
 - **Priority:** highest
