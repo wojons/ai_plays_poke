@@ -194,6 +194,7 @@ class StateWindow:
         thinking_model: str = "deepseek-v4-flash",
         max_steps: int = 15,
         hint_level: int = 0,
+        vision_client: Any = None,
     ) -> None:
         self.state_type = state_type
         self.global_ctx = global_ctx
@@ -203,6 +204,7 @@ class StateWindow:
         self.thinking_model = thinking_model
         self.max_steps = max_steps
         self.hint_level = hint_level
+        self.vision_client = vision_client
 
         self.client = OpenRouterClient()
         self._step_count = 0
@@ -576,10 +578,50 @@ class StateWindow:
         return False
 
     def _check_outcome(self) -> dict[str, Any] | None:
-        """Check if the state has been resolved based on recent history.
+        """Check if the state has been resolved based on vision analysis.
 
-        Override in subclasses or use the vision model to detect.
+        When a vision_client is available, captures a fresh screenshot and
+        re-analyzes with the vision model. If the new screen_type differs
+        from the initial screen_type, a state transition is detected.
+
+        Falls back to None (no outcome detected) when no vision_client
+        is set or on transient failures.
         """
-        # TODO: use vision + LLM to detect state transitions
-        # For now, state transitions are handled by the parent DecisionLoop
+        if self.vision_client is None:
+            return None
+
+        init_screen_type = self.vision.get("screen_type", "")
+        if not init_screen_type:
+            return None
+
+        try:
+            screenshot = self.emulator.capture()
+        except Exception:
+            return None
+
+        try:
+            new_vision = self.vision_client.analyze(screenshot, game=self.generation)
+        except Exception:
+            return None
+
+        new_screen_type = new_vision.get("screen_type", "")
+        if new_screen_type and new_screen_type != init_screen_type:
+            return {
+                "outcome": "state_transition",
+                "from_type": init_screen_type,
+                "to_type": new_screen_type,
+                "new_vision": new_vision,
+            }
+
+        # Same screen type — also check subtype changes for menu transitions
+        init_subtype = self.vision.get("screen_subtype")
+        new_subtype = new_vision.get("screen_subtype")
+        if new_subtype and init_subtype and new_subtype != init_subtype:
+            return {
+                "outcome": "state_transition",
+                "from_type": f"{init_screen_type}/{init_subtype}",
+                "to_type": f"{new_screen_type}/{new_subtype}",
+                "new_vision": new_vision,
+            }
+
         return None

@@ -687,7 +687,7 @@ class TestIsInteractive:
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestCheckOutcome:
-    """Verify _check_outcome returns None (not yet implemented)."""
+    """Verify _check_outcome returns None without vision_client."""
 
     def test_returns_none_by_default(self, ctx, mock_emu, battle_vision):
         window = _make_window("battle", ctx, mock_emu, battle_vision)
@@ -700,6 +700,84 @@ class TestCheckOutcome:
     def test_returns_none_for_overworld(self, ctx, mock_emu, overworld_vision):
         window = _make_window("overworld", ctx, mock_emu, overworld_vision)
         assert window._check_outcome() is None
+
+    def test_returns_none_when_vision_client_set_but_same_screen(self, ctx, mock_emu, battle_vision):
+        """With vision_client, same screen_type returns None (no transition)."""
+        mock_vc = MagicMock()
+        mock_vc.analyze.return_value = {"screen_type": "battle", "screen_subtype": "wild_encounter"}
+        mock_emu.capture.return_value = "mock_screenshot"
+        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        assert window._check_outcome() is None
+        mock_vc.analyze.assert_called_once_with("mock_screenshot", game="gen1")
+
+    def test_detects_screen_type_transition(self, ctx, mock_emu, battle_vision):
+        """Vision client detects screen_type changed (battle → overworld)."""
+        mock_vc = MagicMock()
+        mock_vc.analyze.return_value = {"screen_type": "overworld", "screen_subtype": None}
+        mock_emu.capture.return_value = "mock_screenshot"
+        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        result = window._check_outcome()
+        assert result is not None
+        assert result["outcome"] == "state_transition"
+        assert result["from_type"] == "battle"
+        assert result["to_type"] == "overworld"
+
+    def test_detects_subtype_transition(self, ctx, mock_emu, battle_vision):
+        """Vision client detects subtype changed (wild_encounter → rival_battle)."""
+        mock_vc = MagicMock()
+        mock_vc.analyze.return_value = {
+            "screen_type": "battle",
+            "screen_subtype": "rival_battle",
+        }
+        mock_emu.capture.return_value = "mock_screenshot"
+        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        result = window._check_outcome()
+        assert result is not None
+        assert result["outcome"] == "state_transition"
+        assert result["from_type"] == "battle/wild_encounter"
+        assert result["to_type"] == "battle/rival_battle"
+
+    def test_detects_dialog_to_overworld_transition(self, ctx, mock_emu, dialog_vision):
+        """Vision client detects dialog → overworld transition."""
+        mock_vc = MagicMock()
+        mock_vc.analyze.return_value = {
+            "screen_type": "overworld",
+            "screen_subtype": None,
+        }
+        mock_emu.capture.return_value = "mock_screenshot"
+        window = _make_window("dialog", ctx, mock_emu, dialog_vision, vision_client=mock_vc)
+        result = window._check_outcome()
+        assert result is not None
+        assert result["outcome"] == "state_transition"
+        assert result["from_type"] == "dialog"
+        assert result["to_type"] == "overworld"
+        assert "new_vision" in result
+
+    def test_vision_client_capture_failure_still_returns_none(self, ctx, mock_emu, battle_vision):
+        """When emulator.capture() fails, _check_outcome gracefully returns None."""
+        mock_vc = MagicMock()
+        mock_emu.capture.side_effect = RuntimeError("emulator not running")
+        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        result = window._check_outcome()
+        assert result is None
+
+    def test_vision_client_analyze_failure_still_returns_none(self, ctx, mock_emu, battle_vision):
+        """When vision_client.analyze() fails, _check_outcome gracefully returns None."""
+        mock_vc = MagicMock()
+        mock_vc.analyze.side_effect = ValueError("API error")
+        mock_emu.capture.return_value = "mock_screenshot"
+        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        result = window._check_outcome()
+        assert result is None
+
+    def test_unknown_initial_screen_returns_none(self, ctx, mock_emu):
+        """When initial vision has no screen_type, skip detection."""
+        mock_vc = MagicMock()
+        mock_emu.capture.return_value = "mock_screenshot"
+        window = _make_window("battle", ctx, mock_emu, {}, vision_client=mock_vc)
+        result = window._check_outcome()
+        assert result is None
+        mock_vc.analyze.assert_not_called()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
