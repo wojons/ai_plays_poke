@@ -14,15 +14,16 @@
   4. ✅ HSM integration: 11-state mapping table with prompt template selection (Section 3.3)
   5. ✅ Recovery architecture: 6-level escalation ladder through HSM EMERGENCY states (Section 5)
 
-### [ ] PROMPT-COMPACT: Create compact controller prompts using RAM data
+### [x] PROMPT-COMPACT: Create compact controller prompts using RAM data ✅
 - **Priority:** highest
 - **Why:** Current prompts are ~500 tokens of spatial description from vision models. With RAM reader, we have exact coordinates, adjacent tile types, dialog text, and battle stats. The prompt should be: "You are at (3,4) on Pallet Town. Adjacent: up=floor, down=grass, left=wall, right=floor. Facing south. What direction?" — ~50 tokens instead of 500. This makes the LLM faster, cheaper, and less likely to hallucinate.
 - **Files:** src/core/state_window.py, configs/prompts/gen1/
+- **Result:** Created configs/prompts/gen1/overworld_ram.yaml (compact template, ~140 chars / ~35 tokens). Added use_ram_prompts parameter to StateWindow.__init__ + _build_ram_prompt() method that detects ram_reader data via player_x field presence. Falls back gracefully to render field or standard builder. 2999 tests pass. Commit 52b5f95.
 - **AC:**
-  1. Create gen1/overworld_ram.yaml prompt template that uses only ram_reader data
-  2. StateWindow._build_prompt detects USE_RAM_READER and routes to compact prompts
-  3. Overworld prompt < 100 tokens (controller budget stays at 500 total)
-  4. Existing state_window tests pass
+  1. ✅ Create gen1/overworld_ram.yaml prompt template that uses only ram_reader data
+  2. ✅ StateWindow._build_prompt detects USE_RAM_READER and routes to compact prompts
+  3. ✅ Overworld prompt < 100 tokens (verified: ~35 tokens, 140 chars)
+  4. ✅ Existing state_window tests pass (88/88)
 
 ### [ ] HSM-WIRE: Wire 69-state HSM into state_window.py
 - **Priority:** high
