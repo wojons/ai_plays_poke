@@ -10,9 +10,9 @@
 - **AC:**
   1. Pass actual token counts from AI client response through to metrics
   2. Verify token tracking in unit tests
-  |  3. game_loop test suite still passes
-  |- **Result:** All 3 ACs met. `ai_client.py` now captures `_last_usage` from API responses. `game_loop.py` reads `tokens_used` from command dict instead of hardcoding 0. `_get_real_ai_decision()` tracks actual prompt/completion tokens. Commit d54f084.
-  |
+  3. game_loop test suite still passes
+- **Result:** All 3 ACs met. `ai_client.py` now captures `_last_usage` from API responses. `game_loop.py` reads `tokens_used` from command dict instead of hardcoding 0. `_get_real_ai_decision()` tracks actual prompt/completion tokens. Commit d54f084.
+
 ### [ ] STATE-TRANS: Use vision + LLM to detect state transitions in state_window.py
 - **Priority:** medium
 - **Why:** src/core/state_window.py:583 — `# TODO: use vision + LLM to detect state transitions`. Currently state transitions are detected by simple heuristics — should use the full vision pipeline for accuracy.
