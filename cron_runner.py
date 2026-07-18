@@ -107,7 +107,17 @@ if USE_VISION_CLIENT:
 # ── Checkpointing ───────────────────────────────────────────────────
 CHECKPOINT_INTERVAL = 10   # save state every N cycles
 CHECKPOINT_SLOTS = 5       # rotating slots 0-4
-MAX_SAME_DIRECTION = 5     # blocked-direction threshold before rollback
+MAX_SAME_DIRECTION = 5     # blocked-direction threshold before rollback (legacy)
+
+# ── Recovery (STUCK-RECOVER) ──────────────────────────────────────
+MAX_RECOVERY_ATTEMPTS = 5     # total recovery escalations before giving up
+MAX_SAME_SCREEN_CYCLES = 5    # same screen for N cycles → stuck
+MAX_VOID_CYCLES = 3           # >95% unknown-tile cycles → void
+MAX_STUCK_SAME_DIR = 4        # same direction N times → direction-locked
+# Opposite direction map for step-back recovery
+_OPPOSITE_DIR = {"UP": "DOWN", "DOWN": "UP", "LEFT": "RIGHT", "RIGHT": "LEFT"}
+# Direction rotation map for alternate-direction recovery (90° clockwise)
+_DIR_ROTATION = {"UP": "RIGHT", "RIGHT": "DOWN", "DOWN": "LEFT", "LEFT": "UP"}
 
 # ── Load visual-reference cartographer prompt (only if not using RAM reader) ──
 if not USE_RAM_READER:
@@ -138,6 +148,72 @@ def screenshot_to_base64(screenshot: np.ndarray) -> str:
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode()
+
+
+def _escalating_recovery(
+    emu,
+    recovery_level: int,
+    last_direction: str,
+    last_saved_slot: int | None,
+) -> tuple[str, str]:
+    """Execute escalating recovery action. Returns (strategy_name, description).
+
+    Ladder:
+      Level 0 — Alternate direction: rotate 90° from last direction
+      Level 1 — Menu redraw: START, B, B (force screen refresh)
+      Level 2 — Step back: press opposite of last direction
+      Level 3 — Load checkpoint: restore last saved state
+      Level 4 — A-mash + B: rapid A presses (dialog stuck) then B to close
+
+    If no last_direction or no checkpoint available, skips to next level.
+    Recovery level wraps at 4 (always does A-mash on max).
+    """
+    # Clamp level
+    level = min(recovery_level, 4)
+
+    if level == 0 and last_direction in _DIR_ROTATION:
+        alt = _DIR_ROTATION[last_direction]
+        emu.press_button(alt.lower(), frames=60)
+        emu.fast_forward(120)
+        return ("alternate_direction", f"rotated from {last_direction} → {alt}")
+
+    elif level == 1:
+        # Menu redraw: open menu, close it — forces screen re-render
+        emu.press_button("start", frames=30)
+        emu.wait(60)
+        emu.press_button("b", frames=10)
+        emu.wait(30)
+        emu.press_button("b", frames=10)
+        emu.wait(30)
+        return ("menu_redraw", "START → B → B (force screen redraw)")
+
+    elif level == 2 and last_direction in _OPPOSITE_DIR:
+        opp = _OPPOSITE_DIR[last_direction]
+        emu.press_button(opp.lower(), frames=60)
+        emu.fast_forward(120)
+        return ("step_back", f"pressed {opp} (opposite of {last_direction})")
+
+    elif level == 3 and last_saved_slot is not None:
+        try:
+            emu.load_state(last_saved_slot)
+            return ("load_checkpoint", f"loaded slot {last_saved_slot}")
+        except Exception as exc:
+            return ("load_checkpoint_failed", f"slot {last_saved_slot}: {exc}")
+
+    elif level >= 4 or (level >= 2 and last_direction not in _OPPOSITE_DIR):
+        # A-mash: 20 rapid A presses (dialog stuck) then B to close menus
+        for _ in range(20):
+            emu.press_button("a", frames=3)
+            emu.fast_forward(1)
+        emu.wait(30)
+        emu.press_button("b", frames=30)
+        emu.wait(30)
+        return ("a_mash", "20× A + B (dialog/menu escape)")
+
+    # Fallback: try next level
+    return _escalating_recovery(
+        emu, recovery_level + 1, last_direction, last_saved_slot
+    )
 
 
 def cartographer_analyze(
@@ -356,21 +432,28 @@ def main() -> None:
         vision = VisionClient()  # noqa: F841 — conditionally enabled debug classifier
     controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
 
-    # ── Checkpoint / recovery state ────────────────────────────────
-    _same_dir: str | None = None
-    _same_dir_count: int = 0
+    # ── Checkpoint / recovery state (STUCK-RECOVER) ─────────────────
     _checkpoint_slot: int = 0
     _last_saved_slot: int | None = None
     _dir_blacklist: set[str] = set()  # directions that caused checkpoint recovery
-    _dir_rotation = {"UP": "RIGHT", "RIGHT": "DOWN", "DOWN": "LEFT", "LEFT": "UP"}
     _last_direction: str = ""  # last direction pressed (for controller context)
     _last_result: str = "unknown"  # last movement result
 
-    # ── Void state recovery tracking ──────────────────────────────
-    _void_cycles: int = 0       # consecutive cycles with >95% unknown tiles
-    _recovery_attempts: int = 0  # recovery attempts in current void sequence
-    _stuck_cycles: int = 0       # consecutive cycles with same screen + no progress
-    _last_screen_type: str = ""  # for stuck detection
+    # ── Stuck detection (3 independent dimensions) ──────────────────
+    _same_dir: str | None = None   # last repeated direction
+    _same_dir_count: int = 0       # consecutive same-direction presses
+    _same_screen_count: int = 0    # consecutive cycles on same screen type
+    _last_screen_type: str = ""    # for same-screen detection
+    _void_tile_pct: float = 0.0    # % of tiles classified as unknown/void
+    _void_cycles: int = 0          # consecutive cycles with >95% void tiles
+
+    # ── Escalating recovery ────────────────────────────────────────
+    _recovery_level: int = 0       # current rung of the escalation ladder
+    _recovery_attempts: int = 0    # total recovery escalations (capped at MAX)
+    _last_state_key: str = ""      # composite key for state-change detection
+    _gave_up: bool = False         # True once max recovery attempts exhausted
+
+    # ── Frame hashing for cartographer cache ───────────────────────
     _last_frame_hash: str = ""   # for frame hashing — skip cartographer on identical frames
     _cached_patch: dict[str, Any] = {}  # cached cartographer output
     _cached_carto_raw: str = ""  # cached raw cartographer text
@@ -556,36 +639,88 @@ def main() -> None:
                 # visible_exits, player_facing, suggested_action).
                 # Feed this directly to the controller — no MapIntegrator needed.
 
-                # ── Void state detection (simplified: check if cartographer classified correctly) ──
-                if st == "unknown":
-                    _void_cycles += 1
-                    safe_print(f"  [VOID] Cartographer returned unknown (cycle {_void_cycles}/3)")
+                # ── Stuck detection: track void tiles from cartographer output ──
+                adj = patch_data.get("adjacent", {})
+                if adj:
+                    unknown_tiles = sum(1 for v in adj.values() if v in ("unknown", "?", ""))
+                    total_tiles = len(adj)
+                    _void_tile_pct = unknown_tiles / total_tiles if total_tiles > 0 else 0.0
+                    if _void_tile_pct > 0.95:
+                        _void_cycles += 1
+                        safe_print(f"  [VOID] {unknown_tiles}/{total_tiles} tiles unknown ({_void_tile_pct:.0%}) — cycle {_void_cycles}/{MAX_VOID_CYCLES}")
+                    else:
+                        _void_cycles = 0
                 else:
+                    _void_tile_pct = 0.0
                     _void_cycles = 0
+
+                # ── Same-screen tracking ───────────────────────────
+                if st == _last_screen_type:
+                    _same_screen_count += 1
+                else:
+                    _same_screen_count = 0
+                _last_screen_type = st
+
+                # ── State-change detection (resets recovery counter) ──
+                state_key = f"{st}:{patch_data.get('screen_subtype','')}:{adj.get('up','')}{adj.get('down','')}{adj.get('left','')}{adj.get('right','')}"
+                if state_key != _last_state_key and _last_state_key != "":
                     _recovery_attempts = 0
+                    _recovery_level = 0
+                    safe_print(f"  [STATE] Changed → {st} — recovery counter reset")
+                _last_state_key = state_key
 
-                if _void_cycles >= 3:
-                    _recovery_attempts += 1
-                    # Strategy: open/close menu to force redraw
-                    emu.press_button("start", frames=30)
-                    emu.wait(60)
-                    emu.press_button("b", frames=10)
-                    emu.wait(30)
-                    emu.press_button("b", frames=10)
-                    emu.wait(30)
-                    strategy = "menu_redraw"
+                # ── Recovery check: any stuck condition triggers escalation ──
+                needs_recovery = False
+                recovery_reason = ""
+                if _gave_up:
+                    pass  # already exhausted — no more recovery
+                elif _same_dir_count >= MAX_STUCK_SAME_DIR:
+                    needs_recovery = True
+                    recovery_reason = f"direction-locked ({_same_dir} x{_same_dir_count})"
+                elif _same_screen_count >= MAX_SAME_SCREEN_CYCLES and _last_screen_type != "overworld":
+                    needs_recovery = True
+                    recovery_reason = f"screen-locked ({_last_screen_type} x{_same_screen_count})"
+                elif _void_cycles >= MAX_VOID_CYCLES:
+                    needs_recovery = True
+                    recovery_reason = f"void-locked ({_void_cycles} cycles, {_void_tile_pct:.0%} unknown)"
 
-                    evt = {
-                        "cycle": cycle + 1,
-                        "event": "void_recovery",
-                        "recovery_attempt": _recovery_attempts,
-                        "strategy": strategy,
-                    }
-                    results.append(evt)
-                    log_file.write(json.dumps(evt, default=str) + "\n")
-                    log_file.flush()
-                    safe_print(f"  [RECOVER] Void recovery attempt {_recovery_attempts}: {strategy}")
-                    _void_cycles = 0
+                if needs_recovery:
+                    if _recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
+                        if not _gave_up:
+                            _gave_up = True
+                            safe_print(f"  [RECOVER] GIVING UP after {_recovery_attempts} recovery attempts ({recovery_reason})")
+                            evt = {"cycle": cycle + 1, "event": "recovery_exhausted",
+                                   "reason": recovery_reason, "attempts": _recovery_attempts}
+                            results.append(evt)
+                            log_file.write(json.dumps(evt, default=str) + "\n")
+                            log_file.flush()
+                    else:
+                        _recovery_attempts += 1
+                        strategy, desc = _escalating_recovery(
+                            emu, _recovery_level, _last_direction,
+                            _last_saved_slot
+                        )
+                        _recovery_level += 1
+                        # Blacklist the blocked direction on checkpoint restore
+                        if strategy == "load_checkpoint" and _same_dir and _same_dir in _DIR_ROTATION:
+                            _dir_blacklist.add(_same_dir)
+                            safe_print(f"  [BLACKLIST] {_same_dir} added to blacklist: {_dir_blacklist}")
+                        safe_print(f"  [RECOVER] Level {_recovery_level-1}: {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]")
+                        evt = {"cycle": cycle + 1, "event": "recovery",
+                               "level": _recovery_level - 1, "strategy": strategy,
+                               "reason": recovery_reason, "attempt": _recovery_attempts,
+                               "description": desc}
+                        results.append(evt)
+                        log_file.write(json.dumps(evt, default=str) + "\n")
+                        log_file.flush()
+                        # Reset the triggering tracker
+                        if "direction-locked" in recovery_reason:
+                            _same_dir = None
+                            _same_dir_count = 0
+                        elif "screen-locked" in recovery_reason:
+                            _same_screen_count = 0
+                        elif "void-locked" in recovery_reason:
+                            _void_cycles = 0
 
                 # Step 2b: Controller outputs movement PLAN from spatial description
                 decision = controller_plan(
@@ -609,8 +744,8 @@ def main() -> None:
                         direction = btn_upper
                         if direction in ("UP", "DOWN", "LEFT", "RIGHT"):
                             for _ in range(4):
-                                if direction in _dir_blacklist and direction in _dir_rotation:
-                                    direction = _dir_rotation[direction]
+                                if direction in _dir_blacklist and direction in _DIR_ROTATION:
+                                    direction = _DIR_ROTATION[direction]
                                 else:
                                     break
                             # If we cycled back to a blacklisted direction, all 4 blocked
@@ -696,32 +831,8 @@ def main() -> None:
 
                     if _same_dir_count == 3:
                         safe_print(f"  [WARN] Direction-locking detected: {_same_dir} x3")
-
-                    if _same_dir_count >= MAX_SAME_DIRECTION:
-                        if _last_saved_slot is not None:
-                            try:
-                                emu.load_state(_last_saved_slot)
-                                evt = {
-                                    "cycle": cycle + 1,
-                                    "event": "state_loaded",
-                                    "slot": _last_saved_slot,
-                                    "reason": f"blocked_{_same_dir}_x{_same_dir_count}",
-                                }
-                                results.append(evt)
-                                log_file.write(json.dumps(evt, default=str) + "\n")
-                                log_file.flush()
-                                safe_print(f"  [RECOVER] Loaded checkpoint slot {_last_saved_slot} (blocked {_same_dir} x{_same_dir_count})")
-                                blocked = _same_dir
-                                _same_dir = None
-                                _same_dir_count = 0
-                                if blocked and blocked in _dir_rotation:
-                                    _dir_blacklist.add(blocked)
-                                    safe_print(f"  [BLACKLIST] {blocked} added to blacklist: {_dir_blacklist}")
-                                break  # exit plan execution early
-                            except Exception as exc:
-                                safe_print(f"  [RECOVER] Failed to load slot {_last_saved_slot}: {exc}")
-                        else:
-                            safe_print(f"  [RECOVER] Direction-locked {_same_dir} x{_same_dir_count} but NO checkpoint available")
+                    # Recovery is now handled centrally in the stuck-detection block
+                    # after cartographer analysis, using the escalating recovery ladder.
 
                 elapsed = time.time() - t0
                 safe_print(f"  [{cycle+1}/{CYCLES}] {st} | {pipeline_name} x{CART_STEPS} | {elapsed:.1f}s")
@@ -764,26 +875,68 @@ def main() -> None:
                     "keyboard_grid": patch_data.get("keyboard_grid", {}),
                 }
 
-                # ── Stuck detection: if same non-overworld screen for 5+ cycles, break out ──
-                if st == _last_screen_type and st != "overworld":
-                    _stuck_cycles += 1
+                # ── Stuck detection: unified tracking + escalating recovery ──
+                # Track same-screen (already tracked in overworld pipeline, but
+                # StateWindow path handles other screen types — dialog, battle, menu)
+                if st == _last_screen_type:
+                    _same_screen_count += 1
                 else:
-                    _stuck_cycles = 0
+                    _same_screen_count = 0
                 _last_screen_type = st
 
-                if _stuck_cycles >= 5:
-                    safe_print(f"  [STUCK] Same screen ({st}) for {_stuck_cycles} cycles — injecting breakout")
-                    emu.press_button("b", frames=30)  # close any lingering dialog
-                    emu.wait(30)
-                    emu.press_button("down", frames=30)  # move away
-                    emu.fast_forward(120)
-                    _stuck_cycles = 0
-                    # Log it
-                    evt = {"cycle": cycle + 1, "event": "stuck_breakout", "screen": st}
-                    results.append(evt)
-                    log_file.write(json.dumps(evt, default=str) + "\n")
-                    log_file.flush()
-                    continue  # skip StateWindow, let next cycle re-classify
+                # State-change detection resets recovery counter
+                state_key = f"{st}:{vis_dict.get('screen_subtype','')}"
+                if state_key != _last_state_key and _last_state_key != "":
+                    _recovery_attempts = 0
+                    _recovery_level = 0
+                    safe_print(f"  [STATE] Changed → {st} — recovery counter reset")
+                _last_state_key = state_key
+
+                # Check if recovery needed
+                needs_recovery = False
+                recovery_reason = ""
+                if _gave_up:
+                    pass
+                elif _same_screen_count >= MAX_SAME_SCREEN_CYCLES and st != "overworld":
+                    needs_recovery = True
+                    recovery_reason = f"screen-locked ({st} x{_same_screen_count})"
+                elif _same_dir_count >= MAX_STUCK_SAME_DIR:
+                    needs_recovery = True
+                    recovery_reason = f"direction-locked ({_same_dir} x{_same_dir_count})"
+
+                if needs_recovery:
+                    if _recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
+                        if not _gave_up:
+                            _gave_up = True
+                            safe_print(f"  [RECOVER] GIVING UP after {_recovery_attempts} attempts ({recovery_reason})")
+                            evt = {"cycle": cycle + 1, "event": "recovery_exhausted",
+                                   "reason": recovery_reason, "attempts": _recovery_attempts}
+                            results.append(evt)
+                            log_file.write(json.dumps(evt, default=str) + "\n")
+                            log_file.flush()
+                    else:
+                        _recovery_attempts += 1
+                        strategy, desc = _escalating_recovery(
+                            emu, _recovery_level, _last_direction,
+                            _last_saved_slot
+                        )
+                        _recovery_level += 1
+                        # Blacklist the blocked direction on checkpoint restore
+                        if strategy == "load_checkpoint" and _same_dir and _same_dir in _DIR_ROTATION:
+                            _dir_blacklist.add(_same_dir)
+                            safe_print(f"  [BLACKLIST] {_same_dir} added to blacklist: {_dir_blacklist}")
+                        safe_print(f"  [RECOVER] Level {_recovery_level-1}: {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]")
+                        evt = {"cycle": cycle + 1, "event": "recovery",
+                               "level": _recovery_level - 1, "strategy": strategy,
+                               "reason": recovery_reason, "attempt": _recovery_attempts,
+                               "description": desc}
+                        results.append(evt)
+                        log_file.write(json.dumps(evt, default=str) + "\n")
+                        log_file.flush()
+                        _same_screen_count = 0
+                        _same_dir = None
+                        _same_dir_count = 0
+                        continue  # skip StateWindow, let next cycle re-classify
 
                 state_type = st
                 if vis_dict.get("screen_subtype") == "keyboard":
