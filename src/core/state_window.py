@@ -21,9 +21,17 @@ import yaml
 
 from src.core.ai_client import OpenRouterClient
 from src.core.global_context import GlobalContext
+from src.core.state_machine import (
+    HierarchicalStateMachine,
+    create_hierarchical_state_machine,
+    StateType,
+)
 from src.core.tools import TOOL_SCHEMA, execute_tool_call
 import subprocess
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 # ── DuckBrain CLI wrapper ──────────────────────────────────────────────────
 
@@ -196,6 +204,7 @@ class StateWindow:
         hint_level: int = 0,
         vision_client: Any = None,
         use_ram_prompts: bool = False,
+        hsm: HierarchicalStateMachine | None = None,
     ) -> None:
         self.state_type = state_type
         self.global_ctx = global_ctx
@@ -212,6 +221,34 @@ class StateWindow:
         self._step_count = 0
         self._history: list[dict[str, Any]] = []
         self._raw_responses: list[str] = []  # raw LLM text per step
+
+        # ── HSM integration ───────────────────────────────────────────
+        if hsm is not None:
+            self.hsm = hsm
+        else:
+            self.hsm = create_hierarchical_state_machine()
+
+        # Register transition callback for DuckBrain logging
+        self.hsm.register_transition_callback(self._log_hsm_transition)
+
+        # Map initial vision data to HSM state
+        initial_hsm_state = self._map_vision_to_hsm_state()
+        if initial_hsm_state and initial_hsm_state != self.hsm.get_current_state_name():
+            # Only attempt if it's a valid transition; otherwise just note the mismatch
+            if self.hsm.can_transition(self.hsm.get_current_state_name(), initial_hsm_state):
+                self.hsm.transition_to(initial_hsm_state, reason="StateWindow init")
+            else:
+                logger.debug(
+                    "Init: cannot transition %s → %s (invalid path). "
+                    "HSM stays at %s; vision maps to %s.",
+                    self.hsm.get_current_state_name(),
+                    initial_hsm_state,
+                    self.hsm.get_current_state_name(),
+                    initial_hsm_state,
+                )
+
+        # Save initial HSM state for outcome detection
+        self._initial_hsm_state = self.hsm.get_current_state_name()
 
         # Load state workflow
         self._workflow = _load_state_workflow(state_type, generation)
@@ -385,6 +422,11 @@ class StateWindow:
                 "action": action_result,
             })
 
+            # ── HSM state update ──────────────────────────────────
+            new_hsm_state = self._map_vision_to_hsm_state()
+            if new_hsm_state and new_hsm_state != self.hsm.get_current_state_name():
+                self.hsm.transition_to(new_hsm_state, reason=f"Step {self._step_count}")
+
             # Check for state transition
             outcome = self._check_outcome()
             if outcome:
@@ -409,6 +451,13 @@ class StateWindow:
 
         # 1. Compacted global context (system role)
         parts.append("\nGLOBAL STATE:\n" + self.global_ctx.compact())
+
+        # 1b. HSM state
+        hsm_name = self.hsm.get_current_state_name()
+        available = self.hsm.get_available_transitions()
+        parts.append(f"\nHSM STATE: {hsm_name}")
+        if available:
+            parts.append(f"  Valid next states: {', '.join(sorted(available))}")
 
         # 2. State workflow
         if self._workflow:
@@ -618,6 +667,98 @@ class StateWindow:
 
     # ── Outcome detection ────────────────────────────────────────────
 
+    def _map_vision_to_hsm_state(self) -> str | None:
+        """Map vision/RAM-reader observation data to an HSM state name.
+
+        Uses RAM reader data first (deterministic), falls back to
+        vision screen_type/screen_subtype (vision-based classification).
+
+        Returns the HSM state name (e.g. ``OVERWORLD.IDLE``), or None
+        if the observation data cannot be mapped.
+        """
+        # ── RAM reader path (deterministic, preferred) ────────────────
+        result = self.vision.get("result", "")
+        battle_data = self.vision.get("battle", {})
+        menu_items = self.vision.get("menu_items", [])
+        text = self.vision.get("text_content", self.vision.get("text_lines", []))
+
+        # Battle detection via RAM reader
+        if result == "battle" or battle_data.get("is_battle"):
+            return "BATTLE.BATTLE_MENU"
+
+        # Menu detection via RAM reader
+        if result == "menu" or (menu_items and result != "overworld"):
+            # If menu items contain battle commands, we're in battle menu
+            if any(item in ["FIGHT", "BAG", "PKMN", "RUN"] for item in menu_items):
+                return "BATTLE.BATTLE_MENU"
+            return "MENU.MAIN_MENU"
+
+        # Dialog/text detection
+        if result == "dialog" or (text and not menu_items and result not in ("battle", "menu")):
+            return "DIALOG.TEXT_DISPLAY"
+
+        # Overworld detection
+        if result == "overworld" or "player_x" in self.vision:
+            return "OVERWORLD.IDLE"
+
+        # ── Vision-based fallback ─────────────────────────────────────
+        st = self.vision.get("screen_type", "")
+        subtype = self.vision.get("screen_subtype", "")
+
+        if st == "battle":
+            return "BATTLE.BATTLE_MENU"
+        if st == "menu":
+            return "MENU.MAIN_MENU"
+        if st in ("dialog", "text"):
+            return "DIALOG.TEXT_DISPLAY"
+        if st in ("overworld", "navigation"):
+            return "OVERWORLD.IDLE"
+        if st == "title":
+            return "TITLE.WAITING_FOR_START"
+        if st == "name_entry":
+            return "BOOT.CHARACTER_NAMING"
+
+        # Can't map
+        return None
+
+    def _log_hsm_transition(
+        self, from_state: Any, to_state: Any
+    ) -> None:
+        """Callback: log HSM state transitions to DuckBrain.
+
+        Registered with ``hsm.register_transition_callback()``.
+        """
+        try:
+            from_name = from_state.name if from_state else "None"
+            to_name = to_state.name if to_state else "None"
+            entry = (
+                f"HSM transition: {from_name} → {to_name} "
+                f"(tick={self.hsm._tick})"
+            )
+            _duckbrain_remember(
+                key=f"/play_sessions/transitions/{from_name}",
+                fact=entry,
+                namespace="pokemon-global",
+            )
+        except Exception:
+            # DuckBrain is best-effort — never crash the game loop
+            pass
+
+    @staticmethod
+    def _hsm_type_to_state_type(state_type: str) -> str:
+        """Map a state_window ``state_type`` string to HSM StateType name (lowercase)."""
+        mapping = {
+            "battle": "battle",
+            "menu": "menu",
+            "dialog": "dialog",
+            "text": "dialog",
+            "overworld": "overworld",
+            "navigation": "overworld",
+            "title": "title",
+            "name_entry": "boot",
+        }
+        return mapping.get(state_type, state_type)
+
     def _is_interactive(self) -> bool:
         """Check if the current dialog requires AI deliberation.
 
@@ -638,15 +779,26 @@ class StateWindow:
         return False
 
     def _check_outcome(self) -> dict[str, Any] | None:
-        """Check if the state has been resolved based on vision analysis.
+        """Check if the state has been resolved.
 
-        When a vision_client is available, captures a fresh screenshot and
-        re-analyzes with the vision model. If the new screen_type differs
-        from the initial screen_type, a state transition is detected.
+        Primary: checks if the HSM transitioned away from the initial state
+        captured during ``__init__``.
+        Fallback: uses vision_client to re-analyze screen when available.
 
-        Falls back to None (no outcome detected) when no vision_client
-        is set or on transient failures.
+        Returns an outcome dict if the state transitioned, or None.
         """
+        # ── Primary: HSM-based state change detection ────────────────
+        current_hsm = self.hsm.get_current_state_name()
+        if current_hsm != self._initial_hsm_state:
+            hsm_cur = self.hsm.get_current_state()
+            return {
+                "outcome": "state_transition",
+                "from_type": self.state_type,
+                "to_type": hsm_cur.state_type.name.lower() if hsm_cur else "unknown",
+                "hsm_state": current_hsm,
+            }
+
+        # ── Fallback: vision-based re-classification ──────────────────
         if self.vision_client is None:
             return None
 

@@ -25,16 +25,17 @@
   3. ✅ Overworld prompt < 100 tokens (verified: ~35 tokens, 140 chars)
   4. ✅ Existing state_window tests pass (88/88)
 
-### [ ] HSM-WIRE: Wire 69-state HSM into state_window.py
+### [x] HSM-WIRE: Wire 69-state HSM into state_window.py ✅ (this tick)
 - **Priority:** high
 - **Why:** src/core/state_machine.py has 69 states covering boot→title→overworld→battle→menu→dialog→emergency. It's fully tested (105 tests). But state_window.py ignores it entirely and does its own screen classification. The HSM should be the single source of truth for "what state are we in and what can we do next."
 - **Files:** src/core/state_window.py, src/core/state_machine.py
+- **Result:** Integrated HierarchicalStateMachine into StateWindow. HSM created in __init__, DuckBrain transition logging via callback, _map_vision_to_hsm_state() maps RAM reader + vision data to HSM states, _build_prompt() includes HSM state + valid transitions, run() transitions HSM each cycle, _check_outcome() detects HSM state changes as primary signal (vision_client as fallback). All 193 tests pass. Full suite 2999/2999.
 - **AC:**
-  1. StateWindow.init() creates HierarchicalStateMachine instance
-  2. Each cycle: ram_reader.observe() → HSM.transition() → HSM.current_state dictates prompt template
-  3. Remove duplicate screen classification from state_window (HSM handles it)
-  4. State transitions logged to DuckBrain
-  5. 105 HSM tests pass, state_window tests pass
+  1. ✅ StateWindow.init() creates HierarchicalStateMachine instance (with optional hsm param for shared HSM)
+  2. ✅ Each cycle: vision/RAM data → _map_vision_to_hsm_state() → HSM.transition() if valid
+  3. ✅ HSM.current_state dictates prompt content in _build_prompt() (HSM STATE line + valid next states)
+  4. ✅ State transitions logged to DuckBrain via register_transition_callback → _log_hsm_transition
+  5. ✅ 105 HSM tests pass, 88 state_window tests pass, full suite 2999/2999
 
 ### [ ] STUCK-RECOVER: Reliable stuck detection with escalating recovery
 - **Priority:** high
