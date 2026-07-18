@@ -195,6 +195,7 @@ class StateWindow:
         max_steps: int = 15,
         hint_level: int = 0,
         vision_client: Any = None,
+        use_ram_prompts: bool = False,
     ) -> None:
         self.state_type = state_type
         self.global_ctx = global_ctx
@@ -205,6 +206,7 @@ class StateWindow:
         self.max_steps = max_steps
         self.hint_level = hint_level
         self.vision_client = vision_client
+        self.use_ram_prompts = use_ram_prompts
 
         self.client = OpenRouterClient()
         self._step_count = 0
@@ -397,6 +399,10 @@ class StateWindow:
         """Assemble the focused state window prompt."""
         parts: list[str] = []
 
+        # ── RAM reader compact prompt path ──────────────────────────
+        if self.use_ram_prompts and "player_x" in self.vision:
+            return self._build_ram_prompt()
+
         # 0. Core system prompt + hints (from core.yaml + hint layers)
         if self._system_prompt:
             parts.append(self._system_prompt)
@@ -545,6 +551,60 @@ class StateWindow:
             "If you need info from global state that isn't shown above, use query_global."
         )
 
+        return "\n".join(parts)
+
+    def _build_ram_prompt(self) -> str:
+        """Build a compact prompt from RAM reader data (< 100 tokens for overworld).
+
+        Uses configs/prompts/gen1/overworld_ram.yaml for the overworld template.
+        Other screen types fall through to the standard prompt builder.
+        """
+        st = self.vision.get("result", self.vision.get("screen_type", ""))
+        if st != "overworld":
+            # Fall back to standard build for non-overworld states
+            return self._build_ram_fallback()
+
+        # Load compact overworld template
+        tmpl_path = Path("configs/prompts/gen1/overworld_ram.yaml")
+        tmpl = ""
+        if tmpl_path.exists():
+            data = yaml.safe_load(tmpl_path.read_text())
+            tmpl = data.get("ram_overworld", "") if isinstance(data, dict) else ""
+
+        if not tmpl:
+            return self._build_ram_fallback()
+
+        # Fill template with ram_reader fields
+        adj = self.vision.get("adjacent", {})
+        try:
+            prompt = tmpl.format(
+                map_name=self.vision.get("map_name", "Unknown"),
+                map_dims=self.vision.get("map_dimensions", "?"),
+                player_x=self.vision.get("player_x", "?"),
+                player_y=self.vision.get("player_y", "?"),
+                facing=self.vision.get("player_facing", "?"),
+                adj_up=adj.get("up", "?"),
+                adj_down=adj.get("down", "?"),
+                adj_left=adj.get("left", "?"),
+                adj_right=adj.get("right", "?"),
+                minimap=self.vision.get("overworld_grid", ""),
+                suggested_action=self.vision.get("suggested_action", "explore"),
+            )
+        except (KeyError, ValueError, AttributeError):
+            return self._build_ram_fallback()
+
+        return prompt
+
+    def _build_ram_fallback(self) -> str:
+        """Fallback: use the 'render' field from ram_reader as the prompt."""
+        render = self.vision.get("render", "")
+        if render:
+            return render
+        # Last resort: use standard builder
+        parts: list[str] = []
+        if self._system_prompt:
+            parts.append(self._system_prompt)
+        parts.append(f"Screen: {self.vision.get('result', '?')}")
         return "\n".join(parts)
 
     # ── Global query handler ─────────────────────────────────────────

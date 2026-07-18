@@ -1,0 +1,14 @@
+# Gen 1 Overworld — RAM Reader Compact Prompt
+# Uses instant RAM reads instead of vision model. < 100 tokens.
+# Fields come from ram_reader.observe() — player_x, player_y,
+# map_name, facing, adjacent, overworld_grid, suggested_action.
+
+ram_overworld: |
+  {map_name} ({map_dims}).
+
+  Position: ({player_x},{player_y}) Facing: {facing}.
+  Adjacent: up={adj_up} down={adj_down} left={adj_left} right={adj_right}.
+
+  {minimap}
+
+  {suggested_action}

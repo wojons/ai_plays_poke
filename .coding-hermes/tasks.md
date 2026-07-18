@@ -76,7 +76,7 @@
   2. Controller sees its own failures and avoids repeating them
   3. Token budget includes context window (part of 300 StateWindow budget)
 
-### [ ] DUCKBRAIN-CONTEXT: Load project memory before each controller decision
+### [x] DUCKBRAIN-CONTEXT: Load project memory before each controller decision ✅
 - **Priority:** low
 - **Why:** The foreman stores decisions/patterns in DuckBrain but the gameplay controller never reads them. If last tick's controller learned "don't walk into walls", next tick should inherit that.
 - **Files:** cron_runner.py
