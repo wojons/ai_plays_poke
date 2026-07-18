@@ -13,7 +13,7 @@
   3. game_loop test suite still passes
 - **Result:** All 3 ACs met. `ai_client.py` now captures `_last_usage` from API responses. `game_loop.py` reads `tokens_used` from command dict instead of hardcoding 0. `_get_real_ai_decision()` tracks actual prompt/completion tokens. Commit d54f084.
 
-### [ ] STATE-TRANS: Use vision + LLM to detect state transitions in state_window.py
+### [x] STATE-TRANS: Use vision + LLM to detect state transitions in state_window.py ✅ (e11001e)
 - **Priority:** medium
 - **Why:** src/core/state_window.py:583 — `# TODO: use vision + LLM to detect state transitions`. Currently state transitions are detected by simple heuristics — should use the full vision pipeline for accuracy.
 - **Files:** src/core/state_window.py
@@ -21,6 +21,7 @@
   1. Wire vision client into state_window's transition detection
   2. Add unit test for new transition detection path
   3. Existing state_window tests pass
+- **Result:** All 3 ACs met. Added optional `vision_client` parameter to `StateWindow.__init__`. `_check_outcome()` now captures a fresh screenshot via `emulator.capture()` and runs `vision_client.analyze()` to detect `screen_type` or `screen_subtype` changes. Falls back gracefully when no vision_client or on failures. 9 new tests cover: screen_type transitions, subtype transitions, dialog→overworld, capture/analyze failures, unknown initial screen. 88/88 state_window tests pass. Commit e11001e.
 
 ## [x] Upgrade deps: pydantic_core 2.46.4 → 2.47.0 — BLOCKED by pydantic pin ✅
 - **Priority:** low
