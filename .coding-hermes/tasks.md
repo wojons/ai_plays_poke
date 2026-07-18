@@ -1,6 +1,26 @@
 # AI Plays Pokémon — Coding Hermes Tasks
 # Foreman: deepseek-v4-flash | Schedule: every 120m
 
+## Active Queue (Jul 18 — Discovery Sweep)
+
+### [ ] TRACK-TOKENS: Track actual tokens in game_loop.py
+- **Priority:** low
+- **Why:** src/game_loop.py:441 — `tokens_used = 0  # TODO: Track actual tokens`. AI client calls return token counts, but game_loop hardcodes 0, making cost metrics inaccurate.
+- **Files:** src/game_loop.py
+- **AC:**
+  1. Pass actual token counts from AI client response through to metrics
+  2. Verify token tracking in unit tests
+  3. game_loop test suite still passes
+
+### [ ] STATE-TRANS: Use vision + LLM to detect state transitions in state_window.py
+- **Priority:** medium
+- **Why:** src/core/state_window.py:583 — `# TODO: use vision + LLM to detect state transitions`. Currently state transitions are detected by simple heuristics — should use the full vision pipeline for accuracy.
+- **Files:** src/core/state_window.py
+- **AC:**
+  1. Wire vision client into state_window's transition detection
+  2. Add unit test for new transition detection path
+  3. Existing state_window tests pass
+
 ## [x] Upgrade deps: pydantic_core 2.46.4 → 2.47.0 — BLOCKED by pydantic pin ✅
 - **Priority:** low
 - **Package:** pydantic_core 2.46.4 → 2.47.0
