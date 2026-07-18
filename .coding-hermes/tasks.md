@@ -3,15 +3,16 @@
 
 ## Active Queue (Jul 18 — Discovery Sweep)
 
-### [ ] TRACK-TOKENS: Track actual tokens in game_loop.py
+### [x] TRACK-TOKENS: Track actual tokens in game_loop.py ✅ (d54f084)
 - **Priority:** low
 - **Why:** src/game_loop.py:441 — `tokens_used = 0  # TODO: Track actual tokens`. AI client calls return token counts, but game_loop hardcodes 0, making cost metrics inaccurate.
 - **Files:** src/game_loop.py
 - **AC:**
   1. Pass actual token counts from AI client response through to metrics
   2. Verify token tracking in unit tests
-  3. game_loop test suite still passes
-
+  |  3. game_loop test suite still passes
+  |- **Result:** All 3 ACs met. `ai_client.py` now captures `_last_usage` from API responses. `game_loop.py` reads `tokens_used` from command dict instead of hardcoding 0. `_get_real_ai_decision()` tracks actual prompt/completion tokens. Commit d54f084.
+  |
 ### [ ] STATE-TRANS: Use vision + LLM to detect state transitions in state_window.py
 - **Priority:** medium
 - **Why:** src/core/state_window.py:583 — `# TODO: use vision + LLM to detect state transitions`. Currently state transitions are detected by simple heuristics — should use the full vision pipeline for accuracy.
