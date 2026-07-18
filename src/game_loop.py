@@ -438,7 +438,7 @@ class GameLoop:
         if self.use_real_ai and self.ai_manager:
             command = self._get_real_ai_decision(game_state)
             model_used = "openrouter_ai"
-            tokens_used = 0  # TODO: Track actual tokens
+            tokens_used = command.get("tokens_used", 0)
         else:
             command = self._get_stub_ai_decision(game_state)
             model_used = "stub_ai"
@@ -511,6 +511,10 @@ class GameLoop:
                 max_tokens=200,
                 temperature=0.3,
             )
+            usage = self.prompt_client._last_usage
+            input_tokens = usage.get("prompt_tokens", 0)
+            output_tokens = usage.get("completion_tokens", 0)
+            total_tokens = input_tokens + output_tokens
 
             # 5. Parse tool call output
             tool_call = parse_tool_call(raw)
@@ -524,6 +528,7 @@ class GameLoop:
                 "button": getattr(Button, button_name, Button.A),
                 "reasoning": raw[:200] if raw else "AI decision (vision+thinking)",
                 "confidence": 0.7,
+                "tokens_used": total_tokens,
             }
 
         except Exception as e:

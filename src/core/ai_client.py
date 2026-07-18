@@ -556,6 +556,7 @@ class OpenRouterClient:
         }
 
         self.circuit_breaker = CircuitBreaker()
+        self._last_usage: Dict[str, Any] = {}
 
     def chat_completion(
         self,
@@ -890,6 +891,8 @@ class OpenRouterClient:
             temperature=temperature,
             tools=tools if use_native_tools else None,
         )
+
+        self._last_usage = result.get("usage", {})
 
         return result["content"]  # type: ignore
 class JSONResponseParser:
