@@ -3,23 +3,87 @@
 
 ## Active Queue (Jul 18 — Discovery Sweep)
 
-### [x] TRACK-TOKENS: Track actual tokens in game_loop.py ✅ (d54f084)
-- **Priority:** low
-- **Why:** src/game_loop.py:441 — `tokens_used = 0  # TODO: Track actual tokens`. AI client calls return token counts, but game_loop hardcodes 0, making cost metrics inaccurate.
-- **Files:** src/game_loop.py
-- **AC:**
-  1. Pass actual token counts from AI client response through to metrics
-  2. Verify token tracking in unit tests
-  3. game_loop test suite still passes
-- **Result:** All 3 ACs met. `ai_client.py` now captures `_last_usage` from API responses. `game_loop.py` reads `tokens_used` from command dict instead of hardcoding 0. `_get_real_ai_decision()` tracks actual prompt/completion tokens. Commit d54f084.
+### [ ] GAMEPLAY-ARCH: Design reliable gameplay architecture (planning task, no code)
+- **Priority:** highest
+- **Why:** Current system boots + reads RAM perfectly but the controller LLM doesn't produce reliable gameplay. We need a design that matches the architecture to the problem: RAM reader gives us perfect state → compact prompt → LLM picks from a small decision space → execute. No vision, no spatial reasoning, just state data → action mapping.
+- **Goal:** Produce a 1-page architecture doc (.coding-hermes/gameplay-architecture.md) that defines:
+  1. What state data flows to the controller (coordinates, adjacent tiles, map name, dialog text, battle HP/stats, menu cursor)
+  2. What the controller outputs (single button press: direction/A/B/START/SELECT)
+  3. How the controller uses DuckBrain context (past decisions, map knowledge)
+  4. State machine integration: which HSM state triggers what prompt template
+  5. Recovery: what happens when controller produces invalid or stuck actions
+- **Files:** .coding-hermes/gameplay-architecture.md (new)
 
-### [x] STATE-TRANS: Use vision + LLM to detect state transitions in state_window.py ✅ (e11001e)
-- **Priority:** medium
-- **Why:** src/core/state_window.py:583 — `# TODO: use vision + LLM to detect state transitions`. Currently state transitions are detected by simple heuristics — should use the full vision pipeline for accuracy.
-- **Files:** src/core/state_window.py
+### [ ] PROMPT-COMPACT: Create compact controller prompts using RAM data
+- **Priority:** highest
+- **Why:** Current prompts are ~500 tokens of spatial description from vision models. With RAM reader, we have exact coordinates, adjacent tile types, dialog text, and battle stats. The prompt should be: "You are at (3,4) on Pallet Town. Adjacent: up=floor, down=grass, left=wall, right=floor. Facing south. What direction?" — ~50 tokens instead of 500. This makes the LLM faster, cheaper, and less likely to hallucinate.
+- **Files:** src/core/state_window.py, configs/prompts/gen1/
 - **AC:**
-  1. Wire vision client into state_window's transition detection
-  2. Add unit test for new transition detection path
+  1. Create gen1/overworld_ram.yaml prompt template that uses only ram_reader data
+  2. StateWindow._build_prompt detects USE_RAM_READER and routes to compact prompts
+  3. Overworld prompt < 100 tokens (controller budget stays at 500 total)
+  4. Existing state_window tests pass
+
+### [ ] HSM-WIRE: Wire 69-state HSM into state_window.py
+- **Priority:** high
+- **Why:** src/core/state_machine.py has 69 states covering boot→title→overworld→battle→menu→dialog→emergency. It's fully tested (105 tests). But state_window.py ignores it entirely and does its own screen classification. The HSM should be the single source of truth for "what state are we in and what can we do next."
+- **Files:** src/core/state_window.py, src/core/state_machine.py
+- **AC:**
+  1. StateWindow.init() creates HierarchicalStateMachine instance
+  2. Each cycle: ram_reader.observe() → HSM.transition() → HSM.current_state dictates prompt template
+  3. Remove duplicate screen classification from state_window (HSM handles it)
+  4. State transitions logged to DuckBrain
+  5. 105 HSM tests pass, state_window tests pass
+
+### [ ] STUCK-RECOVER: Reliable stuck detection with escalating recovery
+- **Priority:** high
+- **Why:** The controller gets direction-locked (5+ same-direction presses), void-locked (unknown tiles), and screen-locked (same screen for 5+ cycles). Current recovery is basic menu-redraw. Need escalating recovery: direction blocked → try different direction → open/close menu → save state → load previous state → soft reset.
+- **Files:** cron_runner.py
+- **AC:**
+  1. Track same-direction count, same-screen count, void-tile percentage separately
+  2. Esclating recovery: try alternate direction → open/close menu (START+B+B) → step back (opposite direction) → load checkpoint → A-mash (dialog stuck)
+  3. Each recovery step logged with reason
+  4. Recovery counter resets on any successful state change
+  5. Max 5 recovery attempts before giving up and reporting
+
+### [ ] BATTLE-AGENT: Wire battle state reading to actual battle decisions
+- **Priority:** high
+- **Why:** ram_reader.read_battle_state() returns perfect battle data (HP, level, moves, types) but the controller doesn't use it — it doesn't even know it's in a battle. Need: detect battle → send battle state to controller → pick FIGHT/MOVE/ITEM/RUN → execute.
+- **Files:** src/core/state_window.py, cron_runner.py
+- **AC:**
+  1. StateWindow detects battle via ram_reader (wIsInBattle != 0)
+  2. Battle prompt includes: player HP%, enemy name+HP%, available moves with PP, type info
+  3. Controller outputs: FIGHT (with move number), BAG, PKMN, or RUN
+  4. Battle loop: execute selected action, wait for animation, re-read state, next turn
+  5. Log battle start/end with outcome to cron_logs
+
+### [ ] INTRO-STABLE: Make intro bypass 100% reliable
+- **Priority:** medium
+- **Why:** Intro bypass works ~80% of the time but sometimes loops in name entry (presses DOWN endlessly). The mechanical bypass uses A-mash bursts + SPARSE checks. Need: guarantee we reach overworld within 15 intro checks.
+- **Files:** cron_runner.py
+- **AC:**
+  1. Name entry: if stuck for 3 cycles, use programmatic cursor tracking (already in StateWindow) to type "ASH" and press START
+  2. Rival name: same approach, type "BLUE"
+  3. Title screen → NEW GAME → overworld should take <300 frames total
+  4. Log each intro phase transition
+
+### [ ] CONTROLLER-CONTEXT: Give the controller a memory window of recent actions
+- **Priority:** medium
+- **Why:** The controller has no memory of what it just did. It presses DOWN 5 times in a row because it doesn't know it already pressed DOWN. A small sliding window of last 5 actions + outcomes prevents loops.
+- **Files:** src/core/state_window.py, cron_runner.py
+- **AC:**
+  1. StateWindow._build_prompt includes last 5 actions: "Recent: pressed DOWN → moved to (3,5), pressed DOWN → blocked by wall, pressed DOWN → blocked..."
+  2. Controller sees its own failures and avoids repeating them
+  3. Token budget includes context window (part of 300 StateWindow budget)
+
+### [ ] DUCKBRAIN-CONTEXT: Load project memory before each controller decision
+- **Priority:** low
+- **Why:** The foreman stores decisions/patterns in DuckBrain but the gameplay controller never reads them. If last tick's controller learned "don't walk into walls", next tick should inherit that.
+- **Files:** cron_runner.py
+- **AC:**
+  1. Before each run: DuckBrain recall under /play_sessions/ for recent patterns
+  2. Inject: "Past lessons: Pallet Town right side is a wall. Use LEFT to exit house."
+  3. After each run: DuckBrain remember discoveries, pitfalls, successful routes
   3. Existing state_window tests pass
 - **Result:** All 3 ACs met. Added optional `vision_client` parameter to `StateWindow.__init__`. `_check_outcome()` now captures a fresh screenshot via `emulator.capture()` and runs `vision_client.analyze()` to detect `screen_type` or `screen_subtype` changes. Falls back gracefully when no vision_client or on failures. 9 new tests cover: screen_type transitions, subtype transitions, dialog→overworld, capture/analyze failures, unknown initial screen. 88/88 state_window tests pass. Commit e11001e.
 
