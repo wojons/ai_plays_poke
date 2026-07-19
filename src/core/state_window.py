@@ -741,7 +741,7 @@ class StateWindow:
                     pass
 
         # Fallback: use the render field from ram_reader
-        render = self.vision.get("render", "")
+        render: str = str(self.vision.get("render", ""))
         if render:
             return (
                 render
@@ -755,7 +755,7 @@ class StateWindow:
 
     def _build_ram_fallback(self) -> str:
         """Fallback: use the 'render' field from ram_reader as the prompt."""
-        render = self.vision.get("render", "")
+        render: str = str(self.vision.get("render", ""))
         if render:
             return render
         # Last resort: use standard builder
