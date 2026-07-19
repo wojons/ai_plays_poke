@@ -1062,14 +1062,15 @@ Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc cove
   5. demo_runner.py: 67% → 85%+
   6. ai_client.py: 66% → 70%+ (target modest — 1062 lines, heavy mocking needed)
 
-### [ ] DOC-01: Update CONTRIBUTING.md tooling references
+### [x] DOC-01: Update CONTRIBUTING.md tooling references ✅ (this tick)
 - **Priority:** low
 - **Why:** CONTRIBUTING.md last updated Dec 2025. References `black`, `isort`, `flake8` — project now uses `ruff` exclusively (covers formatting + linting + import sorting). Also references `src/cli/` directory that doesn't exist (CLI is `src/ptp_cli/`).
 - **Files:** CONTRIBUTING.md
+- **Result:** Replaced black/isort/flake8 references with ruff (check + format). Fixed `src/cli/` → `src/ptp_cli/`. Updated "Last Updated" to July 19, 2026.
 - **AC:**
-  1. Replace black/isort/flake8 references with ruff
-  2. Fix `src/cli/` → `src/ptp_cli/`
-  3. Update "Last Updated" date
+  1. ✅ Replace black/isort/flake8 references with ruff
+  2. ✅ Fix `src/cli/` → `src/ptp_cli/`
+  3. ✅ Update "Last Updated" date
 
 ### [ ] SPEC-01: Audit spec drift — 69 HSM states vs spec claims of "50+"
 - **Priority:** medium
