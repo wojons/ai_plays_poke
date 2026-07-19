@@ -35,17 +35,18 @@ git checkout -b feature/your-feature-name
 ## Development Workflow
 
 ### Code Style
-- **Formatting:** Use Black with default settings (line length 88)
+- **Formatting & Linting:** Use Ruff for formatting, import sorting, and linting
 - **Type Hints:** All functions must have type hints
-- **Imports:** Sort imports using isort
 - **Naming:** Follow PEP 8 conventions (snake_case for functions/variables, PascalCase for classes)
 
 ```bash
-# Format your code before committing
-black src/ tests/
+# Format, sort imports, and lint your code before committing
+ruff check --fix src/ tests/
+ruff format src/ tests/
 
-# Check formatting without making changes
-black --check src/ tests/
+# Check without making changes
+ruff check src/ tests/
+ruff format --check src/ tests/
 ```
 
 ### Testing
@@ -77,8 +78,8 @@ mypy src/ --ignore-missing-imports --strict
 
 ### Linting
 ```bash
-# Run flake8
-flake8 src/ tests/ --max-line-length=88 --extend-ignore=E203,W503
+# Run ruff linter (covers what flake8 used to check)
+ruff check src/ tests/
 ```
 
 ### Commit Messages
@@ -109,7 +110,7 @@ Fixes #123
 │   ├── core/           # Core AI systems (emulator, vision, AI client)
 │   ├── db/             # Database operations
 │   ├── schemas/        # Command and data schemas
-│   └── cli/            # Command-line interface
+│   └── ptp_cli/        # Command-line interface
 ├── tests/
 │   ├── conftest.py     # Pytest fixtures
 │   └── test_*.py       # Test files
@@ -192,4 +193,4 @@ Be respectful and constructive. We're all here to build something amazing togeth
 
 ---
 
-*Last Updated: December 31, 2025*
+*Last Updated: July 19, 2026*
