@@ -259,8 +259,8 @@ async def get_metrics(x_api_key: bool = Depends(verify_api_key), session_id: str
     return session.get_metrics()
 
 
-@app.post("/control/pause")
-async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any] | JSONResponse:
+@app.post("/control/pause", response_model=None)
+async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -268,8 +268,8 @@ async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: s
     return {"status": "paused", "session_id": session_id}
 
 
-@app.post("/control/resume")
-async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any] | JSONResponse:
+@app.post("/control/resume", response_model=None)
+async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default"):
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -297,12 +297,12 @@ async def start_session(
     return {"status": "started", "session_id": session_id}
 
 
-@app.post("/control/command")
+@app.post("/control/command", response_model=None)
 async def send_command(
     command: Dict[str, Any],
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default"
-) -> Dict[str, Any] | JSONResponse:
+):
     session = get_session(session_id)
     if not session.state["running"] or session.state["paused"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
