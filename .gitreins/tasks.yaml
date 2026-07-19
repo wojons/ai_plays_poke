@@ -1,0 +1,11 @@
+tasks:
+- id: CI-02
+  title: 'CI-02: Add coverage threshold + dashboard tests to CI'
+  criteria:
+  - Add --cov=src --cov-fail-under=75 --cov-report=term to CI pytest step
+  - Verify dashboard tests exist (test_dashboard.py)
+  - CI YAML is valid
+  - All tests pass, coverage threshold met
+  status: complete
+  created_at: '2026-07-19T23:48:18.712518+00:00'
+  completed_at: '2026-07-19T23:51:39.053506+00:00'
