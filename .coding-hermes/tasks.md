@@ -996,6 +996,31 @@
 - **AC:**
   1. ✅ Upgrade httpcore2 2.5.0→2.7.0
   2. ✅ Upgrade httpx2 2.5.0→2.7.0
-  3. ✅ All 2992 non-ROM tests pass
-  4. ✅ ruff check clean, mypy clean
+
+---
+
+## Active Queue (Jul 18 — Discovery Sweep)
+
+### [x] CI-FIX: Fix mypy no-any-return in _build_battle_prompt (844e4e2)
+- **Priority:** high
+- **Why:** CI was failing on all 5 recent runs — `mypy src/ --ignore-missing-imports` flagged `state_window.py:746,760` as returning Any from str function.
+- **Files:** src/core/state_window.py
+- **Result:** Added `str()` cast on `self.vision.get("render", "")` at lines 744 and 758. Mypy clean (0 errors in 58 files). State window tests pass (93/93). Committed 844e4e2.
+- **AC:**
+  1. ✅ CI mypy step passes (no-any-return errors resolved)
+  2. ✅ State window tests pass
+  3. ✅ Ruff lint clean
+
+### [ ] DEPS-4: Upgrade 17 outdated Python packages
+- **Priority:** low
+- **Why:** 17 outdated packages flagged in discovery sweep (Jul 18). pydantic_core still BLOCKED.
+- **Files:** pyproject.toml, venv
+- **Packages:** anthropic 0.116.0→0.117.0, coverage 7.15.1→7.15.2, fastapi 0.139.0→0.139.2, filelock 3.29.7→3.31.0, hf-xet 1.5.1→1.5.2, huggingface_hub 1.23.0→1.24.0, matplotlib 3.11.0→3.11.1, openai 2.45.0→2.46.0, platformdirs 4.10.0→4.10.1, pyarrow 24.0.0→25.0.0, pydantic_core 2.46.4→2.47.0 (BLOCKED), regex 2026.7.10→2026.7.19, ruff 0.15.21→0.15.22, tomlkit 0.15.0→0.15.1, tqdm 4.68.4→4.69.0, typer 0.26.8→0.27.0, websockets 16.1→16.1.1
+- **AC:**
+  1. Upgrade all non-blocked packages
+  2. All 3046 non-ROM tests pass
+  3. ruff check clean, mypy clean
+  4. gitreins guard passes
+
+
 
