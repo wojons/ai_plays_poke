@@ -703,14 +703,19 @@ class StateWindow:
             e = battle_state.get("enemy", {})
             battle_type = battle_state.get("battle_type", "Wild")
 
-            # Build moves list using ONLY fields that read_battle_state()
-            # actually exposes (name, pp, slot). pp_max / power live in
-            # the move database, not the per-battle RAM read.
+            # Build moves list. pp_max and power are not currently
+            # returned by read_battle_state() but are accepted if
+            # present (tests / future schema), so format adaptively.
             moves_parts = []
             for i, move in enumerate(p.get("moves", [])):
                 slot = move.get("slot", i + 1)
+                pp = move.get("pp", 0)
+                pp_max = move.get("pp_max")
+                power = move.get("power")
+                pp_str = f"PP: {pp}/{pp_max}" if pp_max else f"PP:{pp}"
+                power_str = f", Power: {power}" if power else ""
                 moves_parts.append(
-                    f"  {slot}. {move.get('name', '?')} (PP:{move.get('pp', 0)})"
+                    f"  {slot}. {move.get('name', '?')} ({pp_str}{power_str})"
                 )
             moves_str = "\n".join(moves_parts) if moves_parts else "  (no moves)"
 
