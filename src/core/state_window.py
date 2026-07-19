@@ -220,6 +220,18 @@ class StateWindow:
         self._step_count = 0
         self._history: list[dict[str, Any]] = []
         self._raw_responses: list[str] = []  # raw LLM text per step
+        # Sliding window of last 5 actions with outcomes for controller context
+        self._recent_actions: list[str] = []  # "pressed DOWN → moved to (3,5)"
+
+        # Track last known player position for movement detection
+        self._last_player_pos: tuple[int, int] | None = None
+        px = self.vision.get("player_x")
+        py = self.vision.get("player_y")
+        if px is not None and py is not None:
+            try:
+                self._last_player_pos = (int(px), int(py))
+            except (ValueError, TypeError):
+                pass
 
         # ── HSM integration ───────────────────────────────────────────
         if hsm is not None:
@@ -430,6 +442,9 @@ class StateWindow:
                 "action": action_result,
             })
 
+            # ── Recent actions memory window ──────────────────────
+            self._record_recent_action(tool_call, action_result)
+
             # ── Battle animation wait ──────────────────────────────
             # After executing a battle action (FIGHT, move select),
             # wait for the attack/HP-drain animation before re-reading.
@@ -611,7 +626,12 @@ class StateWindow:
         # 4. Step counter
         parts.append(f"\nStep {self._step_count} of {self.max_steps} in this state.")
 
-        # 5. History (last 3 actions)
+        # 5. Recent actions memory window (controller context — prevents loops)
+        recent_actions = self._build_recent_actions_text()
+        if recent_actions:
+            parts.append("\n" + recent_actions)
+
+        # 6. History (last 3 actions in this state)
         if self._history:
             parts.append("\nRecent actions in this state:")
             for h in self._history[-3:]:
@@ -677,6 +697,11 @@ class StateWindow:
             )
         except (KeyError, ValueError, AttributeError):
             return self._build_ram_fallback()
+
+        # Append recent actions context if available
+        recent = self._build_recent_actions_text()
+        if recent:
+            prompt += "\n\n" + recent
 
         return prompt
 
@@ -946,3 +971,47 @@ class StateWindow:
             }
 
         return None
+
+    # ── Recent actions memory window ──────────────────────────────
+
+    def _record_recent_action(
+        self, tool_call: dict[str, Any], action_result: str
+    ) -> None:
+        """Record a single action in the sliding window for controller context.
+
+        For directional presses we try to detect whether the player actually
+        moved by reading the emulator RAM (Gen 1: wYCoord at 0xD361,
+        wXCoord at 0xD362).  Other actions use the plain result string.
+        """
+        button = tool_call.get("arguments", {}).get("button", "")
+        direction_buttons = {"up", "down", "left", "right"}
+
+        if button in direction_buttons and self._last_player_pos is not None:
+            # Try to read new position from emulator RAM
+            try:
+                new_x = self.emulator.read_u8(0xD362)  # wXCoord
+                new_y = self.emulator.read_u8(0xD361)  # wYCoord
+                old_x, old_y = self._last_player_pos
+                if new_x != old_x or new_y != old_y:
+                    outcome = f"moved to ({new_x}, {new_y})"
+                    self._last_player_pos = (new_x, new_y)
+                else:
+                    outcome = "blocked"
+            except Exception:
+                outcome = action_result
+        else:
+            outcome = action_result
+
+        entry = f"pressed {button.upper()} → {outcome}"
+        self._recent_actions.append(entry)
+        if len(self._recent_actions) > 5:
+            self._recent_actions = self._recent_actions[-5:]
+
+    def _build_recent_actions_text(self) -> str:
+        """Return the recent-actions section for inclusion in the prompt."""
+        if not self._recent_actions:
+            return ""
+        lines = ["RECENT ACTIONS (last 5, most recent first):"]
+        for action in reversed(self._recent_actions):
+            lines.append(f"  {action}")
+        return "\n".join(lines)
