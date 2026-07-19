@@ -349,7 +349,12 @@ class TestToolSchema:
 
     def test_tool_schema_names_match(self) -> None:
         """Schema names match what execute_tool_call accepts."""
-        expected_names = {"press_button", "wait", "combo", "fast_forward"}
+        expected_names = {
+            "press_button", "wait", "combo", "fast_forward",
+            # Battle composite tools (BATTLE-AGENT task)
+            "select_move", "run_from_battle",
+            "use_battle_item", "switch_pokemon",
+        }
         actual_names = {t["function"]["name"] for t in TOOL_SCHEMA}
         assert actual_names == expected_names
 
@@ -414,3 +419,221 @@ class TestExecuteToolCallFastForward:
         execute_tool_call(emu, "fast_forward", {"frames": "invalid"})
         # Should still attempt the call — error comes from emulator
         emu.fast_forward.assert_called_once_with("invalid")
+
+
+# ── BATTLE-AGENT: battle composite tools ────────────────────────────────────
+#
+# Each battle tool is a thin wrapper around a multi-step button sequence
+# targeting the Gen 1 battle menu. Tests verify the right sequence of
+# emulator calls is made and that invalid arguments surface as errors.
+
+# Battles always end with an animation wait + fast_forward so the next
+# state-window re-read sees fresh RAM.
+_BATTLE_ANIM_TAIL = 1  # minimum fast_forward call after action
+
+
+class TestBattleToolSchema:
+    """TOOL_SCHEMA contains well-formed entries for each battle tool."""
+
+    def test_select_move_in_schema(self) -> None:
+        tool = next(
+            (t for t in TOOL_SCHEMA if t["function"]["name"] == "select_move"), None
+        )
+        assert tool is not None
+        assert "description" in tool["function"]
+        params = tool["function"]["parameters"]
+        assert params["type"] == "object"
+        assert "move_number" in params["required"]
+        bounds = params["properties"]["move_number"]
+        assert bounds["minimum"] == 1
+        assert bounds["maximum"] == 4
+
+    def test_run_from_battle_in_schema(self) -> None:
+        tool = next(
+            (t for t in TOOL_SCHEMA if t["function"]["name"] == "run_from_battle"),
+            None,
+        )
+        assert tool is not None
+        assert "description" in tool["function"]
+        assert tool["function"]["parameters"]["type"] == "object"
+
+    def test_use_battle_item_in_schema(self) -> None:
+        tool = next(
+            (t for t in TOOL_SCHEMA if t["function"]["name"] == "use_battle_item"),
+            None,
+        )
+        assert tool is not None
+        assert "item_name" in tool["function"]["parameters"]["required"]
+
+    def test_switch_pokemon_in_schema(self) -> None:
+        tool = next(
+            (t for t in TOOL_SCHEMA if t["function"]["name"] == "switch_pokemon"),
+            None,
+        )
+        assert tool is not None
+        assert "slot" in tool["function"]["parameters"]["required"]
+        bounds = tool["function"]["parameters"]["properties"]["slot"]
+        assert bounds["minimum"] == 1
+        assert bounds["maximum"] == 6
+
+
+class TestExecuteSelectMove:
+    """select_move navigates FIGHT → moves → move N (1-4) → A."""
+
+    def test_move_1_uses_two_a_presses(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "select_move", {"move_number": 1})
+        assert "Selected move 1" in result
+        a_calls = [
+            c for c in emu.press_button.call_args_list if c.args[0] == "a"
+        ]
+        assert len(a_calls) == 2  # FIGHT confirm + move 1 confirm
+        assert emu.fast_forward.call_count >= _BATTLE_ANIM_TAIL
+
+    def test_move_2_uses_right(self) -> None:
+        emu = _mock_emulator()
+        execute_tool_call(emu, "select_move", {"move_number": 2})
+        right_calls = [
+            c for c in emu.press_button.call_args_list if c.args[0] == "right"
+        ]
+        assert len(right_calls) == 1
+
+    def test_move_3_uses_down(self) -> None:
+        emu = _mock_emulator()
+        execute_tool_call(emu, "select_move", {"move_number": 3})
+        down_calls = [
+            c for c in emu.press_button.call_args_list if c.args[0] == "down"
+        ]
+        assert len(down_calls) == 1
+
+    def test_move_4_uses_right_then_down(self) -> None:
+        emu = _mock_emulator()
+        execute_tool_call(emu, "select_move", {"move_number": 4})
+        right_calls = [
+            c for c in emu.press_button.call_args_list if c.args[0] == "right"
+        ]
+        down_calls = [
+            c for c in emu.press_button.call_args_list if c.args[0] == "down"
+        ]
+        assert len(right_calls) == 1
+        assert len(down_calls) == 1
+
+    def test_invalid_move_number_returns_error(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "select_move", {"move_number": 5})
+        assert result.startswith("Error:")
+        emu.press_button.assert_not_called()
+
+    def test_missing_move_number_returns_error(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "select_move", {})
+        assert result.startswith("Error:")
+        emu.press_button.assert_not_called()
+
+    def test_zero_move_number_returns_error(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "select_move", {"move_number": 0})
+        assert result.startswith("Error:")
+        emu.press_button.assert_not_called()
+
+
+class TestExecuteRunFromBattle:
+    """run_from_battle navigates FIGHT→right→down→A (RUN is BR)."""
+
+    def test_presses_right_down_a(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "run_from_battle", {})
+        assert "Ran from battle" in result
+        rights = [c for c in emu.press_button.call_args_list if c.args[0] == "right"]
+        downs = [c for c in emu.press_button.call_args_list if c.args[0] == "down"]
+        a_calls = [c for c in emu.press_button.call_args_list if c.args[0] == "a"]
+        assert len(rights) == 1
+        assert len(downs) == 1
+        assert len(a_calls) == 1
+        assert emu.fast_forward.call_count >= _BATTLE_ANIM_TAIL
+
+
+class TestExecuteUseBattleItem:
+    """use_battle_item navigates FIGHT→BAG→USE→item→A."""
+
+    def test_uses_right_and_two_as(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "use_battle_item", {"item_name": "Potion"})
+        assert "Potion" in result
+        rights = [c for c in emu.press_button.call_args_list if c.args[0] == "right"]
+        a_calls = [c for c in emu.press_button.call_args_list if c.args[0] == "a"]
+        assert len(rights) == 1
+        assert len(a_calls) >= 2  # BAG confirm + USE confirm
+
+    def test_missing_item_name_returns_error(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "use_battle_item", {})
+        assert result.startswith("Error:")
+        emu.press_button.assert_not_called()
+
+    def test_empty_item_name_returns_error(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "use_battle_item", {"item_name": ""})
+        assert result.startswith("Error:")
+        emu.press_button.assert_not_called()
+
+
+class TestExecuteSwitchPokemon:
+    """switch_pokemon navigates FIGHT→PKMN→slot N→A."""
+
+    def test_slot_1_uses_one_down(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "switch_pokemon", {"slot": 1})
+        assert "slot 1" in result
+        downs = [c for c in emu.press_button.call_args_list if c.args[0] == "down"]
+        # FIGHT→PKMN is one down. No additional party navigation for slot 1.
+        assert len(downs) == 1
+
+    def test_slot_3_uses_three_downs(self) -> None:
+        emu = _mock_emulator()
+        execute_tool_call(emu, "switch_pokemon", {"slot": 3})
+        downs = [c for c in emu.press_button.call_args_list if c.args[0] == "down"]
+        # 1 menu nav (FIGHT→PKMN) + 2 party navigations = 3
+        assert len(downs) == 3
+
+    def test_invalid_slot_returns_error(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "switch_pokemon", {"slot": 7})
+        assert result.startswith("Error:")
+        emu.press_button.assert_not_called()
+
+    def test_missing_slot_returns_error(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "switch_pokemon", {})
+        assert result.startswith("Error:")
+        emu.press_button.assert_not_called()
+
+    def test_zero_slot_returns_error(self) -> None:
+        emu = _mock_emulator()
+        result = execute_tool_call(emu, "switch_pokemon", {"slot": 0})
+        assert result.startswith("Error:")
+        emu.press_button.assert_not_called()
+
+
+class TestBattleToolEmulatorErrorWrapping:
+    """Underlying emulator failures are surfaced as Error strings."""
+
+    def test_emulator_runtime_error_wrapped(self) -> None:
+        class BadEmu:
+            def press_button(self, b, frames=5):
+                raise RuntimeError("pyboy disconnected")
+
+        result = execute_tool_call(BadEmu(), "select_move", {"move_number": 1})
+        assert result.startswith("Error:")
+        assert "pyboy disconnected" in result
+
+    def test_wait_exception_wrapped(self) -> None:
+        class BadEmu:
+            def press_button(self, b, frames=5):
+                return None
+
+            def wait(self, n):
+                raise OSError("wait failed")
+
+        result = execute_tool_call(BadEmu(), "run_from_battle", {})
+        assert result.startswith("Error:")
