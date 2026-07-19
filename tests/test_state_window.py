@@ -900,3 +900,88 @@ class TestLoadStateWorkflow:
         with patch("src.core.state_window._STATES_DIR", tmp_path):
             result = _load_state_workflow("battle", "gen1")
             assert result == ""
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# _build_battle_prompt tests (BATTLE-AGENT)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestBuildBattlePrompt:
+    """Tests for StateWindow._build_battle_prompt()."""
+
+    def test_battle_prompt_includes_player_hp(self, mock_emulator):
+        sw = StateWindow(
+            "battle", GlobalContext(), mock_emulator,
+            {"screen_type": "battle", "battle_state": {
+                "player": {"name": "Squirtle", "level": 5, "hp_pct": 80,
+                           "hp": 16, "max_hp": 20, "type": "Water",
+                           "moves": [{"name": "Tackle", "pp": 35, "pp_max": 35, "power": 40}]},
+                "enemy": {"name": "Pidgey", "level": 3, "hp_pct": 60,
+                          "hp": 12, "max_hp": 20, "type": "Normal/Flying"},
+                "battle_type": "Wild",
+            }},
+            generation="gen1",
+        )
+        prompt = sw._build_battle_prompt()
+        assert "Squirtle" in prompt
+        assert "80" in prompt
+        assert "Pidgey" in prompt
+
+    def test_battle_prompt_includes_moves(self, mock_emulator):
+        sw = StateWindow(
+            "battle", GlobalContext(), mock_emulator,
+            {"screen_type": "battle", "battle_state": {
+                "player": {"name": "Pikachu", "level": 7,
+                           "hp_pct": 50, "hp": 15, "max_hp": 30, "type": "Electric",
+                           "moves": [
+                               {"name": "Thunder Shock", "pp": 30, "pp_max": 30, "power": 40},
+                               {"name": "Quick Attack", "pp": 30, "pp_max": 30, "power": 40},
+                           ]},
+                "enemy": {"name": "Rattata", "level": 4,
+                          "hp_pct": 80, "hp": 16, "max_hp": 20, "type": "Normal"},
+                "battle_type": "Wild",
+            }},
+            generation="gen1",
+        )
+        prompt = sw._build_battle_prompt()
+        assert "Thunder Shock" in prompt
+        assert "Quick Attack" in prompt
+        assert "PP: 30/30" in prompt
+
+    def test_battle_prompt_includes_menu_options(self, mock_emulator):
+        sw = StateWindow(
+            "battle", GlobalContext(), mock_emulator,
+            {"screen_type": "battle", "battle_state": {
+                "player": {"name": "Charmander", "level": 5,
+                           "hp_pct": 90, "hp": 18, "max_hp": 20, "type": "Fire",
+                           "moves": [{"name": "Scratch", "pp": 35, "pp_max": 35, "power": 40}]},
+                "enemy": {"name": "Caterpie", "level": 3,
+                          "hp_pct": 100, "hp": 15, "max_hp": 15, "type": "Bug"},
+                "battle_type": "Wild",
+            }},
+            generation="gen1",
+        )
+        prompt = sw._build_battle_prompt()
+        assert "FIGHT" in prompt
+        assert "BAG" in prompt
+        assert "RUN" in prompt
+
+    def test_battle_prompt_empty_state_falls_back(self, mock_emulator):
+        sw = StateWindow(
+            "battle", GlobalContext(), mock_emulator,
+            {"screen_type": "battle", "render": "Fallback render text"},
+            generation="gen1",
+        )
+        prompt = sw._build_battle_prompt()
+        assert "Fallback render text" in prompt
+
+    def test_battle_prompt_no_data_last_resort(self, mock_emulator):
+        sw = StateWindow(
+            "battle", GlobalContext(), mock_emulator,
+            {"screen_type": "battle"},
+            generation="gen1",
+        )
+        prompt = sw._build_battle_prompt()
+        # Should still produce something (even if from fallback)
+        assert isinstance(prompt, str)
+        assert len(prompt) > 0

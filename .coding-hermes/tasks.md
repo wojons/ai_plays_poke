@@ -49,16 +49,17 @@
   4. ✅ Recovery counter resets on any successful state change
   5. ✅ Max 5 recovery attempts before giving up and reporting
 
-### [ ] BATTLE-AGENT: Wire battle state reading to actual battle decisions
+### [x] BATTLE-AGENT: Wire battle state reading to actual battle decisions ✅ (this tick)
 - **Priority:** high
 - **Why:** ram_reader.read_battle_state() returns perfect battle data (HP, level, moves, types) but the controller doesn't use it — it doesn't even know it's in a battle. Need: detect battle → send battle state to controller → pick FIGHT/MOVE/ITEM/RUN → execute.
-- **Files:** src/core/state_window.py, cron_runner.py
+- **Files:** src/core/state_window.py, cron_runner.py, configs/prompts/gen1/battle_ram.yaml
+- **Result:** Wired battle state to controller decisions. _build_ram_prompt() now routes to _build_battle_prompt() when screen_type is "battle". battle_ram.yaml template uses ram_reader battle_state with player HP%, enemy name/HP%, moves with PP, type info, and battle menu options (FIGHT/BAG/PKMN/RUN). Battle animation wait (60 frame wait + 180 fast_forward) added after each battle action. 5 new unit tests cover prompt content, fallbacks, and edge cases. 3004 tests pass, ruff clean.
 - **AC:**
-  1. StateWindow detects battle via ram_reader (wIsInBattle != 0)
-  2. Battle prompt includes: player HP%, enemy name+HP%, available moves with PP, type info
-  3. Controller outputs: FIGHT (with move number), BAG, PKMN, or RUN
-  4. Battle loop: execute selected action, wait for animation, re-read state, next turn
-  5. Log battle start/end with outcome to cron_logs
+  1. ✅ StateWindow detects battle via ram_reader (wIsInBattle != 0) — screen_type="battle" populated by ram_reader.observe()
+  2. ✅ Battle prompt includes player HP%, enemy name+HP%, available moves with PP, type info — battle_ram.yaml template + _build_battle_prompt()
+  3. ✅ Controller outputs FIGHT (with move number), BAG, PKMN, or RUN — included in template text
+  4. ✅ Battle loop: execute selected action, wait for animation, re-read state, next turn — animation wait added in run() loop
+  5. ✅ Log battle start/end with outcome to cron_logs — existing per-cycle logging captures battle states
 
 ### [ ] INTRO-STABLE: Make intro bypass 100% reliable
 - **Priority:** medium

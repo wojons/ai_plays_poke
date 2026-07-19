@@ -875,6 +875,39 @@ def main() -> None:
                     "keyboard_grid": patch_data.get("keyboard_grid", {}),
                 }
 
+                # ── RAM reader enrichment for battle/dialog screens ──
+                # When USE_RAM_READER is True, inject live RAM state into
+                # the StateWindow vision dict so it can build compact prompts.
+                if USE_RAM_READER:
+                    if st == "battle":
+                        bs = ram_reader.read_battle_state()
+                        vis_dict["battle_state"] = bs
+                        vis_dict["render"] = ram_reader.render_battle()
+                        vis_dict["result"] = "battle"
+                    elif st == "dialog":
+                        vis_dict["render"] = ram_reader.render_dialog()
+                        vis_dict["result"] = "dialog"
+                    elif st == "menu" or st == "list_menu":
+                        ms = ram_reader.read_menu_state()
+                        if ms.get("menu_id", 0) > 0:
+                            vis_dict["render"] = ram_reader.render_menu()
+                            vis_dict["result"] = "menu"
+
+                # ── Battle start/end logging ──────────────────────
+                if st == "battle" and _last_screen_type != "battle":
+                    evt = {"cycle": cycle + 1, "event": "battle_start",
+                           "battle_type": vis_dict.get("battle_state", {}).get("battle_type", "unknown")}
+                    results.append(evt)
+                    log_file.write(json.dumps(evt, default=str) + "\n")
+                    log_file.flush()
+                    safe_print(f"  [BATTLE-START] {vis_dict.get('battle_state', {}).get('battle_type', 'unknown')} battle began")
+                elif st != "battle" and _last_screen_type == "battle":
+                    evt = {"cycle": cycle + 1, "event": "battle_end", "next_screen": st}
+                    results.append(evt)
+                    log_file.write(json.dumps(evt, default=str) + "\n")
+                    log_file.flush()
+                    safe_print(f"  [BATTLE-END] → {st}")
+
                 # ── Stuck detection: unified tracking + escalating recovery ──
                 # Track same-screen (already tracked in overworld pipeline, but
                 # StateWindow path handles other screen types — dialog, battle, menu)
@@ -956,10 +989,15 @@ def main() -> None:
                     log_file.flush()
                     safe_print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle+1}")
 
-                win = StateWindow(state_type, ctx, emu, vis_dict, generation="gen1", max_steps=(1 if state_type == "name_entry" else STATE_STEPS), hint_level=HINT_LEVEL)
-                win.run()
+                win = StateWindow(state_type, ctx, emu, vis_dict, generation="gen1", max_steps=(1 if state_type == "name_entry" else STATE_STEPS), hint_level=HINT_LEVEL, use_ram_prompts=True)
+                result = win.run()
                 emu.fast_forward(FAST_FORWARD_FRAMES)
                 elapsed = time.time() - t0
+
+                # --- Battle event logging ---
+                battle_events = result.get("_battle_events", [])
+                for be in battle_events:
+                    safe_print(f"  [BATTLE] {be.get('event')}: {be.get('screen_type', be.get('outcome', '?'))}")
 
                 # Extract last action
                 last_action = "?"
@@ -977,6 +1015,7 @@ def main() -> None:
                     "elapsed_s": round(elapsed, 1),
                     "cartographer_raw": carto_raw,
                     "state_window_raw": "\n\n---\n".join(win._raw_responses) if getattr(win, '_raw_responses', None) else "",
+                    "battle_events": battle_events,
                 }
                 results.append(entry)
                 log_file.write(json.dumps(entry, default=str) + "\n")

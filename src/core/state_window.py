@@ -24,7 +24,6 @@ from src.core.global_context import GlobalContext
 from src.core.state_machine import (
     HierarchicalStateMachine,
     create_hierarchical_state_machine,
-    StateType,
 )
 from src.core.tools import TOOL_SCHEMA, execute_tool_call
 import subprocess
@@ -247,6 +246,15 @@ class StateWindow:
                     initial_hsm_state,
                 )
 
+        # ── Battle tracking ──────────────────────────────────────────
+        self._in_battle = (self.state_type == "battle")
+        self._battle_events: list[dict[str, Any]] = []
+        if self._in_battle:
+            self._battle_events.append({
+                "event": "battle_start",
+                "screen_type": self.vision.get("screen_type", ""),
+            })
+
         # Save initial HSM state for outcome detection
         self._initial_hsm_state = self.hsm.get_current_state_name()
 
@@ -422,6 +430,13 @@ class StateWindow:
                 "action": action_result,
             })
 
+            # ── Battle animation wait ──────────────────────────────
+            # After executing a battle action (FIGHT, move select),
+            # wait for the attack/HP-drain animation before re-reading.
+            if self.state_type == "battle":
+                self.emulator.wait(60)
+                self.emulator.fast_forward(180)
+
             # ── HSM state update ──────────────────────────────────
             new_hsm_state = self._map_vision_to_hsm_state()
             if new_hsm_state and new_hsm_state != self.hsm.get_current_state_name():
@@ -430,10 +445,21 @@ class StateWindow:
             # Check for state transition
             outcome = self._check_outcome()
             if outcome:
+                # ── Battle end logging ──────────────────────────
+                if self._in_battle:
+                    self._battle_events.append({
+                        "event": "battle_end",
+                        "outcome": outcome.get("outcome", "unknown"),
+                        "to_type": outcome.get("to_type", "unknown"),
+                    })
+                # ── Include battle events in result ──────────────
+                outcome["_battle_events"] = self._battle_events
                 return outcome
 
         # Max steps reached without resolution
-        return {"outcome": "max_steps", "steps": self._step_count}
+        result: dict[str, Any] = {"outcome": "max_steps", "steps": self._step_count,
+                          "_battle_events": self._battle_events}
+        return result
 
     # ── Prompt building ─────────────────────────────────────────────
 
@@ -442,8 +468,15 @@ class StateWindow:
         parts: list[str] = []
 
         # ── RAM reader compact prompt path ──────────────────────────
-        if self.use_ram_prompts and "player_x" in self.vision:
-            return self._build_ram_prompt()
+        # Routes to battle-specific prompt when in battle, otherwise the
+        # overworld compact prompt (which still requires player_x to be
+        # present in vision data).
+        if self.use_ram_prompts:
+            screen = self.vision.get("result", self.vision.get("screen_type", ""))
+            if screen == "battle" or self.vision.get("battle_state"):
+                return self._build_battle_prompt()
+            if "player_x" in self.vision:
+                return self._build_ram_prompt()
 
         # 0. Core system prompt + hints (from core.yaml + hint layers)
         if self._system_prompt:
@@ -605,10 +638,13 @@ class StateWindow:
     def _build_ram_prompt(self) -> str:
         """Build a compact prompt from RAM reader data (< 100 tokens for overworld).
 
-        Uses configs/prompts/gen1/overworld_ram.yaml for the overworld template.
+        Uses configs/prompts/gen1/overworld_ram.yaml for the overworld template,
+        configs/prompts/gen1/battle_ram.yaml for battle screens.
         Other screen types fall through to the standard prompt builder.
         """
         st = self.vision.get("result", self.vision.get("screen_type", ""))
+        if st == "battle":
+            return self._build_battle_prompt()
         if st != "overworld":
             # Fall back to standard build for non-overworld states
             return self._build_ram_fallback()
@@ -643,6 +679,74 @@ class StateWindow:
             return self._build_ram_fallback()
 
         return prompt
+
+    def _build_battle_prompt(self) -> str:
+        """Build a compact battle prompt from RAM reader battle data.
+
+        Uses configs/prompts/gen1/battle_ram.yaml as template.
+        Falls back to the render_battle() text if template not available.
+        The final prompt always ends with an explicit "call this tool"
+        instruction so the controller LLM uses the battle tools instead
+        of trying to compose raw button sequences.
+        """
+        # Try the battle RAM template first
+        tmpl_path = Path("configs/prompts/gen1/battle_ram.yaml")
+        tmpl = ""
+        if tmpl_path.exists():
+            data = yaml.safe_load(tmpl_path.read_text())
+            tmpl = data.get("ram_battle", "") if isinstance(data, dict) else ""
+
+        # Get battle state from vision dict (populated by ram_reader.observe())
+        battle_state = self.vision.get("battle_state", {})
+        if battle_state:
+            p = battle_state.get("player", {})
+            e = battle_state.get("enemy", {})
+            battle_type = battle_state.get("battle_type", "Wild")
+
+            # Build moves list using ONLY fields that read_battle_state()
+            # actually exposes (name, pp, slot). pp_max / power live in
+            # the move database, not the per-battle RAM read.
+            moves_parts = []
+            for i, move in enumerate(p.get("moves", [])):
+                slot = move.get("slot", i + 1)
+                moves_parts.append(
+                    f"  {slot}. {move.get('name', '?')} (PP:{move.get('pp', 0)})"
+                )
+            moves_str = "\n".join(moves_parts) if moves_parts else "  (no moves)"
+
+            if tmpl:
+                try:
+                    return tmpl.format(
+                        battle_type=battle_type,
+                        enemy_name=e.get("name", "Unknown"),
+                        player_name=p.get("name", "Pokémon"),
+                        player_level=p.get("level", "?"),
+                        player_hp_pct=p.get("hp_pct", "?"),
+                        player_hp=p.get("hp", "?"),
+                        player_max_hp=p.get("max_hp", "?"),
+                        player_type=p.get("type", "Unknown"),
+                        enemy_level=e.get("level", "?"),
+                        enemy_hp_pct=e.get("hp_pct", "?"),
+                        enemy_hp=e.get("hp", "?"),
+                        enemy_max_hp=e.get("max_hp", "?"),
+                        enemy_type=e.get("type", "Unknown"),
+                        moves_list=moves_str,
+                    )
+                except (KeyError, ValueError, AttributeError):
+                    pass
+
+        # Fallback: use the render field from ram_reader
+        render = self.vision.get("render", "")
+        if render:
+            return (
+                render
+                + "\n→ Call select_move(N) for move N (1-4), run_from_battle() "
+                "to flee, use_battle_item(name) to bag, or switch_pokemon(N) "
+                "to swap."
+            )
+
+        # Last resort: standard RAM fallback
+        return self._build_ram_fallback()
 
     def _build_ram_fallback(self) -> str:
         """Fallback: use the 'render' field from ram_reader as the prompt."""
@@ -703,7 +807,7 @@ class StateWindow:
 
         # ── Vision-based fallback ─────────────────────────────────────
         st = self.vision.get("screen_type", "")
-        subtype = self.vision.get("screen_subtype", "")
+        _subtype = self.vision.get("screen_subtype", "")
 
         if st == "battle":
             return "BATTLE.BATTLE_MENU"
