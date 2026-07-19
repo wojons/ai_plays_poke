@@ -89,6 +89,7 @@ class PromptManager:
                 elif line.startswith('**Priority'):
                     # Try to extract priority level
                     import re
+                    # BUG: Unescaped leading `*` causes re.error — '**Priority' should be r'\*\*Priority'
                     match = re.search(r'**Priority:\s*(\d+)', line)
                     if match:
                         priority = int(match.group(1))
