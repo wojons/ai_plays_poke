@@ -476,11 +476,14 @@ def main() -> None:
     _player_named = False
     _rival_named = False
     _intro_checks = 0
-    _MAX_INTRO_CHECKS = 12
+    _MAX_INTRO_CHECKS = 15   # raised from 12 — programmatic name entry takes fewer cycles
     _A_BURST = 60       # A-presses per batch (was 10 — not enough for full intro)
     _A_FRAMES = 20      # hold A for 20 frames each press
     _FF_FRAMES = 120    # fast-forward between presses
     _save_detected = False  # set True if we loaded a save file by mistake
+    _name_entry_stuck = 0   # consecutive name_entry cycles without progress
+    _NAME_ENTRY_STUCK_MAX = 3  # after 3 cycles → programmatic entry
+    _last_intro_phase = None   # track phase transitions for logging
 
     while _intro_checks < _MAX_INTRO_CHECKS:
         _intro_checks += 1
@@ -517,27 +520,48 @@ def main() -> None:
                     continue
 
         if st == "overworld":
+            if _last_intro_phase != "overworld":
+                safe_print(f"  [intro] Phase: {_last_intro_phase} → overworld — intro complete ({_intro_checks} checks)")
             print(f"  [intro] {pipeline_name} says overworld — intro complete ({_intro_checks} checks)")
             break
         elif st == "name_entry":
-            # A-mash through name entry screens during intro bypass.
-            # The proper keyboard navigation (StateWindow + keyboard_grid)
-            # handles naming in the main loop. Here we just rush past.
-            if not _player_named:
-                _player_named = True
-            elif not _rival_named:
-                _rival_named = True
-            for _ in range(_A_BURST):
-                emu.press_button("a", frames=_A_FRAMES)
-                emu.fast_forward(_FF_FRAMES)
+            _name_entry_stuck += 1
+            if _name_entry_stuck >= _NAME_ENTRY_STUCK_MAX:
+                # Stuck in name entry — use deterministic keyboard typing
+                if not _player_named:
+                    safe_print("  [intro] Name entry stuck — typing ASH programmatically")
+                    emu.enter_name("ASH")
+                    _player_named = True
+                elif not _rival_named:
+                    safe_print("  [intro] Rival name stuck — typing BLUE programmatically")
+                    emu.enter_name("BLUE")
+                    _rival_named = True
+                _name_entry_stuck = 0
+            else:
+                # Still trying A-mash first
+                if not _player_named:
+                    _player_named = True
+                elif not _rival_named:
+                    _rival_named = True
+                for _ in range(_A_BURST):
+                    emu.press_button("a", frames=_A_FRAMES)
+                    emu.fast_forward(_FF_FRAMES)
         elif st == "title":
+            _name_entry_stuck = 0  # reset — we're not in name entry
             emu.press_button("start", frames=30)
             emu.wait(90)
         else:
             # dialog / name_confirm / cutscene / unknown — A-mash aggressively
+            _name_entry_stuck = 0  # reset — out of name entry
             for _ in range(_A_BURST):
                 emu.press_button("a", frames=_A_FRAMES)
                 emu.fast_forward(_FF_FRAMES)
+
+        # ── Phase transition logging ───────────────────────────
+        if st != _last_intro_phase:
+            if _last_intro_phase is not None:
+                safe_print(f"  [intro] Phase: {_last_intro_phase} → {st} (check {_intro_checks})")
+            _last_intro_phase = st
 
     if _intro_checks >= _MAX_INTRO_CHECKS:
         print(f"  [!] Intro bypass hit {_MAX_INTRO_CHECKS} check cap — proceeding anyway")
