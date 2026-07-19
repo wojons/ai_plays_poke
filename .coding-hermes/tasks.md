@@ -3,6 +3,10 @@
 
 ## Active Queue (Jul 18 — Discovery Sweep)
 
+### [ ] NEVER-DONE — Run coding-hermes-never-done 11-point audit
+
+Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc coverage, test gaps, package upgrades, pitfall hunt, performance audit, endpoint verification, CI/CD health, DuckBrain sync, code quality, middle-out wiring. Create a task for EVERY gap found. Do NOT mark this task done until every check passes.
+
 ### [x] GAMEPLAY-ARCH: Design reliable gameplay architecture (planning task, no code) ✅ (this tick)
 - **Priority:** highest
 - **Why:** Current system boots + reads RAM perfectly but the controller LLM doesn't produce reliable gameplay. We need a design that matches the architecture to the problem: RAM reader gives us perfect state → compact prompt → LLM picks from a small decision space → execute. No vision, no spatial reasoning, just state data → action mapping.
@@ -1024,5 +1028,97 @@
   3. ✅ ruff check clean, mypy clean (58 files)
   4. ✅ gitreins guard passes
 
+---
 
+## Active Queue (Jul 19 — 11-Point Never-Done Audit)
+
+### [ ] TEST-01: Add unit tests for 8 source files at 0% coverage
+- **Priority:** high
+- **Why:** Full never-done audit found 8 source files with zero test coverage:
+  1. `src/dashboard/main.py` — 230 stmts, 0% (FastAPI dashboard with 12+ endpoints)
+  2. `src/main.py` — 90 stmts, 0% (CLI entry point)
+  3. `src/memory_reader.py` — 72 stmts, 0%
+  4. `src/debug_screen.py` — 46 stmts, 0%
+  5. `src/generate_yellow_screenshots.py` — 52 stmts, 0%
+  6. `src/simple_test.py` — 44 stmts, 0%
+  7. `src/test_all_roms.py` — 64 stmts, 0%
+  8. `src/test_pyboy.py` — 57 stmts, 0%
+- **Files:** tests/ (new test files)
+- **AC:**
+  1. Cover at least dashboard/main.py + main.py (critical entry points)
+  2. Cover at least 50% of the remaining diagnostic scripts
+  3. Skip `src/simple_test.py`, `src/test_pyboy.py`, `src/test_all_roms.py` if they are throwaway diagnostic scripts (mark as `# pragma: no cover` in coverage config)
+
+### [ ] TEST-02: Boost 6 low-coverage modules (<70%)
+- **Priority:** high
+- **Why:** 6 modules below 70% with significant untested surface area:
+  - `src/core/rom_detect.py` — 35% (18 missed, pure functions, easy to test)
+  - `src/core/state_window.py` — 52% (196 missed, core AI decision loop)
+  - `src/core/prompt_manager.py` — 60% (38 missed, prompt loading/tracking)
+  - `src/core/ai_client.py` — 66% (321 missed out of 1062, largest module)
+  - `src/core/screenshot_manager.py` — 69% (49 missed, file I/O)
+  - `src/core/demo_runner.py` — 67% (18 missed, end-to-end runner)
+- **Files:** tests/ (new + existing test files)
+- **AC:**
+  1. rom_detect.py: 35% → 80%+ (pure functions, no ROM needed)
+  2. state_window.py: 52% → 65%+ (fill run() + _build_prompt gaps)
+  3. prompt_manager.py: 60% → 75%+
+  4. screenshot_manager.py: 69% → 85%+
+  5. demo_runner.py: 67% → 85%+
+  6. ai_client.py: 66% → 70%+ (target modest — 1062 lines, heavy mocking needed)
+
+### [ ] DOC-01: Update CONTRIBUTING.md tooling references
+- **Priority:** low
+- **Why:** CONTRIBUTING.md last updated Dec 2025. References `black`, `isort`, `flake8` — project now uses `ruff` exclusively (covers formatting + linting + import sorting). Also references `src/cli/` directory that doesn't exist (CLI is `src/ptp_cli/`).
+- **Files:** CONTRIBUTING.md
+- **AC:**
+  1. Replace black/isort/flake8 references with ruff
+  2. Fix `src/cli/` → `src/ptp_cli/`
+  3. Update "Last Updated" date
+
+### [ ] SPEC-01: Audit spec drift — 69 HSM states vs spec claims of "50+"
+- **Priority:** medium
+- **Why:** README and specs claim "50+ distinct gameplay states" but `state_machine.py` implements 69 states. Also: 39 spec MD files with some duplicate chapters (chapter_07_inventory.md AND chapter_07_inventory_system.md). Specs may be stale relative to implementation (specs designed the "Tri-Tier Memory" but actual code uses DuckBrain).
+- **Files:** specs/, README.md
+- **AC:**
+  1. Verify which spec files are still accurate vs stale
+  2. Update README state count to match implementation (69)
+  3. Flag duplicate/misleading spec files for archival
+
+### [ ] QUALITY-01: Split ai_client.py (2403 lines)
+- **Priority:** medium
+- **Why:** `src/core/ai_client.py` is 2403 lines — largest file in the project by 350+ lines. Contains: OpenRouterClient, CircuitBreaker, TokenTracker, CartographerCache, prompt parsing, retry logic, and model routing. Should be split into separate modules.
+- **Files:** src/core/ai_client.py → src/core/ai_client.py + src/core/circuit_breaker.py + src/core/token_tracker.py
+- **AC:**
+  1. Extract CircuitBreaker + TokenTracker into separate modules
+  2. All existing tests pass (no regressions)
+  3. ai_client.py < 2000 lines after extraction
+
+### [ ] QUALITY-02: Audit 0 TODO/FIXME markers — are they missing?
+- **Priority:** low
+- **Why:** Entire source tree (2403-line ai_client.py, 2055-line inventory.py, 1772-line entity.py) has ZERO TODO/FIXME/HACK comments. This is suspicious — either the codebase is perfectly documented or technical debt is invisible. At minimum: known bugs documented in past task results (prompt_manager.py regex bug, game_database.py double-fetchone bug) have no in-code markers.
+- **Files:** src/core/prompt_manager.py, src/db/database.py
+- **AC:**
+  1. Add `# BUG:` or `# TODO:` comments for known issues documented in past tasks
+  2. Run a scan for code patterns that typically warrant TODO markers (bare except, magic numbers, long parameter lists)
+
+### [ ] PERF-01: Add pytest-benchmark for critical paths
+- **Priority:** low
+- **Why:** No performance benchmarks exist. Project has 7 performance targets in README (vision/OCR <1s, state transition <0.5s, etc.) but zero automated measurement. `pytest-benchmark` not installed.
+- **Files:** pyproject.toml, tests/test_performance.py
+- **AC:**
+  1. Install pytest-benchmark
+  2. Add benchmark for vision pipeline (pipeline.py process())
+  3. Add benchmark for RAM reader (ram_reader.observe())
+  4. Add benchmark for pathfinding (navigation.find_path)
+  5. Store baseline in CI
+
+### [ ] CI-02: Add coverage threshold + dashboard tests to CI
+- **Priority:** medium
+- **Why:** CI.yml runs tests but doesn't enforce coverage. Dashboard (0% coverage) and main.py (0% coverage) have no CI coverage at all. Coverage report shows 78% overall — should gate at 75% minimum.
+- **Files:** .github/workflows/ci.yml
+- **AC:**
+  1. Add `--cov=src --cov-fail-under=75` to pytest step
+  2. Ensure dashboard tests exist (see TEST-01) and are included in CI
+  3. Add pytest-timeout already present ✅
 
