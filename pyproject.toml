@@ -64,7 +64,13 @@ pythonpath = ["."]
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["tests/*", "*/__pycache__/*"]
+omit = [
+    "tests/*",
+    "*/__pycache__/*",
+    "src/simple_test.py",
+    "src/test_pyboy.py",
+    "src/test_all_roms.py",
+]
 branch = true
 parallel = true
 
