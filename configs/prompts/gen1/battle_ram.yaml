@@ -1,0 +1,20 @@
+# Gen 1 Battle — RAM Reader Compact Prompt
+# Uses instant RAM reads instead of vision model. < 150 tokens.
+# Fields come from ram_reader.read_battle_state() — player, enemy, battle_type.
+#
+# NOTE: ram_reader exposes move fields {name, pp, slot} only — there is no
+# pp_max or power. The placeholder set here matches exactly what
+# _build_battle_prompt() in src/core/state_window.py passes to .format().
+
+ram_battle: |
+  ⚔ {battle_type} vs {enemy_name} Lv{enemy_level} ({enemy_type})
+  You: {player_name} Lv{player_level} HP:{player_hp_pct}% ({player_type})
+  Moves:
+  {moves_list}
+  Menu: [FIGHT] BAG PKMN RUN
+  → Call select_move(N) for move N (1-4), run_from_battle() to flee, use_battle_item(name) to bag, or switch_pokemon(N) to swap.
+
+ram_battle_fight: |
+  Pick move vs {enemy_name} HP:{enemy_hp_pct}%:
+  {moves_list}
+  → Call select_move(N) where N is the move number (1-4).
