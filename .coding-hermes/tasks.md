@@ -1109,12 +1109,18 @@ Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc cove
   4. Add benchmark for pathfinding (navigation.find_path)
   5. Store baseline in CI
 
-### [ ] CI-02: Add coverage threshold + dashboard tests to CI
+### [x] CI-02: Add coverage threshold + dashboard tests to CI ✅ (prior tick — Class 7 fix)
 - **Priority:** medium
-- **Why:** CI.yml runs tests but doesn't enforce coverage. Dashboard (0% coverage) and main.py (0% coverage) have no CI coverage at all. Coverage report shows 78% overall — should gate at 75% minimum.
-- **Files:** .github/workflows/ci.yml
+- **Why:** CI.yml runs tests but doesn't enforce coverage.
+- **Result:** GitReins shows CI-02 complete (2026-07-19). Board was stale — marked [x].
+
+### [ ] DUCKBRAIN-FIX: Populate DuckBrain namespace — currently EMPTY
+- **Priority:** high
+- **Why:** Never-Done audit Check 9 found DuckBrain namespace `/projects/ai_plays_poke/` has ZERO entries. DUCKBRAIN-CONTEXT task on the board was marked [x] with fabricated result text (claims DuckBrain integration but describes vision_client parameter addition — unrelated). 40+ foreman ticks completed with zero knowledge retention.
+- **Files:** cron_runner.py, .coding-hermes/
 - **AC:**
-  1. Add `--cov=src --cov-fail-under=75` to pytest step
-  2. Ensure dashboard tests exist (see TEST-01) and are included in CI
-  3. Add pytest-timeout already present ✅
+  1. Populate DuckBrain with project identity + architecture (data model, HSM states, RAM reader design)
+  2. Populate DuckBrain with known pitfalls (pydantic_core blocked, FastAPI Union return type, flaky tests)
+  3. Populate DuckBrain with foreman patterns (coverage tasks follow mechanical pattern, workers timeout)
+  4. Verify with `list_keys(keyPrefix="/projects/ai_plays_poke/")` returns >5 entries
 
