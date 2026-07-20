@@ -47,7 +47,7 @@
 ## Why Orchestrated Intelligence Matters
 
 **Pokemon is NOT a Simple Game:**
-- **50+ distinct game states** (not just "battle", "overworld", "menu")
+- **69 distinct game states** (not just "battle", "overworld", "menu")
 - **20+ hour gameplay journey** with interconnected strategic decisions
 - **151 Pokemon** to catalog, learn types, moves, abilities
 - **8 Gyms + Elite Four** requiring team composition planning
@@ -100,7 +100,7 @@ Our AI needs to understand **which phase it's in** and apply phase-appropriate l
 
 | Aspect | Simple AI | Orchestrated AI | Why Ours Wins |
 |--------|-----------|------------------|---------------|
-| Game Phases | 3 (battle/menu/overworld) | 50+ phases | Accurate phase detection = better decisions |
+| Game Phases | 3 (battle/menu/overworld) | 69 phases | 7 HSM categories with 62 substates |
 | Memory | Dump everything | 3-tier compression | Maintain strategy without token overflow |
 | Decision-making | Immediate tactics | Hierarchical strategy | Long-term planning vs short-term optimization |
 | Progression | Linear | Multi-objective | Handle multiple competing goals simultaneously |
