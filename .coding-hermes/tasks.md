@@ -1044,23 +1044,18 @@ Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc cove
 - **FastAPI bug fix:** 3 routes (`/control/pause`, `/control/resume`, `/control/command`) had `Dict[str,Any] | JSONResponse` return type (invalid Pydantic field) — added `response_model=None`.
 - **Full suite:** 3127 pass, 8 skipped
 
-### [ ] TEST-02: Boost 6 low-coverage modules (<70%)
+### [ ] TEST-02: Boost ai_client.py coverage (15% → 70%+) — 5/6 modules already at target ✅ (f07fb05)
 - **Priority:** high
-- **Why:** 6 modules below 70% with significant untested surface area:
-  - `src/core/rom_detect.py` — 35% (18 missed, pure functions, easy to test)
-  - `src/core/state_window.py` — 52% (196 missed, core AI decision loop)
-  - `src/core/prompt_manager.py` — 60% (38 missed, prompt loading/tracking)
-  - `src/core/ai_client.py` — 66% (321 missed out of 1062, largest module)
-  - `src/core/screenshot_manager.py` — 69% (49 missed, file I/O)
-  - `src/core/demo_runner.py` — 67% (18 missed, end-to-end runner)
-- **Files:** tests/ (new + existing test files)
-- **AC:**
-  1. rom_detect.py: 35% → 80%+ (pure functions, no ROM needed)
-  2. state_window.py: 52% → 65%+ (fill run() + _build_prompt gaps)
-  3. prompt_manager.py: 60% → 75%+
-  4. screenshot_manager.py: 69% → 85%+
-  5. demo_runner.py: 67% → 85%+
-  6. ai_client.py: 66% → 70%+ (target modest — 1062 lines, heavy mocking needed)
+- **Why:** 5 of 6 target modules already exceed targets (previous ticks COV-14/12/25/30 exceeded ACs). Only ai_client.py remains at 15% (1062 lines, 19 classes). This tick: removed 28 dead tests (test_ai_supplementary.py tested methods that no longer exist on OpenRouterClient), added 65 working supplementary tests (state_window HSM/prompts + demo_runner mocked run/headless). Need dedicated ai_client.py coverage pass — CircuitBreaker, TokenTracker, OpenRouterClient, ClaudeClient, ModelRouter, GameAIManager, RateLimiter, CostOptimizer, PerformanceTracker, ResultMerger all at 0-5%.
+- **Files:** tests/ (test_ai_supplementary.py removed, test_state_window_supplementary.py + test_demo_runner_mocked.py added)
+- **Status (f07fb05):**
+  1. ✅ rom_detect.py: 80% (COV-14, already at target)
+  2. ✅ state_window.py: 88% (COV-20 + supplementary, exceeds 65% target)
+  3. ✅ prompt_manager.py: 90% (COV-12, exceeds 75% target)
+  4. ❌ ai_client.py: 15% → target 70%+ (1062 lines, 19 classes, heavy mocking needed)
+  5. ✅ screenshot_manager.py: 87% (COV-25, exceeds 85% target)
+  6. ✅ demo_runner.py: 100% (COV-30 + mocked tests, exceeds 85% target)
+- **AC:** 5/6 met. ai_client.py remains — needs dedicated coverage pass. 3151 tests pass, 0 fail.
 
 ### [x] DOC-01: Update CONTRIBUTING.md tooling references ✅ (this tick)
 - **Priority:** low
