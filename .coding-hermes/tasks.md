@@ -1059,17 +1059,17 @@ Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc cove
 - **FastAPI bug fix:** 3 routes (`/control/pause`, `/control/resume`, `/control/command`) had `Dict[str,Any] | JSONResponse` return type (invalid Pydantic field) — added `response_model=None`.
 - **Full suite:** 3127 pass, 8 skipped
 
-### [ ] TEST-02: Boost ai_client.py coverage (15% → 70%+) — 50% reached, 155 new tests ✅ (4b21a20)
+### [x] TEST-02: Boost ai_client.py coverage (15% → 70%+) ✅ (f2df329)
 - **Priority:** high
-- **Why:** 15 of 19 classes now tested: TokenUsage, APICallResult, TaskComplexity, ModelSelection, RoutingConfig, PerformanceMetrics, ModelResult, MergedResult (dataclasses), APIError (exception), JSONResponseParser (48 tests), RateLimiter, ModelRouter, CostOptimizer, PerformanceTracker, ResultMerger (pure logic), + module-level functions. 155 tests in 0.62s.
-- **Remaining:** AIModelClient, ClaudeClient, OpenRouterClient, GameAIManager (need requests_mock + anthropic mock). Coverage 15% → 50%. Target 70%+ requires API mocking of 4 remaining classes.
-- **Files:** tests/test_ai_client.py (new, 1116 lines)
+- **Why:** 15 of 19 classes now tested: TokenUsage, APICallResult, TaskComplexity, ModelSelection, RoutingConfig, PerformanceMetrics, ModelResult, MergedResult (dataclasses), APIError (exception), JSONResponseParser (48 tests), RateLimiter, ModelRouter, CostOptimizer, PerformanceTracker, ResultMerger (pure logic), + AIModelClient (25), ClaudeClient (11), OpenRouterClient (15), + module-level functions. 206 tests total.
+- **Result (Tick 7):** Added 51 new mock-based tests covering 3 previously untested API-coupled classes using requests_mock + unittest.mock. Coverage: 50% → 70%. Remaining: GameAIManager (lines 1119-1654, ~200 stmts).
+- **Files:** tests/test_ai_client.py (+553 lines), src/core/ai_client.py (+8 lines: ruff E402 fix)
 - **AC:**
   1. ✅ Dataclasses tested: TokenUsage (4), APICallResult (3), TaskComplexity (2), ModelSelection (1), RoutingConfig (2), PerformanceMetrics (2), ModelResult (1), MergedResult (1)
   2. ✅ Pure logic tested: JSONResponseParser (48), RateLimiter (6), ModelRouter (10), CostOptimizer (13), PerformanceTracker (16), ResultMerger (22)
   3. ✅ Module functions tested: get_model_pricing (12), calculate_cost (4), log functions (5), APIError (3)
-  4. ❌ API-coupled classes remain: AIModelClient, ClaudeClient, OpenRouterClient, GameAIManager — need requests_mock/anthropic mock
-  5. ✅ All 3338 tests pass, ruff clean
+  4. ✅ API-coupled classes now tested: AIModelClient (25), ClaudeClient (11), OpenRouterClient (15) — requests_mock covers API calls
+  5. ⏭️ GameAIManager remains (needs further mocking)
 
 ### [x] DOC-01: Update CONTRIBUTING.md tooling references ✅ (this tick)
 - **Priority:** low
