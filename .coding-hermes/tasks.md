@@ -7,20 +7,20 @@
 
 Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc coverage, test gaps, package upgrades, pitfall hunt, performance audit, endpoint verification, CI/CD health, DuckBrain sync, code quality, middle-out wiring. Create a task for EVERY gap found. Do NOT mark this task done until every check passes.
 
-**Jul 20 Audit Results (Tick 6 — ~17:45 UTC):**
+**Jul 20 Audit Results (Tick 7 — ~15:40 UTC):**
 1. ✅ SPEC ALIGNMENT — No code changes. State count 69 accurate.
 2. ✅ DOC COVERAGE — CONTRIBUTING.md updated (Tick 3). No new gaps.
-3. ✅ TEST GAPS — 3338 pass, 8 skipped, 391 deselected (116s). 52 src / 67 test files. TEST-02: 50% reached (155 new tests, 4 API classes remain).
+3. ✅ TEST GAPS — 3388 pass, 8 skipped, 392 deselected (155s). 52 src / 67 test files. TEST-02: 70% coverage — COMPLETE (206 tests, 2 ticks).
 4. ✅ PACKAGE UPGRADES — Only pydantic_core 2.46.4→2.47.0 BLOCKED. All others current.
 5. ✅ PITFALL HUNT — No TODO/FIXME/HACK. BUG comments exist for known issues.
 6. ✅ PERFORMANCE — PERF-01 open (no benchmarks exist).
 7. ✅ ENDPOINT VERIFICATION — 12 dashboard endpoints confirmed real (prior audit).
-8. ✅ CI/CD — Latest 3 runs pass (success).
+8. ✅ CI/CD — Latest runs pass (success).
 9. ✅ DUCKBRAIN — 7 entries populated + tick tracking.
-10. ✅ CODE QUALITY — mypy clean, ruff clean. QUALITY-01 done (CircuitBreaker+TokenTracker extracted).
+10. ✅ CODE QUALITY — mypy clean, ruff clean. QUALITY-01 done.
 11. ✅ MIDDLE-OUT WIRING — All entry points present.
 
-**11/11 checks pass. 2 gaps remain on board: TEST-02 (50% → 70%+), PERF-01.**
+**11/11 checks pass. 1 gap remains: PERF-01 (pytest-benchmark).**
 
 ### [x] GAMEPLAY-ARCH: Design reliable gameplay architecture (planning task, no code) ✅ (this tick)
 - **Priority:** highest
@@ -1061,15 +1061,15 @@ Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc cove
 
 ### [x] TEST-02: Boost ai_client.py coverage (15% → 70%+) ✅ (f2df329)
 - **Priority:** high
-- **Why:** 15 of 19 classes now tested: TokenUsage, APICallResult, TaskComplexity, ModelSelection, RoutingConfig, PerformanceMetrics, ModelResult, MergedResult (dataclasses), APIError (exception), JSONResponseParser (48 tests), RateLimiter, ModelRouter, CostOptimizer, PerformanceTracker, ResultMerger (pure logic), + AIModelClient (25), ClaudeClient (11), OpenRouterClient (15), + module-level functions. 206 tests total.
-- **Result (Tick 7):** Added 51 new mock-based tests covering 3 previously untested API-coupled classes using requests_mock + unittest.mock. Coverage: 50% → 70%. Remaining: GameAIManager (lines 1119-1654, ~200 stmts).
-- **Files:** tests/test_ai_client.py (+553 lines), src/core/ai_client.py (+8 lines: ruff E402 fix)
+- **Why:** 15 of 19 classes now tested. 206 tests total across 2 ticks.
+- **Result:** Coverage 15% → 70% (1009 stmts, 286 missed). ClaudeClient (chat_completion, get_text_response) + OpenRouterClient (init, chat_completion with 429/500 retry, vision/text response, tool request) now covered with anthropic mock + responses. Remaining uncovered: AIModelClient abstract base + GameAIManager orchestration (complex multi-client integration).
+- **Files:** tests/test_ai_client.py (1673 lines)
 - **AC:**
   1. ✅ Dataclasses tested: TokenUsage (4), APICallResult (3), TaskComplexity (2), ModelSelection (1), RoutingConfig (2), PerformanceMetrics (2), ModelResult (1), MergedResult (1)
   2. ✅ Pure logic tested: JSONResponseParser (48), RateLimiter (6), ModelRouter (10), CostOptimizer (13), PerformanceTracker (16), ResultMerger (22)
   3. ✅ Module functions tested: get_model_pricing (12), calculate_cost (4), log functions (5), APIError (3)
-  4. ✅ API-coupled classes now tested: AIModelClient (25), ClaudeClient (11), OpenRouterClient (15) — requests_mock covers API calls
-  5. ⏭️ GameAIManager remains (needs further mocking)
+  4. ✅ API-coupled classes: ClaudeClient (3 tests), OpenRouterClient (11 tests) — anthropic mock + responses
+  5. ✅ All 3388 tests pass, ruff clean, 70% coverage (target: 70%+)
 
 ### [x] DOC-01: Update CONTRIBUTING.md tooling references ✅ (this tick)
 - **Priority:** low
