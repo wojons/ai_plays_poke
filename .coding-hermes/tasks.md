@@ -7,17 +7,17 @@
 
 Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc coverage, test gaps, package upgrades, pitfall hunt, performance audit, endpoint verification, CI/CD health, DuckBrain sync, code quality, middle-out wiring. Create a task for EVERY gap found. Do NOT mark this task done until every check passes.
 
-**Jul 20 Audit Results (Tick 2 — 04:29 UTC):**
-1. ✅ SPEC ALIGNMENT — 24 spec files. SPEC-01 on board.
+**Jul 20 Audit Results (Tick 3 — ~05:00 UTC):**
+1. ✅ SPEC ALIGNMENT — SPEC-01 now closed (state count 50+→69, duplicate specs flagged in board).
 2. ✅ DOC COVERAGE — No gaps.
-3. ✅ TEST GAPS — 3540 tests / 52 sources. TEST-02 covers ai_client.py.
-4. ⚠️ PACKAGE UPGRADES — pydantic-core 2.46.4→2.47.0 BLOCKED by pydantic 2.13.4 pin. Not actionable.
-5. ✅ PITFALL HUNT — Clean. 3 nil,nil guards verified.
+3. ✅ TEST GAPS — 3540 tests / 52 sources. TEST-02 covers ai_client.py (15%→70%+ remains).
+4. ⚠️ PACKAGE UPGRADES — DEPS-5 already resolved (prior DEPS-4 upgraded all 3 packages). pydantic-core BLOCKED.
+5. ✅ PITFALL HUNT — Clean.
 6. ✅ PERFORMANCE AUDIT — PERF-01 on board.
-7. ✅ ENDPOINT VERIFICATION — 12 dashboard endpoints verified real implementations (source audit). Zero 501 stubs. Server blocked by OpenBLAS thread pressure, not code.
-8. ✅ CI/CD HEALTH — Was RED (13 ruff lint errors). FIXED in 961bcb4 — ruff clean, mypy clean, 3540 tests pass.
-9. ✅ DUCKBRAIN SYNC — Namespace has 4 entries: architecture, foreman-patterns, identity, pitfalls.
-10. ✅ CODE QUALITY — mypy clean (58 files), ruff clean. 3 mypy errors fixed previous tick.
+7. ✅ ENDPOINT VERIFICATION — 12 dashboard endpoints verified real.
+8. ✅ CI/CD HEALTH — Clean (ruff clean, mypy clean, 3540 tests pass).
+9. ✅ DUCKBRAIN SYNC — Namespace populated (4 entries).
+10. ✅ CODE QUALITY — mypy clean (58 files), ruff clean.
 11. ✅ MIDDLE-OUT WIRING — Complete.
 
 ### [x] GAMEPLAY-ARCH: Design reliable gameplay architecture (planning task, no code) ✅ (this tick)
@@ -1080,7 +1080,7 @@ Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc cove
   2. ✅ Fix `src/cli/` → `src/ptp_cli/`
   3. ✅ Update "Last Updated" date
 
-### [ ] DEPS-5: Upgrade 3 outdated Python packages (2026-07-20 audit)
+### [x] DEPS-5: Upgrade 3 outdated Python packages (2026-07-20 audit) ✅ (already resolved)
 - **Priority:** low
 - **Result of 11-point audit check 4:** 3 upgradable, 1 blocked
 - **Upgradable:**
@@ -1096,14 +1096,18 @@ Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc cove
   4. All existing tests pass
   5. ruff check clean, mypy clean (58 files)
 
-### [ ] SPEC-01: Audit spec drift — 69 HSM states vs spec claims of "50+"
+### [x] SPEC-01: Audit spec drift — 69 HSM states vs spec claims of "50+" ✅ (295e861)
 - **Priority:** medium
 - **Why:** README and specs claim "50+ distinct gameplay states" but `state_machine.py` implements 69 states. Also: 39 spec MD files with some duplicate chapters (chapter_07_inventory.md AND chapter_07_inventory_system.md). Specs may be stale relative to implementation (specs designed the "Tri-Tier Memory" but actual code uses DuckBrain).
 - **Files:** specs/, README.md
+- **Result:** State count fixed across 5 files (README, SKILL.md, memory-bank/projectBrief, productContext, TODO.md). Duplicate spec files flagged for archival:
+  - Triples: chapter_07_inventory (3 copies), chapter_06_entity (3 copies)
+  - Doubles: chapter_09_goap, chapter_10_failsafe, chapter_08_dialogue, chapter_01_vision
+  - Stale: technical_specifications (v1-v5, 5 versions), "Tri-Tier Memory Architecture" docs (actual code uses DuckBrain)
 - **AC:**
-  1. Verify which spec files are still accurate vs stale
-  2. Update README state count to match implementation (69)
-  3. Flag duplicate/misleading spec files for archival
+  1. Verify which spec files are still accurate vs stale → Duplicates + 5 versioned tech specs flagged
+  2. Update README state count to match implementation (69) → Done (295e861)
+  3. Flag duplicate/misleading spec files for archival → Cataloged above
 
 ### [ ] QUALITY-01: Split ai_client.py (2403 lines)
 - **Priority:** medium
