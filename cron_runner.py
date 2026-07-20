@@ -466,20 +466,20 @@ def main() -> None:
 
     # Step 1: Title screen → press START
     emu.bypass_title()
-    # Wait for Oak's intro to finish and main menu to appear
-    emu.wait(120)
+    # Brief settle — intro loop detects state changes via RAM, no need for long waits.
+    emu.wait(30)
     # Press A — if no save file, this selects NEW GAME directly.
     # If save exists, cursor is on CONTINUE — we'll detect old save below.
     emu.press_button("a", frames=15)
-    emu.wait(120)  # let game load (or Oak appear)
+    emu.fast_forward(60)  # let game load (or Oak appear)
 
     _player_named = False
     _rival_named = False
     _intro_checks = 0
     _MAX_INTRO_CHECKS = 15   # raised from 12 — programmatic name entry takes fewer cycles
-    _A_BURST = 60       # A-presses per batch (was 10 — not enough for full intro)
-    _A_FRAMES = 20      # hold A for 20 frames each press
-    _FF_FRAMES = 120    # fast-forward between presses
+    _A_BURST = 10       # A-presses per batch — Gen 1 text advances in a few presses
+    _A_FRAMES = 5       # hold A for 5 frames each press
+    _FF_FRAMES = 30     # fast-forward between presses (~350 frames per burst total)
     _save_detected = False  # set True if we loaded a save file by mistake
     _name_entry_stuck = 0   # consecutive name_entry cycles without progress
     _NAME_ENTRY_STUCK_MAX = 3  # after 3 cycles → programmatic entry
@@ -538,11 +538,12 @@ def main() -> None:
                     _rival_named = True
                 _name_entry_stuck = 0
             else:
-                # Still trying A-mash first
-                if not _player_named:
-                    _player_named = True
-                elif not _rival_named:
-                    _rival_named = True
+                # Not stuck yet — A-mash to advance through any pending dialog
+                # that sits between cycles (e.g. "So, your name is X?" confirmation).
+                # NOTE: do NOT set _player_named/_rival_named here — only programmatic
+                # typing actually writes the name, so flags must wait until enter_name()
+                # has run. Setting them prematurely caused the second name_entry
+                # cycle to be skipped and the rival to be named "----" (default).
                 for _ in range(_A_BURST):
                     emu.press_button("a", frames=_A_FRAMES)
                     emu.fast_forward(_FF_FRAMES)
@@ -616,6 +617,13 @@ def main() -> None:
     log_file.write("")  # create/truncate
     log_file.flush()
 
+    # Persistent counter for the main loop's name_entry handler. The
+    # intro loop has its own `_name_entry_stuck`; this list-of-one is
+    # scoped to the main loop so a re-entry into name_entry outside
+    # the intro phase still escalates to programmatic typing after 3
+    # cycles.
+    _main_ne_stuck_box: list[int] = [0]
+
     for cycle in range(CYCLES):
         try:
             screenshot = emu.capture()
@@ -658,6 +666,8 @@ def main() -> None:
             t0 = time.time()
 
             if st == "overworld":
+                # Out of name_entry — reset stuck counter for any future re-entry.
+                _main_ne_stuck_box[0] = 0
                 # ── Visual-Reference Pipeline ──────────────────────
                 # Cartographer already gave us spatial info (adjacent tiles,
                 # visible_exits, player_facing, suggested_action).
@@ -862,16 +872,37 @@ def main() -> None:
                 safe_print(f"  [{cycle+1}/{CYCLES}] {st} | {pipeline_name} x{CART_STEPS} | {elapsed:.1f}s")
 
             elif st == "name_entry":
-                # ── Name entry bypass ─────────────────────────────
-                # pygba/mGBA doesn't register directional input on the
-                # name entry keyboard. The cursor never moves with
-                # press_button('down', frames=N). So we A-mash through
-                # name entry just like the intro bypass: 60 rapid A
-                # presses to type characters, eventually filling the
-                # name field and advancing past the screen.
-                for _ in range(_A_BURST):
-                    emu.press_button("a", frames=_A_FRAMES)
-                    emu.fast_forward(_FF_FRAMES)
+                # ── Name entry bypass (main loop) ──────────────────
+                # Use programmatic typing after 3 stuck cycles. The intro
+                # loop handles the first two name_entry screens; if we
+                # hit one again here (e.g. New Game from title without
+                # intro), drive the keyboard directly. A-mashing alone
+                # fills the name field with "AAAAAAAA" / "A..." rather
+                # than the canonical ASH/BLUE, so always prefer enter_name.
+                # Counter held in a single-element list so it persists
+                # across main-loop cycles without adding new state attrs
+                # to emu/ctx or a new import.
+                _main_ne_stuck_box[0] += 1
+                _main_ne_stuck = _main_ne_stuck_box[0]
+
+                if _main_ne_stuck >= _NAME_ENTRY_STUCK_MAX:
+                    if not _player_named:
+                        safe_print("  [main] Name entry stuck — typing ASH programmatically")
+                        emu.enter_name("ASH")
+                        _player_named = True
+                        ctx.player_name = "ASH"
+                    elif not _rival_named:
+                        safe_print("  [main] Rival name stuck — typing BLUE programmatically")
+                        emu.enter_name("BLUE")
+                        _rival_named = True
+                        ctx.rival_name = "GARY"
+                    _main_ne_stuck_box[0] = 0
+                else:
+                    # Not yet stuck — A-mash briefly to give dialog time to advance
+                    for _ in range(_A_BURST):
+                        emu.press_button("a", frames=_A_FRAMES)
+                        emu.fast_forward(_FF_FRAMES)
+
                 elapsed = time.time() - t0
                 entry = {
                     "cycle": cycle + 1,
@@ -883,10 +914,15 @@ def main() -> None:
                 results.append(entry)
                 log_file.write(json.dumps(entry, default=str) + "\n")
                 log_file.flush()
-                safe_print(f"  [{cycle+1}/{CYCLES}] {st} | name_bypass (x{_A_BURST}) | {elapsed:.1f}s")
+                safe_print(
+                    f"  [{cycle+1}/{CYCLES}] {st} | name_bypass "
+                    f"(stuck={_main_ne_stuck}/{_NAME_ENTRY_STUCK_MAX}) | {elapsed:.1f}s"
+                )
 
             else:
                 # ── Traditional StateWindow flow ───────────────────
+                # Reset name_entry stuck counter — we've left name_entry.
+                _main_ne_stuck_box[0] = 0
                 # Build StateWindow-compatible vision dict from cartographer output
                 vis_dict = {
                     "screen_type": st,
