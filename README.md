@@ -6,7 +6,7 @@
 
 Current AI gaming projects fail because they treat Pokémon as a simple button-pressing problem. **PTP-01X** understands the truth:
 
-- **50+ distinct gameplay states** - not just "battle", "overworld", "menu"
+- **69 distinct gameplay states** - not just "battle", "overworld", "menu"
 - **20+ hour gameplay journey** with interconnected strategic decisions
 - **151 Pokémon** to catalog, learn types, moves, and abilities
 - **8 Gyms + Elite Four** requiring team composition planning

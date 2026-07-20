@@ -34,7 +34,7 @@ python cron_runner.py
 - **RAM Reader** (`src/core/ram_reader.py`) — Reads game state directly from emulator memory (instant, no LLM cost)
 - **Emulator** (`src/core/emulator.py`) — PyBoy wrapper with read_u8/read_u16, tick, screenshot
 - **GOAP Planner** (`src/core/goap.py`) — Hierarchical goal-oriented action planning
-- **State Machine** (`src/core/state_machine.py`) — 50+ gameplay states with hierarchical transitions
+- **State Machine** (`src/core/state_machine.py`) — 69 hierarchical gameplay states across 7 categories
 - **State Window** (`src/core/state_window.py`) — AI decision context window for LLM prompts
 - **Vision Pipeline** (`src/core/vision/`) — Screenshot preprocessing, sprite detection, OCR, location detection
 - **Database** (`src/core/db/`) — SQLite session metrics, screenshots, AI thoughts, commands
