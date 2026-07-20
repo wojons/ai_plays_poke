@@ -6,13 +6,11 @@ non-None emulator. The ROM-dependent paths are tested via integration tests.
 
 from __future__ import annotations
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch, ANY
+from unittest.mock import MagicMock, patch
 
 import numpy as np
-import pytest
 
-from src.core.demo_runner import DemoRunner, demo_summary
+from src.core.demo_runner import DemoRunner
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────

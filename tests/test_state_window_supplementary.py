@@ -12,7 +12,6 @@ Covers the uncovered gaps identified in the NEVER-DONE audit:
 from unittest.mock import MagicMock, patch
 import pytest
 import yaml
-from pathlib import Path
 
 from src.core.state_window import StateWindow
 from src.core.global_context import GlobalContext
@@ -162,10 +161,7 @@ class TestBuildRamPrompt:
             "overworld_grid": "...",
         }
 
-        with patch("src.core.state_window.Path", wraps=Path) as mock_path:
-            # Cannot easily redirect the Path lookup; test via fallback path
-            pass
-
+        # Cannot easily redirect the Path lookup; test via fallback path
         window = _make_window("overworld", ctx, mock_emu, vision, use_ram_prompts=True)
         result = window._build_ram_prompt()
 
@@ -327,7 +323,7 @@ class TestRecentActions:
         assert "RECENT ACTIONS" in text
         # Most recent first
         lines = text.split("\n")
-        non_header_lines = [l for l in lines if l.startswith("  ")]
+        non_header_lines = [line for line in lines if line.startswith("  ")]
         assert "DOWN" in non_header_lines[0]  # most recent
         assert "UP" in non_header_lines[1]     # older
 

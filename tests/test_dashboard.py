@@ -4,10 +4,9 @@ Uses FastAPI TestClient with mocked GameDatabase + ScreenshotManager.
 No ROM, no emulator, no real filesystem.
 """
 
-import os
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -57,7 +56,7 @@ class TestDashboardSessionInit:
     def test_init_creates_save_dir(self, tmp_path):
         from src.dashboard.main import DashboardSession
         save_dir = tmp_path / "saves"
-        ds = DashboardSession("test", str(save_dir))
+        _ = DashboardSession("test", str(save_dir))
         assert save_dir.exists()
 
     def test_init_default_state(self):
