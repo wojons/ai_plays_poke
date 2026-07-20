@@ -36,6 +36,14 @@ try:
 except ImportError:
     ANTHROPIC_AVAILABLE = False
     Anthropic = None  # type: ignore
+
+# Re-exports for backward compatibility (QUALITY-01 split)
+from src.core.circuit_breaker import CircuitBreaker  # noqa: E402
+from src.core.token_tracker import TokenTracker  # noqa: E402
+
+__all__ = ["CircuitBreaker", "TokenTracker"]
+
+
 class APIError(Exception):
     """Exception raised for API-related errors"""
     pass
@@ -65,10 +73,6 @@ class APICallResult:
     error_message: Optional[str] = None
     retry_count: int = 0
     request_id: Optional[str] = None
-
-
-from src.core.circuit_breaker import CircuitBreaker  # noqa: F401 — re-export
-from src.core.token_tracker import TokenTracker  # noqa: F401 — re-export
 
 
 def log_api_call(model: str, duration_ms: float, input_tokens: int,
