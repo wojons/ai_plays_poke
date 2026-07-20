@@ -6,7 +6,11 @@ Target: boost ai_client.py coverage from ~15% to 70%+.
 """
 
 import time
+import os
 import pytest
+import requests
+import numpy as np
+import requests_mock
 from unittest.mock import patch
 from datetime import datetime
 from typing import Any
@@ -1114,3 +1118,552 @@ class TestResultMerger:
         merger.merge_history = [{"conflicts_detected": True}]
         merger.reset()
         assert merger.merge_history == []
+
+
+# ── AIModelClient tests (stub mode + requests_mock) ────────────────────
+
+class TestAIModelClientInit:
+    """Tests for AIModelClient.__init__ and _load_api_key."""
+
+    def test_init_with_api_key(self) -> None:
+        from src.core.ai_client import AIModelClient
+        client = AIModelClient(api_key="sk-test-key-12345")
+        assert client._api_key == "sk-test-key-12345"
+        assert not client._stub_mode
+
+    def test_init_without_api_key_enters_stub_mode(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            from src.core.ai_client import AIModelClient
+            client = AIModelClient()
+            assert client._stub_mode
+            assert client._api_key is None
+
+    def test_init_with_openrouter_env(self) -> None:
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-or-key"}):
+            from src.core.ai_client import AIModelClient
+            client = AIModelClient()
+            assert client._api_key == "sk-or-key"
+            assert not client._stub_mode
+
+    def test_init_with_openai_env(self) -> None:
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-oai-key"}):
+            from src.core.ai_client import AIModelClient
+            client = AIModelClient()
+            assert client._api_key == "sk-oai-key"
+            assert not client._stub_mode
+
+    def test_load_api_key_returns_constructor_key(self) -> None:
+        from src.core.ai_client import AIModelClient
+        client = AIModelClient(api_key="sk-constructor")
+        result = client._load_api_key()
+        assert result == "sk-constructor"
+
+    def test_load_api_key_stores_and_returns_env_key(self) -> None:
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-env"}):
+            from src.core.ai_client import AIModelClient
+            client = AIModelClient()
+            result = client._load_api_key()
+            assert result == "sk-env"
+            assert client._api_key == "sk-env"
+
+
+class TestAIModelClientValidateKey:
+    """Tests for AIModelClient._validate_api_key."""
+
+    def test_stub_mode_returns_true(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            from src.core.ai_client import AIModelClient
+            client = AIModelClient()
+            assert client._stub_mode
+            assert client._validate_api_key() is True
+
+    def test_missing_key_raises(self) -> None:
+        from src.core.ai_client import AIModelClient, APIError
+        with patch.dict(os.environ, {}, clear=True):
+            client = AIModelClient(api_key=None)
+            client._stub_mode = False
+            with pytest.raises(APIError, match="missing"):
+                client._validate_api_key()
+
+    def test_empty_key_raises(self) -> None:
+        from src.core.ai_client import AIModelClient, APIError
+        client = AIModelClient(api_key="   ")
+        client._stub_mode = False
+        with pytest.raises(APIError, match="empty"):
+            client._validate_api_key()
+
+    def test_invalid_format_raises(self) -> None:
+        from src.core.ai_client import AIModelClient, APIError
+        client = AIModelClient(api_key="bad-format-key")
+        client._stub_mode = False
+        with pytest.raises(APIError, match="Invalid API key format"):
+            client._validate_api_key()
+
+    def test_non_string_key_raises(self) -> None:
+        from src.core.ai_client import AIModelClient, APIError
+        client = AIModelClient(api_key=12345)  # type: ignore
+        client._stub_mode = False
+        with pytest.raises(APIError, match="must be a string"):
+            client._validate_api_key()
+
+    def test_api_401_raises(self) -> None:
+        from src.core.ai_client import AIModelClient, APIError
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=401, json={"error": {"message": "Invalid key"}})
+            client = AIModelClient(api_key="sk-test")
+            client._stub_mode = False
+            with pytest.raises(APIError, match="Invalid key"):
+                client._validate_api_key()
+
+    def test_api_403_raises(self) -> None:
+        from src.core.ai_client import AIModelClient, APIError
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=403, json={})
+            client = AIModelClient(api_key="sk-test")
+            client._stub_mode = False
+            with pytest.raises(APIError, match="failed with status 403"):
+                client._validate_api_key()
+
+    def test_api_200_validates(self) -> None:
+        from src.core.ai_client import AIModelClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200, json={})
+            client = AIModelClient(api_key="sk-test")
+            client._stub_mode = False
+            assert client._validate_api_key() is True
+
+    def test_api_429_still_validates(self) -> None:
+        from src.core.ai_client import AIModelClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=429, json={})
+            client = AIModelClient(api_key="sk-test")
+            client._stub_mode = False
+            assert client._validate_api_key() is True
+
+    def test_network_error_raises(self) -> None:
+        from src.core.ai_client import AIModelClient, APIError
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", exc=requests.exceptions.ConnectionError)
+            client = AIModelClient(api_key="sk-test")
+            client._stub_mode = False
+            with pytest.raises(APIError, match="API validation request failed"):
+                client._validate_api_key()
+
+
+class TestAIModelClientInitClient:
+    """Tests for AIModelClient._init_client."""
+
+    def test_init_client_stub_mode(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            from src.core.ai_client import AIModelClient
+            client = AIModelClient()
+            assert client._client is None
+
+    def test_init_client_with_key_creates_openrouter(self) -> None:
+        from src.core.ai_client import AIModelClient
+        from src.core.ai_client import OpenRouterClient
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
+            client = AIModelClient(api_key="sk-test")
+            client._stub_mode = False
+            client._init_client()
+            assert isinstance(client._client, OpenRouterClient)
+
+
+class TestAIModelClientMakeRequest:
+    """Tests for AIModelClient._make_request_with_retry."""
+
+    def test_stub_mode_returns_stub_response(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            from src.core.ai_client import AIModelClient
+            client = AIModelClient()
+            result = client._make_request_with_retry("test", {})
+            assert "stub" in str(result["model"])
+            assert "choices" in result
+
+    def test_successful_request(self) -> None:
+        from src.core.ai_client import AIModelClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
+                   json={"choices": [{"message": {"content": "hello"}}], "model": "test-model",
+                         "usage": {"prompt_tokens": 10, "completion_tokens": 5}})
+            with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
+                client = AIModelClient(api_key="sk-test")
+                client._stub_mode = False
+                client._init_client()
+                result = client._make_request_with_retry("test", {"prompt": "hi"})
+                assert result["model"] == "test-model"
+
+    def test_retry_then_succeed(self) -> None:
+        from src.core.ai_client import AIModelClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions",
+                   [{"status_code": 500}, {"status_code": 200,
+                    "json": {"choices": [{"message": {"content": "ok"}}], "model": "x",
+                             "usage": {"prompt_tokens": 1, "completion_tokens": 1}}}])
+            with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
+                client = AIModelClient(api_key="sk-test")
+                client._stub_mode = False
+                client._init_client()
+                result = client._make_request_with_retry("test", {})
+                assert result["model"] == "x"
+
+
+class TestAIModelClientGenerateDecision:
+    """Tests for AIModelClient.generate_decision."""
+
+    def test_stub_mode_returns_default(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            from src.core.ai_client import AIModelClient
+            client = AIModelClient()
+            result = client.generate_decision({}, {})
+            assert result["command"] == "press:A"
+            assert result["confidence"] == 0.5
+            assert "Stub mode" in result["reasoning"]
+
+    def test_valid_json_response_parsed(self) -> None:
+        from src.core.ai_client import AIModelClient
+        content = '{"command": "press:LEFT", "reasoning": "move", "confidence": 0.9}'
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
+                   json={"choices": [{"message": {"content": content}}],
+                         "model": "test", "usage": {"prompt_tokens": 5, "completion_tokens": 3}})
+            with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
+                client = AIModelClient(api_key="sk-test")
+                client._stub_mode = False
+                client._init_client()
+                result = client.generate_decision({"screen": "overworld"}, {"location": "pallet"})
+                assert result["command"] == "press:LEFT"
+                assert result["confidence"] == 0.9
+
+    def test_non_json_response_fallback(self) -> None:
+        from src.core.ai_client import AIModelClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
+                   json={"choices": [{"message": {"content": "go left!"}}],
+                         "model": "test", "usage": {"prompt_tokens": 5, "completion_tokens": 3}})
+            with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
+                client = AIModelClient(api_key="sk-test")
+                client._stub_mode = False
+                client._init_client()
+                result = client.generate_decision({}, {})
+                assert result["command"] == "press:A"
+                assert "go left" in result["reasoning"]
+
+    def test_api_error_returns_fallback(self) -> None:
+        from src.core.ai_client import AIModelClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=500)
+            with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
+                client = AIModelClient(api_key="sk-test")
+                client._stub_mode = False
+                client._init_client()
+                result = client.generate_decision({}, {})
+                assert result["command"] == "press:A"
+                assert result["confidence"] == 0.3
+                assert "Error" in result["reasoning"]
+
+
+# ── ClaudeClient tests ────────────────────────────────────────────────
+
+
+class TestClaudeClientInit:
+    """Tests for ClaudeClient.__init__."""
+
+    def test_init_with_api_key(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch("src.core.ai_client.Anthropic") as mock_anthropic:
+            from src.core.ai_client import ClaudeClient
+            client = ClaudeClient(api_key="sk-ant-test")
+            assert client.api_key == "sk-ant-test"
+            mock_anthropic.assert_called_once_with(api_key="sk-ant-test")
+
+    def test_init_with_env_key(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch("src.core.ai_client.Anthropic") as mock_anthropic, \
+             patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-env"}):
+            from src.core.ai_client import ClaudeClient
+            client = ClaudeClient()
+            assert client.api_key == "sk-ant-env"
+            mock_anthropic.assert_called_once_with(api_key="sk-ant-env")
+
+    def test_init_without_key_raises(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch.dict(os.environ, {}, clear=True):
+            from src.core.ai_client import ClaudeClient
+            with pytest.raises(ValueError, match="API key not found"):
+                ClaudeClient()
+
+    def test_init_without_sdk_raises(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", False):
+            from src.core.ai_client import ClaudeClient
+            with pytest.raises(ImportError, match="Anthropic SDK not installed"):
+                ClaudeClient(api_key="sk-ant-test")
+
+    def test_default_models_set(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch("src.core.ai_client.Anthropic"):
+            from src.core.ai_client import ClaudeClient
+            client = ClaudeClient(api_key="sk-ant-test")
+            assert "vision" in client.models
+            assert "thinking" in client.models
+            assert "acting" in client.models
+
+    def test_circuit_breaker_created(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch("src.core.ai_client.Anthropic"):
+            from src.core.ai_client import ClaudeClient
+            from src.core.ai_client import CircuitBreaker
+            client = ClaudeClient(api_key="sk-ant-test")
+            assert isinstance(client.circuit_breaker, CircuitBreaker)
+
+
+class TestClaudeClientChatCompletion:
+    """Tests for ClaudeClient.chat_completion."""
+
+    def test_chat_completion_success(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch("src.core.ai_client.Anthropic") as mock_anthropic_class:
+            mock_client = mock_anthropic_class.return_value
+            mock_block = type("ContentBlock", (), {"text": "Hello from Claude"})()
+            mock_response = mock_client.messages.create.return_value
+            mock_response.content = [mock_block]
+            mock_response.stop_reason = "end_turn"
+            mock_response.id = "msg_123"
+            mock_response.usage.input_tokens = 10
+            mock_response.usage.output_tokens = 5
+
+            from src.core.ai_client import ClaudeClient
+            client = ClaudeClient(api_key="sk-ant-test")
+            result = client.chat_completion("claude-3-haiku-20240307", [{"role": "user", "content": "hi"}])
+
+            assert result["content"] == "Hello from Claude"
+            assert result["model"] == "claude-3-haiku-20240307"
+            assert result["usage"]["prompt_tokens"] == 10
+            assert "duration_ms" in result
+            assert result["request_id"] == "msg_123"
+
+    def test_chat_completion_circuit_breaker_open(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch("src.core.ai_client.Anthropic"):
+            from src.core.ai_client import ClaudeClient
+            client = ClaudeClient(api_key="sk-ant-test")
+            for _ in range(5):
+                client.circuit_breaker.record_failure()
+            with pytest.raises(Exception, match="Circuit breaker open"):
+                client.chat_completion("claude-3-haiku-20240307", [])
+
+    def test_chat_completion_records_failure(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch("src.core.ai_client.Anthropic") as mock_anthropic_class:
+            mock_client = mock_anthropic_class.return_value
+            mock_client.messages.create.side_effect = Exception("API error")
+
+            from src.core.ai_client import ClaudeClient
+            client = ClaudeClient(api_key="sk-ant-test")
+            with pytest.raises(Exception, match="API error"):
+                client.chat_completion("claude-3-haiku-20240307", [])
+
+
+class TestClaudeClientGetTextResponse:
+    """Tests for ClaudeClient.get_text_response."""
+
+    def test_get_text_response(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch("src.core.ai_client.Anthropic") as mock_anthropic_class:
+            mock_client = mock_anthropic_class.return_value
+            mock_block = type("ContentBlock", (), {"text": "Response text"})()
+            mock_response = mock_client.messages.create.return_value
+            mock_response.content = [mock_block]
+            mock_response.stop_reason = "end_turn"
+            mock_response.id = "msg_456"
+            mock_response.usage.input_tokens = 5
+            mock_response.usage.output_tokens = 3
+
+            from src.core.ai_client import ClaudeClient
+            client = ClaudeClient(api_key="sk-ant-test")
+            result = client.get_text_response("What is 2+2?")
+
+            assert result == "Response text"
+
+    def test_get_text_response_with_system_prompt(self) -> None:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
+             patch("src.core.ai_client.Anthropic") as mock_anthropic_class:
+            mock_client = mock_anthropic_class.return_value
+            mock_block = type("ContentBlock", (), {"text": "Answer"})()
+            mock_response = mock_client.messages.create.return_value
+            mock_response.content = [mock_block]
+            mock_response.stop_reason = "end_turn"
+            mock_response.id = "msg_789"
+            mock_response.usage.input_tokens = 15
+            mock_response.usage.output_tokens = 8
+
+            from src.core.ai_client import ClaudeClient
+            client = ClaudeClient(api_key="sk-ant-test")
+            result = client.get_text_response("prompt", system_prompt="Be helpful")
+
+            assert result == "Answer"
+            call_args = mock_client.messages.create.call_args
+            messages = call_args.kwargs["messages"]
+            assert "Be helpful" in messages[0]["content"]
+
+
+# ── OpenRouterClient tests ────────────────────────────────────────────
+
+class TestOpenRouterClientInit:
+    """Tests for OpenRouterClient.__init__."""
+
+    def test_init_with_api_key(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        client = OpenRouterClient(api_key="sk-or-test")
+        assert client.api_key == "sk-or-test"
+        assert client.base_url == "https://openrouter.ai/api/v1"
+
+    def test_init_with_env_key(self) -> None:
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-or-env"}):
+            from src.core.ai_client import OpenRouterClient
+            client = OpenRouterClient()
+            assert client.api_key == "sk-or-env"
+
+    def test_init_without_key_raises(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            from src.core.ai_client import OpenRouterClient
+            with pytest.raises(ValueError, match="API key not found"):
+                OpenRouterClient()
+
+    def test_default_models_set(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        client = OpenRouterClient(api_key="sk-or-test")
+        assert "vision" in client.models
+        assert "thinking" in client.models
+        assert "acting" in client.models
+
+    def test_circuit_breaker_created(self) -> None:
+        from src.core.ai_client import OpenRouterClient, CircuitBreaker
+        client = OpenRouterClient(api_key="sk-or-test")
+        assert isinstance(client.circuit_breaker, CircuitBreaker)
+
+    def test_last_usage_initialized_empty(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        client = OpenRouterClient(api_key="sk-or-test")
+        assert client._last_usage == {}
+
+
+class TestOpenRouterClientChatCompletion:
+    """Tests for OpenRouterClient.chat_completion."""
+
+    def test_successful_completion(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
+                   json={"choices": [{"message": {"content": "hello"}}],
+                         "model": "test-model", "id": "req-123",
+                         "usage": {"prompt_tokens": 10, "completion_tokens": 5}})
+            client = OpenRouterClient(api_key="sk-or-test")
+            result = client.chat_completion("test-model", [{"role": "user", "content": "hi"}])
+            assert result["content"] == "hello"
+            assert result["model"] == "test-model"
+            assert result["request_id"] == "req-123"
+
+    def test_circuit_breaker_open(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        client = OpenRouterClient(api_key="sk-or-test")
+        for _ in range(5):
+            client.circuit_breaker.record_failure()
+        with pytest.raises(Exception, match="Circuit breaker open"):
+            client.chat_completion("test-model", [])
+
+    def test_status_429_retries(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions",
+                   [{"status_code": 429}, {"status_code": 200,
+                    "json": {"choices": [{"message": {"content": "ok"}}],
+                             "model": "x", "id": "r",
+                             "usage": {"prompt_tokens": 1, "completion_tokens": 1}}}])
+            client = OpenRouterClient(api_key="sk-or-test")
+            result = client.chat_completion("test-model", [])
+            assert result["content"] == "ok"
+
+    def test_status_500_retries(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions",
+                   [{"status_code": 500}, {"status_code": 500}, {"status_code": 200,
+                    "json": {"choices": [{"message": {"content": "ok3"}}],
+                             "model": "y", "id": "r3",
+                             "usage": {"prompt_tokens": 1, "completion_tokens": 1}}}])
+            client = OpenRouterClient(api_key="sk-or-test")
+            result = client.chat_completion("test-model", [])
+            assert result["content"] == "ok3"
+
+    def test_tool_calls_parsed(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
+                   json={"choices": [{"message": {
+                       "tool_calls": [{"function": {"name": "press_button", "arguments": '{"button":"A"}'}}]
+                   }}], "model": "tool-model", "id": "t1",
+                         "usage": {"prompt_tokens": 5, "completion_tokens": 3}})
+            client = OpenRouterClient(api_key="sk-or-test")
+            result = client.chat_completion("test-model", [])
+            assert "press_button" in result["content"]
+            assert '"A"' in result["content"]
+
+    def test_deepseek_routing(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "sk-ds-key"}):
+            with requests_mock.Mocker() as m:
+                m.post("https://api.deepseek.com/chat/completions", status_code=200,
+                       json={"choices": [{"message": {"content": "deepseek response"}}],
+                             "model": "deepseek-chat", "id": "ds-1",
+                             "usage": {"prompt_tokens": 5, "completion_tokens": 3}})
+                client = OpenRouterClient(api_key="sk-or-test")
+                result = client.chat_completion("deepseek-chat", [])
+                assert result["content"] == "deepseek response"
+
+
+class TestOpenRouterClientVisionResponse:
+    """Tests for OpenRouterClient.get_vision_response."""
+
+    def test_get_vision_response(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        img = np.zeros((160, 240, 3), dtype=np.uint8)
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
+                   json={"choices": [{"message": {"content": "I see a Pokemon"}}],
+                         "model": "gpt-4o", "id": "v1",
+                         "usage": {"prompt_tokens": 50, "completion_tokens": 10}})
+            client = OpenRouterClient(api_key="sk-or-test")
+            result = client.get_vision_response("What do you see?", img)
+            assert "I see a Pokemon" in result
+
+
+class TestOpenRouterClientTextResponse:
+    """Tests for OpenRouterClient.get_text_response."""
+
+    def test_get_text_response(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
+                   json={"choices": [{"message": {"content": "text reply"}}],
+                         "model": "gpt-4o-mini", "id": "t1",
+                         "usage": {"prompt_tokens": 5, "completion_tokens": 2}})
+            client = OpenRouterClient(api_key="sk-or-test")
+            result = client.get_text_response("Hello")
+            assert result == "text reply"
+
+
+class TestOpenRouterClientSendToolRequest:
+    """Tests for OpenRouterClient.send_tool_request."""
+
+    def test_send_tool_request(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+        with requests_mock.Mocker() as m:
+            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
+                   json={"choices": [{"message": {
+                       "tool_calls": [{"function": {"name": "press_button", "arguments": '{"button":"B"}'}}]
+                   }}], "model": "tool-model", "id": "st1",
+                         "usage": {"prompt_tokens": 10, "completion_tokens": 5}})
+            client = OpenRouterClient(api_key="sk-or-test")
+            result = client.send_tool_request("Do something", [], "test-model")
+            assert result is not None
