@@ -27,7 +27,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-cov pytest-xdist ruff mypy pytest-timeout requests-mock
+          pip install pytest pytest-cov pytest-xdist ruff mypy pytest-timeout requests-mock pytest-benchmark
 
       - name: Lint (ruff)
         run: ruff check src/ tests/
