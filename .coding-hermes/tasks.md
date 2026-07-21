@@ -34,6 +34,8 @@ Load coding-hermes-never-done skill. Run ALL 11 checks: spec alignment, doc cove
 
 **Tick 11 (Jul 20 21:12 CT — discovery sweep):** Self-heal: fixed broken pydantic-core venv (2.41.5→2.46.4). Discovery sweep found CI-04 (pytest-benchmark missing from CI). Fixed and committed at a82f5a1. Full suite 2444 pass, 3 skip (test_thread_safety flaky under load, passes in isolation). 43 outdated deps flagged (non-blocking — many pinned by pydantic ecosystem). Pip-audit clean. Ruff + mypy clean. Board empty — returning to self-pause.
 
+**Tick 12 (Jul 20 21:50 CT — idle tick #1):** Self-heal: committed .gitignore uv.lock + duration_profiles update (fe41e5e), restored Hilo hooks, git pull clean. Scheduler cooldown reverted 43200→1800 (daemon restart), re-fixed via API PUT (1st reversion — warning). 11-point audit all clean: 3393 tests pass (146s), mypy 60 files clean, ruff clean, pip-audit clean, CI latest 2 green (CI-04 fixed), DuckBrain populated, 16 dashboard endpoints wired. pyarrow 24.0→25.0 available (low priority, transitive dep — not imported directly). pydantic-core still blocked by pydantic pin. No code gaps. Self-pausing — cooldown @ 12h.
+
 ### [x] GAMEPLAY-ARCH: Design reliable gameplay architecture (planning task, no code) ✅ (this tick)
 - **Priority:** highest
 - **Why:** Current system boots + reads RAM perfectly but the controller LLM doesn't produce reliable gameplay. We need a design that matches the architecture to the problem: RAM reader gives us perfect state → compact prompt → LLM picks from a small decision space → execute. No vision, no spatial reasoning, just state data → action mapping.
