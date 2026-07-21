@@ -169,3 +169,5 @@ diag_*.py
 
 # Auto-generated profiling data
 data/duration_profiles.json
+# uv lock file (project uses pip/venv)
+uv.lock
