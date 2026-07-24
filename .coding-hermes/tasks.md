@@ -1,7 +1,39 @@
 # AI Plays Pokémon — Coding Hermes Tasks
 # Foreman: deepseek-v4-flash | Schedule: every 120m | Cooldown: 12h (self-paused)
 
-## Active Queue (Jul 20 — Tick 11 discovery sweep)
+## Active Queue — Gameplay Validation (Jul 24)
+
+### [~] GAMEPLAY-VALIDATE: Live gameplay test — actually play the game
+- **Priority:** P0 (blocking all other work)
+- **Why:** 28 foreman ticks completed code tasks but NEVER actually ran the game end-to-end. RAM reader, HSM, battle agent, stuck recovery, compact prompts — all built and tested in isolation. But nobody has ever booted the ROM, run 200 cycles, and verified the AI actually navigates Pallet Town. This is the ONLY thing that matters.
+- **Files:** cron_runner.py, tests/test_full_gameplay.py (new)
+- **Current status:** Running live test (validate_20260724_*) with 50 cycles. RAM reader active, DeepSeek controller making decisions. So far: reached overworld, direction-lock recovery engaging.
+- **AC:**
+  1. Boot ROM + bypass intro + reach overworld within 30 cycles ✅ (verified live)
+  2. Controller makes non-repeating directional decisions (not stuck in same-direction loop)
+  3. Player moves to different map coordinates over 50 cycles
+  4. Stuck recovery engages when direction-locked
+  5. Battle detection triggers correctly if wild encounter occurs
+
+### [ ] GAMEPLAY-TEST: Create test_full_gameplay.py — boots ROM, plays 50 cycles, asserts progress
+- **Priority:** P1
+- **Why:** Once gameplay works, we need CI-proof that it stays working. Currently there's no test that boots the ROM and runs the game loop.
+- **Files:** tests/test_full_gameplay.py (new)
+- **AC:**
+  1. Boots ROM via PyBoy, bypasses intro, reaches overworld
+  2. Runs 50 cycles with RAM reader + controller
+  3. Asserts player moved (coordinates changed)
+  4. Asserts multiple screen types encountered
+  5. Runs in CI (skipped if ROM not available)
+
+### [ ] BOARD-CLEANUP: Remove 16 idle-tick entries and return foreman to productive mode
+- **Priority:** P2
+- **Why:** The board has 850+ lines of "Idle tick #N — cooldown reverted, 0 gaps" entries. These are noise. The foreman was self-paused but the real work (gameplay validation) was never done.
+- **Files:** .coding-hermes/tasks.md
+- **AC:**
+  1. Collapse idle tick entries into single summary
+  2. Remove NEVER-DONE perpetual audit (replaced by this real queue)
+  3. Board is readable and shows actual remaining work## Active Queue (Jul 20 — Tick 11 discovery sweep)
 
 ### [x] CI-04: Fix CI — pytest-benchmark missing from CI deps ✅ (a82f5a1)
 - **Priority:** high
