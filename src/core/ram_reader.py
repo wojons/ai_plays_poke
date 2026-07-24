@@ -970,7 +970,24 @@ class RAMReader:
             f"  Use D-pad to move cursor, A to select letter, START to confirm"
         )
 
-    # ── Full observation ─────────────────────────────────────────────
+    # ── Map-specific gameplay hints ───────────────────────────────────
+    # Maps the player has no way of knowing where exits are.
+    # These hints give minimal guidance so the controller can make
+    # informed decisions instead of walking into walls.
+    _MAP_HINTS: dict[str, str] = {
+        "Pallet Town":  "Pallet Town. Exit north to Route 1. Prof. Oak's lab is northwest.",
+        "Viridian City": "Viridian City. Exit north to Route 2, south to Route 1.",
+        "Route 1": "Route 1. North to Viridian City, south to Pallet Town. Grass has wild Pokémon.",
+        "Route 2": "Route 2. North to Pewter City (through forest), south to Viridian City.",
+        "Pewter City": "Pewter City. Exit east to Route 3. Gym is in the northeast.",
+    }
+
+    _STUCK_HINTS: list[str] = [
+        "You just pressed the same direction repeatedly and didn't move — try a different direction.",
+        "You've been pressing A on a wall — try a direction (UP/DOWN/LEFT/RIGHT) instead.",
+        "Try all four directions. One of them leads to an exit.",
+        "If you're in a building, look for stairs (usually DOWN). If outside, try NORTH.",
+    ]
 
     def observe(self) -> dict[str, Any]:
         """Produce a structured observation matching the cartographer's JSON schema.
@@ -1029,7 +1046,13 @@ class RAMReader:
             obs["minimap"] = self.build_minimap(radius=2)
             obs["overworld_grid"] = self.render_overworld()
             obs["render"] = self.render_overworld()
-            obs["suggested_action"] = "explore the area"
+
+            # Use map-specific hint for suggested_action
+            hint = self._MAP_HINTS.get(mname, "")
+            if hint:
+                obs["suggested_action"] = hint
+            else:
+                obs["suggested_action"] = "explore the area"
             # Highlight non-floor adjacent tiles as potential exits
             adj = obs["adjacent"]
             exits = [d for d, t in adj.items()

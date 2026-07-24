@@ -622,7 +622,7 @@ class TestRAMReaderObserve:
             assert "minimap" in obs
             assert obs["map_dimensions"] == "4×4"
             assert obs["map_tileset"] == 4
-            assert obs["suggested_action"] == "explore the area"
+            assert "Pallet Town" in obs["suggested_action"] or "explore" in obs["suggested_action"]
 
     def test_battle_observe(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xD057] = 1
@@ -690,7 +690,7 @@ class TestRAMReaderObserve:
 
             # Player at (2,2): all adjacent are 0x0F→floor — no exits
             assert obs["visible_exits"] == []
-            assert "explore the area" in obs["suggested_action"]
+            assert "Pallet Town" in obs["suggested_action"] or "explore" in obs["suggested_action"]
 
     def test_exits_detected_with_doors(self, mock_emu: MagicMock) -> None:
         """Player at (2,2) with a door to the right — exits should be found."""

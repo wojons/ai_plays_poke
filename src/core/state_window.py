@@ -1008,10 +1008,22 @@ class StateWindow:
             self._recent_actions = self._recent_actions[-5:]
 
     def _build_recent_actions_text(self) -> str:
-        """Return the recent-actions section for inclusion in the prompt."""
+        """Return the recent-actions section with stuck-detection analysis."""
         if not self._recent_actions:
             return ""
-        lines = ["RECENT ACTIONS (last 5, most recent first):"]
+        lines = ["RECENT ACTIONS (last 5):"]
         for action in reversed(self._recent_actions):
             lines.append(f"  {action}")
+
+        # ── Stuck detection: inject guidance when actions repeat uselessly ──
+        last_btns = [a.split(" → ")[0].replace("pressed ", "").strip()
+                     for a in self._recent_actions]
+        if len(last_btns) >= 2:
+            if all(b == last_btns[0] for b in last_btns[-3:]):
+                lines.append(f"\n⚠ You pressed {last_btns[0]} 3+ times and didn't move. "
+                             f"Try a DIFFERENT direction.")
+            if all(b == "A" for b in last_btns[-3:]):
+                lines.append("\n⚠ You pressed A 3+ times — A doesn't move you. "
+                             "Press a DIRECTION (UP/DOWN/LEFT/RIGHT) to walk.")
+
         return "\n".join(lines)
