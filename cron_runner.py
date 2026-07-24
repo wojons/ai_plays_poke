@@ -875,7 +875,7 @@ def main() -> None:
                         _a_press_count += 1
                         _last_action_button = "A"
                         if _a_press_count == 3:
-                            safe_print(f"  [WARN] A-press lock detected: A x3 — triggering recovery")
+                            safe_print("  [WARN] A-press lock detected: A x3 — triggering recovery")
                     else:
                         _same_dir = None
                         _same_dir_count = 0

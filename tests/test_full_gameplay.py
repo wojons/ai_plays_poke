@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import pytest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
 ROM_PATH = Path("data/rom/pokemon_red.gb")
 
@@ -122,7 +121,7 @@ class TestFullGameplay:
         assert len(lines) >= 7, f"Expected >=7 lines, got {len(lines)}:\n{render}"
 
         # Grid lines should contain @ (player) symbol
-        grid_lines = [l for l in lines if "@" in l or "?" in l or "." in l]
+        grid_lines = [line for line in lines if "@" in line or "?" in line or "." in line]
         assert len(grid_lines) >= 3, f"Expected >=3 grid rows, got {len(grid_lines)}"
 
         emu.stop()

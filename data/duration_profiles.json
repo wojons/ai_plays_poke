@@ -2,17 +2,26 @@
   "BATTLE/WILD": {
     "mode": "BATTLE",
     "sub_mode": "WILD",
-    "sample_count": 427,
-    "mean_duration": 0.10010096904679425,
-    "std_duration": 2.4864399661613802e-05,
+    "sample_count": 440,
+    "mean_duration": 0.10008659595836786,
+    "std_duration": 1.6234411599808003e-05,
     "min_duration": 0.10006117820739746,
     "max_duration": 0.10204648971557617,
-    "p50_duration": 0.10010096904679425,
-    "p75_duration": 0.10077096904679425,
-    "p95_duration": 0.10174596904679424,
-    "p99_duration": 0.10242696904679424,
-    "last_updated": 1784895972.97648,
+    "p50_duration": 0.10008659595836786,
+    "p75_duration": 0.10075659595836786,
+    "p95_duration": 0.10173159595836785,
+    "p99_duration": 0.10241259595836785,
+    "last_updated": 1784929773.1341002,
     "trend": "insufficient_data",
     "trend_slope": 0
+  },
+  "foreman_tick_1784929897": {
+    "mode": "IDLE",
+    "sub_mode": "audit",
+    "timestamp": 1784929897.4624102,
+    "idle_tick_count": 29,
+    "cooldown_s": 900,
+    "cooldown_reverted": true,
+    "ci_failure": "ruff lint (pre-existing)"
   }
 }

@@ -1,8 +1,16 @@
+<!--
+  ⚠️  BOARD FORMAT — coding-hermes-model-router v1.3 (2026-07-24)
+  All tasks MUST use matrix format: | ID | Task | Pri | Cpx | Deps | Tags | Model | Reasoning | Fallback |
+  Before editing this file, load the skill: skill_view(name='coding-hermes-model-router')
+  Validate: python3 ~/.hermes/scripts/validate-board-format.py .coding-hermes/tasks.md
+  NEVER remove the matrix header row or NEVER-DONE / E2E-001 fixtures.
+-->
+
 # AI Plays Pokémon — Model Router Task Matrix
 
 > **Core purpose:** Autonomous AI agent that plays Pokémon through emulation — RAM reader for perfect state, DeepSeek-powered controller, HSM-driven gameplay, DuckBrain context memory.
 > **Language:** Python 3.x | **Stack:** PyBoy emulator, DeepSeek V4 Flash controller, 69-state HSM, Streamlit dashboard
-> **Status:** All gameplay tasks complete. Maintenance mode — 28 idle ticks. Cooldown: 43200s.
+> **Status:** All gameplay tasks complete. Maintenance mode — 29 idle ticks. Cooldown: 43200s (fleet TOML reset to 900s).
 
 ## Active Tasks
 
@@ -31,7 +39,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 ## Assumptions
 
 - ROM present for GB/GBC Pokémon (tested with Blue). GBA ROMs rejected by PyBoy
-- 28 idle ticks — project stable. No code gaps. 12 cooldown reversions total
+- 29 idle ticks — project stable. No code gaps. 13 cooldown reversions total (pending fleet TOML root fix)
 - pydantic_core 2.46.4→2.47.0 blocked by pydantic 2.13.4 exact pin
 - DuckBrain MCP intermittently unavailable
 - Cooldown reversion (daemon restart) persists — 12+ reversions, fleet TOML root cause
@@ -41,7 +49,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 - **NEVER-DONE audit:** Foreman-direct (V4 Pro) — full context, terminal, file search, test runner
 - **E2E testing:** GPT-5.6 Luna for browser/screenshots ($100/mo flat) or Step 3.7 Flash for CLI/API ($0.09/1M)
 - **If new Python tasks emerge:** MiniMax-M3 primary (flat-rate prepaid) for bounded implementation, V4 Pro for complex/debugging
-- Project is effectively a zombie — 28 idle ticks, zero actionable gaps, all gameplay features complete
+- Project is effectively a zombie — 29 idle ticks, zero actionable gaps, all gameplay features complete
 
 ## Execution Order
 
@@ -54,4 +62,4 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 - E2E reveals gameplay regression → create BUG task, escalate to V4 Pro
 - pydantic releases 2.14+ → re-enable pydantic_core upgrade
 - DuckBrain becomes consistently available → sync gameplay learnings
-- Idle counter continues past 30 → strong Bane escalation: disable project
+- Idle counter continues past 30 → strong Bane escalation: disable project — tick 29/30 reached
