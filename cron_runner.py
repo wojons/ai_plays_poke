@@ -367,7 +367,7 @@ def controller_plan(
     )
 
     response = client.chat_completion(
-        model="deepseek-chat",  # DeepSeek V4 Flash via direct API
+        model="deepseek-v4-flash",  # DeepSeek V4 Flash via OpenRouter
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": msg},
