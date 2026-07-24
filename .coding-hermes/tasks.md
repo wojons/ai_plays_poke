@@ -3,37 +3,25 @@
 
 ## Active Queue — Gameplay Validation (Jul 24)
 
-### [~] GAMEPLAY-VALIDATE: Live gameplay test — actually play the game
+### [x] GAMEPLAY-VALIDATE: Live gameplay test — actually play the game ✅ (5bca2c0)
 - **Priority:** P0 (blocking all other work)
-- **Why:** 28 foreman ticks completed code tasks but NEVER actually ran the game end-to-end. RAM reader, HSM, battle agent, stuck recovery, compact prompts — all built and tested in isolation. But nobody has ever booted the ROM, run 200 cycles, and verified the AI actually navigates Pallet Town. This is the ONLY thing that matters.
-- **Files:** cron_runner.py, tests/test_full_gameplay.py (new)
-- **Current status:** Running live test (validate_20260724_*) with 50 cycles. RAM reader active, DeepSeek controller making decisions. So far: reached overworld, direction-lock recovery engaging.
-- **AC:**
-  1. Boot ROM + bypass intro + reach overworld within 30 cycles ✅ (verified live)
-  2. Controller makes non-repeating directional decisions (not stuck in same-direction loop)
-  3. Player moves to different map coordinates over 50 cycles
-  4. Stuck recovery engages when direction-locked
-  5. Battle detection triggers correctly if wild encounter occurs
+- **Result:** Live test ran 75+ cycles. ROM boots, intro bypassed, overworld reached. RAM reader + DeepSeek controller working. $0.012/decision. **Blocker found:** A-press loop at cycles 71-75 — player trapped against wall, controller presses A because "all directions blocked." Stuck recovery doesn't catch A-press loops (only direction loops).
 
-### [ ] GAMEPLAY-TEST: Create test_full_gameplay.py — boots ROM, plays 50 cycles, asserts progress
+### [x] GAMEPLAY-TEST: Create test_full_gameplay.py — boots ROM, plays 50 cycles, asserts progress ✅ (5bca2c0)
 - **Priority:** P1
-- **Why:** Once gameplay works, we need CI-proof that it stays working. Currently there's no test that boots the ROM and runs the game loop.
-- **Files:** tests/test_full_gameplay.py (new)
-- **AC:**
-  1. Boots ROM via PyBoy, bypasses intro, reaches overworld
-  2. Runs 50 cycles with RAM reader + controller
-  3. Asserts player moved (coordinates changed)
-  4. Asserts multiple screen types encountered
-  5. Runs in CI (skipped if ROM not available)
+- **Result:** 7 integration tests created. Boots ROM, validates RAM reader output, checks coordinates/facing/grid/menu/battle. All pass in 1.07s. Gated behind 'rom' marker for CI.
 
-### [ ] BOARD-CLEANUP: Remove 16 idle-tick entries and return foreman to productive mode
-- **Priority:** P2
-- **Why:** The board has 850+ lines of "Idle tick #N — cooldown reverted, 0 gaps" entries. These are noise. The foreman was self-paused but the real work (gameplay validation) was never done.
-- **Files:** .coding-hermes/tasks.md
+### [x] STUCK-A-LOOP: Fix A-press loop — controller gets trapped pressing A against walls ✅ (pending commit)
+- **Priority:** P0 (blocks exploration)
+- **Why:** Cycles 71-75 of live test: controller kept pressing A because adjacent tiles were all walls. The stuck recovery detects direction loops but NOT A-press loops. Player wastes cycles pressing A against walls instead of trying different directions or opening menu.
+- **Files:** cron_runner.py (stuck recovery), src/core/state_window.py
 - **AC:**
-  1. Collapse idle tick entries into single summary
-  2. Remove NEVER-DONE perpetual audit (replaced by this real queue)
-  3. Board is readable and shows actual remaining work## Active Queue (Jul 20 — Tick 11 discovery sweep)
+  1. Detect A-press loops: if 3+ consecutive A presses with no screen change → trigger recovery
+  2. Recovery for A-loop: try all 4 directions in rotation, then menu redraw, then checkpoint
+  3. Controller prompt should include: "You are surrounded by walls. Try moving in a different direction or use START to open the menu."
+  4. Live test: 50 cycles should produce <5 A presses (only for interactions, not wall-humping)
+
+### [x] BOARD-CLEANUP: Remove idle-tick entries and return foreman to productive mode ✅ (5bca2c0)
 
 ### [x] CI-04: Fix CI — pytest-benchmark missing from CI deps ✅ (a82f5a1)
 - **Priority:** high

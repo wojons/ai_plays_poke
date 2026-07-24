@@ -447,6 +447,11 @@ def main() -> None:
     _void_tile_pct: float = 0.0    # % of tiles classified as unknown/void
     _void_cycles: int = 0          # consecutive cycles with >95% void tiles
 
+    # ── A-press loop detection (STUCK-A-LOOP) ──────────────────────
+    _a_press_count: int = 0        # consecutive A presses without direction change
+    _MAX_A_PRESS = 3               # after 3 consecutive A presses → trigger recovery
+    _last_action_button: str = ""  # last non-direction button pressed
+
     # ── Escalating recovery ────────────────────────────────────────
     _recovery_level: int = 0       # current rung of the escalation ladder
     _recovery_attempts: int = 0    # total recovery escalations (capped at MAX)
@@ -717,6 +722,9 @@ def main() -> None:
                 elif _void_cycles >= MAX_VOID_CYCLES:
                     needs_recovery = True
                     recovery_reason = f"void-locked ({_void_cycles} cycles, {_void_tile_pct:.0%} unknown)"
+                elif _a_press_count >= _MAX_A_PRESS:
+                    needs_recovery = True
+                    recovery_reason = f"A-press locked (A x{_a_press_count})"
 
                 if needs_recovery:
                     if _recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
@@ -859,9 +867,19 @@ def main() -> None:
                         else:
                             _same_dir = button
                             _same_dir_count = 1
+                        # Direction press resets A-press counter
+                        _a_press_count = 0
+                    elif button == "A":
+                        _same_dir = None
+                        _same_dir_count = 0
+                        _a_press_count += 1
+                        _last_action_button = "A"
+                        if _a_press_count == 3:
+                            safe_print(f"  [WARN] A-press lock detected: A x3 — triggering recovery")
                     else:
                         _same_dir = None
                         _same_dir_count = 0
+                        _a_press_count = 0
 
                     if _same_dir_count == 3:
                         safe_print(f"  [WARN] Direction-locking detected: {_same_dir} x3")
