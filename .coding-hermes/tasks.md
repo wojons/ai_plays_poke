@@ -27,7 +27,7 @@
 
 > **Core purpose:** Autonomous AI agent that plays Pokémon through emulation — RAM reader for perfect state, DeepSeek-powered controller, HSM-driven gameplay, DuckBrain context memory.
 > **Language:** Python 3.x | **Stack:** PyBoy emulator, DeepSeek V4 Flash controller, 69-state HSM, Streamlit dashboard
-> **Status:** ⛔ DISABLED (T32 confirmed) — All gameplay tasks complete. 32 idle ticks. Zero gaps. Requires manual Bane intervention to re-enable.
+> **Status:** ⛔ DISABLED (T31 confirmed) — All gameplay tasks complete. 36 idle ticks. Zero gaps. Requires manual Bane intervention to re-enable.
 
 ## Active Tasks
 
@@ -151,6 +151,20 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 8 | Scheduler state | ENABLED (900s) | ⚠️ Board says disabled but scheduler API returns Enabled=True, CooldownS=900. Board-level disable not reflected in scheduler. Bane must disable via scheduler API/TOML if project is truly done. |
 
 **Verdict:** CONFIRMED DISABLED — 34th consecutive idle tick. Project disabled since T31 at board level. Zero code changes since T25. Scheduler still shows Enabled=True at 900s cooldown — board-declared disable is not a scheduler disable. No automated re-enable criteria met. Requires manual Bane intervention: either disable via scheduler API (`PUT enabled=false`) or re-scope with new gameplay tasks.
+
+### Tick 36 — 2026-07-24 21:41 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Self-heal | PASS | Git identity set, co-author: Alexis Okuwa |
+| 2 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing); untracked _commit_tick29.sh, msg_tick29.txt |
+| 3 | Git diff src/ | CLEAN | Zero source code changes since T25 (11 ticks ago) |
+| 4 | TODO/FIXME scan | CLEAN | 0 in src/ |
+| 5 | GitReins dual-source | CLEAN | 1 task (CI-02, complete); 0 pending |
+| 6 | Scheduler | UNAVAILABLE | API :9090 did not respond; cooldown state unverifiable |
+| 7 | Dispatch | NONE | Project disabled — no dispatch |
+
+**Verdict:** CONFIRMED DISABLED — 36th consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). Scheduler unavailable this tick — cooldown/Enabled state could not be verified. All gameplay complete, zero gaps, zero pending GitReins tasks. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
 
 ### Tick 35 — 2026-07-24 21:20 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
 
