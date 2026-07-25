@@ -137,6 +137,21 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 33rd consecutive idle tick. Project disabled since T31. All gameplay complete, zero code gaps, zero changes since T25. Gate 9 improved slightly (mypy src/ now clean vs T32 numpy .pyi noise), but no functional change. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
 
+### Tick 34 — 2026-07-24 20:52 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing); untracked _commit_tick29.sh, msg_tick29.txt |
+| 2 | Git diff src/ | CLEAN | Zero source code changes since T33; only board commits (096571a) |
+| 3 | TODO/FIXME scan | CLEAN | 0 in src/ |
+| 4 | Test files | 69 | Unchanged from T33 |
+| 5 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash @ deepseek-foreman (undersized caps, pre-existing) |
+| 6 | Board consistency | MATCH | No drift; zero new gaps; identical to T33 |
+| 7 | Dispatch | NONE | Project disabled — no dispatch |
+| 8 | Scheduler state | ENABLED (900s) | ⚠️ Board says disabled but scheduler API returns Enabled=True, CooldownS=900. Board-level disable not reflected in scheduler. Bane must disable via scheduler API/TOML if project is truly done. |
+
+**Verdict:** CONFIRMED DISABLED — 34th consecutive idle tick. Project disabled since T31 at board level. Zero code changes since T25. Scheduler still shows Enabled=True at 900s cooldown — board-declared disable is not a scheduler disable. No automated re-enable criteria met. Requires manual Bane intervention: either disable via scheduler API (`PUT enabled=false`) or re-scope with new gameplay tasks.
+
 ### Tick 30 — 2026-07-24 18:55 UTC (DeepSeek V4 Pro)
 
 | # | Gate | Result | Detail |
