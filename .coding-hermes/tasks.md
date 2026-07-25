@@ -27,7 +27,7 @@
 
 > **Core purpose:** Autonomous AI agent that plays Pokémon through emulation — RAM reader for perfect state, DeepSeek-powered controller, HSM-driven gameplay, DuckBrain context memory.
 > **Language:** Python 3.x | **Stack:** PyBoy emulator, DeepSeek V4 Flash controller, 69-state HSM, Streamlit dashboard
-> **Status:** All gameplay tasks complete. Maintenance mode — 31 idle ticks. Cooldown: 43200s (fleet TOML reset to 900s). ⛔ DISABLE TRIGGERED — tick 31/30 threshold exceeded. Project stable, complete, zero gaps.
+> **Status:** ⛔ DISABLED (T32 confirmed) — All gameplay tasks complete. 32 idle ticks. Zero gaps. Requires manual Bane intervention to re-enable.
 
 ## Active Tasks
 
@@ -100,6 +100,24 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 11 | Dispatch | NONE | E2E-001 not due (T25 last run); no code changes to warrant re-run |
 
 **Verdict:** DISABLE — 31st consecutive idle tick. Escalation threshold (30 ticks) exceeded per board rules. All gameplay complete, zero code gaps, zero changes since T25. Project is stable and complete. Board rule: "tick 30/30 reached, NEXT tick triggers disable." This IS the next tick.
+
+### Tick 32 — 2026-07-24 20:13 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing); untracked _commit_tick29.sh, msg_tick29.txt |
+| 2 | GitReins guard | PARTIAL | secrets=PASS, lint=PASS, tests=SKIP (no staged), static_analysis=FAIL (diag_lcd.py mypy), lsp=PASS |
+| 3 | Hilo graph | 108,792 edges | 14,832 files (venv noise dominant; source structure intact — zero change from T31) |
+| 4 | Tests | 3,800 collected | All collectable in venv |
+| 5 | TODO/FIXME scan | CLEAN | 0 in src/ |
+| 6 | Deps outdated | TIMEOUT | pip list --outdated timed out at 20s (venv too large); non-blocking |
+| 7 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash @ deepseek-foreman ✓ |
+| 8 | Secrets | CLEAN | gitleaks: clean (120MB scanned, 5.2s) |
+| 9 | Static analysis | PARTIAL | mypy: 1 error in numpy .pyi (Python 3.13 syntax, not project code); diag_lcd.py 4 errors (pre-existing) |
+| 10 | Board consistency | MATCH | No drift; zero new gaps; identical to T31 |
+| 11 | Dispatch | NONE | Project disabled — no dispatch |
+
+**Verdict:** CONFIRMED DISABLED — 32nd consecutive idle tick. Project was disabled at T31; this tick confirms the state persists. All gameplay complete, zero code gaps, zero changes since T25. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
 
 ### Tick 30 — 2026-07-24 18:55 UTC (DeepSeek V4 Pro)
 
