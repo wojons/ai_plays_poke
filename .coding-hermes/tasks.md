@@ -119,6 +119,24 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 32nd consecutive idle tick. Project was disabled at T31; this tick confirms the state persists. All gameplay complete, zero code gaps, zero changes since T25. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
 
+### Tick 33 — 2026-07-24 20:35 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing); untracked _commit_tick29.sh, msg_tick29.txt |
+| 2 | GitReins guard | PARTIAL | secrets=PASS, lint=PASS, tests=SKIP (no staged), static_analysis=FAIL (diag_lcd.py mypy), lsp=PASS |
+| 3 | Hilo graph | 108,792 edges | 14,832 files (venv noise dominant; source structure intact — zero change from T32) |
+| 4 | Tests | 3,800 collected | All collectable in venv |
+| 5 | TODO/FIXME scan | CLEAN | 0 in src/ |
+| 6 | Deps outdated | 60+ packages | Non-blocking; pydantic_core still pinned |
+| 7 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash @ deepseek-foreman ✓ (undersized: 19,924 files, 50 iter/10m caps) |
+| 8 | Secrets | CLEAN | gitleaks: clean (120MB scanned, 5.3s) |
+| 9 | Static analysis | IMPROVED | mypy src/: PASS (60 source files, no issues); diag_lcd.py errors pre-existing (outside src/) |
+| 10 | Board consistency | MATCH | No drift; zero new gaps; identical to T32 |
+| 11 | Dispatch | NONE | Project disabled — no dispatch |
+
+**Verdict:** CONFIRMED DISABLED — 33rd consecutive idle tick. Project disabled since T31. All gameplay complete, zero code gaps, zero changes since T25. Gate 9 improved slightly (mypy src/ now clean vs T32 numpy .pyi noise), but no functional change. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
+
 ### Tick 30 — 2026-07-24 18:55 UTC (DeepSeek V4 Pro)
 
 | # | Gate | Result | Detail |
