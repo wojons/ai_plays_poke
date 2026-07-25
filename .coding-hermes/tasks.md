@@ -3,6 +3,23 @@
   All tasks MUST use matrix format: | ID | Task | Pri | Cpx | Deps | Tags | Model | Reasoning | Fallback |
   Before editing this file, load the skill: skill_view(name='coding-hermes-model-router')
   Validate: python3 ~/.hermes/scripts/validate-board-format.py .coding-hermes/tasks.md
+- [ ] **GITREINS-JUDGE — Configure LLM evaluator for commit quality review**
+  | 🔴 Critical | — | — | deepseek-v4-flash @ deepseek-foreman | GITREINS_LLM_API_KEY in ~/.hermes/.env | foreman-direct |
+
+  Run: `python3 ~/.hermes/scripts/check-gitreins-judge.py .` to verify.
+  Default limits (adjust per-project based on codebase size and task complexity):
+  - Fast/small projects: `max_iterations: 50`, `max_time: 10m`, tokens: `0.2M/0.4M`
+  - Large repos (Go monorepos, 100+ files): `max_iterations: 100`, `max_time: 30m`, tokens: `1M/2M`
+  - C++/Rust (slow compiles): `max_time: 30m` minimum
+  - Scheduler/production infra: `max_time: 30m`, tokens: `1M/2M`
+  Supervisor auto-flags projects where limits are too low for codebase size.
+
+| 🔴 Critical | — | — | deepseek-v4-flash @ deepseek-foreman | GITREINS_LLM_API_KEY in ~/.hermes/.env | foreman-direct |
+
+  Run: `python3 ~/.hermes/scripts/check-gitreins-judge.py .` to verify.
+  If missing, create/edit .gitreins/config.yaml with evaluator section using deepseek-v4-flash.
+  This is CRITICAL for code quality — no automated review of worker output without it.
+
   NEVER remove the matrix header row or NEVER-DONE / E2E-001 fixtures.
 -->
 
@@ -10,7 +27,7 @@
 
 > **Core purpose:** Autonomous AI agent that plays Pokémon through emulation — RAM reader for perfect state, DeepSeek-powered controller, HSM-driven gameplay, DuckBrain context memory.
 > **Language:** Python 3.x | **Stack:** PyBoy emulator, DeepSeek V4 Flash controller, 69-state HSM, Streamlit dashboard
-> **Status:** All gameplay tasks complete. Maintenance mode — 29 idle ticks. Cooldown: 43200s (fleet TOML reset to 900s).
+> **Status:** All gameplay tasks complete. Maintenance mode — 30 idle ticks. Cooldown: 43200s (fleet TOML reset to 900s). ⚠️ ESCALATION THRESHOLD: tick 30/30 — next idle tick (31) triggers disable.
 
 ## Active Tasks
 
@@ -39,7 +56,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 ## Assumptions
 
 - ROM present for GB/GBC Pokémon (tested with Blue). GBA ROMs rejected by PyBoy
-- 29 idle ticks — project stable. No code gaps. 13 cooldown reversions total (pending fleet TOML root fix)
+- 30 idle ticks — project stable. No code gaps. 13 cooldown reversions total (pending fleet TOML root fix)
 - pydantic_core 2.46.4→2.47.0 blocked by pydantic 2.13.4 exact pin
 - DuckBrain MCP intermittently unavailable
 - Cooldown reversion (daemon restart) persists — 12+ reversions, fleet TOML root cause
@@ -62,4 +79,24 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 - E2E reveals gameplay regression → create BUG task, escalate to V4 Pro
 - pydantic releases 2.14+ → re-enable pydantic_core upgrade
 - DuckBrain becomes consistently available → sync gameplay learnings
-- Idle counter continues past 30 → strong Bane escalation: disable project — tick 29/30 reached
+- Idle counter continues past 30 → strong Bane escalation: disable project — tick 30/30 reached, NEXT tick triggers disable
+
+## Tick Log
+
+### Tick 30 — 2026-07-24 18:55 UTC (DeepSeek V4 Pro)
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Git status | DIRTY | M tasks.md, M duration_profiles.json (both from prior tick) |
+| 2 | GitReins guard | PARTIAL | secrets=PASS, lint=PASS, tests=SKIP (no staged), static_analysis=FAIL (diag_lcd.py mypy), lsp=PASS |
+| 3 | Hilo graph | 108,792 edges | 14,832 files (venv noise dominant; source structure intact) |
+| 4 | Tests | 3,800 collected | Collectable in venv; CI red pre-existing |
+| 5 | TODO/FIXME scan | CLEAN | 0 in src/ |
+| 6 | Deps outdated | 50+ packages | Non-blocking; pydantic_core still pinned |
+| 7 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash @ deepseek-foreman ✓ |
+| 8 | Secrets | CLEAN | gitleaks: clean |
+| 9 | Static analysis | FAIL | diag_lcd.py — 4 mypy errors (diagnostic utility, pre-existing) |
+| 10 | Board consistency | MATCH | No drift; NO new gaps found |
+| 11 | Dispatch | DEFER | E2E-001 due (tick divisible by 5) but deferred: zero code changes since last run |
+
+**Verdict:** IDLE — 30th consecutive idle tick. All gameplay complete. Zero code gaps. ⚠️ Escalation threshold reached: next idle tick (31) triggers project disable per board rules.
