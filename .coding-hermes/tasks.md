@@ -152,6 +152,24 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 34th consecutive idle tick. Project disabled since T31 at board level. Zero code changes since T25. Scheduler still shows Enabled=True at 900s cooldown — board-declared disable is not a scheduler disable. No automated re-enable criteria met. Requires manual Bane intervention: either disable via scheduler API (`PUT enabled=false`) or re-scope with new gameplay tasks.
 
+### Tick 35 — 2026-07-24 21:20 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing); untracked _commit_tick29.sh, msg_tick29.txt |
+| 2 | GitReins guard | PARTIAL | secrets=PASS, lint=PASS, tests=SKIP (no staged), static_analysis=FAIL (diag_lcd.py mypy), lsp=PASS |
+| 3 | Hilo graph | 108,792 edges | 14,832 files (venv noise dominant; source structure intact — zero change from T34) |
+| 4 | Tests | 3,800 collected | 69 test files; all collectable in venv |
+| 5 | TODO/FIXME scan | CLEAN | 0 in src/ |
+| 6 | Deps outdated | 15 packages | Non-blocking; pydantic_core still pinned |
+| 7 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash @ deepseek-foreman ✓ |
+| 8 | Secrets | CLEAN | gitleaks: clean |
+| 9 | Static analysis | PASS | mypy src/: PASS (1 numpy .pyi error, Python 3.13 syntax, not project code) |
+| 10 | Board consistency | MATCH | GitReins dual-source: 1 task (CI-02, complete). Board matches. Zero drift. |
+| 11 | Dispatch | NONE | Project disabled — no dispatch. Scheduler shows Enabled=true (Weight=15, Priority=10, 900s cooldown). |
+
+**Verdict:** CONFIRMED DISABLED — 35th consecutive idle tick. Zero code changes since T25. All gameplay complete. Zero gaps. Scheduler still shows Enabled=true — board-level disable is not reflected in scheduler state. No automated re-enable criteria met. Requires manual Bane intervention to re-enable or disable via scheduler API.
+
 ### Tick 30 — 2026-07-24 18:55 UTC (DeepSeek V4 Pro)
 
 | # | Gate | Result | Detail |
