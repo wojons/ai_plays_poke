@@ -201,3 +201,21 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 11 | Dispatch | DEFER | E2E-001 due (tick divisible by 5) but deferred: zero code changes since last run |
 
 **Verdict:** IDLE — 30th consecutive idle tick. All gameplay complete. Zero code gaps. ⚠️ Escalation threshold reached: next idle tick (31) triggers project disable per board rules.
+
+### Tick 37 — 2026-07-27 17:41 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing); untracked _commit_tick29.sh, msg_tick29.txt |
+| 2 | Git diff src/ | CLEAN | Zero source code changes since T25 (12 ticks ago) |
+| 3 | GitReins guard | PARTIAL | secrets=PASS, lint=PASS, tests=SKIP (no staged), static_analysis=FAIL (diag_lcd.py mypy 4 errors, pre-existing), lsp=PASS |
+| 4 | Hilo graph | 108,792 edges | 14,832 files (venv noise dominant; source structure intact — identical to T36) |
+| 5 | Tests | 3,800 collected | 69 test files, 60 src files (unchanged from T36) |
+| 6 | TODO/FIXME scan | CLEAN | 0 in src/, 0 in tests/ |
+| 7 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash @ deepseek-foreman (50 iter/10m/0.2M:0.4M caps) |
+| 8 | Secrets | CLEAN | gitleaks: clean (120MB scanned, 5.56s) |
+| 9 | Static analysis | FAIL | diag_lcd.py — 4 mypy errors (diagnostic utility, pre-existing since T25) |
+| 10 | Board consistency | MATCH | GitReins dual-source: 0 tasks. Board matches. Zero drift from T36. |
+| 11 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
+
+**Verdict:** CONFIRMED DISABLED — 37th consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). All gameplay complete, zero gaps, zero pending GitReins tasks. All 11 gates identical to T36. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
