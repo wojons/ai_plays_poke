@@ -7,6 +7,7 @@ import src.core.prompt_loader as pl
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 
+
 def write_prompt(dir_path, filename, content):
     """Write a YAML prompt file with either 'system' or 'system_extra' key."""
     path = dir_path / filename
@@ -32,15 +33,23 @@ def setup_prompts_dir(tmp_path, core_content=None, hint_contents=None):
     # Write hint files
     if hint_contents:
         for i, content in enumerate(hint_contents):
-            write_prompt(hints_dir, f"0{i+1}_mechanics.yaml" if i == 0 else
-                         f"0{i+1}_genre.yaml" if i == 1 else
-                         f"0{i+1}_starter.yaml" if i == 2 else
-                         f"0{i+1}_navigation.yaml", content)
+            write_prompt(
+                hints_dir,
+                f"0{i + 1}_mechanics.yaml"
+                if i == 0
+                else f"0{i + 1}_genre.yaml"
+                if i == 1
+                else f"0{i + 1}_starter.yaml"
+                if i == 2
+                else f"0{i + 1}_navigation.yaml",
+                content,
+            )
 
     return prompts_dir, hints_dir
 
 
 # ── get_text_content() ───────────────────────────────────────────────────
+
 
 class TestGetTextContent:
     """Test extracting text_content or text_lines from vision dicts."""
@@ -55,7 +64,9 @@ class TestGetTextContent:
 
     def test_text_content_not_list_falls_back(self):
         """text_content is a string, not a list — should fall back."""
-        result = pl.get_text_content({"text_content": "not a list", "text_lines": ["a"]})
+        result = pl.get_text_content(
+            {"text_content": "not a list", "text_lines": ["a"]}
+        )
         assert result == ["a"]
 
     def test_text_lines_fallback(self):
@@ -75,10 +86,9 @@ class TestGetTextContent:
         assert result == []
 
     def test_text_content_takes_priority(self):
-        result = pl.get_text_content({
-            "text_content": ["primary"],
-            "text_lines": ["fallback"]
-        })
+        result = pl.get_text_content(
+            {"text_content": ["primary"], "text_lines": ["fallback"]}
+        )
         assert result == ["primary"]
 
     def test_text_lines_not_list(self):
@@ -92,6 +102,7 @@ class TestGetTextContent:
 
 
 # ── _load_yaml_system() ──────────────────────────────────────────────────
+
 
 class TestLoadYamlSystem:
     """Test the internal _load_yaml_system helper."""
@@ -107,10 +118,9 @@ class TestLoadYamlSystem:
         assert result == "Extra Content"
 
     def test_prefers_system_over_system_extra(self, tmp_path):
-        write_prompt(tmp_path, "test.yaml", {
-            "system": "primary",
-            "system_extra": "secondary"
-        })
+        write_prompt(
+            tmp_path, "test.yaml", {"system": "primary", "system_extra": "secondary"}
+        )
         result = pl._load_yaml_system(tmp_path / "test.yaml")
         assert result == "primary"
 
@@ -146,6 +156,7 @@ class TestLoadYamlSystem:
 
 # ── load_system_prompt() — core + hint stacking ──────────────────────────
 
+
 class TestLoadSystemPrompt:
     """Test the composed system prompt loading with hint levels."""
 
@@ -163,7 +174,7 @@ class TestLoadSystemPrompt:
         prompts_dir, hints_dir = setup_prompts_dir(
             tmp_path,
             core_content={"system": "CORE"},
-            hint_contents=[{"system": "HINT1"}, {"system": "HINT2"}]
+            hint_contents=[{"system": "HINT1"}, {"system": "HINT2"}],
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -179,7 +190,7 @@ class TestLoadSystemPrompt:
         prompts_dir, hints_dir = setup_prompts_dir(
             tmp_path,
             core_content={"system": "CORE"},
-            hint_contents=[{"system": "MECHANICS"}, {"system": "GENRE"}]
+            hint_contents=[{"system": "MECHANICS"}, {"system": "GENRE"}],
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -196,8 +207,10 @@ class TestLoadSystemPrompt:
             tmp_path,
             core_content={"system": "CORE"},
             hint_contents=[
-                {"system": "MECHANICS"}, {"system": "GENRE"}, {"system": "STARTER"}
-            ]
+                {"system": "MECHANICS"},
+                {"system": "GENRE"},
+                {"system": "STARTER"},
+            ],
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -215,9 +228,11 @@ class TestLoadSystemPrompt:
             tmp_path,
             core_content={"system": "CORE"},
             hint_contents=[
-                {"system": "MECH"}, {"system": "GENRE"}, {"system": "START"},
-                {"system": "NAV"}
-            ]
+                {"system": "MECH"},
+                {"system": "GENRE"},
+                {"system": "START"},
+                {"system": "NAV"},
+            ],
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -236,9 +251,11 @@ class TestLoadSystemPrompt:
             tmp_path,
             core_content={"system": "CORE"},
             hint_contents=[
-                {"system": "MECH"}, {"system": "GENRE"}, {"system": "START"},
-                {"system": "NAV"}
-            ]
+                {"system": "MECH"},
+                {"system": "GENRE"},
+                {"system": "START"},
+                {"system": "NAV"},
+            ],
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -257,8 +274,11 @@ class TestLoadSystemPrompt:
             tmp_path,
             core_content={"system": "CORE"},
             hint_contents=[
-                {"system": "H1"}, {"system": "H2"}, {"system": "H3"}, {"system": "H4"}
-            ]
+                {"system": "H1"},
+                {"system": "H2"},
+                {"system": "H3"},
+                {"system": "H4"},
+            ],
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -284,7 +304,7 @@ class TestLoadSystemPrompt:
     def test_missing_hint_files_skipped(self, tmp_path, monkeypatch):
         prompts_dir, hints_dir = setup_prompts_dir(
             tmp_path,
-            core_content={"system": "CORE"}
+            core_content={"system": "CORE"},
             # No hint files at all
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
@@ -322,7 +342,7 @@ class TestLoadSystemPrompt:
                 {"system": "H1"},
                 {"other": "data"},  # no system key → skipped
                 {"system": "H3"},
-            ]
+            ],
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -355,8 +375,7 @@ class TestLoadSystemPrompt:
 
     def test_caches_results(self, tmp_path, monkeypatch):
         prompts_dir, hints_dir = setup_prompts_dir(
-            tmp_path,
-            core_content={"system": "CORE"}
+            tmp_path, core_content={"system": "CORE"}
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -371,7 +390,7 @@ class TestLoadSystemPrompt:
         prompts_dir, hints_dir = setup_prompts_dir(
             tmp_path,
             core_content={"system": "CORE"},
-            hint_contents=[{"system": "H1"}, {"system": "H2"}]
+            hint_contents=[{"system": "H1"}, {"system": "H2"}],
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -388,9 +407,7 @@ class TestLoadSystemPrompt:
     def test_negative_hint_level(self, tmp_path, monkeypatch):
         """Negative hint level — range(min(neg, 4)) = range(neg) = empty."""
         prompts_dir, hints_dir = setup_prompts_dir(
-            tmp_path,
-            core_content={"system": "CORE"},
-            hint_contents=[{"system": "H1"}]
+            tmp_path, core_content={"system": "CORE"}, hint_contents=[{"system": "H1"}]
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -404,7 +421,7 @@ class TestLoadSystemPrompt:
         prompts_dir, hints_dir = setup_prompts_dir(
             tmp_path,
             core_content={"system": "AAA"},
-            hint_contents=[{"system": "BBB"}, {"system": "CCC"}]
+            hint_contents=[{"system": "BBB"}, {"system": "CCC"}],
         )
         self._patch_dirs(monkeypatch, prompts_dir, hints_dir)
         self._clear_cache()
@@ -432,6 +449,7 @@ class TestLoadSystemPrompt:
 
 
 # ── Edge Cases ───────────────────────────────────────────────────────────
+
 
 class TestEdgeCases:
     """Edge cases and error scenarios."""

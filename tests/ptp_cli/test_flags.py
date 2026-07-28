@@ -27,7 +27,7 @@ from ptp_cli.flags import (  # noqa: E402
     LimitAction,
     FailMode,
     BudgetMode,
-    ResultsFormat
+    ResultsFormat,
 )
 
 
@@ -239,9 +239,7 @@ class TestSnapshotConfig:
     def test_valid_custom_values(self) -> None:
         """Test custom values within range."""
         config = SnapshotConfig(
-            memory_count=20,
-            disk_interval=500,
-            on_event=["catch", "battle"]
+            memory_count=20, disk_interval=500, on_event=["catch", "battle"]
         )
         errors = config._validate_config()
         assert len(errors) == 0
@@ -346,11 +344,15 @@ class TestCLIFlagParser:
         """Test parsing tick rate flags."""
         parser = CLIFlagParser()
         args = [
-            "--rom", "/tmp/test_pokemon.gb",
-            "--tick-rate-base", "20",
-            "--tick-rate-battle", "5",
-            "--tick-rate-timeout", "60",
-            "--tick-rate-adaptive"
+            "--rom",
+            "/tmp/test_pokemon.gb",
+            "--tick-rate-base",
+            "20",
+            "--tick-rate-battle",
+            "5",
+            "--tick-rate-timeout",
+            "60",
+            "--tick-rate-adaptive",
         ]
         config = parser.parse_args(args)
 
@@ -363,11 +365,14 @@ class TestCLIFlagParser:
         """Test parsing screenshot flags."""
         parser = CLIFlagParser()
         args = [
-            "--rom", "/tmp/test_pokemon.gb",
-            "--screenshot-interval", "50",
-            "--screenshot-quality", "90",
+            "--rom",
+            "/tmp/test_pokemon.gb",
+            "--screenshot-interval",
+            "50",
+            "--screenshot-quality",
+            "90",
             "--screenshot-on-change",
-            "--screenshot-async"
+            "--screenshot-async",
         ]
         config = parser.parse_args(args)
 
@@ -380,12 +385,18 @@ class TestCLIFlagParser:
         """Test parsing limit flags."""
         parser = CLIFlagParser()
         args = [
-            "--rom", "/tmp/test_pokemon.gb",
-            "--max-time", "3600",
-            "--max-ticks", "100000",
-            "--max-cost", "10.00",
-            "--max-badges", "8",
-            "--on-limit", "save-only"
+            "--rom",
+            "/tmp/test_pokemon.gb",
+            "--max-time",
+            "3600",
+            "--max-ticks",
+            "100000",
+            "--max-cost",
+            "10.00",
+            "--max-badges",
+            "8",
+            "--on-limit",
+            "save-only",
         ]
         config = parser.parse_args(args)
 
@@ -399,11 +410,15 @@ class TestCLIFlagParser:
         """Test parsing snapshot flags."""
         parser = CLIFlagParser()
         args = [
-            "--rom", "/tmp/test_pokemon.gb",
-            "--snapshot-memory", "50",
-            "--snapshot-disk", "5000",
-            "--snapshot-on-event", "catch,battle,badge",
-            "--snapshot-compress"
+            "--rom",
+            "/tmp/test_pokemon.gb",
+            "--snapshot-memory",
+            "50",
+            "--snapshot-disk",
+            "5000",
+            "--snapshot-on-event",
+            "catch,battle,badge",
+            "--snapshot-compress",
         ]
         config = parser.parse_args(args)
 
@@ -416,12 +431,16 @@ class TestCLIFlagParser:
         """Test parsing experiment flags."""
         parser = CLIFlagParser()
         args = [
-            "--rom", "/tmp/test_pokemon.gb",
-            "--experiment-name", "benchmark-001",
-            "--parallel-workers", "4",
+            "--rom",
+            "/tmp/test_pokemon.gb",
+            "--experiment-name",
+            "benchmark-001",
+            "--parallel-workers",
+            "4",
             "--aggregate-stats",
             "--export-results",
-            "--results-format", "parquet"
+            "--results-format",
+            "parquet",
         ]
         config = parser.parse_args(args)
 
@@ -435,10 +454,13 @@ class TestCLIFlagParser:
         """Test parsing system flags."""
         parser = CLIFlagParser()
         args = [
-            "--rom", "/tmp/test_pokemon.gb",
+            "--rom",
+            "/tmp/test_pokemon.gb",
             "--verbose",
-            "--log-file", "output.log",
-            "--random-seed", "42"
+            "--log-file",
+            "output.log",
+            "--random-seed",
+            "42",
         ]
         config = parser.parse_args(args)
 
@@ -449,10 +471,7 @@ class TestCLIFlagParser:
     def test_parse_invalid_quality_range(self) -> None:
         """Test invalid quality range."""
         parser = CLIFlagParser()
-        args = [
-            "--rom", "/tmp/test_pokemon.gb",
-            "--screenshot-quality", "150"
-        ]
+        args = ["--rom", "/tmp/test_pokemon.gb", "--screenshot-quality", "150"]
         with pytest.raises(SystemExit):
             parser.parse_args(args)
 
@@ -472,11 +491,7 @@ class TestCLIFlagParser:
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
         parser = CLIFlagParser()
-        args = [
-            "--rom", str(rom),
-            "--verbose",
-            "--quiet"
-        ]
+        args = ["--rom", str(rom), "--verbose", "--quiet"]
         config = parser.parse_args(args)
         errors = parser.validate_config(config)
 
@@ -498,11 +513,7 @@ class TestCLIFlagParser:
         rom = tmp_path / "test_pokemon.gb"
         rom.write_bytes(b"\x00" * 1024)  # dummy ROM file
         parser = CLIFlagParser()
-        args = [
-            "--rom", str(rom),
-            "--verbose",
-            "--quiet"
-        ]
+        args = ["--rom", str(rom), "--verbose", "--quiet"]
         config, errors = parser.parse_and_validate(args)
 
         assert len(errors) > 0
@@ -513,10 +524,7 @@ class TestFullConfig:
 
     def test_to_dict(self) -> None:
         """Test to_dict conversion."""
-        config = FullConfig(
-            rom_path="pokemon.gb",
-            save_dir="./saves"
-        )
+        config = FullConfig(rom_path="pokemon.gb", save_dir="./saves")
 
         result = config.to_dict()
 

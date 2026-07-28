@@ -27,19 +27,21 @@ sys.path.insert(0, str(project_root))
 from src.schemas.commands import GameState  # noqa: E402
 
 # Import after mocking external dependencies to avoid import-time side effects
-with patch("db.database.GameDatabase", MagicMock()), \
-     patch("core.emulator.Emulator", MagicMock()), \
-     patch("core.emulator.Button", MagicMock()), \
-     patch("core.screenshots.ScreenshotManager", MagicMock()), \
-     patch("core.screenshots.SimpleLiveView", MagicMock()), \
-     patch("core.ai_client.GameAIManager", MagicMock()), \
-     patch("core.ai_client.OpenRouterClient", MagicMock()), \
-     patch("core.save_manager.SaveManager", MagicMock()), \
-     patch("core.save_manager.SaveManagerConfig", MagicMock()), \
-     patch("src.core.vision.VisionClient", MagicMock()), \
-     patch("src.core.prompt_assembler.PromptStack", MagicMock()), \
-     patch("src.core.tools.TOOL_SCHEMA", [{"type": "function"}]), \
-     patch("src.core.tools.parse_tool_call", MagicMock()):
+with (
+    patch("db.database.GameDatabase", MagicMock()),
+    patch("core.emulator.Emulator", MagicMock()),
+    patch("core.emulator.Button", MagicMock()),
+    patch("core.screenshots.ScreenshotManager", MagicMock()),
+    patch("core.screenshots.SimpleLiveView", MagicMock()),
+    patch("core.ai_client.GameAIManager", MagicMock()),
+    patch("core.ai_client.OpenRouterClient", MagicMock()),
+    patch("core.save_manager.SaveManager", MagicMock()),
+    patch("core.save_manager.SaveManagerConfig", MagicMock()),
+    patch("src.core.vision.VisionClient", MagicMock()),
+    patch("src.core.prompt_assembler.PromptStack", MagicMock()),
+    patch("src.core.tools.TOOL_SCHEMA", [{"type": "function"}]),
+    patch("src.core.tools.parse_tool_call", MagicMock()),
+):
     from src.game_loop import GameLoop, EmulatorManager, create_config
 
 
@@ -48,8 +50,9 @@ with patch("db.database.GameDatabase", MagicMock()), \
 # ════════════════════════════════════════════════════════════════════════════
 
 
-def _make_config(rom_path: str = "/tmp/test.gb",
-                 save_dir: str = "/tmp/test_save") -> Dict[str, Any]:
+def _make_config(
+    rom_path: str = "/tmp/test.gb", save_dir: str = "/tmp/test_save"
+) -> Dict[str, Any]:
     return {
         "rom_path": rom_path,
         "save_dir": save_dir,
@@ -62,8 +65,7 @@ def _make_config(rom_path: str = "/tmp/test.gb",
     }
 
 
-def _basic_game_state(tick: int = 0,
-                      screen_type: str = "overworld") -> GameState:
+def _basic_game_state(tick: int = 0, screen_type: str = "overworld") -> GameState:
     return GameState(
         tick=tick,
         timestamp="2026-01-01T00:00:00",
@@ -81,6 +83,7 @@ def _basic_game_state(tick: int = 0,
 # ════════════════════════════════════════════════════════════════════════════
 # Pure AI decision functions
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class TestSimpleBattleAI:
     """Tests for _simple_battle_ai."""
@@ -180,6 +183,7 @@ class TestSimpleExplorationAI:
 # Stub AI decision routing
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestGetStubAIDecision:
     """Tests for _get_stub_ai_decision routing logic."""
 
@@ -242,6 +246,7 @@ class TestGetStubAIDecision:
 # ════════════════════════════════════════════════════════════════════════════
 # Command parsing
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class TestParseCommand:
     """Tests for _parse_command string parsing."""
@@ -320,6 +325,7 @@ class TestParseCommand:
 # Stub game state analysis
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestAnalyzeGameStateStub:
     """Tests for _analyze_game_state_stub tick-based simulation."""
 
@@ -389,6 +395,7 @@ class TestAnalyzeGameStateStub:
 # ════════════════════════════════════════════════════════════════════════════
 # Constructor tests
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class TestGameLoopInit:
     """Tests for GameLoop.__init__ configuration and state initialization."""
@@ -460,6 +467,7 @@ class TestGameLoopInit:
 # Tick loop
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestRunSingleTick:
     """Tests for run_single_tick core loop."""
 
@@ -467,11 +475,13 @@ class TestRunSingleTick:
     def gl(self) -> GameLoop:
         config = _make_config(save_dir="/tmp/test_run_tick")
         # Create loop with mocked emulator
-        with patch("src.game_loop.GameDatabase", MagicMock()), \
-             patch("src.game_loop.ScreenshotManager", MagicMock()), \
-             patch("src.game_loop.SimpleLiveView", MagicMock()), \
-             patch("src.game_loop.SaveManager", MagicMock()), \
-             patch("src.game_loop.SaveManagerConfig", MagicMock()):
+        with (
+            patch("src.game_loop.GameDatabase", MagicMock()),
+            patch("src.game_loop.ScreenshotManager", MagicMock()),
+            patch("src.game_loop.SimpleLiveView", MagicMock()),
+            patch("src.game_loop.SaveManager", MagicMock()),
+            patch("src.game_loop.SaveManagerConfig", MagicMock()),
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.config = config
             gl.emulator = MagicMock()
@@ -495,10 +505,14 @@ class TestRunSingleTick:
             gl.current_battle_id = None
             gl.battle_turn_count = 0
             gl.metrics = {
-                "total_ticks": 0, "screenshots_taken": 0,
-                "commands_sent": 0, "ai_decisions": 0,
-                "battles_encountered": 0, "battles_won": 0,
-                "battles_lost": 0, "start_time": None,
+                "total_ticks": 0,
+                "screenshots_taken": 0,
+                "commands_sent": 0,
+                "ai_decisions": 0,
+                "battles_encountered": 0,
+                "battles_won": 0,
+                "battles_lost": 0,
+                "start_time": None,
             }
             return gl
 
@@ -529,13 +543,15 @@ class TestRunSingleTick:
 
     def test_executes_pending_commands_when_present(self, gl: GameLoop) -> None:
         gl.config["screenshot_interval"] = 999  # suppress screenshots
-        gl.pending_commands = [{
-            "tick": 0,
-            "command": "press:A",
-            "reasoning": "test",
-            "confidence": 0.5,
-            "button": None,
-        }]
+        gl.pending_commands = [
+            {
+                "tick": 0,
+                "command": "press:A",
+                "reasoning": "test",
+                "confidence": 0.5,
+                "button": None,
+            }
+        ]
         gl.run_single_tick()
         assert len(gl.pending_commands) == 0  # consumed
         assert len(gl.command_history) == 1
@@ -555,6 +571,7 @@ class TestRunSingleTick:
 # ════════════════════════════════════════════════════════════════════════════
 # Command execution
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class TestExecutePendingCommands:
     """Tests for _execute_pending_commands."""
@@ -578,13 +595,15 @@ class TestExecutePendingCommands:
         assert gl.metrics["commands_sent"] == 0
 
     def test_executes_press_command(self, gl: GameLoop) -> None:
-        gl.pending_commands = [{
-            "tick": 1,
-            "command": "press:A",
-            "reasoning": "test reason",
-            "confidence": 0.7,
-            "button": None,
-        }]
+        gl.pending_commands = [
+            {
+                "tick": 1,
+                "command": "press:A",
+                "reasoning": "test reason",
+                "confidence": 0.7,
+                "button": None,
+            }
+        ]
         gl._execute_pending_commands()
         assert gl.emulator.press_button.called
         assert gl.metrics["commands_sent"] == 1
@@ -593,21 +612,35 @@ class TestExecutePendingCommands:
 
     def test_consumes_one_command_per_call(self, gl: GameLoop) -> None:
         gl.pending_commands = [
-            {"tick": 1, "command": "press:A", "reasoning": "r1", "confidence": 0.5, "button": None},
-            {"tick": 2, "command": "press:B", "reasoning": "r2", "confidence": 0.6, "button": None},
+            {
+                "tick": 1,
+                "command": "press:A",
+                "reasoning": "r1",
+                "confidence": 0.5,
+                "button": None,
+            },
+            {
+                "tick": 2,
+                "command": "press:B",
+                "reasoning": "r2",
+                "confidence": 0.6,
+                "button": None,
+            },
         ]
         gl._execute_pending_commands()
         assert len(gl.pending_commands) == 1
         assert gl.command_history[0]["command"] == "press:A"
 
     def test_invalid_command_handled_gracefully(self, gl: GameLoop) -> None:
-        gl.pending_commands = [{
-            "tick": 1,
-            "command": "bogus",
-            "reasoning": "bad",
-            "confidence": 0.1,
-            "button": None,
-        }]
+        gl.pending_commands = [
+            {
+                "tick": 1,
+                "command": "bogus",
+                "reasoning": "bad",
+                "confidence": 0.1,
+                "button": None,
+            }
+        ]
         # Should not crash — logs error via db.log_command
         gl._execute_pending_commands()
         assert gl.metrics["commands_sent"] == 0  # not incremented on failure
@@ -619,6 +652,7 @@ class TestExecutePendingCommands:
 # ════════════════════════════════════════════════════════════════════════════
 # Lifecycle
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class TestGameLoopLifecycle:
     """Tests for start/stop lifecycle."""
@@ -650,10 +684,14 @@ class TestGameLoopLifecycle:
         gl.current_battle_id = None
         gl.battle_turn_count = 0
         gl.metrics = {
-            "total_ticks": 0, "screenshots_taken": 0,
-            "commands_sent": 0, "ai_decisions": 0,
-            "battles_encountered": 0, "battles_won": 0,
-            "battles_lost": 0, "start_time": None,
+            "total_ticks": 0,
+            "screenshots_taken": 0,
+            "commands_sent": 0,
+            "ai_decisions": 0,
+            "battles_encountered": 0,
+            "battles_won": 0,
+            "battles_lost": 0,
+            "start_time": None,
         }
         return gl
 
@@ -714,6 +752,7 @@ class TestGameLoopLifecycle:
 # create_config
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestCreateConfig:
     """Tests for create_config CLI arg mapping."""
 
@@ -752,6 +791,7 @@ class TestCreateConfig:
 # EmulatorManager (stub)
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestEmulatorManager:
     """Tests for EmulatorManager stub class."""
 
@@ -770,6 +810,7 @@ class TestEmulatorManager:
 # ════════════════════════════════════════════════════════════════════════════
 # _print_final_stats
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class TestPrintFinalStats:
     """Tests for _print_final_stats output."""

@@ -15,9 +15,7 @@ import time
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-from schemas.commands import (
-    GameState
-)
+from schemas.commands import GameState
 from core.emulator import Button as EmulatorButton
 
 
@@ -28,21 +26,21 @@ class TestFullTickCycle:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
+        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
 
     def test_screenshot_to_state_detection(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ) -> None:
         """Test that screenshot capture leads to proper state detection"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -53,14 +51,14 @@ class TestFullTickCycle:
     ):
         """Test that game state triggers AI decision"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -73,30 +71,30 @@ class TestFullTickCycle:
                 is_battle=True,
                 is_menu=False,
                 has_dialog=False,
-                can_move=False
+                can_move=False,
             )
 
             decision = game_loop._get_stub_ai_decision(battle_state)
 
             assert decision is not None
-            assert 'action' in decision
-            assert 'reasoning' in decision
-            assert 'confidence' in decision
-            assert 0.0 <= decision['confidence'] <= 1.0
+            assert "action" in decision
+            assert "reasoning" in decision
+            assert "confidence" in decision
+            assert 0.0 <= decision["confidence"] <= 1.0
 
     def test_command_to_execution(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that pending commands are executed"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -106,7 +104,7 @@ class TestFullTickCycle:
                     "command": "press:A",
                     "tick": 10,
                     "reasoning": "Test",
-                    "confidence": 0.8
+                    "confidence": 0.8,
                 }
             ]
             game_loop.current_tick = 10
@@ -123,14 +121,14 @@ class TestFullTickCycle:
     ):
         """Test that executed commands are logged to database"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -144,7 +142,7 @@ class TestFullTickCycle:
                     "command": "press:A",
                     "tick": 10,
                     "reasoning": "Test",
-                    "confidence": 0.8
+                    "confidence": 0.8,
                 }
             ]
             game_loop.current_tick = 10
@@ -153,22 +151,22 @@ class TestFullTickCycle:
 
             mock_db_connection.log_command.assert_called_once()
             call_args = mock_db_connection.log_command.call_args[0][0]
-            assert call_args['tick'] == 10
-            assert call_args['success'] is True
+            assert call_args["tick"] == 10
+            assert call_args["success"] is True
 
     def test_full_tick_cycle_integration(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test complete tick cycle: screenshot -> state -> decision -> command -> log"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -186,21 +184,21 @@ class TestFullTickCycle:
             game_loop.run_single_tick()
 
             assert game_loop.current_tick == 1
-            assert game_loop.metrics['total_ticks'] == 1
+            assert game_loop.metrics["total_ticks"] == 1
 
     def test_database_entries_verification(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Verify database entries are created at each stage of the tick cycle"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -208,28 +206,32 @@ class TestFullTickCycle:
             game_loop.current_tick = 50
 
             screenshot_data = {
-                'tick': 50,
-                'path': '/tmp/screenshot.png',
-                'game_state': {'screen_type': 'battle', 'is_battle': True}
+                "tick": 50,
+                "path": "/tmp/screenshot.png",
+                "game_state": {"screen_type": "battle", "is_battle": True},
             }
 
             thought_data = {
-                'tick': 50,
-                'game_state': screenshot_data['game_state'],
-                'reasoning': 'Battle decision',
-                'confidence': 0.75
+                "tick": 50,
+                "game_state": screenshot_data["game_state"],
+                "reasoning": "Battle decision",
+                "confidence": 0.75,
             }
 
             command_data = {
-                'tick': 50,
-                'command_type': 'press',
-                'command_value': 'press:A',
-                'reasoning': 'Battle decision',
-                'confidence': 0.75,
-                'success': True
+                "tick": 50,
+                "command_type": "press",
+                "command_value": "press:A",
+                "reasoning": "Battle decision",
+                "confidence": 0.75,
+                "success": True,
             }
 
-            game_loop.db.log_screenshot(game_loop.current_tick, screenshot_data['path'], screenshot_data['game_state'])
+            game_loop.db.log_screenshot(
+                game_loop.current_tick,
+                screenshot_data["path"],
+                screenshot_data["game_state"],
+            )
             game_loop.db.log_ai_thought(thought_data)
             game_loop.db.log_command(command_data)
 
@@ -245,21 +247,21 @@ class TestBattleTransition:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
+        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
 
     def test_overworld_to_battle_detection(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of transition from overworld to battle"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -268,17 +270,19 @@ class TestBattleTransition:
             game_loop.battle_turn_count = 0
 
             mock_db_connection.log_battle_start = MagicMock(return_value=1)
-            
+
             battle_game_state = GameState(
                 tick=10,
                 timestamp=datetime.now().isoformat(),
                 screen_type="battle",
                 is_battle=True,
                 is_menu=False,
-                has_dialog=False
+                has_dialog=False,
             )
-            
-            with patch.object(game_loop, '_analyze_game_state', return_value=battle_game_state):
+
+            with patch.object(
+                game_loop, "_analyze_game_state", return_value=battle_game_state
+            ):
                 game_loop._detect_battle_transition()
 
             assert game_loop.current_battle_id == 1
@@ -291,13 +295,13 @@ class TestBattleTransition:
         """Test proper state tracking during battle"""
         from game_loop import GameLoop
 
-        with patch('game_loop.GameDatabase') as mock_db_class:
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -311,10 +315,12 @@ class TestBattleTransition:
                 is_battle=True,
                 is_menu=False,
                 has_dialog=False,
-                player_hp_percent=100.0
+                player_hp_percent=100.0,
             )
 
-            with patch('game_loop.GameLoop._analyze_game_state', return_value=battle_game_state):
+            with patch(
+                "game_loop.GameLoop._analyze_game_state", return_value=battle_game_state
+            ):
                 for i in range(3):
                     game_loop._detect_battle_transition()
                     assert game_loop.current_battle_id == 1
@@ -326,21 +332,21 @@ class TestBattleTransition:
         """Test detection of battle end and return to overworld"""
         from game_loop import GameLoop
 
-        with patch('game_loop.GameDatabase') as mock_db_class:
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
             game_loop.db = mock_db_connection
             game_loop.current_battle_id = 1
             game_loop.battle_turn_count = 5
-            game_loop.metrics['battles_encountered'] = 1
-            game_loop.metrics['battles_won'] = 0
+            game_loop.metrics["battles_encountered"] = 1
+            game_loop.metrics["battles_won"] = 0
 
             mock_db_connection.log_battle_end = MagicMock()
 
@@ -351,7 +357,7 @@ class TestBattleTransition:
                 is_battle=True,
                 is_menu=False,
                 has_dialog=False,
-                player_hp_percent=100.0
+                player_hp_percent=100.0,
             )
 
             overworld_game_state = GameState(
@@ -361,10 +367,13 @@ class TestBattleTransition:
                 is_battle=False,
                 is_menu=False,
                 has_dialog=False,
-                player_hp_percent=100.0
+                player_hp_percent=100.0,
             )
 
-            with patch('game_loop.GameLoop._analyze_game_state', side_effect=[battle_game_state, overworld_game_state]):
+            with patch(
+                "game_loop.GameLoop._analyze_game_state",
+                side_effect=[battle_game_state, overworld_game_state],
+            ):
                 game_loop._detect_battle_transition()
                 assert game_loop.current_battle_id == 1
 
@@ -378,13 +387,13 @@ class TestBattleTransition:
         """Test that battle turns are properly counted"""
         from game_loop import GameLoop
 
-        with patch('game_loop.GameDatabase') as mock_db_class:
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -398,10 +407,12 @@ class TestBattleTransition:
                 is_battle=True,
                 is_menu=False,
                 has_dialog=False,
-                player_hp_percent=100.0
+                player_hp_percent=100.0,
             )
 
-            with patch('game_loop.GameLoop._analyze_game_state', return_value=battle_game_state):
+            with patch(
+                "game_loop.GameLoop._analyze_game_state", return_value=battle_game_state
+            ):
                 for i in range(10):
                     game_loop._detect_battle_transition()
 
@@ -413,20 +424,20 @@ class TestBattleTransition:
         """Test that battle metrics are updated correctly"""
         from game_loop import GameLoop
 
-        with patch('game_loop.GameDatabase') as mock_db_class:
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
             game_loop.metrics = {
-                'battles_encountered': 0,
-                'battles_won': 0,
-                'battles_lost': 0
+                "battles_encountered": 0,
+                "battles_won": 0,
+                "battles_lost": 0,
             }
 
             mock_db_connection.log_battle_start = MagicMock(return_value=1)
@@ -439,7 +450,7 @@ class TestBattleTransition:
                 is_battle=True,
                 is_menu=False,
                 has_dialog=False,
-                player_hp_percent=100.0
+                player_hp_percent=100.0,
             )
 
             overworld_game_state = GameState(
@@ -449,15 +460,18 @@ class TestBattleTransition:
                 is_battle=False,
                 is_menu=False,
                 has_dialog=False,
-                player_hp_percent=100.0
+                player_hp_percent=100.0,
             )
 
-            with patch('game_loop.GameLoop._analyze_game_state', side_effect=[battle_game_state, overworld_game_state]):
+            with patch(
+                "game_loop.GameLoop._analyze_game_state",
+                side_effect=[battle_game_state, overworld_game_state],
+            ):
                 game_loop._detect_battle_transition()
-                assert game_loop.metrics['battles_encountered'] == 1
+                assert game_loop.metrics["battles_encountered"] == 1
 
                 game_loop._detect_battle_transition()
-                assert game_loop.metrics['battles_won'] == 1
+                assert game_loop.metrics["battles_won"] == 1
 
 
 class TestDialogFlow:
@@ -467,21 +481,21 @@ class TestDialogFlow:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
+        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
 
     def test_dialog_initiation(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of dialog initiation"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -492,10 +506,12 @@ class TestDialogFlow:
                 screen_type="dialog",
                 is_battle=False,
                 is_menu=False,
-                has_dialog=True
+                has_dialog=True,
             )
 
-            with patch.object(game_loop, '_analyze_game_state', return_value=dialog_game_state):
+            with patch.object(
+                game_loop, "_analyze_game_state", return_value=dialog_game_state
+            ):
                 state = game_loop._analyze_game_state()
 
             assert state.has_dialog is True
@@ -505,14 +521,14 @@ class TestDialogFlow:
     ):
         """Test AI decision to advance dialog text"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -526,28 +542,28 @@ class TestDialogFlow:
                 is_menu=False,
                 has_dialog=True,
                 can_move=False,
-                dialog_text="Welcome to the world of Pokemon!"
+                dialog_text="Welcome to the world of Pokemon!",
             )
 
             decision = game_loop._simple_dialog_ai(dialog_state)
 
-            assert decision['action'] == 'press:A'
-            assert decision['button'] == EmulatorButton.A
-            assert decision['confidence'] > 0.5
+            assert decision["action"] == "press:A"
+            assert decision["button"] == EmulatorButton.A
+            assert decision["confidence"] > 0.5
 
     def test_dialog_completion(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of dialog completion"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -558,19 +574,23 @@ class TestDialogFlow:
                 screen_type="dialog",
                 is_battle=False,
                 is_menu=False,
-                has_dialog=True
+                has_dialog=True,
             )
-            
+
             overworld_game_state = GameState(
                 tick=10,
                 timestamp=datetime.now().isoformat(),
                 screen_type="overworld",
                 is_battle=False,
                 is_menu=False,
-                has_dialog=False
+                has_dialog=False,
             )
 
-            with patch.object(game_loop, '_analyze_game_state', side_effect=[dialog_game_state, overworld_game_state]):
+            with patch.object(
+                game_loop,
+                "_analyze_game_state",
+                side_effect=[dialog_game_state, overworld_game_state],
+            ):
                 state1 = game_loop._analyze_game_state()
                 state2 = game_loop._analyze_game_state()
 
@@ -583,13 +603,13 @@ class TestDialogFlow:
         """Test multi-page dialog advancement"""
         from game_loop import GameLoop
 
-        with patch('game_loop.GameDatabase') as mock_db_class:
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -601,13 +621,13 @@ class TestDialogFlow:
                 screen_type="dialog",
                 is_battle=False,
                 is_menu=False,
-                has_dialog=True
+                has_dialog=True,
             )
 
             game_loop._get_ai_decision(dialog_state)
 
             assert len(game_loop.pending_commands) == 1
-            assert game_loop.pending_commands[0]['command'] == 'press:A'
+            assert game_loop.pending_commands[0]["command"] == "press:A"
 
 
 class TestCommandExecution:
@@ -617,21 +637,21 @@ class TestCommandExecution:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
+        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
 
     def test_single_button_press(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test execution of single button press command"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -640,22 +660,22 @@ class TestCommandExecution:
 
             parsed = game_loop._parse_command("press:A")
             assert parsed is not None
-            assert parsed['type'] == 'press'
-            assert parsed['button'] == EmulatorButton.A
+            assert parsed["type"] == "press"
+            assert parsed["button"] == EmulatorButton.A
 
     def test_button_sequence_execution(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test execution of button sequence commands (not implemented, returns None)"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -670,14 +690,14 @@ class TestCommandExecution:
     ):
         """Test execution of batch movement commands (not implemented, returns None)"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -690,14 +710,14 @@ class TestCommandExecution:
     ):
         """Test that command execution includes proper timing"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -711,7 +731,7 @@ class TestCommandExecution:
                     "command": "press:A",
                     "tick": 10,
                     "reasoning": "Test timing",
-                    "confidence": 0.8
+                    "confidence": 0.8,
                 }
             ]
 
@@ -720,46 +740,46 @@ class TestCommandExecution:
             (time.time() - start_time) * 1000
 
             call_args = mock_db_connection.log_command.call_args[0][0]
-            assert 'execution_time_ms' in call_args
-            assert call_args['execution_time_ms'] >= 0
+            assert "execution_time_ms" in call_args
+            assert call_args["execution_time_ms"] >= 0
 
     def test_all_directions(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test all directional button commands"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
 
-            buttons = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'A', 'B', 'START', 'SELECT']
+            buttons = ["UP", "DOWN", "LEFT", "RIGHT", "A", "B", "START", "SELECT"]
 
             for button in buttons:
                 parsed = game_loop._parse_command(f"press:{button}")
                 assert parsed is not None
-                assert parsed['button'] == getattr(EmulatorButton, button)
+                assert parsed["button"] == getattr(EmulatorButton, button)
 
     def test_command_history_tracking(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that executed commands are tracked in history"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -768,9 +788,24 @@ class TestCommandExecution:
             mock_emulator.press_button = MagicMock()
 
             commands = [
-                {"command": "press:A", "tick": 1, "reasoning": "Test 1", "confidence": 0.8},
-                {"command": "press:B", "tick": 2, "reasoning": "Test 2", "confidence": 0.9},
-                {"command": "press:UP", "tick": 3, "reasoning": "Test 3", "confidence": 0.7},
+                {
+                    "command": "press:A",
+                    "tick": 1,
+                    "reasoning": "Test 1",
+                    "confidence": 0.8,
+                },
+                {
+                    "command": "press:B",
+                    "tick": 2,
+                    "reasoning": "Test 2",
+                    "confidence": 0.9,
+                },
+                {
+                    "command": "press:UP",
+                    "tick": 3,
+                    "reasoning": "Test 3",
+                    "confidence": 0.7,
+                },
             ]
 
             for cmd in commands:
@@ -779,8 +814,8 @@ class TestCommandExecution:
 
             assert len(game_loop.command_history) == 3
             for i, cmd in enumerate(commands):
-                assert game_loop.command_history[i]['command'] == cmd['command']
-                assert game_loop.command_history[i]['success'] is True
+                assert game_loop.command_history[i]["command"] == cmd["command"]
+                assert game_loop.command_history[i]["success"] is True
 
 
 class TestErrorRecovery:
@@ -790,21 +825,21 @@ class TestErrorRecovery:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr('game_loop.Emulator', lambda *a, **kw: mock_emu)
+        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
 
     def test_api_failure_stub_fallback(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test fallback to stub AI when API fails"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -817,28 +852,28 @@ class TestErrorRecovery:
                 screen_type="battle",
                 is_battle=True,
                 is_menu=False,
-                has_dialog=False
+                has_dialog=False,
             )
 
             decision = game_loop._get_stub_ai_decision(battle_state)
 
             assert decision is not None
-            assert 'action' in decision
-            assert 'reasoning' in decision
+            assert "action" in decision
+            assert "reasoning" in decision
 
     def test_emulator_error_graceful_shutdown(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test graceful shutdown when emulator encounters error"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -849,7 +884,7 @@ class TestErrorRecovery:
             mock_db_connection.log_command = MagicMock()
 
             initial_running = game_loop.is_running
-            
+
             try:
                 game_loop.run_single_tick()
             except Exception:
@@ -862,14 +897,14 @@ class TestErrorRecovery:
     ):
         """Test retry logic when database operations fail"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -890,7 +925,7 @@ class TestErrorRecovery:
                     "command": "press:A",
                     "tick": 10,
                     "reasoning": "Test retry",
-                    "confidence": 0.8
+                    "confidence": 0.8,
                 }
             ]
 
@@ -908,14 +943,14 @@ class TestErrorRecovery:
     ):
         """Test handling of invalid command formats"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -931,14 +966,14 @@ class TestErrorRecovery:
     ):
         """Test handling of unknown button in command"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
@@ -951,20 +986,22 @@ class TestErrorRecovery:
     ):
         """Test that command execution errors are properly logged"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
             game_loop.db = mock_db_connection
 
-            mock_emulator.press_button = MagicMock(side_effect=Exception("Button press failed"))
+            mock_emulator.press_button = MagicMock(
+                side_effect=Exception("Button press failed")
+            )
             mock_db_connection.log_command = MagicMock()
 
             game_loop.pending_commands = [
@@ -972,7 +1009,7 @@ class TestErrorRecovery:
                     "command": "press:A",
                     "tick": 10,
                     "reasoning": "Test error logging",
-                    "confidence": 0.8
+                    "confidence": 0.8,
                 }
             ]
 
@@ -980,26 +1017,28 @@ class TestErrorRecovery:
 
             mock_db_connection.log_command.assert_called_once()
             call_args = mock_db_connection.log_command.call_args[0][0]
-            assert call_args['success'] is False
-            assert 'error_message' in call_args or 'error' in call_args
+            assert call_args["success"] is False
+            assert "error_message" in call_args or "error" in call_args
 
     def test_state_analysis_error_handling(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test error handling in state analysis"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator
-            mock_emulator.capture_screen = MagicMock(side_effect=Exception("Screenshot failed"))
+            mock_emulator.capture_screen = MagicMock(
+                side_effect=Exception("Screenshot failed")
+            )
 
             result = game_loop._analyze_game_state()
 
@@ -1010,14 +1049,14 @@ class TestErrorRecovery:
     ):
         """Test that empty command list doesn't cause errors"""
         from game_loop import GameLoop
-        
-        with patch('game_loop.GameDatabase') as mock_db_class:
+
+        with patch("game_loop.GameDatabase") as mock_db_class:
             mock_db_class.return_value = mock_db_connection
             game_loop = GameLoop(
                 config={
                     "rom_path": str(temp_session / "rom.gb"),
                     "save_dir": str(temp_session / "saves"),
-                    "screenshot_interval": 60
+                    "screenshot_interval": 60,
                 }
             )
             game_loop.emulator = mock_emulator

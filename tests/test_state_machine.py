@@ -28,6 +28,7 @@ from src.core.state_machine import (
 
 # ── Enums ────────────────────────────────────────────────────────────────────
 
+
 class TestStateType:
     def test_all_members(self):
         names = {m.name for m in StateType}
@@ -115,6 +116,7 @@ class TestStateTransitionResult:
 
 # ── Dataclasses ──────────────────────────────────────────────────────────────
 
+
 class TestStateTransition:
     def test_default_construction(self):
         st = StateTransition(from_state="A", to_state="B")
@@ -128,8 +130,12 @@ class TestStateTransition:
     def test_full_fields(self):
         now = datetime.now()
         st = StateTransition(
-            from_state="OVERWORLD.IDLE", to_state="BATTLE.BATTLE_INTRO",
-            timestamp=now, tick=5, reason="wild encounter", duration_ms=12.5,
+            from_state="OVERWORLD.IDLE",
+            to_state="BATTLE.BATTLE_INTRO",
+            timestamp=now,
+            tick=5,
+            reason="wild encounter",
+            duration_ms=12.5,
         )
         assert st.from_state == "OVERWORLD.IDLE"
         assert st.to_state == "BATTLE.BATTLE_INTRO"
@@ -163,6 +169,7 @@ class TestTransitionCondition:
 
 
 # ── State Base Class ─────────────────────────────────────────────────────────
+
 
 class TestStateBase:
     def test_constructor(self):
@@ -265,6 +272,7 @@ class TestStateBase:
 
 
 # ── HierarchicalStateMachine ─────────────────────────────────────────────────
+
 
 class TestHSMConstructor:
     def test_default_name(self):
@@ -719,6 +727,7 @@ class TestHSMGetStatistics:
 
 # ── GameStateClassifier ──────────────────────────────────────────────────────
 
+
 class TestGameStateClassifier:
     def test_constructor(self):
         """Coverage: lines 707-709"""
@@ -800,11 +809,14 @@ class TestGameStateClassifier:
         gsc._determine_state = mock_determine  # type: ignore[assignment]
         gsc._last_classification_time = 0
         result = gsc.classify("dummy_screen")
-        assert result is None  # classify returns None for emergency (triggered via trigger_emergency)
+        assert (
+            result is None
+        )  # classify returns None for emergency (triggered via trigger_emergency)
         assert hsm._emergency_triggered is True
 
 
 # ── Factory Function ─────────────────────────────────────────────────────────
+
 
 class TestFactory:
     def test_create_hierarchical_state_machine(self):
@@ -816,6 +828,7 @@ class TestFactory:
 
 
 # ── Full Transition Chain ────────────────────────────────────────────────────
+
 
 class TestFullTransitionChain:
     def test_overworld_to_battle_flow(self):

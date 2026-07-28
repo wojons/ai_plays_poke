@@ -12,13 +12,23 @@ Covers:
 import pytest
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.core.combat import (
-    PokemonType, StatusCondition, MoveCategory, StatStage,
-    Move, Pokemon, CatchAttempt,
-    TypeChart, DamageCalculator, MoveSelector, EnemyPredictor, BattleStrategist,
-    CombatManager
+    PokemonType,
+    StatusCondition,
+    MoveCategory,
+    StatStage,
+    Move,
+    Pokemon,
+    CatchAttempt,
+    TypeChart,
+    DamageCalculator,
+    MoveSelector,
+    EnemyPredictor,
+    BattleStrategist,
+    CombatManager,
 )
 
 
@@ -73,31 +83,37 @@ class TestTypeChart:
 
     def test_super_effective_helper(self) -> None:
         """is_super_effective should detect >= 2.0"""
-        assert self.type_chart.is_super_effective(
-            PokemonType.FIRE, [PokemonType.GRASS]
-        )
+        assert self.type_chart.is_super_effective(PokemonType.FIRE, [PokemonType.GRASS])
         assert not self.type_chart.is_super_effective(
             PokemonType.FIRE, [PokemonType.WATER]
         )
 
     def test_immune_helper(self) -> None:
         """is_immune should detect 0.0 effectiveness"""
-        assert self.type_chart.is_immune(
-            PokemonType.NORMAL, [PokemonType.GHOST]
-        )
-        assert not self.type_chart.is_immune(
-            PokemonType.FIRE, [PokemonType.GRASS]
-        )
+        assert self.type_chart.is_immune(PokemonType.NORMAL, [PokemonType.GHOST])
+        assert not self.type_chart.is_immune(PokemonType.FIRE, [PokemonType.GRASS])
 
     def test_all_18_types_present(self) -> None:
         """All 18 types should be in the chart"""
         expected_types = [
-            PokemonType.NORMAL, PokemonType.FIRE, PokemonType.WATER,
-            PokemonType.ELECTRIC, PokemonType.GRASS, PokemonType.ICE,
-            PokemonType.FIGHTING, PokemonType.POISON, PokemonType.GROUND,
-            PokemonType.FLYING, PokemonType.PSYCHIC, PokemonType.BUG,
-            PokemonType.ROCK, PokemonType.GHOST, PokemonType.DRAGON,
-            PokemonType.DARK, PokemonType.STEEL, PokemonType.FAIRY
+            PokemonType.NORMAL,
+            PokemonType.FIRE,
+            PokemonType.WATER,
+            PokemonType.ELECTRIC,
+            PokemonType.GRASS,
+            PokemonType.ICE,
+            PokemonType.FIGHTING,
+            PokemonType.POISON,
+            PokemonType.GROUND,
+            PokemonType.FLYING,
+            PokemonType.PSYCHIC,
+            PokemonType.BUG,
+            PokemonType.ROCK,
+            PokemonType.GHOST,
+            PokemonType.DRAGON,
+            PokemonType.DARK,
+            PokemonType.STEEL,
+            PokemonType.FAIRY,
         ]
         for ptype in expected_types:
             assert ptype in [t for t in PokemonType]
@@ -138,36 +154,30 @@ class TestDamageCalculator:
     def test_type_effectiveness_multiplier(self) -> None:
         """Type effectiveness should multiply damage"""
         damage_neutral = self.calculator.calculate_base_damage(
-            level=50, power=100, attack=100, defense=100,
-            type_effectiveness=1.0
+            level=50, power=100, attack=100, defense=100, type_effectiveness=1.0
         )
         damage_super = self.calculator.calculate_base_damage(
-            level=50, power=100, attack=100, defense=100,
-            type_effectiveness=2.0
+            level=50, power=100, attack=100, defense=100, type_effectiveness=2.0
         )
         assert damage_super == damage_neutral * 2
 
     def test_critical_hit(self) -> None:
         """Critical hit should double damage"""
         damage_normal = self.calculator.calculate_base_damage(
-            level=50, power=100, attack=100, defense=100,
-            is_critical=False
+            level=50, power=100, attack=100, defense=100, is_critical=False
         )
         damage_crit = self.calculator.calculate_base_damage(
-            level=50, power=100, attack=100, defense=100,
-            is_critical=True
+            level=50, power=100, attack=100, defense=100, is_critical=True
         )
         assert damage_crit == damage_normal * 2
 
     def test_damage_range_bounds(self) -> None:
         """Damage range should be consistent with 85-100% random factor"""
         damage_085 = self.calculator.calculate_base_damage(
-            level=50, power=100, attack=100, defense=100,
-            random_factor=0.85
+            level=50, power=100, attack=100, defense=100, random_factor=0.85
         )
         damage_100 = self.calculator.calculate_base_damage(
-            level=50, power=100, attack=100, defense=100,
-            random_factor=1.0
+            level=50, power=100, attack=100, defense=100, random_factor=1.0
         )
         assert damage_085 <= damage_100
 
@@ -182,25 +192,45 @@ class TestDamageCalculator:
     def test_stab_detection(self) -> None:
         """STAB should be detected when move type matches Pokemon type"""
         pikachu_types = [PokemonType.ELECTRIC]
-        assert self.calculator.calculate_stab(PokemonType.ELECTRIC, pikachu_types) == 1.5
+        assert (
+            self.calculator.calculate_stab(PokemonType.ELECTRIC, pikachu_types) == 1.5
+        )
         assert self.calculator.calculate_stab(PokemonType.NORMAL, pikachu_types) == 1.0
 
     def test_damage_range_calculation(self) -> None:
         """Damage range should provide min/max values"""
         attacker = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=120, special=100, moves=[]
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
+            moves=[],
         )
         defender = Pokemon(
-            name="Bulbasaur", level=45, types=[PokemonType.GRASS, PokemonType.POISON],
-            max_hp=100, current_hp=80, attack=80, defense=80,
-            speed=60, special=80, moves=[]
+            name="Bulbasaur",
+            level=45,
+            types=[PokemonType.GRASS, PokemonType.POISON],
+            max_hp=100,
+            current_hp=80,
+            attack=80,
+            defense=80,
+            speed=60,
+            special=80,
+            moves=[],
         )
         thunder_shock = Move(
-            name="Thunder Shock", move_type=PokemonType.ELECTRIC,
-            power=40, accuracy=100, pp=30, max_pp=30,
-            category=MoveCategory.SPECIAL
+            name="Thunder Shock",
+            move_type=PokemonType.ELECTRIC,
+            power=40,
+            accuracy=100,
+            pp=30,
+            max_pp=30,
+            category=MoveCategory.SPECIAL,
         )
 
         damage_range = self.calculator.calculate_damage_range(
@@ -215,19 +245,37 @@ class TestDamageCalculator:
     def test_ko_prediction(self) -> None:
         """KO prediction should be accurate"""
         attacker = Pokemon(
-            name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
-            max_hp=100, current_hp=100, attack=120, defense=90,
-            speed=100, special=130, moves=[]
+            name="Charizard",
+            level=50,
+            types=[PokemonType.FIRE, PokemonType.FLYING],
+            max_hp=100,
+            current_hp=100,
+            attack=120,
+            defense=90,
+            speed=100,
+            special=130,
+            moves=[],
         )
         defender = Pokemon(
-            name="Butterfree", level=40, types=[PokemonType.BUG, PokemonType.FLYING],
-            max_hp=80, current_hp=30, attack=70, defense=60,
-            speed=80, special=90, moves=[]
+            name="Butterfree",
+            level=40,
+            types=[PokemonType.BUG, PokemonType.FLYING],
+            max_hp=80,
+            current_hp=30,
+            attack=70,
+            defense=60,
+            speed=80,
+            special=90,
+            moves=[],
         )
         flamethrower = Move(
-            name="Flamethrower", move_type=PokemonType.FIRE,
-            power=95, accuracy=100, pp=15, max_pp=15,
-            category=MoveCategory.SPECIAL
+            name="Flamethrower",
+            move_type=PokemonType.FIRE,
+            power=95,
+            accuracy=100,
+            pp=15,
+            max_pp=15,
+            category=MoveCategory.SPECIAL,
         )
 
         damage_range = self.calculator.calculate_damage_range(
@@ -243,9 +291,14 @@ class TestDamageCalculator:
     def test_minimum_damage(self) -> None:
         """Minimum damage should always be at least 1"""
         damage = self.calculator.calculate_base_damage(
-            level=1, power=1, attack=1, defense=1000,
-            stab=1.0, type_effectiveness=1.0,
-            is_critical=False, random_factor=0.85
+            level=1,
+            power=1,
+            attack=1,
+            defense=1000,
+            stab=1.0,
+            type_effectiveness=1.0,
+            is_critical=False,
+            random_factor=0.85,
         )
         assert damage >= 1
 
@@ -260,30 +313,51 @@ class TestMoveSelector:
     def test_stab_scoring_bonus(self) -> None:
         """STAB moves should score higher"""
         attacker = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=120, special=100,
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
             moves=[
-                Move(name="Thunder Shock", move_type=PokemonType.ELECTRIC,
-                     power=40, accuracy=100, pp=30, max_pp=30,
-                     category=MoveCategory.SPECIAL),
-                Move(name="Quick Attack", move_type=PokemonType.NORMAL,
-                     power=40, accuracy=100, pp=30, max_pp=30,
-                     category=MoveCategory.PHYSICAL)
-            ]
+                Move(
+                    name="Thunder Shock",
+                    move_type=PokemonType.ELECTRIC,
+                    power=40,
+                    accuracy=100,
+                    pp=30,
+                    max_pp=30,
+                    category=MoveCategory.SPECIAL,
+                ),
+                Move(
+                    name="Quick Attack",
+                    move_type=PokemonType.NORMAL,
+                    power=40,
+                    accuracy=100,
+                    pp=30,
+                    max_pp=30,
+                    category=MoveCategory.PHYSICAL,
+                ),
+            ],
         )
         defender = Pokemon(
-            name="Squirtle", level=45, types=[PokemonType.WATER],
-            max_hp=100, current_hp=100, attack=80, defense=100,
-            speed=60, special=80, moves=[]
+            name="Squirtle",
+            level=45,
+            types=[PokemonType.WATER],
+            max_hp=100,
+            current_hp=100,
+            attack=80,
+            defense=100,
+            speed=60,
+            special=80,
+            moves=[],
         )
 
-        thunder_score = self.selector.score_move(
-            attacker.moves[0], attacker, defender
-        )
-        quick_score = self.selector.score_move(
-            attacker.moves[1], attacker, defender
-        )
+        thunder_score = self.selector.score_move(attacker.moves[0], attacker, defender)
+        quick_score = self.selector.score_move(attacker.moves[1], attacker, defender)
 
         assert thunder_score.has_stab
         assert not quick_score.has_stab
@@ -292,30 +366,51 @@ class TestMoveSelector:
     def test_type_effectiveness_scoring(self) -> None:
         """Super effective moves should score higher"""
         attacker = Pokemon(
-            name="Charmander", level=50, types=[PokemonType.FIRE],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=100, special=100,
+            name="Charmander",
+            level=50,
+            types=[PokemonType.FIRE],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=100,
+            special=100,
             moves=[
-                Move(name="Ember", move_type=PokemonType.FIRE,
-                     power=40, accuracy=100, pp=40, max_pp=40,
-                     category=MoveCategory.SPECIAL),
-                Move(name="Scratch", move_type=PokemonType.NORMAL,
-                     power=40, accuracy=100, pp=35, max_pp=35,
-                     category=MoveCategory.PHYSICAL)
-            ]
+                Move(
+                    name="Ember",
+                    move_type=PokemonType.FIRE,
+                    power=40,
+                    accuracy=100,
+                    pp=40,
+                    max_pp=40,
+                    category=MoveCategory.SPECIAL,
+                ),
+                Move(
+                    name="Scratch",
+                    move_type=PokemonType.NORMAL,
+                    power=40,
+                    accuracy=100,
+                    pp=35,
+                    max_pp=35,
+                    category=MoveCategory.PHYSICAL,
+                ),
+            ],
         )
         defender = Pokemon(
-            name="Bulbasaur", level=45, types=[PokemonType.GRASS],
-            max_hp=100, current_hp=100, attack=80, defense=80,
-            speed=70, special=80, moves=[]
+            name="Bulbasaur",
+            level=45,
+            types=[PokemonType.GRASS],
+            max_hp=100,
+            current_hp=100,
+            attack=80,
+            defense=80,
+            speed=70,
+            special=80,
+            moves=[],
         )
 
-        ember_score = self.selector.score_move(
-            attacker.moves[0], attacker, defender
-        )
-        scratch_score = self.selector.score_move(
-            attacker.moves[1], attacker, defender
-        )
+        ember_score = self.selector.score_move(attacker.moves[0], attacker, defender)
+        scratch_score = self.selector.score_move(attacker.moves[1], attacker, defender)
 
         assert ember_score.effectiveness == 2.0
         assert scratch_score.effectiveness == 1.0
@@ -324,22 +419,47 @@ class TestMoveSelector:
     def test_accuracy_penalty(self) -> None:
         """Low accuracy moves should be penalized for risk-averse AI"""
         attacker = Pokemon(
-            name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
-            max_hp=100, current_hp=100, attack=120, defense=90,
-            speed=100, special=130,
+            name="Charizard",
+            level=50,
+            types=[PokemonType.FIRE, PokemonType.FLYING],
+            max_hp=100,
+            current_hp=100,
+            attack=120,
+            defense=90,
+            speed=100,
+            special=130,
             moves=[
-                Move(name="Flamethrower", move_type=PokemonType.FIRE,
-                     power=95, accuracy=100, pp=15, max_pp=15,
-                     category=MoveCategory.SPECIAL),
-                Move(name="Blast Burn", move_type=PokemonType.FIRE,
-                     power=150, accuracy=90, pp=5, max_pp=5,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Flamethrower",
+                    move_type=PokemonType.FIRE,
+                    power=95,
+                    accuracy=100,
+                    pp=15,
+                    max_pp=15,
+                    category=MoveCategory.SPECIAL,
+                ),
+                Move(
+                    name="Blast Burn",
+                    move_type=PokemonType.FIRE,
+                    power=150,
+                    accuracy=90,
+                    pp=5,
+                    max_pp=5,
+                    category=MoveCategory.SPECIAL,
+                ),
+            ],
         )
         defender = Pokemon(
-            name="Onix", level=45, types=[PokemonType.ROCK, PokemonType.GROUND],
-            max_hp=100, current_hp=100, attack=90, defense=130,
-            speed=70, special=60, moves=[]
+            name="Onix",
+            level=45,
+            types=[PokemonType.ROCK, PokemonType.GROUND],
+            max_hp=100,
+            current_hp=100,
+            attack=90,
+            defense=130,
+            speed=70,
+            special=60,
+            moves=[],
         )
 
         risk_averse = self.selector.score_move(
@@ -354,48 +474,82 @@ class TestMoveSelector:
     def test_ko_bonus(self) -> None:
         """Moves that can KO should get significant bonus"""
         attacker = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=120, special=100,
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
             moves=[
-                Move(name="Thunder", move_type=PokemonType.ELECTRIC,
-                     power=110, accuracy=70, pp=10, max_pp=10,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Thunder",
+                    move_type=PokemonType.ELECTRIC,
+                    power=110,
+                    accuracy=70,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.SPECIAL,
+                )
+            ],
         )
         defender = Pokemon(
-            name="Weedle", level=10, types=[PokemonType.BUG, PokemonType.POISON],
-            max_hp=30, current_hp=5, attack=30, defense=20,
-            speed=50, special=20, moves=[]
+            name="Weedle",
+            level=10,
+            types=[PokemonType.BUG, PokemonType.POISON],
+            max_hp=30,
+            current_hp=5,
+            attack=30,
+            defense=20,
+            speed=50,
+            special=20,
+            moves=[],
         )
 
-        score = self.selector.score_move(
-            attacker.moves[0], attacker, defender
-        )
+        score = self.selector.score_move(attacker.moves[0], attacker, defender)
 
         assert score.ko_likely
 
     def test_immune_moves_scored_zero(self) -> None:
         """Immune moves should get zero score"""
         attacker = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=120, special=100,
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
             moves=[
-                Move(name="Thunder", move_type=PokemonType.ELECTRIC,
-                     power=110, accuracy=70, pp=10, max_pp=10,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Thunder",
+                    move_type=PokemonType.ELECTRIC,
+                    power=110,
+                    accuracy=70,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.SPECIAL,
+                )
+            ],
         )
         defender = Pokemon(
-            name="Golem", level=45, types=[PokemonType.GROUND],
-            max_hp=100, current_hp=100, attack=110, defense=120,
-            speed=45, special=80, moves=[]
+            name="Golem",
+            level=45,
+            types=[PokemonType.GROUND],
+            max_hp=100,
+            current_hp=100,
+            attack=110,
+            defense=120,
+            speed=45,
+            special=80,
+            moves=[],
         )
 
-        score = self.selector.score_move(
-            attacker.moves[0], attacker, defender
-        )
+        score = self.selector.score_move(attacker.moves[0], attacker, defender)
 
         assert score.score == 0.0
         assert "Immune" in score.notes[0]
@@ -403,25 +557,56 @@ class TestMoveSelector:
     def test_select_best_move(self) -> None:
         """Select best move should return highest scoring move"""
         attacker = Pokemon(
-            name="Blastoise", level=50, types=[PokemonType.WATER],
-            max_hp=120, current_hp=100, attack=100, defense=120,
-            speed=80, special=100,
+            name="Blastoise",
+            level=50,
+            types=[PokemonType.WATER],
+            max_hp=120,
+            current_hp=100,
+            attack=100,
+            defense=120,
+            speed=80,
+            special=100,
             moves=[
-                Move(name="Hydro Pump", move_type=PokemonType.WATER,
-                     power=110, accuracy=80, pp=10, max_pp=10,
-                     category=MoveCategory.SPECIAL),
-                Move(name="Water Gun", move_type=PokemonType.WATER,
-                     power=40, accuracy=100, pp=25, max_pp=25,
-                     category=MoveCategory.SPECIAL),
-                Move(name="Tackle", move_type=PokemonType.NORMAL,
-                     power=40, accuracy=100, pp=35, max_pp=35,
-                     category=MoveCategory.PHYSICAL)
-            ]
+                Move(
+                    name="Hydro Pump",
+                    move_type=PokemonType.WATER,
+                    power=110,
+                    accuracy=80,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.SPECIAL,
+                ),
+                Move(
+                    name="Water Gun",
+                    move_type=PokemonType.WATER,
+                    power=40,
+                    accuracy=100,
+                    pp=25,
+                    max_pp=25,
+                    category=MoveCategory.SPECIAL,
+                ),
+                Move(
+                    name="Tackle",
+                    move_type=PokemonType.NORMAL,
+                    power=40,
+                    accuracy=100,
+                    pp=35,
+                    max_pp=35,
+                    category=MoveCategory.PHYSICAL,
+                ),
+            ],
         )
         defender = Pokemon(
-            name="Charizard", level=45, types=[PokemonType.FIRE, PokemonType.FLYING],
-            max_hp=100, current_hp=80, attack=110, defense=85,
-            speed=100, special=120, moves=[]
+            name="Charizard",
+            level=45,
+            types=[PokemonType.FIRE, PokemonType.FLYING],
+            max_hp=100,
+            current_hp=80,
+            attack=110,
+            defense=85,
+            speed=100,
+            special=120,
+            moves=[],
         )
 
         best = self.selector.select_best_move(attacker, defender)
@@ -433,22 +618,48 @@ class TestMoveSelector:
     def test_priority_move_scoring(self) -> None:
         """Priority moves should get bonus when slower"""
         slow_pokemon = Pokemon(
-            name="Slowpoke", level=50, types=[PokemonType.WATER, PokemonType.PSYCHIC],
-            max_hp=100, current_hp=100, attack=80, defense=80,
-            speed=30, special=80,
+            name="Slowpoke",
+            level=50,
+            types=[PokemonType.WATER, PokemonType.PSYCHIC],
+            max_hp=100,
+            current_hp=100,
+            attack=80,
+            defense=80,
+            speed=30,
+            special=80,
             moves=[
-                Move(name="Quick Attack", move_type=PokemonType.NORMAL,
-                     power=40, accuracy=100, pp=30, max_pp=30,
-                     category=MoveCategory.PHYSICAL, priority=1),
-                Move(name="Tackle", move_type=PokemonType.NORMAL,
-                     power=40, accuracy=100, pp=35, max_pp=35,
-                     category=MoveCategory.PHYSICAL)
-            ]
+                Move(
+                    name="Quick Attack",
+                    move_type=PokemonType.NORMAL,
+                    power=40,
+                    accuracy=100,
+                    pp=30,
+                    max_pp=30,
+                    category=MoveCategory.PHYSICAL,
+                    priority=1,
+                ),
+                Move(
+                    name="Tackle",
+                    move_type=PokemonType.NORMAL,
+                    power=40,
+                    accuracy=100,
+                    pp=35,
+                    max_pp=35,
+                    category=MoveCategory.PHYSICAL,
+                ),
+            ],
         )
         fast_defender = Pokemon(
-            name="Pikachu", level=45, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=120, special=100, moves=[]
+            name="Pikachu",
+            level=45,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
+            moves=[],
         )
 
         priority_score = self.selector.score_move(
@@ -483,22 +694,47 @@ class TestEnemyPredictor:
     def test_threat_level_calculation(self) -> None:
         """Threat level should reflect danger"""
         enemy = Pokemon(
-            name="Gyarados", level=55, types=[PokemonType.WATER, PokemonType.FLYING],
-            max_hp=120, current_hp=100, attack=130, defense=100,
-            speed=85, special=100,
+            name="Gyarados",
+            level=55,
+            types=[PokemonType.WATER, PokemonType.FLYING],
+            max_hp=120,
+            current_hp=100,
+            attack=130,
+            defense=100,
+            speed=85,
+            special=100,
             moves=[
-                Move(name="Hydro Pump", move_type=PokemonType.WATER,
-                     power=110, accuracy=80, pp=10, max_pp=10,
-                     category=MoveCategory.SPECIAL),
-                Move(name="Hyper Beam", move_type=PokemonType.NORMAL,
-                     power=150, accuracy=90, pp=5, max_pp=5,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Hydro Pump",
+                    move_type=PokemonType.WATER,
+                    power=110,
+                    accuracy=80,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.SPECIAL,
+                ),
+                Move(
+                    name="Hyper Beam",
+                    move_type=PokemonType.NORMAL,
+                    power=150,
+                    accuracy=90,
+                    pp=5,
+                    max_pp=5,
+                    category=MoveCategory.SPECIAL,
+                ),
+            ],
         )
         player = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=120, special=100, moves=[]
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
+            moves=[],
         )
 
         threat = self.predictor.predict_threat_level(enemy, player)
@@ -530,23 +766,52 @@ class TestBattleStrategist:
     def test_switch_on_low_hp(self) -> None:
         """Should switch when HP is critical"""
         current = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=5, attack=100, defense=80,
-            speed=120, special=100, moves=[]
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=5,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
+            moves=[],
         )
         opponent = Pokemon(
-            name="Charizard", level=55, types=[PokemonType.FIRE, PokemonType.FLYING],
-            max_hp=120, current_hp=100, attack=120, defense=90,
-            speed=100, special=130, moves=[
-                Move(name="Flamethrower", move_type=PokemonType.FIRE,
-                     power=95, accuracy=100, pp=15, max_pp=15,
-                     category=MoveCategory.SPECIAL)
-            ]
+            name="Charizard",
+            level=55,
+            types=[PokemonType.FIRE, PokemonType.FLYING],
+            max_hp=120,
+            current_hp=100,
+            attack=120,
+            defense=90,
+            speed=100,
+            special=130,
+            moves=[
+                Move(
+                    name="Flamethrower",
+                    move_type=PokemonType.FIRE,
+                    power=95,
+                    accuracy=100,
+                    pp=15,
+                    max_pp=15,
+                    category=MoveCategory.SPECIAL,
+                )
+            ],
         )
         party = [
-            Pokemon(name="Blastoise", level=52, types=[PokemonType.WATER],
-                    max_hp=120, current_hp=100, attack=100, defense=120,
-                    speed=70, special=100, moves=[])
+            Pokemon(
+                name="Blastoise",
+                level=52,
+                types=[PokemonType.WATER],
+                max_hp=120,
+                current_hp=100,
+                attack=100,
+                defense=120,
+                speed=70,
+                special=100,
+                moves=[],
+            )
         ]
 
         should_switch, reason, _ = self.strategist.should_switch(
@@ -559,29 +824,62 @@ class TestBattleStrategist:
     def test_switch_on_type_disadvantage(self) -> None:
         """Should switch when at severe type disadvantage"""
         current = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=80, attack=100, defense=80,
-            speed=120, special=100,
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=80,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
             moves=[
-                Move(name="Thunder", move_type=PokemonType.ELECTRIC,
-                     power=110, accuracy=70, pp=10, max_pp=10,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Thunder",
+                    move_type=PokemonType.ELECTRIC,
+                    power=110,
+                    accuracy=70,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.SPECIAL,
+                )
+            ],
         )
         opponent = Pokemon(
-            name="Golem", level=55, types=[PokemonType.GROUND],
-            max_hp=120, current_hp=100, attack=130, defense=120,
-            speed=45, special=80,
+            name="Golem",
+            level=55,
+            types=[PokemonType.GROUND],
+            max_hp=120,
+            current_hp=100,
+            attack=130,
+            defense=120,
+            speed=45,
+            special=80,
             moves=[
-                Move(name="Earthquake", move_type=PokemonType.GROUND,
-                     power=100, accuracy=100, pp=10, max_pp=10,
-                     category=MoveCategory.PHYSICAL)
-            ]
+                Move(
+                    name="Earthquake",
+                    move_type=PokemonType.GROUND,
+                    power=100,
+                    accuracy=100,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.PHYSICAL,
+                )
+            ],
         )
         party = [
-            Pokemon(name="Venusaur", level=52, types=[PokemonType.GRASS, PokemonType.POISON],
-                    max_hp=120, current_hp=100, attack=100, defense=100,
-                    speed=80, special=120, moves=[])
+            Pokemon(
+                name="Venusaur",
+                level=52,
+                types=[PokemonType.GRASS, PokemonType.POISON],
+                max_hp=120,
+                current_hp=100,
+                attack=100,
+                defense=100,
+                speed=80,
+                special=120,
+                moves=[],
+            )
         ]
 
         should_switch, reason, _ = self.strategist.should_switch(
@@ -593,19 +891,38 @@ class TestBattleStrategist:
     def test_no_switch_when_can_ko(self) -> None:
         """Should not switch when can KO opponent"""
         current = Pokemon(
-            name="Charizard", level=60, types=[PokemonType.FIRE, PokemonType.FLYING],
-            max_hp=120, current_hp=100, attack=130, defense=90,
-            speed=110, special=140,
+            name="Charizard",
+            level=60,
+            types=[PokemonType.FIRE, PokemonType.FLYING],
+            max_hp=120,
+            current_hp=100,
+            attack=130,
+            defense=90,
+            speed=110,
+            special=140,
             moves=[
-                Move(name="Flamethrower", move_type=PokemonType.FIRE,
-                     power=95, accuracy=100, pp=15, max_pp=15,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Flamethrower",
+                    move_type=PokemonType.FIRE,
+                    power=95,
+                    accuracy=100,
+                    pp=15,
+                    max_pp=15,
+                    category=MoveCategory.SPECIAL,
+                )
+            ],
         )
         opponent = Pokemon(
-            name="Weedle", level=10, types=[PokemonType.BUG, PokemonType.POISON],
-            max_hp=30, current_hp=5, attack=30, defense=20,
-            speed=50, special=20, moves=[]
+            name="Weedle",
+            level=10,
+            types=[PokemonType.BUG, PokemonType.POISON],
+            max_hp=30,
+            current_hp=5,
+            attack=30,
+            defense=20,
+            speed=50,
+            special=20,
+            moves=[],
         )
         party = []  # type: ignore
         should_switch, reason, _ = self.strategist.should_switch(
@@ -622,7 +939,7 @@ class TestBattleStrategist:
             max_hp=100,
             current_hp=10,
             status=StatusCondition.ASLEEP,
-            ball_type="Poke Ball"
+            ball_type="Poke Ball",
         )
 
         assert catch.catch_rate > 0
@@ -648,18 +965,38 @@ class TestBattleStrategist:
     def test_setup_opportunity_assessment(self) -> None:
         """Should assess if setup is safe"""
         attacker = Pokemon(
-            name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
-            max_hp=120, current_hp=100, attack=120, defense=90,
-            speed=100, special=130, moves=[]
+            name="Charizard",
+            level=50,
+            types=[PokemonType.FIRE, PokemonType.FLYING],
+            max_hp=120,
+            current_hp=100,
+            attack=120,
+            defense=90,
+            speed=100,
+            special=130,
+            moves=[],
         )
         weak_opponent = Pokemon(
-            name="Caterpie", level=5, types=[PokemonType.BUG],
-            max_hp=20, current_hp=5, attack=15, defense=15,
-            speed=20, special=15, moves=[
-                Move(name="Tackle", move_type=PokemonType.NORMAL,
-                     power=30, accuracy=100, pp=35, max_pp=35,
-                     category=MoveCategory.PHYSICAL)
-            ]
+            name="Caterpie",
+            level=5,
+            types=[PokemonType.BUG],
+            max_hp=20,
+            current_hp=5,
+            attack=15,
+            defense=15,
+            speed=20,
+            special=15,
+            moves=[
+                Move(
+                    name="Tackle",
+                    move_type=PokemonType.NORMAL,
+                    power=30,
+                    accuracy=100,
+                    pp=35,
+                    max_pp=35,
+                    category=MoveCategory.PHYSICAL,
+                )
+            ],
         )
 
         is_safe, score, reasoning = self.strategist.assess_setup_opportunity(
@@ -672,22 +1009,47 @@ class TestBattleStrategist:
     def test_1_hp_risk_assessment(self) -> None:
         """Should assess risk when enemy is at 1 HP"""
         attacker = Pokemon(
-            name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
-            max_hp=120, current_hp=100, attack=120, defense=90,
-            speed=100, special=130,
+            name="Charizard",
+            level=50,
+            types=[PokemonType.FIRE, PokemonType.FLYING],
+            max_hp=120,
+            current_hp=100,
+            attack=120,
+            defense=90,
+            speed=100,
+            special=130,
             moves=[
-                Move(name="Flamethrower", move_type=PokemonType.FIRE,
-                     power=95, accuracy=100, pp=15, max_pp=15,
-                     category=MoveCategory.SPECIAL),
-                Move(name="Ember", move_type=PokemonType.FIRE,
-                     power=40, accuracy=100, pp=40, max_pp=40,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Flamethrower",
+                    move_type=PokemonType.FIRE,
+                    power=95,
+                    accuracy=100,
+                    pp=15,
+                    max_pp=15,
+                    category=MoveCategory.SPECIAL,
+                ),
+                Move(
+                    name="Ember",
+                    move_type=PokemonType.FIRE,
+                    power=40,
+                    accuracy=100,
+                    pp=40,
+                    max_pp=40,
+                    category=MoveCategory.SPECIAL,
+                ),
+            ],
         )
         defender = Pokemon(
-            name="Pidgey", level=20, types=[PokemonType.NORMAL, PokemonType.FLYING],
-            max_hp=50, current_hp=1, attack=40, defense=35,
-            speed=60, special=35, moves=[]
+            name="Pidgey",
+            level=20,
+            types=[PokemonType.NORMAL, PokemonType.FLYING],
+            max_hp=50,
+            current_hp=1,
+            attack=40,
+            defense=35,
+            speed=60,
+            special=35,
+            moves=[],
         )
 
         is_safe, reasoning = self.strategist.assess_1_hp_risk(
@@ -699,33 +1061,84 @@ class TestBattleStrategist:
     def test_switch_candidate_evaluation(self) -> None:
         """Should evaluate switch candidates properly"""
         current = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=50, attack=100, defense=80,
-            speed=120, special=100, moves=[]
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=50,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
+            moves=[],
         )
         opponent = Pokemon(
-            name="Gyarados", level=55, types=[PokemonType.WATER, PokemonType.FLYING],
-            max_hp=120, current_hp=100, attack=130, defense=100,
-            speed=85, special=100,
+            name="Gyarados",
+            level=55,
+            types=[PokemonType.WATER, PokemonType.FLYING],
+            max_hp=120,
+            current_hp=100,
+            attack=130,
+            defense=100,
+            speed=85,
+            special=100,
             moves=[
-                Move(name="Hydro Pump", move_type=PokemonType.WATER,
-                     power=110, accuracy=80, pp=10, max_pp=10,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Hydro Pump",
+                    move_type=PokemonType.WATER,
+                    power=110,
+                    accuracy=80,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.SPECIAL,
+                )
+            ],
         )
         party = [
-            Pokemon(name="Vulpix", level=52, types=[PokemonType.FIRE],
-                    max_hp=90, current_hp=100, attack=90, defense=80,
-                    speed=100, special=110,
-                    moves=[Move(name="Ember", move_type=PokemonType.FIRE,
-                                power=40, accuracy=100, pp=40, max_pp=40,
-                                category=MoveCategory.SPECIAL)]),
-            Pokemon(name="Bulbasaur", level=48, types=[PokemonType.GRASS, PokemonType.POISON],
-                    max_hp=100, current_hp=30, attack=80, defense=80,
-                    speed=70, special=80,
-                    moves=[Move(name="Vine Whip", move_type=PokemonType.GRASS,
-                                power=35, accuracy=100, pp=35, max_pp=35,
-                                category=MoveCategory.PHYSICAL)])
+            Pokemon(
+                name="Vulpix",
+                level=52,
+                types=[PokemonType.FIRE],
+                max_hp=90,
+                current_hp=100,
+                attack=90,
+                defense=80,
+                speed=100,
+                special=110,
+                moves=[
+                    Move(
+                        name="Ember",
+                        move_type=PokemonType.FIRE,
+                        power=40,
+                        accuracy=100,
+                        pp=40,
+                        max_pp=40,
+                        category=MoveCategory.SPECIAL,
+                    )
+                ],
+            ),
+            Pokemon(
+                name="Bulbasaur",
+                level=48,
+                types=[PokemonType.GRASS, PokemonType.POISON],
+                max_hp=100,
+                current_hp=30,
+                attack=80,
+                defense=80,
+                speed=70,
+                special=80,
+                moves=[
+                    Move(
+                        name="Vine Whip",
+                        move_type=PokemonType.GRASS,
+                        power=35,
+                        accuracy=100,
+                        pp=35,
+                        max_pp=35,
+                        category=MoveCategory.PHYSICAL,
+                    )
+                ],
+            ),
         ]
 
         candidates = self.strategist.evaluate_switch_candidates(
@@ -747,27 +1160,57 @@ class TestCombatManager:
     def test_get_combat_state(self) -> None:
         """Should return comprehensive combat state"""
         player = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=80, attack=100, defense=80,
-            speed=120, special=100,
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=80,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
             moves=[
-                Move(name="Thunder Shock", move_type=PokemonType.ELECTRIC,
-                     power=40, accuracy=100, pp=30, max_pp=30,
-                     category=MoveCategory.SPECIAL),
-                Move(name="Quick Attack", move_type=PokemonType.NORMAL,
-                     power=40, accuracy=100, pp=30, max_pp=30,
-                     category=MoveCategory.PHYSICAL)
-            ]
+                Move(
+                    name="Thunder Shock",
+                    move_type=PokemonType.ELECTRIC,
+                    power=40,
+                    accuracy=100,
+                    pp=30,
+                    max_pp=30,
+                    category=MoveCategory.SPECIAL,
+                ),
+                Move(
+                    name="Quick Attack",
+                    move_type=PokemonType.NORMAL,
+                    power=40,
+                    accuracy=100,
+                    pp=30,
+                    max_pp=30,
+                    category=MoveCategory.PHYSICAL,
+                ),
+            ],
         )
         enemy = Pokemon(
-            name="Squirtle", level=45, types=[PokemonType.WATER],
-            max_hp=100, current_hp=60, attack=80, defense=100,
-            speed=60, special=80,
+            name="Squirtle",
+            level=45,
+            types=[PokemonType.WATER],
+            max_hp=100,
+            current_hp=60,
+            attack=80,
+            defense=100,
+            speed=60,
+            special=80,
             moves=[
-                Move(name="Water Gun", move_type=PokemonType.WATER,
-                     power=40, accuracy=100, pp=25, max_pp=25,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Water Gun",
+                    move_type=PokemonType.WATER,
+                    power=40,
+                    accuracy=100,
+                    pp=25,
+                    max_pp=25,
+                    category=MoveCategory.SPECIAL,
+                )
+            ],
         )
 
         state = self.combat.get_combat_state(player, enemy, "wild")
@@ -785,7 +1228,7 @@ class TestCombatManager:
             max_hp=100,
             current_hp=20,
             status=StatusCondition.ASLEEP,
-            ball_type="Poke Ball"
+            ball_type="Poke Ball",
         )
 
         assert isinstance(odds, CatchAttempt)
@@ -794,27 +1237,57 @@ class TestCombatManager:
     def test_combat_state_switch_recommendation(self) -> None:
         """Should recommend switch when appropriate"""
         player = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=10, attack=100, defense=80,
-            speed=120, special=100,
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=10,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
             moves=[
-                Move(name="Thunder Shock", move_type=PokemonType.ELECTRIC,
-                     power=40, accuracy=100, pp=30, max_pp=30,
-                     category=MoveCategory.SPECIAL)
-            ]
+                Move(
+                    name="Thunder Shock",
+                    move_type=PokemonType.ELECTRIC,
+                    power=40,
+                    accuracy=100,
+                    pp=30,
+                    max_pp=30,
+                    category=MoveCategory.SPECIAL,
+                )
+            ],
         )
         enemy = Pokemon(
-            name="Gyarados", level=60, types=[PokemonType.WATER, PokemonType.FLYING],
-            max_hp=130, current_hp=100, attack=140, defense=110,
-            speed=90, special=110,
+            name="Gyarados",
+            level=60,
+            types=[PokemonType.WATER, PokemonType.FLYING],
+            max_hp=130,
+            current_hp=100,
+            attack=140,
+            defense=110,
+            speed=90,
+            special=110,
             moves=[
-                Move(name="Hydro Pump", move_type=PokemonType.WATER,
-                     power=110, accuracy=80, pp=10, max_pp=10,
-                     category=MoveCategory.SPECIAL),
-                Move(name="Earthquake", move_type=PokemonType.GROUND,
-                     power=100, accuracy=100, pp=10, max_pp=10,
-                     category=MoveCategory.PHYSICAL)
-            ]
+                Move(
+                    name="Hydro Pump",
+                    move_type=PokemonType.WATER,
+                    power=110,
+                    accuracy=80,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.SPECIAL,
+                ),
+                Move(
+                    name="Earthquake",
+                    move_type=PokemonType.GROUND,
+                    power=100,
+                    accuracy=100,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.PHYSICAL,
+                ),
+            ],
         )
 
         state = self.combat.get_combat_state(player, enemy, "wild")
@@ -853,7 +1326,7 @@ class TestMoveCategories:
             max_pp=15,
             category=MoveCategory.SPECIAL,
             priority=0,
-            is_high_crit=False
+            is_high_crit=False,
         )
 
         assert move.name == "Thunderbolt"
@@ -870,7 +1343,7 @@ class TestMoveCategories:
             accuracy=90,
             pp=20,
             max_pp=20,
-            category=MoveCategory.STATUS
+            category=MoveCategory.STATUS,
         )
 
         assert status_move.category == MoveCategory.STATUS
@@ -886,7 +1359,7 @@ class TestMoveCategories:
             pp=30,
             max_pp=30,
             category=MoveCategory.PHYSICAL,
-            priority=1
+            priority=1,
         )
 
         assert quick_attack.priority == 1
@@ -901,7 +1374,7 @@ class TestMoveCategories:
             pp=20,
             max_pp=20,
             category=MoveCategory.PHYSICAL,
-            is_high_crit=True
+            is_high_crit=True,
         )
 
         assert slash.is_high_crit
@@ -923,7 +1396,7 @@ class TestPokemonData:
             speed=120,
             special=100,
             moves=[],
-            status=StatusCondition.NONE
+            status=StatusCondition.NONE,
         )
 
         assert pikachu.name == "Pikachu"
@@ -935,21 +1408,35 @@ class TestPokemonData:
     def test_pokemon_with_moves(self) -> None:
         """Pokemon with moves should track them"""
         thunder_shock = Move(
-            name="Thunder Shock", move_type=PokemonType.ELECTRIC,
-            power=40, accuracy=100, pp=30, max_pp=30,
-            category=MoveCategory.SPECIAL
+            name="Thunder Shock",
+            move_type=PokemonType.ELECTRIC,
+            power=40,
+            accuracy=100,
+            pp=30,
+            max_pp=30,
+            category=MoveCategory.SPECIAL,
         )
         quick_attack = Move(
-            name="Quick Attack", move_type=PokemonType.NORMAL,
-            power=40, accuracy=100, pp=30, max_pp=30,
-            category=MoveCategory.PHYSICAL
+            name="Quick Attack",
+            move_type=PokemonType.NORMAL,
+            power=40,
+            accuracy=100,
+            pp=30,
+            max_pp=30,
+            category=MoveCategory.PHYSICAL,
         )
 
         pikachu = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=120, special=100,
-            moves=[thunder_shock, quick_attack]
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
+            moves=[thunder_shock, quick_attack],
         )
 
         assert len(pikachu.moves) == 2
@@ -958,10 +1445,17 @@ class TestPokemonData:
     def test_pokemon_with_status(self) -> None:
         """Pokemon should track status conditions"""
         paralyzed_pikachu = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=120, special=100, moves=[],
-            status=StatusCondition.PARALYZED
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
+            moves=[],
+            status=StatusCondition.PARALYZED,
         )
 
         assert paralyzed_pikachu.status == StatusCondition.PARALYZED
@@ -969,10 +1463,18 @@ class TestPokemonData:
     def test_pokemon_stat_stages(self) -> None:
         """Pokemon should track stat stages"""
         boosted_pokemon = Pokemon(
-            name="Charizard", level=50, types=[PokemonType.FIRE, PokemonType.FLYING],
-            max_hp=120, current_hp=100, attack=120, defense=90,
-            speed=100, special=130, moves=[],
-            attack_stage=2, special_stage=1
+            name="Charizard",
+            level=50,
+            types=[PokemonType.FIRE, PokemonType.FLYING],
+            max_hp=120,
+            current_hp=100,
+            attack=120,
+            defense=90,
+            speed=100,
+            special=130,
+            moves=[],
+            attack_stage=2,
+            special_stage=1,
         )
 
         assert boosted_pokemon.attack_stage == 2
@@ -985,9 +1487,16 @@ class TestStatusConditions:
     def test_status_none(self) -> None:
         """Default status should be NONE"""
         pokemon = Pokemon(
-            name="Pikachu", level=50, types=[PokemonType.ELECTRIC],
-            max_hp=100, current_hp=100, attack=100, defense=80,
-            speed=120, special=100, moves=[]
+            name="Pikachu",
+            level=50,
+            types=[PokemonType.ELECTRIC],
+            max_hp=100,
+            current_hp=100,
+            attack=100,
+            defense=80,
+            speed=120,
+            special=100,
+            moves=[],
         )
 
         assert pokemon.status == StatusCondition.NONE
@@ -995,11 +1504,16 @@ class TestStatusConditions:
     def test_all_statuses_defined(self) -> None:
         """All status conditions should be defined"""
         expected_statuses = [
-            StatusCondition.NONE, StatusCondition.POISONED,
-            StatusCondition.BADLY_POISONED, StatusCondition.BURNED,
-            StatusCondition.PARALYZED, StatusCondition.ASLEEP,
-            StatusCondition.FROZEN, StatusCondition.CONFUSED,
-            StatusCondition.FLINCHED, StatusCondition.LEECH_SEEDED
+            StatusCondition.NONE,
+            StatusCondition.POISONED,
+            StatusCondition.BADLY_POISONED,
+            StatusCondition.BURNED,
+            StatusCondition.PARALYZED,
+            StatusCondition.ASLEEP,
+            StatusCondition.FROZEN,
+            StatusCondition.CONFUSED,
+            StatusCondition.FLINCHED,
+            StatusCondition.LEECH_SEEDED,
         ]
 
         for status in expected_statuses:

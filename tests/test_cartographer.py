@@ -14,6 +14,7 @@ import pytest
 
 # ── _extract_spatial_json tests (pure function, no mocking needed) ──────
 
+
 class TestExtractSpatialJson:
     """Test _extract_spatial_json — pure function, no external deps."""
 
@@ -21,14 +22,21 @@ class TestExtractSpatialJson:
         """Whole-string JSON parse — the happy path."""
         from cron_runner import _extract_spatial_json
 
-        text = json.dumps({
-            "result": "overworld",
-            "adjacent": {"up": "wall", "down": "floor", "left": "wall", "right": "door"},
-            "visible_exits": ["down"],
-            "player_facing": "down",
-            "text_content": ["OAK: Hello there!"],
-            "suggested_action": "move down",
-        })
+        text = json.dumps(
+            {
+                "result": "overworld",
+                "adjacent": {
+                    "up": "wall",
+                    "down": "floor",
+                    "left": "wall",
+                    "right": "door",
+                },
+                "visible_exits": ["down"],
+                "player_facing": "down",
+                "text_content": ["OAK: Hello there!"],
+                "suggested_action": "move down",
+            }
+        )
         result = _extract_spatial_json(text)
         assert result["result"] == "overworld"
         assert result["adjacent"]["up"] == "wall"
@@ -65,7 +73,7 @@ class TestExtractSpatialJson:
         """```yaml fence — trailing fence detection includes '```yaml'."""
         from cron_runner import _extract_spatial_json
 
-        text = '```yaml\nresult: menu\nadjacent:\n  up: wall\n```yaml'
+        text = "```yaml\nresult: menu\nadjacent:\n  up: wall\n```yaml"
         result = _extract_spatial_json(text)
         # YAML fallback should parse this
         assert result["result"] == "menu"
@@ -210,7 +218,12 @@ suggested_action: move forward"""
 
         data = {
             "result": "overworld",
-            "adjacent": {"up": "wall", "down": "floor", "left": "door", "right": "wall"},
+            "adjacent": {
+                "up": "wall",
+                "down": "floor",
+                "left": "door",
+                "right": "wall",
+            },
         }
         text = json.dumps(data)
         result = _extract_spatial_json(text)
@@ -246,6 +259,7 @@ suggested_action: move forward"""
 
 # ── cartographer_analyze tests (mocked OpenRouterClient) ────────────────
 
+
 class TestCartographerAnalyze:
     """Test cartographer_analyze with mocked OpenRouterClient."""
 
@@ -254,14 +268,21 @@ class TestCartographerAnalyze:
         return np.zeros((160, 144, 3), dtype=np.uint8)
 
     def _valid_spatial_json(self) -> str:
-        return json.dumps({
-            "result": "overworld",
-            "adjacent": {"up": "wall", "down": "floor", "left": "wall", "right": "door"},
-            "visible_exits": ["down", "right"],
-            "player_facing": "down",
-            "text_content": ["PALLET TOWN"],
-            "suggested_action": "move down",
-        })
+        return json.dumps(
+            {
+                "result": "overworld",
+                "adjacent": {
+                    "up": "wall",
+                    "down": "floor",
+                    "left": "wall",
+                    "right": "door",
+                },
+                "visible_exits": ["down", "right"],
+                "player_facing": "down",
+                "text_content": ["PALLET TOWN"],
+                "suggested_action": "move down",
+            }
+        )
 
     def test_happy_path_returns_parsed_json_and_raw_text(self):
         """cartographer_analyze returns (parsed_dict, raw_text) on success."""
@@ -307,7 +328,11 @@ class TestCartographerAnalyze:
         # Second content item should be the reference image (first image)
         ref_img = user_content[1]
         assert ref_img["type"] == "image_url"
-        assert "reference" in ref_img["image_url"]["url"] or "REFERENCE" in ref_img["image_url"]["url"] or "data:image/png;base64," in ref_img["image_url"]["url"]
+        assert (
+            "reference" in ref_img["image_url"]["url"]
+            or "REFERENCE" in ref_img["image_url"]["url"]
+            or "data:image/png;base64," in ref_img["image_url"]["url"]
+        )
 
         # Third content item should be the live screenshot (second image)
         live_img = user_content[2]
@@ -433,15 +458,17 @@ class TestCartographerAnalyze:
         """All 4 adjacent directions parsed from spatial JSON."""
         from cron_runner import cartographer_analyze
 
-        spatial = json.dumps({
-            "result": "overworld",
-            "adjacent": {
-                "up": "wall",
-                "down": "floor",
-                "left": "ledge",
-                "right": "grass",
-            },
-        })
+        spatial = json.dumps(
+            {
+                "result": "overworld",
+                "adjacent": {
+                    "up": "wall",
+                    "down": "floor",
+                    "left": "ledge",
+                    "right": "grass",
+                },
+            }
+        )
         mock_client = MagicMock()
         mock_client.chat_completion.return_value = {"content": spatial}
 
@@ -498,10 +525,12 @@ class TestCartographerAnalyze:
 
         mock_client = MagicMock()
         mock_client.chat_completion.return_value = {
-            "content": json.dumps({
-                "result": "menu",
-                "items": ["POKéDEX", "POKéMON", "ITEM", "SAVE", "OPTION", "EXIT"],
-            })
+            "content": json.dumps(
+                {
+                    "result": "menu",
+                    "items": ["POKéDEX", "POKéMON", "ITEM", "SAVE", "OPTION", "EXIT"],
+                }
+            )
         }
 
         screenshot = self._make_screenshot()
@@ -563,6 +592,7 @@ class TestCartographerAnalyze:
 
 # ── Integration: screenshot_to_base64 + cartographer_analyze ─────────
 
+
 class TestScreenshotToBase64:
     """Test screenshot_to_base64 helper."""
 
@@ -578,6 +608,7 @@ class TestScreenshotToBase64:
         assert len(b64) > 0
         # Should be base64 (alphanumeric + +/=)
         import base64
+
         base64.b64decode(b64)  # should not raise
 
     def test_scales_3x_with_nearest_neighbor(self):
@@ -590,5 +621,6 @@ class TestScreenshotToBase64:
         b64 = screenshot_to_base64(screenshot)
         # Verify it's valid base64
         import base64
+
         decoded = base64.b64decode(b64)
         assert len(decoded) > 100  # 3x scaled image should be larger

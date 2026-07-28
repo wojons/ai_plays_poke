@@ -33,7 +33,11 @@ class CircuitBreaker:
             if self.state == "closed":
                 return True
             if self.state == "open":
-                if self.last_failure and (datetime.now() - self.last_failure).total_seconds() > self.recovery_time:
+                if (
+                    self.last_failure
+                    and (datetime.now() - self.last_failure).total_seconds()
+                    > self.recovery_time
+                ):
                     self.state = "half-open"
                     return True
             return False

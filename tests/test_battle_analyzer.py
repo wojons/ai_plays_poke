@@ -4,6 +4,7 @@ Unit tests for src/vision/battle.py — BattleAnalyzer and dataclasses.
 Coverage target: 25% → 70%+ (pure functions + numpy-based + dataclasses).
 Untestable without ROM: analyze_battle (full pipeline), _extract_pokemon_info (needs SpriteRecognizer).
 """
+
 import numpy as np
 import pytest
 
@@ -17,6 +18,7 @@ from src.vision.battle import (
 
 
 # ── Dataclass Tests ──────────────────────────────────────────────
+
 
 class TestBattleType:
     def test_wild(self):
@@ -90,7 +92,14 @@ class TestPokemonInfo:
         assert info.is_shiny is True
 
     def test_defaults_are_none_or_false(self):
-        info = PokemonInfo(name="", sprite_match=None, hp_result=None, types=[], level=None, is_shiny=False)
+        info = PokemonInfo(
+            name="",
+            sprite_match=None,
+            hp_result=None,
+            types=[],
+            level=None,
+            is_shiny=False,
+        )
         assert info.level is None
         assert not info.is_shiny
 
@@ -113,10 +122,20 @@ class TestBattleState:
 
     def test_construct_trainer_battle(self):
         enemy = PokemonInfo(
-            name="Pidgey", sprite_match=None, hp_result=None, types=["Normal", "Flying"], level=3, is_shiny=False
+            name="Pidgey",
+            sprite_match=None,
+            hp_result=None,
+            types=["Normal", "Flying"],
+            level=3,
+            is_shiny=False,
         )
         player = PokemonInfo(
-            name="Charmander", sprite_match=None, hp_result=None, types=["Fire"], level=5, is_shiny=False
+            name="Charmander",
+            sprite_match=None,
+            hp_result=None,
+            types=["Fire"],
+            level=5,
+            is_shiny=False,
         )
         state = BattleState(
             battle_type=BattleType.TRAINER,
@@ -151,6 +170,7 @@ class TestBattleState:
 
 # ── BattleAnalyzer Pure Function Tests ───────────────────────────
 
+
 @pytest.fixture
 def analyzer():
     """Fresh BattleAnalyzer with just the type chart (no ROM deps)."""
@@ -160,9 +180,24 @@ def analyzer():
 class TestBuildTypeChart:
     def test_has_all_18_types(self, analyzer):
         expected = {
-            "Normal", "Fire", "Water", "Electric", "Grass", "Ice",
-            "Fighting", "Poison", "Ground", "Flying", "Psychic",
-            "Bug", "Rock", "Ghost", "Dragon", "Dark", "Steel", "Fairy",
+            "Normal",
+            "Fire",
+            "Water",
+            "Electric",
+            "Grass",
+            "Ice",
+            "Fighting",
+            "Poison",
+            "Ground",
+            "Flying",
+            "Psychic",
+            "Bug",
+            "Rock",
+            "Ghost",
+            "Dragon",
+            "Dark",
+            "Steel",
+            "Fairy",
         }
         assert set(analyzer.type_chart.keys()) == expected
 
@@ -259,7 +294,9 @@ class TestCalculateDamage:
     def test_critical_increases_damage(self, analyzer):
         # Critical removes the random factor and multiplies by 1.5
         # Not deterministic due to random, but we can test it's > 0
-        dmg_crit = analyzer.calculate_damage(50, 80, "Normal", ["Normal"], is_critical=True)
+        dmg_crit = analyzer.calculate_damage(
+            50, 80, "Normal", ["Normal"], is_critical=True
+        )
         assert dmg_crit > 0
 
     def test_super_effective_increases_damage(self, analyzer):
@@ -354,6 +391,7 @@ class TestGetSuperEffectiveMoves:
 
 
 # ── Screenshot-based Function Tests (no ROM needed) ──────────────
+
 
 class TestExtractHPBarRegions:
     def test_gba_dimensions(self, analyzer):

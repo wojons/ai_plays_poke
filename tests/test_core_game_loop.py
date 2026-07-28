@@ -28,14 +28,17 @@ from src.core.game_loop import GameLoop
 # Pure functions — no mocking needed
 # ---------------------------------------------------------------------------
 
+
 class TestDetectHPBars:
     """Tests for _detect_hp_bars — color-based HP bar detection."""
 
     @pytest.fixture
     def gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             return gl
 
@@ -89,9 +92,11 @@ class TestDetectText:
 
     @pytest.fixture
     def gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             return gl
 
@@ -129,9 +134,11 @@ class TestDetectMenuPattern:
 
     @pytest.fixture
     def gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             return gl
 
@@ -167,9 +174,11 @@ class TestAnalyzeScreenshot:
 
     @pytest.fixture
     def gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             return gl
 
@@ -222,9 +231,11 @@ class TestSimpleAIHeuristics:
 
     @pytest.fixture
     def gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             return gl
 
@@ -258,51 +269,68 @@ class TestSimpleAIHeuristics:
 # Constructor and lifecycle — with mocked dependencies
 # ---------------------------------------------------------------------------
 
+
 class TestGameLoopInit:
     """Tests for GameLoop.__init__ with mocked dependencies."""
 
     def test_constructor_stores_rom_path(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp/saves"))
             assert gl.rom_path == Path("/fake/rom.gb")
 
     def test_constructor_creates_emulator(self):
-        with patch("src.core.game_loop.Emulator") as mock_emu, \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator") as mock_emu,
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             mock_emu.assert_called_once_with(str(Path("/fake/rom.gb")))
 
     def test_constructor_creates_database(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase") as mock_db, \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase") as mock_db,
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp/saves"))
             mock_db.assert_called_once()
 
     def test_default_interval_values(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             assert gl.screenshot_interval == 1.0
             assert gl.ai_response_delay == 0.5
 
     def test_custom_interval_values(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
-            gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"),
-                          screenshot_interval=2.5, ai_response_delay=0.1)
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
+            gl = GameLoop(
+                rom_path=Path("/fake/rom.gb"),
+                save_dir=Path("/tmp"),
+                screenshot_interval=2.5,
+                ai_response_delay=0.1,
+            )
             assert gl.screenshot_interval == 2.5
             assert gl.ai_response_delay == 0.1
 
     def test_initial_state_values(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             assert gl.current_tick == 0
             assert gl.last_screenshot_time == 0
@@ -312,9 +340,11 @@ class TestGameLoopInit:
             assert gl.command_history == []
 
     def test_metrics_initialized(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             assert gl.metrics["total_ticks"] == 0
             assert gl.metrics["screenshots_taken"] == 0
@@ -327,9 +357,11 @@ class TestGameLoopLifecycle:
     """Tests for start() and stop() with mocked dependencies."""
 
     def _make_gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             gl.emulator = MagicMock()
             gl.db = MagicMock()
@@ -391,9 +423,11 @@ class TestRunSingleTick:
     """Tests for run_single_tick() with mocked dependencies."""
 
     def _make_gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             gl.emulator = MagicMock()
             gl.db = MagicMock()
@@ -452,9 +486,11 @@ class TestExecutePendingCommands:
     """Tests for _execute_pending_commands() with mocked emulator + DB."""
 
     def _make_gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             gl.emulator = MagicMock()
             gl.db = MagicMock()
@@ -468,61 +504,81 @@ class TestExecutePendingCommands:
 
     def test_press_a_executes(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "press:A", "reasoning": "test", "confidence": 0.9}]
+        gl.pending_commands = [
+            {"command": "press:A", "reasoning": "test", "confidence": 0.9}
+        ]
         gl._execute_pending_commands()
         gl.emulator.press_button.assert_called_once()
 
     def test_press_down_executes(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "press:DOWN", "reasoning": "menu", "confidence": 0.5}]
+        gl.pending_commands = [
+            {"command": "press:DOWN", "reasoning": "menu", "confidence": 0.5}
+        ]
         gl._execute_pending_commands()
         gl.emulator.press_button.assert_called_once()
 
     def test_unknown_button_logs_error(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "press:NOTABUTTON", "reasoning": "test", "confidence": 0.5}]
+        gl.pending_commands = [
+            {"command": "press:NOTABUTTON", "reasoning": "test", "confidence": 0.5}
+        ]
         gl._execute_pending_commands()
         gl.emulator.press_button.assert_not_called()
 
     def test_press_start_executes(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "press:START", "reasoning": "menu", "confidence": 0.5}]
+        gl.pending_commands = [
+            {"command": "press:START", "reasoning": "menu", "confidence": 0.5}
+        ]
         gl._execute_pending_commands()
         gl.emulator.press_button.assert_called_once()
 
     def test_press_select_executes(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "press:SELECT", "reasoning": "test", "confidence": 0.5}]
+        gl.pending_commands = [
+            {"command": "press:SELECT", "reasoning": "test", "confidence": 0.5}
+        ]
         gl._execute_pending_commands()
         gl.emulator.press_button.assert_called_once()
 
     def test_command_without_colon_handled(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "pressA", "reasoning": "bad format", "confidence": 0.5}]
+        gl.pending_commands = [
+            {"command": "pressA", "reasoning": "bad format", "confidence": 0.5}
+        ]
         gl._execute_pending_commands()  # should not crash
 
     def test_sequence_command_does_not_execute_button(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "sequence:UP,DOWN", "reasoning": "seq", "confidence": 0.5}]
+        gl.pending_commands = [
+            {"command": "sequence:UP,DOWN", "reasoning": "seq", "confidence": 0.5}
+        ]
         gl._execute_pending_commands()
         gl.emulator.press_button.assert_not_called()
 
     def test_batch_command_does_not_execute_button(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "batch:something", "reasoning": "batch", "confidence": 0.5}]
+        gl.pending_commands = [
+            {"command": "batch:something", "reasoning": "batch", "confidence": 0.5}
+        ]
         gl._execute_pending_commands()
         gl.emulator.press_button.assert_not_called()
 
     def test_command_appended_to_history(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "press:A", "reasoning": "hist", "confidence": 0.8}]
+        gl.pending_commands = [
+            {"command": "press:A", "reasoning": "hist", "confidence": 0.8}
+        ]
         gl._execute_pending_commands()
         assert len(gl.command_history) == 1
         assert gl.command_history[0]["success"] is True
 
     def test_metrics_commands_sent_incremented(self):
         gl = self._make_gl()
-        gl.pending_commands = [{"command": "press:A", "reasoning": "m", "confidence": 0.8}]
+        gl.pending_commands = [
+            {"command": "press:A", "reasoning": "m", "confidence": 0.8}
+        ]
         gl._execute_pending_commands()
         assert gl.metrics["commands_sent"] == 1
 
@@ -531,9 +587,11 @@ class TestGetAIDecision:
     """Tests for _get_ai_decision() async routing — using asyncio.run()."""
 
     def _make_gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             gl.db = MagicMock()
             gl.current_tick = 42
@@ -541,33 +599,48 @@ class TestGetAIDecision:
 
     def test_battle_state_routes_to_battle_ai(self):
         gl = self._make_gl()
-        result = asyncio.run(gl._get_ai_decision(
-            {"is_battle": True, "is_menu": False, "requires_ai_decision": True}))
+        result = asyncio.run(
+            gl._get_ai_decision(
+                {"is_battle": True, "is_menu": False, "requires_ai_decision": True}
+            )
+        )
         assert result["action"] == "press:A"
         assert gl.pending_commands[0]["command"] == "press:A"
 
     def test_menu_state_routes_to_menu_ai(self):
         gl = self._make_gl()
-        result = asyncio.run(gl._get_ai_decision(
-            {"is_battle": False, "is_menu": True, "requires_ai_decision": True}))
+        result = asyncio.run(
+            gl._get_ai_decision(
+                {"is_battle": False, "is_menu": True, "requires_ai_decision": True}
+            )
+        )
         assert result["action"] == "press:DOWN"
 
     def test_default_routes_to_exploration_ai(self):
         gl = self._make_gl()
-        result = asyncio.run(gl._get_ai_decision(
-            {"is_battle": False, "is_menu": False, "requires_ai_decision": True}))
+        result = asyncio.run(
+            gl._get_ai_decision(
+                {"is_battle": False, "is_menu": False, "requires_ai_decision": True}
+            )
+        )
         assert result["action"] == "press:UP"
 
     def test_battle_takes_priority_over_menu(self):
         gl = self._make_gl()
-        result = asyncio.run(gl._get_ai_decision(
-            {"is_battle": True, "is_menu": True, "requires_ai_decision": True}))
+        result = asyncio.run(
+            gl._get_ai_decision(
+                {"is_battle": True, "is_menu": True, "requires_ai_decision": True}
+            )
+        )
         assert result["action"] == "press:A"
 
     def test_pending_commands_populated(self):
         gl = self._make_gl()
-        asyncio.run(gl._get_ai_decision(
-            {"is_battle": False, "is_menu": False, "requires_ai_decision": True}))
+        asyncio.run(
+            gl._get_ai_decision(
+                {"is_battle": False, "is_menu": False, "requires_ai_decision": True}
+            )
+        )
         assert len(gl.pending_commands) == 1
         assert gl.pending_commands[0]["tick"] == 42
 
@@ -576,9 +649,11 @@ class TestDetectBattleTransition:
     """Tests for _detect_battle_transition() with mocked deps."""
 
     def _make_gl(self):
-        with patch("src.core.game_loop.Emulator"), \
-             patch("src.core.game_loop.GameDatabase"), \
-             patch("src.core.game_loop.ScreenshotManager"):
+        with (
+            patch("src.core.game_loop.Emulator"),
+            patch("src.core.game_loop.GameDatabase"),
+            patch("src.core.game_loop.ScreenshotManager"),
+        ):
             gl = GameLoop(rom_path=Path("/fake/rom.gb"), save_dir=Path("/tmp"))
             gl.emulator = MagicMock()
             gl.db = MagicMock()
@@ -593,7 +668,9 @@ class TestDetectBattleTransition:
     def test_checks_at_tick_60(self):
         gl = self._make_gl()
         gl.current_tick = 60
-        gl.emulator.capture_screen.return_value = np.zeros((240, 160, 3), dtype=np.uint8)
+        gl.emulator.capture_screen.return_value = np.zeros(
+            (240, 160, 3), dtype=np.uint8
+        )
         gl._detect_battle_transition()
         gl.emulator.capture_screen.assert_called_once()
 
@@ -604,7 +681,7 @@ class TestDetectBattleTransition:
         screen[5:15, 5:45] = [255, 0, 0]
         gl.emulator.capture_screen.return_value = screen
         gl._detect_battle_transition()
-        assert hasattr(gl, '_was_battling')
+        assert hasattr(gl, "_was_battling")
         assert gl._was_battling is True
         gl.db.log_battle_start.assert_called_once()
 
@@ -612,22 +689,27 @@ class TestDetectBattleTransition:
         gl = self._make_gl()
         gl.current_tick = 180
         gl._was_battling = True
-        gl.emulator.capture_screen.return_value = np.zeros((240, 160, 3), dtype=np.uint8)
+        gl.emulator.capture_screen.return_value = np.zeros(
+            (240, 160, 3), dtype=np.uint8
+        )
         gl._detect_battle_transition()
-        assert not hasattr(gl, '_was_battling')
+        assert not hasattr(gl, "_was_battling")
 
 
 # ---------------------------------------------------------------------------
 # Integration
 # ---------------------------------------------------------------------------
 
+
 class TestGameLoopIntegration:
     """End-to-end tests with all deps mocked."""
 
     def test_full_lifecycle(self):
-        with patch("src.core.game_loop.Emulator") as mock_emu_cls, \
-             patch("src.core.game_loop.GameDatabase") as mock_db_cls, \
-             patch("src.core.game_loop.ScreenshotManager") as mock_ss_cls:
+        with (
+            patch("src.core.game_loop.Emulator") as mock_emu_cls,
+            patch("src.core.game_loop.GameDatabase") as mock_db_cls,
+            patch("src.core.game_loop.ScreenshotManager") as mock_ss_cls,
+        ):
             mock_emu = MagicMock()
             mock_db = MagicMock()
             mock_ss = MagicMock()

@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class TileType(Enum):
     """Tile classification types for navigation"""
+
     PASSABLE = auto()
     BLOCKING = auto()
     LEDGE = auto()
@@ -44,6 +45,7 @@ class TileType(Enum):
 
 class HMMove(Enum):
     """Hidden Machine moves that affect navigation"""
+
     CUT = "HM01"
     FLY = "HM02"
     SURF = "HM03"
@@ -55,6 +57,7 @@ class HMMove(Enum):
 
 class LocationType(Enum):
     """Types of points of interest"""
+
     POKEMON_CENTER = auto()
     POKEMART = auto()
     GYM = auto()
@@ -68,6 +71,7 @@ class LocationType(Enum):
 @dataclass
 class Position:
     """2D position representation"""
+
     x: int
     y: int
     map_id: str = ""
@@ -95,6 +99,7 @@ class Position:
 @dataclass
 class GraphNode:
     """Node in the navigation graph"""
+
     position: Position
     tile_type: TileType
     hm_requirement: Optional[HMMove] = None
@@ -109,6 +114,7 @@ class GraphNode:
 @dataclass
 class GraphEdge:
     """Edge between graph nodes"""
+
     from_node: Position
     to_node: Position
     cost: float = 1.0
@@ -121,6 +127,7 @@ class GraphEdge:
 @dataclass
 class PathResult:
     """Result of a pathfinding operation"""
+
     success: bool
     path: List[Position] = field(default_factory=list)
     total_cost: float = 0.0
@@ -133,6 +140,7 @@ class PathResult:
 @dataclass
 class RouteSegment:
     """Segment of a multi-target route"""
+
     from_pos: Position
     to_pos: Position
     path: List[Position]
@@ -143,6 +151,7 @@ class RouteSegment:
 @dataclass
 class PointOfInterest:
     """Point of interest in the game world"""
+
     name: str
     position: Position
     location_type: LocationType
@@ -153,6 +162,7 @@ class PointOfInterest:
 @dataclass
 class PathfindingContext:
     """Context for pathfinding decisions"""
+
     avoid_encounters: bool = False
     avoid_trainers: bool = False
     prefer_shortest: bool = True
@@ -199,9 +209,7 @@ class WorldGraph:
         self.map_dimensions[map_id] = (width, height)
 
     def get_neighbors(
-        self,
-        position: Position,
-        context: PathfindingContext
+        self, position: Position, context: PathfindingContext
     ) -> List[GraphEdge]:
         """Get all accessible neighboring positions"""
         neighbors = self.edges.get(position, [])
@@ -240,11 +248,7 @@ class WorldGraph:
 
         return valid_neighbors
 
-    def is_accessible(
-        self,
-        position: Position,
-        context: PathfindingContext
-    ) -> bool:
+    def is_accessible(self, position: Position, context: PathfindingContext) -> bool:
         """Check if a position is accessible"""
         node = self.nodes.get(position)
         if node is None:
@@ -268,7 +272,7 @@ class WorldGraph:
                 position=poi.position,
                 tile_type=TileType.PASSABLE,
                 is_poi=True,
-                location_type=poi.location_type
+                location_type=poi.location_type,
             )
             self.nodes[poi.position] = node
 
@@ -292,10 +296,7 @@ class AStarPathfinder:
         self._cache: Dict[Tuple[Position, Position], PathResult] = {}
 
     def find_path(
-        self,
-        start: Position,
-        goal: Position,
-        context: PathfindingContext
+        self, start: Position, goal: Position, context: PathfindingContext
     ) -> PathResult:
         cache_key = (start, goal)
         if cache_key in self._cache:
@@ -307,11 +308,7 @@ class AStarPathfinder:
         self._cache[cache_key] = result
         return result
 
-    def _is_cache_valid(
-        self,
-        cached: PathResult,
-        context: PathfindingContext
-    ) -> bool:
+    def _is_cache_valid(self, cached: PathResult, context: PathfindingContext) -> bool:
         if not cached.success:
             return False
         if context.avoid_encounters and cached.encounters_expected > 0:
@@ -319,17 +316,12 @@ class AStarPathfinder:
         return True
 
     def _astar_search(
-        self,
-        start: Position,
-        goal: Position,
-        context: PathfindingContext
+        self, start: Position, goal: Position, context: PathfindingContext
     ) -> PathResult:
         open_set: List[Tuple[float, Position]] = []
         came_from: Dict[Position, Position] = {}
         g_score: Dict[Position, float] = {start: 0.0}
-        f_score: Dict[Position, float] = {
-            start: start.manhattan_heuristic(goal)
-        }
+        f_score: Dict[Position, float] = {start: start.manhattan_heuristic(goal)}
 
         heappush(open_set, (f_score[start], start))
 
@@ -347,8 +339,14 @@ class AStarPathfinder:
 
             if current == goal:
                 return self._reconstruct_path(
-                    start, goal, came_from, g_score,
-                    hm_requirements, warnings, total_encounters, total_danger
+                    start,
+                    goal,
+                    came_from,
+                    g_score,
+                    hm_requirements,
+                    warnings,
+                    total_encounters,
+                    total_danger,
                 )
 
             closed_set.add(current)
@@ -384,8 +382,7 @@ class AStarPathfinder:
                     heappush(open_set, (f_score[neighbor], neighbor))
 
         return PathResult(
-            success=False,
-            warnings=["No path found from {start} to {goal}"]
+            success=False, warnings=["No path found from {start} to {goal}"]
         )
 
     def _calculate_movement_cost(
@@ -394,7 +391,7 @@ class AStarPathfinder:
         neighbor: Position,
         edge: GraphEdge,
         context: PathfindingContext,
-        node: Optional[GraphNode]
+        node: Optional[GraphNode],
     ) -> float:
         base_cost = edge.cost
 
@@ -413,7 +410,7 @@ class AStarPathfinder:
             if context.has_flash:
                 base_cost *= 1.1
             else:
-                return float('inf')
+                return float("inf")
 
         if node.tile_type == TileType.LEDGE:
             if edge.direction == "down":
@@ -424,7 +421,7 @@ class AStarPathfinder:
         if node.danger_level > 0:
             hp_ratio = context.current_party_hp / context.max_party_hp
             if hp_ratio < 0.3:
-                base_cost *= (1 + node.danger_level * 0.5)
+                base_cost *= 1 + node.danger_level * 0.5
 
         return base_cost
 
@@ -437,7 +434,7 @@ class AStarPathfinder:
         hm_requirements: Set[HMMove],
         warnings: List[str],
         encounters: int,
-        danger: int
+        danger: int,
     ) -> PathResult:
         path: List[Position] = [goal]
         current = goal
@@ -462,14 +459,11 @@ class AStarPathfinder:
             hm_requirements=list(hm_requirements),
             warnings=warnings,
             encounters_expected=encounters,
-            danger_exposure=danger
+            danger_exposure=danger,
         )
 
     def find_path_with_warps(
-        self,
-        start: Position,
-        goal: Position,
-        context: PathfindingContext
+        self, start: Position, goal: Position, context: PathfindingContext
     ) -> PathResult:
         if start.map_id == goal.map_id:
             return self.find_path(start, goal, context)
@@ -480,10 +474,7 @@ class AStarPathfinder:
 
         warp_path = self._find_warp_sequence(start.map_id, goal.map_id, context)
         if not warp_path:
-            return PathResult(
-                success=False,
-                warnings=["No multi-map path found"]
-            )
+            return PathResult(success=False, warnings=["No multi-map path found"])
 
         full_path: List[Position] = []
         total_cost = 0.0
@@ -497,8 +488,7 @@ class AStarPathfinder:
 
             if not segment.success:
                 return PathResult(
-                    success=False,
-                    warnings=[f"Cannot reach {to_pos} from {from_pos}"]
+                    success=False, warnings=[f"Cannot reach {to_pos} from {from_pos}"]
                 )
 
             if i == 0:
@@ -516,14 +506,11 @@ class AStarPathfinder:
             path=full_path,
             total_cost=total_cost,
             hm_requirements=list(all_hm),
-            warnings=["Multi-map path using warps"]
+            warnings=["Multi-map path using warps"],
         )
 
     def _find_warp_sequence(
-        self,
-        start_map: str,
-        goal_map: str,
-        context: PathfindingContext
+        self, start_map: str, goal_map: str, context: PathfindingContext
     ) -> List[Position]:
         if start_map == goal_map:
             return []
@@ -564,7 +551,7 @@ class RouteOptimizer:
         self,
         start: Position,
         objectives: List[PointOfInterest],
-        context: PathfindingContext
+        context: PathfindingContext,
     ) -> Tuple[List[RouteSegment], float]:
         if not objectives:
             return [], 0.0
@@ -584,7 +571,7 @@ class RouteOptimizer:
         while objectives_sorted:
             nearest = None
             nearest_idx = 0
-            nearest_cost = float('inf')
+            nearest_cost = float("inf")
             nearest_path: List[Position] = []
             nearest_result: Optional[PathResult] = None
 
@@ -610,13 +597,15 @@ class RouteOptimizer:
             if nearest_result and nearest_result.hm_requirements:
                 hm_needed = nearest_result.hm_requirements[0]
 
-            route_segments.append(RouteSegment(
-                from_pos=current_pos,
-                to_pos=nearest.position,
-                path=nearest_path,
-                estimated_cost=nearest_cost,
-                hm_needed=hm_needed
-            ))
+            route_segments.append(
+                RouteSegment(
+                    from_pos=current_pos,
+                    to_pos=nearest.position,
+                    path=nearest_path,
+                    estimated_cost=nearest_cost,
+                    hm_needed=hm_needed,
+                )
+            )
 
             total_cost += nearest_cost
             current_pos = nearest.position
@@ -626,9 +615,7 @@ class RouteOptimizer:
         return route_segments, total_cost
 
     def cluster_objectives(
-        self,
-        objectives: List[PointOfInterest],
-        cluster_radius: int = 50
+        self, objectives: List[PointOfInterest], cluster_radius: int = 50
     ) -> List[List[PointOfInterest]]:
         if not objectives:
             return []
@@ -653,9 +640,7 @@ class RouteOptimizer:
         return clusters
 
     def calculate_route_safety(
-        self,
-        route: List[RouteSegment],
-        context: PathfindingContext
+        self, route: List[RouteSegment], context: PathfindingContext
     ) -> float:
         if not route:
             return 0.0
@@ -698,7 +683,7 @@ class AreaManager:
     def _load_area_data(self) -> None:
         data_path = "src/core/data/routes.json"
         try:
-            with open(data_path, 'r') as f:
+            with open(data_path, "r") as f:
                 data = json.load(f)
                 self._import_routes(data)
         except FileNotFoundError:
@@ -710,10 +695,7 @@ class AreaManager:
             self.routes[route_data["id"]] = route_data
 
         for gym_data in data.get("gyms", []):
-            pos = Position(
-                gym_data["x"], gym_data["y"],
-                map_id=gym_data["map_id"]
-            )
+            pos = Position(gym_data["x"], gym_data["y"], map_id=gym_data["map_id"])
             poi = PointOfInterest(
                 name=gym_data["name"],
                 position=pos,
@@ -722,102 +704,156 @@ class AreaManager:
                 metadata={
                     "badge": gym_data.get("badge"),
                     "leader": gym_data.get("leader"),
-                    "required_hm": gym_data.get("required_hm")
-                }
+                    "required_hm": gym_data.get("required_hm"),
+                },
             )
             self.gyms[gym_data["name"]] = poi
             self.graph.add_poi(poi)
 
         for center_data in data.get("pokemon_centers", []):
             pos = Position(
-                center_data["x"], center_data["y"],
-                map_id=center_data["map_id"]
+                center_data["x"], center_data["y"], map_id=center_data["map_id"]
             )
             poi = PointOfInterest(
                 name=center_data["name"],
                 position=pos,
                 location_type=LocationType.POKEMON_CENTER,
                 map_id=center_data["map_id"],
-                metadata={}
+                metadata={},
             )
             self.pokemon_centers[center_data["name"]] = poi
             self.graph.add_poi(poi)
 
         for shop_data in data.get("shops", []):
-            pos = Position(
-                shop_data["x"], shop_data["y"],
-                map_id=shop_data["map_id"]
-            )
+            pos = Position(shop_data["x"], shop_data["y"], map_id=shop_data["map_id"])
             poi = PointOfInterest(
                 name=shop_data["name"],
                 position=pos,
                 location_type=LocationType.POKEMART,
                 map_id=shop_data["map_id"],
-                metadata={
-                    "inventory": shop_data.get("inventory", [])
-                }
+                metadata={"inventory": shop_data.get("inventory", [])},
             )
             self.shops[shop_data["name"]] = poi
             self.graph.add_poi(poi)
 
     def _load_default_areas(self) -> None:
         default_routes: List[Dict[str, object]] = [
-            {"id": "route1", "name": "Route 1", "connections": ["pallet_town", "viridian_city"]},
-            {"id": "route2", "name": "Route 2", "connections": ["viridian_city", "pewter_city"]},
-            {"id": "route3", "name": "Route 3", "connections": ["pewter_city", "cerulean_city"]},
+            {
+                "id": "route1",
+                "name": "Route 1",
+                "connections": ["pallet_town", "viridian_city"],
+            },
+            {
+                "id": "route2",
+                "name": "Route 2",
+                "connections": ["viridian_city", "pewter_city"],
+            },
+            {
+                "id": "route3",
+                "name": "Route 3",
+                "connections": ["pewter_city", "cerulean_city"],
+            },
         ]
         self.routes.update({str(cast(str, r["id"])): r for r in default_routes})
 
         default_centers: List[Dict[str, object]] = [
             {"name": "Pallet Town Center", "x": 6, "y": 10, "map_id": "pallet_town"},
-            {"name": "Viridian City Center", "x": 10, "y": 12, "map_id": "viridian_city"},
+            {
+                "name": "Viridian City Center",
+                "x": 10,
+                "y": 12,
+                "map_id": "viridian_city",
+            },
             {"name": "Pewter City Center", "x": 8, "y": 8, "map_id": "pewter_city"},
         ]
         for center in default_centers:
-            pos = Position(int(cast(int, center["x"])), int(cast(int, center["y"])), map_id=str(cast(str, center["map_id"])))
+            pos = Position(
+                int(cast(int, center["x"])),
+                int(cast(int, center["y"])),
+                map_id=str(cast(str, center["map_id"])),
+            )
             poi = PointOfInterest(
                 name=str(cast(str, center["name"])),
                 position=pos,
                 location_type=LocationType.POKEMON_CENTER,
                 map_id=str(cast(str, center["map_id"])),
-                metadata={}
+                metadata={},
             )
             self.pokemon_centers[str(cast(str, center["name"]))] = poi
             self.graph.add_poi(poi)
 
         default_gyms: List[Dict[str, object]] = [
-            {"name": "Pewter Gym", "x": 7, "y": 5, "map_id": "pewter_city", "badge": "boulder", "leader": "Brock"},
-            {"name": "Cerulean Gym", "x": 9, "y": 6, "map_id": "cerulean_city", "badge": "cascade", "leader": "Misty"},
+            {
+                "name": "Pewter Gym",
+                "x": 7,
+                "y": 5,
+                "map_id": "pewter_city",
+                "badge": "boulder",
+                "leader": "Brock",
+            },
+            {
+                "name": "Cerulean Gym",
+                "x": 9,
+                "y": 6,
+                "map_id": "cerulean_city",
+                "badge": "cascade",
+                "leader": "Misty",
+            },
         ]
         for gym in default_gyms:
-            pos = Position(int(cast(int, gym["x"])), int(cast(int, gym["y"])), map_id=str(cast(str, gym["map_id"])))
+            pos = Position(
+                int(cast(int, gym["x"])),
+                int(cast(int, gym["y"])),
+                map_id=str(cast(str, gym["map_id"])),
+            )
             poi = PointOfInterest(
                 name=str(cast(str, gym["name"])),
                 position=pos,
                 location_type=LocationType.GYM,
                 map_id=str(cast(str, gym["map_id"])),
-                metadata={"badge": str(cast(str, gym["badge"])), "leader": str(cast(str, gym["leader"]))}
+                metadata={
+                    "badge": str(cast(str, gym["badge"])),
+                    "leader": str(cast(str, gym["leader"])),
+                },
             )
             self.gyms[str(cast(str, gym["name"]))] = poi
             self.graph.add_poi(poi)
 
         default_shops: List[Dict[str, object]] = [
-            {"name": "Viridian Mart", "x": 11, "y": 10, "map_id": "viridian_city", "inventory": ["potion", "antidote"]},
-            {"name": "Pewter Mart", "x": 9, "y": 9, "map_id": "pewter_city", "inventory": ["potion", "repel"]},
+            {
+                "name": "Viridian Mart",
+                "x": 11,
+                "y": 10,
+                "map_id": "viridian_city",
+                "inventory": ["potion", "antidote"],
+            },
+            {
+                "name": "Pewter Mart",
+                "x": 9,
+                "y": 9,
+                "map_id": "pewter_city",
+                "inventory": ["potion", "repel"],
+            },
         ]
         for shop in default_shops:
-            pos = Position(int(cast(int, shop["x"])), int(cast(int, shop["y"])), map_id=str(cast(str, shop["map_id"])))
+            pos = Position(
+                int(cast(int, shop["x"])),
+                int(cast(int, shop["y"])),
+                map_id=str(cast(str, shop["map_id"])),
+            )
             poi = PointOfInterest(
                 name=str(cast(str, shop["name"])),
                 position=pos,
                 location_type=LocationType.POKEMART,
                 map_id=str(cast(str, shop["map_id"])),
-                metadata={"inventory": cast(List[str], shop["inventory"])}
+                metadata={"inventory": cast(List[str], shop["inventory"])},
             )
             self.shops[str(cast(str, shop["name"]))] = poi
             self.graph.add_poi(poi)
 
-    def get_nearest_pokemon_center(self, position: Position) -> Optional[PointOfInterest]:
+    def get_nearest_pokemon_center(
+        self, position: Position
+    ) -> Optional[PointOfInterest]:
         centers = list(self.pokemon_centers.values())
         if not centers:
             return None
@@ -867,33 +903,23 @@ class PuzzleSolver:
         self.graph = graph
 
     def solve_safari_zone(
-        self,
-        start: Position,
-        goal: Position,
-        context: PathfindingContext
+        self, start: Position, goal: Position, context: PathfindingContext
     ) -> PathResult:
         return self._solve_with_terrain_constraints(start, goal, context, "safari")
 
     def solve_rock_tunnel(
-        self,
-        start: Position,
-        goal: Position,
-        context: PathfindingContext
+        self, start: Position, goal: Position, context: PathfindingContext
     ) -> PathResult:
         if not context.has_flash:
             result = PathResult(
-                success=False,
-                warnings=["Flash required to navigate Rock Tunnel"]
+                success=False, warnings=["Flash required to navigate Rock Tunnel"]
             )
             return result
 
         return self._solve_with_terrain_constraints(start, goal, context, "darkness")
 
     def solve_cycling_road(
-        self,
-        start: Position,
-        goal: Position,
-        context: PathfindingContext
+        self, start: Position, goal: Position, context: PathfindingContext
     ) -> PathResult:
         return self._solve_with_terrain_constraints(start, goal, context, "cycling")
 
@@ -902,7 +928,7 @@ class PuzzleSolver:
         start: Position,
         goal: Position,
         context: PathfindingContext,
-        puzzle_type: str
+        puzzle_type: str,
     ) -> PathResult:
         modified_context = PathfindingContext(
             avoid_encounters=context.avoid_encounters,
@@ -913,22 +939,17 @@ class PuzzleSolver:
             max_party_hp=context.max_party_hp,
             repel_active=context.repel_active,
             has_flash=context.has_flash or puzzle_type == "darkness",
-            grind_mode=puzzle_type == "safari"
+            grind_mode=puzzle_type == "safari",
         )
 
         pathfinder = AStarPathfinder(self.graph)
         return pathfinder.find_path(start, goal, modified_context)
 
     def solve_ice_puzzle(
-        self,
-        start: Position,
-        goal: Position,
-        ice_positions: Set[Position]
+        self, start: Position, goal: Position, ice_positions: Set[Position]
     ) -> PathResult:
         modified_context = PathfindingContext(
-            avoid_encounters=True,
-            prefer_shortest=True,
-            allow_hm_usage=False
+            avoid_encounters=True, prefer_shortest=True, allow_hm_usage=False
         )
 
         pathfinder = AStarPathfinder(self.graph)
@@ -941,15 +962,15 @@ class PuzzleSolver:
                 success=valid_path,
                 path=result.path if valid_path else [],
                 total_cost=result.total_cost,
-                warnings=["Ice slide physics applied" if valid_path else "Invalid ice path"]
+                warnings=[
+                    "Ice slide physics applied" if valid_path else "Invalid ice path"
+                ],
             )
 
         return result
 
     def _validate_ice_path(
-        self,
-        path: List[Position],
-        ice_positions: Set[Position]
+        self, path: List[Position], ice_positions: Set[Position]
     ) -> bool:
         if len(path) < 2:
             return True
@@ -965,10 +986,7 @@ class PuzzleSolver:
         return True
 
     def _slide_in_direction(
-        self,
-        start: Position,
-        direction: Position,
-        ice_positions: Set[Position]
+        self, start: Position, direction: Position, ice_positions: Set[Position]
     ) -> bool:
         dx = direction.x - start.x
         dy = direction.y - start.y
@@ -990,15 +1008,10 @@ class PuzzleSolver:
         return current == direction
 
     def solve_teleport_maze(
-        self,
-        start: Position,
-        goal: Position,
-        teleport_pads: Dict[Position, Position]
+        self, start: Position, goal: Position, teleport_pads: Dict[Position, Position]
     ) -> PathResult:
         modified_context = PathfindingContext(
-            avoid_encounters=True,
-            prefer_shortest=True,
-            allow_hm_usage=False
+            avoid_encounters=True, prefer_shortest=True, allow_hm_usage=False
         )
 
         original_warps = self.graph.warps.copy()
@@ -1031,7 +1044,7 @@ class NavigationSystem:
         self,
         start: Position,
         goal: Position,
-        context: Optional[PathfindingContext] = None
+        context: Optional[PathfindingContext] = None,
     ) -> PathResult:
         if context is None:
             context = PathfindingContext()
@@ -1042,20 +1055,15 @@ class NavigationSystem:
         self,
         start: Position,
         poi_name: str,
-        context: Optional[PathfindingContext] = None
+        context: Optional[PathfindingContext] = None,
     ) -> PathResult:
         poi = self.graph.get_poi_by_name(poi_name)
         if poi is None:
-            return PathResult(
-                success=False,
-                warnings=[f"POI not found: {poi_name}"]
-            )
+            return PathResult(success=False, warnings=[f"POI not found: {poi_name}"])
         return self.navigate_to(start, poi.position, context)
 
     def find_heal_location(
-        self,
-        current_pos: Position,
-        context: PathfindingContext
+        self, current_pos: Position, context: PathfindingContext
     ) -> Tuple[Optional[PointOfInterest], PathResult]:
         center = self.area_manager.get_nearest_pokemon_center(current_pos)
         if center is None:
@@ -1068,7 +1076,7 @@ class NavigationSystem:
         self,
         start: Position,
         objectives: List[str],
-        context: Optional[PathfindingContext] = None
+        context: Optional[PathfindingContext] = None,
     ) -> Tuple[List[RouteSegment], float]:
         if context is None:
             context = PathfindingContext()
@@ -1086,7 +1094,7 @@ class NavigationSystem:
         puzzle_type: str,
         start: Position,
         goal: Position,
-        context: PathfindingContext
+        context: PathfindingContext,
     ) -> PathResult:
         if puzzle_type == "safari":
             return self.puzzle_solver.solve_safari_zone(start, goal, context)
@@ -1096,8 +1104,7 @@ class NavigationSystem:
             return self.puzzle_solver.solve_cycling_road(start, goal, context)
         else:
             return PathResult(
-                success=False,
-                warnings=[f"Unknown puzzle type: {puzzle_type}"]
+                success=False, warnings=[f"Unknown puzzle type: {puzzle_type}"]
             )
 
     def get_navigation_status(self) -> Dict[str, Any]:

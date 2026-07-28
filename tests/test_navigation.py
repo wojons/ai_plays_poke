@@ -14,7 +14,7 @@ import pytest
 import os
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from src.core.navigation import (
     Position,
@@ -90,9 +90,7 @@ class TestGraphNode:
     def test_graph_node_with_hm_requirement(self) -> None:
         pos = Position(5, 5)
         node = GraphNode(
-            position=pos,
-            tile_type=TileType.HM_BLOCK,
-            hm_requirement=HMMove.CUT
+            position=pos, tile_type=TileType.HM_BLOCK, hm_requirement=HMMove.CUT
         )
         assert node.hm_requirement == HMMove.CUT
 
@@ -100,9 +98,7 @@ class TestGraphNode:
         pos = Position(5, 5)
         warp_dest = Position(10, 10, "other_map")
         node = GraphNode(
-            position=pos,
-            tile_type=TileType.WARP,
-            warp_destination=warp_dest
+            position=pos, tile_type=TileType.WARP, warp_destination=warp_dest
         )
         assert node.warp_destination == warp_dest
 
@@ -112,7 +108,7 @@ class TestGraphNode:
             position=pos,
             tile_type=TileType.PASSABLE,
             is_poi=True,
-            location_type=LocationType.POKEMON_CENTER
+            location_type=LocationType.POKEMON_CENTER,
         )
         assert node.is_poi is True
         assert node.location_type == LocationType.POKEMON_CENTER
@@ -133,21 +129,14 @@ class TestGraphEdge:
     def test_graph_edge_with_hm(self) -> None:
         from_pos = Position(0, 0)
         to_pos = Position(1, 0)
-        edge = GraphEdge(
-            from_node=from_pos,
-            to_node=to_pos,
-            requires_hm=HMMove.CUT
-        )
+        edge = GraphEdge(from_node=from_pos, to_node=to_pos, requires_hm=HMMove.CUT)
         assert edge.requires_hm == HMMove.CUT
 
     def test_graph_edge_ledge(self) -> None:
         from_pos = Position(0, 0)
         to_pos = Position(1, 0)
         edge = GraphEdge(
-            from_node=from_pos,
-            to_node=to_pos,
-            is_ledge=True,
-            direction="down"
+            from_node=from_pos, to_node=to_pos, is_ledge=True, direction="down"
         )
         assert edge.is_ledge is True
         assert edge.direction == "down"
@@ -203,9 +192,7 @@ class TestWorldGraph:
     def test_is_accessible_with_hm_requirement(self) -> None:
         pos = Position(5, 5)
         node = GraphNode(
-            position=pos,
-            tile_type=TileType.HM_BLOCK,
-            hm_requirement=HMMove.CUT
+            position=pos, tile_type=TileType.HM_BLOCK, hm_requirement=HMMove.CUT
         )
         self.graph.add_node(node)
 
@@ -221,7 +208,7 @@ class TestWorldGraph:
             name="Test Center",
             position=pos,
             location_type=LocationType.POKEMON_CENTER,
-            map_id="test_map"
+            map_id="test_map",
         )
         self.graph.add_poi(poi)
 
@@ -236,13 +223,13 @@ class TestWorldGraph:
             name="Center 1",
             position=center_pos,
             location_type=LocationType.POKEMON_CENTER,
-            map_id="test"
+            map_id="test",
         )
         gym = PointOfInterest(
             name="Gym 1",
             position=gym_pos,
             location_type=LocationType.GYM,
-            map_id="test"
+            map_id="test",
         )
 
         self.graph.add_poi(center)
@@ -272,17 +259,11 @@ class TestAStarPathfinder:
                 self.graph.add_node(node)
 
                 if x < 9:
-                    edge_right = GraphEdge(
-                        from_node=pos,
-                        to_node=Position(x + 1, y)
-                    )
+                    edge_right = GraphEdge(from_node=pos, to_node=Position(x + 1, y))
                     self.graph.add_edge(edge_right)
 
                 if y < 9:
-                    edge_down = GraphEdge(
-                        from_node=pos,
-                        to_node=Position(x, y + 1)
-                    )
+                    edge_down = GraphEdge(from_node=pos, to_node=Position(x, y + 1))
                     self.graph.add_edge(edge_down)
 
     def test_simple_pathfinding(self) -> None:
@@ -332,9 +313,7 @@ class TestAStarPathfinder:
 
         grass_pos = Position(2, 0)
         grass_node = GraphNode(
-            position=grass_pos,
-            tile_type=TileType.TALL_GRASS,
-            encounter_rate=0.15
+            position=grass_pos, tile_type=TileType.TALL_GRASS, encounter_rate=0.15
         )
         self.graph.add_node(grass_node)
 
@@ -393,7 +372,7 @@ class TestRouteOptimizer:
             position=Position(10, 10),
             location_type=LocationType.POKEMON_CENTER,
             map_id="test",
-            metadata={"priority": 5}
+            metadata={"priority": 5},
         )
         context = PathfindingContext()
 
@@ -412,7 +391,7 @@ class TestRouteOptimizer:
                 position=Position(5 + i * 3, 5 + i * 3),
                 location_type=LocationType.GYM,
                 map_id="test",
-                metadata={"priority": 10 - i}
+                metadata={"priority": 10 - i},
             )
             for i in range(3)
         ]
@@ -431,7 +410,7 @@ class TestRouteOptimizer:
                 name=f"POI {i}",
                 position=Position(i * 10, i * 10),
                 location_type=LocationType.POKEMON_CENTER,
-                map_id="test"
+                map_id="test",
             )
             for i in range(5)
         ]
@@ -449,9 +428,7 @@ class TestRouteOptimizer:
         for x in range(11):
             pos = Position(x, 0)
             node = GraphNode(
-                position=pos,
-                tile_type=TileType.TALL_GRASS,
-                danger_level=0
+                position=pos, tile_type=TileType.TALL_GRASS, danger_level=0
             )
             self.graph.nodes[pos] = node
 
@@ -459,11 +436,13 @@ class TestRouteOptimizer:
             from_pos=start,
             to_pos=goal,
             path=[Position(x, 0) for x in range(11)],
-            estimated_cost=11.0
+            estimated_cost=11.0,
         )
 
         context_safe = PathfindingContext(repel_active=True)
-        context_unsafe = PathfindingContext(repel_active=False, current_party_hp=20, max_party_hp=100)
+        context_unsafe = PathfindingContext(
+            repel_active=False, current_party_hp=20, max_party_hp=100
+        )
 
         safety_safe = self.optimizer.calculate_route_safety([segment], context_safe)
         safety_unsafe = self.optimizer.calculate_route_safety([segment], context_unsafe)
@@ -478,14 +457,18 @@ class TestRouteOptimizer:
         start = Position(0, 0)
         # Place objectives at known distances: POI A at (2,0), POI B at (5,0)
         poi_a = PointOfInterest(
-            name="A", position=Position(2, 0),
-            location_type=LocationType.GYM, map_id="test",
-            metadata={"priority": 1}
+            name="A",
+            position=Position(2, 0),
+            location_type=LocationType.GYM,
+            map_id="test",
+            metadata={"priority": 1},
         )
         poi_b = PointOfInterest(
-            name="B", position=Position(5, 0),
-            location_type=LocationType.GYM, map_id="test",
-            metadata={"priority": 1}
+            name="B",
+            position=Position(5, 0),
+            location_type=LocationType.GYM,
+            map_id="test",
+            metadata={"priority": 1},
         )
         context = PathfindingContext()
 
@@ -503,14 +486,18 @@ class TestRouteOptimizer:
         start = Position(0, 0)
         # POI A is closer but low priority; POI B is far but high priority
         poi_low = PointOfInterest(
-            name="LowPri", position=Position(2, 0),
-            location_type=LocationType.GYM, map_id="test",
-            metadata={"priority": 1}
+            name="LowPri",
+            position=Position(2, 0),
+            location_type=LocationType.GYM,
+            map_id="test",
+            metadata={"priority": 1},
         )
         poi_high = PointOfInterest(
-            name="HighPri", position=Position(10, 10),
-            location_type=LocationType.GYM, map_id="test",
-            metadata={"priority": 10}
+            name="HighPri",
+            position=Position(10, 10),
+            location_type=LocationType.GYM,
+            map_id="test",
+            metadata={"priority": 10},
         )
         context = PathfindingContext()
 
@@ -528,9 +515,7 @@ class TestRouteOptimizer:
     def test_optimize_route_empty_objectives(self) -> None:
         """Empty objectives list returns zero segments/cost."""
         context = PathfindingContext()
-        segments, cost = self.optimizer.optimize_route(
-            Position(0, 0), [], context
-        )
+        segments, cost = self.optimizer.optimize_route(Position(0, 0), [], context)
         assert segments == []
         assert cost == 0.0
 
@@ -542,7 +527,7 @@ class TestRouteOptimizer:
                 name=f"POI_{i}",
                 position=Position(i * 100, 0, map_id=f"map_{i}"),
                 location_type=LocationType.POKEMON_CENTER,
-                map_id=f"map_{i}"
+                map_id=f"map_{i}",
             )
             for i in range(3)
         ]
@@ -552,7 +537,9 @@ class TestRouteOptimizer:
         assert len(clusters) == 3
 
         # With cluster_radius=200, all should cluster
-        clusters_wide = self.optimizer.cluster_objectives(objectives, cluster_radius=200)
+        clusters_wide = self.optimizer.cluster_objectives(
+            objectives, cluster_radius=200
+        )
         assert len(clusters_wide) == 1
         assert len(clusters_wide[0]) == 3
 
@@ -570,36 +557,26 @@ class TestRouteOptimizer:
         # Make every node in path have high danger
         for x in range(6):
             pos = Position(x, 0)
-            node = GraphNode(
-                position=pos,
-                tile_type=TileType.PASSABLE,
-                danger_level=5
-            )
+            node = GraphNode(position=pos, tile_type=TileType.PASSABLE, danger_level=5)
             self.graph.nodes[pos] = node
 
         segment = RouteSegment(
             from_pos=start,
             to_pos=goal,
             path=[Position(x, 0) for x in range(6)],
-            estimated_cost=6.0
+            estimated_cost=6.0,
         )
 
         # Low HP + high danger on every node → safety drops hard
-        context_danger = PathfindingContext(
-            current_party_hp=20, max_party_hp=100
-        )
-        safety = self.optimizer.calculate_route_safety(
-            [segment], context_danger
-        )
+        context_danger = PathfindingContext(current_party_hp=20, max_party_hp=100)
+        safety = self.optimizer.calculate_route_safety([segment], context_danger)
 
         # With 6 nodes × danger_level=5 = -30, starting from 10 → -20
         assert safety < 0
 
     def test_calculate_route_safety_empty(self) -> None:
         """Empty route returns 0.0."""
-        safety = self.optimizer.calculate_route_safety(
-            [], PathfindingContext()
-        )
+        safety = self.optimizer.calculate_route_safety([], PathfindingContext())
         assert safety == 0.0
 
     def test_calculate_route_safety_multiple_segments(self) -> None:
@@ -609,19 +586,17 @@ class TestRouteOptimizer:
             from_pos=Position(0, 0),
             to_pos=Position(0, 5),
             path=[Position(0, y) for y in range(6)],
-            estimated_cost=6.0
+            estimated_cost=6.0,
         )
         seg_b = RouteSegment(
             from_pos=Position(0, 5),
             to_pos=Position(5, 5),
             path=[Position(x, 5) for x in range(6)],
-            estimated_cost=6.0
+            estimated_cost=6.0,
         )
 
         context = PathfindingContext(repel_active=True)
-        safety = self.optimizer.calculate_route_safety(
-            [seg_a, seg_b], context
-        )
+        safety = self.optimizer.calculate_route_safety([seg_a, seg_b], context)
         # Both segments start at 10.0 with no grass/danger → avg = 10.0
         assert safety == 10.0
 
@@ -867,7 +842,7 @@ class TestPathResult:
             hm_requirements=[HMMove.CUT],
             warnings=["Warning 1"],
             encounters_expected=2,
-            danger_exposure=1
+            danger_exposure=1,
         )
 
         assert result.success is True
@@ -877,10 +852,7 @@ class TestPathResult:
         assert len(result.warnings) == 1
 
     def test_path_result_failure(self) -> None:
-        result = PathResult(
-            success=False,
-            warnings=["No path found"]
-        )
+        result = PathResult(success=False, warnings=["No path found"])
 
         assert result.success is False
         assert len(result.path) == 0
@@ -937,12 +909,16 @@ class TestWarpPathfinding:
                 if x < 4:
                     edge = GraphEdge(from_node=pos, to_node=Position(x + 1, y, "map_a"))
                     self.graph.add_edge(edge)
-                    edge_rev = GraphEdge(from_node=Position(x + 1, y, "map_a"), to_node=pos)
+                    edge_rev = GraphEdge(
+                        from_node=Position(x + 1, y, "map_a"), to_node=pos
+                    )
                     self.graph.add_edge(edge_rev)
                 if y < 4:
                     edge = GraphEdge(from_node=pos, to_node=Position(x, y + 1, "map_a"))
                     self.graph.add_edge(edge)
-                    edge_rev = GraphEdge(from_node=Position(x, y + 1, "map_a"), to_node=pos)
+                    edge_rev = GraphEdge(
+                        from_node=Position(x, y + 1, "map_a"), to_node=pos
+                    )
                     self.graph.add_edge(edge_rev)
 
         # Map B: 5x5 grid
@@ -954,12 +930,16 @@ class TestWarpPathfinding:
                 if x < 4:
                     edge = GraphEdge(from_node=pos, to_node=Position(x + 1, y, "map_b"))
                     self.graph.add_edge(edge)
-                    edge_rev = GraphEdge(from_node=Position(x + 1, y, "map_b"), to_node=pos)
+                    edge_rev = GraphEdge(
+                        from_node=Position(x + 1, y, "map_b"), to_node=pos
+                    )
                     self.graph.add_edge(edge_rev)
                 if y < 4:
                     edge = GraphEdge(from_node=pos, to_node=Position(x, y + 1, "map_b"))
                     self.graph.add_edge(edge)
-                    edge_rev = GraphEdge(from_node=Position(x, y + 1, "map_b"), to_node=pos)
+                    edge_rev = GraphEdge(
+                        from_node=Position(x, y + 1, "map_b"), to_node=pos
+                    )
                     self.graph.add_edge(edge_rev)
 
         # Warp: (4,4) on map_a → (0,0) on map_b

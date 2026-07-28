@@ -37,6 +37,7 @@ if TYPE_CHECKING:
 
 class PokemonType(Enum):
     """All 18 Pokemon types (Gen 1 + future types)"""
+
     NORMAL = "Normal"
     FIRE = "Fire"
     WATER = "Water"
@@ -59,6 +60,7 @@ class PokemonType(Enum):
 
 class StatusCondition(Enum):
     """Battle status conditions"""
+
     NONE = "none"
     POISONED = "poisoned"
     BADLY_POISONED = "badly_poisoned"
@@ -73,6 +75,7 @@ class StatusCondition(Enum):
 
 class MoveCategory(Enum):
     """Move damage category"""
+
     PHYSICAL = "physical"
     SPECIAL = "special"
     STATUS = "status"
@@ -80,6 +83,7 @@ class MoveCategory(Enum):
 
 class GrowthRate(Enum):
     """Experience growth rates"""
+
     FAST = "fast"
     MEDIUM = "medium"
     SLOW = "slow"
@@ -90,6 +94,7 @@ class GrowthRate(Enum):
 
 class TeamRole(Enum):
     """Pokemon team roles"""
+
     SWEEPER = "sweeper"
     TANK = "tank"
     SUPPORT = "support"
@@ -100,121 +105,199 @@ class TeamRole(Enum):
 
 class TypeChart:
     """Gen 1 type effectiveness chart with 18 types."""
-    
+
     _chart: Dict[PokemonType, Dict[PokemonType, float]] = {}
-    
+
     def __init__(self) -> None:
         self._initialize_chart()
-    
+
     def _initialize_chart(self) -> None:
         self._chart = {
             PokemonType.NORMAL: {
-                PokemonType.ROCK: 0.5, PokemonType.GHOST: 0.0, PokemonType.STEEL: 0.5
+                PokemonType.ROCK: 0.5,
+                PokemonType.GHOST: 0.0,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.FIRE: {
-                PokemonType.FIRE: 0.5, PokemonType.WATER: 0.5, PokemonType.GRASS: 2.0,
-                PokemonType.ICE: 2.0, PokemonType.BUG: 2.0, PokemonType.ROCK: 0.5,
-                PokemonType.DRAGON: 0.5, PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.WATER: 0.5,
+                PokemonType.GRASS: 2.0,
+                PokemonType.ICE: 2.0,
+                PokemonType.BUG: 2.0,
+                PokemonType.ROCK: 0.5,
+                PokemonType.DRAGON: 0.5,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.WATER: {
-                PokemonType.FIRE: 2.0, PokemonType.WATER: 0.5, PokemonType.GRASS: 0.5,
-                PokemonType.GROUND: 2.0, PokemonType.ROCK: 2.0, PokemonType.DRAGON: 0.5
+                PokemonType.FIRE: 2.0,
+                PokemonType.WATER: 0.5,
+                PokemonType.GRASS: 0.5,
+                PokemonType.GROUND: 2.0,
+                PokemonType.ROCK: 2.0,
+                PokemonType.DRAGON: 0.5,
             },
             PokemonType.ELECTRIC: {
-                PokemonType.WATER: 2.0, PokemonType.ELECTRIC: 0.5, PokemonType.GRASS: 0.5,
-                PokemonType.GROUND: 0.0, PokemonType.FLYING: 2.0, PokemonType.DRAGON: 0.5
+                PokemonType.WATER: 2.0,
+                PokemonType.ELECTRIC: 0.5,
+                PokemonType.GRASS: 0.5,
+                PokemonType.GROUND: 0.0,
+                PokemonType.FLYING: 2.0,
+                PokemonType.DRAGON: 0.5,
             },
             PokemonType.GRASS: {
-                PokemonType.FIRE: 0.5, PokemonType.WATER: 2.0, PokemonType.GRASS: 0.5,
-                PokemonType.POISON: 0.5, PokemonType.GROUND: 2.0, PokemonType.FLYING: 0.5,
-                PokemonType.BUG: 0.5, PokemonType.ROCK: 2.0, PokemonType.DRAGON: 0.5,
-                PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.WATER: 2.0,
+                PokemonType.GRASS: 0.5,
+                PokemonType.POISON: 0.5,
+                PokemonType.GROUND: 2.0,
+                PokemonType.FLYING: 0.5,
+                PokemonType.BUG: 0.5,
+                PokemonType.ROCK: 2.0,
+                PokemonType.DRAGON: 0.5,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.ICE: {
-                PokemonType.FIRE: 0.5, PokemonType.WATER: 0.5, PokemonType.GRASS: 2.0,
-                PokemonType.ICE: 0.5, PokemonType.GROUND: 2.0, PokemonType.FLYING: 2.0,
-                PokemonType.DRAGON: 2.0, PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.WATER: 0.5,
+                PokemonType.GRASS: 2.0,
+                PokemonType.ICE: 0.5,
+                PokemonType.GROUND: 2.0,
+                PokemonType.FLYING: 2.0,
+                PokemonType.DRAGON: 2.0,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.FIGHTING: {
-                PokemonType.NORMAL: 2.0, PokemonType.ICE: 2.0, PokemonType.POISON: 0.5,
-                PokemonType.FLYING: 0.5, PokemonType.PSYCHIC: 0.5, PokemonType.BUG: 0.5,
-                PokemonType.ROCK: 2.0, PokemonType.GHOST: 0.0, PokemonType.DARK: 2.0,
-                PokemonType.STEEL: 2.0
+                PokemonType.NORMAL: 2.0,
+                PokemonType.ICE: 2.0,
+                PokemonType.POISON: 0.5,
+                PokemonType.FLYING: 0.5,
+                PokemonType.PSYCHIC: 0.5,
+                PokemonType.BUG: 0.5,
+                PokemonType.ROCK: 2.0,
+                PokemonType.GHOST: 0.0,
+                PokemonType.DARK: 2.0,
+                PokemonType.STEEL: 2.0,
             },
             PokemonType.POISON: {
-                PokemonType.GRASS: 2.0, PokemonType.POISON: 0.5, PokemonType.GROUND: 0.5,
-                PokemonType.ROCK: 0.5, PokemonType.GHOST: 0.5, PokemonType.STEEL: 0.0,
-                PokemonType.FAIRY: 2.0
+                PokemonType.GRASS: 2.0,
+                PokemonType.POISON: 0.5,
+                PokemonType.GROUND: 0.5,
+                PokemonType.ROCK: 0.5,
+                PokemonType.GHOST: 0.5,
+                PokemonType.STEEL: 0.0,
+                PokemonType.FAIRY: 2.0,
             },
             PokemonType.GROUND: {
-                PokemonType.FIRE: 2.0, PokemonType.ELECTRIC: 2.0, PokemonType.GRASS: 0.5,
-                PokemonType.POISON: 2.0, PokemonType.FLYING: 0.0, PokemonType.BUG: 0.5,
-                PokemonType.ROCK: 2.0, PokemonType.STEEL: 2.0
+                PokemonType.FIRE: 2.0,
+                PokemonType.ELECTRIC: 2.0,
+                PokemonType.GRASS: 0.5,
+                PokemonType.POISON: 2.0,
+                PokemonType.FLYING: 0.0,
+                PokemonType.BUG: 0.5,
+                PokemonType.ROCK: 2.0,
+                PokemonType.STEEL: 2.0,
             },
             PokemonType.FLYING: {
-                PokemonType.ELECTRIC: 0.5, PokemonType.GRASS: 2.0, PokemonType.FIGHTING: 2.0,
-                PokemonType.BUG: 2.0, PokemonType.ROCK: 0.5, PokemonType.STEEL: 0.5
+                PokemonType.ELECTRIC: 0.5,
+                PokemonType.GRASS: 2.0,
+                PokemonType.FIGHTING: 2.0,
+                PokemonType.BUG: 2.0,
+                PokemonType.ROCK: 0.5,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.PSYCHIC: {
-                PokemonType.FIGHTING: 2.0, PokemonType.POISON: 2.0, PokemonType.PSYCHIC: 0.5,
-                PokemonType.DARK: 0.0, PokemonType.STEEL: 0.5
+                PokemonType.FIGHTING: 2.0,
+                PokemonType.POISON: 2.0,
+                PokemonType.PSYCHIC: 0.5,
+                PokemonType.DARK: 0.0,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.BUG: {
-                PokemonType.FIRE: 0.5, PokemonType.GRASS: 2.0, PokemonType.FIGHTING: 0.5,
-                PokemonType.POISON: 0.5, PokemonType.FLYING: 0.5, PokemonType.PSYCHIC: 2.0,
-                PokemonType.GHOST: 0.5, PokemonType.DARK: 2.0, PokemonType.STEEL: 0.5,
-                PokemonType.FAIRY: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.GRASS: 2.0,
+                PokemonType.FIGHTING: 0.5,
+                PokemonType.POISON: 0.5,
+                PokemonType.FLYING: 0.5,
+                PokemonType.PSYCHIC: 2.0,
+                PokemonType.GHOST: 0.5,
+                PokemonType.DARK: 2.0,
+                PokemonType.STEEL: 0.5,
+                PokemonType.FAIRY: 0.5,
             },
             PokemonType.ROCK: {
-                PokemonType.FIRE: 2.0, PokemonType.ICE: 2.0, PokemonType.FIGHTING: 0.5,
-                PokemonType.GROUND: 0.5, PokemonType.FLYING: 2.0, PokemonType.BUG: 2.0,
-                PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 2.0,
+                PokemonType.ICE: 2.0,
+                PokemonType.FIGHTING: 0.5,
+                PokemonType.GROUND: 0.5,
+                PokemonType.FLYING: 2.0,
+                PokemonType.BUG: 2.0,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.GHOST: {
-                PokemonType.NORMAL: 0.0, PokemonType.PSYCHIC: 2.0, PokemonType.GHOST: 2.0,
-                PokemonType.DARK: 0.5
+                PokemonType.NORMAL: 0.0,
+                PokemonType.PSYCHIC: 2.0,
+                PokemonType.GHOST: 2.0,
+                PokemonType.DARK: 0.5,
             },
             PokemonType.DRAGON: {
-                PokemonType.DRAGON: 2.0, PokemonType.STEEL: 0.5, PokemonType.FAIRY: 0.0
+                PokemonType.DRAGON: 2.0,
+                PokemonType.STEEL: 0.5,
+                PokemonType.FAIRY: 0.0,
             },
             PokemonType.DARK: {
-                PokemonType.PSYCHIC: 2.0, PokemonType.GHOST: 2.0, PokemonType.FIGHTING: 0.5,
-                PokemonType.DARK: 0.5, PokemonType.FAIRY: 0.5
+                PokemonType.PSYCHIC: 2.0,
+                PokemonType.GHOST: 2.0,
+                PokemonType.FIGHTING: 0.5,
+                PokemonType.DARK: 0.5,
+                PokemonType.FAIRY: 0.5,
             },
             PokemonType.STEEL: {
-                PokemonType.FIRE: 0.5, PokemonType.WATER: 0.5, PokemonType.ELECTRIC: 0.5,
-                PokemonType.ICE: 2.0, PokemonType.ROCK: 2.0, PokemonType.STEEL: 0.5,
-                PokemonType.FAIRY: 2.0
+                PokemonType.FIRE: 0.5,
+                PokemonType.WATER: 0.5,
+                PokemonType.ELECTRIC: 0.5,
+                PokemonType.ICE: 2.0,
+                PokemonType.ROCK: 2.0,
+                PokemonType.STEEL: 0.5,
+                PokemonType.FAIRY: 2.0,
             },
             PokemonType.FAIRY: {
-                PokemonType.FIRE: 0.5, PokemonType.FIGHTING: 2.0, PokemonType.POISON: 0.5,
-                PokemonType.DRAGON: 2.0, PokemonType.DARK: 2.0, PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.FIGHTING: 2.0,
+                PokemonType.POISON: 0.5,
+                PokemonType.DRAGON: 2.0,
+                PokemonType.DARK: 2.0,
+                PokemonType.STEEL: 0.5,
             },
         }
-    
-    def get_effectiveness(self, attack_type: PokemonType, 
-                          defender_types: List[PokemonType]) -> float:
+
+    def get_effectiveness(
+        self, attack_type: PokemonType, defender_types: List[PokemonType]
+    ) -> float:
         if attack_type not in self._chart:
             return 1.0
-        
+
         effectiveness = 1.0
         for defender_type in defender_types:
             if defender_type in self._chart[attack_type]:
                 effectiveness *= self._chart[attack_type][defender_type]
-        
+
         return effectiveness
-    
-    def is_immune(self, attack_type: PokemonType, defender_types: List[PokemonType]) -> bool:
+
+    def is_immune(
+        self, attack_type: PokemonType, defender_types: List[PokemonType]
+    ) -> bool:
         return self.get_effectiveness(attack_type, defender_types) == 0.0
-    
-    def is_super_effective(self, attack_type: PokemonType, 
-                           defender_types: List[PokemonType]) -> bool:
+
+    def is_super_effective(
+        self, attack_type: PokemonType, defender_types: List[PokemonType]
+    ) -> bool:
         return self.get_effectiveness(attack_type, defender_types) >= 2.0
 
 
 @dataclass
 class PokemonStats:
     """Individual stat values (calculated from base stats, IVs, EVs, level)"""
+
     hp: int
     attack: int
     defense: int
@@ -228,6 +311,7 @@ class PokemonStats:
 @dataclass
 class BaseStats:
     """Species base stats (immutable per species)"""
+
     species_id: str
     species_name: str
     hp: int
@@ -245,6 +329,7 @@ class BaseStats:
 @dataclass
 class IndividualValues:
     """Gen 1 IVs (0-15 each)"""
+
     hp: int = 0
     attack: int = 0
     defense: int = 0
@@ -265,6 +350,7 @@ class IndividualValues:
 @dataclass
 class EffortValues:
     """Gen 1 EVs (0-65535 each, 0-510 total before Gen 2)"""
+
     hp: int = 0
     attack: int = 0
     defense: int = 0
@@ -285,6 +371,7 @@ class EffortValues:
 @dataclass
 class Move:
     """Individual move with PP tracking"""
+
     move_id: str
     name: str
     move_type: PokemonType
@@ -303,6 +390,7 @@ class Move:
 @dataclass
 class Experience:
     """Experience tracking with growth curve support"""
+
     current: int
     to_next_level: int
     growth_rate: str = "medium"
@@ -317,6 +405,7 @@ class Experience:
 @dataclass
 class PokemonData:
     """Complete Pokemon data model."""
+
     pokemon_id: str
     species_id: str
     nickname: Optional[str]
@@ -370,15 +459,17 @@ class PokemonData:
         best_physical = max(
             (m for m in self.moves if m.category == MoveCategory.PHYSICAL),
             default=None,
-            key=lambda m: m.power
+            key=lambda m: m.power,
         )
         best_special = max(
             (m for m in self.moves if m.category == MoveCategory.SPECIAL),
             default=None,
-            key=lambda m: m.power
+            key=lambda m: m.power,
         )
 
-        if best_physical and best_physical.power > (best_special.power if best_special else 0):
+        if best_physical and best_physical.power > (
+            best_special.power if best_special else 0
+        ):
             return self.base_stats.attack + self.ivs.attack + (self.evs.attack // 4)
         return self.base_stats.special + self.ivs.special + (self.evs.special // 4)
 
@@ -394,7 +485,9 @@ class PokemonData:
         return self.level < avg_level - 3
 
     def get_best_move(self) -> Optional[Move]:
-        valid_moves = [m for m in self.moves if m.pp > 0 and m.category != MoveCategory.STATUS]
+        valid_moves = [
+            m for m in self.moves if m.pp > 0 and m.category != MoveCategory.STATUS
+        ]
         if not valid_moves:
             return None
         return max(valid_moves, key=lambda m: m.power)
@@ -403,11 +496,13 @@ class PokemonData:
         best_move = self.get_best_move()
         if not best_move:
             return 10.0
-        
+
         attack_stat = self.offensive_stat()
-        speed_factor = (self.base_stats.speed + self.ivs.speed + self.evs.speed // 4) / 100
-        speed_weight = speed_factor ** 0.5
-        
+        speed_factor = (
+            self.base_stats.speed + self.ivs.speed + self.evs.speed // 4
+        ) / 100
+        speed_weight = speed_factor**0.5
+
         stab = 1.2 if best_move.move_type in self.types else 1.0
         dps = (best_move.power * attack_stat / 100) * speed_weight * stab
         return float(max(dps, 1.0))
@@ -428,33 +523,42 @@ class PokemonData:
                 "defense": self.base_stats.defense,
                 "speed": self.base_stats.speed,
                 "special": self.base_stats.special,
-                "types": [self.base_stats.type_primary.value, self.base_stats.type_secondary.value if self.base_stats.type_secondary else None]
+                "types": [
+                    self.base_stats.type_primary.value,
+                    self.base_stats.type_secondary.value
+                    if self.base_stats.type_secondary
+                    else None,
+                ],
             },
             "ivs": {
                 "hp": self.ivs.hp,
                 "attack": self.ivs.attack,
                 "defense": self.ivs.defense,
                 "speed": self.ivs.speed,
-                "special": self.ivs.special
+                "special": self.ivs.special,
             },
-            "moves": [{"name": m.name, "pp": m.pp, "max_pp": m.max_pp, "power": m.power} for m in self.moves],
+            "moves": [
+                {"name": m.name, "pp": m.pp, "max_pp": m.max_pp, "power": m.power}
+                for m in self.moves
+            ],
             "status": self.status.value,
             "experience": {
                 "current": self.experience.current,
-                "to_next_level": self.experience.to_next_level
+                "to_next_level": self.experience.to_next_level,
             },
             "types": [t.value for t in self.types if t],
             "happiness": self.happiness,
             "is_shiny": self.is_shiny,
             "victories": self.victories,
             "defeats": self.defeats,
-            "experience_gained": self.experience_gained
+            "experience_gained": self.experience_gained,
         }
 
 
 @dataclass
 class Team:
     """Complete team data structure for party management."""
+
     team_id: str
     name: Optional[str]
     party: List[Optional[PokemonData]]
@@ -526,6 +630,7 @@ class Team:
 @dataclass
 class TypeValueWeights:
     """Type value multipliers for uniqueness calculation"""
+
     ELECTRIC: float = 1.5
     PSYCHIC: float = 1.4
     ICE: float = 1.3
@@ -549,6 +654,7 @@ class TypeValueWeights:
 @dataclass
 class CarryScoreBreakdown:
     """Detailed breakdown of carry score calculation"""
+
     level_relevance: float
     type_uniqueness: float
     move_coverage: float
@@ -565,13 +671,14 @@ class CarryScoreBreakdown:
             "stat_efficiency": self.stat_efficiency,
             "rarity_modifier": self.rarity_modifier,
             "sentimental_modifier": self.sentimental_modifier,
-            "final_score": self.final_score
+            "final_score": self.final_score,
         }
 
 
 @dataclass
 class EvolutionCondition:
     """Evolution requirement specification"""
+
     condition_type: str
     required_value: Any
     target_species_id: str
@@ -583,6 +690,7 @@ class EvolutionCondition:
 @dataclass
 class PreEvolutionMove:
     """Critical move available only before evolution"""
+
     move_id: str
     move_name: str
     learn_level: int
@@ -594,6 +702,7 @@ class PreEvolutionMove:
 @dataclass
 class EvolutionDecision:
     """Evolution timing decision result"""
+
     decision: str
     wait_levels: Optional[int]
     reason: str
@@ -605,6 +714,7 @@ class EvolutionDecision:
 @dataclass
 class TypeCoverage:
     """Type coverage analysis result"""
+
     covered_types: Set[PokemonType]
     uncovered_types: Set[PokemonType]
     critical_gaps: Set[PokemonType]
@@ -615,13 +725,14 @@ class TypeCoverage:
             "covered_types": [t.value for t in self.covered_types],
             "uncovered_types": [t.value for t in self.uncovered_types],
             "critical_gaps": [t.value for t in self.critical_gaps],
-            "coverage_percentage": self.coverage_percentage
+            "coverage_percentage": self.coverage_percentage,
         }
 
 
 @dataclass
 class TeamAnalysis:
     """Complete team analysis result"""
+
     type_coverage: TypeCoverage
     carry_scores: Dict[str, float]
     role_assignments: Dict[str, str]
@@ -634,6 +745,7 @@ class TeamAnalysis:
 @dataclass
 class PartySlot:
     """Party slot with Pokemon and optimization score"""
+
     slot_index: int
     pokemon: Optional[PokemonData]
     score: float
@@ -644,52 +756,73 @@ class PartySlot:
 CRITICAL_PRE_EVO_MOVES: Dict[str, List[PreEvolutionMove]] = {
     "BULBASAUR": [
         PreEvolutionMove(
-            move_id="RAZOR_LEAF", move_name="Razor Leaf",
-            learn_level=27, evolution_level=16,
-            value_rating="STAB_POWERUP", power=55
+            move_id="RAZOR_LEAF",
+            move_name="Razor Leaf",
+            learn_level=27,
+            evolution_level=16,
+            value_rating="STAB_POWERUP",
+            power=55,
         )
     ],
     "CHARMANDER": [
         PreEvolutionMove(
-            move_id="FLAMETHROWER", move_name="Flamethrower",
-            learn_level=38, evolution_level=16,
-            value_rating="STRONG_STAB", power=90
+            move_id="FLAMETHROWER",
+            move_name="Flamethrower",
+            learn_level=38,
+            evolution_level=16,
+            value_rating="STRONG_STAB",
+            power=90,
         ),
         PreEvolutionMove(
-            move_id="SLASH", move_name="Slash",
-            learn_level=33, evolution_level=16,
-            value_rating="HIGH_CRIT", power=70
-        )
+            move_id="SLASH",
+            move_name="Slash",
+            learn_level=33,
+            evolution_level=16,
+            value_rating="HIGH_CRIT",
+            power=70,
+        ),
     ],
     "SQUIRTLE": [
         PreEvolutionMove(
-            move_id="HYDRO_PUMP", move_name="Hydro Pump",
-            learn_level=42, evolution_level=16,
-            value_rating="WATER_NUKE", power=110
+            move_id="HYDRO_PUMP",
+            move_name="Hydro Pump",
+            learn_level=42,
+            evolution_level=16,
+            value_rating="WATER_NUKE",
+            power=110,
         )
     ],
     "PIKACHU": [
         PreEvolutionMove(
-            move_id="THUNDER", move_name="Thunder",
-            learn_level=43, evolution_level=999,
-            value_rating="ELECTRIC_STAB", power=110
+            move_id="THUNDER",
+            move_name="Thunder",
+            learn_level=43,
+            evolution_level=999,
+            value_rating="ELECTRIC_STAB",
+            power=110,
         )
     ],
     "GROWLITHE": [
         PreEvolutionMove(
-            move_id="FLAMETHROWER", move_name="Flamethrower",
-            learn_level=50, evolution_level=999,
-            value_rating="STRONG_STAB", power=90
+            move_id="FLAMETHROWER",
+            move_name="Flamethrower",
+            learn_level=50,
+            evolution_level=999,
+            value_rating="STRONG_STAB",
+            power=90,
         )
     ],
     "EEVEE": [],
     "ABRA": [
         PreEvolutionMove(
-            move_id="PSYCHIC", move_name="Psychic",
-            learn_level=38, evolution_level=16,
-            value_rating="PSYCHIC_STAB", power=90
+            move_id="PSYCHIC",
+            move_name="Psychic",
+            learn_level=38,
+            evolution_level=16,
+            value_rating="PSYCHIC_STAB",
+            power=90,
         )
-    ]
+    ],
 }
 
 
@@ -697,33 +830,45 @@ class CarryScoreCalculator:
     """Calculates battle utility scores for Pokemon."""
 
     RARITY_MULTIPLIERS: Dict[str, float] = {
-        "BULBASAUR": 1.15, "IVYSAUR": 1.15, "VENUSAUR": 1.15,
-        "CHARMANDER": 1.15, "CHARMELEON": 1.15, "CHARIZARD": 1.15,
-        "SQUIRTLE": 1.15, "WARTORTLE": 1.15, "BLASTOISE": 1.15,
-        "MEWTWO": 1.3, "MEW": 1.3,
-        "ARTICUNO": 1.25, "ZAPDOS": 1.25, "MOLTRES": 1.25,
+        "BULBASAUR": 1.15,
+        "IVYSAUR": 1.15,
+        "VENUSAUR": 1.15,
+        "CHARMANDER": 1.15,
+        "CHARMELEON": 1.15,
+        "CHARIZARD": 1.15,
+        "SQUIRTLE": 1.15,
+        "WARTORTLE": 1.15,
+        "BLASTOISE": 1.15,
+        "MEWTWO": 1.3,
+        "MEW": 1.3,
+        "ARTICUNO": 1.25,
+        "ZAPDOS": 1.25,
+        "MOLTRES": 1.25,
         "DRAGONITE": 1.2,
         "GYARADOS": 1.15,
-        "ALAKAZAM": 1.1, "MACHAMP": 1.1, "GENGAR": 1.1,
-        "PIDGEY": 0.7, "PIDGEOTTO": 0.7, "PIDGEOT": 0.7,
-        "RATTATA": 0.8, "RATICATE": 0.8,
-        "CATERPIE": 0.6, "METAPOD": 0.6, "BUTTERFREE": 0.6,
-        "WEEDLE": 0.6, "KAKUNA": 0.6, "BEEDRILL": 0.6
+        "ALAKAZAM": 1.1,
+        "MACHAMP": 1.1,
+        "GENGAR": 1.1,
+        "PIDGEY": 0.7,
+        "PIDGEOTTO": 0.7,
+        "PIDGEOT": 0.7,
+        "RATTATA": 0.8,
+        "RATICATE": 0.8,
+        "CATERPIE": 0.6,
+        "METAPOD": 0.6,
+        "BUTTERFREE": 0.6,
+        "WEEDLE": 0.6,
+        "KAKUNA": 0.6,
+        "BEEDRILL": 0.6,
     }
 
-    def __init__(
-        self,
-        type_chart: TypeChart,
-        species_data: Dict[str, BaseStats]
-    ):
+    def __init__(self, type_chart: TypeChart, species_data: Dict[str, BaseStats]):
         self.type_chart = type_chart
         self.species_data = species_data
         self.type_values = TypeValueWeights()
 
     def calculate_level_relevance(
-        self,
-        pokemon: PokemonData,
-        expected_encounter_level: int
+        self, pokemon: PokemonData, expected_encounter_level: int
     ) -> float:
         if expected_encounter_level <= 0:
             return 15.0
@@ -755,7 +900,7 @@ class CarryScoreCalculator:
         self,
         pokemon: PokemonData,
         current_party: List[Optional[PokemonData]],
-        upcoming_battles: Optional[List[Dict[str, Any]]] = None
+        upcoming_battles: Optional[List[Dict[str, Any]]] = None,
     ) -> float:
         party_types: Set[PokemonType] = set()
         for member in current_party:
@@ -795,7 +940,7 @@ class CarryScoreCalculator:
     def calculate_move_coverage(
         self,
         pokemon: PokemonData,
-        uncovered_enemy_types: Optional[List[PokemonType]] = None
+        uncovered_enemy_types: Optional[List[PokemonType]] = None,
     ) -> float:
         all_types = list(PokemonType)
         target_types = uncovered_enemy_types or all_types
@@ -832,9 +977,7 @@ class CarryScoreCalculator:
         return max(0.0, min(25.0, coverage_score))
 
     def calculate_stat_efficiency(
-        self,
-        pokemon: PokemonData,
-        species_potential: BaseStats
+        self, pokemon: PokemonData, species_potential: BaseStats
     ) -> float:
         current_dps = pokemon.get_dps_potential()
 
@@ -897,23 +1040,29 @@ class CarryScoreCalculator:
         pokemon: PokemonData,
         current_party: List[Optional[PokemonData]],
         upcoming_battles: Optional[List[Dict[str, Any]]] = None,
-        expected_encounter_level: int = 25
+        expected_encounter_level: int = 25,
     ) -> Tuple[float, CarryScoreBreakdown]:
-        level_relevance = self.calculate_level_relevance(pokemon, expected_encounter_level)
-        type_uniqueness = self.calculate_type_uniqueness(pokemon, current_party, upcoming_battles)
+        level_relevance = self.calculate_level_relevance(
+            pokemon, expected_encounter_level
+        )
+        type_uniqueness = self.calculate_type_uniqueness(
+            pokemon, current_party, upcoming_battles
+        )
         move_coverage = self.calculate_move_coverage(pokemon)
 
-        species_potential = self.species_data.get(pokemon.species_id, pokemon.base_stats)
+        species_potential = self.species_data.get(
+            pokemon.species_id, pokemon.base_stats
+        )
         stat_efficiency = self.calculate_stat_efficiency(pokemon, species_potential)
 
         rarity_mod = self.apply_rarity_modifier(pokemon)
         sentimental_mod = self.apply_sentimental_modifier(pokemon)
 
         base_score = (
-            level_relevance * 0.25 +
-            type_uniqueness * 0.30 +
-            move_coverage * 0.25 +
-            stat_efficiency * 0.20
+            level_relevance * 0.25
+            + type_uniqueness * 0.30
+            + move_coverage * 0.25
+            + stat_efficiency * 0.20
         )
 
         final_score = base_score * rarity_mod * sentimental_mod
@@ -925,7 +1074,7 @@ class CarryScoreCalculator:
             stat_efficiency=stat_efficiency,
             rarity_modifier=rarity_mod,
             sentimental_modifier=sentimental_mod,
-            final_score=final_score
+            final_score=final_score,
         )
 
         return final_score, breakdown
@@ -948,22 +1097,19 @@ class EvolutionManager:
         self,
         evolution_data: Dict[str, List[EvolutionCondition]],
         move_data: Dict[str, Dict[str, Any]],
-        type_chart: TypeChart
+        type_chart: TypeChart,
     ):
         self.evolution_data = evolution_data
         self.move_data = move_data
         self.type_chart = type_chart
 
     def get_evolution_conditions(
-        self,
-        species_id: str,
-        current_level: int
+        self, species_id: str, current_level: int
     ) -> List[EvolutionCondition]:
         return self.evolution_data.get(species_id, [])
 
     def check_evolution_available(
-        self,
-        pokemon: PokemonData
+        self, pokemon: PokemonData
     ) -> Optional[EvolutionCondition]:
         conditions = self.get_evolution_conditions(pokemon.species_id, pokemon.level)
 
@@ -974,15 +1120,15 @@ class EvolutionManager:
         return None
 
     def evaluate_pre_evolution_moves(
-        self,
-        species_id: str,
-        current_level: int,
-        evolution_level: int
+        self, species_id: str, current_level: int, evolution_level: int
     ) -> Optional[PreEvolutionMove]:
         important_moves = CRITICAL_PRE_EVO_MOVES.get(species_id, [])
 
         for move_data in important_moves:
-            if move_data.learn_level <= evolution_level and move_data.learn_level > current_level:
+            if (
+                move_data.learn_level <= evolution_level
+                and move_data.learn_level > current_level
+            ):
                 return move_data
 
         return None
@@ -991,7 +1137,7 @@ class EvolutionManager:
         self,
         pokemon: PokemonData,
         evolution: EvolutionCondition,
-        best_pre_evo_move: Optional[PreEvolutionMove]
+        best_pre_evo_move: Optional[PreEvolutionMove],
     ) -> EvolutionDecision:
         stat_improvement = 0.0
         for stat_name, change in evolution.stat_changes.items():
@@ -1016,7 +1162,7 @@ class EvolutionManager:
                 reason=f"Wait for {best_pre_evo_move.move_name} (Power: {best_pre_evo_move.power})",
                 expected_move=best_pre_evo_move,
                 stat_improvement=stat_improvement,
-                net_benefit_score=net_benefit
+                net_benefit_score=net_benefit,
             )
         elif best_pre_evo_move and wait_benefit > net_benefit * 0.9:
             return EvolutionDecision(
@@ -1025,7 +1171,7 @@ class EvolutionManager:
                 reason=f"Consider waiting for {best_pre_evo_move.move_name}",
                 expected_move=best_pre_evo_move,
                 stat_improvement=stat_improvement,
-                net_benefit_score=net_benefit
+                net_benefit_score=net_benefit,
             )
         else:
             return EvolutionDecision(
@@ -1034,14 +1180,10 @@ class EvolutionManager:
                 reason="Evolution provides best overall benefit",
                 expected_move=None,
                 stat_improvement=stat_improvement,
-                net_benefit_score=net_benefit
+                net_benefit_score=net_benefit,
             )
 
-    def calculate_move_value(
-        self,
-        move: Move,
-        pokemon: PokemonData
-    ) -> float:
+    def calculate_move_value(self, move: Move, pokemon: PokemonData) -> float:
         value = 0.0
 
         if move.category == MoveCategory.STATUS:
@@ -1058,17 +1200,16 @@ class EvolutionManager:
             value *= 1.5
 
         for target_type in PokemonType:
-            effectiveness = self.type_chart.get_effectiveness(move.move_type, [target_type])
+            effectiveness = self.type_chart.get_effectiveness(
+                move.move_type, [target_type]
+            )
             if effectiveness >= 2.0:
                 value += 1.0
 
         return min(value, 15.0)
 
     def should_use_evolution_item(
-        self,
-        pokemon: PokemonData,
-        item_name: str,
-        team_needs: Dict[str, Any]
+        self, pokemon: PokemonData, item_name: str, team_needs: Dict[str, Any]
     ) -> bool:
         evolution = self.check_evolution_available(pokemon)
         if not evolution:
@@ -1086,10 +1227,7 @@ class EvolutionManager:
 
         return False
 
-    def get_evolution_readiness(
-        self,
-        pokemon: PokemonData
-    ) -> Dict[str, Any]:
+    def get_evolution_readiness(self, pokemon: PokemonData) -> Dict[str, Any]:
         evolution = self.check_evolution_available(pokemon)
 
         if not evolution:
@@ -1099,30 +1237,34 @@ class EvolutionManager:
                 "evolution_conditions": [],
                 "critical_pre_evo_moves": [],
                 "recommended_action": "continue_training",
-                "wait_justification": None
+                "wait_justification": None,
             }
 
         best_pre_evo = self.evaluate_pre_evolution_moves(
             pokemon.species_id,
             pokemon.level,
-            evolution.required_value if evolution.condition_type == "level" else 999
+            evolution.required_value if evolution.condition_type == "level" else 999,
         )
 
-        decision = self.calculate_evolution_vs_wait_tradeoff(pokemon, evolution, best_pre_evo)
+        decision = self.calculate_evolution_vs_wait_tradeoff(
+            pokemon, evolution, best_pre_evo
+        )
 
         return {
             "current_level": pokemon.level,
             "evolution_available": True,
             "evolution_conditions": [evolution],
-            "critical_pre_evo_moves": CRITICAL_PRE_EVO_MOVES.get(pokemon.species_id, []),
+            "critical_pre_evo_moves": CRITICAL_PRE_EVO_MOVES.get(
+                pokemon.species_id, []
+            ),
             "recommended_action": decision.decision,
             "wait_justification": decision.reason,
             "decision_details": {
                 "decision": decision.decision,
                 "wait_levels": decision.wait_levels,
                 "stat_improvement": decision.stat_improvement,
-                "net_benefit_score": decision.net_benefit_score
-            }
+                "net_benefit_score": decision.net_benefit_score,
+            },
         }
 
 
@@ -1133,7 +1275,7 @@ class TeamCompositionOptimizer:
         self,
         carry_calculator: CarryScoreCalculator,
         species_data: Dict[str, BaseStats],
-        type_chart: TypeChart
+        type_chart: TypeChart,
     ):
         self.carry_calculator = carry_calculator
         self.species_data = species_data
@@ -1142,7 +1284,7 @@ class TeamCompositionOptimizer:
     def analyze_type_coverage(
         self,
         party: List[Optional[PokemonData]],
-        upcoming_battles: Optional[List[Dict[str, Any]]] = None
+        upcoming_battles: Optional[List[Dict[str, Any]]] = None,
     ) -> TypeCoverage:
         all_types = set(PokemonType)
         covered_types: Set[PokemonType] = set()
@@ -1157,7 +1299,9 @@ class TeamCompositionOptimizer:
 
         for move_type in party_move_types:
             for target_type in all_types:
-                effectiveness = self.type_chart.get_effectiveness(move_type, [target_type])
+                effectiveness = self.type_chart.get_effectiveness(
+                    move_type, [target_type]
+                )
                 if effectiveness >= 2.0:
                     covered_types.add(target_type)
                     break
@@ -1172,10 +1316,14 @@ class TeamCompositionOptimizer:
                     try:
                         boss_type = PokemonType(boss_type_name)
                         effective_counters = [
-                            t for t in all_types
+                            t
+                            for t in all_types
                             if self.type_chart.get_effectiveness(t, [boss_type]) >= 2.0
                         ]
-                        if not any(counter in party_move_types for counter in effective_counters):
+                        if not any(
+                            counter in party_move_types
+                            for counter in effective_counters
+                        ):
                             critical_gaps.add(boss_type)
                     except ValueError:
                         continue
@@ -1186,12 +1334,11 @@ class TeamCompositionOptimizer:
             covered_types=covered_types,
             uncovered_types=uncovered,
             critical_gaps=critical_gaps,
-            coverage_percentage=coverage_pct
+            coverage_percentage=coverage_pct,
         )
 
     def calculate_stat_distribution(
-        self,
-        party: List[Optional[PokemonData]]
+        self, party: List[Optional[PokemonData]]
     ) -> Dict[str, float]:
         active = [p for p in party if p is not None]
         if not active:
@@ -1210,12 +1357,11 @@ class TeamCompositionOptimizer:
             "attack": total_attack / grand_total,
             "defense": total_defense / grand_total,
             "speed": total_speed / grand_total,
-            "special": total_special / grand_total
+            "special": total_special / grand_total,
         }
 
     def detect_move_overlap(
-        self,
-        party: List[Optional[PokemonData]]
+        self, party: List[Optional[PokemonData]]
     ) -> List[Dict[str, Any]]:
         move_owners: Dict[str, List[str]] = {}
 
@@ -1230,19 +1376,18 @@ class TeamCompositionOptimizer:
         overlaps = []
         for move_name, owners in move_owners.items():
             if len(owners) > 1:
-                overlaps.append({
-                    "move_name": move_name,
-                    "owners": owners,
-                    "redundancy_level": len(owners),
-                    "recommendation": f"Consider replacing {move_name} on some team members"
-                })
+                overlaps.append(
+                    {
+                        "move_name": move_name,
+                        "owners": owners,
+                        "redundancy_level": len(owners),
+                        "recommendation": f"Consider replacing {move_name} on some team members",
+                    }
+                )
 
         return overlaps
 
-    def assign_roles(
-        self,
-        party: List[Optional[PokemonData]]
-    ) -> Dict[str, str]:
+    def assign_roles(self, party: List[Optional[PokemonData]]) -> Dict[str, str]:
         roles: Dict[str, str] = {}
 
         for pokemon in party:
@@ -1251,12 +1396,19 @@ class TeamCompositionOptimizer:
 
             pokemon_id = pokemon.pokemon_id
 
-            attack_ratio = pokemon.base_stats.attack / max(pokemon.base_stats.special, 1)
+            attack_ratio = pokemon.base_stats.attack / max(
+                pokemon.base_stats.special, 1
+            )
             speed_score = pokemon.base_stats.speed
             defense_score = pokemon.base_stats.hp + pokemon.base_stats.defense
 
-            has_status_moves = any(m.category == MoveCategory.STATUS for m in pokemon.moves)
-            has_utility = any(m.name.upper() in {"TOXIC", "THUNDER_WAVE", "WILL_O_WISP", "STUN_SPORE"} for m in pokemon.moves)
+            has_status_moves = any(
+                m.category == MoveCategory.STATUS for m in pokemon.moves
+            )
+            has_utility = any(
+                m.name.upper() in {"TOXIC", "THUNDER_WAVE", "WILL_O_WISP", "STUN_SPORE"}
+                for m in pokemon.moves
+            )
 
             if has_utility or has_status_moves:
                 if defense_score > 150 and attack_ratio < 1.2:
@@ -1273,9 +1425,7 @@ class TeamCompositionOptimizer:
         return roles
 
     def identify_boss_counters(
-        self,
-        boss_team: List[Dict[str, Any]],
-        available_pokemon: List[PokemonData]
+        self, boss_team: List[Dict[str, Any]], available_pokemon: List[PokemonData]
     ) -> List[Dict[str, Any]]:
         counters = []
 
@@ -1296,7 +1446,9 @@ class TeamCompositionOptimizer:
                         boss_type = PokemonType(boss_type_name)
                         for cand_type in candidate_types:
                             if cand_type:
-                                eff = self.type_chart.get_effectiveness(boss_type, [cand_type])
+                                eff = self.type_chart.get_effectiveness(
+                                    boss_type, [cand_type]
+                                )
                                 defensive_effectiveness.append(eff)
                     except ValueError:
                         continue
@@ -1318,7 +1470,9 @@ class TeamCompositionOptimizer:
                         boss_type = PokemonType(boss_type_name)
                         for cand_type in candidate_types:
                             if cand_type:
-                                eff = self.type_chart.get_effectiveness(cand_type, [boss_type])
+                                eff = self.type_chart.get_effectiveness(
+                                    cand_type, [boss_type]
+                                )
                                 if eff >= 2.0:
                                     offensive_score = 3.0
                                     break
@@ -1327,29 +1481,33 @@ class TeamCompositionOptimizer:
                     except ValueError:
                         continue
 
-                level_score = min(candidate.level / boss_level, 1.5) if boss_level > 0 else 1.0
+                level_score = (
+                    min(candidate.level / boss_level, 1.5) if boss_level > 0 else 1.0
+                )
 
-                overall_score = (defensive_score * 0.4 + offensive_score * 0.4 + level_score * 0.2)
+                overall_score = (
+                    defensive_score * 0.4 + offensive_score * 0.4 + level_score * 0.2
+                )
 
                 if overall_score > best_score:
                     best_score = overall_score
                     best_counter = candidate
 
             if best_counter:
-                counters.append({
-                    "for_boss": boss_species,
-                    "counter_pokemon": best_counter.species_id,
-                    "counter_name": best_counter.species_name(),
-                    "score": best_score,
-                    "confidence": min(best_score / 3.0, 1.0)
-                })
+                counters.append(
+                    {
+                        "for_boss": boss_species,
+                        "counter_pokemon": best_counter.species_id,
+                        "counter_name": best_counter.species_name(),
+                        "score": best_score,
+                        "confidence": min(best_score / 3.0, 1.0),
+                    }
+                )
 
         return counters
 
     def calculate_battle_usage_priorities(
-        self,
-        party: List[Optional[PokemonData]],
-        enemy_party: List[Dict[str, Any]]
+        self, party: List[Optional[PokemonData]], enemy_party: List[Dict[str, Any]]
     ) -> List[Tuple[Optional[PokemonData], float]]:
         party_avg_level = 0.0
         active = [p for p in party if p is not None]
@@ -1402,21 +1560,21 @@ class TeamCompositionOptimizer:
         return priorities
 
     def optimize_party_order(
-        self,
-        party: List[Optional[PokemonData]],
-        battle_type: str
+        self, party: List[Optional[PokemonData]], battle_type: str
     ) -> List[PartySlot]:
         scored_party: List[PartySlot] = []
 
         for slot_index, pokemon in enumerate(party):
             if pokemon is None:
-                scored_party.append(PartySlot(
-                    slot_index=slot_index,
-                    pokemon=None,
-                    score=0.0,
-                    recommended_role="empty",
-                    suggested_moves=[]
-                ))
+                scored_party.append(
+                    PartySlot(
+                        slot_index=slot_index,
+                        pokemon=None,
+                        score=0.0,
+                        recommended_role="empty",
+                        suggested_moves=[],
+                    )
+                )
                 continue
 
             score = 0.0
@@ -1427,18 +1585,27 @@ class TeamCompositionOptimizer:
                 best_move = pokemon.get_best_move()
                 pp_sustainability = pokemon.total_pp_remaining() / 50.0
 
-                score = (min(speed_stat / 100.0, 1.2) * 0.3 +
-                        (1.0 if best_move and best_move.power >= 50 else 0.5) * 0.3 +
-                        pp_sustainability * 0.2 +
-                        (1.0 if pokemon.level < 50 else 0.7) * 0.2)
+                score = (
+                    min(speed_stat / 100.0, 1.2) * 0.3
+                    + (1.0 if best_move and best_move.power >= 50 else 0.5) * 0.3
+                    + pp_sustainability * 0.2
+                    + (1.0 if pokemon.level < 50 else 0.7) * 0.2
+                )
                 role = "sweeper"
 
             elif battle_type == "trainer":
                 score = pokemon.get_dps_potential() / 100.0 * 0.5
                 score += (pokemon.base_stats.speed / 120.0) * 0.3
-                if len([m for m in pokemon.moves if m.category != MoveCategory.STATUS]) >= 3:
+                if (
+                    len([m for m in pokemon.moves if m.category != MoveCategory.STATUS])
+                    >= 3
+                ):
                     score += 0.2
-                role = "sweeper" if pokemon.base_stats.attack > pokemon.base_stats.defense else "mixed"
+                role = (
+                    "sweeper"
+                    if pokemon.base_stats.attack > pokemon.base_stats.defense
+                    else "mixed"
+                )
 
             elif battle_type == "gym":
                 score = pokemon.defensive_stat() / 100.0 * 0.4
@@ -1448,7 +1615,13 @@ class TeamCompositionOptimizer:
                 role = "tank"
 
             elif battle_type == "elite4":
-                versatility = len(set(m.category for m in pokemon.moves if m.category != MoveCategory.STATUS))
+                versatility = len(
+                    set(
+                        m.category
+                        for m in pokemon.moves
+                        if m.category != MoveCategory.STATUS
+                    )
+                )
                 score = (versatility / 3.0) * 0.5
                 score += (pokemon.level / 60.0) * 0.3
                 score += pokemon.get_dps_potential() / 150.0 * 0.2
@@ -1456,7 +1629,9 @@ class TeamCompositionOptimizer:
 
             elif battle_type == "legendary":
                 score = (pokemon.defensive_stat() / 120.0) * 0.4
-                has_status = any(m.category == MoveCategory.STATUS for m in pokemon.moves)
+                has_status = any(
+                    m.category == MoveCategory.STATUS for m in pokemon.moves
+                )
                 score += 0.3 if has_status else 0.0
                 score += (pokemon.current_hp / max(pokemon.max_hp, 1)) * 0.3
                 role = "support" if has_status else "tank"
@@ -1467,20 +1642,21 @@ class TeamCompositionOptimizer:
             health_multiplier = pokemon.current_hp / max(pokemon.max_hp, 1)
             score *= max(0.3, health_multiplier)
 
-            scored_party.append(PartySlot(
-                slot_index=slot_index,
-                pokemon=pokemon,
-                score=score,
-                recommended_role=role,
-                suggested_moves=[]
-            ))
+            scored_party.append(
+                PartySlot(
+                    slot_index=slot_index,
+                    pokemon=pokemon,
+                    score=score,
+                    recommended_role=role,
+                    suggested_moves=[],
+                )
+            )
 
         scored_party.sort(key=lambda x: x.score, reverse=True)
         return scored_party
 
     def calculate_experience_rebalance_needed(
-        self,
-        party: List[Optional[PokemonData]]
+        self, party: List[Optional[PokemonData]]
     ) -> Dict[str, Any]:
         active = [p for p in party if p is not None]
         if len(active) < 2:
@@ -1489,7 +1665,7 @@ class TeamCompositionOptimizer:
                 "needs_rebalance": False,
                 "overleveled": [],
                 "underleveled": [],
-                "recommendations": []
+                "recommendations": [],
             }
 
         avg_level = sum(p.level for p in active) / len(active)
@@ -1500,22 +1676,26 @@ class TeamCompositionOptimizer:
 
         recommendations = []
         if level_spread > 10:
-            recommendations.append("Severe level imbalance - prioritize training underleveled Pokemon")
+            recommendations.append(
+                "Severe level imbalance - prioritize training underleveled Pokemon"
+            )
         elif level_spread > 6:
-            recommendations.append("Moderate level imbalance - consider adjusting battle rotation")
+            recommendations.append(
+                "Moderate level imbalance - consider adjusting battle rotation"
+            )
 
         return {
             "level_spread": level_spread,
             "needs_rebalance": level_spread > 6,
             "overleveled": [p.species_id for p in overleveled],
             "underleveled": [p.species_id for p in underleveled],
-            "recommendations": recommendations
+            "recommendations": recommendations,
         }
 
     def analyze_team(
         self,
         party: List[Optional[PokemonData]],
-        upcoming_battles: Optional[List[Dict[str, Any]]] = None
+        upcoming_battles: Optional[List[Dict[str, Any]]] = None,
     ) -> TeamAnalysis:
         type_coverage = self.analyze_type_coverage(party, upcoming_battles)
 
@@ -1535,13 +1715,19 @@ class TeamCompositionOptimizer:
 
         recommendations = []
         if type_coverage.coverage_percentage < 0.6:
-            recommendations.append("Improve type coverage - add Pokemon with missing types")
+            recommendations.append(
+                "Improve type coverage - add Pokemon with missing types"
+            )
         if len(move_overlap) > 3:
             recommendations.append("Reduce move redundancy - replace duplicate moves")
         for gap in type_coverage.critical_gaps:
             recommendations.append(f"Critical gap: Add {gap.value} type coverage")
 
-        team_score = sum(carry_scores.values()) / max(len(carry_scores), 1) if carry_scores else 0.0
+        team_score = (
+            sum(carry_scores.values()) / max(len(carry_scores), 1)
+            if carry_scores
+            else 0.0
+        )
 
         return TeamAnalysis(
             type_coverage=type_coverage,
@@ -1550,14 +1736,14 @@ class TeamCompositionOptimizer:
             stat_distribution=stat_distribution,
             move_overlap=move_overlap,
             recommendations=recommendations,
-            team_score=team_score
+            team_score=team_score,
         )
 
     def suggest_party_changes(
         self,
         current_party: List[Optional[PokemonData]],
         box_pokemon: List[PokemonData],
-        upcoming_content: Dict[str, Any]
+        upcoming_content: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         suggestions: List[Dict[str, Any]] = []
 
@@ -1578,16 +1764,20 @@ class TeamCompositionOptimizer:
                         best_candidate = pokemon
 
             if best_candidate:
-                suggestions.append({
-                    "action": "add",
-                    "pokemon": best_candidate.species_id,
-                    "reason": f"Provides needed {gap_type.value} type coverage",
-                    "priority": "high"
-                })
+                suggestions.append(
+                    {
+                        "action": "add",
+                        "pokemon": best_candidate.species_id,
+                        "reason": f"Provides needed {gap_type.value} type coverage",
+                        "priority": "high",
+                    }
+                )
 
         for party_member in current_party:
             if party_member is not None:
-                score, _ = self.carry_calculator.calculate_carry_score(party_member, current_party)
+                score, _ = self.carry_calculator.calculate_carry_score(
+                    party_member, current_party
+                )
                 bench_status = self.carry_calculator.should_bench(score)
                 if bench_status == "immediate_bench":
                     for box_mon in box_pokemon:
@@ -1595,13 +1785,15 @@ class TeamCompositionOptimizer:
                             box_mon, current_party
                         )
                         if box_score > score:
-                            suggestions.append({
-                                "action": "replace",
-                                "remove": party_member.species_id,
-                                "add": box_mon.species_id,
-                                "reason": f"{box_mon.species_id} has higher carry score ({box_score:.1f} vs {score:.1f})",
-                                "priority": "medium"
-                            })
+                            suggestions.append(
+                                {
+                                    "action": "replace",
+                                    "remove": party_member.species_id,
+                                    "add": box_mon.species_id,
+                                    "reason": f"{box_mon.species_id} has higher carry score ({box_score:.1f} vs {score:.1f})",
+                                    "priority": "medium",
+                                }
+                            )
                             break
 
         return suggestions
@@ -1615,13 +1807,13 @@ class EntityManager:
         type_chart: Optional[TypeChart] = None,
         species_data: Optional[Dict[str, BaseStats]] = None,
         evolution_data: Optional[Dict[str, List[EvolutionCondition]]] = None,
-        move_data: Optional[Dict[str, Dict[str, Any]]] = None
+        move_data: Optional[Dict[str, Dict[str, Any]]] = None,
     ):
         chart = type_chart if type_chart is not None else TypeChart()
         data = species_data if species_data is not None else {}
         evo_data = evolution_data if evolution_data is not None else {}
         m_data = move_data if move_data is not None else {}
-        
+
         self.carry_calculator = CarryScoreCalculator(chart, data)
         self.evolution_manager = EvolutionManager(evo_data, m_data, chart)
         self.team_optimizer = TeamCompositionOptimizer(
@@ -1668,8 +1860,7 @@ class EntityManager:
         return None
 
     def calculate_all_carry_scores(
-        self,
-        upcoming_battles: Optional[List[Dict[str, Any]]] = None
+        self, upcoming_battles: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, float]:
         if not self.team:
             return {}
@@ -1684,21 +1875,16 @@ class EntityManager:
         return scores
 
     def analyze_team(
-        self,
-        upcoming_battles: Optional[List[Dict[str, Any]]] = None
+        self, upcoming_battles: Optional[List[Dict[str, Any]]] = None
     ) -> TeamAnalysis:
         if not self.team:
             return TeamAnalysis(
-                TypeCoverage(set(), set(), set(), 0.0),
-                {}, {}, {}, [], [], 0.0
+                TypeCoverage(set(), set(), set(), 0.0), {}, {}, {}, [], [], 0.0
             )
 
         return self.team_optimizer.analyze_team(self.team.party, upcoming_battles)
 
-    def get_evolution_recommendations(
-        self,
-        pokemon_id: str
-    ) -> Dict[str, Any]:
+    def get_evolution_recommendations(self, pokemon_id: str) -> Dict[str, Any]:
         pokemon = self.get_pokemon(pokemon_id)
         if not pokemon:
             return {}
@@ -1706,8 +1892,7 @@ class EntityManager:
         return self.evolution_manager.get_evolution_readiness(pokemon)
 
     def get_party_optimization_suggestions(
-        self,
-        upcoming_content: Dict[str, Any]
+        self, upcoming_content: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         if not self.team:
             return []
@@ -1723,10 +1908,12 @@ class EntityManager:
                 "needs_rebalance": False,
                 "overleveled": [],
                 "underleveled": [],
-                "recommendations": []
+                "recommendations": [],
             }
 
-        return self.team_optimizer.calculate_experience_rebalance_needed(self.team.party)
+        return self.team_optimizer.calculate_experience_rebalance_needed(
+            self.team.party
+        )
 
     def full_party_scan(self) -> Dict[str, Any]:
         if not self.team:
@@ -1743,7 +1930,9 @@ class EntityManager:
             "role_assignments": analysis.role_assignments,
             "experience_balance": exp_balance,
             "recommendations": analysis.recommendations,
-            "mvp_candidates": sorted(scores.items(), key=lambda x: x[1], reverse=True)[:3]
+            "mvp_candidates": sorted(scores.items(), key=lambda x: x[1], reverse=True)[
+                :3
+            ],
         }
 
     def get_bench_status(self) -> List[Dict[str, Any]]:
@@ -1757,17 +1946,19 @@ class EntityManager:
             )
             bench_status = self.carry_calculator.should_bench(score)
 
-            status_list.append({
-                "pokemon_id": pokemon.pokemon_id,
-                "species": pokemon.species_id,
-                "nickname": pokemon.nickname,
-                "score": score,
-                "breakdown": breakdown.to_dict(),
-                "bench_status": bench_status,
-                "level": pokemon.level,
-                "current_hp": pokemon.current_hp,
-                "max_hp": pokemon.max_hp
-            })
+            status_list.append(
+                {
+                    "pokemon_id": pokemon.pokemon_id,
+                    "species": pokemon.species_id,
+                    "nickname": pokemon.nickname,
+                    "score": score,
+                    "breakdown": breakdown.to_dict(),
+                    "bench_status": bench_status,
+                    "level": pokemon.level,
+                    "current_hp": pokemon.current_hp,
+                    "max_hp": pokemon.max_hp,
+                }
+            )
 
         status_list.sort(key=lambda x: x["score"], reverse=True)
         return status_list

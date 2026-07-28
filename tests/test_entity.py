@@ -64,7 +64,7 @@ def sample_base_stats() -> BaseStats:
         type_secondary=None,
         catch_rate=190,
         base_experience_yield=112,
-        growth_rate=GrowthRate.MEDIUM
+        growth_rate=GrowthRate.MEDIUM,
     )
 
 
@@ -90,7 +90,7 @@ def sample_pokemon_data(sample_base_stats: BaseStats) -> PokemonData:
                 accuracy=100,
                 pp=30,
                 max_pp=30,
-                category=MoveCategory.SPECIAL
+                category=MoveCategory.SPECIAL,
             ),
             Move(
                 move_id="QUICK_ATTACK",
@@ -100,7 +100,7 @@ def sample_pokemon_data(sample_base_stats: BaseStats) -> PokemonData:
                 accuracy=100,
                 pp=30,
                 max_pp=30,
-                category=MoveCategory.PHYSICAL
+                category=MoveCategory.PHYSICAL,
             ),
             Move(
                 move_id="TAIL_WHIP",
@@ -110,7 +110,7 @@ def sample_pokemon_data(sample_base_stats: BaseStats) -> PokemonData:
                 accuracy=100,
                 pp=30,
                 max_pp=30,
-                category=MoveCategory.STATUS
+                category=MoveCategory.STATUS,
             ),
             Move(
                 move_id="GROWL",
@@ -120,8 +120,8 @@ def sample_pokemon_data(sample_base_stats: BaseStats) -> PokemonData:
                 accuracy=100,
                 pp=40,
                 max_pp=40,
-                category=MoveCategory.STATUS
-            )
+                category=MoveCategory.STATUS,
+            ),
         ],
         status=StatusCondition.NONE,
         experience=Experience(current=5000, to_next_level=2000, growth_rate="medium"),
@@ -131,7 +131,7 @@ def sample_pokemon_data(sample_base_stats: BaseStats) -> PokemonData:
         catch_location="Viridian Forest",
         catch_level=5,
         victories=10,
-        defeats=2
+        defeats=2,
     )
 
 
@@ -141,18 +141,11 @@ def sample_team(sample_pokemon_data: PokemonData) -> Team:
     return Team(
         team_id="team_001",
         name="My Team",
-        party=[
-            sample_pokemon_data,
-            None,
-            None,
-            None,
-            None,
-            None
-        ],
+        party=[sample_pokemon_data, None, None, None, None, None],
         box=[],
         total_battles=12,
         total_victories=10,
-        total_defeats=2
+        total_defeats=2,
     )
 
 
@@ -171,9 +164,9 @@ def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -
         type_secondary=PokemonType.FLYING,
         catch_rate=45,
         base_experience_yield=209,
-        growth_rate=GrowthRate.MEDIUM
+        growth_rate=GrowthRate.MEDIUM,
     )
-    
+
     blastoise_stats = BaseStats(
         species_id="BLASTOISE",
         species_name="Blastoise",
@@ -186,9 +179,9 @@ def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -
         type_secondary=None,
         catch_rate=45,
         base_experience_yield=210,
-        growth_rate=GrowthRate.MEDIUM
+        growth_rate=GrowthRate.MEDIUM,
     )
-    
+
     venusaur_stats = BaseStats(
         species_id="VENUSAUR",
         species_name="Venusaur",
@@ -201,11 +194,11 @@ def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -
         type_secondary=PokemonType.POISON,
         catch_rate=45,
         base_experience_yield=208,
-        growth_rate=GrowthRate.MEDIUM
+        growth_rate=GrowthRate.MEDIUM,
     )
-    
+
     pikachu = sample_pokemon_data
-    
+
     charizard = PokemonData(
         pokemon_id="pokemon_002",
         species_id="CHARIZARD",
@@ -217,18 +210,56 @@ def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -
         ivs=IndividualValues(hp=15, attack=15, defense=15, speed=15, special=15),
         evs=EffortValues(hp=0, attack=0, defense=0, speed=0, special=0),
         moves=[
-            Move(move_id="FLAMETHROWER", name="Flamethrower", move_type=PokemonType.FIRE, power=90, accuracy=100, pp=15, max_pp=15, category=MoveCategory.SPECIAL),
-            Move(move_id="SLASH", name="Slash", move_type=PokemonType.NORMAL, power=70, accuracy=100, pp=20, max_pp=20, category=MoveCategory.PHYSICAL),
-            Move(move_id="FIRE_BLAST", name="Fire Blast", move_type=PokemonType.FIRE, power=110, accuracy=85, pp=5, max_pp=5, category=MoveCategory.SPECIAL),
-            Move(move_id="WING_ATTACK", name="Wing Attack", move_type=PokemonType.FLYING, power=60, accuracy=100, pp=35, max_pp=35, category=MoveCategory.PHYSICAL)
+            Move(
+                move_id="FLAMETHROWER",
+                name="Flamethrower",
+                move_type=PokemonType.FIRE,
+                power=90,
+                accuracy=100,
+                pp=15,
+                max_pp=15,
+                category=MoveCategory.SPECIAL,
+            ),
+            Move(
+                move_id="SLASH",
+                name="Slash",
+                move_type=PokemonType.NORMAL,
+                power=70,
+                accuracy=100,
+                pp=20,
+                max_pp=20,
+                category=MoveCategory.PHYSICAL,
+            ),
+            Move(
+                move_id="FIRE_BLAST",
+                name="Fire Blast",
+                move_type=PokemonType.FIRE,
+                power=110,
+                accuracy=85,
+                pp=5,
+                max_pp=5,
+                category=MoveCategory.SPECIAL,
+            ),
+            Move(
+                move_id="WING_ATTACK",
+                name="Wing Attack",
+                move_type=PokemonType.FLYING,
+                power=60,
+                accuracy=100,
+                pp=35,
+                max_pp=35,
+                category=MoveCategory.PHYSICAL,
+            ),
         ],
         status=StatusCondition.NONE,
-        experience=Experience(current=100000, to_next_level=50000, growth_rate="medium"),
+        experience=Experience(
+            current=100000, to_next_level=50000, growth_rate="medium"
+        ),
         types=(PokemonType.FIRE, PokemonType.FLYING),
         victories=15,
-        defeats=3
+        defeats=3,
     )
-    
+
     blastoise = PokemonData(
         pokemon_id="pokemon_003",
         species_id="BLASTOISE",
@@ -240,18 +271,54 @@ def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -
         ivs=IndividualValues(hp=15, attack=15, defense=15, speed=15, special=15),
         evs=EffortValues(hp=0, attack=0, defense=0, speed=0, special=0),
         moves=[
-            Move(move_id="HYDRO_PUMP", name="Hydro Pump", move_type=PokemonType.WATER, power=110, accuracy=80, pp=5, max_pp=5, category=MoveCategory.SPECIAL),
-            Move(move_id="SKULL_BASH", name="Skull Bash", move_type=PokemonType.NORMAL, power=130, accuracy=100, pp=10, max_pp=10, category=MoveCategory.PHYSICAL),
-            Move(move_id="ICE_BEAM", name="Ice Beam", move_type=PokemonType.ICE, power=90, accuracy=100, pp=10, max_pp=10, category=MoveCategory.SPECIAL),
-            Move(move_id="BITE", name="Bite", move_type=PokemonType.DARK, power=60, accuracy=100, pp=25, max_pp=25, category=MoveCategory.PHYSICAL)
+            Move(
+                move_id="HYDRO_PUMP",
+                name="Hydro Pump",
+                move_type=PokemonType.WATER,
+                power=110,
+                accuracy=80,
+                pp=5,
+                max_pp=5,
+                category=MoveCategory.SPECIAL,
+            ),
+            Move(
+                move_id="SKULL_BASH",
+                name="Skull Bash",
+                move_type=PokemonType.NORMAL,
+                power=130,
+                accuracy=100,
+                pp=10,
+                max_pp=10,
+                category=MoveCategory.PHYSICAL,
+            ),
+            Move(
+                move_id="ICE_BEAM",
+                name="Ice Beam",
+                move_type=PokemonType.ICE,
+                power=90,
+                accuracy=100,
+                pp=10,
+                max_pp=10,
+                category=MoveCategory.SPECIAL,
+            ),
+            Move(
+                move_id="BITE",
+                name="Bite",
+                move_type=PokemonType.DARK,
+                power=60,
+                accuracy=100,
+                pp=25,
+                max_pp=25,
+                category=MoveCategory.PHYSICAL,
+            ),
         ],
         status=StatusCondition.NONE,
         experience=Experience(current=90000, to_next_level=60000, growth_rate="medium"),
         types=(PokemonType.WATER, None),
         victories=12,
-        defeats=4
+        defeats=4,
     )
-    
+
     venusaur = PokemonData(
         pokemon_id="pokemon_004",
         species_id="VENUSAUR",
@@ -263,18 +330,56 @@ def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -
         ivs=IndividualValues(hp=15, attack=15, defense=15, speed=15, special=15),
         evs=EffortValues(hp=0, attack=0, defense=0, speed=0, special=0),
         moves=[
-            Move(move_id="RAZOR_LEAF", name="Razor Leaf", move_type=PokemonType.GRASS, power=55, accuracy=95, pp=25, max_pp=25, category=MoveCategory.PHYSICAL),
-            Move(move_id="SLUDGE_BOMB", name="Sludge Bomb", move_type=PokemonType.POISON, power=90, accuracy=100, pp=10, max_pp=10, category=MoveCategory.SPECIAL),
-            Move(move_id="EARTHQUAKE", name="Earthquake", move_type=PokemonType.GROUND, power=100, accuracy=100, pp=10, max_pp=10, category=MoveCategory.PHYSICAL),
-            Move(move_id="SLEEP_POWDER", name="Sleep Powder", move_type=PokemonType.GRASS, power=0, accuracy=75, pp=15, max_pp=15, category=MoveCategory.STATUS)
+            Move(
+                move_id="RAZOR_LEAF",
+                name="Razor Leaf",
+                move_type=PokemonType.GRASS,
+                power=55,
+                accuracy=95,
+                pp=25,
+                max_pp=25,
+                category=MoveCategory.PHYSICAL,
+            ),
+            Move(
+                move_id="SLUDGE_BOMB",
+                name="Sludge Bomb",
+                move_type=PokemonType.POISON,
+                power=90,
+                accuracy=100,
+                pp=10,
+                max_pp=10,
+                category=MoveCategory.SPECIAL,
+            ),
+            Move(
+                move_id="EARTHQUAKE",
+                name="Earthquake",
+                move_type=PokemonType.GROUND,
+                power=100,
+                accuracy=100,
+                pp=10,
+                max_pp=10,
+                category=MoveCategory.PHYSICAL,
+            ),
+            Move(
+                move_id="SLEEP_POWDER",
+                name="Sleep Powder",
+                move_type=PokemonType.GRASS,
+                power=0,
+                accuracy=75,
+                pp=15,
+                max_pp=15,
+                category=MoveCategory.STATUS,
+            ),
         ],
         status=StatusCondition.POISONED,
-        experience=Experience(current=120000, to_next_level=40000, growth_rate="medium"),
+        experience=Experience(
+            current=120000, to_next_level=40000, growth_rate="medium"
+        ),
         types=(PokemonType.GRASS, PokemonType.POISON),
         victories=18,
-        defeats=2
+        defeats=2,
     )
-    
+
     rattata_stats = BaseStats(
         species_id="RATTATA",
         species_name="Rattata",
@@ -287,9 +392,9 @@ def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -
         type_secondary=None,
         catch_rate=255,
         base_experience_yield=57,
-        growth_rate=GrowthRate.FAST
+        growth_rate=GrowthRate.FAST,
     )
-    
+
     rattata = PokemonData(
         pokemon_id="pokemon_005",
         species_id="RATTATA",
@@ -301,18 +406,54 @@ def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -
         ivs=IndividualValues(hp=5, attack=10, defense=5, speed=10, special=5),
         evs=EffortValues(hp=0, attack=0, defense=0, speed=0, special=0),
         moves=[
-            Move(move_id="TACKLE", name="Tackle", move_type=PokemonType.NORMAL, power=40, accuracy=100, pp=35, max_pp=35, category=MoveCategory.PHYSICAL),
-            Move(move_id="TAIL_WHIP", name="Tail Whip", move_type=PokemonType.NORMAL, power=0, accuracy=100, pp=30, max_pp=30, category=MoveCategory.STATUS),
-            Move(move_id="QUICK_ATTACK", name="Quick Attack", move_type=PokemonType.NORMAL, power=40, accuracy=100, pp=30, max_pp=30, category=MoveCategory.PHYSICAL),
-            Move(move_id="HYPER_FANG", name="Hyper Fang", move_type=PokemonType.NORMAL, power=80, accuracy=90, pp=15, max_pp=15, category=MoveCategory.PHYSICAL)
+            Move(
+                move_id="TACKLE",
+                name="Tackle",
+                move_type=PokemonType.NORMAL,
+                power=40,
+                accuracy=100,
+                pp=35,
+                max_pp=35,
+                category=MoveCategory.PHYSICAL,
+            ),
+            Move(
+                move_id="TAIL_WHIP",
+                name="Tail Whip",
+                move_type=PokemonType.NORMAL,
+                power=0,
+                accuracy=100,
+                pp=30,
+                max_pp=30,
+                category=MoveCategory.STATUS,
+            ),
+            Move(
+                move_id="QUICK_ATTACK",
+                name="Quick Attack",
+                move_type=PokemonType.NORMAL,
+                power=40,
+                accuracy=100,
+                pp=30,
+                max_pp=30,
+                category=MoveCategory.PHYSICAL,
+            ),
+            Move(
+                move_id="HYPER_FANG",
+                name="Hyper Fang",
+                move_type=PokemonType.NORMAL,
+                power=80,
+                accuracy=90,
+                pp=15,
+                max_pp=15,
+                category=MoveCategory.PHYSICAL,
+            ),
         ],
         status=StatusCondition.NONE,
         experience=Experience(current=2000, to_next_level=3000, growth_rate="fast"),
         types=(PokemonType.NORMAL, None),
         victories=5,
-        defeats=8
+        defeats=8,
     )
-    
+
     return Team(
         team_id="team_full",
         name="Full Team",
@@ -320,57 +461,76 @@ def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -
         box=[],
         total_battles=50,
         total_victories=40,
-        total_defeats=10
+        total_defeats=10,
     )
 
 
 class TestTypeChart:
     """Tests for TypeChart class"""
-    
+
     def test_fire_vs_grass_super_effective(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test Fire is super effective against Grass"""
-        effectiveness = type_chart.get_effectiveness(PokemonType.FIRE, [PokemonType.GRASS])
+        effectiveness = type_chart.get_effectiveness(
+            PokemonType.FIRE, [PokemonType.GRASS]
+        )
         assert effectiveness == 2.0
-    
+
     def test_water_vs_fire_super_effective(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test Water is super effective against Fire"""
-        effectiveness = type_chart.get_effectiveness(PokemonType.WATER, [PokemonType.FIRE])
+        effectiveness = type_chart.get_effectiveness(
+            PokemonType.WATER, [PokemonType.FIRE]
+        )
         assert effectiveness == 2.0
-    
+
     def test_electric_vs_ground_immune(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test Electric is immune to Ground"""
-        effectiveness = type_chart.get_effectiveness(PokemonType.ELECTRIC, [PokemonType.GROUND])
+        effectiveness = type_chart.get_effectiveness(
+            PokemonType.ELECTRIC, [PokemonType.GROUND]
+        )
         assert effectiveness == 0.0
-    
+
     def test_normal_vs_ghost_immune(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test Normal is immune to Ghost"""
-        effectiveness = type_chart.get_effectiveness(PokemonType.NORMAL, [PokemonType.GHOST])
+        effectiveness = type_chart.get_effectiveness(
+            PokemonType.NORMAL, [PokemonType.GHOST]
+        )
         assert effectiveness == 0.0
-    
+
     def test_fairy_vs_dragon_super_effective(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test Fairy is super effective against Dragon"""
-        effectiveness = type_chart.get_effectiveness(PokemonType.FAIRY, [PokemonType.DRAGON])
+        effectiveness = type_chart.get_effectiveness(
+            PokemonType.FAIRY, [PokemonType.DRAGON]
+        )
         assert effectiveness == 2.0
-    
+
     def test_water_vs_water_not_very_effective(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test Water is not very effective against Water"""
-        effectiveness = type_chart.get_effectiveness(PokemonType.WATER, [PokemonType.WATER])
+        effectiveness = type_chart.get_effectiveness(
+            PokemonType.WATER, [PokemonType.WATER]
+        )
         assert effectiveness == 0.5
-    
+
     def test_dual_type_effectiveness(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test effectiveness against dual types"""
-        effectiveness = type_chart.get_effectiveness(PokemonType.FIRE, [PokemonType.GRASS, PokemonType.ICE])
+        effectiveness = type_chart.get_effectiveness(
+            PokemonType.FIRE, [PokemonType.GRASS, PokemonType.ICE]
+        )
         assert effectiveness == 4.0
-    
+
     def test_is_immune(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test is_immune method"""
         assert type_chart.is_immune(PokemonType.NORMAL, [PokemonType.GHOST]) is True
         assert type_chart.is_immune(PokemonType.FIRE, [PokemonType.GRASS]) is False
-    
+
     def test_is_super_effective(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test is_super_effective method"""
-        assert type_chart.is_super_effective(PokemonType.FIRE, [PokemonType.GRASS]) is True
-        assert type_chart.is_super_effective(PokemonType.FIRE, [PokemonType.WATER]) is False
+        assert (
+            type_chart.is_super_effective(PokemonType.FIRE, [PokemonType.GRASS]) is True
+        )
+        assert (
+            type_chart.is_super_effective(PokemonType.FIRE, [PokemonType.WATER])
+            is False
+        )
 
 
 class TestPokemonData:
@@ -442,18 +602,26 @@ class TestPokemonData:
         """Test offensive stat returns attack for physical specialist"""
         sample_pokemon_data.moves[0].power = 30  # Reduce special move power
         stat = sample_pokemon_data.offensive_stat()
-        assert stat == sample_pokemon_data.base_stats.attack + sample_pokemon_data.ivs.attack
+        assert (
+            stat
+            == sample_pokemon_data.base_stats.attack + sample_pokemon_data.ivs.attack
+        )
 
     def test_offensive_stat_special(self, sample_pokemon_data) -> None:  # type: ignore[no-untyped-def]
         """Test offensive stat returns special for special specialist"""
         stat = sample_pokemon_data.offensive_stat()
-        assert stat == sample_pokemon_data.base_stats.special + sample_pokemon_data.ivs.special
+        assert (
+            stat
+            == sample_pokemon_data.base_stats.special + sample_pokemon_data.ivs.special
+        )
 
     def test_defensive_stat(self, sample_pokemon_data) -> None:  # type: ignore[no-untyped-def]
         """Test defensive stat calculation - Pikachu has higher special than defense"""
         stat = sample_pokemon_data.defensive_stat()
         # Pikachu's base_stats.special (50) > base_stats.defense (40), so uses special
-        expected = sample_pokemon_data.base_stats.special + sample_pokemon_data.ivs.special
+        expected = (
+            sample_pokemon_data.base_stats.special + sample_pokemon_data.ivs.special
+        )
         assert stat == expected
 
     def test_is_overleveled(self, sample_pokemon_data) -> None:  # type: ignore[no-untyped-def]
@@ -537,7 +705,7 @@ class TestTeam:
                 accuracy=95,
                 pp=30,
                 max_pp=30,
-                category=MoveCategory.PHYSICAL
+                category=MoveCategory.PHYSICAL,
             )
         )
         assert sample_team.has_hm_user() is True
@@ -545,7 +713,16 @@ class TestTeam:
     def test_get_hm_users(self, sample_team, sample_pokemon_data) -> None:  # type: ignore[no-untyped-def]
         """Test get_hm_users returns mapping"""
         sample_pokemon_data.moves.append(
-            Move(move_id="CUT", name="Cut", move_type=PokemonType.NORMAL, power=50, accuracy=95, pp=30, max_pp=30, category=MoveCategory.PHYSICAL)
+            Move(
+                move_id="CUT",
+                name="Cut",
+                move_type=PokemonType.NORMAL,
+                power=50,
+                accuracy=95,
+                pp=30,
+                max_pp=30,
+                category=MoveCategory.PHYSICAL,
+            )
         )
         hm_users = sample_team.get_hm_users()
         assert "CUT" in hm_users
@@ -566,7 +743,7 @@ class TestTeam:
             team_id="test",
             name=None,
             party=[None, None, None, None, None, None],
-            box=[]
+            box=[],
         )
         assert len(team.party) == 6
 
@@ -574,13 +751,17 @@ class TestTeam:
 class TestCarryScoreCalculator:
     """Tests for CarryScoreCalculator"""
 
-    def test_calculate_level_relevance_match(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_level_relevance_match(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test level relevance when level matches expected"""
         calculator = CarryScoreCalculator(type_chart, {})
         score = calculator.calculate_level_relevance(sample_pokemon_data, 25)
         assert score >= 18.0
 
-    def test_calculate_level_relevance_overleveled(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_level_relevance_overleveled(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test level relevance when overleveled"""
         calculator = CarryScoreCalculator(type_chart, {})
         score = calculator.calculate_level_relevance(sample_pokemon_data, 15)
@@ -588,7 +769,9 @@ class TestCarryScoreCalculator:
         assert score > 0
         assert score <= 25.0
 
-    def test_calculate_level_relevance_underleveled(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_level_relevance_underleveled(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test level relevance when underleveled"""
         calculator = CarryScoreCalculator(type_chart, {})
         score = calculator.calculate_level_relevance(sample_pokemon_data, 35)
@@ -596,7 +779,9 @@ class TestCarryScoreCalculator:
         assert score > 0
         assert score <= 25.0
 
-    def test_calculate_level_relevance_severely_underleveled(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_level_relevance_severely_underleveled(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test level relevance when severely underleveled"""
         calculator = CarryScoreCalculator(type_chart, {})
         score = calculator.calculate_level_relevance(sample_pokemon_data, 50)
@@ -606,8 +791,7 @@ class TestCarryScoreCalculator:
         """Test type uniqueness calculation"""
         calculator = CarryScoreCalculator(type_chart, {})
         score = calculator.calculate_type_uniqueness(
-            sample_pokemon_data,
-            [sample_pokemon_data, None, None, None, None, None]
+            sample_pokemon_data, [sample_pokemon_data, None, None, None, None, None]
         )
         assert score >= 0
 
@@ -624,54 +808,72 @@ class TestCarryScoreCalculator:
         score = calculator.calculate_move_coverage(sample_pokemon_data)
         assert score >= 0
 
-    def test_calculate_stat_efficiency(self, sample_pokemon_data, sample_base_stats, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_stat_efficiency(
+        self, sample_pokemon_data, sample_base_stats, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test stat efficiency calculation"""
         calculator = CarryScoreCalculator(type_chart, {})
-        score = calculator.calculate_stat_efficiency(sample_pokemon_data, sample_base_stats)
+        score = calculator.calculate_stat_efficiency(
+            sample_pokemon_data, sample_base_stats
+        )
         assert score >= 0
 
-    def test_apply_rarity_modifier_starter(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_apply_rarity_modifier_starter(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test rarity modifier for starter Pokemon"""
         sample_pokemon_data.species_id = "BULBASAUR"
         calculator = CarryScoreCalculator(type_chart, {})
         modifier = calculator.apply_rarity_modifier(sample_pokemon_data)
         assert modifier == 1.15
 
-    def test_apply_rarity_modifier_legendary(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_apply_rarity_modifier_legendary(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test rarity modifier for legendary Pokemon"""
         sample_pokemon_data.species_id = "MEWTWO"
         calculator = CarryScoreCalculator(type_chart, {})
         modifier = calculator.apply_rarity_modifier(sample_pokemon_data)
         assert modifier == 1.3
 
-    def test_apply_rarity_modifier_common(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_apply_rarity_modifier_common(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test rarity modifier for common Pokemon"""
         sample_pokemon_data.species_id = "PIDGEY"
         calculator = CarryScoreCalculator(type_chart, {})
         modifier = calculator.apply_rarity_modifier(sample_pokemon_data)
         assert modifier == 0.7
 
-    def test_apply_rarity_modifier_unknown(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_apply_rarity_modifier_unknown(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test rarity modifier for unknown Pokemon"""
         sample_pokemon_data.species_id = "UNKNOWN"
         calculator = CarryScoreCalculator(type_chart, {})
         modifier = calculator.apply_rarity_modifier(sample_pokemon_data)
         assert modifier == 1.0
 
-    def test_apply_sentimental_modifier_basic(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_apply_sentimental_modifier_basic(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test sentimental modifier calculation"""
         calculator = CarryScoreCalculator(type_chart, {})
         modifier = calculator.apply_sentimental_modifier(sample_pokemon_data)
         assert modifier >= 1.0
 
-    def test_apply_sentimental_modifier_shiny(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_apply_sentimental_modifier_shiny(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test sentimental modifier for shiny Pokemon"""
         sample_pokemon_data.is_shiny = True
         calculator = CarryScoreCalculator(type_chart, {})
         modifier = calculator.apply_sentimental_modifier(sample_pokemon_data)
         assert modifier > 1.0
 
-    def test_apply_sentimental_modifier_hero(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_apply_sentimental_modifier_hero(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test sentimental modifier for battle hero"""
         sample_pokemon_data.critical_battle_wins = 5
         calculator = CarryScoreCalculator(type_chart, {})
@@ -682,8 +884,7 @@ class TestCarryScoreCalculator:
         """Test complete carry score calculation"""
         calculator = CarryScoreCalculator(type_chart, {})
         score, breakdown = calculator.calculate_carry_score(
-            sample_pokemon_data,
-            [sample_pokemon_data, None, None, None, None, None]
+            sample_pokemon_data, [sample_pokemon_data, None, None, None, None, None]
         )
         assert score >= 0
         assert isinstance(breakdown, CarryScoreBreakdown)
@@ -718,9 +919,11 @@ class TestCarryScoreCalculator:
         calculator = CarryScoreCalculator(type_chart, {})
         scores = {}
         for pokemon in full_party.active_pokemon():
-            score, breakdown = calculator.calculate_carry_score(pokemon, full_party.party)
+            score, breakdown = calculator.calculate_carry_score(
+                pokemon, full_party.party
+            )
             scores[pokemon.pokemon_id] = score
-        
+
         assert len(scores) == 5
         assert all(s >= 0 for s in scores.values())
 
@@ -734,13 +937,17 @@ class TestEvolutionManager:
         conditions = manager.get_evolution_conditions("PIKACHU", 25)
         assert isinstance(conditions, list)
 
-    def test_check_evolution_available_no_evolution(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_check_evolution_available_no_evolution(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test evolution check when no evolution available"""
         manager = EvolutionManager({}, {}, type_chart)
         result = manager.check_evolution_available(sample_pokemon_data)
         assert result is None
 
-    def test_check_evolution_available_with_evolution(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_check_evolution_available_with_evolution(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test evolution check when evolution available"""
         evolution_data = {
             "PIKACHU": [
@@ -750,7 +957,7 @@ class TestEvolutionManager:
                     target_species_id="RAICHU",
                     target_species_name="Raichu",
                     learnable_moves=[],
-                    stat_changes={"attack": 10, "speed": 20}
+                    stat_changes={"attack": 10, "speed": 20},
                 )
             ]
         }
@@ -774,7 +981,9 @@ class TestEvolutionManager:
         assert result is not None
         assert result.move_name == "Slash"
 
-    def test_calculate_evolution_vs_wait_tradeoff_evolve_now(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_evolution_vs_wait_tradeoff_evolve_now(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test evolution vs wait tradeoff - evolve now"""
         evolution = EvolutionCondition(
             condition_type="level",
@@ -782,14 +991,18 @@ class TestEvolutionManager:
             target_species_id="RAICHU",
             target_species_name="Raichu",
             learnable_moves=[],
-            stat_changes={"attack": 20, "speed": 30}
+            stat_changes={"attack": 20, "speed": 30},
         )
         manager = EvolutionManager({}, {}, type_chart)
-        decision = manager.calculate_evolution_vs_wait_tradeoff(sample_pokemon_data, evolution, None)
+        decision = manager.calculate_evolution_vs_wait_tradeoff(
+            sample_pokemon_data, evolution, None
+        )
         assert isinstance(decision, EvolutionDecision)
         assert decision.decision == "evolve_now"
 
-    def test_calculate_evolution_vs_wait_tradeoff_wait(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_evolution_vs_wait_tradeoff_wait(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test evolution vs wait tradeoff - wait for move"""
         evolution = EvolutionCondition(
             condition_type="level",
@@ -797,7 +1010,7 @@ class TestEvolutionManager:
             target_species_id="CHARMELEON",
             target_species_name="Charmeleon",
             learnable_moves=[],
-            stat_changes={"attack": 10, "speed": 15}
+            stat_changes={"attack": 10, "speed": 15},
         )
         pre_evo_move = PreEvolutionMove(
             move_id="FLAMETHROWER",
@@ -805,12 +1018,14 @@ class TestEvolutionManager:
             learn_level=38,
             evolution_level=16,
             value_rating="STRONG_STAB",
-            power=90
+            power=90,
         )
         sample_pokemon_data.species_id = "CHARMANDER"
         sample_pokemon_data.level = 25
         manager = EvolutionManager({}, {}, type_chart)
-        decision = manager.calculate_evolution_vs_wait_tradeoff(sample_pokemon_data, evolution, pre_evo_move)
+        decision = manager.calculate_evolution_vs_wait_tradeoff(
+            sample_pokemon_data, evolution, pre_evo_move
+        )
         assert isinstance(decision, EvolutionDecision)
         # With significant stat improvement, it may decide to evolve now
         assert decision.decision in ["evolve_now", "wait_13_levels", "consider_waiting"]
@@ -839,7 +1054,7 @@ class TestEvolutionManager:
                     target_species_id="JOLTEON",
                     target_species_name="Jolteon",
                     learnable_moves=[],
-                    stat_changes={"speed": 40}
+                    stat_changes={"speed": 40},
                 )
             ]
         }
@@ -849,7 +1064,9 @@ class TestEvolutionManager:
         )
         assert isinstance(result, bool)
 
-    def test_get_evolution_readiness_not_available(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_get_evolution_readiness_not_available(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test evolution readiness when not available"""
         manager = EvolutionManager({}, {}, type_chart)
         readiness = manager.get_evolution_readiness(sample_pokemon_data)
@@ -857,7 +1074,9 @@ class TestEvolutionManager:
         assert readiness["evolution_available"] is False
         assert readiness["recommended_action"] == "continue_training"
 
-    def test_get_evolution_readiness_available(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_get_evolution_readiness_available(
+        self, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test evolution readiness when available"""
         evolution_data = {
             "PIKACHU": [
@@ -867,7 +1086,7 @@ class TestEvolutionManager:
                     target_species_id="RAICHU",
                     target_species_name="Raichu",
                     learnable_moves=[],
-                    stat_changes={}
+                    stat_changes={},
                 )
             ]
         }
@@ -898,7 +1117,9 @@ class TestTeamCompositionOptimizer:
         assert coverage.coverage_percentage > 0
         assert coverage.coverage_percentage <= 1.0
 
-    def test_analyze_type_coverage_with_upcoming_battles(self, full_party, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_analyze_type_coverage_with_upcoming_battles(
+        self, full_party, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test type coverage with upcoming battles"""
         calculator = CarryScoreCalculator(type_chart, {})
         optimizer = TeamCompositionOptimizer(calculator, {}, type_chart)
@@ -917,7 +1138,9 @@ class TestTeamCompositionOptimizer:
         assert "special" in distribution
         assert sum(distribution.values()) == 1.0
 
-    def test_calculate_stat_distribution_full_party(self, full_party, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_stat_distribution_full_party(
+        self, full_party, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test stat distribution with full party"""
         calculator = CarryScoreCalculator(type_chart, {})
         optimizer = TeamCompositionOptimizer(calculator, {}, type_chart)
@@ -934,7 +1157,16 @@ class TestTeamCompositionOptimizer:
     def test_detect_move_overlap_with_duplicates(self, full_party, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test move overlap detection with duplicate moves"""
         full_party.party[1].moves.append(
-            Move(move_id="QUICK_ATTACK2", name="Quick Attack", move_type=PokemonType.NORMAL, power=40, accuracy=100, pp=30, max_pp=30, category=MoveCategory.PHYSICAL)
+            Move(
+                move_id="QUICK_ATTACK2",
+                name="Quick Attack",
+                move_type=PokemonType.NORMAL,
+                power=40,
+                accuracy=100,
+                pp=30,
+                max_pp=30,
+                category=MoveCategory.PHYSICAL,
+            )
         )
         calculator = CarryScoreCalculator(type_chart, {})
         optimizer = TeamCompositionOptimizer(calculator, {}, type_chart)
@@ -954,7 +1186,9 @@ class TestTeamCompositionOptimizer:
         optimizer = TeamCompositionOptimizer(calculator, {}, type_chart)
         roles = optimizer.assign_roles(full_party.party)
         assert len(roles) == 5
-        assert all(role in ["sweeper", "tank", "support", "mixed"] for role in roles.values())
+        assert all(
+            role in ["sweeper", "tank", "support", "mixed"] for role in roles.values()
+        )
 
     def test_identify_boss_counters(self, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test boss counter identification"""
@@ -967,19 +1201,17 @@ class TestTeamCompositionOptimizer:
         """Test boss counter identification with boss data"""
         calculator = CarryScoreCalculator(type_chart, {})
         optimizer = TeamCompositionOptimizer(calculator, {}, type_chart)
-        boss_team = [
-            {"species_id": "BLASTOISE", "types": ["WATER"], "level": 50}
-        ]
-        counters = optimizer.identify_boss_counters(boss_team, full_party.active_pokemon())
+        boss_team = [{"species_id": "BLASTOISE", "types": ["WATER"], "level": 50}]
+        counters = optimizer.identify_boss_counters(
+            boss_team, full_party.active_pokemon()
+        )
         assert len(counters) > 0
 
     def test_calculate_battle_usage_priorities(self, sample_team, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test battle usage priority calculation"""
         calculator = CarryScoreCalculator(type_chart, {})
         optimizer = TeamCompositionOptimizer(calculator, {}, type_chart)
-        priorities = optimizer.calculate_battle_usage_priorities(
-            sample_team.party, []
-        )
+        priorities = optimizer.calculate_battle_usage_priorities(sample_team.party, [])
         assert isinstance(priorities, list)
         assert len(priorities) == 6
 
@@ -1005,7 +1237,9 @@ class TestTeamCompositionOptimizer:
         order = optimizer.optimize_party_order(full_party.party, "elite4")
         assert isinstance(order, list)
 
-    def test_calculate_experience_rebalance_needed(self, sample_team, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_experience_rebalance_needed(
+        self, sample_team, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test experience rebalance assessment"""
         calculator = CarryScoreCalculator(type_chart, {})
         optimizer = TeamCompositionOptimizer(calculator, {}, type_chart)
@@ -1013,7 +1247,9 @@ class TestTeamCompositionOptimizer:
         assert "level_spread" in result
         assert "needs_rebalance" in result
 
-    def test_calculate_experience_rebalance_needed_unbalanced(self, full_party, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_calculate_experience_rebalance_needed_unbalanced(
+        self, full_party, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test experience rebalance with unbalanced team"""
         calculator = CarryScoreCalculator(type_chart, {})
         optimizer = TeamCompositionOptimizer(calculator, {}, type_chart)
@@ -1055,7 +1291,9 @@ class TestEntityManager:
         manager.set_team(sample_team)
         assert manager.team == sample_team
 
-    def test_update_pokemon_found(self, sample_team, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_update_pokemon_found(
+        self, sample_team, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test updating existing Pokemon"""
         manager = EntityManager(type_chart)
         manager.set_team(sample_team)
@@ -1070,7 +1308,9 @@ class TestEntityManager:
         result = manager.update_pokemon("nonexistent", {"level": 26})
         assert result is False
 
-    def test_get_pokemon_found(self, sample_team, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_get_pokemon_found(
+        self, sample_team, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test getting existing Pokemon"""
         manager = EntityManager(type_chart)
         manager.set_team(sample_team)
@@ -1099,7 +1339,9 @@ class TestEntityManager:
         analysis = manager.analyze_team()
         assert isinstance(analysis, TeamAnalysis)
 
-    def test_get_evolution_recommendations_not_found(self, type_chart, sample_team) -> None:  # type: ignore[no-untyped-def]
+    def test_get_evolution_recommendations_not_found(
+        self, type_chart, sample_team
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test evolution recommendations for non-existent Pokemon"""
         manager = EntityManager(type_chart)
         manager.set_team(sample_team)
@@ -1107,7 +1349,9 @@ class TestEntityManager:
         assert isinstance(recommendations, dict)
         assert len(recommendations) == 0
 
-    def test_get_evolution_recommendations_found(self, sample_team, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
+    def test_get_evolution_recommendations_found(
+        self, sample_team, sample_pokemon_data, type_chart
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test evolution recommendations for existing Pokemon"""
         manager = EntityManager(type_chart)
         manager.set_team(sample_team)
@@ -1167,14 +1411,18 @@ class TestDataClasses:
 
     def test_effort_values_clamping(self) -> None:
         """Test EV clamping to 0-65535 range"""
-        evs = EffortValues(hp=70000, attack=-100, defense=65535, speed=30000, special=10000)
+        evs = EffortValues(
+            hp=70000, attack=-100, defense=65535, speed=30000, special=10000
+        )
         assert evs.hp == 65535
         assert evs.attack == 0
         assert evs.defense == 65535
 
     def test_effort_values_total(self) -> None:
         """Test EV total calculation"""
-        evs = EffortValues(hp=10000, attack=10000, defense=10000, speed=10000, special=10000)
+        evs = EffortValues(
+            hp=10000, attack=10000, defense=10000, speed=10000, special=10000
+        )
         assert evs.total() == 50000
 
     def test_move_pp_percentage(self) -> None:
@@ -1187,7 +1435,7 @@ class TestDataClasses:
             accuracy=100,
             pp=15,
             max_pp=30,
-            category=MoveCategory.PHYSICAL
+            category=MoveCategory.PHYSICAL,
         )
         assert move.pp_percentage() == 0.5
 
@@ -1201,7 +1449,7 @@ class TestDataClasses:
             accuracy=100,
             pp=0,
             max_pp=0,
-            category=MoveCategory.STATUS
+            category=MoveCategory.STATUS,
         )
         assert move.pp_percentage() == 0.0
 
@@ -1237,7 +1485,7 @@ class TestDataClasses:
             stat_efficiency=18.0,
             rarity_modifier=1.0,
             sentimental_modifier=1.0,
-            final_score=78.0
+            final_score=78.0,
         )
         data = breakdown.to_dict()
         assert data["level_relevance"] == 20.0
@@ -1249,7 +1497,7 @@ class TestDataClasses:
             covered_types={PokemonType.FIRE, PokemonType.WATER},
             uncovered_types={PokemonType.DRAGON},
             critical_gaps={PokemonType.GROUND},
-            coverage_percentage=0.75
+            coverage_percentage=0.75,
         )
         data = coverage.to_dict()
         assert PokemonType.FIRE.value in data["covered_types"]
@@ -1263,7 +1511,7 @@ class TestDataClasses:
             reason="Stat improvement significant",
             expected_move=None,
             stat_improvement=25.5,
-            net_benefit_score=10.0
+            net_benefit_score=10.0,
         )
         assert decision.decision == "evolve_now"
         assert decision.wait_levels is None
@@ -1275,7 +1523,7 @@ class TestDataClasses:
             pokemon=None,
             score=85.0,
             recommended_role="sweeper",
-            suggested_moves=["Thunderbolt", "Quick Attack"]
+            suggested_moves=["Thunderbolt", "Quick Attack"],
         )
         assert slot.slot_index == 0
         assert slot.recommended_role == "sweeper"
@@ -1302,13 +1550,13 @@ class TestEdgeCases:
         """Test operations with empty party"""
         calculator = CarryScoreCalculator(type_chart, {})
         optimizer = TeamCompositionOptimizer(calculator, {}, type_chart)
-        
+
         empty_party: List[Optional[PokemonData]] = [None, None, None, None, None, None]
-        
+
         coverage = optimizer.analyze_type_coverage(empty_party)
         distribution = optimizer.calculate_stat_distribution(empty_party)
         optimizer.detect_move_overlap(empty_party)
-        
+
         assert coverage.coverage_percentage == 0.0
         assert distribution["attack"] == 0.0
 
@@ -1319,7 +1567,7 @@ class TestEdgeCases:
             team_id="test",
             name=None,
             party=[sample_pokemon_data, None, None, None, None, None],
-            box=[]
+            box=[],
         )
         assert team.can_battle() is False
         assert team.battle_ready_count() == 0
@@ -1328,7 +1576,16 @@ class TestEdgeCases:
         """Test HM user detection in full party"""
         assert full_party.has_hm_user() is False
         full_party.party[0].moves.append(
-            Move(move_id="CUT", name="Cut", move_type=PokemonType.NORMAL, power=50, accuracy=95, pp=30, max_pp=30, category=MoveCategory.PHYSICAL)
+            Move(
+                move_id="CUT",
+                name="Cut",
+                move_type=PokemonType.NORMAL,
+                power=50,
+                accuracy=95,
+                pp=30,
+                max_pp=30,
+                category=MoveCategory.PHYSICAL,
+            )
         )
         assert full_party.has_hm_user() is True
         hm_users = full_party.get_hm_users()
@@ -1342,11 +1599,13 @@ class TestEdgeCases:
     def test_carry_score_with_different_parties(self, full_party, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test carry score varies with party composition"""
         calculator = CarryScoreCalculator(type_chart, {})
-        
+
         pikachu = full_party.party[0]
-        score_alone, _ = calculator.calculate_carry_score(pikachu, [pikachu] + [None] * 5)
+        score_alone, _ = calculator.calculate_carry_score(
+            pikachu, [pikachu] + [None] * 5
+        )
         score_full, _ = calculator.calculate_carry_score(pikachu, full_party.party)
-        
+
         assert score_alone >= 0
         assert score_full >= 0
 

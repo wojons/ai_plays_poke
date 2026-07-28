@@ -23,10 +23,10 @@ from typing import Any
 # ── WRAM addresses (Pokémon Red/Blue) ────────────────────────────────────
 
 # Player state
-ADDR_Y_COORD = 0xD361          # wYCoord — player Y on map (in blocks)
-ADDR_X_COORD = 0xD362          # wXCoord — player X on map (in blocks)
-ADDR_CUR_MAP = 0xD35E          # wCurMap — current map ID
-ADDR_WALK_COUNTER = 0xCFC5     # wWalkCounter — non-zero → moving
+ADDR_Y_COORD = 0xD361  # wYCoord — player Y on map (in blocks)
+ADDR_X_COORD = 0xD362  # wXCoord — player X on map (in blocks)
+ADDR_CUR_MAP = 0xD35E  # wCurMap — current map ID
+ADDR_WALK_COUNTER = 0xCFC5  # wWalkCounter — non-zero → moving
 
 # Screen tile buffer: 20×18 tiles at $C3A0 (wTileMap)
 ADDR_TILE_MAP = 0xC3A0
@@ -34,73 +34,73 @@ TILE_MAP_WIDTH = 20
 TILE_MAP_HEIGHT = 18
 
 # Text box state
-ADDR_TEXT_BOX_FRAME = 0xCF2B   # nonzero → text box rendering
-ADDR_TEXT_PROMPT = 0xCF4C      # wTextScrollPrompt — text box scroll indicator
+ADDR_TEXT_BOX_FRAME = 0xCF2B  # nonzero → text box rendering
+ADDR_TEXT_PROMPT = 0xCF4C  # wTextScrollPrompt — text box scroll indicator
 
 # Battle state
-ADDR_IS_IN_BATTLE = 0xD057     # wIsInBattle — 0=none, 1=wild, 2=trainer
-ADDR_BATTLE_TYPE = 0xD05A      # wBattleType — 1=wild, 2=trainer
-ADDR_CUR_OPPONENT = 0xD058     # wCurOpponent — species (wild) or trainer class+offset
+ADDR_IS_IN_BATTLE = 0xD057  # wIsInBattle — 0=none, 1=wild, 2=trainer
+ADDR_BATTLE_TYPE = 0xD05A  # wBattleType — 1=wild, 2=trainer
+ADDR_CUR_OPPONENT = 0xD058  # wCurOpponent — species (wild) or trainer class+offset
 
 # Battle — Player mon (wBattleMon, 0xD016–0xD032)
-ADDR_BATTLE_MON_SPECIES  = 0xD016
-ADDR_BATTLE_MON_HP       = 0xD017  # u16
-ADDR_BATTLE_MON_STATUS   = 0xD01A
-ADDR_BATTLE_MON_TYPE1    = 0xD01B
-ADDR_BATTLE_MON_TYPE2    = 0xD01C
-ADDR_BATTLE_MON_MOVES    = 0xD01E  # 4 bytes
-ADDR_BATTLE_MON_DVS      = 0xD022  # u16
-ADDR_BATTLE_MON_LEVEL    = 0xD024
-ADDR_BATTLE_MON_MAX_HP   = 0xD025  # u16
-ADDR_BATTLE_MON_ATTACK   = 0xD027  # u16
-ADDR_BATTLE_MON_DEFENSE  = 0xD029  # u16
-ADDR_BATTLE_MON_SPEED    = 0xD02B  # u16
-ADDR_BATTLE_MON_SPECIAL  = 0xD02D  # u16
-ADDR_BATTLE_MON_PP       = 0xD02F  # 4 bytes
+ADDR_BATTLE_MON_SPECIES = 0xD016
+ADDR_BATTLE_MON_HP = 0xD017  # u16
+ADDR_BATTLE_MON_STATUS = 0xD01A
+ADDR_BATTLE_MON_TYPE1 = 0xD01B
+ADDR_BATTLE_MON_TYPE2 = 0xD01C
+ADDR_BATTLE_MON_MOVES = 0xD01E  # 4 bytes
+ADDR_BATTLE_MON_DVS = 0xD022  # u16
+ADDR_BATTLE_MON_LEVEL = 0xD024
+ADDR_BATTLE_MON_MAX_HP = 0xD025  # u16
+ADDR_BATTLE_MON_ATTACK = 0xD027  # u16
+ADDR_BATTLE_MON_DEFENSE = 0xD029  # u16
+ADDR_BATTLE_MON_SPEED = 0xD02B  # u16
+ADDR_BATTLE_MON_SPECIAL = 0xD02D  # u16
+ADDR_BATTLE_MON_PP = 0xD02F  # 4 bytes
 
 # Battle — Enemy mon (wEnemyMon, 0xCFE7–0xD003)
-ADDR_ENEMY_MON_SPECIES   = 0xCFE7
-ADDR_ENEMY_MON_HP        = 0xCFE8  # u16
-ADDR_ENEMY_MON_STATUS    = 0xCFEB
-ADDR_ENEMY_MON_TYPE1     = 0xCFEC
-ADDR_ENEMY_MON_TYPE2     = 0xCFED
-ADDR_ENEMY_MON_MOVES     = 0xCFEF  # 4 bytes
-ADDR_ENEMY_MON_CATCH     = 0xCFEE
-ADDR_ENEMY_MON_DVS       = 0xCFF3  # u16
-ADDR_ENEMY_MON_LEVEL     = 0xCFF5
-ADDR_ENEMY_MON_MAX_HP    = 0xCFF6  # u16
-ADDR_ENEMY_MON_ATTACK    = 0xCFF8  # u16
-ADDR_ENEMY_MON_DEFENSE   = 0xCFFA  # u16
-ADDR_ENEMY_MON_SPEED     = 0xCFFC  # u16
-ADDR_ENEMY_MON_SPECIAL   = 0xCFFE  # u16
-ADDR_ENEMY_MON_PP        = 0xD000  # 4 bytes
+ADDR_ENEMY_MON_SPECIES = 0xCFE7
+ADDR_ENEMY_MON_HP = 0xCFE8  # u16
+ADDR_ENEMY_MON_STATUS = 0xCFEB
+ADDR_ENEMY_MON_TYPE1 = 0xCFEC
+ADDR_ENEMY_MON_TYPE2 = 0xCFED
+ADDR_ENEMY_MON_MOVES = 0xCFEF  # 4 bytes
+ADDR_ENEMY_MON_CATCH = 0xCFEE
+ADDR_ENEMY_MON_DVS = 0xCFF3  # u16
+ADDR_ENEMY_MON_LEVEL = 0xCFF5
+ADDR_ENEMY_MON_MAX_HP = 0xCFF6  # u16
+ADDR_ENEMY_MON_ATTACK = 0xCFF8  # u16
+ADDR_ENEMY_MON_DEFENSE = 0xCFFA  # u16
+ADDR_ENEMY_MON_SPEED = 0xCFFC  # u16
+ADDR_ENEMY_MON_SPECIAL = 0xCFFE  # u16
+ADDR_ENEMY_MON_PP = 0xD000  # 4 bytes
 
 # Battle — Move selection
-ADDR_PLAYER_MOVE_NUM     = 0xCF95  # wPlayerMoveNum
-ADDR_MOVE_NUM            = 0xCC85  # wMoveNum
+ADDR_PLAYER_MOVE_NUM = 0xCF95  # wPlayerMoveNum
+ADDR_MOVE_NUM = 0xCC85  # wMoveNum
 
 # NPC / interaction state
 ADDR_SPRITE_STATE_DATA = 0xC100  # wSpriteStateData1 (16 sprites × 16 bytes)
 
 # Menu state
-ADDR_TOP_MENU_ITEM_Y     = 0xCC24  # wTopMenuItemY
-ADDR_TOP_MENU_ITEM_X     = 0xCC25  # wTopMenuItemX
-ADDR_CURRENT_MENU_ITEM   = 0xCC26  # wCurrentMenuItem
-ADDR_MAX_MENU_ITEM       = 0xCC28  # wMaxMenuItem
-ADDR_LAST_MENU_ITEM      = 0xCC2A  # wLastMenuItem
+ADDR_TOP_MENU_ITEM_Y = 0xCC24  # wTopMenuItemY
+ADDR_TOP_MENU_ITEM_X = 0xCC25  # wTopMenuItemX
+ADDR_CURRENT_MENU_ITEM = 0xCC26  # wCurrentMenuItem
+ADDR_MAX_MENU_ITEM = 0xCC28  # wMaxMenuItem
+ADDR_LAST_MENU_ITEM = 0xCC2A  # wLastMenuItem
 
 # List/context menu
-ADDR_LIST_MENU_ID        = 0xCF88  # wListMenuID
+ADDR_LIST_MENU_ID = 0xCF88  # wListMenuID
 
 # Text buffer
-ADDR_STRING_BUFFER       = 0xCE00  # wStringBuffer (11 bytes)
+ADDR_STRING_BUFFER = 0xCE00  # wStringBuffer (11 bytes)
 
 # Name entry
-ADDR_NAMING_SCREEN       = 0xCC47    # wNamingScreenType
-ADDR_NAMING_NAME_LENGTH  = 0xCC48    # wNamingScreenNameLength
-ADDR_NAMING_SUBMIT       = 0xCC4A    # wNamingScreenSubmitName
-ADDR_ALPHABET_CASE       = 0xCC4D    # wAlphabetCase
-ADDR_NAMING_LETTER       = 0xCC4F    # wNamingScreenLetter
+ADDR_NAMING_SCREEN = 0xCC47  # wNamingScreenType
+ADDR_NAMING_NAME_LENGTH = 0xCC48  # wNamingScreenNameLength
+ADDR_NAMING_SUBMIT = 0xCC4A  # wNamingScreenSubmitName
+ADDR_ALPHABET_CASE = 0xCC4D  # wAlphabetCase
+ADDR_NAMING_LETTER = 0xCC4F  # wNamingScreenLetter
 
 # Map block data in WRAM — $C6E8 + width + (width+6)*Y + X
 # (from Data Crystal notes)
@@ -173,8 +173,8 @@ BLOCK_SYMBOLS: dict[str, str] = {
 
 # Pokémon Red/Blue ROM layout (from Data Crystal)
 _MAP_COUNT = 248
-_PTR_TABLE = 0x01AE         # Map header pointer table (ROM offset)
-_BANK_TABLE = 0xC23D        # Map header bank table (ROM offset)
+_PTR_TABLE = 0x01AE  # Map header pointer table (ROM offset)
+_BANK_TABLE = 0xC23D  # Map header bank table (ROM offset)
 
 
 class _MapDB:
@@ -275,7 +275,7 @@ class _MapDB:
         0x11: "wall",
         0x05: "wall",
         0x08: "wall",
-        0x0C: "wall",   # bottom-left corner / wall piece
+        0x0C: "wall",  # bottom-left corner / wall piece
         0x12: "object",  # bottom-right object
     }
 
@@ -283,29 +283,60 @@ class _MapDB:
     # Source: pret/pokered disassembly block sets
     _TILESET0_CLASSES: dict[int, str] = {
         # Tall grass
-        0x00: "grass", 0x01: "grass", 0x02: "grass", 0x03: "grass",
+        0x00: "grass",
+        0x01: "grass",
+        0x02: "grass",
+        0x03: "grass",
         # Path / floor (plain ground)
-        0x0C: "floor", 0x0D: "floor", 0x0E: "floor", 0x0F: "floor",
-        0x10: "floor", 0x11: "floor",
+        0x0C: "floor",
+        0x0D: "floor",
+        0x0E: "floor",
+        0x0F: "floor",
+        0x10: "floor",
+        0x11: "floor",
         # Building walls / roof pieces
-        0x14: "wall", 0x15: "wall", 0x16: "wall", 0x17: "wall",
-        0x18: "wall", 0x19: "wall", 0x1A: "wall", 0x1B: "wall",
-        0x1C: "wall", 0x1D: "wall", 0x1E: "wall", 0x1F: "wall",
+        0x14: "wall",
+        0x15: "wall",
+        0x16: "wall",
+        0x17: "wall",
+        0x18: "wall",
+        0x19: "wall",
+        0x1A: "wall",
+        0x1B: "wall",
+        0x1C: "wall",
+        0x1D: "wall",
+        0x1E: "wall",
+        0x1F: "wall",
         # Water
-        0x2B: "water", 0x2C: "water",
-        0x48: "water", 0x49: "water",
+        0x2B: "water",
+        0x2C: "water",
+        0x48: "water",
+        0x49: "water",
         # Trees
-        0x32: "tree", 0x33: "tree", 0x34: "tree", 0x35: "tree",
-        0x3E: "tree", 0x3F: "tree",
+        0x32: "tree",
+        0x33: "tree",
+        0x34: "tree",
+        0x35: "tree",
+        0x3E: "tree",
+        0x3F: "tree",
         # Ledge
-        0x4A: "ledge", 0x4B: "ledge", 0x4C: "ledge",
-        0x4D: "ledge", 0x4E: "ledge", 0x4F: "ledge",
+        0x4A: "ledge",
+        0x4B: "ledge",
+        0x4C: "ledge",
+        0x4D: "ledge",
+        0x4E: "ledge",
+        0x4F: "ledge",
         # Signposts / objects
-        0x60: "object", 0x61: "object",
+        0x60: "object",
+        0x61: "object",
         # Doors / entrances
-        0x5C: "door", 0x5D: "door",
+        0x5C: "door",
+        0x5D: "door",
         # Fences / hedges
-        0x50: "wall", 0x51: "wall", 0x52: "wall", 0x53: "wall",
+        0x50: "wall",
+        0x51: "wall",
+        0x52: "wall",
+        0x53: "wall",
     }
 
     def classify_block(self, block_id: int, tileset: int) -> str:
@@ -323,114 +354,350 @@ class _MapDB:
 # ── Pokémon species names (index → name, Gen 1 1-indexed) ────────────────
 
 POKEMON_NAMES: dict[int, str] = {
-    1: "Rhydon", 2: "Kangaskhan", 3: "Nidoran♂", 4: "Clefairy",
-    5: "Spearow", 6: "Voltorb", 7: "Nidoking", 8: "Slowbro",
-    9: "Ivysaur", 10: "Exeggutor", 11: "Lickitung", 12: "Exeggcute",
-    13: "Grimer", 14: "Gengar", 15: "Nidoran♀", 16: "Nidoqueen",
-    17: "Cubone", 18: "Rhyhorn", 19: "Lapras", 20: "Arcanine",
-    21: "Mew", 22: "Gyarados", 23: "Shellder", 24: "Tentacool",
-    25: "Gastly", 26: "Scyther", 27: "Staryu", 28: "Blastoise",
-    29: "Pinsir", 30: "Tangela",
-    33: "Growlithe", 34: "Onix", 35: "Fearow", 36: "Pidgey",
-    37: "Slowpoke", 38: "Kadabra", 39: "Graveler", 40: "Chansey",
-    41: "Machoke", 42: "Mr. Mime", 43: "Hitmonlee", 44: "Hitmonchan",
-    45: "Arbok", 46: "Parasect", 47: "Psyduck", 48: "Drowzee",
-    49: "Golem", 51: "Magmar",
-    53: "Electabuzz", 54: "Magneton", 55: "Koffing",
-    57: "Mankey", 58: "Seel", 59: "Diglett", 60: "Tauros",
-    63: "Farfetch'd", 64: "Venonat", 65: "Dragonite",
-    67: "Doduo", 68: "Poliwag", 69: "Jynx", 70: "Moltres",
-    71: "Articuno", 72: "Zapdos", 73: "Ditto", 74: "Meowth",
+    1: "Rhydon",
+    2: "Kangaskhan",
+    3: "Nidoran♂",
+    4: "Clefairy",
+    5: "Spearow",
+    6: "Voltorb",
+    7: "Nidoking",
+    8: "Slowbro",
+    9: "Ivysaur",
+    10: "Exeggutor",
+    11: "Lickitung",
+    12: "Exeggcute",
+    13: "Grimer",
+    14: "Gengar",
+    15: "Nidoran♀",
+    16: "Nidoqueen",
+    17: "Cubone",
+    18: "Rhyhorn",
+    19: "Lapras",
+    20: "Arcanine",
+    21: "Mew",
+    22: "Gyarados",
+    23: "Shellder",
+    24: "Tentacool",
+    25: "Gastly",
+    26: "Scyther",
+    27: "Staryu",
+    28: "Blastoise",
+    29: "Pinsir",
+    30: "Tangela",
+    33: "Growlithe",
+    34: "Onix",
+    35: "Fearow",
+    36: "Pidgey",
+    37: "Slowpoke",
+    38: "Kadabra",
+    39: "Graveler",
+    40: "Chansey",
+    41: "Machoke",
+    42: "Mr. Mime",
+    43: "Hitmonlee",
+    44: "Hitmonchan",
+    45: "Arbok",
+    46: "Parasect",
+    47: "Psyduck",
+    48: "Drowzee",
+    49: "Golem",
+    51: "Magmar",
+    53: "Electabuzz",
+    54: "Magneton",
+    55: "Koffing",
+    57: "Mankey",
+    58: "Seel",
+    59: "Diglett",
+    60: "Tauros",
+    63: "Farfetch'd",
+    64: "Venonat",
+    65: "Dragonite",
+    67: "Doduo",
+    68: "Poliwag",
+    69: "Jynx",
+    70: "Moltres",
+    71: "Articuno",
+    72: "Zapdos",
+    73: "Ditto",
+    74: "Meowth",
     75: "Krabby",
-    77: "Vulpix", 78: "Ninetales", 79: "Pikachu", 80: "Raichu",
-    83: "Dratini", 84: "Dragonair", 85: "Kabuto", 86: "Kabutops",
-    87: "Horsea", 88: "Seadra",
-    90: "Sandshrew", 91: "Sandslash", 92: "Omanyte", 93: "Omastar",
-    94: "Jigglypuff", 95: "Wigglytuff", 96: "Eevee", 97: "Flareon",
-    98: "Jolteon", 99: "Vaporeon", 100: "Machop",
-    101: "Zubat", 102: "Ekans", 103: "Paras", 104: "Poliwhirl",
-    105: "Poliwrath", 106: "Weedle", 107: "Kakuna", 108: "Beedrill",
-    110: "Dodrio", 111: "Primeape", 112: "Dugtrio", 113: "Venomoth",
+    77: "Vulpix",
+    78: "Ninetales",
+    79: "Pikachu",
+    80: "Raichu",
+    83: "Dratini",
+    84: "Dragonair",
+    85: "Kabuto",
+    86: "Kabutops",
+    87: "Horsea",
+    88: "Seadra",
+    90: "Sandshrew",
+    91: "Sandslash",
+    92: "Omanyte",
+    93: "Omastar",
+    94: "Jigglypuff",
+    95: "Wigglytuff",
+    96: "Eevee",
+    97: "Flareon",
+    98: "Jolteon",
+    99: "Vaporeon",
+    100: "Machop",
+    101: "Zubat",
+    102: "Ekans",
+    103: "Paras",
+    104: "Poliwhirl",
+    105: "Poliwrath",
+    106: "Weedle",
+    107: "Kakuna",
+    108: "Beedrill",
+    110: "Dodrio",
+    111: "Primeape",
+    112: "Dugtrio",
+    113: "Venomoth",
     114: "Dewgong",
-    117: "Caterpie", 118: "Metapod", 119: "Butterfree",
+    117: "Caterpie",
+    118: "Metapod",
+    119: "Butterfree",
     120: "Machamp",
-    123: "Golduck", 124: "Hypno", 125: "Golbat", 126: "Mewtwo",
-    127: "Snorlax", 128: "Magikarp",
+    123: "Golduck",
+    124: "Hypno",
+    125: "Golbat",
+    126: "Mewtwo",
+    127: "Snorlax",
+    128: "Magikarp",
     131: "Muk",
-    133: "Kingler", 134: "Cloyster",
-    136: "Electrode", 137: "Clefable", 138: "Weezing",
-    139: "Persian", 140: "Marowak",
-    142: "Haunter", 143: "Abra", 144: "Alakazam",
-    145: "Pidgeotto", 146: "Pidgeot", 147: "Starmie",
-    148: "Bulbasaur", 149: "Venusaur", 150: "Tentacruel",
-    152: "Goldeen", 153: "Seaking",
-    157: "Ponyta", 158: "Rapidash", 159: "Rattata", 160: "Raticate",
-    161: "Nidorino", 162: "Nidorina", 163: "Geodude", 164: "Porygon",
+    133: "Kingler",
+    134: "Cloyster",
+    136: "Electrode",
+    137: "Clefable",
+    138: "Weezing",
+    139: "Persian",
+    140: "Marowak",
+    142: "Haunter",
+    143: "Abra",
+    144: "Alakazam",
+    145: "Pidgeotto",
+    146: "Pidgeot",
+    147: "Starmie",
+    148: "Bulbasaur",
+    149: "Venusaur",
+    150: "Tentacruel",
+    152: "Goldeen",
+    153: "Seaking",
+    157: "Ponyta",
+    158: "Rapidash",
+    159: "Rattata",
+    160: "Raticate",
+    161: "Nidorino",
+    162: "Nidorina",
+    163: "Geodude",
+    164: "Porygon",
     165: "Aerodactyl",
     167: "Magnemite",
-    170: "Charmander", 171: "Charmeleon", 172: "Charizard",
-    174: "Oddish", 175: "Gloom", 176: "Vileplume", 177: "Bellsprout",
-    178: "Weepinbell", 179: "Victreebel",
+    170: "Charmander",
+    171: "Charmeleon",
+    172: "Charizard",
+    174: "Oddish",
+    175: "Gloom",
+    176: "Vileplume",
+    177: "Bellsprout",
+    178: "Weepinbell",
+    179: "Victreebel",
     185: "MissingNo.",
 }
 
 # ── Move names (index → name, Gen 1) ───────────────────────────────────
 
 MOVE_NAMES: dict[int, str] = {
-    1: "Pound", 2: "Karate Chop", 3: "Double Slap", 4: "Comet Punch",
-    5: "Mega Punch", 6: "Pay Day", 7: "Fire Punch", 8: "Ice Punch",
-    9: "Thunder Punch", 10: "Scratch", 11: "Vice Grip", 12: "Guillotine",
-    13: "Razor Wind", 14: "Swords Dance", 15: "Cut", 16: "Gust",
-    17: "Wing Attack", 18: "Whirlwind", 19: "Fly", 20: "Bind",
-    21: "Slam", 22: "Vine Whip", 23: "Stomp", 24: "Double Kick",
-    25: "Mega Kick", 26: "Jump Kick", 27: "Rolling Kick", 28: "Sand Attack",
-    29: "Headbutt", 30: "Horn Attack", 31: "Fury Attack", 32: "Horn Drill",
-    33: "Tackle", 34: "Body Slam", 35: "Wrap", 36: "Take Down",
-    37: "Thrash", 38: "Double-Edge", 39: "Tail Whip", 40: "Poison Sting",
-    41: "Twineedle", 42: "Pin Missile", 43: "Leer", 44: "Bite",
-    45: "Growl", 46: "Roar", 47: "Sing", 48: "Supersonic",
-    49: "Sonic Boom", 50: "Disable", 51: "Acid", 52: "Ember",
-    53: "Flamethrower", 54: "Mist", 55: "Water Gun", 56: "Hydro Pump",
-    57: "Surf", 58: "Ice Beam", 59: "Blizzard", 60: "Psybeam",
-    61: "Bubble Beam", 62: "Aurora Beam", 63: "Hyper Beam", 64: "Peck",
-    65: "Drill Peck", 66: "Submission", 67: "Low Kick", 68: "Counter",
-    69: "Seismic Toss", 70: "Strength", 71: "Absorb", 72: "Mega Drain",
-    73: "Leech Seed", 74: "Growth", 75: "Razor Leaf", 76: "Solar Beam",
-    77: "Poison Powder", 78: "Stun Spore", 79: "Sleep Powder", 80: "Petal Dance",
-    81: "String Shot", 82: "Dragon Rage", 83: "Fire Spin", 84: "Thunder Shock",
-    85: "Thunderbolt", 86: "Thunder Wave", 87: "Thunder", 88: "Rock Throw",
-    89: "Earthquake", 90: "Fissure", 91: "Dig", 92: "Toxic",
-    93: "Confusion", 94: "Psychic", 95: "Hypnosis", 96: "Meditate",
-    97: "Agility", 98: "Quick Attack", 99: "Rage", 100: "Teleport",
-    101: "Night Shade", 102: "Mimic", 103: "Screech", 104: "Double Team",
-    105: "Recover", 106: "Harden", 107: "Minimize", 108: "Smokescreen",
-    109: "Confuse Ray", 110: "Withdraw", 111: "Defense Curl", 112: "Barrier",
-    113: "Light Screen", 114: "Haze", 115: "Reflect", 116: "Focus Energy",
-    117: "Bide", 118: "Metronome", 119: "Mirror Move", 120: "Self-Destruct",
-    121: "Egg Bomb", 122: "Lick", 123: "Smog", 124: "Sludge",
-    125: "Bone Club", 126: "Fire Blast", 127: "Waterfall", 128: "Clamp",
-    129: "Swift", 130: "Skull Bash", 131: "Spike Cannon", 132: "Constrict",
-    133: "Amnesia", 134: "Kinesis", 135: "Soft-Boiled", 136: "Hi Jump Kick",
-    137: "Glare", 138: "Dream Eater", 139: "Poison Gas", 140: "Barrage",
-    141: "Leech Life", 142: "Lovely Kiss", 143: "Sky Attack", 144: "Transform",
-    145: "Bubble", 146: "Dizzy Punch", 147: "Spore", 148: "Flash",
-    149: "Psywave", 150: "Splash", 151: "Acid Armor", 152: "Crabhammer",
-    153: "Explosion", 154: "Fury Swipes", 155: "Bonemerang", 156: "Rest",
-    157: "Rock Slide", 158: "Hyper Fang", 159: "Sharpen", 160: "Conversion",
-    161: "Tri Attack", 162: "Super Fang", 163: "Slash", 164: "Substitute",
+    1: "Pound",
+    2: "Karate Chop",
+    3: "Double Slap",
+    4: "Comet Punch",
+    5: "Mega Punch",
+    6: "Pay Day",
+    7: "Fire Punch",
+    8: "Ice Punch",
+    9: "Thunder Punch",
+    10: "Scratch",
+    11: "Vice Grip",
+    12: "Guillotine",
+    13: "Razor Wind",
+    14: "Swords Dance",
+    15: "Cut",
+    16: "Gust",
+    17: "Wing Attack",
+    18: "Whirlwind",
+    19: "Fly",
+    20: "Bind",
+    21: "Slam",
+    22: "Vine Whip",
+    23: "Stomp",
+    24: "Double Kick",
+    25: "Mega Kick",
+    26: "Jump Kick",
+    27: "Rolling Kick",
+    28: "Sand Attack",
+    29: "Headbutt",
+    30: "Horn Attack",
+    31: "Fury Attack",
+    32: "Horn Drill",
+    33: "Tackle",
+    34: "Body Slam",
+    35: "Wrap",
+    36: "Take Down",
+    37: "Thrash",
+    38: "Double-Edge",
+    39: "Tail Whip",
+    40: "Poison Sting",
+    41: "Twineedle",
+    42: "Pin Missile",
+    43: "Leer",
+    44: "Bite",
+    45: "Growl",
+    46: "Roar",
+    47: "Sing",
+    48: "Supersonic",
+    49: "Sonic Boom",
+    50: "Disable",
+    51: "Acid",
+    52: "Ember",
+    53: "Flamethrower",
+    54: "Mist",
+    55: "Water Gun",
+    56: "Hydro Pump",
+    57: "Surf",
+    58: "Ice Beam",
+    59: "Blizzard",
+    60: "Psybeam",
+    61: "Bubble Beam",
+    62: "Aurora Beam",
+    63: "Hyper Beam",
+    64: "Peck",
+    65: "Drill Peck",
+    66: "Submission",
+    67: "Low Kick",
+    68: "Counter",
+    69: "Seismic Toss",
+    70: "Strength",
+    71: "Absorb",
+    72: "Mega Drain",
+    73: "Leech Seed",
+    74: "Growth",
+    75: "Razor Leaf",
+    76: "Solar Beam",
+    77: "Poison Powder",
+    78: "Stun Spore",
+    79: "Sleep Powder",
+    80: "Petal Dance",
+    81: "String Shot",
+    82: "Dragon Rage",
+    83: "Fire Spin",
+    84: "Thunder Shock",
+    85: "Thunderbolt",
+    86: "Thunder Wave",
+    87: "Thunder",
+    88: "Rock Throw",
+    89: "Earthquake",
+    90: "Fissure",
+    91: "Dig",
+    92: "Toxic",
+    93: "Confusion",
+    94: "Psychic",
+    95: "Hypnosis",
+    96: "Meditate",
+    97: "Agility",
+    98: "Quick Attack",
+    99: "Rage",
+    100: "Teleport",
+    101: "Night Shade",
+    102: "Mimic",
+    103: "Screech",
+    104: "Double Team",
+    105: "Recover",
+    106: "Harden",
+    107: "Minimize",
+    108: "Smokescreen",
+    109: "Confuse Ray",
+    110: "Withdraw",
+    111: "Defense Curl",
+    112: "Barrier",
+    113: "Light Screen",
+    114: "Haze",
+    115: "Reflect",
+    116: "Focus Energy",
+    117: "Bide",
+    118: "Metronome",
+    119: "Mirror Move",
+    120: "Self-Destruct",
+    121: "Egg Bomb",
+    122: "Lick",
+    123: "Smog",
+    124: "Sludge",
+    125: "Bone Club",
+    126: "Fire Blast",
+    127: "Waterfall",
+    128: "Clamp",
+    129: "Swift",
+    130: "Skull Bash",
+    131: "Spike Cannon",
+    132: "Constrict",
+    133: "Amnesia",
+    134: "Kinesis",
+    135: "Soft-Boiled",
+    136: "Hi Jump Kick",
+    137: "Glare",
+    138: "Dream Eater",
+    139: "Poison Gas",
+    140: "Barrage",
+    141: "Leech Life",
+    142: "Lovely Kiss",
+    143: "Sky Attack",
+    144: "Transform",
+    145: "Bubble",
+    146: "Dizzy Punch",
+    147: "Spore",
+    148: "Flash",
+    149: "Psywave",
+    150: "Splash",
+    151: "Acid Armor",
+    152: "Crabhammer",
+    153: "Explosion",
+    154: "Fury Swipes",
+    155: "Bonemerang",
+    156: "Rest",
+    157: "Rock Slide",
+    158: "Hyper Fang",
+    159: "Sharpen",
+    160: "Conversion",
+    161: "Tri Attack",
+    162: "Super Fang",
+    163: "Slash",
+    164: "Substitute",
     165: "Struggle",
 }
 
 # ── Type names (index → name, Gen 1) ───────────────────────────────────
 
 TYPE_NAMES: dict[int, str] = {
-    0: "Normal", 1: "Fighting", 2: "Flying", 3: "Poison",
-    4: "Ground", 5: "Rock", 7: "Bug", 8: "Ghost",
-    20: "Fire", 21: "Water", 22: "Grass", 23: "Electric",
-    24: "Psychic", 25: "Ice", 26: "Dragon",
+    0: "Normal",
+    1: "Fighting",
+    2: "Flying",
+    3: "Poison",
+    4: "Ground",
+    5: "Rock",
+    7: "Bug",
+    8: "Ghost",
+    20: "Fire",
+    21: "Water",
+    22: "Grass",
+    23: "Electric",
+    24: "Psychic",
+    25: "Ice",
+    26: "Dragon",
 }
 
 # ── Text decode ────────────────────────────────────────────────────────
+
 
 def _decode_text(data: bytes, offset: int, max_len: int = 20) -> str:
     """Decode Pokémon Gen 1 text encoding from RAM bytes."""
@@ -462,6 +729,7 @@ def _decode_text(data: bytes, offset: int, max_len: int = 20) -> str:
         else:
             chars.append(f"\\x{b:02x}")
     return "".join(chars)
+
 
 MAP_NAMES: dict[int, str] = {
     0x00: "Pallet Town",
@@ -720,8 +988,14 @@ class RAMReader:
         lines.append("")
         legend_parts = [
             "Legend: ",
-            ".=floor ", "G=grass ", "T=tree ", "W=water ",
-            "B=wall ", "S=sign/object ", "D=door ", "@=you",
+            ".=floor ",
+            "G=grass ",
+            "T=tree ",
+            "W=water ",
+            "B=wall ",
+            "S=sign/object ",
+            "D=door ",
+            "@=you",
         ]
         lines.append("".join(legend_parts))
         return "\n".join(lines)
@@ -734,15 +1008,18 @@ class RAMReader:
         mid = self.current_map_id()
         info = self._mapdb.get_map(mid)
         if info is None:
-            return {"up": "unknown", "down": "unknown",
-                    "left": "unknown", "right": "unknown"}
+            return {
+                "up": "unknown",
+                "down": "unknown",
+                "left": "unknown",
+                "right": "unknown",
+            }
 
         w, h = info["width"], info["height"]
         tileset = info["tileset"]
         px, py = self.player_x(), self.player_y()
 
-        offsets = {"up": (0, -1), "down": (0, 1),
-                    "left": (-1, 0), "right": (1, 0)}
+        offsets = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
 
         result: dict[str, str] = {}
         for direction, (dx, dy) in offsets.items():
@@ -792,8 +1069,7 @@ class RAMReader:
             mid = self.read_u8(ADDR_BATTLE_MON_MOVES + i)
             pp = self.read_u8(ADDR_BATTLE_MON_PP + i)
             if mid != 0:
-                pmoves.append({"name": self._move_name(mid),
-                               "pp": pp, "slot": i + 1})
+                pmoves.append({"name": self._move_name(mid), "pp": pp, "slot": i + 1})
 
         # Enemy mon
         espec = self.read_u8(ADDR_ENEMY_MON_SPECIES)
@@ -823,7 +1099,9 @@ class RAMReader:
                 "speed": pspd,
                 "special": pspc,
                 "status": pstatus,
-                "type": f"{self._type_name(ptype1)}/{self._type_name(ptype2)}" if ptype2 != ptype1 else self._type_name(ptype1),
+                "type": f"{self._type_name(ptype1)}/{self._type_name(ptype2)}"
+                if ptype2 != ptype1
+                else self._type_name(ptype1),
                 "moves": pmoves,
             },
             "enemy": {
@@ -836,7 +1114,9 @@ class RAMReader:
                 "defense": edef,
                 "speed": espd,
                 "special": espc,
-                "type": f"{self._type_name(etype1)}/{self._type_name(etype2)}" if etype2 != etype1 else self._type_name(etype1),
+                "type": f"{self._type_name(etype1)}/{self._type_name(etype2)}"
+                if etype2 != etype1
+                else self._type_name(etype1),
             },
         }
 
@@ -845,10 +1125,12 @@ class RAMReader:
         bs = self.read_battle_state()
         p = bs["player"]
         e = bs["enemy"]
-        moves_str = " | ".join(f"{i+1}:{m['name']}({m['pp']}PP)" for i, m in enumerate(p["moves"]))
+        moves_str = " | ".join(
+            f"{i + 1}:{m['name']}({m['pp']}PP)" for i, m in enumerate(p["moves"])
+        )
 
         return (
-            f"⚔ BATTLE: {'Trainer' if bs['battle_type']=='trainer' else 'Wild'} {e['name']}\n"
+            f"⚔ BATTLE: {'Trainer' if bs['battle_type'] == 'trainer' else 'Wild'} {e['name']}\n"
             f"  Your {p['name']} Lv{p['level']} | HP:{p['hp_pct']}% ({p['hp']}/{p['max_hp']}) | {p['type']}\n"
             f"  Enemy {e['name']} Lv{e['level']} | HP:{e['hp_pct']}% ({e['hp']}/{e['max_hp']}) | {e['type']}\n"
             f"  Moves: {moves_str or 'None'}\n"
@@ -874,7 +1156,7 @@ class RAMReader:
         # Check if it's a yes/no prompt
         yn_detected = any(phrase in text.upper() for phrase in ["YES", "NO", "YES/NO"])
         hint = " (Yes/No choice expected)" if yn_detected else " (Press A to continue)"
-        return f"💬 DIALOG{hint}:\n  \"{text}\""
+        return f'💬 DIALOG{hint}:\n  "{text}"'
 
     # ── Menu state ─────────────────────────────────────────────────────
 
@@ -889,7 +1171,12 @@ class RAMReader:
         # Guard: only report menu when one is actually active.
         # wListMenuID is zeroed when no menu is on screen.
         if menu_id == 0:
-            return {"menu_id": 0, "current_item": 0, "num_items": 0, "cursor_pos": (0, 0)}
+            return {
+                "menu_id": 0,
+                "current_item": 0,
+                "num_items": 0,
+                "cursor_pos": (0, 0),
+            }
 
         return {
             "menu_id": menu_id,
@@ -909,7 +1196,7 @@ class RAMReader:
         lines = ["📋 MENU:"]
         for i in range(items):
             marker = "→" if i == cur else " "
-            lines.append(f"  {marker} [{i+1}]")
+            lines.append(f"  {marker} [{i + 1}]")
         lines.append("  Use UP/DOWN to navigate, A to select, B to cancel")
         return "\n".join(lines)
 
@@ -954,7 +1241,7 @@ class RAMReader:
             "length": name_len,
             "case": "UPPER" if case == 0 else "lower",
             "ready_to_submit": submit != 0,
-            "grid_rows": grid_rows[row_offset:row_offset + 2],
+            "grid_rows": grid_rows[row_offset : row_offset + 2],
         }
 
     def render_name_entry(self) -> str:
@@ -964,7 +1251,7 @@ class RAMReader:
         grid_str = "\n".join(f"    {' '.join(r)}" for r in rows)
 
         return (
-            f"⌨ NAME ENTRY: \"{ne['name_so_far']}\" ({ne['length']} chars)\n"
+            f'⌨ NAME ENTRY: "{ne["name_so_far"]}" ({ne["length"]} chars)\n'
             f"  Case: {ne['case']} | {'READY to submit' if ne['ready_to_submit'] else 'still editing'}\n"
             f"  Keyboard:\n{grid_str}\n"
             f"  Use D-pad to move cursor, A to select letter, START to confirm"
@@ -975,7 +1262,7 @@ class RAMReader:
     # These hints give minimal guidance so the controller can make
     # informed decisions instead of walking into walls.
     _MAP_HINTS: dict[str, str] = {
-        "Pallet Town":  "Pallet Town. Exit north to Route 1. Prof. Oak's lab is northwest.",
+        "Pallet Town": "Pallet Town. Exit north to Route 1. Prof. Oak's lab is northwest.",
         "Viridian City": "Viridian City. Exit north to Route 2, south to Route 1.",
         "Route 1": "Route 1. North to Viridian City, south to Pallet Town. Grass has wild Pokémon.",
         "Route 2": "Route 2. North to Pewter City (through forest), south to Viridian City.",
@@ -1017,9 +1304,9 @@ class RAMReader:
             "name_field": "",
             "suggested_action": "",
             # New structured fields for LLM-friendly rendering
-            "render": "",             # pre-formatted text for the LLM
-            "battle_state": {},       # populated when in battle
-            "menu_state": {},         # populated when in menu
+            "render": "",  # pre-formatted text for the LLM
+            "battle_state": {},  # populated when in battle
+            "menu_state": {},  # populated when in menu
         }
 
         info = self._get_map_info()
@@ -1055,8 +1342,7 @@ class RAMReader:
                 obs["suggested_action"] = "explore the area"
             # Highlight non-floor adjacent tiles as potential exits
             adj = obs["adjacent"]
-            exits = [d for d, t in adj.items()
-                      if t in ("stairs", "door", "warp")]
+            exits = [d for d, t in adj.items() if t in ("stairs", "door", "warp")]
             if exits:
                 obs["visible_exits"] = exits
                 obs["suggested_action"] = f"explore: exits at {', '.join(exits)}"

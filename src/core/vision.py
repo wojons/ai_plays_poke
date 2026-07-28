@@ -49,7 +49,7 @@ class VisionClient:
         '- screen_type: "battle" if HP bars visible. '
         '"overworld" if walking around (no text boxes). '
         '"name_entry" if a letter grid/keyboard is visible with "YOUR NAME?" '
-        "or \"RIVAL'S NAME?\" at top. "
+        'or "RIVAL\'S NAME?" at top. '
         '"name_confirm" if text says "Right! So your name is..."'
         '"dialog" if text box visible but NO letter grid and NO HP bars. '
         '"menu" if a list menu (POKéDEX, ITEM, SAVE etc) is open. '

@@ -18,56 +18,69 @@ from typing import Any
 
 # ── Module-level functions ──────────────────────────────────────────────
 
+
 class TestGetModelPricing:
     """Tests for get_model_pricing() — model name → (input_price, output_price)."""
 
     def test_claude_3_opus(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("anthropic/claude-3-opus-20240229") == (15.0, 75.0)
 
     def test_claude_3_sonnet(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("anthropic/claude-3-sonnet-20240307") == (3.0, 15.0)
 
     def test_claude_3_haiku(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("anthropic/claude-3-haiku-20240307") == (0.25, 1.25)
 
     def test_claude_2(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("anthropic/claude-2") == (8.0, 32.0)
 
     def test_gpt_4o(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("openai/gpt-4o") == (5.0, 15.0)
 
     def test_gpt_4o_mini(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("openai/gpt-4o-mini") == (0.15, 0.6)
 
     def test_gpt_4_turbo(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("openai/gpt-4-turbo") == (10.0, 30.0)
 
     def test_gpt_4(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("openai/gpt-4") == (30.0, 60.0)
 
     def test_gpt_35_turbo(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("openai/gpt-3.5-turbo") == (0.5, 1.5)
 
     def test_unknown_model_default(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("some/unknown-model") == (5.0, 15.0)
 
     def test_case_insensitive(self) -> None:
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("OPENAI/GPT-4O-MINI") == (0.15, 0.6)
 
     def test_gpt_4o_mini_vs_gpt_4o_distinction(self) -> None:
         """gpt-4o-mini should NOT match the gpt-4o branch."""
         from src.core.ai_client import get_model_pricing
+
         assert get_model_pricing("openai/gpt-4o-mini") == (0.15, 0.6)
 
 
@@ -76,21 +89,25 @@ class TestCalculateCost:
 
     def test_basic_calculation(self) -> None:
         from src.core.ai_client import calculate_cost
+
         cost = calculate_cost("openai/gpt-4o-mini", 1000, 500)
         expected = (1000 / 1_000_000) * 0.15 + (500 / 1_000_000) * 0.6
         assert cost == pytest.approx(expected, rel=1e-6)
 
     def test_zero_tokens(self) -> None:
         from src.core.ai_client import calculate_cost
+
         assert calculate_cost("openai/gpt-4o", 0, 0) == 0.0
 
     def test_large_token_count(self) -> None:
         from src.core.ai_client import calculate_cost
+
         cost = calculate_cost("openai/gpt-4o", 1_000_000, 1_000_000)
         assert cost == pytest.approx(20.0, rel=1e-6)  # $5 + $15
 
     def test_unknown_model_uses_default(self) -> None:
         from src.core.ai_client import calculate_cost
+
         cost = calculate_cost("unknown/model", 1_000_000, 1_000_000)
         assert cost == pytest.approx(20.0, rel=1e-6)  # $5 + $15 default
 
@@ -100,33 +117,40 @@ class TestLogFunctions:
 
     def test_log_api_call_success(self) -> None:
         from src.core.ai_client import log_api_call
+
         log_api_call("test-model", 500.0, 100, 50, 0.001, True)
 
     def test_log_api_call_failure(self) -> None:
         from src.core.ai_client import log_api_call
+
         log_api_call("test-model", 500.0, 100, 50, 0.001, False)
 
     def test_log_vision_analysis(self) -> None:
         from src.core.ai_client import log_vision_analysis
+
         log_vision_analysis("battle", "Pikachu", 85.0, 50.0)
 
     def test_log_vision_analysis_none_enemy(self) -> None:
         from src.core.ai_client import log_vision_analysis
+
         log_vision_analysis("overworld", None, 100.0, 0.0)
 
     def test_log_api_call_broken_pipe(self) -> None:
         from src.core.ai_client import log_api_call
+
         with patch("builtins.print", side_effect=BrokenPipeError):
             log_api_call("test-model", 500.0, 100, 50, 0.001, True)  # should not raise
 
 
 # ── Dataclasses ─────────────────────────────────────────────────────────
 
+
 class TestTokenUsage:
     """Tests for TokenUsage dataclass."""
 
     def test_defaults(self) -> None:
         from src.core.ai_client import TokenUsage
+
         tu = TokenUsage()
         assert tu.prompt_tokens == 0
         assert tu.completion_tokens == 0
@@ -134,6 +158,7 @@ class TestTokenUsage:
 
     def test_with_values(self) -> None:
         from src.core.ai_client import TokenUsage
+
         tu = TokenUsage(prompt_tokens=100, completion_tokens=50)
         assert tu.prompt_tokens == 100
         assert tu.completion_tokens == 50
@@ -141,11 +166,13 @@ class TestTokenUsage:
 
     def test_post_init_recalculates_total(self) -> None:
         from src.core.ai_client import TokenUsage
+
         tu = TokenUsage(prompt_tokens=200, completion_tokens=300)
         assert tu.total_tokens == 500
 
     def test_timestamp_auto_set(self) -> None:
         from src.core.ai_client import TokenUsage
+
         tu = TokenUsage()
         assert isinstance(tu.timestamp, datetime)
 
@@ -155,6 +182,7 @@ class TestAPICallResult:
 
     def test_success_result(self) -> None:
         from src.core.ai_client import APICallResult, TokenUsage
+
         usage = TokenUsage(prompt_tokens=100, completion_tokens=50)
         result = APICallResult(
             content="test response",
@@ -171,6 +199,7 @@ class TestAPICallResult:
 
     def test_failed_result(self) -> None:
         from src.core.ai_client import APICallResult, TokenUsage
+
         usage = TokenUsage()
         result = APICallResult(
             content="",
@@ -188,6 +217,7 @@ class TestAPICallResult:
 
     def test_request_id(self) -> None:
         from src.core.ai_client import APICallResult, TokenUsage
+
         result = APICallResult(
             content="ok",
             model="test",
@@ -204,6 +234,7 @@ class TestTaskComplexity:
 
     def test_defaults(self) -> None:
         from src.core.ai_client import TaskComplexity
+
         tc = TaskComplexity()
         assert tc.vision_weight == 0.9
         assert tc.reasoning_weight == 0.7
@@ -213,6 +244,7 @@ class TestTaskComplexity:
 
     def test_custom_values(self) -> None:
         from src.core.ai_client import TaskComplexity
+
         tc = TaskComplexity(vision_weight=0.5, reasoning_weight=0.3)
         assert tc.vision_weight == 0.5
         assert tc.reasoning_weight == 0.3
@@ -224,6 +256,7 @@ class TestModelSelection:
 
     def test_construction(self) -> None:
         from src.core.ai_client import ModelSelection
+
         sel = ModelSelection(
             model="openai/gpt-4o",
             provider="openrouter",
@@ -247,6 +280,7 @@ class TestRoutingConfig:
 
     def test_defaults(self) -> None:
         from src.core.ai_client import RoutingConfig
+
         rc = RoutingConfig()
         assert rc.budget == 10.0
         assert rc.max_latency_ms == 5000.0
@@ -259,7 +293,10 @@ class TestRoutingConfig:
 
     def test_custom_config(self) -> None:
         from src.core.ai_client import RoutingConfig
-        rc = RoutingConfig(budget=5.0, max_latency_ms=2000.0, fallback_chain=["model-a"])
+
+        rc = RoutingConfig(
+            budget=5.0, max_latency_ms=2000.0, fallback_chain=["model-a"]
+        )
         assert rc.budget == 5.0
         assert rc.max_latency_ms == 2000.0
         assert rc.fallback_chain == ["model-a"]
@@ -270,6 +307,7 @@ class TestPerformanceMetrics:
 
     def test_defaults(self) -> None:
         from src.core.ai_client import PerformanceMetrics
+
         pm = PerformanceMetrics()
         assert pm.total_calls == 0
         assert pm.successful_calls == 0
@@ -282,6 +320,7 @@ class TestPerformanceMetrics:
 
     def test_custom_values(self) -> None:
         from src.core.ai_client import PerformanceMetrics
+
         pm = PerformanceMetrics(
             total_calls=10,
             successful_calls=9,
@@ -299,6 +338,7 @@ class TestModelResult:
 
     def test_construction(self) -> None:
         from src.core.ai_client import ModelResult
+
         mr = ModelResult(
             model="openai/gpt-4o",
             content="press:A",
@@ -321,6 +361,7 @@ class TestMergedResult:
 
     def test_construction(self) -> None:
         from src.core.ai_client import MergedResult
+
         mr = MergedResult(
             content="consensus answer",
             selected_model="gpt-4o",
@@ -341,25 +382,30 @@ class TestMergedResult:
 
 # ── APIError ────────────────────────────────────────────────────────────
 
+
 class TestAPIError:
     """Tests for APIError exception."""
 
     def test_basic_raise(self) -> None:
         from src.core.ai_client import APIError
+
         with pytest.raises(APIError, match="test error"):
             raise APIError("test error")
 
     def test_is_exception(self) -> None:
         from src.core.ai_client import APIError
+
         assert issubclass(APIError, Exception)
 
     def test_empty_message(self) -> None:
         from src.core.ai_client import APIError
+
         with pytest.raises(APIError):
             raise APIError()
 
 
 # ── JSONResponseParser ──────────────────────────────────────────────────
+
 
 class TestJSONResponseParser:
     """Tests for JSONResponseParser — pure JSON parsing logic."""
@@ -367,6 +413,7 @@ class TestJSONResponseParser:
     @pytest.fixture
     def parser(self) -> Any:
         from src.core.ai_client import JSONResponseParser
+
         return JSONResponseParser()
 
     # ── _clean_json_response ──────────────────────────────────────
@@ -393,13 +440,15 @@ class TestJSONResponseParser:
 
     def test_clean_no_fences_on_regular_text(self, parser) -> None:
         # String contains backticks but not at start/end
-        result = parser._clean_json_response('text with `code` inside')
-        assert result == 'text with `code` inside'
+        result = parser._clean_json_response("text with `code` inside")
+        assert result == "text with `code` inside"
 
     # ── _try_parse_json ────────────────────────────────────────────
 
     def test_parse_valid_json(self, parser) -> None:
-        result = parser._try_parse_json('{"screen_type": "battle", "action": "press:A"}')
+        result = parser._try_parse_json(
+            '{"screen_type": "battle", "action": "press:A"}'
+        )
         assert result == {"screen_type": "battle", "action": "press:A"}
 
     def test_parse_json_with_whitespace(self, parser) -> None:
@@ -411,7 +460,7 @@ class TestJSONResponseParser:
         assert result == {"key": "value"}
 
     def test_parse_invalid_json_returns_none(self, parser) -> None:
-        result = parser._try_parse_json('not json at all')
+        result = parser._try_parse_json("not json at all")
         assert result is None
 
     def test_parse_empty_string(self, parser) -> None:
@@ -420,7 +469,9 @@ class TestJSONResponseParser:
 
     def test_parse_json_with_schema_validation(self, parser) -> None:
         schema = {"screen_type": str, "player_hp": int}
-        result = parser._try_parse_json('{"screen_type": "battle", "player_hp": 85}', schema)
+        result = parser._try_parse_json(
+            '{"screen_type": "battle", "player_hp": 85}', schema
+        )
         assert result == {"screen_type": "battle", "player_hp": 85}
 
     def test_parse_json_with_schema_validation_fails(self, parser) -> None:
@@ -479,7 +530,7 @@ class TestJSONResponseParser:
     def test_parse_fallback_to_regex(self, parser) -> None:
         # Bad JSON that triggers fallback → regex extraction
         result = parser.parse(
-            'action: press:A reasoning: Attack! screen_type: battle',
+            "action: press:A reasoning: Attack! screen_type: battle",
             schema={"action": str, "screen_type": str},
         )
         assert "raw_response" in result
@@ -487,7 +538,7 @@ class TestJSONResponseParser:
 
     def test_parse_retry_chain(self, parser) -> None:
         # Response that fails JSON parsing on first try, succeeds on retry
-        result = parser.parse('not json', retry_count=1)
+        result = parser.parse("not json", retry_count=1)
         assert isinstance(result, dict)
 
     # ── get_success_rate ────────────────────────────────────────────
@@ -514,20 +565,20 @@ class TestJSONResponseParser:
 
     def test_extract_screen_type(self, parser) -> None:
         result = parser._extract_with_regex_fallback(
-            'screen_type: battle enemy: Pikachu'
+            "screen_type: battle enemy: Pikachu"
         )
         assert "screen_type" in result["extracted_fields"]
 
     def test_extract_player_hp(self, parser) -> None:
-        result = parser._extract_with_regex_fallback('player_hp: 85')
+        result = parser._extract_with_regex_fallback("player_hp: 85")
         assert result["extracted_fields"].get("player_hp") == 85
 
     def test_extract_enemy_hp(self, parser) -> None:
-        result = parser._extract_with_regex_fallback('enemy_hp: 50')
+        result = parser._extract_with_regex_fallback("enemy_hp: 50")
         assert result["extracted_fields"].get("enemy_hp") == 50
 
     def test_extract_enemy_pokemon(self, parser) -> None:
-        result = parser._extract_with_regex_fallback('enemy_pokemon: Pikachu')
+        result = parser._extract_with_regex_fallback("enemy_pokemon: Pikachu")
         assert "enemy_pokemon" in result["extracted_fields"]
 
     def test_extract_reasoning(self, parser) -> None:
@@ -554,25 +605,25 @@ class TestJSONResponseParser:
         assert result == {"key": "value"}
 
     def test_parse_with_fallback_regex_pattern(self, parser) -> None:
-        result = parser._parse_with_fallback(
-            'prefix {"key": "value"} suffix', 1
-        )
+        result = parser._parse_with_fallback('prefix {"key": "value"} suffix', 1)
         assert result == {"key": "value"}
 
     def test_parse_with_fallback_ultimate_fallback(self, parser) -> None:
         result = parser._parse_with_fallback(
-            'completely unparseable garbage text!!!', 2
+            "completely unparseable garbage text!!!", 2
         )
         assert "raw_response" in result
 
 
 # ── RateLimiter ─────────────────────────────────────────────────────────
 
+
 class TestRateLimiter:
     """Tests for RateLimiter — rate limiting with exponential backoff."""
 
     def test_default_construction(self) -> None:
         from src.core.ai_client import RateLimiter
+
         rl = RateLimiter()
         assert rl.max_requests == 50
         assert rl.time_window == 60.0
@@ -581,7 +632,10 @@ class TestRateLimiter:
 
     def test_custom_construction(self) -> None:
         from src.core.ai_client import RateLimiter
-        rl = RateLimiter(max_requests=10, time_window=30.0, base_delay=0.5, max_delay=30.0)
+
+        rl = RateLimiter(
+            max_requests=10, time_window=30.0, base_delay=0.5, max_delay=30.0
+        )
         assert rl.max_requests == 10
         assert rl.time_window == 30.0
         assert rl.base_delay == 0.5
@@ -589,6 +643,7 @@ class TestRateLimiter:
 
     def test_wait_under_limit(self) -> None:
         from src.core.ai_client import RateLimiter
+
         rl = RateLimiter(max_requests=10)
         for _ in range(5):
             delay = rl.wait()
@@ -596,6 +651,7 @@ class TestRateLimiter:
 
     def test_get_delay_exponential(self) -> None:
         from src.core.ai_client import RateLimiter
+
         rl = RateLimiter(base_delay=1.0, max_delay=60.0)
         delay_0 = rl.get_delay(0)
         delay_1 = rl.get_delay(1)
@@ -609,6 +665,7 @@ class TestRateLimiter:
 
     def test_get_delay_never_exceeds_max(self) -> None:
         from src.core.ai_client import RateLimiter
+
         rl = RateLimiter(base_delay=1.0, max_delay=60.0)
         # Retry count 10 → 1 * 2^10 = 1024, plus jitter. Capped at max_delay.
         # Jitter adds up to 10%, so worst case is 60 * 1.1 = 66.0
@@ -618,6 +675,7 @@ class TestRateLimiter:
     def test_wait_respects_time_window(self) -> None:
         """Old requests should be pruned from tracking."""
         from src.core.ai_client import RateLimiter
+
         rl = RateLimiter(max_requests=3, time_window=0.01)  # 10ms window
         for _ in range(3):
             rl.wait()
@@ -630,12 +688,14 @@ class TestRateLimiter:
 
 # ── ModelRouter ─────────────────────────────────────────────────────────
 
+
 class TestModelRouter:
     """Tests for ModelRouter — task-type to model selection."""
 
     @pytest.fixture
     def router(self) -> Any:
         from src.core.ai_client import ModelRouter
+
         return ModelRouter()
 
     def test_construction(self, router) -> None:
@@ -696,12 +756,14 @@ class TestModelRouter:
 
 # ── CostOptimizer ───────────────────────────────────────────────────────
 
+
 class TestCostOptimizer:
     """Tests for CostOptimizer — budget tracking and model switching."""
 
     @pytest.fixture
     def opt(self) -> Any:
         from src.core.ai_client import CostOptimizer
+
         return CostOptimizer(budget=10.0)
 
     def test_construction(self, opt) -> None:
@@ -739,6 +801,7 @@ class TestCostOptimizer:
 
     def test_budget_percentage_zero_budget(self) -> None:
         from src.core.ai_client import CostOptimizer
+
         opt = CostOptimizer(budget=0.0)
         assert opt.get_budget_percentage() == 100.0
 
@@ -787,12 +850,14 @@ class TestCostOptimizer:
 
 # ── PerformanceTracker ──────────────────────────────────────────────────
 
+
 class TestPerformanceTracker:
     """Tests for PerformanceTracker — model performance metrics."""
 
     @pytest.fixture
     def tracker(self) -> Any:
         from src.core.ai_client import PerformanceTracker
+
         return PerformanceTracker()
 
     def test_construction(self, tracker) -> None:
@@ -907,6 +972,7 @@ class TestPerformanceTracker:
         # Just add a task type with no calls — shouldn't happen normally
         # but the code handles total_calls == 0
         from src.core.ai_client import PerformanceMetrics
+
         tracker.task_metrics["empty"] = {
             "model-x": PerformanceMetrics(total_calls=0, total_latency_ms=0.0)
         }
@@ -934,28 +1000,42 @@ class TestPerformanceTracker:
 
 # ── ResultMerger ────────────────────────────────────────────────────────
 
+
 class TestResultMerger:
     """Tests for ResultMerger — conflict detection and confidence-weighted merging."""
 
     @pytest.fixture
     def merger(self) -> Any:
         from src.core.ai_client import ResultMerger
+
         return ResultMerger()
 
     @pytest.fixture
     def make_result(self) -> Any:
         from src.core.ai_client import ModelResult
 
-        def _make(model="gpt-4o", content="press:A", confidence=0.9,
-                  success=True, latency_ms=300.0, cost=0.002):
+        def _make(
+            model="gpt-4o",
+            content="press:A",
+            confidence=0.9,
+            success=True,
+            latency_ms=300.0,
+            cost=0.002,
+        ):
             return ModelResult(
-                model=model, content=content, confidence=confidence,
-                success=success, latency_ms=latency_ms, cost=cost,
+                model=model,
+                content=content,
+                confidence=confidence,
+                success=success,
+                latency_ms=latency_ms,
+                cost=cost,
             )
+
         return _make
 
     def test_construction_defaults(self) -> None:
         from src.core.ai_client import ResultMerger
+
         m = ResultMerger()
         assert m.confidence_threshold == 0.6
         assert m.consensus_threshold == 0.7
@@ -963,6 +1043,7 @@ class TestResultMerger:
 
     def test_custom_thresholds(self) -> None:
         from src.core.ai_client import ResultMerger
+
         m = ResultMerger(confidence_threshold=0.8, consensus_threshold=0.9)
         assert m.confidence_threshold == 0.8
         assert m.consensus_threshold == 0.9
@@ -1068,7 +1149,9 @@ class TestResultMerger:
         r2 = make_result()
         assert merger._has_consensus([r1, r2], []) is True
 
-    def test_has_consensus_with_conflicts_high_confidence(self, merger, make_result) -> None:
+    def test_has_consensus_with_conflicts_high_confidence(
+        self, merger, make_result
+    ) -> None:
         r1 = make_result(content="A", confidence=0.95)
         r2 = make_result(content="B", confidence=0.95)
         conflicts = merger._detect_conflicts([r1, r2])
@@ -1108,7 +1191,9 @@ class TestResultMerger:
     def test_get_merge_stats(self, merger, make_result) -> None:
         merger.merge_results([make_result()])
         stats = merger.get_merge_stats()
-        assert stats["total_merges"] == 0  # merge_history is not auto-populated by merge_results
+        assert (
+            stats["total_merges"] == 0
+        )  # merge_history is not auto-populated by merge_results
         # The merge_history list is in the constructor and used by get_merge_stats
         # but merge_results doesn't append to it (Bug: merge_results doesn't record history)
         # Test current behavior
@@ -1122,11 +1207,13 @@ class TestResultMerger:
 
 # ── AIModelClient tests (stub mode + requests_mock) ────────────────────
 
+
 class TestAIModelClientInit:
     """Tests for AIModelClient.__init__ and _load_api_key."""
 
     def test_init_with_api_key(self) -> None:
         from src.core.ai_client import AIModelClient
+
         client = AIModelClient(api_key="sk-test-key-12345")
         assert client._api_key == "sk-test-key-12345"
         assert not client._stub_mode
@@ -1134,6 +1221,7 @@ class TestAIModelClientInit:
     def test_init_without_api_key_enters_stub_mode(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient()
             assert client._stub_mode
             assert client._api_key is None
@@ -1141,6 +1229,7 @@ class TestAIModelClientInit:
     def test_init_with_openrouter_env(self) -> None:
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-or-key"}):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient()
             assert client._api_key == "sk-or-key"
             assert not client._stub_mode
@@ -1148,12 +1237,14 @@ class TestAIModelClientInit:
     def test_init_with_openai_env(self) -> None:
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-oai-key"}):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient()
             assert client._api_key == "sk-oai-key"
             assert not client._stub_mode
 
     def test_load_api_key_returns_constructor_key(self) -> None:
         from src.core.ai_client import AIModelClient
+
         client = AIModelClient(api_key="sk-constructor")
         result = client._load_api_key()
         assert result == "sk-constructor"
@@ -1161,6 +1252,7 @@ class TestAIModelClientInit:
     def test_load_api_key_stores_and_returns_env_key(self) -> None:
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-env"}):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient()
             result = client._load_api_key()
             assert result == "sk-env"
@@ -1173,12 +1265,14 @@ class TestAIModelClientValidateKey:
     def test_stub_mode_returns_true(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient()
             assert client._stub_mode
             assert client._validate_api_key() is True
 
     def test_missing_key_raises(self) -> None:
         from src.core.ai_client import AIModelClient, APIError
+
         with patch.dict(os.environ, {}, clear=True):
             client = AIModelClient(api_key=None)
             client._stub_mode = False
@@ -1187,6 +1281,7 @@ class TestAIModelClientValidateKey:
 
     def test_empty_key_raises(self) -> None:
         from src.core.ai_client import AIModelClient, APIError
+
         client = AIModelClient(api_key="   ")
         client._stub_mode = False
         with pytest.raises(APIError, match="empty"):
@@ -1194,6 +1289,7 @@ class TestAIModelClientValidateKey:
 
     def test_invalid_format_raises(self) -> None:
         from src.core.ai_client import AIModelClient, APIError
+
         client = AIModelClient(api_key="bad-format-key")
         client._stub_mode = False
         with pytest.raises(APIError, match="Invalid API key format"):
@@ -1201,6 +1297,7 @@ class TestAIModelClientValidateKey:
 
     def test_non_string_key_raises(self) -> None:
         from src.core.ai_client import AIModelClient, APIError
+
         client = AIModelClient(api_key=12345)  # type: ignore
         client._stub_mode = False
         with pytest.raises(APIError, match="must be a string"):
@@ -1208,8 +1305,13 @@ class TestAIModelClientValidateKey:
 
     def test_api_401_raises(self) -> None:
         from src.core.ai_client import AIModelClient, APIError
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=401, json={"error": {"message": "Invalid key"}})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=401,
+                json={"error": {"message": "Invalid key"}},
+            )
             client = AIModelClient(api_key="sk-test")
             client._stub_mode = False
             with pytest.raises(APIError, match="Invalid key"):
@@ -1217,8 +1319,13 @@ class TestAIModelClientValidateKey:
 
     def test_api_403_raises(self) -> None:
         from src.core.ai_client import AIModelClient, APIError
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=403, json={})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=403,
+                json={},
+            )
             client = AIModelClient(api_key="sk-test")
             client._stub_mode = False
             with pytest.raises(APIError, match="failed with status 403"):
@@ -1226,24 +1333,38 @@ class TestAIModelClientValidateKey:
 
     def test_api_200_validates(self) -> None:
         from src.core.ai_client import AIModelClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200, json={})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={},
+            )
             client = AIModelClient(api_key="sk-test")
             client._stub_mode = False
             assert client._validate_api_key() is True
 
     def test_api_429_still_validates(self) -> None:
         from src.core.ai_client import AIModelClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=429, json={})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=429,
+                json={},
+            )
             client = AIModelClient(api_key="sk-test")
             client._stub_mode = False
             assert client._validate_api_key() is True
 
     def test_network_error_raises(self) -> None:
         from src.core.ai_client import AIModelClient, APIError
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", exc=requests.exceptions.ConnectionError)
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                exc=requests.exceptions.ConnectionError,
+            )
             client = AIModelClient(api_key="sk-test")
             client._stub_mode = False
             with pytest.raises(APIError, match="API validation request failed"):
@@ -1256,12 +1377,14 @@ class TestAIModelClientInitClient:
     def test_init_client_stub_mode(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient()
             assert client._client is None
 
     def test_init_client_with_key_creates_openrouter(self) -> None:
         from src.core.ai_client import AIModelClient
         from src.core.ai_client import OpenRouterClient
+
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
             client = AIModelClient(api_key="sk-test")
             client._stub_mode = False
@@ -1275,6 +1398,7 @@ class TestAIModelClientMakeRequest:
     def test_stub_mode_returns_stub_response(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient()
             result = client._make_request_with_retry("test", {})
             assert "stub" in str(result["model"])
@@ -1282,10 +1406,17 @@ class TestAIModelClientMakeRequest:
 
     def test_successful_request(self) -> None:
         from src.core.ai_client import AIModelClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
-                   json={"choices": [{"message": {"content": "hello"}}], "model": "test-model",
-                         "usage": {"prompt_tokens": 10, "completion_tokens": 5}})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [{"message": {"content": "hello"}}],
+                    "model": "test-model",
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+                },
+            )
             with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
                 client = AIModelClient(api_key="sk-test")
                 client._stub_mode = False
@@ -1295,11 +1426,22 @@ class TestAIModelClientMakeRequest:
 
     def test_retry_then_succeed(self) -> None:
         from src.core.ai_client import AIModelClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions",
-                   [{"status_code": 500}, {"status_code": 200,
-                    "json": {"choices": [{"message": {"content": "ok"}}], "model": "x",
-                             "usage": {"prompt_tokens": 1, "completion_tokens": 1}}}])
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                [
+                    {"status_code": 500},
+                    {
+                        "status_code": 200,
+                        "json": {
+                            "choices": [{"message": {"content": "ok"}}],
+                            "model": "x",
+                            "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                        },
+                    },
+                ],
+            )
             with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
                 client = AIModelClient(api_key="sk-test")
                 client._stub_mode = False
@@ -1314,6 +1456,7 @@ class TestAIModelClientGenerateDecision:
     def test_stub_mode_returns_default(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient()
             result = client.generate_decision({}, {})
             assert result["command"] == "press:A"
@@ -1322,25 +1465,41 @@ class TestAIModelClientGenerateDecision:
 
     def test_valid_json_response_parsed(self) -> None:
         from src.core.ai_client import AIModelClient
+
         content = '{"command": "press:LEFT", "reasoning": "move", "confidence": 0.9}'
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
-                   json={"choices": [{"message": {"content": content}}],
-                         "model": "test", "usage": {"prompt_tokens": 5, "completion_tokens": 3}})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [{"message": {"content": content}}],
+                    "model": "test",
+                    "usage": {"prompt_tokens": 5, "completion_tokens": 3},
+                },
+            )
             with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
                 client = AIModelClient(api_key="sk-test")
                 client._stub_mode = False
                 client._init_client()
-                result = client.generate_decision({"screen": "overworld"}, {"location": "pallet"})
+                result = client.generate_decision(
+                    {"screen": "overworld"}, {"location": "pallet"}
+                )
                 assert result["command"] == "press:LEFT"
                 assert result["confidence"] == 0.9
 
     def test_non_json_response_fallback(self) -> None:
         from src.core.ai_client import AIModelClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
-                   json={"choices": [{"message": {"content": "go left!"}}],
-                         "model": "test", "usage": {"prompt_tokens": 5, "completion_tokens": 3}})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [{"message": {"content": "go left!"}}],
+                    "model": "test",
+                    "usage": {"prompt_tokens": 5, "completion_tokens": 3},
+                },
+            )
             with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
                 client = AIModelClient(api_key="sk-test")
                 client._stub_mode = False
@@ -1351,6 +1510,7 @@ class TestAIModelClientGenerateDecision:
 
     def test_api_error_returns_fallback(self) -> None:
         from src.core.ai_client import AIModelClient
+
         with requests_mock.Mocker() as m:
             m.post("https://openrouter.ai/api/v1/chat/completions", status_code=500)
             with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-test"}):
@@ -1370,49 +1530,65 @@ class TestClaudeClientInit:
     """Tests for ClaudeClient.__init__."""
 
     def test_init_with_api_key(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch("src.core.ai_client.Anthropic") as mock_anthropic:
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch("src.core.ai_client.Anthropic") as mock_anthropic,
+        ):
             from src.core.ai_client import ClaudeClient
+
             client = ClaudeClient(api_key="sk-ant-test")
             assert client.api_key == "sk-ant-test"
             mock_anthropic.assert_called_once_with(api_key="sk-ant-test")
 
     def test_init_with_env_key(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch("src.core.ai_client.Anthropic") as mock_anthropic, \
-             patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-env"}):
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch("src.core.ai_client.Anthropic") as mock_anthropic,
+            patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-env"}),
+        ):
             from src.core.ai_client import ClaudeClient
+
             client = ClaudeClient()
             assert client.api_key == "sk-ant-env"
             mock_anthropic.assert_called_once_with(api_key="sk-ant-env")
 
     def test_init_without_key_raises(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch.dict(os.environ, {}, clear=True):
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch.dict(os.environ, {}, clear=True),
+        ):
             from src.core.ai_client import ClaudeClient
+
             with pytest.raises(ValueError, match="API key not found"):
                 ClaudeClient()
 
     def test_init_without_sdk_raises(self) -> None:
         with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", False):
             from src.core.ai_client import ClaudeClient
+
             with pytest.raises(ImportError, match="Anthropic SDK not installed"):
                 ClaudeClient(api_key="sk-ant-test")
 
     def test_default_models_set(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch("src.core.ai_client.Anthropic"):
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch("src.core.ai_client.Anthropic"),
+        ):
             from src.core.ai_client import ClaudeClient
+
             client = ClaudeClient(api_key="sk-ant-test")
             assert "vision" in client.models
             assert "thinking" in client.models
             assert "acting" in client.models
 
     def test_circuit_breaker_created(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch("src.core.ai_client.Anthropic"):
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch("src.core.ai_client.Anthropic"),
+        ):
             from src.core.ai_client import ClaudeClient
             from src.core.ai_client import CircuitBreaker
+
             client = ClaudeClient(api_key="sk-ant-test")
             assert isinstance(client.circuit_breaker, CircuitBreaker)
 
@@ -1421,8 +1597,10 @@ class TestClaudeClientChatCompletion:
     """Tests for ClaudeClient.chat_completion."""
 
     def test_chat_completion_success(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch("src.core.ai_client.Anthropic") as mock_anthropic_class:
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch("src.core.ai_client.Anthropic") as mock_anthropic_class,
+        ):
             mock_client = mock_anthropic_class.return_value
             mock_block = type("ContentBlock", (), {"text": "Hello from Claude"})()
             mock_response = mock_client.messages.create.return_value
@@ -1433,8 +1611,11 @@ class TestClaudeClientChatCompletion:
             mock_response.usage.output_tokens = 5
 
             from src.core.ai_client import ClaudeClient
+
             client = ClaudeClient(api_key="sk-ant-test")
-            result = client.chat_completion("claude-3-haiku-20240307", [{"role": "user", "content": "hi"}])
+            result = client.chat_completion(
+                "claude-3-haiku-20240307", [{"role": "user", "content": "hi"}]
+            )
 
             assert result["content"] == "Hello from Claude"
             assert result["model"] == "claude-3-haiku-20240307"
@@ -1443,9 +1624,12 @@ class TestClaudeClientChatCompletion:
             assert result["request_id"] == "msg_123"
 
     def test_chat_completion_circuit_breaker_open(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch("src.core.ai_client.Anthropic"):
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch("src.core.ai_client.Anthropic"),
+        ):
             from src.core.ai_client import ClaudeClient
+
             client = ClaudeClient(api_key="sk-ant-test")
             for _ in range(5):
                 client.circuit_breaker.record_failure()
@@ -1453,12 +1637,15 @@ class TestClaudeClientChatCompletion:
                 client.chat_completion("claude-3-haiku-20240307", [])
 
     def test_chat_completion_records_failure(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch("src.core.ai_client.Anthropic") as mock_anthropic_class:
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch("src.core.ai_client.Anthropic") as mock_anthropic_class,
+        ):
             mock_client = mock_anthropic_class.return_value
             mock_client.messages.create.side_effect = Exception("API error")
 
             from src.core.ai_client import ClaudeClient
+
             client = ClaudeClient(api_key="sk-ant-test")
             with pytest.raises(Exception, match="API error"):
                 client.chat_completion("claude-3-haiku-20240307", [])
@@ -1468,8 +1655,10 @@ class TestClaudeClientGetTextResponse:
     """Tests for ClaudeClient.get_text_response."""
 
     def test_get_text_response(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch("src.core.ai_client.Anthropic") as mock_anthropic_class:
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch("src.core.ai_client.Anthropic") as mock_anthropic_class,
+        ):
             mock_client = mock_anthropic_class.return_value
             mock_block = type("ContentBlock", (), {"text": "Response text"})()
             mock_response = mock_client.messages.create.return_value
@@ -1480,14 +1669,17 @@ class TestClaudeClientGetTextResponse:
             mock_response.usage.output_tokens = 3
 
             from src.core.ai_client import ClaudeClient
+
             client = ClaudeClient(api_key="sk-ant-test")
             result = client.get_text_response("What is 2+2?")
 
             assert result == "Response text"
 
     def test_get_text_response_with_system_prompt(self) -> None:
-        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True), \
-             patch("src.core.ai_client.Anthropic") as mock_anthropic_class:
+        with (
+            patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True),
+            patch("src.core.ai_client.Anthropic") as mock_anthropic_class,
+        ):
             mock_client = mock_anthropic_class.return_value
             mock_block = type("ContentBlock", (), {"text": "Answer"})()
             mock_response = mock_client.messages.create.return_value
@@ -1498,6 +1690,7 @@ class TestClaudeClientGetTextResponse:
             mock_response.usage.output_tokens = 8
 
             from src.core.ai_client import ClaudeClient
+
             client = ClaudeClient(api_key="sk-ant-test")
             result = client.get_text_response("prompt", system_prompt="Be helpful")
 
@@ -1509,11 +1702,13 @@ class TestClaudeClientGetTextResponse:
 
 # ── OpenRouterClient tests ────────────────────────────────────────────
 
+
 class TestOpenRouterClientInit:
     """Tests for OpenRouterClient.__init__."""
 
     def test_init_with_api_key(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         client = OpenRouterClient(api_key="sk-or-test")
         assert client.api_key == "sk-or-test"
         assert client.base_url == "https://openrouter.ai/api/v1"
@@ -1521,17 +1716,20 @@ class TestOpenRouterClientInit:
     def test_init_with_env_key(self) -> None:
         with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-or-env"}):
             from src.core.ai_client import OpenRouterClient
+
             client = OpenRouterClient()
             assert client.api_key == "sk-or-env"
 
     def test_init_without_key_raises(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             from src.core.ai_client import OpenRouterClient
+
             with pytest.raises(ValueError, match="API key not found"):
                 OpenRouterClient()
 
     def test_default_models_set(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         client = OpenRouterClient(api_key="sk-or-test")
         assert "vision" in client.models
         assert "thinking" in client.models
@@ -1539,11 +1737,13 @@ class TestOpenRouterClientInit:
 
     def test_circuit_breaker_created(self) -> None:
         from src.core.ai_client import OpenRouterClient, CircuitBreaker
+
         client = OpenRouterClient(api_key="sk-or-test")
         assert isinstance(client.circuit_breaker, CircuitBreaker)
 
     def test_last_usage_initialized_empty(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         client = OpenRouterClient(api_key="sk-or-test")
         assert client._last_usage == {}
 
@@ -1553,19 +1753,29 @@ class TestOpenRouterClientChatCompletion:
 
     def test_successful_completion(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
-                   json={"choices": [{"message": {"content": "hello"}}],
-                         "model": "test-model", "id": "req-123",
-                         "usage": {"prompt_tokens": 10, "completion_tokens": 5}})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [{"message": {"content": "hello"}}],
+                    "model": "test-model",
+                    "id": "req-123",
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+                },
+            )
             client = OpenRouterClient(api_key="sk-or-test")
-            result = client.chat_completion("test-model", [{"role": "user", "content": "hi"}])
+            result = client.chat_completion(
+                "test-model", [{"role": "user", "content": "hi"}]
+            )
             assert result["content"] == "hello"
             assert result["model"] == "test-model"
             assert result["request_id"] == "req-123"
 
     def test_circuit_breaker_open(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         client = OpenRouterClient(api_key="sk-or-test")
         for _ in range(5):
             client.circuit_breaker.record_failure()
@@ -1574,36 +1784,78 @@ class TestOpenRouterClientChatCompletion:
 
     def test_status_429_retries(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions",
-                   [{"status_code": 429}, {"status_code": 200,
-                    "json": {"choices": [{"message": {"content": "ok"}}],
-                             "model": "x", "id": "r",
-                             "usage": {"prompt_tokens": 1, "completion_tokens": 1}}}])
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                [
+                    {"status_code": 429},
+                    {
+                        "status_code": 200,
+                        "json": {
+                            "choices": [{"message": {"content": "ok"}}],
+                            "model": "x",
+                            "id": "r",
+                            "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                        },
+                    },
+                ],
+            )
             client = OpenRouterClient(api_key="sk-or-test")
             result = client.chat_completion("test-model", [])
             assert result["content"] == "ok"
 
     def test_status_500_retries(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions",
-                   [{"status_code": 500}, {"status_code": 500}, {"status_code": 200,
-                    "json": {"choices": [{"message": {"content": "ok3"}}],
-                             "model": "y", "id": "r3",
-                             "usage": {"prompt_tokens": 1, "completion_tokens": 1}}}])
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                [
+                    {"status_code": 500},
+                    {"status_code": 500},
+                    {
+                        "status_code": 200,
+                        "json": {
+                            "choices": [{"message": {"content": "ok3"}}],
+                            "model": "y",
+                            "id": "r3",
+                            "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                        },
+                    },
+                ],
+            )
             client = OpenRouterClient(api_key="sk-or-test")
             result = client.chat_completion("test-model", [])
             assert result["content"] == "ok3"
 
     def test_tool_calls_parsed(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
-                   json={"choices": [{"message": {
-                       "tool_calls": [{"function": {"name": "press_button", "arguments": '{"button":"A"}'}}]
-                   }}], "model": "tool-model", "id": "t1",
-                         "usage": {"prompt_tokens": 5, "completion_tokens": 3}})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [
+                        {
+                            "message": {
+                                "tool_calls": [
+                                    {
+                                        "function": {
+                                            "name": "press_button",
+                                            "arguments": '{"button":"A"}',
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "model": "tool-model",
+                    "id": "t1",
+                    "usage": {"prompt_tokens": 5, "completion_tokens": 3},
+                },
+            )
             client = OpenRouterClient(api_key="sk-or-test")
             result = client.chat_completion("test-model", [])
             assert "press_button" in result["content"]
@@ -1611,12 +1863,19 @@ class TestOpenRouterClientChatCompletion:
 
     def test_deepseek_routing(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         with patch.dict(os.environ, {"DEEPSEEK_API_KEY": "sk-ds-key"}):
             with requests_mock.Mocker() as m:
-                m.post("https://api.deepseek.com/chat/completions", status_code=200,
-                       json={"choices": [{"message": {"content": "deepseek response"}}],
-                             "model": "deepseek-chat", "id": "ds-1",
-                             "usage": {"prompt_tokens": 5, "completion_tokens": 3}})
+                m.post(
+                    "https://api.deepseek.com/chat/completions",
+                    status_code=200,
+                    json={
+                        "choices": [{"message": {"content": "deepseek response"}}],
+                        "model": "deepseek-chat",
+                        "id": "ds-1",
+                        "usage": {"prompt_tokens": 5, "completion_tokens": 3},
+                    },
+                )
                 client = OpenRouterClient(api_key="sk-or-test")
                 result = client.chat_completion("deepseek-chat", [])
                 assert result["content"] == "deepseek response"
@@ -1627,12 +1886,19 @@ class TestOpenRouterClientVisionResponse:
 
     def test_get_vision_response(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         img = np.zeros((160, 240, 3), dtype=np.uint8)
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
-                   json={"choices": [{"message": {"content": "I see a Pokemon"}}],
-                         "model": "gpt-4o", "id": "v1",
-                         "usage": {"prompt_tokens": 50, "completion_tokens": 10}})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [{"message": {"content": "I see a Pokemon"}}],
+                    "model": "gpt-4o",
+                    "id": "v1",
+                    "usage": {"prompt_tokens": 50, "completion_tokens": 10},
+                },
+            )
             client = OpenRouterClient(api_key="sk-or-test")
             result = client.get_vision_response("What do you see?", img)
             assert "I see a Pokemon" in result
@@ -1643,11 +1909,18 @@ class TestOpenRouterClientTextResponse:
 
     def test_get_text_response(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
-                   json={"choices": [{"message": {"content": "text reply"}}],
-                         "model": "gpt-4o-mini", "id": "t1",
-                         "usage": {"prompt_tokens": 5, "completion_tokens": 2}})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [{"message": {"content": "text reply"}}],
+                    "model": "gpt-4o-mini",
+                    "id": "t1",
+                    "usage": {"prompt_tokens": 5, "completion_tokens": 2},
+                },
+            )
             client = OpenRouterClient(api_key="sk-or-test")
             result = client.get_text_response("Hello")
             assert result == "text reply"
@@ -1658,12 +1931,31 @@ class TestOpenRouterClientSendToolRequest:
 
     def test_send_tool_request(self) -> None:
         from src.core.ai_client import OpenRouterClient
+
         with requests_mock.Mocker() as m:
-            m.post("https://openrouter.ai/api/v1/chat/completions", status_code=200,
-                   json={"choices": [{"message": {
-                       "tool_calls": [{"function": {"name": "press_button", "arguments": '{"button":"B"}'}}]
-                   }}], "model": "tool-model", "id": "st1",
-                         "usage": {"prompt_tokens": 10, "completion_tokens": 5}})
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [
+                        {
+                            "message": {
+                                "tool_calls": [
+                                    {
+                                        "function": {
+                                            "name": "press_button",
+                                            "arguments": '{"button":"B"}',
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ],
+                    "model": "tool-model",
+                    "id": "st1",
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+                },
+            )
             client = OpenRouterClient(api_key="sk-or-test")
             result = client.send_tool_request("Do something", [], "test-model")
             assert result is not None

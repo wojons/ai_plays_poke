@@ -106,7 +106,9 @@ class DecisionLoop:
             )
         except Exception:
             # If the screen_type is unrecognised (no YAML), fall back to 'overworld'
-            print(f"[FALLBACK] Prompt assembly failed for screen_type={screen_type!r} → falling back to overworld")
+            print(
+                f"[FALLBACK] Prompt assembly failed for screen_type={screen_type!r} → falling back to overworld"
+            )
             assembled_prompt = self.prompt_stack.assemble(
                 generation=self.generation,
                 screen_type="overworld",
@@ -137,7 +139,10 @@ class DecisionLoop:
             tool_call = parse_tool_call(raw_response)
         if tool_call is None:
             print("[FALLBACK] Tool-call parse failed — using default action (press A)")
-            tool_call = {"name": "press_button", "arguments": {"button": "a", "duration": 5}}
+            tool_call = {
+                "name": "press_button",
+                "arguments": {"button": "a", "duration": 5},
+            }
 
         result["tool_call"] = tool_call
 

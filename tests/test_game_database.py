@@ -20,10 +20,12 @@ def db(db_path: str):
     # IMPORTANT: importing database.py creates default_db at ./game_data.db
     # We must set cwd to tmp dir to avoid polluting the project root
     import os as _os
+
     old_cwd = _os.getcwd()
     _os.chdir(str(Path(db_path).parent))
     try:
         from src.db.database import GameDatabase
+
         gdb = GameDatabase(db_path=db_path)
         yield gdb
         gdb.close()
@@ -42,23 +44,28 @@ def db(db_path: str):
 # Test __init__ + init_database — table creation
 # ============================================================================
 
+
 class TestInit:
     """Test GameDatabase.__init__ and table creation."""
 
     def test_init_creates_tables(self, db_path: str):
         """__init__ creates all 8 tables in the schema."""
         import os as _os
+
         old_cwd = _os.getcwd()
         _os.chdir(str(Path(db_path).parent))
         try:
             from src.db.database import GameDatabase
+
             GameDatabase(db_path=db_path)
         finally:
             _os.chdir(old_cwd)
 
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+        )
         tables = [row[0] for row in cursor.fetchall()]
         conn.close()
 
@@ -79,17 +86,21 @@ class TestInit:
     def test_init_creates_indexes(self, db_path: str):
         """__init__ creates performance indexes."""
         import os as _os
+
         old_cwd = _os.getcwd()
         _os.chdir(str(Path(db_path).parent))
         try:
             from src.db.database import GameDatabase
+
             GameDatabase(db_path=db_path)
         finally:
             _os.chdir(old_cwd)
 
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name")
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' ORDER BY name"
+        )
         indexes = [row[0] for row in cursor.fetchall()]
         conn.close()
 
@@ -107,6 +118,7 @@ class TestInit:
     def test_init_is_idempotent(self, db, db_path: str):
         """Calling __init__ twice doesn't fail — CREATE IF NOT EXISTS."""
         from src.db.database import GameDatabase
+
         db2 = GameDatabase(db_path=db_path)
         db2.close()
         # If we get here without exception, idempotent works
@@ -115,10 +127,12 @@ class TestInit:
         """__init__ creates parent directories that don't exist."""
         deep_path = tmp_path / "a" / "b" / "c" / "test.db"
         import os as _os
+
         old_cwd = _os.getcwd()
         _os.chdir(str(tmp_path))
         try:
             from src.db.database import GameDatabase
+
             gdb = GameDatabase(db_path=str(deep_path))
             gdb.close()
         finally:
@@ -130,6 +144,7 @@ class TestInit:
 # ============================================================================
 # Test session lifecycle: start_session → end_session
 # ============================================================================
+
 
 class TestSessionLifecycle:
     """Test start_session, end_session, get_session."""
@@ -146,7 +161,10 @@ class TestSessionLifecycle:
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT session_id, rom_path, model_name FROM sessions WHERE session_id = ?", (sid,))
+        cursor.execute(
+            "SELECT session_id, rom_path, model_name FROM sessions WHERE session_id = ?",
+            (sid,),
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -157,19 +175,22 @@ class TestSessionLifecycle:
     def test_end_session_updates_latest(self, db):
         """end_session updates the most recent session with final metrics."""
         sid = db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        db.end_session({
-            "total_ticks": 100,
-            "total_commands": 50,
-            "total_battles": 3,
-            "badges_earned": 2,
-            "final_state": {"location": "Cerulean City"},
-        })
+        db.end_session(
+            {
+                "total_ticks": 100,
+                "total_commands": 50,
+                "total_battles": 3,
+                "badges_earned": 2,
+                "final_state": {"location": "Cerulean City"},
+            }
+        )
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
         cursor.execute(
             "SELECT total_ticks, total_commands, total_battles, badges_earned, final_state "
-            "FROM sessions WHERE session_id = ?", (sid,)
+            "FROM sessions WHERE session_id = ?",
+            (sid,),
         )
         row = cursor.fetchone()
         conn.close()
@@ -213,17 +234,21 @@ class TestSessionLifecycle:
 
     def test_save_session_data_inserts_row(self, db):
         """save_session_data inserts a new session row."""
-        result = db.save_session_data({
-            "rom_path": "/tmp/blue.gb",
-            "model_name": "deepseek",
-            "extra": "metadata",
-        })
+        result = db.save_session_data(
+            {
+                "rom_path": "/tmp/blue.gb",
+                "model_name": "deepseek",
+                "extra": "metadata",
+            }
+        )
         assert result is True
 
         # Verify the data was saved
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT rom_path, model_name, final_state FROM sessions ORDER BY session_id DESC LIMIT 1")
+        cursor.execute(
+            "SELECT rom_path, model_name, final_state FROM sessions ORDER BY session_id DESC LIMIT 1"
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -237,7 +262,9 @@ class TestSessionLifecycle:
         db.save_session_data({})
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT rom_path, model_name FROM sessions ORDER BY session_id DESC LIMIT 1")
+        cursor.execute(
+            "SELECT rom_path, model_name FROM sessions ORDER BY session_id DESC LIMIT 1"
+        )
         row = cursor.fetchone()
         conn.close()
         assert row[0] == "unknown"
@@ -248,17 +275,24 @@ class TestSessionLifecycle:
 # Test log_screenshot / log_screenshot_event
 # ============================================================================
 
+
 class TestScreenshotLogging:
     """Test log_screenshot and log_screenshot_event."""
 
     def test_log_screenshot_writes_row(self, db):
         """log_screenshot inserts a screenshot event."""
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        db.log_screenshot(tick=5, file_path="/tmp/screenshot_005.png", game_state={"screen": "overworld"})
+        db.log_screenshot(
+            tick=5,
+            file_path="/tmp/screenshot_005.png",
+            game_state={"screen": "overworld"},
+        )
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT tick, file_path, game_state FROM screenshots ORDER BY screenshot_id DESC LIMIT 1")
+        cursor.execute(
+            "SELECT tick, file_path, game_state FROM screenshots ORDER BY screenshot_id DESC LIMIT 1"
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -276,11 +310,15 @@ class TestScreenshotLogging:
     def test_log_screenshot_event_compat(self, db):
         """log_screenshot_event delegates to log_screenshot."""
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        db.log_screenshot_event({"tick": 10, "path": "/tmp/ss.png", "game_state": {"screen": "battle"}})
+        db.log_screenshot_event(
+            {"tick": 10, "path": "/tmp/ss.png", "game_state": {"screen": "battle"}}
+        )
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT tick, file_path FROM screenshots ORDER BY screenshot_id DESC LIMIT 1")
+        cursor.execute(
+            "SELECT tick, file_path FROM screenshots ORDER BY screenshot_id DESC LIMIT 1"
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -297,22 +335,25 @@ class TestScreenshotLogging:
 # Test log_command / log_command_execution
 # ============================================================================
 
+
 class TestCommandLogging:
     """Test log_command and log_command_execution."""
 
     def test_log_command_full_data(self, db):
         """log_command inserts with all fields populated."""
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        db.log_command({
-            "tick": 3,
-            "command_type": "press",
-            "command_value": "A",
-            "reasoning": "Talk to NPC",
-            "confidence": 0.95,
-            "success": True,
-            "error_message": None,
-            "execution_time_ms": 12.5,
-        })
+        db.log_command(
+            {
+                "tick": 3,
+                "command_type": "press",
+                "command_value": "A",
+                "reasoning": "Talk to NPC",
+                "confidence": 0.95,
+                "success": True,
+                "error_message": None,
+                "execution_time_ms": 12.5,
+            }
+        )
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
@@ -344,25 +385,29 @@ class TestCommandLogging:
         row = cursor.fetchone()
         conn.close()
 
-        assert row[0] == ""   # default reasoning
+        assert row[0] == ""  # default reasoning
         assert row[1] == 0.0  # default confidence
-        assert row[2] == 1    # success=True by default
-        assert row[3] == 0    # default execution_time_ms
+        assert row[2] == 1  # success=True by default
+        assert row[3] == 0  # default execution_time_ms
 
     def test_log_command_failure(self, db):
         """log_command records failure with error message."""
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        db.log_command({
-            "tick": 7,
-            "command_type": "press",
-            "command_value": "B",
-            "success": False,
-            "error_message": "Button stuck",
-        })
+        db.log_command(
+            {
+                "tick": 7,
+                "command_type": "press",
+                "command_value": "B",
+                "success": False,
+                "error_message": "Button stuck",
+            }
+        )
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT success, error_message FROM commands ORDER BY command_id DESC LIMIT 1")
+        cursor.execute(
+            "SELECT success, error_message FROM commands ORDER BY command_id DESC LIMIT 1"
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -372,15 +417,19 @@ class TestCommandLogging:
     def test_log_command_execution_compat(self, db):
         """log_command_execution delegates to log_command."""
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        db.log_command_execution({
-            "tick": 2,
-            "command_type": "combo",
-            "command_value": "A+B",
-        })
+        db.log_command_execution(
+            {
+                "tick": 2,
+                "command_type": "combo",
+                "command_value": "A+B",
+            }
+        )
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT command_type, command_value FROM commands ORDER BY command_id DESC LIMIT 1")
+        cursor.execute(
+            "SELECT command_type, command_value FROM commands ORDER BY command_id DESC LIMIT 1"
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -392,22 +441,25 @@ class TestCommandLogging:
 # Test log_ai_thought
 # ============================================================================
 
+
 class TestAIThoughtLogging:
     """Test log_ai_thought."""
 
     def test_log_ai_thought_full_data(self, db):
         """log_ai_thought inserts with all fields populated."""
         db.start_session(rom_path="/tmp/test.gb", model_name="deepseek")
-        db.log_ai_thought({
-            "tick": 12,
-            "thought_process": "Analyzing battle options",
-            "reasoning": "Water Gun is super effective against Charmander",
-            "game_context": {"battle": {"enemy": "Charmander", "hp": 20}},
-            "proposed_action": "Use Water Gun",
-            "confidence": 0.92,
-            "model_used": "deepseek-v4-flash",
-            "tokens_used": 450,
-        })
+        db.log_ai_thought(
+            {
+                "tick": 12,
+                "thought_process": "Analyzing battle options",
+                "reasoning": "Water Gun is super effective against Charmander",
+                "game_context": {"battle": {"enemy": "Charmander", "hp": 20}},
+                "proposed_action": "Use Water Gun",
+                "confidence": 0.92,
+                "model_used": "deepseek-v4-flash",
+                "tokens_used": 450,
+            }
+        )
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
@@ -452,14 +504,18 @@ class TestAIThoughtLogging:
     def test_log_ai_thought_game_context_none(self, db):
         """log_ai_thought handles None game_context."""
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        db.log_ai_thought({
-            "tick": 1,
-            "game_context": None,
-        })
+        db.log_ai_thought(
+            {
+                "tick": 1,
+                "game_context": None,
+            }
+        )
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT game_context FROM ai_thoughts ORDER BY thought_id DESC LIMIT 1")
+        cursor.execute(
+            "SELECT game_context FROM ai_thoughts ORDER BY thought_id DESC LIMIT 1"
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -471,6 +527,7 @@ class TestAIThoughtLogging:
 # Test battle tracking: start → turn → end
 # ============================================================================
 
+
 class TestBattleTracking:
     """Test log_battle_start, log_battle_turn, log_battle_end."""
 
@@ -479,39 +536,47 @@ class TestBattleTracking:
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
 
         # Start
-        battle_id = db.log_battle_start({
-            "tick": 20,
-            "enemy_pokemon": "Pidgey",
-            "enemy_level": 3,
-            "player_pokemon": "Squirtle",
-            "player_level": 5,
-        })
+        battle_id = db.log_battle_start(
+            {
+                "tick": 20,
+                "enemy_pokemon": "Pidgey",
+                "enemy_level": 3,
+                "player_pokemon": "Squirtle",
+                "player_level": 5,
+            }
+        )
         assert isinstance(battle_id, int)
         assert battle_id > 0
 
         # Turn 1
-        db.log_battle_turn(battle_id, {
-            "turn_number": 1,
-            "player_action": "Tackle",
-            "enemy_action": "Gust",
-            "player_hp_before": 21,
-            "player_hp_after": 18,
-            "enemy_hp_before": 15,
-            "enemy_hp_after": 8,
-            "effectiveness": "neutral",
-        })
+        db.log_battle_turn(
+            battle_id,
+            {
+                "turn_number": 1,
+                "player_action": "Tackle",
+                "enemy_action": "Gust",
+                "player_hp_before": 21,
+                "player_hp_after": 18,
+                "enemy_hp_before": 15,
+                "enemy_hp_after": 8,
+                "effectiveness": "neutral",
+            },
+        )
 
         # Turn 2
-        db.log_battle_turn(battle_id, {
-            "turn_number": 2,
-            "player_action": "Tackle",
-            "enemy_action": "Gust",
-            "player_hp_before": 18,
-            "player_hp_after": 15,
-            "enemy_hp_before": 8,
-            "enemy_hp_after": 0,
-            "effectiveness": "neutral",
-        })
+        db.log_battle_turn(
+            battle_id,
+            {
+                "turn_number": 2,
+                "player_action": "Tackle",
+                "enemy_action": "Gust",
+                "player_hp_before": 18,
+                "player_hp_after": 15,
+                "enemy_hp_before": 8,
+                "enemy_hp_after": 0,
+                "effectiveness": "neutral",
+            },
+        )
 
         # End
         db.log_battle_end(battle_id, "victory", turns_taken=2)
@@ -521,10 +586,13 @@ class TestBattleTracking:
         cursor = conn.cursor()
         cursor.execute(
             "SELECT enemy_pokemon, enemy_level, player_pokemon, player_level, outcome, turns_taken "
-            "FROM battles WHERE battle_id = ?", (battle_id,)
+            "FROM battles WHERE battle_id = ?",
+            (battle_id,),
         )
         battle = cursor.fetchone()
-        cursor.execute("SELECT COUNT(*) FROM battle_turns WHERE battle_id = ?", (battle_id,))
+        cursor.execute(
+            "SELECT COUNT(*) FROM battle_turns WHERE battle_id = ?", (battle_id,)
+        )
         turn_count = cursor.fetchone()[0]
         conn.close()
 
@@ -544,7 +612,10 @@ class TestBattleTracking:
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT enemy_pokemon, enemy_level, player_pokemon, player_level FROM battles WHERE battle_id = ?", (battle_id,))
+        cursor.execute(
+            "SELECT enemy_pokemon, enemy_level, player_pokemon, player_level FROM battles WHERE battle_id = ?",
+            (battle_id,),
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -561,7 +632,10 @@ class TestBattleTracking:
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT player_action, enemy_action, enemy_hp_before FROM battle_turns WHERE battle_id = ?", (battle_id,))
+        cursor.execute(
+            "SELECT player_action, enemy_action, enemy_hp_before FROM battle_turns WHERE battle_id = ?",
+            (battle_id,),
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -577,7 +651,9 @@ class TestBattleTracking:
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT outcome, turns_taken FROM battles WHERE battle_id = ?", (battle_id,))
+        cursor.execute(
+            "SELECT outcome, turns_taken FROM battles WHERE battle_id = ?", (battle_id,)
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -588,6 +664,7 @@ class TestBattleTracking:
 # ============================================================================
 # Test get_session_summary
 # ============================================================================
+
 
 class TestSessionSummary:
     """Test get_session_summary with aggregate stats."""
@@ -623,7 +700,7 @@ class TestSessionSummary:
         assert summary["wins"] == 1
         assert summary["losses"] == 1
         # 3 battles total (1 win, 1 loss, 1 ongoing) → win_rate = 1/3 ≈ 0.333
-        assert summary["win_rate"] == pytest.approx(1/3)
+        assert summary["win_rate"] == pytest.approx(1 / 3)
 
     def test_get_session_summary_unknown_session(self, db):
         """get_session_summary for nonexistent session returns {}."""
@@ -635,12 +712,13 @@ class TestSessionSummary:
 # Test export_session_data
 # ============================================================================
 
+
 class TestExportSessionData:
     """Test export_session_data JSON export."""
 
     def test_get_session_data_bug_double_fetchone(self, db):
         """BUG: _get_session_data calls cursor.fetchone() TWICE.
-        
+
         Line 472: return dict(zip(..., cursor.fetchone())) if cursor.fetchone() else {}
         First call consumes the row, second returns None → TypeError on zip.
         This is a pre-existing production bug — export_session_data is broken
@@ -663,6 +741,7 @@ class TestExportSessionData:
 # Test compatibility wrappers
 # ============================================================================
 
+
 class TestCompatibilityWrappers:
     """Test the compatibility wrapper methods."""
 
@@ -674,15 +753,19 @@ class TestCompatibilityWrappers:
     def test_log_command_execution_delegates(self, db):
         """log_command_execution passes through to log_command."""
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        db.log_command_execution({
-            "tick": 1,
-            "command_type": "combo",
-            "command_value": "A+B",
-        })
+        db.log_command_execution(
+            {
+                "tick": 1,
+                "command_type": "combo",
+                "command_value": "A+B",
+            }
+        )
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT command_value FROM commands ORDER BY command_id DESC LIMIT 1")
+        cursor.execute(
+            "SELECT command_value FROM commands ORDER BY command_id DESC LIMIT 1"
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -698,6 +781,7 @@ class TestCompatibilityWrappers:
 # Test close
 # ============================================================================
 
+
 class TestClose:
     """Test close method."""
 
@@ -709,6 +793,7 @@ class TestClose:
     def test_close_logs_info(self, db):
         """close logs a message."""
         import logging
+
         with patch.object(logging.getLogger("src.db.database"), "info") as mock_info:
             db.close()
             mock_info.assert_called_once_with("Database connection closed")
@@ -717,6 +802,7 @@ class TestClose:
 # ============================================================================
 # Test error handling
 # ============================================================================
+
 
 class TestErrorHandling:
     """Test error handling in _execute and other methods."""
@@ -727,12 +813,14 @@ class TestErrorHandling:
         db._execute("INSERT INTO test VALUES (1)")
 
         from src.db.database import ConstraintViolationError as CVE
+
         with pytest.raises(CVE):
             db._execute("INSERT INTO test VALUES (1)")
 
     def test_execute_db_error_raises_custom(self, db):
         """_execute raises DatabaseError on generic sqlite3.Error."""
         from src.db.database import DatabaseError
+
         with pytest.raises(DatabaseError):
             db._execute("INVALID SQL SYNTAX !!!")
 
@@ -746,6 +834,7 @@ class TestErrorHandling:
 # ============================================================================
 # Test multi-session scenarios
 # ============================================================================
+
 
 class TestMultiSession:
     """Test behavior with multiple overlapping sessions."""
@@ -772,7 +861,9 @@ class TestMultiSession:
 
         conn = sqlite3.connect(db.db_path)
         cursor = conn.cursor()
-        cursor.execute("SELECT session_id FROM commands ORDER BY command_id DESC LIMIT 1")
+        cursor.execute(
+            "SELECT session_id FROM commands ORDER BY command_id DESC LIMIT 1"
+        )
         row = cursor.fetchone()
         conn.close()
 
@@ -784,27 +875,32 @@ class TestMultiSession:
 # AC Verification — methods that don't exist
 # ============================================================================
 
+
 class TestMissingACMethods:
     """Document missing methods referenced in task ACs."""
 
     def test_get_recent_actions_not_implemented(self):
         """AC item 6: get_recent_actions — method does not exist in GameDatabase.
-        
+
         The AC says: 'Test get_recent_actions — ordered by timestamp, limit'
         GameDatabase has no such method. Equivalent functionality is available
         via raw SQL on the commands table, or via export_session_data.
         """
         from src.db.database import GameDatabase
-        assert not hasattr(GameDatabase, "get_recent_actions"), \
+
+        assert not hasattr(GameDatabase, "get_recent_actions"), (
             "get_recent_actions unexpectedly exists — update this test"
+        )
 
     def test_get_session_stats_not_implemented(self):
         """AC item 7: get_session_stats — method does not exist in GameDatabase.
-        
+
         The AC says: 'Test get_session_stats — aggregated metrics query'
         Equivalent: get_session_summary() provides aggregated session data
         including wins, losses, win_rate.
         """
         from src.db.database import GameDatabase
-        assert not hasattr(GameDatabase, "get_session_stats"), \
+
+        assert not hasattr(GameDatabase, "get_session_stats"), (
             "get_session_stats unexpectedly exists — update this test"
+        )

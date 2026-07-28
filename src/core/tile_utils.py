@@ -25,18 +25,19 @@ import numpy as np
 # actual GB screen — that width/height includes off-screen tiles for map
 # composition purposes.  Tile-extraction uses the physical screen dimensions.
 
-GB_SCREEN_PX: tuple[int, int] = (160, 144)   # width, height in pixels
-GB_TILE_PX: int = 16                          # Pokémon overworld tile size
+GB_SCREEN_PX: tuple[int, int] = (160, 144)  # width, height in pixels
+GB_TILE_PX: int = 16  # Pokémon overworld tile size
 GB_VIEWPORT_TILES: tuple[int, int] = (10, 9)  # actual visible tiles (w, h)
 
 # The composed map viewport (used in world_state) is larger — 15 × 11.
 # This accounts for partial tiles at screen edges and is the canonical
 # strip length for OBS_PATCH.
-VIEWPORT_TILE_WIDTH: int = 15   # strip length used in OBS_PATCH v1
+VIEWPORT_TILE_WIDTH: int = 15  # strip length used in OBS_PATCH v1
 VIEWPORT_TILE_HEIGHT: int = 11  # viewport rows
 
 
 # ── TSV conversion ───────────────────────────────────────────────────────────
+
 
 def strip_to_tsv(packed: str) -> str:
     """Convert a packed terrain string to tab-separated values.
@@ -87,6 +88,7 @@ def normalize_strip_terrain(raw: str) -> str:
 
 
 # ── Tile extraction from screenshots ─────────────────────────────────────────
+
 
 def extract_tile_strip(
     screenshot: np.ndarray,
@@ -184,8 +186,6 @@ def pad_strip_terrain(chars: str, target_length: int = VIEWPORT_TILE_WIDTH) -> s
 
 # ── Strip template for prompts ──────────────────────────────────────────────
 
-SAMPLE_STRIP_TSV = (
-    "T\tT\tT\t.\t.\t.\t.\tg\tg\tg\t.\t.\t.\t.\tT"
-)
+SAMPLE_STRIP_TSV = "T\tT\tT\t.\t.\t.\t.\tg\tg\tg\t.\t.\t.\t.\tT"
 
 SAMPLE_STRIP_PACKED = "TTT....ggg....T"

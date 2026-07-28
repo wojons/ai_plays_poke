@@ -21,14 +21,17 @@ from src.core.demo_runner import DemoRunner, demo_summary
 _HERE = Path(__file__).resolve().parent
 _PROJECT = _HERE.parent
 
+
 def _find_rom() -> Path | None:
     """Return the first available ROM, or None.
 
     PyBoy is GB/GBC-only, so prefer .gb and .gbc over .gba.
     """
-    candidates = sorted(_PROJECT.glob("data/rom/*.gb")) + sorted(
-        _PROJECT.glob("data/rom/*.gbc")
-    ) + sorted(_PROJECT.glob("data/rom/*.gba"))
+    candidates = (
+        sorted(_PROJECT.glob("data/rom/*.gb"))
+        + sorted(_PROJECT.glob("data/rom/*.gbc"))
+        + sorted(_PROJECT.glob("data/rom/*.gba"))
+    )
     return candidates[0] if candidates else None
 
 

@@ -51,7 +51,9 @@ class MapIntegrator:
         errors = validate_patch(patch)
         if errors:
             self._rejected_count += 1
-            self._rejections.append({"tick": patch.tick, "errors": errors, "patch": patch_data})
+            self._rejections.append(
+                {"tick": patch.tick, "errors": errors, "patch": patch_data}
+            )
             return False
 
         # Apply
@@ -61,7 +63,9 @@ class MapIntegrator:
             return True
         except Exception as exc:
             self._rejected_count += 1
-            self._rejections.append({"tick": patch.tick, "errors": [str(exc)], "patch": patch_data})
+            self._rejections.append(
+                {"tick": patch.tick, "errors": [str(exc)], "patch": patch_data}
+            )
             return False
 
     def compose_for_controller(self) -> str:
@@ -132,8 +136,12 @@ class MapIntegrator:
         # Edges
         for edge in patch.edges:
             w.set_edge(
-                edge.from_pos[0], edge.from_pos[1],
-                edge.dir, edge.outcome, edge.reason, patch.tick,
+                edge.from_pos[0],
+                edge.from_pos[1],
+                edge.dir,
+                edge.outcome,
+                edge.reason,
+                patch.tick,
             )
 
         # Actor updates
@@ -309,6 +317,7 @@ def _parse_raw(raw: str) -> dict[str, Any]:
 def _dict_to_patch(data: dict[str, Any]) -> ObsPatch:
     """Convert a raw dict to an ObsPatch (shim to avoid circular imports)."""
     from .obs_patch import parse_obs_patch
+
     return parse_obs_patch(data)
 
 

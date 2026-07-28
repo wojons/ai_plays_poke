@@ -15,6 +15,7 @@ from src.core.demo_runner import DemoRunner
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
+
 def _mock_emulator() -> MagicMock:
     """Create a mock Emulator that passes skip_intro, capture, stop."""
     emu = MagicMock()
@@ -30,8 +31,16 @@ def _mock_decision_loop(results: list | None = None) -> MagicMock:
     loop = MagicMock()
     if results is None:
         results = [
-            {"success": True, "screen_type": "overworld", "tool_call": {"name": "press_button", "args": {"button": "A"}}},
-            {"success": True, "screen_type": "overworld", "tool_call": {"name": "press_button", "args": {"button": "UP"}}},
+            {
+                "success": True,
+                "screen_type": "overworld",
+                "tool_call": {"name": "press_button", "args": {"button": "A"}},
+            },
+            {
+                "success": True,
+                "screen_type": "overworld",
+                "tool_call": {"name": "press_button", "args": {"button": "UP"}},
+            },
             {"success": False, "screen_type": "battle", "tool_call": None},
         ]
     loop.run.return_value = results
@@ -39,6 +48,7 @@ def _mock_decision_loop(results: list | None = None) -> MagicMock:
 
 
 # ── run() with mocks ──────────────────────────────────────────────────────
+
 
 class TestDemoRunnerRunMocked:
     """DemoRunner.run() happy path with mocked Emulator + DecisionLoop."""
@@ -101,17 +111,25 @@ class TestDemoRunnerRunMocked:
         rom.write_bytes(b"\x00" * 4096)
 
         runner = DemoRunner(str(rom))
-        runner.run(max_cycles=2, skip_intro=True,
-                   intro_press_frames=42, intro_wait_frames=99,
-                   intro_repetitions=7)
+        runner.run(
+            max_cycles=2,
+            skip_intro=True,
+            intro_press_frames=42,
+            intro_wait_frames=99,
+            intro_repetitions=7,
+        )
 
         mock_emu.skip_intro.assert_called_once_with(
-            press_frames=42, wait_frames=99, repetitions=7,
+            press_frames=42,
+            wait_frames=99,
+            repetitions=7,
         )
 
     @patch("src.core.demo_runner.Emulator")
     @patch("src.core.demo_runner.DecisionLoop")
-    def test_run_passes_models_to_decision_loop(self, mock_dl_cls, mock_emu_cls, tmp_path):
+    def test_run_passes_models_to_decision_loop(
+        self, mock_dl_cls, mock_emu_cls, tmp_path
+    ):
         """DecisionLoop receives generation + model params from DemoRunner."""
         mock_emu = _mock_emulator()
         mock_loop = _mock_decision_loop()
@@ -121,18 +139,26 @@ class TestDemoRunnerRunMocked:
         rom = tmp_path / "test.gba"
         rom.write_bytes(b"\x00" * 4096)
 
-        runner = DemoRunner(str(rom), generation="gen1",
-                            thinking_model="test/think", vision_model="test/see")
+        runner = DemoRunner(
+            str(rom),
+            generation="gen1",
+            thinking_model="test/think",
+            vision_model="test/see",
+        )
         runner.run(max_cycles=1)
 
         mock_dl_cls.assert_called_once_with(
-            emulator=mock_emu, generation="gen1",
-            thinking_model="test/think", vision_model="test/see",
+            emulator=mock_emu,
+            generation="gen1",
+            thinking_model="test/think",
+            vision_model="test/see",
         )
 
     @patch("src.core.demo_runner.Emulator")
     @patch("src.core.demo_runner.DecisionLoop")
-    def test_run_screenshot_interval_forwarded(self, mock_dl_cls, mock_emu_cls, tmp_path):
+    def test_run_screenshot_interval_forwarded(
+        self, mock_dl_cls, mock_emu_cls, tmp_path
+    ):
         """run() forwards screenshot_interval to DecisionLoop.run."""
         mock_emu = _mock_emulator()
         mock_loop = _mock_decision_loop()
@@ -152,10 +178,12 @@ class TestDemoRunnerRunMocked:
     def test_run_zero_success_rate(self, mock_dl_cls, mock_emu_cls, tmp_path):
         """run() with all-failure results → success_rate 0.0."""
         mock_emu = _mock_emulator()
-        mock_loop = _mock_decision_loop([
-            {"success": False, "screen_type": "overworld", "tool_call": None},
-            {"success": False, "screen_type": "overworld", "tool_call": None},
-        ])
+        mock_loop = _mock_decision_loop(
+            [
+                {"success": False, "screen_type": "overworld", "tool_call": None},
+                {"success": False, "screen_type": "overworld", "tool_call": None},
+            ]
+        )
         mock_emu_cls.return_value = mock_emu
         mock_dl_cls.return_value = mock_loop
 
@@ -189,10 +217,12 @@ class TestDemoRunnerRunMocked:
     def test_run_null_screen_type(self, mock_dl_cls, mock_emu_cls, tmp_path):
         """run() with None screen_type → not added to set (falsy check)."""
         mock_emu = _mock_emulator()
-        mock_loop = _mock_decision_loop([
-            {"success": True, "screen_type": None, "tool_call": None},
-            {"success": True, "screen_type": "", "tool_call": None},
-        ])
+        mock_loop = _mock_decision_loop(
+            [
+                {"success": True, "screen_type": None, "tool_call": None},
+                {"success": True, "screen_type": "", "tool_call": None},
+            ]
+        )
         mock_emu_cls.return_value = mock_emu
         mock_dl_cls.return_value = mock_loop
 
@@ -208,11 +238,13 @@ class TestDemoRunnerRunMocked:
     def test_run_duplicate_screen_types(self, mock_dl_cls, mock_emu_cls, tmp_path):
         """run() deduplicates screen types via set."""
         mock_emu = _mock_emulator()
-        mock_loop = _mock_decision_loop([
-            {"success": True, "screen_type": "overworld", "tool_call": None},
-            {"success": True, "screen_type": "overworld", "tool_call": None},
-            {"success": True, "screen_type": "overworld", "tool_call": None},
-        ])
+        mock_loop = _mock_decision_loop(
+            [
+                {"success": True, "screen_type": "overworld", "tool_call": None},
+                {"success": True, "screen_type": "overworld", "tool_call": None},
+                {"success": True, "screen_type": "overworld", "tool_call": None},
+            ]
+        )
         mock_emu_cls.return_value = mock_emu
         mock_dl_cls.return_value = mock_loop
 
@@ -225,6 +257,7 @@ class TestDemoRunnerRunMocked:
 
 
 # ── run_headless() with mocks ─────────────────────────────────────────────
+
 
 class TestDemoRunnerRunHeadlessMocked:
     """DemoRunner.run_headless() happy path with mocked Emulator."""
@@ -303,6 +336,7 @@ class TestDemoRunnerRunHeadlessMocked:
 
 
 # ── cleanup() with non-None emulator ──────────────────────────────────────
+
 
 class TestDemoRunnerCleanupExtended:
     """DemoRunner.cleanup() with non-None emulator."""

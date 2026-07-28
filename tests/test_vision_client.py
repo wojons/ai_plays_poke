@@ -1,6 +1,7 @@
 """
 Unit tests for VisionClient — encode, parse, clean, and regex extraction paths.
 """
+
 from __future__ import annotations
 
 import base64
@@ -14,12 +15,14 @@ from src.core.vision import VisionClient
 
 # ── helpers ────────────────────────────────────────────────────────────────
 
+
 def _make_rgb_array(h: int = 160, w: int = 240) -> np.ndarray:
     """Create a dummy RGB screenshot array."""
     return np.zeros((h, w, 3), dtype=np.uint8)
 
 
 # ── EncodeImage tests ──────────────────────────────────────────────────────
+
 
 class TestEncodeImage:
     """_encode_image converts numpy → base64 PNG."""
@@ -69,6 +72,7 @@ class TestEncodeImage:
 
 # ── CleanJsonText tests ────────────────────────────────────────────────────
 
+
 class TestCleanJsonText:
     """_clean_json_text strips markdown fences."""
 
@@ -100,6 +104,7 @@ class TestCleanJsonText:
 
 # ── ParseResponse tests ────────────────────────────────────────────────────
 
+
 class TestParseResponse:
     """_parse_response extracts JSON from model output."""
 
@@ -110,7 +115,9 @@ class TestParseResponse:
         assert VisionClient._parse_response("   \n  ") is None
 
     def test_parse_valid_json(self) -> None:
-        result = VisionClient._parse_response('{"screen_type": "overworld", "confidence": 0.9}')
+        result = VisionClient._parse_response(
+            '{"screen_type": "overworld", "confidence": 0.9}'
+        )
         assert result is not None
         assert result["screen_type"] == "overworld"
 
@@ -139,6 +146,7 @@ class TestParseResponse:
 
 
 # ── RegexExtract tests ─────────────────────────────────────────────────────
+
 
 class TestRegexExtract:
     """_regex_extract pulls fields from unstructured text."""
@@ -195,6 +203,7 @@ class TestRegexExtract:
 
 
 # ── ComputeHash tests ──────────────────────────────────────────────────────
+
 
 class TestComputeHash:
     """_compute_hash returns consistent MD5 for identical images."""

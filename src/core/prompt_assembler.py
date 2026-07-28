@@ -164,7 +164,9 @@ class PromptStack:
         )
 
         # --- Memory context ---
-        fmt["recent_actions"] = _join_list(memory_context.get("recent_actions"), sep="\n  ")
+        fmt["recent_actions"] = _join_list(
+            memory_context.get("recent_actions"), sep="\n  "
+        )
         fmt["party_status"] = memory_context.get("party_status", "")
         fmt["active_goal"] = memory_context.get("active_goal", "")
 

@@ -24,8 +24,13 @@ from src.core.logger import (
 )
 
 
-def _make_log_record(msg="test message", level=logging.INFO, category="test",
-                     extra_data=None, exc_info=None):
+def _make_log_record(
+    msg="test message",
+    level=logging.INFO,
+    category="test",
+    extra_data=None,
+    exc_info=None,
+):
     """Create a LogRecord with custom category attribute."""
     record = logging.LogRecord(
         name="test_logger",
@@ -58,6 +63,7 @@ def _reset_logger_singleton():
 # ═══════════════════════════════════════════════════════════════════
 # Constants
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestLogLevel:
     def test_debug_is_10(self):
@@ -120,6 +126,7 @@ class TestLogLevelNames:
 # ═══════════════════════════════════════════════════════════════════
 # JSONFormatter
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestJSONFormatterBasic:
     def test_formats_to_valid_json(self):
@@ -238,11 +245,17 @@ class TestJSONFormatterException:
             raise ValueError("boom")
         except ValueError:
             import sys
+
             exc_info = sys.exc_info()
         # Create record WITH real exc_info
         record = logging.LogRecord(
-            name="test", level=logging.ERROR, pathname=__file__,
-            lineno=20, msg="error", args=(), exc_info=exc_info,
+            name="test",
+            level=logging.ERROR,
+            pathname=__file__,
+            lineno=20,
+            msg="error",
+            args=(),
+            exc_info=exc_info,
             func="test_func",
         )
         record.category = "test"
@@ -307,6 +320,7 @@ class TestJSONFormatterStackInfo:
 # PlainFormatter
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestPlainFormatterBasic:
     def test_formats_with_default_template(self):
         fmt = PlainFormatter()
@@ -357,6 +371,7 @@ class TestPlainFormatterEdgeCases:
 # CategoryFilter
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestCategoryFilterInclude:
     def test_passes_matching_category(self):
         filt = CategoryFilter(categories=["battles", "decisions"])
@@ -405,6 +420,7 @@ class TestCategoryFilterExclude:
 # ═══════════════════════════════════════════════════════════════════
 # RotationFileHandler
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestRotationFileHandlerInit:
     def test_default_params(self, tmp_path):
@@ -558,6 +574,7 @@ class TestRotationFileHandlerRotate:
 # AILogger
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestAILoggerSingleton:
     def test_get_logger_returns_same_instance(self):
         a = get_logger()
@@ -624,8 +641,16 @@ class TestAILoggerSetup:
         logdir = tmp_path / "catlogs"
         logger = AILogger()
         logger.setup(log_dir=str(logdir))
-        expected = ["decisions", "battles", "errors", "performance", "api",
-                     "vision", "emulator", "memory"]
+        expected = [
+            "decisions",
+            "battles",
+            "errors",
+            "performance",
+            "api",
+            "vision",
+            "emulator",
+            "memory",
+        ]
         for cat in expected:
             assert (logdir / cat).is_dir()
         logger.close()
@@ -733,8 +758,11 @@ class TestAILoggerSpecializedMethods:
         logger = AILogger()
         logger.setup(log_dir=str(logdir))
         logger.log_decision(
-            tick=1, decision_id="d1", action="press:a",
-            reasoning="Fire attack", game_state={"hp": 50}
+            tick=1,
+            decision_id="d1",
+            action="press:a",
+            reasoning="Fire attack",
+            game_state={"hp": 50},
         )
         logger.close()
         content = (logdir / "decisions" / "decisions.log").read_text()
@@ -746,8 +774,11 @@ class TestAILoggerSpecializedMethods:
         logger = AILogger()
         logger.setup(log_dir=str(logdir))
         logger.log_battle_event(
-            tick=2, event_type="attack", pokemon="Pikachu",
-            hp=75.0, action="Thunderbolt"
+            tick=2,
+            event_type="attack",
+            pokemon="Pikachu",
+            hp=75.0,
+            action="Thunderbolt",
         )
         logger.close()
         content = (logdir / "battles" / "battles.log").read_text()
@@ -768,8 +799,11 @@ class TestAILoggerSpecializedMethods:
         logger = AILogger()
         logger.setup(log_dir=str(logdir))
         logger.log_api_call(
-            model="gpt-4", duration_ms=500.0,
-            input_tokens=100, output_tokens=20, cost=0.005
+            model="gpt-4",
+            duration_ms=500.0,
+            input_tokens=100,
+            output_tokens=20,
+            cost=0.005,
         )
         logger.close()
         content = (logdir / "api" / "api.log").read_text()
@@ -781,8 +815,12 @@ class TestAILoggerSpecializedMethods:
         logger = AILogger()
         logger.setup(log_dir=str(logdir))
         logger.log_api_call(
-            model="gpt-4", duration_ms=500.0,
-            input_tokens=100, output_tokens=0, cost=0.0, success=False
+            model="gpt-4",
+            duration_ms=500.0,
+            input_tokens=100,
+            output_tokens=0,
+            cost=0.0,
+            success=False,
         )
         logger.close()
         content = (logdir / "api" / "api.log").read_text()
@@ -793,8 +831,12 @@ class TestAILoggerSpecializedMethods:
         logger = AILogger()
         logger.setup(log_dir=str(logdir))
         logger.log_vision_analysis(
-            tick=4, screen_type="battle", enemy_pokemon="Mewtwo",
-            player_hp=90.0, enemy_hp=50.0, confidence=0.98
+            tick=4,
+            screen_type="battle",
+            enemy_pokemon="Mewtwo",
+            player_hp=90.0,
+            enemy_hp=50.0,
+            confidence=0.98,
         )
         logger.close()
         # Vision logs via debug() which goes to main.log (vision has no dedicated handler)
@@ -818,8 +860,12 @@ class TestAILoggerSpecializedMethods:
         # Pre-existing production bug: log_error_with_context passes exc_info=True
         # through **extra to logger.log(extra=...) which rejects reserved keys.
         # Log a simple error instead to verify error category routing works.
-        logger.error("RuntimeError: test failure", category=LogCategory.ERRORS,
-                      action="test", state="debugging")
+        logger.error(
+            "RuntimeError: test failure",
+            category=LogCategory.ERRORS,
+            action="test",
+            state="debugging",
+        )
         logger.close()
         content = (logdir / "errors" / "errors.log").read_text()
         assert "RuntimeError" in content
@@ -915,6 +961,7 @@ class TestAILoggerUtilityMethods:
 # log_function_call decorator
 # ═══════════════════════════════════════════════════════════════════
 
+
 class TestLogFunctionCall:
     def test_decorator_returns_function_result(self, tmp_path):
         logdir = tmp_path / "decorlogs"
@@ -948,6 +995,7 @@ class TestLogFunctionCall:
 
     def test_decorator_reraises_exception(self):
         """Decorator reraises exceptions after logging attempt."""
+
         @log_function_call(category="test")
         def fail():
             raise ValueError("expected failure")
@@ -980,6 +1028,7 @@ class TestLogFunctionCall:
 # ═══════════════════════════════════════════════════════════════════
 # setup_from_env
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TestSetupFromEnv:
     def test_setup_uses_env_log_level(self, tmp_path, monkeypatch):

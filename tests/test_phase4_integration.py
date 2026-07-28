@@ -2,7 +2,9 @@
 
 Tests emulator boot, GameMemory, PromptStack, Tool parsing, and code structure.
 """
+
 import sys  # noqa: E402
+
 sys.path.insert(0, "/home/kara/ai_plays_poke")
 
 print("=== PHASE 4 INTEGRATION VERIFICATION ===\n")
@@ -10,6 +12,7 @@ print("=== PHASE 4 INTEGRATION VERIFICATION ===\n")
 # ── 1. Emulator boot ──────────────────────────────────────────────────────
 print("1. Loading emulator...")
 from src.core.emulator import Emulator  # noqa: E402
+
 e = Emulator("data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
 print(f"   platform={e.platform}, is_gb={e.is_gb}")
 screen = e.capture()
@@ -26,6 +29,7 @@ print("   Game booted (past title screen) ✓")
 # ── 2. GameMemory ─────────────────────────────────────────────────────────
 print("\n2. GameMemory...")
 from src.core.memory import GameMemory  # noqa: E402
+
 m = GameMemory()
 m.record_action("Pressed A for 5 frames")
 m.record_action("Pressed up for 20 frames")
@@ -44,6 +48,7 @@ print("   GameMemory ✓")
 # ── 3. Prompt assembly (no API) ───────────────────────────────────────────
 print("\n3. PromptStack assembly...")
 from src.core.prompt_assembler import PromptStack  # noqa: E402
+
 ps = PromptStack()
 test_vision = {
     "screen_type": "overworld",
@@ -90,7 +95,7 @@ assert "Pressed a" in result
 print(f"   Tool execution: {result} ✓")
 
 # Test fallback (unknown screen_type)
-resp3 = "I think we should move forward. Let me press the up button for a while. ```json\n{\"name\": \"combo\", \"arguments\": {\"buttons\": [\"up\"], \"duration\": 20}}\n```"
+resp3 = 'I think we should move forward. Let me press the up button for a while. ```json\n{"name": "combo", "arguments": {"buttons": ["up"], "duration": 20}}\n```'
 parsed3 = parse_tool_call(resp3)
 assert parsed3 and parsed3["name"] == "combo"
 print("   Mixed text + JSON ✓")
@@ -120,7 +125,12 @@ for name, marker in phases:
     print(f"   Phase '{name}' ✓")
 
 # Check fallbacks exist
-fallbacks = ["Vision failed", "Prompt assembly failed", "Thinking model failed", "Tool-call parse failed"]
+fallbacks = [
+    "Vision failed",
+    "Prompt assembly failed",
+    "Thinking model failed",
+    "Tool-call parse failed",
+]
 for fb in fallbacks:
     assert fb in step_src, f"Fallback '{fb}' missing"
 print(f"   All {len(fallbacks)} fallbacks present ✓")
@@ -135,6 +145,7 @@ print("   run() method correct ✓")
 # ── 6. send_tool_request method ───────────────────────────────────────────
 print("\n6. send_tool_request...")
 from src.core.ai_client import OpenRouterClient  # noqa: E402
+
 assert hasattr(OpenRouterClient, "send_tool_request")
 # Verify signature
 sig = inspect.signature(OpenRouterClient.send_tool_request)

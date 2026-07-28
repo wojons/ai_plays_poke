@@ -28,15 +28,17 @@ class GameLoop:
     Main game loop coordinator. Manages the flow:
     Screenshot → AI Decision → Command → Execution → Log → Repeat
     """
-    
-    def __init__(self, 
-                 rom_path: Path,
-                 save_dir: Path,
-                 screenshot_interval: float = 1.0,
-                 ai_response_delay: float = 0.5):
+
+    def __init__(
+        self,
+        rom_path: Path,
+        save_dir: Path,
+        screenshot_interval: float = 1.0,
+        ai_response_delay: float = 0.5,
+    ):
         """
         Initialize game loop
-        
+
         Args:
             rom_path: Path to Pokemon ROM file
             save_dir: Directory for saves, DB, and screenshots
@@ -47,74 +49,79 @@ class GameLoop:
         self.save_dir = Path(save_dir)
         self.screenshot_interval = screenshot_interval
         self.ai_response_delay = ai_response_delay
-        
+
         # Ensure save directory exists
         self.save_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Initialize components
         self.emulator = Emulator(str(self.rom_path))
         self.db = GameDatabase(str(self.save_dir / "game_data.db"))
         self.screenshot_manager = ScreenshotManager(str(self.save_dir / "screenshots"))
-        
+
         # State tracking
         self.current_tick = 0
         self.last_screenshot_time = 0
         self.is_running = False
         self.paused = False
-        
+
         # Command pipeline
         self.pending_commands: List[Dict[str, Any]] = []
         self.command_history: List[Dict[str, Any]] = []
-        
+
         # Performance tracking
         self.metrics = {
             "total_ticks": 0,
             "screenshots_taken": 0,
             "commands_sent": 0,
             "battles_encountered": 0,
-            "start_time": None
+            "start_time": None,
         }
-        
+
     def start(self) -> None:
         """Start the game loop"""
         print("🎮 Starting AI Plays Pokemon")
         print(f"📁 ROM: {self.rom_path}")
         print(f"💾 Save Directory: {self.save_dir}")
-        
+
         self.emulator.start()
         self.is_running = True
         self.metrics["start_time"] = datetime.now()  # type: ignore
         print("✅ Emulator started. Beginning game loop...")
         print("Press Ctrl+C to stop gracefully (saves progress)")
-        
+
     def stop(self) -> None:
         """Stop the game loop and save state"""
         if not self.is_running:
             return
-            
+
         print("\n🛑 Stopping game loop...")
-        
+
         # Save emulator state to rotating slot 0
         self.emulator.save_state(0)
         print("💾 Emulator state saved to slot 0")
-        
+
         # Log final metrics
-        self.db.log_session_metrics({
-            **self.metrics,
-            "end_time": datetime.now(),
-            "duration": (datetime.now() - self.metrics["start_time"]).total_seconds()  # type: ignore
-            if self.metrics["start_time"] else 0
-        })
-        
+        self.db.log_session_metrics(
+            {
+                **self.metrics,
+                "end_time": datetime.now(),
+                "duration": (
+                    datetime.now() - self.metrics["start_time"]
+                ).total_seconds()  # type: ignore
+                if self.metrics["start_time"]
+                else 0,
+            }
+        )
+
         self.is_running = False
         self.emulator.stop()
-        
+
         print("📊 Final Stats:")
         print(f"   Ticks: {self.metrics['total_ticks']}")
         print(f"   Screenshots: {self.metrics['screenshots_taken']}")
         print(f"   Commands: {self.metrics['commands_sent']}")
         print(f"   Battles: {self.metrics['battles_encountered']}")
-        
+
     def run_single_tick(self) -> None:
         """Execute one iteration of the game loop"""
         # Advance emulator
@@ -129,36 +136,37 @@ class GameLoop:
         # Process any pending AI decisions
         if self.pending_commands:
             self._execute_pending_commands()
-        
+
         # Check for battle state changes
         self._detect_battle_transition()
-        
+
     def _capture_and_process_screenshot(self) -> None:
         """Capture screenshot, save it, and analyze game state"""
         screenshot = self.emulator.capture_screen()
         # Save screenshot with timestamp
         timestamp = datetime.now().isoformat()
         screenshot_path = self.screenshot_manager.save_screenshot(
-            screenshot, 
-            f"tick_{self.current_tick}_{timestamp}"
+            screenshot, f"tick_{self.current_tick}_{timestamp}"
         )
-        
+
         self.metrics["screenshots_taken"] += 1  # type: ignore
         # Detect game state from screenshot
         game_state = self._analyze_screenshot(screenshot)
-        
+
         # Log to database
-        self.db.log_screenshot_event({
-            "tick": self.current_tick,
-            "timestamp": timestamp,
-            "path": str(screenshot_path),
-            "game_state": game_state
-        })
-        
+        self.db.log_screenshot_event(
+            {
+                "tick": self.current_tick,
+                "timestamp": timestamp,
+                "path": str(screenshot_path),
+                "game_state": game_state,
+            }
+        )
+
         # Trigger AI decision if needed based on state
         if game_state.get("requires_ai_decision", False):
             asyncio.create_task(self._get_ai_decision(game_state))
-        
+
     def _analyze_screenshot(self, screenshot: np.ndarray) -> Dict[str, Any]:
         """
         Analyze screenshot to determine game state
@@ -166,80 +174,86 @@ class GameLoop:
         """
         # Simple state detection based on screen regions
         height, width, _ = screenshot.shape
-        
+
         # Check for battle UI (HP bars in corners)
         top_left = screenshot[0:20, 0:50]
-        top_right = screenshot[0:20, width-50:width]
-        
+        top_right = screenshot[0:20, width - 50 : width]
+
         is_battle = self._detect_hp_bars(top_left) or self._detect_hp_bars(top_right)
-        
+
         # Check for dialog box (text at bottom)
-        bottom_region = screenshot[height-40:height, 0:width]
+        bottom_region = screenshot[height - 40 : height, 0:width]
         has_dialog = self._detect_text(bottom_region)
-        
+
         # Check for menu (grid pattern)
-        center_region = screenshot[height//3:2*height//3, width//3:2*width//3]
+        center_region = screenshot[
+            height // 3 : 2 * height // 3, width // 3 : 2 * width // 3
+        ]
         is_menu = self._detect_menu_pattern(center_region)
-        
+
         game_state = {
             "is_battle": is_battle,
             "has_dialog": has_dialog,
             "is_menu": is_menu,
-            "requires_ai_decision": is_battle or has_dialog or is_menu
+            "requires_ai_decision": is_battle or has_dialog or is_menu,
         }
-        
+
         return game_state
-    
+
     def _detect_hp_bars(self, region: np.ndarray) -> bool:
         """Detect HP bar colors (red/yellow/green)"""
         # Convert to HSV for color detection
         hsv = cv2.cvtColor(region, cv2.COLOR_RGB2HSV)
-        
+
         # Red HP bar (low health)
         red_lower = np.array([0, 100, 100])
         red_upper = np.array([10, 255, 255])
         red_mask = cv2.inRange(hsv, red_lower, red_upper)
-        
+
         # Green HP bar (high health)
         green_lower = np.array([40, 100, 100])
         green_upper = np.array([80, 255, 255])
         green_mask = cv2.inRange(hsv, green_lower, green_upper)
-        
+
         # If significant red or green detected, likely HP bar
         red_pixels = np.sum(red_mask > 0)
         green_pixels = np.sum(green_mask > 0)
-        
+
         return bool((red_pixels + green_pixels) > 50)  # Threshold
-    
+
     def _detect_text(self, region: np.ndarray) -> bool:
         """Detect if region contains text (dialog box)"""
         # Convert to grayscale
         gray = cv2.cvtColor(region, cv2.COLOR_RGB2GRAY)
-        
+
         # Check for high contrast (text characteristics)
         std_dev = np.std(gray)
         return bool(std_dev > 30)  # Text regions have higher contrast
-    
+
     def _detect_menu_pattern(self, region: np.ndarray) -> bool:
         """Detect menu grid patterns"""
         # Convert to grayscale
         gray = cv2.cvtColor(region, cv2.COLOR_RGB2GRAY)
-        
+
         # Apply edge detection
         edges = cv2.Canny(gray, 50, 150)
-        
+
         # Count horizontal/vertical lines (grid pattern)
-        lines = cv2.HoughLinesP(edges, 1, np.pi/180, 50, minLineLength=20, maxLineGap=5)
-        
+        lines = cv2.HoughLinesP(
+            edges, 1, np.pi / 180, 50, minLineLength=20, maxLineGap=5
+        )
+
         return lines is not None and len(lines) > 5
-    
-    async def _get_ai_decision(self, game_state: Dict[str, Any]) -> dict[str, Any] | None:
+
+    async def _get_ai_decision(
+        self, game_state: Dict[str, Any]
+    ) -> dict[str, Any] | None:
         """
         Get AI decision based on game state
         This is a placeholder for actual AI integration
         """
         print(f"🤔 AI decision needed at tick {self.current_tick}")
-        
+
         # Simple decision logic for now
         if game_state["is_battle"]:
             command = self._simple_battle_ai()
@@ -247,7 +261,7 @@ class GameLoop:
             command = self._simple_menu_ai()
         else:
             command = self._simple_exploration_ai()
-        
+
         # Record AI thought process
         thought_record = {
             "tick": self.current_tick,
@@ -255,103 +269,107 @@ class GameLoop:
             "game_state": game_state,
             "reasoning": command["reasoning"],
             "confidence": command["confidence"],
-            "model_used": "simple_heuristic"
+            "model_used": "simple_heuristic",
         }
-        
+
         self.db.log_ai_thought(thought_record)
-        
+
         # Add to command pipeline
-        self.pending_commands.append({
-            "command": command["action"],
-            "tick": self.current_tick,
-            "reasoning": command["reasoning"],
-            "confidence": command["confidence"]
-        })
-        
+        self.pending_commands.append(
+            {
+                "command": command["action"],
+                "tick": self.current_tick,
+                "reasoning": command["reasoning"],
+                "confidence": command["confidence"],
+            }
+        )
+
         print(f"✅ AI decision made: {command['action']}")
         return command
-    
+
     def _simple_battle_ai(self) -> Dict[str, Any]:
         """Simple battle heuristic (placeholder)"""
         return {
             "action": "press:A",
             "reasoning": "In battle, press A to select default move",
-            "confidence": 0.6
+            "confidence": 0.6,
         }
-    
+
     def _simple_menu_ai(self) -> Dict[str, Any]:
         """Simple menu navigation"""
         return {
-            "action": "press:DOWN", 
+            "action": "press:DOWN",
             "reasoning": "In menu, move cursor down",
-            "confidence": 0.5
+            "confidence": 0.5,
         }
-    
+
     def _simple_exploration_ai(self) -> Dict[str, Any]:
         """Simple exploration"""
         return {
             "action": "press:UP",
             "reasoning": "Exploring, move north",
-            "confidence": 0.4
+            "confidence": 0.4,
         }
-    
+
     def _execute_pending_commands(self) -> None:
         """Execute commands waiting in pipeline"""
         if not self.pending_commands:
             return
-        
+
         command = self.pending_commands.pop(0)
-        
+
         try:
             # Parse command (format: "press:A" or "sequence:UP,UP,LEFT")
             action, params = command["command"].split(":", 1)
-            
+
             if action == "press":
                 button = params.upper()
                 if hasattr(Button, button):
                     self.emulator.press_button(getattr(Button, button))
                     execution_time = time.time()
-                    
+
                     # Log executed command
-                    self.command_history.append({
-                        **command,
-                        "executed_at": execution_time,
-                        "success": True
-                    })
-                    
+                    self.command_history.append(
+                        {**command, "executed_at": execution_time, "success": True}
+                    )
+
                     self.metrics["commands_sent"] += 1  # type: ignore
-                    self.db.log_command_execution({
-                        "tick": self.current_tick,
-                        "command": command["command"],
-                        "reasoning": command["reasoning"],
-                        "confidence": command["confidence"],
-                        "success": True
-                    })
-                    
+                    self.db.log_command_execution(
+                        {
+                            "tick": self.current_tick,
+                            "command": command["command"],
+                            "reasoning": command["reasoning"],
+                            "confidence": command["confidence"],
+                            "success": True,
+                        }
+                    )
+
                     print(f"⏎ Executed: {command['command']}")
                 else:
                     raise ValueError(f"Unknown button: {button}")
-                    
+
             elif action == "sequence":
                 # Handle sequences (future feature)
                 buttons = params.split(",")
                 print(f"⏭️ Sequence: {buttons} (not yet implemented)")
-                
+
             elif action == "batch":
                 # Handle batch commands (future feature)
                 print(f"⏭ Batch: {params} (not yet implemented)")
-                
+
         except Exception as e:
             print(f"❌ Command execution failed: {e}")
-            self.db.log_command_execution({
-                "tick": self.current_tick,
-                "command": command.get("command", "unknown"),
-                "reasoning": command.get("reasoning", ""),
-                "confidence": command.get("confidence", 0),
-                "success": False,
-                "error": str(e)
-            })
-    
+            self.db.log_command_execution(
+                {
+                    "tick": self.current_tick,
+                    "command": command.get("command", "unknown"),
+                    "reasoning": command.get("reasoning", ""),
+                    "confidence": command.get("confidence", 0),
+                    "success": False,
+                    "error": str(e),
+                }
+            )
+
     def _detect_battle_transition(self) -> None:
         """Detect when battle starts/ends"""
         # Simple check: if screenshot shows battle UI vs previous state
@@ -360,28 +378,29 @@ class GameLoop:
             is_currently_battling = self._analyze_screenshot(
                 self.emulator.capture_screen()
             )["is_battle"]
-            
-            if is_currently_battling and not hasattr(self, '_was_battling'):
+
+            if is_currently_battling and not hasattr(self, "_was_battling"):
                 # Battle just started
                 print("⚔️ Battle started!")
                 self.metrics["battles_encountered"] += 1  # type: ignore
-                self.db.log_battle_start({
-                    "tick": self.current_tick,
-                    "timestamp": datetime.now().isoformat()
-                })
+                self.db.log_battle_start(
+                    {"tick": self.current_tick, "timestamp": datetime.now().isoformat()}
+                )
                 self._was_battling = True
-                
-            elif not is_currently_battling and hasattr(self, '_was_battling'):
+
+            elif not is_currently_battling and hasattr(self, "_was_battling"):
                 # Battle just ended
                 print("🏁 Battle ended!")
-                self.db.log_battle_end({  # type: ignore
-                    "tick": self.current_tick,
-                    "timestamp": datetime.now().isoformat()
-                })
-                delattr(self, '_was_battling')
+                self.db.log_battle_end(
+                    {  # type: ignore
+                        "tick": self.current_tick,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+                delattr(self, "_was_battling")
+
 
 def main() -> int:
-
     """Main entry point for CLI"""
     parser = argparse.ArgumentParser(
         description="AI Plays Pokemon - Framework for AI-driven Pokemon gameplay",
@@ -396,51 +415,44 @@ Examples:
   
   # Start from existing save state
   python game_loop.py --rom "pokemon_red.gb" --load-state "checkpoint.state"
-        """
+        """,
     )
-    
+
     parser.add_argument(
-        "--rom", 
-        type=str, 
-        required=True,
-        help="Path to Pokemon ROM file (.gb)"
+        "--rom", type=str, required=True, help="Path to Pokemon ROM file (.gb)"
     )
-    
+
     parser.add_argument(
         "--save-dir",
         type=str,
-        default="./game_saves", 
-        help="Directory for saves, DB, and screenshots (default: ./game_saves)"
+        default="./game_saves",
+        help="Directory for saves, DB, and screenshots (default: ./game_saves)",
     )
-    
+
     parser.add_argument(
         "--screenshot-interval",
         type=float,
         default=1.0,
-        help="Seconds between screenshots (default: 1.0)"
+        help="Seconds between screenshots (default: 1.0)",
     )
-    
+
     parser.add_argument(
-        "--load-state",
-        type=str,
-        help="Load existing emulator state file (.state)"
+        "--load-state", type=str, help="Load existing emulator state file (.state)"
     )
-    
+
     parser.add_argument(
         "--ai-delay",
         type=float,
         default=0.5,
-        help="Seconds to wait for AI processing (default: 0.5)"
+        help="Seconds to wait for AI processing (default: 0.5)",
     )
-    
+
     parser.add_argument(
-        "--max-ticks",
-        type=int,
-        help="Maximum ticks to run before stopping (optional)"
+        "--max-ticks", type=int, help="Maximum ticks to run before stopping (optional)"
     )
-    
+
     args = parser.parse_args()
-    
+
     # Validate ROM exists
     rom_path = Path(args.rom)
     if not rom_path.exists():
@@ -451,9 +463,9 @@ Examples:
         rom_path=rom_path,
         save_dir=args.save_dir,
         screenshot_interval=args.screenshot_interval,
-        ai_response_delay=args.ai_delay
+        ai_response_delay=args.ai_delay,
     )
-    
+
     # Load state if provided
     if args.load_state:
         try:
@@ -461,39 +473,42 @@ Examples:
             print("📂 Loaded emulator state from slot 0")
         except FileNotFoundError:
             print("⚠️ No saved state in slot 0, starting fresh")
-    
+
     # Handle graceful shutdown
     def signal_handler(sig: int, frame: Any) -> int:
 
         print("\n🤷 Ctrl+C detected, stopping gracefully...")
         game_loop.stop()
         sys.exit(0)
-    
+
     signal.signal(signal.SIGINT, signal_handler)
-    
+
     try:
         # Start game loop
         game_loop.start()
-        
+
         # Main loop
         while game_loop.is_running:
             if args.max_ticks and game_loop.current_tick >= args.max_ticks:
                 print(f"\n⏱️ Reached max ticks ({args.max_ticks}), stopping...")
                 break
-                
+
             game_loop.run_single_tick()
-            
+
             # Small delay to prevent CPU spinning
             time.sleep(0.001)
-            
+
     except Exception as e:
         print(f"\n💥 ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
     finally:
         game_loop.stop()
-    
+
     return 0
+
+
 if __name__ == "__main__":
     sys.exit(main())

@@ -27,6 +27,7 @@ from src.core.prompt_manager import PromptTemplate, PromptManager
 
 # ── PromptTemplate tests ────────────────────────────────────────────────────
 
+
 class TestPromptTemplate:
     """PromptTemplate dataclass — construction, defaults, post_init."""
 
@@ -109,6 +110,7 @@ class TestPromptTemplate:
 
 # ── PromptManager __init__ tests ────────────────────────────────────────────
 
+
 class TestPromptManagerInit:
     """PromptManager.__init__ with custom directories."""
 
@@ -166,6 +168,7 @@ class TestPromptManagerInit:
 
 # ── load_prompts tests ──────────────────────────────────────────────────────
 
+
 class TestLoadPrompts:
     """PromptManager.load_prompts — filesystem scanning."""
 
@@ -207,10 +210,14 @@ class TestLoadPrompts:
         battle.mkdir()
         (battle / "good.txt").write_text("# Good\n\nok\n", encoding="utf-8")
 
-        with patch.object(Path, "read_text", side_effect=[
-            "# Good\n\nok\n",
-            OSError("Permission denied"),
-        ]):
+        with patch.object(
+            Path,
+            "read_text",
+            side_effect=[
+                "# Good\n\nok\n",
+                OSError("Permission denied"),
+            ],
+        ):
             pm = PromptManager(prompts_dir=str(tmp_path))
             assert len(pm.prompt_templates) >= 0  # No crash
 
@@ -236,6 +243,7 @@ class TestLoadPrompts:
 
 
 # ── _load_prompt_file tests ─────────────────────────────────────────────────
+
 
 class TestLoadPromptFile:
     """PromptManager._load_prompt_file — individual file parsing."""
@@ -264,7 +272,9 @@ class TestLoadPromptFile:
     def test_skips_h2_comments_for_description(self, tmp_path):
         """Lines starting with ## are skipped for description extraction."""
         f = tmp_path / "desc.txt"
-        f.write_text("## Section header\n# Real description\n\nBody\n", encoding="utf-8")
+        f.write_text(
+            "## Section header\n# Real description\n\nBody\n", encoding="utf-8"
+        )
         pm = PromptManager(prompts_dir=str(tmp_path))
         template = pm._load_prompt_file(f, "exploration")
         assert template is not None
@@ -288,7 +298,9 @@ class TestLoadPromptFile:
         pm = PromptManager(prompts_dir=str(tmp_path))
         template = pm._load_prompt_file(f, "battle")
         assert template is not None
-        assert template.priority == 1  # default — regex didn't match (didn't error either)
+        assert (
+            template.priority == 1
+        )  # default — regex didn't match (didn't error either)
 
     def test_missing_file_returns_none(self, tmp_path):
         f = tmp_path / "does_not_exist.txt"
@@ -333,17 +345,38 @@ class TestLoadPromptFile:
 
 # ── get_relevant_prompts tests ──────────────────────────────────────────────
 
+
 class TestGetRelevantPrompts:
     """PromptManager.get_relevant_prompts — category filtering, limit top 3."""
 
     def _make_templates(self):
         return [
-            PromptTemplate(name="b1", category="battle", description="d", content="cb1", priority=1),
-            PromptTemplate(name="b2", category="battle", description="d", content="cb2", priority=2),
-            PromptTemplate(name="e1", category="exploration", description="d", content="ce1", priority=1),
-            PromptTemplate(name="s1", category="strategic", description="d", content="cs1", priority=5),
-            PromptTemplate(name="m1", category="menu", description="d", content="cm1", priority=1),
-            PromptTemplate(name="d1", category="dialog", description="d", content="cd1", priority=1),
+            PromptTemplate(
+                name="b1", category="battle", description="d", content="cb1", priority=1
+            ),
+            PromptTemplate(
+                name="b2", category="battle", description="d", content="cb2", priority=2
+            ),
+            PromptTemplate(
+                name="e1",
+                category="exploration",
+                description="d",
+                content="ce1",
+                priority=1,
+            ),
+            PromptTemplate(
+                name="s1",
+                category="strategic",
+                description="d",
+                content="cs1",
+                priority=5,
+            ),
+            PromptTemplate(
+                name="m1", category="menu", description="d", content="cm1", priority=1
+            ),
+            PromptTemplate(
+                name="d1", category="dialog", description="d", content="cd1", priority=1
+            ),
         ]
 
     def setup_manager(self, tmp_path):
@@ -396,10 +429,14 @@ class TestGetRelevantPrompts:
         assert len(result) == 3
         # Add more battle templates to exceed 3
         pm.prompt_templates.append(
-            PromptTemplate(name="b3", category="battle", description="d", content="cb3", priority=3)
+            PromptTemplate(
+                name="b3", category="battle", description="d", content="cb3", priority=3
+            )
         )
         pm.prompt_templates.append(
-            PromptTemplate(name="b4", category="battle", description="d", content="cb4", priority=0)
+            PromptTemplate(
+                name="b4", category="battle", description="d", content="cb4", priority=0
+            )
         )
         # Now battle matches: s1(5) + b3(3) + b2(2) + b1(1) + b4(0) = 5, top 3
         result = pm.get_relevant_prompts("battle", {})
@@ -411,7 +448,9 @@ class TestGetRelevantPrompts:
     def test_fewer_than_3_returns_all(self, tmp_path):
         pm = PromptManager(prompts_dir=str(tmp_path))
         pm.prompt_templates = [
-            PromptTemplate(name="only", category="battle", description="d", content="c", priority=1),
+            PromptTemplate(
+                name="only", category="battle", description="d", content="c", priority=1
+            ),
         ]
         result = pm.get_relevant_prompts("battle", {})
         assert len(result) == 1
@@ -427,17 +466,33 @@ class TestGetRelevantPrompts:
 
 # ── select_prompts_for_ai tests ─────────────────────────────────────────────
 
+
 class TestSelectPromptsForAI:
     """PromptManager.select_prompts_for_ai — mode-based filtering."""
 
     def _make_templates(self):
         return [
-            PromptTemplate(name="battle_tactical", category="battle", description="d",
-                          content="TACTICAL_BATTLE", priority=2),
-            PromptTemplate(name="explore_tactical", category="exploration", description="d",
-                          content="TACTICAL_EXPLORE", priority=1),
-            PromptTemplate(name="strategy_guide", category="strategic", description="d",
-                          content="STRATEGIC", priority=1),
+            PromptTemplate(
+                name="battle_tactical",
+                category="battle",
+                description="d",
+                content="TACTICAL_BATTLE",
+                priority=2,
+            ),
+            PromptTemplate(
+                name="explore_tactical",
+                category="exploration",
+                description="d",
+                content="TACTICAL_EXPLORE",
+                priority=1,
+            ),
+            PromptTemplate(
+                name="strategy_guide",
+                category="strategic",
+                description="d",
+                content="STRATEGIC",
+                priority=1,
+            ),
         ]
 
     def setup_manager(self, tmp_path):
@@ -447,7 +502,7 @@ class TestSelectPromptsForAI:
 
     def test_balanced_returns_all_relevant(self, tmp_path):
         """Balanced returns all prompts from get_relevant_prompts.
-        
+
         For "battle" state: battle_tactical(battle) + strategy_guide(strategic) = 2.
         explore_tactical(exploration) does NOT match battle.
         """
@@ -459,7 +514,7 @@ class TestSelectPromptsForAI:
 
     def test_tactical_filters_by_name_and_battle_category(self, tmp_path):
         """Tactical mode: only templates with 'tactical' in name OR category=='battle'.
-        
+
         For "battle" state, get_relevant_prompts returns: battle_tactical(battle) + strategy_guide(strategic) = 2.
         Tactical filter: battle_tactical has 'tactical' in name → included.
         strategy_guide: no 'tactical', category='strategic' ≠ 'battle' → excluded.
@@ -491,14 +546,20 @@ class TestSelectPromptsForAI:
     def test_tactical_with_no_tactical_matches_returns_empty(self, tmp_path):
         pm = PromptManager(prompts_dir=str(tmp_path))
         pm.prompt_templates = [
-            PromptTemplate(name="strategy", category="strategic", description="d",
-                          content="STRAT", priority=1),
+            PromptTemplate(
+                name="strategy",
+                category="strategic",
+                description="d",
+                content="STRAT",
+                priority=1,
+            ),
         ]
         results = pm.select_prompts_for_ai("battle", {}, "tactical")
         assert results == []  # strategy doesn't match tactical filter
 
 
 # ── track_prompt_usage tests ────────────────────────────────────────────────
+
 
 class TestTrackPromptUsage:
     """PromptManager.track_prompt_usage — statistics tracking."""
@@ -550,6 +611,7 @@ class TestTrackPromptUsage:
 
 
 # ── get_prompt_analytics tests ──────────────────────────────────────────────
+
 
 class TestGetPromptAnalytics:
     """PromptManager.get_prompt_analytics — analytics aggregation."""
@@ -612,6 +674,7 @@ class TestGetPromptAnalytics:
 
 
 # ── Integration / combined tests ────────────────────────────────────────────
+
 
 class TestPromptManagerIntegration:
     """Full workflow tests — load from disk, select, track, analyze."""

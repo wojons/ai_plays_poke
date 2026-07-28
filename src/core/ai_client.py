@@ -21,7 +21,14 @@ from PIL import Image
 import requests
 
 try:
-    from src.vision import VisionPipeline, OCREngine, SpriteRecognizer, BattleAnalyzer, LocationDetector
+    from src.vision import (
+        VisionPipeline,
+        OCREngine,
+        SpriteRecognizer,
+        BattleAnalyzer,
+        LocationDetector,
+    )
+
     VISION_AVAILABLE = True
 except ImportError:
     VISION_AVAILABLE = False
@@ -32,6 +39,7 @@ except ImportError:
     LocationDetector = None  # type: ignore
 try:
     from anthropic import Anthropic
+
     ANTHROPIC_AVAILABLE = True
 except ImportError:
     ANTHROPIC_AVAILABLE = False
@@ -46,12 +54,14 @@ __all__ = ["CircuitBreaker", "TokenTracker"]
 
 class APIError(Exception):
     """Exception raised for API-related errors"""
+
     pass
 
 
 @dataclass
 class TokenUsage:
     """Token usage tracking for API calls"""
+
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
@@ -64,6 +74,7 @@ class TokenUsage:
 @dataclass
 class APICallResult:
     """Result of an API call with full metadata"""
+
     content: str
     model: str
     token_usage: TokenUsage
@@ -75,23 +86,34 @@ class APICallResult:
     request_id: Optional[str] = None
 
 
-def log_api_call(model: str, duration_ms: float, input_tokens: int,
-                 output_tokens: int, cost: float, success: bool = True) -> None:
+def log_api_call(
+    model: str,
+    duration_ms: float,
+    input_tokens: int,
+    output_tokens: int,
+    cost: float,
+    success: bool = True,
+) -> None:
     """Simple logging function for API calls (survives broken stdout)"""
     try:
-        print(f"📡 API: {model} | {duration_ms:.0f}ms | "
-              f"In: {input_tokens} | Out: {output_tokens} | "
-              f"${cost:.6f} | Success: {success}")
+        print(
+            f"📡 API: {model} | {duration_ms:.0f}ms | "
+            f"In: {input_tokens} | Out: {output_tokens} | "
+            f"${cost:.6f} | Success: {success}"
+        )
     except (BrokenPipeError, OSError):
         pass
 
 
-def log_vision_analysis(screen_type: str, enemy_pokemon: str,
-                        player_hp: float, enemy_hp: float) -> None:
+def log_vision_analysis(
+    screen_type: str, enemy_pokemon: str, player_hp: float, enemy_hp: float
+) -> None:
     """Simple logging function for vision analysis (survives broken stdout)"""
     try:
-        print(f"👁️ Vision: {screen_type} | Enemy: {enemy_pokemon or 'None'} | "
-              f"HP: {player_hp:.0f}%/{enemy_hp:.0f}%")
+        print(
+            f"👁️ Vision: {screen_type} | Enemy: {enemy_pokemon or 'None'} | "
+            f"HP: {player_hp:.0f}%/{enemy_hp:.0f}%"
+        )
     except (BrokenPipeError, OSError):
         pass
 
@@ -99,6 +121,7 @@ def log_vision_analysis(screen_type: str, enemy_pokemon: str,
 # Load environment variables from .env file
 try:
     from dotenv import load_dotenv
+
     # Try to load .env from current directory and project root
     load_dotenv(dotenv_path=".env")
     load_dotenv(dotenv_path=Path(__file__).parent.parent / ".env")
@@ -111,8 +134,8 @@ except ImportError:
         with open(env_path) as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
+                if line and not line.startswith("#") and "=" in line:
+                    key, value = line.split("=", 1)
                     if key and value and not os.environ.get(key):
                         os.environ[key] = value
 
@@ -184,7 +207,9 @@ class AIModelClient:
         if self._api_key is not None:
             return self._api_key
 
-        self._api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENROUTER_API_KEY")
+        self._api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get(
+            "OPENROUTER_API_KEY"
+        )
 
         if not self._api_key:
             self._stub_mode = True
@@ -219,24 +244,32 @@ class AIModelClient:
         try:
             headers = {
                 "Authorization": f"Bearer {self._api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             }
-            payload = {"model": "openai/gpt-4o-mini", "messages": [{"role": "user", "content": "test"}], "max_tokens": 1}
+            payload = {
+                "model": "openai/gpt-4o-mini",
+                "messages": [{"role": "user", "content": "test"}],
+                "max_tokens": 1,
+            }
 
             response = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
                 json=payload,  # type: ignore
-                timeout=10
+                timeout=10,
             )
 
             if response.status_code == 401:
                 error_info = response.json() if response.content else {}
-                error_msg = error_info.get("error", {}).get("message", "API key rejected")
+                error_msg = error_info.get("error", {}).get(
+                    "message", "API key rejected"
+                )
                 raise APIError(error_msg)
 
             if response.status_code != 200 and response.status_code != 429:
-                raise APIError(f"API validation failed with status {response.status_code}")
+                raise APIError(
+                    f"API validation failed with status {response.status_code}"
+                )
 
         except requests.exceptions.RequestException as e:
             raise APIError(f"API validation request failed: {str(e)}")
@@ -256,10 +289,7 @@ class AIModelClient:
             self._client = None
 
     def _make_request_with_retry(
-        self,
-        endpoint: str,
-        payload: Dict[str, Any],
-        max_retries: int = 3
+        self, endpoint: str, payload: Dict[str, Any], max_retries: int = 3
     ) -> Dict[str, Any]:
         """
         Make API request with retry logic
@@ -276,29 +306,38 @@ class AIModelClient:
             APIError: If request fails after all retries
         """
         if self._stub_mode:
-            return {"choices": [{"message": {"content": '{"command": "press:A", "reasoning": "Stub mode", "confidence": 0.5}'}}], "model": "stub"}
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": '{"command": "press:A", "reasoning": "Stub mode", "confidence": 0.5}'
+                        }
+                    }
+                ],
+                "model": "stub",
+            }
 
         for retry in range(max_retries):
             try:
                 result = self._client.chat_completion(  # type: ignore[union-attr]
                     model=self._client.models.get("acting", "openai/gpt-4o-mini"),  # type: ignore[union-attr]
                     messages=[{"role": "user", "content": json.dumps(payload)}],
-                    max_tokens=300
+                    max_tokens=300,
                 )
                 return result
             except Exception as e:
                 if retry < max_retries - 1:
-                    delay = 1.0 * (2 ** retry)
+                    delay = 1.0 * (2**retry)
                     time.sleep(delay)
                 else:
-                    raise APIError(f"Request failed after {max_retries} retries: {str(e)}")
+                    raise APIError(
+                        f"Request failed after {max_retries} retries: {str(e)}"
+                    )
 
         raise APIError("Request failed")
 
     def generate_decision(
-        self,
-        game_state: Dict[str, Any],
-        context: Dict[str, Any]
+        self, game_state: Dict[str, Any], context: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
         Generate an AI decision based on game state
@@ -314,13 +353,10 @@ class AIModelClient:
             return {
                 "command": "press:A",
                 "reasoning": "Stub mode - no API key configured",
-                "confidence": 0.5
+                "confidence": 0.5,
             }
 
-        prompt = json.dumps({
-            "game_state": game_state,
-            "context": context
-        })
+        prompt = json.dumps({"game_state": game_state, "context": context})
 
         try:
             response = self._make_request_with_retry("decision", {"prompt": prompt})
@@ -335,13 +371,13 @@ class AIModelClient:
             return {
                 "command": "press:A",
                 "reasoning": content[:100] if content else "No response",
-                "confidence": 0.5
+                "confidence": 0.5,
             }
         except Exception as e:
             return {
                 "command": "press:A",
                 "reasoning": f"Error: {str(e)}",
-                "confidence": 0.3
+                "confidence": 0.3,
             }
 
 
@@ -364,7 +400,7 @@ class ClaudeClient:
         self.models = {
             "vision": "claude-3-sonnet-20240307",
             "thinking": "claude-3-haiku-20240307",
-            "acting": "claude-3-haiku-20240307"
+            "acting": "claude-3-haiku-20240307",
         }
 
         self.circuit_breaker = CircuitBreaker()
@@ -374,7 +410,7 @@ class ClaudeClient:
         model: str,
         messages: List[Dict[str, Any]],
         max_tokens: int = 500,
-        temperature: float = 0.3
+        temperature: float = 0.3,
     ) -> Dict[str, Any]:
         """Make a chat completion request to Claude"""
 
@@ -388,7 +424,7 @@ class ClaudeClient:
                 model=model,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                messages=messages  # type: ignore
+                messages=messages,  # type: ignore
             )
 
             duration_ms = (time.time() - start_time) * 1000
@@ -405,10 +441,10 @@ class ClaudeClient:
                 "model": model,
                 "usage": {
                     "prompt_tokens": input_tokens,
-                    "completion_tokens": output_tokens
+                    "completion_tokens": output_tokens,
                 },
                 "duration_ms": duration_ms,
-                "request_id": response.id
+                "request_id": response.id,
             }
 
         except Exception:
@@ -420,7 +456,7 @@ class ClaudeClient:
         prompt: str,
         system_prompt: Optional[str] = None,
         model: Optional[str] = None,
-        max_tokens: int = 500
+        max_tokens: int = 500,
     ) -> str:
         """Get text response from Claude"""
         model = model or self.models.get("thinking", "claude-3-haiku-20240307")
@@ -432,12 +468,12 @@ class ClaudeClient:
             messages.append({"role": "user", "content": prompt})
 
         result = self.chat_completion(
-            model=model,
-            messages=messages,
-            max_tokens=max_tokens
+            model=model, messages=messages, max_tokens=max_tokens
         )
 
         return result["content"]  # type: ignore
+
+
 class OpenRouterClient:
     """
     Client for OpenRouter API
@@ -463,7 +499,7 @@ class OpenRouterClient:
         self.models = {
             "vision": "openai/gpt-4o",
             "thinking": "openai/gpt-4o-mini",
-            "acting": "openai/gpt-4o-mini"
+            "acting": "openai/gpt-4o-mini",
         }
 
         self.circuit_breaker = CircuitBreaker()
@@ -498,7 +534,7 @@ class OpenRouterClient:
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://ai-plays-pokemon.com"
+            "HTTP-Referer": "https://ai-plays-pokemon.com",
         }
 
         payload: Dict[str, Any] = {
@@ -507,7 +543,7 @@ class OpenRouterClient:
             "max_tokens": max_tokens,
             "temperature": temperature,
             "top_p": 0.95,
-            "stream": stream
+            "stream": stream,
         }
 
         if tools:
@@ -523,17 +559,22 @@ class OpenRouterClient:
                     pil_img = Image.fromarray(img)
 
                     if pil_img.size[0] > 1024:
-                        pil_img = pil_img.resize((1024, int(1024 * pil_img.size[1] / pil_img.size[0])))
+                        pil_img = pil_img.resize(
+                            (1024, int(1024 * pil_img.size[1] / pil_img.size[0]))
+                        )
 
                     import io
+
                     buffered = io.BytesIO()
                     pil_img.save(buffered, format="PNG")
                     image_base64 = base64.b64encode(buffered.getvalue()).decode()
 
-                    image_content.append({
-                        "type": "image_url",
-                        "image_url": f"data:image/png;base64,{image_base64}"
-                    })
+                    image_content.append(
+                        {
+                            "type": "image_url",
+                            "image_url": f"data:image/png;base64,{image_base64}",
+                        }
+                    )
 
             user_message_found = False
             for i, message in enumerate(payload["messages"]):
@@ -546,7 +587,7 @@ class OpenRouterClient:
 
                     content_array = [
                         {"type": "text", "text": original_content},
-                        *image_content
+                        *image_content,
                     ]
 
                     user_message["content"] = content_array
@@ -554,13 +595,15 @@ class OpenRouterClient:
                     break
 
             if not user_message_found:
-                payload["messages"].append({
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": "Analyze this game screenshot."},
-                        *image_content
-                    ]
-                })
+                payload["messages"].append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": "Analyze this game screenshot."},
+                            *image_content,
+                        ],
+                    }
+                )
 
         start_time = time.time()
         last_error = None
@@ -571,26 +614,32 @@ class OpenRouterClient:
                     f"{base_url}/chat/completions",
                     headers=headers,
                     json=payload,
-                    timeout=30
+                    timeout=30,
                 )
                 duration_ms = (time.time() - start_time) * 1000
 
                 if response.status_code == 429:
-                    wait = 2 ** attempt  # 1s, 2s, 4s
-                    print(f"  [API] Rate limited (429), backing off {wait}s (attempt {attempt+1}/3)")
+                    wait = 2**attempt  # 1s, 2s, 4s
+                    print(
+                        f"  [API] Rate limited (429), backing off {wait}s (attempt {attempt + 1}/3)"
+                    )
                     time.sleep(wait)
                     continue
 
                 if response.status_code >= 500 and attempt < 2:
                     wait = 1 * (attempt + 1)
-                    print(f"  [API] Server error {response.status_code}, retrying in {wait}s (attempt {attempt+1}/3)")
+                    print(
+                        f"  [API] Server error {response.status_code}, retrying in {wait}s (attempt {attempt + 1}/3)"
+                    )
                     time.sleep(wait)
                     continue
 
                 if response.status_code != 200:
                     error_info = response.json() if response.content else response.text
                     print(f"OpenRouter API error {response.status_code}: {error_info}")
-                    raise Exception(f"OpenRouter API error {response.status_code}: {error_info}")
+                    raise Exception(
+                        f"OpenRouter API error {response.status_code}: {error_info}"
+                    )
 
                 result = response.json()
 
@@ -601,7 +650,9 @@ class OpenRouterClient:
 
                 self.circuit_breaker.record_success()
 
-                log_api_call(model, duration_ms, input_tokens, output_tokens, cost, True)
+                log_api_call(
+                    model, duration_ms, input_tokens, output_tokens, cost, True
+                )
 
                 choices = result.get("choices", [])
                 first_choice = choices[0] if choices else {}
@@ -620,10 +671,12 @@ class OpenRouterClient:
                             parsed_args = raw_args
                     else:
                         parsed_args = raw_args
-                    content = json.dumps({
-                        "name": func.get("name", ""),
-                        "arguments": parsed_args,
-                    })
+                    content = json.dumps(
+                        {
+                            "name": func.get("name", ""),
+                            "arguments": parsed_args,
+                        }
+                    )
                 else:
                     content = message.get("content", "")
 
@@ -633,15 +686,17 @@ class OpenRouterClient:
                     "model": result.get("model", model),
                     "usage": usage,
                     "duration_ms": duration_ms,
-                    "request_id": result.get("id", "")
+                    "request_id": result.get("id", ""),
                 }
 
             except Exception as e:
                 last_error = e
                 if attempt < 2:
-                    wait = 2 ** attempt
+                    wait = 2**attempt
                     try:
-                        print(f"  [API] Request failed: {e}, retrying in {wait}s (attempt {attempt+1}/3)")
+                        print(
+                            f"  [API] Request failed: {e}, retrying in {wait}s (attempt {attempt + 1}/3)"
+                        )
                     except (BrokenPipeError, OSError):
                         pass
                     time.sleep(wait)
@@ -660,7 +715,7 @@ class OpenRouterClient:
         prompt: str,
         image: np.ndarray,
         model: Optional[str] = None,
-        max_tokens: int = 500
+        max_tokens: int = 500,
     ) -> str:
         """Get vision model response (simplified interface)"""
         if model is None:
@@ -669,22 +724,17 @@ class OpenRouterClient:
         messages = [
             {
                 "role": "system",
-                "content": "You are an AI playing Pokemon. Analyze the provided game screenshot and provide strategic advice."
+                "content": "You are an AI playing Pokemon. Analyze the provided game screenshot and provide strategic advice.",
             },
-            {
-                "role": "user",
-                "content": prompt
-            }
+            {"role": "user", "content": prompt},
         ]
 
         result = self.chat_completion(
-            model=model,
-            messages=messages,
-            images=[image],
-            max_tokens=max_tokens
+            model=model, messages=messages, images=[image], max_tokens=max_tokens
         )
 
         return result["content"]  # type: ignore
+
     def send_vision_request(
         self,
         prompt: str,
@@ -712,11 +762,9 @@ class OpenRouterClient:
                     {"type": "text", "text": prompt},
                     {
                         "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{image_b64}"
-                        }
-                    }
-                ]
+                        "image_url": {"url": f"data:image/png;base64,{image_b64}"},
+                    },
+                ],
             }
         ]
 
@@ -729,12 +777,13 @@ class OpenRouterClient:
         )
 
         return result["content"]  # type: ignore
+
     def get_text_response(
         self,
         prompt: str,
         model: Optional[str] = None,
         max_tokens: int = 500,
-        temperature: float = 0.3
+        temperature: float = 0.3,
     ) -> str:
         """Get text-only model response (simplified interface)"""
         if model is None:
@@ -743,22 +792,20 @@ class OpenRouterClient:
         messages = [
             {
                 "role": "system",
-                "content": "You are an AI playing Pokemon. Provide strategic advice and decisions."
+                "content": "You are an AI playing Pokemon. Provide strategic advice and decisions.",
             },
-            {
-                "role": "user",
-                "content": prompt
-            }
+            {"role": "user", "content": prompt},
         ]
 
         result = self.chat_completion(
             model=model,
             messages=messages,
             max_tokens=max_tokens,
-            temperature=temperature
+            temperature=temperature,
         )
 
         return result["content"]  # type: ignore
+
     def send_tool_request(
         self,
         prompt: str,
@@ -806,6 +853,8 @@ class OpenRouterClient:
         self._last_usage = result.get("usage", {})
 
         return result["content"]  # type: ignore
+
+
 class JSONResponseParser:
     """Structured JSON response parser with validation and retry logic"""
 
@@ -819,7 +868,7 @@ class JSONResponseParser:
         self,
         response: str,
         schema: Optional[Dict[str, Any]] = None,
-        retry_count: int = 0
+        retry_count: int = 0,
     ) -> Dict[str, Any]:
         """Parse response with retry logic on failure"""
         schema = schema or self.schema
@@ -840,9 +889,7 @@ class JSONResponseParser:
         return self._extract_with_regex_fallback(response)
 
     def _try_parse_json(
-        self,
-        response: str,
-        schema: Optional[Dict[str, Any]] = None
+        self, response: str, schema: Optional[Dict[str, Any]] = None
     ) -> Optional[Dict[str, Any]]:
         """Try to parse JSON from response"""
         cleaned = self._clean_json_response(response)
@@ -855,7 +902,7 @@ class JSONResponseParser:
         except json.JSONDecodeError:
             pass
 
-        json_match = re.search(r'\{[^{}]*\}', response)
+        json_match = re.search(r"\{[^{}]*\}", response)
         if json_match:
             try:
                 return json.loads(json_match.group())  # type: ignore
@@ -881,9 +928,7 @@ class JSONResponseParser:
         return cleaned
 
     def _validate_against_schema(
-        self,
-        result: Dict[str, Any],
-        schema: Dict[str, Any]
+        self, result: Dict[str, Any], schema: Dict[str, Any]
     ) -> None:
         """Validate parsed JSON against schema"""
         for key, expected_type in schema.items():
@@ -891,14 +936,12 @@ class JSONResponseParser:
                 if isinstance(expected_type, list):
                     if not isinstance(result[key], tuple(expected_type)):
                         raise ValueError(f"Key '{key}' has wrong type")
-                elif not isinstance(result[key], expected_type if expected_type is not str else str):
+                elif not isinstance(
+                    result[key], expected_type if expected_type is not str else str
+                ):
                     raise ValueError(f"Key '{key}' has wrong type")
 
-    def _parse_with_fallback(
-        self,
-        response: str,
-        retry_count: int
-    ) -> Dict[str, Any]:
+    def _parse_with_fallback(self, response: str, retry_count: int) -> Dict[str, Any]:
         """Parse with fallback strategies on retry"""
         cleaned = self._clean_json_response(response)
 
@@ -909,8 +952,8 @@ class JSONResponseParser:
                 pass
 
         json_patterns = [
-            r'\{(?:[^{}]|{[^{}]*})*\}',
-            r'"(?:[^"\\]|\\.)*"\s*:\s*(?:[^,}\\]|\\.)*(?:,\s*(?:[^"\\]|\\.)*:\s*(?:[^,}\\]|\\.)*)*\}'
+            r"\{(?:[^{}]|{[^{}]*})*\}",
+            r'"(?:[^"\\]|\\.)*"\s*:\s*(?:[^,}\\]|\\.)*(?:,\s*(?:[^"\\]|\\.)*:\s*(?:[^,}\\]|\\.)*)*\}',
         ]
 
         for pattern in json_patterns:
@@ -927,7 +970,7 @@ class JSONResponseParser:
         """Final fallback using regex extraction"""
         result: dict[str, Any] = {
             "raw_response": response[:500],
-            "extracted_fields": {}
+            "extracted_fields": {},
         }
 
         field_patterns = {
@@ -936,7 +979,7 @@ class JSONResponseParser:
             "screen_type": r'screen_type["\s]*:\s*["\']?(\w+)',
             "enemy_pokemon": r'enemy_pokemon["\s]*:\s*["\']?([A-Za-z]+)',
             "player_hp": r'player_hp["\s]*:\s*(\d+)',
-            "enemy_hp": r'enemy_hp["\s]*:\s*(\d+)'
+            "enemy_hp": r'enemy_hp["\s]*:\s*(\d+)',
         }
 
         for field_name, pattern in field_patterns.items():
@@ -965,7 +1008,7 @@ class RateLimiter:
         max_requests: int = 50,
         time_window: float = 60.0,
         base_delay: float = 1.0,
-        max_delay: float = 60.0
+        max_delay: float = 60.0,
     ):
         self.max_requests = max_requests
         self.time_window = time_window
@@ -980,7 +1023,9 @@ class RateLimiter:
         with self.lock:
             now = time.time()
 
-            self.request_times = [t for t in self.request_times if now - t < self.time_window]
+            self.request_times = [
+                t for t in self.request_times if now - t < self.time_window
+            ]
 
             if len(self.request_times) >= self.max_requests:
                 oldest = min(self.request_times)
@@ -993,7 +1038,7 @@ class RateLimiter:
 
     def get_delay(self, retry_count: int) -> float:
         """Calculate exponential backoff delay"""
-        delay = min(self.base_delay * (2 ** retry_count), self.max_delay)
+        delay = min(self.base_delay * (2**retry_count), self.max_delay)
         random_value = int(hashlib.md5(str(time.time()).encode()).hexdigest(), 16) % 100
         jitter = delay * 0.1 * (random_value / 100)
         return float(delay + jitter)
@@ -1004,15 +1049,23 @@ class ModelRouter:
 
     def __init__(self) -> None:
         self.providers = {
-            "openrouter": {"speed_weight": 0.4, "cost_weight": 0.3, "quality_weight": 0.3},
-            "anthropic": {"speed_weight": 0.3, "cost_weight": 0.4, "quality_weight": 0.3}
+            "openrouter": {
+                "speed_weight": 0.4,
+                "cost_weight": 0.3,
+                "quality_weight": 0.3,
+            },
+            "anthropic": {
+                "speed_weight": 0.3,
+                "cost_weight": 0.4,
+                "quality_weight": 0.3,
+            },
         }
 
     def select_model(
         self,
         task_type: str,
         priority: str = "balanced",
-        available_models: Optional[Dict[str, str]] = None
+        available_models: Optional[Dict[str, str]] = None,
     ) -> tuple[Any, ...]:
         """
         Select best model for task
@@ -1031,7 +1084,7 @@ class ModelRouter:
             "openrouter_acting": "openai/gpt-4o-mini",
             "anthropic_vision": "claude-3-sonnet-20240307",
             "anthropic_thinking": "claude-3-haiku-20240307",
-            "anthropic_acting": "claude-3-haiku-20240307"
+            "anthropic_acting": "claude-3-haiku-20240307",
         }
 
         if priority == "speed":
@@ -1044,51 +1097,70 @@ class ModelRouter:
             return self._select_balanced(task_type, available_models)
 
     def _select_for_speed(
-        self,
-        task_type: str,
-        available_models: Dict[str, str]
+        self, task_type: str, available_models: Dict[str, str]
     ) -> tuple[Any, ...]:
         """Select fastest model"""
         if task_type == "vision":
-            return ("openrouter", available_models.get("openrouter_vision", "openai/gpt-4o-mini"))
+            return (
+                "openrouter",
+                available_models.get("openrouter_vision", "openai/gpt-4o-mini"),
+            )
         elif task_type == "thinking":
-            return ("openrouter", available_models.get("openrouter_thinking", "openai/gpt-4o-mini"))
+            return (
+                "openrouter",
+                available_models.get("openrouter_thinking", "openai/gpt-4o-mini"),
+            )
         else:
-            return ("openrouter", available_models.get("openrouter_acting", "openai/gpt-4o-mini"))
+            return (
+                "openrouter",
+                available_models.get("openrouter_acting", "openai/gpt-4o-mini"),
+            )
 
     def _select_for_cost(
-        self,
-        task_type: str,
-        available_models: Dict[str, str]
+        self, task_type: str, available_models: Dict[str, str]
     ) -> tuple[Any, ...]:
         """Select cheapest model"""
         return self._select_for_speed(task_type, available_models)
 
     def _select_for_quality(
-        self,
-        task_type: str,
-        available_models: Dict[str, str]
+        self, task_type: str, available_models: Dict[str, str]
     ) -> tuple[Any, ...]:
         """Select highest quality model"""
         if task_type == "vision":
-            return ("anthropic", available_models.get("anthropic_vision", "claude-3-sonnet-20240307"))
+            return (
+                "anthropic",
+                available_models.get("anthropic_vision", "claude-3-sonnet-20240307"),
+            )
         elif task_type == "thinking":
-            return ("anthropic", available_models.get("anthropic_thinking", "claude-3-sonnet-20240307"))
+            return (
+                "anthropic",
+                available_models.get("anthropic_thinking", "claude-3-sonnet-20240307"),
+            )
         else:
-            return ("anthropic", available_models.get("anthropic_acting", "claude-3-haiku-20240307"))
+            return (
+                "anthropic",
+                available_models.get("anthropic_acting", "claude-3-haiku-20240307"),
+            )
 
     def _select_balanced(
-        self,
-        task_type: str,
-        available_models: Dict[str, str]
+        self, task_type: str, available_models: Dict[str, str]
     ) -> tuple[Any, ...]:
         """Select balanced model"""
         if task_type == "vision":
-            return ("openrouter", available_models.get("openrouter_vision", "openai/gpt-4o"))
+            return (
+                "openrouter",
+                available_models.get("openrouter_vision", "openai/gpt-4o"),
+            )
         elif task_type == "thinking":
-            return ("openrouter", available_models.get("openrouter_thinking", "openai/gpt-4o-mini"))
+            return (
+                "openrouter",
+                available_models.get("openrouter_thinking", "openai/gpt-4o-mini"),
+            )
         else:
-            return ("openrouter", available_models.get("openrouter_acting", "openai/gpt-4o-mini"))
+            return (
+                "openrouter",
+                available_models.get("openrouter_acting", "openai/gpt-4o-mini"),
+            )
 
 
 class GameAIManager:
@@ -1105,7 +1177,7 @@ class GameAIManager:
         api_key: Optional[str] = None,
         anthropic_api_key: Optional[str] = None,
         enable_prompt_manager: bool = True,
-        model_priority: str = "balanced"
+        model_priority: str = "balanced",
     ):
         """
         Initialize AI manager
@@ -1128,14 +1200,15 @@ class GameAIManager:
                 "enemy_hp": int,
                 "available_actions": list,
                 "recommended_action": str,
-                "reasoning": str
+                "reasoning": str,
             },
-            max_retries=3
+            max_retries=3,
         )
 
         if enable_prompt_manager:
             try:
                 from src.core.prompt_manager import PromptManager
+
                 self.prompt_manager = PromptManager("prompts")
                 print("✅ PromptManager initialized")
             except Exception as e:
@@ -1215,7 +1288,7 @@ DECIDE: What button should be pressed next (A, B, UP, DOWN, LEFT, RIGHT)?
 Explain your reasoning in 1 sentence, then state your action.
 
 Format: REASONING: [explanation] ACTION: [button]
-"""
+""",
         }
 
     def _init_vision_engine(self) -> None:
@@ -1244,16 +1317,13 @@ Format: REASONING: [explanation] ACTION: [button]
             self.location_detector = None
 
     def _get_client_for_model(self, model: str) -> Any:
-
         """Get appropriate client for a model"""
         if "claude" in model.lower():
             return self.claude_client
         return self.openrouter_client
+
     def _make_api_call_with_retry(  # type: ignore[no-untyped-def]
-        self,
-        client_method: Callable[..., Any],
-        max_retries: int = 3,
-        **kwargs
+        self, client_method: Callable[..., Any], max_retries: int = 3, **kwargs
     ) -> Dict[str, Any]:
         """Make API call with retry logic and rate limiting"""
         for retry in range(max_retries):
@@ -1265,14 +1335,16 @@ Format: REASONING: [explanation] ACTION: [button]
                     usage = result["usage"]
                     input_tokens = usage.get("prompt_tokens", 0)
                     output_tokens = usage.get("completion_tokens", 0)
-                    cost = calculate_cost(result.get("model", ""), input_tokens, output_tokens)
+                    cost = calculate_cost(
+                        result.get("model", ""), input_tokens, output_tokens
+                    )
 
                     self.token_tracker.record_request(
                         model=result.get("model", ""),
                         input_tokens=input_tokens,
                         output_tokens=output_tokens,
                         cost=cost,
-                        duration_ms=result.get("duration_ms", 0)
+                        duration_ms=result.get("duration_ms", 0),
                     )
 
                 return result  # type: ignore
@@ -1289,29 +1361,26 @@ Format: REASONING: [explanation] ACTION: [button]
         """Analyze screenshot using vision model"""
         print(f"👀 Analyzing screenshot with vision model: {self.vision_model}")
 
-        provider, model = self.model_router.select_model(
-            "vision",
-            self.model_priority
-        )
+        provider, model = self.model_router.select_model("vision", self.model_priority)
         print(f"📡 Selected provider: {provider}, model: {model}")
 
         prompt = self.prompts["vision_analysis"]
 
         if self.prompt_manager:
             relevant_prompts = self.prompt_manager.select_prompts_for_ai(
-                "battle",
-                {},
-                "balanced"
+                "battle", {}, "balanced"
             )
             if relevant_prompts:
                 prompt = relevant_prompts[0] + "\n\n" + prompt
 
         try:
             client = self._get_client_for_model(model)
-            if hasattr(client, 'get_vision_response'):
+            if hasattr(client, "get_vision_response"):
                 response = client.get_vision_response(prompt, screenshot, model=model)
             else:
-                response = self.openrouter_client.get_vision_response(prompt, screenshot, model=model)  # type: ignore[union-attr]
+                response = self.openrouter_client.get_vision_response(
+                    prompt, screenshot, model=model
+                )  # type: ignore[union-attr]
             print(f"📝 Vision response ({len(response)} chars): {response[:200]}...")
 
             result = self.json_parser.parse(response)
@@ -1320,19 +1389,21 @@ Format: REASONING: [explanation] ACTION: [button]
                 input_tokens=len(response) // 4,
                 output_tokens=len(response) // 4,
                 cost=0.001,
-                duration_ms=100
+                duration_ms=100,
             )
 
             log_vision_analysis(
-                result.get('screen_type', 'Unknown'),
-                result.get('enemy_pokemon', 'None'),
-                result.get('player_hp', 100),
-                result.get('enemy_hp', 100)
+                result.get("screen_type", "Unknown"),
+                result.get("enemy_pokemon", "None"),
+                result.get("player_hp", 100),
+                result.get("enemy_hp", 100),
             )
 
-            print(f"✅ Vision analysis: screen={result.get('screen_type', 'Unknown')}, "
-                  f"enemy={result.get('enemy_pokemon', 'None')}, "
-                  f"HP={result.get('player_hp', 100)}%/{result.get('enemy_hp', 100)}%")
+            print(
+                f"✅ Vision analysis: screen={result.get('screen_type', 'Unknown')}, "
+                f"enemy={result.get('enemy_pokemon', 'None')}, "
+                f"HP={result.get('player_hp', 100)}%/{result.get('enemy_hp', 100)}%"
+            )
 
             return result
         except Exception as e:
@@ -1344,7 +1415,7 @@ Format: REASONING: [explanation] ACTION: [button]
                 "enemy_hp": 100,
                 "available_actions": ["A", "DOWN"],
                 "recommended_action": "press:A",
-                "reasoning": "Fallback default action"
+                "reasoning": "Fallback default action",
             }
 
     def make_strategic_decision(
@@ -1353,7 +1424,7 @@ Format: REASONING: [explanation] ACTION: [button]
         battle_state: str,
         objective: str,
         past_failures: str,
-        model: Optional[str] = None
+        model: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Make strategic planning decision using thinking model"""
         print("🧠 Strategic planning with thinking model...")
@@ -1362,27 +1433,24 @@ Format: REASONING: [explanation] ACTION: [button]
             journey_summary=journey_summary or "No journey summary yet",
             battle_state=battle_state or "No battle",
             past_failures=past_failures or "No past failures",
-            objective=objective or "Explore the world"
+            objective=objective or "Explore the world",
         )
 
         if self.prompt_manager:
             relevant_prompts = self.prompt_manager.select_prompts_for_ai(
-                "strategic",
-                {},
-                "strategic"
+                "strategic", {}, "strategic"
             )
             if relevant_prompts:
                 prompt = relevant_prompts[0] + "\n\n" + prompt
 
         provider, selected_model = self.model_router.select_model(
-            "thinking",
-            self.model_priority
+            "thinking", self.model_priority
         )
         model = model or selected_model
 
         try:
             client = self._get_client_for_model(model)
-            if hasattr(client, 'get_text_response'):
+            if hasattr(client, "get_text_response"):
                 response = client.get_text_response(prompt, model=model)
             else:
                 response = self.openrouter_client.get_text_response(prompt, model=model)  # type: ignore[union-attr]
@@ -1395,7 +1463,7 @@ Format: REASONING: [explanation] ACTION: [button]
                 input_tokens=len(prompt) // 4,
                 output_tokens=len(response) // 4,
                 cost=0.001,
-                duration_ms=100
+                duration_ms=100,
             )
 
             print(f"✅ Strategic plan: {result.get('objective', 'Unknown')}")
@@ -1407,7 +1475,7 @@ Format: REASONING: [explanation] ACTION: [button]
                 "objective": "Survive and explore",
                 "key_tactics": ["Press A", "Use super-effective moves"],
                 "risks": "Unknown enemies",
-                "confidence": 0.5
+                "confidence": 0.5,
             }
 
     def make_tactical_decision(
@@ -1422,7 +1490,7 @@ Format: REASONING: [explanation] ACTION: [button]
         recent_actions: str,
         strategy: str,
         turn: int,
-        model: Optional[str] = None
+        model: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Make immediate tactical decision using acting model"""
         print(f"⚡ Tactical decision (turn {turn})...")
@@ -1437,39 +1505,30 @@ Format: REASONING: [explanation] ACTION: [button]
             moves=", ".join(moves) if moves else "Basic attack",
             weaknesses=", ".join(weaknesses) if weaknesses else "None",
             recent_actions=recent_actions or "No recent actions",
-            strategy=strategy or "Basic strategy"
+            strategy=strategy or "Basic strategy",
         )
 
         if self.prompt_manager:
             relevant_prompts = self.prompt_manager.select_prompts_for_ai(
-                "battle",
-                {},
-                "tactical"
+                "battle", {}, "tactical"
             )
             if relevant_prompts:
                 prompt = relevant_prompts[0] + "\n\n" + prompt
 
         provider, selected_model = self.model_router.select_model(
-            "acting",
-            self.model_priority
+            "acting", self.model_priority
         )
         model = model or selected_model
 
         try:
             client = self._get_client_for_model(model)
-            if hasattr(client, 'get_text_response'):
+            if hasattr(client, "get_text_response"):
                 response = client.get_text_response(
-                    prompt,
-                    model=model,
-                    max_tokens=300,
-                    temperature=0.3
+                    prompt, model=model, max_tokens=300, temperature=0.3
                 )
             else:
                 response = self.openrouter_client.get_text_response(  # type: ignore[union-attr]
-                    prompt,
-                    model=model,
-                    max_tokens=300,
-                    temperature=0.3
+                    prompt, model=model, max_tokens=300, temperature=0.3
                 )
 
             print(f"Tactical model response: {response[:200]}...")
@@ -1481,18 +1540,20 @@ Format: REASONING: [explanation] ACTION: [button]
                 input_tokens=len(prompt) // 4,
                 output_tokens=len(response) // 4,
                 cost=0.001,
-                duration_ms=100
+                duration_ms=100,
             )
 
-            print(f"✅ Tactical: REASONING: {result.get('reasoning', '')[:100]}... "
-                  f"ACTION: {result.get('action', 'press:A')}")
+            print(
+                f"✅ Tactical: REASONING: {result.get('reasoning', '')[:100]}... "
+                f"ACTION: {result.get('action', 'press:A')}"
+            )
 
             return result
         except Exception as e:
             print(f"❌ Tactical decision failed: {e}")
             return {
                 "reasoning": "Default action - Press basic move",
-                "action": "press:A"
+                "action": "press:A",
             }
 
     def get_session_stats(self) -> Dict[str, Any]:
@@ -1516,14 +1577,14 @@ Format: REASONING: [explanation] ACTION: [button]
                 "objective": parsed.get("objective", ""),
                 "key_tactics": parsed.get("key_tactics", []),
                 "risks": parsed.get("risks", "Unknown"),
-                "confidence": parsed.get("confidence", 0.5)
+                "confidence": parsed.get("confidence", 0.5),
             }
 
         return {
             "objective": self._extract_objective(response),
             "key_tactics": self._extract_list(response),
             "risks": "Unknown",
-            "confidence": 0.5
+            "confidence": 0.5,
         }
 
     def _parse_tactical_response(self, response: str) -> Dict[str, Any]:
@@ -1534,12 +1595,9 @@ Format: REASONING: [explanation] ACTION: [button]
             action = parsed["action"]
             if not action.startswith("press:"):
                 action = f"press:{action}"
-            return {
-                "reasoning": parsed.get("reasoning", ""),
-                "action": action
-            }
+            return {"reasoning": parsed.get("reasoning", ""), "action": action}
 
-        lines = response.strip().split('\n')
+        lines = response.strip().split("\n")
 
         reasoning = ""
         action = "press:A"
@@ -1559,10 +1617,7 @@ Format: REASONING: [explanation] ACTION: [button]
                     action = f"press:{button}"
                     break
 
-        return {
-            "reasoning": reasoning or "Default tactical action",
-            "action": action
-        }
+        return {"reasoning": reasoning or "Default tactical action", "action": action}
 
     def _extract_screen_type(self, text: str) -> str:
         """Extract screen type from response"""
@@ -1582,11 +1637,32 @@ Format: REASONING: [explanation] ACTION: [button]
     def _extract_pokemon_name(self, text: str) -> Optional[str]:
         """Extract Pokemon name from text"""
         common_pokemon = [
-            "Pikachu", "Charizard", "Bulbasaur", "Squirtle", "Geodude",
-            "Pidgey", "Rattata", "Caterpie", "Weedle", "Nidoran",
-            "Mewtwo", "Mew", "Lugia", "Ho-Oh", "Eevee", "Vaporeon",
-            "Jolteon", "Flareon", "Mewtwo", "Venusaur", "Ivysaur",
-            "Wartortle", "Blastoise", "Charmeleon", "Nidorina", "Nidorino"
+            "Pikachu",
+            "Charizard",
+            "Bulbasaur",
+            "Squirtle",
+            "Geodude",
+            "Pidgey",
+            "Rattata",
+            "Caterpie",
+            "Weedle",
+            "Nidoran",
+            "Mewtwo",
+            "Mew",
+            "Lugia",
+            "Ho-Oh",
+            "Eevee",
+            "Vaporeon",
+            "Jolteon",
+            "Flareon",
+            "Mewtwo",
+            "Venusaur",
+            "Ivysaur",
+            "Wartortle",
+            "Blastoise",
+            "Charmeleon",
+            "Nidorina",
+            "Nidorino",
         ]
 
         text_upper = text.upper()
@@ -1599,12 +1675,12 @@ Format: REASONING: [explanation] ACTION: [button]
 
     def _extract_number(self, text: str, keyword: str = "") -> Optional[int]:
         """Extract percentage or number from text"""
-        percent_match = re.search(r'\d+%', text)
+        percent_match = re.search(r"\d+%", text)
         if percent_match:
             return int(percent_match.group(0)[:-1])
 
         if keyword:
-            pattern = rf'{keyword}[^:]*:?\s*(\d+)'
+            pattern = rf"{keyword}[^:]*:?\s*(\d+)"
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 return int(match.group(1))
@@ -1613,17 +1689,19 @@ Format: REASONING: [explanation] ACTION: [button]
 
     def _extract_actions(self, text: str) -> List[str]:
         """Extract available actions"""
-        actions_match = re.search(r'Actions?[:\s]+(.*)', text, re.IGNORECASE)
+        actions_match = re.search(r"Actions?[:\s]+(.*)", text, re.IGNORECASE)
         if actions_match:
             actions_text = actions_match.group(1)
-            actions = [a.strip() for a in re.split(r'[,;\s]+', actions_text) if a.strip()]
+            actions = [
+                a.strip() for a in re.split(r"[,;\s]+", actions_text) if a.strip()
+            ]
             return actions[:6]
 
         return ["A", "DOWN"]
 
     def _extract_action(self, text: str) -> str:
         """Extract button press action"""
-        press_match = re.search(r'press:\s*(\w+)', text, re.IGNORECASE)
+        press_match = re.search(r"press:\s*(\w+)", text, re.IGNORECASE)
         if press_match:
             return f"press:{press_match.group(1).upper()}"
 
@@ -1635,11 +1713,11 @@ Format: REASONING: [explanation] ACTION: [button]
 
     def _extract_objective(self, text: str) -> str:
         """Extract objective from strategic response"""
-        obj_match = re.search(r'OBJECTIVE[:\s]+(.*?)(?:\n|$)', text, re.IGNORECASE)
+        obj_match = re.search(r"OBJECTIVE[:\s]+(.*?)(?:\n|$)", text, re.IGNORECASE)
         if obj_match:
             return obj_match.group(1).strip()
 
-        lines = text.strip().split('\n')
+        lines = text.strip().split("\n")
         if lines:
             return lines[0][:100]
 
@@ -1647,9 +1725,9 @@ Format: REASONING: [explanation] ACTION: [button]
 
     def _extract_list(self, text: str) -> List[str]:
         """Extract list of tactics from response"""
-        items = re.findall(r'\d+\.\s+(.*?)(?=\n|$)', text)
+        items = re.findall(r"\d+\.\s+(.*?)(?=\n|$)", text)
         if not items:
-            items = re.findall(r'[-*]\s+(.*?)(?=\n|$)', text)
+            items = re.findall(r"[-*]\s+(.*?)(?=\n|$)", text)
 
         return items[:5]
 
@@ -1657,6 +1735,7 @@ Format: REASONING: [explanation] ACTION: [button]
 @dataclass
 class TaskComplexity:
     """Task complexity assessment for routing decisions"""
+
     vision_weight: float = 0.9
     reasoning_weight: float = 0.7
     speed_weight: float = 0.5
@@ -1667,6 +1746,7 @@ class TaskComplexity:
 @dataclass
 class ModelSelection:
     """Model selection result with metadata"""
+
     model: str
     provider: str
     confidence: float
@@ -1679,6 +1759,7 @@ class ModelSelection:
 @dataclass
 class RoutingConfig:
     """Configuration for model routing"""
+
     budget: float = 10.0
     max_latency_ms: float = 5000.0
     quality_threshold: float = 0.7
@@ -1686,11 +1767,13 @@ class RoutingConfig:
     speed_weight: float = 0.3
     quality_weight: float = 0.4
     prefer_cheap_on_budget: bool = True
-    fallback_chain: List[str] = field(default_factory=lambda: [
-        "openai/gpt-4o",
-        "openai/gpt-4o-mini",
-        "anthropic/claude-3-haiku-20240307"
-    ])
+    fallback_chain: List[str] = field(
+        default_factory=lambda: [
+            "openai/gpt-4o",
+            "openai/gpt-4o-mini",
+            "anthropic/claude-3-haiku-20240307",
+        ]
+    )
 
 
 class CostOptimizer:
@@ -1719,8 +1802,9 @@ class CostOptimizer:
         self.cost_per_task_type: Dict[str, float] = {}
         self.lock = threading.RLock()
 
-    def track_cost(self, model: str, task_type: str, input_tokens: int,
-                   output_tokens: int) -> float:
+    def track_cost(
+        self, model: str, task_type: str, input_tokens: int, output_tokens: int
+    ) -> float:
         """
         Calculate and track cost for API call.
 
@@ -1761,7 +1845,9 @@ class CostOptimizer:
                 return 100.0
             return round((self.spent / self.budget) * 100, 2)
 
-    def should_switch_model(self, task_complexity: float, current_model: str) -> ModelSelection:
+    def should_switch_model(
+        self, task_complexity: float, current_model: str
+    ) -> ModelSelection:
         """
         Determine if we should use cheaper model based on budget.
 
@@ -1783,7 +1869,7 @@ class CostOptimizer:
                     complexity=task_complexity,
                     estimated_cost=0.001,
                     estimated_latency_ms=500.0,
-                    reasoning="Budget critical - switching to cheapest model"
+                    reasoning="Budget critical - switching to cheapest model",
                 )
 
             if task_complexity < 0.3:
@@ -1794,7 +1880,7 @@ class CostOptimizer:
                     complexity=task_complexity,
                     estimated_cost=0.001,
                     estimated_latency_ms=500.0,
-                    reasoning="Simple task - using fast, cheap model"
+                    reasoning="Simple task - using fast, cheap model",
                 )
 
             if task_complexity > 0.7 and remaining > 2.0:
@@ -1805,7 +1891,7 @@ class CostOptimizer:
                     complexity=task_complexity,
                     estimated_cost=0.005,
                     estimated_latency_ms=1500.0,
-                    reasoning="Complex task - using high-quality model"
+                    reasoning="Complex task - using high-quality model",
                 )
 
             return ModelSelection(
@@ -1815,7 +1901,7 @@ class CostOptimizer:
                 complexity=task_complexity,
                 estimated_cost=calculate_cost(current_model, 1000, 500),
                 estimated_latency_ms=1000.0,
-                reasoning="Current model is appropriate for task"
+                reasoning="Current model is appropriate for task",
             )
 
     def get_cost_report(self) -> Dict[str, Any]:
@@ -1829,7 +1915,7 @@ class CostOptimizer:
                 "total_decisions": self.decisions,
                 "avg_cost_per_decision": round(self.cost_per_decision, 6),
                 "cost_per_model": dict(self.cost_per_model),
-                "cost_per_task_type": dict(self.cost_per_task_type)
+                "cost_per_task_type": dict(self.cost_per_task_type),
             }
 
     def reset(self) -> None:
@@ -1845,6 +1931,7 @@ class CostOptimizer:
 @dataclass
 class PerformanceMetrics:
     """Performance metrics for a model"""
+
     total_calls: int = 0
     successful_calls: int = 0
     failed_calls: int = 0
@@ -1875,8 +1962,14 @@ class PerformanceTracker:
         self.max_recent_results = 1000
         self.lock = threading.RLock()
 
-    def record_result(self, model: str, task_type: str, success: bool,
-                      latency_ms: float, tokens: int = 0) -> None:
+    def record_result(
+        self,
+        model: str,
+        task_type: str,
+        success: bool,
+        latency_ms: float,
+        tokens: int = 0,
+    ) -> None:
         """
         Record performance result for a model on a task.
 
@@ -1925,17 +2018,19 @@ class PerformanceTracker:
             tm.success_rate = tm.successful_calls / tm.total_calls
             tm.avg_latency_ms = tm.total_latency_ms / tm.total_calls
 
-            self.recent_results.append({
-                "model": model,
-                "task_type": task_type,
-                "success": success,
-                "latency_ms": latency_ms,
-                "tokens": tokens,
-                "timestamp": now.isoformat()
-            })
+            self.recent_results.append(
+                {
+                    "model": model,
+                    "task_type": task_type,
+                    "success": success,
+                    "latency_ms": latency_ms,
+                    "tokens": tokens,
+                    "timestamp": now.isoformat(),
+                }
+            )
 
             if len(self.recent_results) > self.max_recent_results:
-                self.recent_results = self.recent_results[-self.max_recent_results:]
+                self.recent_results = self.recent_results[-self.max_recent_results :]
 
     def get_model_stats(self, model: str) -> Optional[Dict[str, Any]]:
         """
@@ -1960,7 +2055,7 @@ class PerformanceTracker:
                 "success_rate": round(m.success_rate, 4),
                 "avg_latency_ms": round(m.avg_latency_ms, 2),
                 "total_tokens": m.total_tokens,
-                "last_call": m.last_call.isoformat() if m.last_call else None
+                "last_call": m.last_call.isoformat() if m.last_call else None,
             }
 
     def get_best_model_for_task(self, task_type: str) -> Optional[str]:
@@ -1979,7 +2074,7 @@ class PerformanceTracker:
 
             best_model = None
             best_success_rate = -1.0
-            best_latency = float('inf')
+            best_latency = float("inf")
 
             for model, metrics in self.task_metrics[task_type].items():
                 if metrics.success_rate > best_success_rate:
@@ -1996,8 +2091,7 @@ class PerformanceTracker:
     def get_all_model_stats(self) -> Dict[str, Dict[str, Any]]:
         """Get statistics for all models"""
         with self.lock:
-            return {model: self.get_model_stats(model) or {}
-                    for model in self.metrics}
+            return {model: self.get_model_stats(model) or {} for model in self.metrics}
 
     def get_recent_success_rate(self, model: str, n: int = 100) -> float:
         """
@@ -2047,6 +2141,7 @@ class PerformanceTracker:
 @dataclass
 class ModelResult:
     """Result from a single model"""
+
     model: str
     content: str
     confidence: float
@@ -2059,6 +2154,7 @@ class ModelResult:
 @dataclass
 class MergedResult:
     """Merged result from multiple models"""
+
     content: str
     selected_model: str
     confidence: float
@@ -2079,8 +2175,9 @@ class ResultMerger:
     - Consensus building for critical decisions
     """
 
-    def __init__(self, confidence_threshold: float = 0.6,
-                 consensus_threshold: float = 0.7):
+    def __init__(
+        self, confidence_threshold: float = 0.6, consensus_threshold: float = 0.7
+    ):
         """
         Initialize result merger.
 
@@ -2112,7 +2209,7 @@ class ResultMerger:
                     conflicts_detected=False,
                     merge_method="empty",
                     contributing_models=[],
-                    alternative_results={}
+                    alternative_results={},
                 )
 
             successful_results = [r for r in results if r.success]
@@ -2126,7 +2223,7 @@ class ResultMerger:
                     conflicts_detected=len(failed_results) > 1,
                     merge_method="all_failed",
                     contributing_models=[r.model for r in results],
-                    alternative_results={r.model: r.content for r in results}
+                    alternative_results={r.model: r.content for r in results},
                 )
 
             conflicts = self._detect_conflicts(successful_results)
@@ -2140,7 +2237,7 @@ class ResultMerger:
                     conflicts_detected=False,
                     merge_method="single_model",
                     contributing_models=[single.model],
-                    alternative_results={r.model: r.content for r in results}
+                    alternative_results={r.model: r.content for r in results},
                 )
 
             if self._has_consensus(successful_results, conflicts):
@@ -2152,7 +2249,7 @@ class ResultMerger:
                     conflicts_detected=len(conflicts) > 0,
                     merge_method="consensus",
                     contributing_models=[r.model for r in successful_results],
-                    alternative_results={r.model: r.content for r in results}
+                    alternative_results={r.model: r.content for r in results},
                 )
 
             weighted = self._confidence_weighted_merge(successful_results)
@@ -2163,7 +2260,7 @@ class ResultMerger:
                 conflicts_detected=len(conflicts) > 0,
                 merge_method="confidence_weighted",
                 contributing_models=[r.model for r in successful_results],
-                alternative_results={r.model: r.content for r in results}
+                alternative_results={r.model: r.content for r in results},
             )
 
     def _detect_conflicts(self, results: List[ModelResult]) -> List[Dict[str, Any]]:
@@ -2182,15 +2279,17 @@ class ResultMerger:
             return conflicts
 
         for i, r1 in enumerate(results):
-            for r2 in results[i+1:]:
+            for r2 in results[i + 1 :]:
                 if self._are_conflicting(r1.content, r2.content):
-                    conflicts.append({
-                        "model_1": r1.model,
-                        "model_2": r2.model,
-                        "confidence_1": r1.confidence,
-                        "confidence_2": r2.confidence,
-                        "type": "content_difference"
-                    })
+                    conflicts.append(
+                        {
+                            "model_1": r1.model,
+                            "model_2": r2.model,
+                            "confidence_1": r1.confidence,
+                            "confidence_2": r2.confidence,
+                            "type": "content_difference",
+                        }
+                    )
 
         return conflicts
 
@@ -2223,8 +2322,9 @@ class ResultMerger:
 
     def _extract_actions(self, content: str) -> List[str]:
         """Extract action recommendations from content"""
-        actions = re.findall(r'(?:action|decision|press)[:\s]*([A-Z]+)',
-                             content, re.IGNORECASE)
+        actions = re.findall(
+            r"(?:action|decision|press)[:\s]*([A-Z]+)", content, re.IGNORECASE
+        )
         return [a.upper() for a in actions]
 
     def _calculate_similarity(self, text1: str, text2: str) -> float:
@@ -2243,7 +2343,9 @@ class ResultMerger:
 
         return intersection / union if union > 0 else 0.0
 
-    def _has_consensus(self, results: List[ModelResult], conflicts: List[Dict[str, Any]]) -> bool:
+    def _has_consensus(
+        self, results: List[ModelResult], conflicts: List[Dict[str, Any]]
+    ) -> bool:
         """Check if results have consensus"""
         if len(results) < 2:
             return False
@@ -2252,12 +2354,17 @@ class ResultMerger:
             confidence_1 = conflict.get("confidence_1", 0)
             confidence_2 = conflict.get("confidence_2", 0)
 
-            if confidence_1 >= self.consensus_threshold and confidence_2 >= self.consensus_threshold:
+            if (
+                confidence_1 >= self.consensus_threshold
+                and confidence_2 >= self.consensus_threshold
+            ):
                 return False
 
         return True
 
-    def _build_consensus(self, results: List[ModelResult], conflicts: List[Dict[str, Any]]) -> ModelResult:
+    def _build_consensus(
+        self, results: List[ModelResult], conflicts: List[Dict[str, Any]]
+    ) -> ModelResult:
         """Build consensus from results"""
         sorted_results = sorted(results, key=lambda r: r.confidence, reverse=True)
         consensus = sorted_results[0]
@@ -2265,9 +2372,9 @@ class ResultMerger:
         modified_confidence = consensus.confidence
         for conflict in conflicts:
             if conflict["model_1"] == consensus.model:
-                modified_confidence *= (1.0 - conflict.get("confidence_2", 0) * 0.1)
+                modified_confidence *= 1.0 - conflict.get("confidence_2", 0) * 0.1
             elif conflict["model_2"] == consensus.model:
-                modified_confidence *= (1.0 - conflict.get("confidence_1", 0) * 0.1)
+                modified_confidence *= 1.0 - conflict.get("confidence_1", 0) * 0.1
 
         return ModelResult(
             model=consensus.model,
@@ -2275,7 +2382,7 @@ class ResultMerger:
             confidence=min(modified_confidence, 1.0),
             success=consensus.success,
             latency_ms=consensus.latency_ms,
-            cost=consensus.cost
+            cost=consensus.cost,
         )
 
     def _confidence_weighted_merge(self, results: List[ModelResult]) -> ModelResult:
@@ -2296,7 +2403,7 @@ class ResultMerger:
             confidence=sum(r.confidence for r in results) / len(results),
             success=selected.success,
             latency_ms=sum(r.latency_ms for r in results) / len(results),
-            cost=sum(r.cost for r in results)
+            cost=sum(r.cost for r in results),
         )
 
     def get_merge_stats(self) -> Dict[str, Any]:
@@ -2304,9 +2411,19 @@ class ResultMerger:
         with self.lock:
             return {
                 "total_merges": len(self.merge_history),
-                "conflicts_detected": sum(1 for m in self.merge_history if m.get("conflicts_detected")),
-                "consensus_merges": sum(1 for m in self.merge_history if m.get("merge_method") == "consensus"),
-                "confidence_weighted_merges": sum(1 for m in self.merge_history if m.get("merge_method") == "confidence_weighted")
+                "conflicts_detected": sum(
+                    1 for m in self.merge_history if m.get("conflicts_detected")
+                ),
+                "consensus_merges": sum(
+                    1
+                    for m in self.merge_history
+                    if m.get("merge_method") == "consensus"
+                ),
+                "confidence_weighted_merges": sum(
+                    1
+                    for m in self.merge_history
+                    if m.get("merge_method") == "confidence_weighted"
+                ),
             }
 
     def reset(self) -> None:

@@ -1,4 +1,5 @@
 """Quick unit tests for VisionClient (no API call needed)."""
+
 import os
 import sys
 
@@ -36,12 +37,14 @@ print("OK: Hash consistent")
 b64 = vc._encode_image(fake_screen)
 print(f"OK: Base64 length: {len(b64)} chars")
 decoded = b64m.b64decode(b64)
-assert decoded[:4] == b'\x89PNG', f"Not a PNG: {decoded[:4]}"  # type: ignore
+assert decoded[:4] == b"\x89PNG", f"Not a PNG: {decoded[:4]}"  # type: ignore
 print(f"OK: Valid PNG, {len(decoded)} bytes")
 
 # Test 5: JSON parse
 result = vc._parse_response('{"screen_type": "overworld", "enemy_pokemon": null}')
-assert result == {"screen_type": "overworld", "enemy_pokemon": None}, f"Parse failed: {result}"
+assert result == {"screen_type": "overworld", "enemy_pokemon": None}, (
+    f"Parse failed: {result}"
+)
 print("OK: Direct JSON parse")
 
 # Test 6: markdown-fenced JSON

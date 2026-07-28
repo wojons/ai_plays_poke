@@ -13,6 +13,7 @@ from src.core.global_context import GlobalContext
 
 # ── Fixtures ──────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def mock_emu():
     """Mock emulator with press_button, fast_forward, etc."""
@@ -69,7 +70,12 @@ def overworld_vision():
     """Vision output for overworld navigation."""
     return {
         "screen_type": "overworld",
-        "adjacent_tiles": {"up": "grass", "down": "path", "left": "tree", "right": "house"},
+        "adjacent_tiles": {
+            "up": "grass",
+            "down": "path",
+            "left": "tree",
+            "right": "house",
+        },
         "location": "pallet_town",
     }
 
@@ -162,6 +168,7 @@ def keyboard_grid_vision_letter_not_found():
 
 # ── Helper to patch OpenRouterClient ────────────────────────────────────
 
+
 def _make_window(state_type, ctx, emu, vision, **kwargs):
     """Create a StateWindow with OpenRouterClient mocked."""
     with patch("src.core.state_window.OpenRouterClient") as mock_client:
@@ -194,6 +201,7 @@ def _make_window_with_client(state_type, ctx, emu, vision, **kwargs):
 # ═══════════════════════════════════════════════════════════════════════════
 # Construction tests
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestStateWindowInit:
     """Verify StateWindow.__init__ stores fields correctly."""
@@ -257,7 +265,9 @@ class TestStateWindowInit:
 
     def test_init_custom_thinking_model(self, ctx, mock_emu, battle_vision):
         """Custom thinking_model is stored."""
-        window = _make_window("battle", ctx, mock_emu, battle_vision, thinking_model="gpt-4")
+        window = _make_window(
+            "battle", ctx, mock_emu, battle_vision, thinking_model="gpt-4"
+        )
         assert window.thinking_model == "gpt-4"
 
     def test_init_custom_hint_level(self, ctx, mock_emu, battle_vision):
@@ -274,6 +284,7 @@ class TestStateWindowInit:
 # ═══════════════════════════════════════════════════════════════════════════
 # _build_prompt tests
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestBuildPrompt:
     """Verify _build_prompt assembles the correct prompt string."""
@@ -338,7 +349,9 @@ class TestBuildPrompt:
         prompt = window._build_prompt()
         assert "dialog" in prompt
 
-    def test_overworld_vision_includes_surroundings(self, ctx, mock_emu, overworld_vision):
+    def test_overworld_vision_includes_surroundings(
+        self, ctx, mock_emu, overworld_vision
+    ):
         window = _make_window("overworld", ctx, mock_emu, overworld_vision)
         prompt = window._build_prompt()
         assert "Surroundings:" in prompt
@@ -394,7 +407,9 @@ class TestBuildPrompt:
 
     # ── Keyboard grid prompt tests ────────────────────────────────────
 
-    def test_keyboard_grid_nothing_typed_first_letter_A(self, ctx, mock_emu, keyboard_grid_vision_ash_A):
+    def test_keyboard_grid_nothing_typed_first_letter_A(
+        self, ctx, mock_emu, keyboard_grid_vision_ash_A
+    ):
         """Cursor on A, nothing typed — should say 'TARGET NAME: ASH' and first letter is A."""
         window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_ash_A)
         prompt = window._build_prompt()
@@ -403,33 +418,51 @@ class TestBuildPrompt:
         assert "first letter is 'A'" in prompt
         assert "CURSOR IS ON LETTER: 'A'" in prompt
 
-    def test_keyboard_grid_shows_cursor_on_ash_s(self, ctx, mock_emu, keyboard_grid_vision_ash_S_half):
+    def test_keyboard_grid_shows_cursor_on_ash_s(
+        self, ctx, mock_emu, keyboard_grid_vision_ash_S_half
+    ):
         """'AS' typed, cursor on S — should say next letter H."""
-        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_ash_S_half)
+        window = _make_window(
+            "name_entry", ctx, mock_emu, keyboard_grid_vision_ash_S_half
+        )
         prompt = window._build_prompt()
         assert "NEXT LETTER TO TYPE: 'H'" in prompt
         assert "ALREADY TYPED: 'AS'" in prompt
 
-    def test_keyboard_grid_all_typed_navigate_to_end(self, ctx, mock_emu, keyboard_grid_vision_ash_full):
+    def test_keyboard_grid_all_typed_navigate_to_end(
+        self, ctx, mock_emu, keyboard_grid_vision_ash_full
+    ):
         """ASH fully typed — should say navigate to END."""
-        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_ash_full)
+        window = _make_window(
+            "name_entry", ctx, mock_emu, keyboard_grid_vision_ash_full
+        )
         prompt = window._build_prompt()
         assert "ALL LETTERS TYPED!" in prompt
         assert "Navigate to END" in prompt
 
-    def test_keyboard_grid_cursor_already_on_target_press_a(self, ctx, mock_emu, keyboard_grid_vision_cursor_on_S_press_now):
+    def test_keyboard_grid_cursor_already_on_target_press_a(
+        self, ctx, mock_emu, keyboard_grid_vision_cursor_on_S_press_now
+    ):
         """Cursor already on next letter S — should say 'press A NOW!'"""
-        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_cursor_on_S_press_now)
+        window = _make_window(
+            "name_entry", ctx, mock_emu, keyboard_grid_vision_cursor_on_S_press_now
+        )
         prompt = window._build_prompt()
         assert "press A NOW" in prompt
 
-    def test_keyboard_grid_letter_not_found(self, ctx, mock_emu, keyboard_grid_vision_letter_not_found):
+    def test_keyboard_grid_letter_not_found(
+        self, ctx, mock_emu, keyboard_grid_vision_letter_not_found
+    ):
         """Next letter not found in grid — should say 'not found — navigate to END'."""
-        window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_letter_not_found)
+        window = _make_window(
+            "name_entry", ctx, mock_emu, keyboard_grid_vision_letter_not_found
+        )
         prompt = window._build_prompt()
         assert "not found" in prompt.lower()
 
-    def test_keyboard_grid_shows_grid_reference(self, ctx, mock_emu, keyboard_grid_vision_ash_A):
+    def test_keyboard_grid_shows_grid_reference(
+        self, ctx, mock_emu, keyboard_grid_vision_ash_A
+    ):
         """Keyboard grid should render row references with letters."""
         window = _make_window("name_entry", ctx, mock_emu, keyboard_grid_vision_ash_A)
         prompt = window._build_prompt()
@@ -500,7 +533,9 @@ class TestBuildPrompt:
     def test_history_renders_remember(self, ctx, mock_emu, battle_vision):
         """History with a remember entry renders correctly."""
         window = _make_window("battle", ctx, mock_emu, battle_vision)
-        window._history.append({"role": "remember", "key": "/discoveries/weakness", "id": "abc"})
+        window._history.append(
+            {"role": "remember", "key": "/discoveries/weakness", "id": "abc"}
+        )
         prompt = window._build_prompt()
         assert "Remembered:" in prompt
         assert "/discoveries/weakness" in prompt
@@ -508,7 +543,9 @@ class TestBuildPrompt:
     def test_history_renders_recall(self, ctx, mock_emu, battle_vision):
         """History with a recall entry renders correctly."""
         window = _make_window("battle", ctx, mock_emu, battle_vision)
-        window._history.append({"role": "recall", "query": "/types/", "results": "water beats fire"})
+        window._history.append(
+            {"role": "recall", "query": "/types/", "results": "water beats fire"}
+        )
         prompt = window._build_prompt()
         assert "Recalled:" in prompt
         assert "/types/" in prompt
@@ -524,7 +561,9 @@ class TestBuildPrompt:
     def test_history_renders_query_global(self, ctx, mock_emu, battle_vision):
         """History with a query_global entry renders correctly."""
         window = _make_window("battle", ctx, mock_emu, battle_vision)
-        window._history.append({"role": "query_global", "question": "What is my objective?"})
+        window._history.append(
+            {"role": "query_global", "question": "What is my objective?"}
+        )
         prompt = window._build_prompt()
         assert "Asked global:" in prompt
         assert "What is my objective?" in prompt
@@ -532,11 +571,16 @@ class TestBuildPrompt:
     def test_history_renders_auto_a(self, ctx, mock_emu, battle_vision):
         """History with an auto_a action renders correctly."""
         window = _make_window("battle", ctx, mock_emu, battle_vision)
-        window._history.append({
-            "step": 1,
-            "tool_call": {"name": "press_button", "arguments": {"button": "a", "duration": 30}},
-            "action": "auto_a",
-        })
+        window._history.append(
+            {
+                "step": 1,
+                "tool_call": {
+                    "name": "press_button",
+                    "arguments": {"button": "a", "duration": 30},
+                },
+                "action": "auto_a",
+            }
+        )
         prompt = window._build_prompt()
         assert "Step 1" in prompt
         assert "auto_a" in prompt
@@ -546,13 +590,16 @@ class TestBuildPrompt:
 # Run method tests
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestRun:
     """Verify StateWindow.run() behavior."""
 
     def test_run_auto_a_dialog_non_interactive(self, ctx, mock_emu):
         """Dialog with non-interactive vision — should auto-press A up to safety cap."""
         vision = {"screen_type": "dialog", "text_lines": ["Hello there!"]}
-        window, mock_client = _make_window_with_client("dialog", ctx, mock_emu, vision, max_steps=5)
+        window, mock_client = _make_window_with_client(
+            "dialog", ctx, mock_emu, vision, max_steps=5
+        )
 
         result = window.run()
 
@@ -564,13 +611,20 @@ class TestRun:
     def test_run_auto_a_with_interactive_falls_back_to_llm(self, ctx, mock_emu):
         """Dialog with menu_items -> interactive -> calls LLM."""
         vision = {"screen_type": "dialog", "menu_items": ["YES", "NO"]}
-        window, mock_client = _make_window_with_client("dialog", ctx, mock_emu, vision, max_steps=3)
+        window, mock_client = _make_window_with_client(
+            "dialog", ctx, mock_emu, vision, max_steps=3
+        )
         mock_client.send_tool_request.return_value = (
             '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
         )
 
-        with patch("src.core.tools.parse_tool_call",
-                    return_value={"name": "press_button", "arguments": {"button": "a", "duration": 5}}):
+        with patch(
+            "src.core.tools.parse_tool_call",
+            return_value={
+                "name": "press_button",
+                "arguments": {"button": "a", "duration": 5},
+            },
+        ):
             result = window.run()
 
         assert mock_client.send_tool_request.call_count >= 1
@@ -578,8 +632,14 @@ class TestRun:
 
     def test_run_name_entry_a_mash(self, ctx, mock_emu):
         """Name entry without keyboard_grid — should A-mash."""
-        vision = {"screen_type": "name_entry", "screen_subtype": "keyboard", "name_field": "Enter name"}
-        window, mock_client = _make_window_with_client("name_entry", ctx, mock_emu, vision, max_steps=3)
+        vision = {
+            "screen_type": "name_entry",
+            "screen_subtype": "keyboard",
+            "name_field": "Enter name",
+        }
+        window, mock_client = _make_window_with_client(
+            "name_entry", ctx, mock_emu, vision, max_steps=3
+        )
 
         result = window.run()
 
@@ -590,22 +650,32 @@ class TestRun:
     def test_run_query_global_skips_emulator(self, ctx, mock_emu):
         """query_global tool call should skip emulator and re-loop."""
         vision = {"screen_type": "dialog", "menu_items": ["FIGHT"]}
-        window, mock_client = _make_window_with_client("dialog", ctx, mock_emu, vision, max_steps=5)
+        window, mock_client = _make_window_with_client(
+            "dialog", ctx, mock_emu, vision, max_steps=5
+        )
 
         # First call returns query_global, all subsequent calls return press_button
         _call_count = [0]
+
         def _side_effect(*_a, **_kw):
             _call_count[0] += 1
             if _call_count[0] == 1:
                 return '{"name": "query_global", "arguments": {"question": "What is my objective?"}}'
-            return '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+            return (
+                '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
+            )
+
         mock_client.send_tool_request.side_effect = _side_effect
 
         _parse_count = [0]
+
         def _parse_side_effect(*_a, **_kw):
             _parse_count[0] += 1
             if _parse_count[0] == 1:
-                return {"name": "query_global", "arguments": {"question": "What is my objective?"}}
+                return {
+                    "name": "query_global",
+                    "arguments": {"question": "What is my objective?"},
+                }
             return {"name": "press_button", "arguments": {"button": "a", "duration": 5}}
 
         with patch("src.core.tools.parse_tool_call") as mock_parse:
@@ -620,14 +690,21 @@ class TestRun:
     def test_run_auto_a_safety_cap_falls_back_to_llm(self, ctx, mock_emu):
         """After 20 auto-a presses, should fall back to AI deliberation."""
         vision = {"screen_type": "dialog", "text_lines": ["Long narration..."]}
-        window, mock_client = _make_window_with_client("dialog", ctx, mock_emu, vision, max_steps=25)
+        window, mock_client = _make_window_with_client(
+            "dialog", ctx, mock_emu, vision, max_steps=25
+        )
 
         mock_client.send_tool_request.return_value = (
             '{"name": "press_button", "arguments": {"button": "a", "duration": 5}}'
         )
 
-        with patch("src.core.tools.parse_tool_call",
-                    return_value={"name": "press_button", "arguments": {"button": "a", "duration": 5}}):
+        with patch(
+            "src.core.tools.parse_tool_call",
+            return_value={
+                "name": "press_button",
+                "arguments": {"button": "a", "duration": 5},
+            },
+        ):
             window.run()
 
         assert mock_emu.press_button.call_count >= 20
@@ -637,6 +714,7 @@ class TestRun:
 # ═══════════════════════════════════════════════════════════════════════════
 # _is_interactive tests
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestIsInteractive:
     """Verify _is_interactive correctly detects interactive dialog."""
@@ -686,6 +764,7 @@ class TestIsInteractive:
 # _check_outcome tests
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestCheckOutcome:
     """Verify _check_outcome returns None without vision_client."""
 
@@ -701,21 +780,33 @@ class TestCheckOutcome:
         window = _make_window("overworld", ctx, mock_emu, overworld_vision)
         assert window._check_outcome() is None
 
-    def test_returns_none_when_vision_client_set_but_same_screen(self, ctx, mock_emu, battle_vision):
+    def test_returns_none_when_vision_client_set_but_same_screen(
+        self, ctx, mock_emu, battle_vision
+    ):
         """With vision_client, same screen_type returns None (no transition)."""
         mock_vc = MagicMock()
-        mock_vc.analyze.return_value = {"screen_type": "battle", "screen_subtype": "wild_encounter"}
+        mock_vc.analyze.return_value = {
+            "screen_type": "battle",
+            "screen_subtype": "wild_encounter",
+        }
         mock_emu.capture.return_value = "mock_screenshot"
-        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        window = _make_window(
+            "battle", ctx, mock_emu, battle_vision, vision_client=mock_vc
+        )
         assert window._check_outcome() is None
         mock_vc.analyze.assert_called_once_with("mock_screenshot", game="gen1")
 
     def test_detects_screen_type_transition(self, ctx, mock_emu, battle_vision):
         """Vision client detects screen_type changed (battle → overworld)."""
         mock_vc = MagicMock()
-        mock_vc.analyze.return_value = {"screen_type": "overworld", "screen_subtype": None}
+        mock_vc.analyze.return_value = {
+            "screen_type": "overworld",
+            "screen_subtype": None,
+        }
         mock_emu.capture.return_value = "mock_screenshot"
-        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        window = _make_window(
+            "battle", ctx, mock_emu, battle_vision, vision_client=mock_vc
+        )
         result = window._check_outcome()
         assert result is not None
         assert result["outcome"] == "state_transition"
@@ -730,7 +821,9 @@ class TestCheckOutcome:
             "screen_subtype": "rival_battle",
         }
         mock_emu.capture.return_value = "mock_screenshot"
-        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        window = _make_window(
+            "battle", ctx, mock_emu, battle_vision, vision_client=mock_vc
+        )
         result = window._check_outcome()
         assert result is not None
         assert result["outcome"] == "state_transition"
@@ -745,7 +838,9 @@ class TestCheckOutcome:
             "screen_subtype": None,
         }
         mock_emu.capture.return_value = "mock_screenshot"
-        window = _make_window("dialog", ctx, mock_emu, dialog_vision, vision_client=mock_vc)
+        window = _make_window(
+            "dialog", ctx, mock_emu, dialog_vision, vision_client=mock_vc
+        )
         result = window._check_outcome()
         assert result is not None
         assert result["outcome"] == "state_transition"
@@ -753,20 +848,28 @@ class TestCheckOutcome:
         assert result["to_type"] == "overworld"
         assert "new_vision" in result
 
-    def test_vision_client_capture_failure_still_returns_none(self, ctx, mock_emu, battle_vision):
+    def test_vision_client_capture_failure_still_returns_none(
+        self, ctx, mock_emu, battle_vision
+    ):
         """When emulator.capture() fails, _check_outcome gracefully returns None."""
         mock_vc = MagicMock()
         mock_emu.capture.side_effect = RuntimeError("emulator not running")
-        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        window = _make_window(
+            "battle", ctx, mock_emu, battle_vision, vision_client=mock_vc
+        )
         result = window._check_outcome()
         assert result is None
 
-    def test_vision_client_analyze_failure_still_returns_none(self, ctx, mock_emu, battle_vision):
+    def test_vision_client_analyze_failure_still_returns_none(
+        self, ctx, mock_emu, battle_vision
+    ):
         """When vision_client.analyze() fails, _check_outcome gracefully returns None."""
         mock_vc = MagicMock()
         mock_vc.analyze.side_effect = ValueError("API error")
         mock_emu.capture.return_value = "mock_screenshot"
-        window = _make_window("battle", ctx, mock_emu, battle_vision, vision_client=mock_vc)
+        window = _make_window(
+            "battle", ctx, mock_emu, battle_vision, vision_client=mock_vc
+        )
         result = window._check_outcome()
         assert result is None
 
@@ -783,6 +886,7 @@ class TestCheckOutcome:
 # ═══════════════════════════════════════════════════════════════════════════
 # _answer_global_query tests
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestAnswerGlobalQuery:
     """Verify _answer_global_query returns compacted context."""
@@ -804,6 +908,7 @@ class TestAnswerGlobalQuery:
 # ═══════════════════════════════════════════════════════════════════════════
 # DuckBrain tools tests
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestDuckbrainTools:
     """Verify DuckBrain tool definitions are correctly structured."""
@@ -835,6 +940,7 @@ class TestDuckbrainTools:
 # ═══════════════════════════════════════════════════════════════════════════
 # _load_state_workflow tests
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestLoadStateWorkflow:
     """Verify _load_state_workflow handles missing and present configs."""
@@ -906,20 +1012,40 @@ class TestLoadStateWorkflow:
 # _build_battle_prompt tests (BATTLE-AGENT)
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestBuildBattlePrompt:
     """Tests for StateWindow._build_battle_prompt()."""
 
     def test_battle_prompt_includes_player_hp(self, mock_emulator):
         sw = StateWindow(
-            "battle", GlobalContext(), mock_emulator,
-            {"screen_type": "battle", "battle_state": {
-                "player": {"name": "Squirtle", "level": 5, "hp_pct": 80,
-                           "hp": 16, "max_hp": 20, "type": "Water",
-                           "moves": [{"name": "Tackle", "pp": 35, "pp_max": 35, "power": 40}]},
-                "enemy": {"name": "Pidgey", "level": 3, "hp_pct": 60,
-                          "hp": 12, "max_hp": 20, "type": "Normal/Flying"},
-                "battle_type": "Wild",
-            }},
+            "battle",
+            GlobalContext(),
+            mock_emulator,
+            {
+                "screen_type": "battle",
+                "battle_state": {
+                    "player": {
+                        "name": "Squirtle",
+                        "level": 5,
+                        "hp_pct": 80,
+                        "hp": 16,
+                        "max_hp": 20,
+                        "type": "Water",
+                        "moves": [
+                            {"name": "Tackle", "pp": 35, "pp_max": 35, "power": 40}
+                        ],
+                    },
+                    "enemy": {
+                        "name": "Pidgey",
+                        "level": 3,
+                        "hp_pct": 60,
+                        "hp": 12,
+                        "max_hp": 20,
+                        "type": "Normal/Flying",
+                    },
+                    "battle_type": "Wild",
+                },
+            },
             generation="gen1",
         )
         prompt = sw._build_battle_prompt()
@@ -929,18 +1055,45 @@ class TestBuildBattlePrompt:
 
     def test_battle_prompt_includes_moves(self, mock_emulator):
         sw = StateWindow(
-            "battle", GlobalContext(), mock_emulator,
-            {"screen_type": "battle", "battle_state": {
-                "player": {"name": "Pikachu", "level": 7,
-                           "hp_pct": 50, "hp": 15, "max_hp": 30, "type": "Electric",
-                           "moves": [
-                               {"name": "Thunder Shock", "pp": 30, "pp_max": 30, "power": 40},
-                               {"name": "Quick Attack", "pp": 30, "pp_max": 30, "power": 40},
-                           ]},
-                "enemy": {"name": "Rattata", "level": 4,
-                          "hp_pct": 80, "hp": 16, "max_hp": 20, "type": "Normal"},
-                "battle_type": "Wild",
-            }},
+            "battle",
+            GlobalContext(),
+            mock_emulator,
+            {
+                "screen_type": "battle",
+                "battle_state": {
+                    "player": {
+                        "name": "Pikachu",
+                        "level": 7,
+                        "hp_pct": 50,
+                        "hp": 15,
+                        "max_hp": 30,
+                        "type": "Electric",
+                        "moves": [
+                            {
+                                "name": "Thunder Shock",
+                                "pp": 30,
+                                "pp_max": 30,
+                                "power": 40,
+                            },
+                            {
+                                "name": "Quick Attack",
+                                "pp": 30,
+                                "pp_max": 30,
+                                "power": 40,
+                            },
+                        ],
+                    },
+                    "enemy": {
+                        "name": "Rattata",
+                        "level": 4,
+                        "hp_pct": 80,
+                        "hp": 16,
+                        "max_hp": 20,
+                        "type": "Normal",
+                    },
+                    "battle_type": "Wild",
+                },
+            },
             generation="gen1",
         )
         prompt = sw._build_battle_prompt()
@@ -950,15 +1103,34 @@ class TestBuildBattlePrompt:
 
     def test_battle_prompt_includes_menu_options(self, mock_emulator):
         sw = StateWindow(
-            "battle", GlobalContext(), mock_emulator,
-            {"screen_type": "battle", "battle_state": {
-                "player": {"name": "Charmander", "level": 5,
-                           "hp_pct": 90, "hp": 18, "max_hp": 20, "type": "Fire",
-                           "moves": [{"name": "Scratch", "pp": 35, "pp_max": 35, "power": 40}]},
-                "enemy": {"name": "Caterpie", "level": 3,
-                          "hp_pct": 100, "hp": 15, "max_hp": 15, "type": "Bug"},
-                "battle_type": "Wild",
-            }},
+            "battle",
+            GlobalContext(),
+            mock_emulator,
+            {
+                "screen_type": "battle",
+                "battle_state": {
+                    "player": {
+                        "name": "Charmander",
+                        "level": 5,
+                        "hp_pct": 90,
+                        "hp": 18,
+                        "max_hp": 20,
+                        "type": "Fire",
+                        "moves": [
+                            {"name": "Scratch", "pp": 35, "pp_max": 35, "power": 40}
+                        ],
+                    },
+                    "enemy": {
+                        "name": "Caterpie",
+                        "level": 3,
+                        "hp_pct": 100,
+                        "hp": 15,
+                        "max_hp": 15,
+                        "type": "Bug",
+                    },
+                    "battle_type": "Wild",
+                },
+            },
             generation="gen1",
         )
         prompt = sw._build_battle_prompt()
@@ -968,7 +1140,9 @@ class TestBuildBattlePrompt:
 
     def test_battle_prompt_empty_state_falls_back(self, mock_emulator):
         sw = StateWindow(
-            "battle", GlobalContext(), mock_emulator,
+            "battle",
+            GlobalContext(),
+            mock_emulator,
             {"screen_type": "battle", "render": "Fallback render text"},
             generation="gen1",
         )
@@ -977,7 +1151,9 @@ class TestBuildBattlePrompt:
 
     def test_battle_prompt_no_data_last_resort(self, mock_emulator):
         sw = StateWindow(
-            "battle", GlobalContext(), mock_emulator,
+            "battle",
+            GlobalContext(),
+            mock_emulator,
             {"screen_type": "battle"},
             generation="gen1",
         )

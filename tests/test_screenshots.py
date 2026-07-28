@@ -17,15 +17,17 @@ from src.core.screenshots import ScreenshotManager, SimpleLiveView
 
 # ── Fixtures ──────────────────────────────────────────────────────────
 
+
 def _make_screen(width=160, height=144):
     """Create a test RGB numpy array with deterministic content."""
     screen = np.zeros((height, width, 3), dtype=np.uint8)
-    screen[10:50, 20:80] = [255, 0, 0]   # Red rectangle
+    screen[10:50, 20:80] = [255, 0, 0]  # Red rectangle
     screen[70:110, 90:140] = [0, 255, 0]  # Green rectangle
     return screen
 
 
 # ── ScreenshotManager: __init__ ───────────────────────────────────────
+
 
 class TestInit:
     """Test ScreenshotManager.__init__ creates all subdirectories."""
@@ -52,6 +54,7 @@ class TestInit:
 
 
 # ── ScreenshotManager: save_screenshot ────────────────────────────────
+
 
 class TestSaveScreenshot:
     """Test save_screenshot writes PNGs to correct directories."""
@@ -122,6 +125,7 @@ class TestSaveScreenshot:
 
 # ── ScreenshotManager: get_latest_screenshot ──────────────────────────
 
+
 class TestGetLatestScreenshot:
     """Test get_latest_screenshot returns correct file or None."""
 
@@ -184,6 +188,7 @@ class TestGetLatestScreenshot:
 
 # ── ScreenshotManager: get_screenshot_as_base64 ───────────────────────
 
+
 class TestGetScreenshotAsBase64:
     """Test base64 conversion."""
 
@@ -196,6 +201,7 @@ class TestGetScreenshotAsBase64:
 
     def test_result_is_valid_base64(self, tmp_path):
         import base64
+
         sm = ScreenshotManager(str(tmp_path))
         path = sm.save_screenshot(_make_screen(), "b64v", tick=0)
         b64 = sm.get_screenshot_as_base64(path)
@@ -213,6 +219,7 @@ class TestGetScreenshotAsBase64:
 
 
 # ── ScreenshotManager: get_screenshots_info ───────────────────────────
+
 
 class TestGetScreenshotsInfo:
     """Test get_screenshots_info returns sorted metadata list."""
@@ -264,21 +271,25 @@ class TestGetScreenshotsInfo:
 
 # ── ScreenshotManager: save_screenshot_with_metadata ──────────────────
 
+
 class TestSaveWithMetadata:
     """Test save_screenshot_with_metadata writes JSON alongside PNG."""
 
     def test_writes_json_file(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path))
-        meta = {"name_prefix": "meta", "state_type": "battle", "tick": 99,
-                 "extra": "custom_data"}
+        meta = {
+            "name_prefix": "meta",
+            "state_type": "battle",
+            "tick": 99,
+            "extra": "custom_data",
+        }
         path = sm.save_screenshot_with_metadata(_make_screen(), meta)
         json_path = path.with_suffix(".json")
         assert json_path.exists()
 
     def test_json_contains_metadata(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path))
-        meta = {"name_prefix": "j", "state_type": "menu", "tick": 5,
-                 "hp": 35}
+        meta = {"name_prefix": "j", "state_type": "menu", "tick": 5, "hp": 35}
         path = sm.save_screenshot_with_metadata(_make_screen(), meta)
         with open(path.with_suffix(".json")) as f:
             saved = json.load(f)
@@ -302,6 +313,7 @@ class TestSaveWithMetadata:
 
 
 # ── ScreenshotManager: cleanup_old_screenshots ────────────────────────
+
 
 class TestCleanupOldScreenshots:
     """Test cleanup_old_screenshots prunes old files."""
@@ -362,6 +374,7 @@ class TestCleanupOldScreenshots:
 
 # ── ScreenshotManager: get_stats ──────────────────────────────────────
 
+
 class TestGetStats:
     """Test get_stats returns dict with counts per state type."""
 
@@ -389,7 +402,7 @@ class TestGetStats:
 
     def test_total_excludes_subdirs(self, tmp_path):
         """get_stats counts only *.png in save_dir root, not subdir files.
-        
+
         Note: save_screenshot writes to typed subdirectories (battle_dir, etc.),
         not to save_dir root. So total counts direct saves only.
         """
@@ -420,6 +433,7 @@ class TestGetStats:
 
 
 # ── SimpleLiveView ────────────────────────────────────────────────────
+
 
 class TestSimpleLiveView:
     """Test SimpleLiveView.update_display saves current.png."""

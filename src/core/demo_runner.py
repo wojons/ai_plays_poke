@@ -138,11 +138,13 @@ class DemoRunner:
         for i in range(max_cycles):
             self.emulator.wait(screenshot_interval)
             screen = self.emulator.capture()
-            caps.append({
-                "cycle": i + 1,
-                "height": screen.shape[0],
-                "width": screen.shape[1],
-            })
+            caps.append(
+                {
+                    "cycle": i + 1,
+                    "height": screen.shape[0],
+                    "width": screen.shape[1],
+                }
+            )
 
         elapsed = time.monotonic() - t0
         return {
@@ -166,7 +168,9 @@ def demo_summary(result: dict[str, Any]) -> str:
     """Pretty-print a demo run summary as a single string."""
     lines: list[str] = []
     lines.append(f"ROM: {result.get('rom_path', '?')}")
-    lines.append(f"Cycles: {result.get('cycles_completed', 0)} / {result.get('cycles_requested', 0)}")
+    lines.append(
+        f"Cycles: {result.get('cycles_completed', 0)} / {result.get('cycles_requested', 0)}"
+    )
     lines.append(f"Success rate: {result.get('success_rate', 0):.1%}")
     lines.append(f"Screen types: {result.get('screen_types_seen', [])}")
     lines.append(f"Tool calls: {result.get('tool_calls_made', 0)}")

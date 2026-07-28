@@ -49,7 +49,9 @@ class GlobalContext:
     # ["walked left 3x", "pressed A on stairs", "entered downstairs"]
 
     # ── Meta ──────────────────────────────────────────────────────────
-    run_id: str = field(default_factory=lambda: datetime.now().strftime("%Y%m%d_%H%M%S"))
+    run_id: str = field(
+        default_factory=lambda: datetime.now().strftime("%Y%m%d_%H%M%S")
+    )
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     # ── DuckBrain integration target ──────────────────────────────────

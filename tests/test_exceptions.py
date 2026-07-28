@@ -44,6 +44,7 @@ ALL_SUBCLASSES = [
 
 # ── PokemonAIError Base Class ────────────────────────────────────────────
 
+
 class TestPokemonAIError:
     """Test the base PokemonAIError exception class."""
 
@@ -75,9 +76,7 @@ class TestPokemonAIError:
 
     def test_message_code_context_combo(self):
         """All three fields together."""
-        exc = PokemonAIError(
-            "battle error", code=500, move="tackle", damage=42
-        )
+        exc = PokemonAIError("battle error", code=500, move="tackle", damage=42)
         assert exc.message == "battle error"
         assert exc.code == 500
         assert exc.context == {"move": "tackle", "damage": 42}
@@ -113,6 +112,7 @@ class TestPokemonAIError:
 
 # ── Subclass Inheritance Tests ───────────────────────────────────────────
 
+
 class TestExceptionInheritance:
     """Test that all subclasses inherit from PokemonAIError."""
 
@@ -137,6 +137,7 @@ class TestExceptionInheritance:
 
 
 # ── Subclass Attribute Preservation ──────────────────────────────────────
+
 
 class TestSubclassAttributes:
     """Test that all subclasses preserve message, code, and context."""
@@ -180,6 +181,7 @@ class TestSubclassAttributes:
 
 # ── Error-Specific isinstance Checks ─────────────────────────────────────
 
+
 class TestSpecificExceptions:
     """Test each specific exception class independently."""
 
@@ -214,9 +216,7 @@ class TestSpecificExceptions:
 
     def test_state_machine_error(self):
         exc = StateMachineError(
-            "invalid transition",
-            current_state="battle",
-            event="run_away"
+            "invalid transition", current_state="battle", event="run_away"
         )
         assert isinstance(exc, StateMachineError)
         assert exc.context["current_state"] == "battle"
@@ -234,6 +234,7 @@ class TestSpecificExceptions:
         # Verify it is NOT the builtin MemoryError
         assert type(exc).__name__ == "MemoryError"
         import builtins
+
         assert not isinstance(exc, builtins.MemoryError)
 
     def test_navigation_error(self):
@@ -242,7 +243,9 @@ class TestSpecificExceptions:
         assert exc.context["current"] == (5, 5)
 
     def test_dialogue_error(self):
-        exc = DialogueError("invalid option", dialogue_id="oak_intro", valid_options=["YES", "NO"])
+        exc = DialogueError(
+            "invalid option", dialogue_id="oak_intro", valid_options=["YES", "NO"]
+        )
         assert isinstance(exc, DialogueError)
         assert "valid_options" in exc.context
 
@@ -258,6 +261,7 @@ class TestSpecificExceptions:
 
 
 # ── Edge Cases ───────────────────────────────────────────────────────────
+
 
 class TestExceptionEdgeCases:
     """Edge cases for the exception hierarchy."""

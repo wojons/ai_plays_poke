@@ -29,8 +29,16 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
                     "button": {
                         "type": "string",
                         "enum": [
-                            "a", "b", "up", "down", "left", "right",
-                            "start", "select", "l", "r",
+                            "a",
+                            "b",
+                            "up",
+                            "down",
+                            "left",
+                            "right",
+                            "start",
+                            "select",
+                            "l",
+                            "r",
                         ],
                         "description": "Name of the button to press.",
                     },
@@ -244,7 +252,7 @@ def execute_tool_call(emulator: Any, tool_name: str, arguments: dict[str, Any]) 
         elif tool_name == "fast_forward":
             frames = arguments["frames"]
             emulator.fast_forward(frames)
-            return f"Fast-forwarded {frames} frames (~{frames/60:.1f}s game time)."
+            return f"Fast-forwarded {frames} frames (~{frames / 60:.1f}s game time)."
 
         elif tool_name == "combo":
             buttons = arguments["buttons"]
@@ -290,8 +298,8 @@ def execute_tool_call(emulator: Any, tool_name: str, arguments: dict[str, Any]) 
 # reach the requested slot. This is robust to cursor drift because the entry
 # step re-anchors the cursor.
 
-_BATTLE_MENU_TAP_FRAMES = 8   # one tap of A or D-pad for menu navigation
-_BATTLE_MENU_WAIT = 12        # inter-tap settle (frames)
+_BATTLE_MENU_TAP_FRAMES = 8  # one tap of A or D-pad for menu navigation
+_BATTLE_MENU_WAIT = 12  # inter-tap settle (frames)
 
 
 def _tap(emulator: Any, button: str, frames: int = _BATTLE_MENU_TAP_FRAMES) -> None:
@@ -389,9 +397,7 @@ def _execute_switch_pokemon(emulator: Any, arguments: dict[str, Any]) -> str:
 
 # ── Response parsing ─────────────────────────────────────────────────────────
 
-_TOOL_CALL_JSON_RE = re.compile(
-    r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL
-)
+_TOOL_CALL_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
 def parse_tool_call(response_text: str) -> dict[str, Any] | None:
@@ -445,7 +451,8 @@ def parse_tool_call(response_text: str) -> dict[str, Any] | None:
         args: dict[str, Any] = {}
         for match in re.finditer(
             r"<longcat_arg_key>(.*?)</longcat_arg_key>\s*<longcat_arg_value>(.*?)</longcat_arg_value>",
-            inner, re.DOTALL,
+            inner,
+            re.DOTALL,
         ):
             k = match.group(1).strip()
             v = match.group(2).strip()
@@ -466,7 +473,9 @@ def parse_tool_call(response_text: str) -> dict[str, Any] | None:
             if isinstance(payload, dict) and "name" in payload:
                 return {
                     "name": payload["name"],
-                    "arguments": payload.get("arguments", payload.get("parameters", {})),
+                    "arguments": payload.get(
+                        "arguments", payload.get("parameters", {})
+                    ),
                 }
         except json.JSONDecodeError:
             pass
@@ -477,7 +486,9 @@ def parse_tool_call(response_text: str) -> dict[str, Any] | None:
         if isinstance(candidate, dict) and "name" in candidate:
             return {
                 "name": candidate["name"],
-                "arguments": candidate.get("arguments", candidate.get("parameters", {})),
+                "arguments": candidate.get(
+                    "arguments", candidate.get("parameters", {})
+                ),
             }
 
     return None

@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class PokemonType(Enum):
     """All 18 Pokemon types (Gen 1 + future types)"""
+
     NORMAL = "Normal"
     FIRE = "Fire"
     WATER = "Water"
@@ -43,6 +44,7 @@ class PokemonType(Enum):
 
 class StatusCondition(Enum):
     """Battle status conditions"""
+
     NONE = "none"
     POISONED = "poisoned"
     BADLY_POISONED = "badly_poisoned"
@@ -57,6 +59,7 @@ class StatusCondition(Enum):
 
 class MoveCategory(Enum):
     """Move damage category"""
+
     PHYSICAL = "physical"
     SPECIAL = "special"
     STATUS = "status"
@@ -64,6 +67,7 @@ class MoveCategory(Enum):
 
 class StatStage(Enum):
     """Stat modification stages (-6 to +6)"""
+
     NEGATIVE_6 = -6
     NEGATIVE_5 = -5
     NEGATIVE_4 = -4
@@ -82,9 +86,19 @@ class StatStage(Enum):
     def multiplier(self) -> float:
         """Get stat stage multiplier (Gen 1 formula)"""
         stage_values = {
-            -6: 0.25, -5: 0.2857, -4: 0.3333, -3: 0.4,
-            -2: 0.5, -1: 0.6667, 0: 1.0,
-            1: 1.5, 2: 2.0, 3: 2.5, 4: 3.0, 5: 3.5, 6: 4.0
+            -6: 0.25,
+            -5: 0.2857,
+            -4: 0.3333,
+            -3: 0.4,
+            -2: 0.5,
+            -1: 0.6667,
+            0: 1.0,
+            1: 1.5,
+            2: 2.0,
+            3: 2.5,
+            4: 3.0,
+            5: 3.5,
+            6: 4.0,
         }
         return stage_values[self.value]
 
@@ -92,6 +106,7 @@ class StatStage(Enum):
 @dataclass
 class Move:
     """Pokemon move representation"""
+
     name: str
     move_type: PokemonType
     power: int
@@ -108,6 +123,7 @@ class Move:
 @dataclass
 class Pokemon:
     """Pokemon state representation for combat calculations"""
+
     name: str
     level: int
     types: List[PokemonType]
@@ -131,6 +147,7 @@ class Pokemon:
 @dataclass
 class DamageRange:
     """Damage range with prediction bounds"""
+
     min_damage: int
     max_damage: int
     expected_damage: int
@@ -142,6 +159,7 @@ class DamageRange:
 @dataclass
 class MoveScore:
     """Scored move option"""
+
     move: Move
     score: float
     damage_range: Optional[DamageRange]
@@ -154,6 +172,7 @@ class MoveScore:
 @dataclass
 class SwitchCandidate:
     """Evaluated switch option"""
+
     pokemon_name: str
     score: float
     defensive_score: float
@@ -166,6 +185,7 @@ class SwitchCandidate:
 @dataclass
 class CatchAttempt:
     """Catch probability calculation result"""
+
     catch_rate: float
     ball_factor: float
     status_factor: float
@@ -228,7 +248,9 @@ def get_default_stat(stat_name: str, default_value: int = 50) -> int:
     return defaults.get(stat_name, default_value)
 
 
-def validate_pokemon_data(data: Dict[str, Any], required_fields: Optional[List[str]] = None) -> None:
+def validate_pokemon_data(
+    data: Dict[str, Any], required_fields: Optional[List[str]] = None
+) -> None:
     """
     Validate Pokemon data for completeness.
 
@@ -254,7 +276,7 @@ def validate_pokemon_data(data: Dict[str, Any], required_fields: Optional[List[s
 class TypeChart:
     """
     Gen 1 type effectiveness chart with 18 types and 306 interactions.
-    
+
     Effectiveness values:
     - 0.0: Immune (no damage)
     - 0.25: Very not effective (Gen 2+ dual types)
@@ -273,113 +295,191 @@ class TypeChart:
         """Initialize the complete type effectiveness chart"""
         self._chart = {
             PokemonType.NORMAL: {
-                PokemonType.ROCK: 0.5, PokemonType.GHOST: 0.0, PokemonType.STEEL: 0.5
+                PokemonType.ROCK: 0.5,
+                PokemonType.GHOST: 0.0,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.FIRE: {
-                PokemonType.FIRE: 0.5, PokemonType.WATER: 0.5, PokemonType.GRASS: 2.0,
-                PokemonType.ICE: 2.0, PokemonType.BUG: 2.0, PokemonType.ROCK: 0.5,
-                PokemonType.DRAGON: 0.5, PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.WATER: 0.5,
+                PokemonType.GRASS: 2.0,
+                PokemonType.ICE: 2.0,
+                PokemonType.BUG: 2.0,
+                PokemonType.ROCK: 0.5,
+                PokemonType.DRAGON: 0.5,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.WATER: {
-                PokemonType.FIRE: 2.0, PokemonType.WATER: 0.5, PokemonType.GRASS: 0.5,
-                PokemonType.GROUND: 2.0, PokemonType.ROCK: 2.0, PokemonType.DRAGON: 0.5
+                PokemonType.FIRE: 2.0,
+                PokemonType.WATER: 0.5,
+                PokemonType.GRASS: 0.5,
+                PokemonType.GROUND: 2.0,
+                PokemonType.ROCK: 2.0,
+                PokemonType.DRAGON: 0.5,
             },
             PokemonType.ELECTRIC: {
-                PokemonType.WATER: 2.0, PokemonType.ELECTRIC: 0.5, PokemonType.GRASS: 0.5,
-                PokemonType.GROUND: 0.0, PokemonType.FLYING: 2.0, PokemonType.DRAGON: 0.5
+                PokemonType.WATER: 2.0,
+                PokemonType.ELECTRIC: 0.5,
+                PokemonType.GRASS: 0.5,
+                PokemonType.GROUND: 0.0,
+                PokemonType.FLYING: 2.0,
+                PokemonType.DRAGON: 0.5,
             },
             PokemonType.GRASS: {
-                PokemonType.FIRE: 0.5, PokemonType.WATER: 2.0, PokemonType.GRASS: 0.5,
-                PokemonType.POISON: 0.5, PokemonType.GROUND: 2.0, PokemonType.FLYING: 0.5,
-                PokemonType.BUG: 0.5, PokemonType.ROCK: 2.0, PokemonType.DRAGON: 0.5,
-                PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.WATER: 2.0,
+                PokemonType.GRASS: 0.5,
+                PokemonType.POISON: 0.5,
+                PokemonType.GROUND: 2.0,
+                PokemonType.FLYING: 0.5,
+                PokemonType.BUG: 0.5,
+                PokemonType.ROCK: 2.0,
+                PokemonType.DRAGON: 0.5,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.ICE: {
-                PokemonType.FIRE: 0.5, PokemonType.WATER: 0.5, PokemonType.GRASS: 2.0,
-                PokemonType.ICE: 0.5, PokemonType.GROUND: 2.0, PokemonType.FLYING: 2.0,
-                PokemonType.DRAGON: 2.0, PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.WATER: 0.5,
+                PokemonType.GRASS: 2.0,
+                PokemonType.ICE: 0.5,
+                PokemonType.GROUND: 2.0,
+                PokemonType.FLYING: 2.0,
+                PokemonType.DRAGON: 2.0,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.FIGHTING: {
-                PokemonType.NORMAL: 2.0, PokemonType.ICE: 2.0, PokemonType.POISON: 0.5,
-                PokemonType.FLYING: 0.5, PokemonType.PSYCHIC: 0.5, PokemonType.BUG: 0.5,
-                PokemonType.ROCK: 2.0, PokemonType.GHOST: 0.0, PokemonType.DARK: 2.0,
-                PokemonType.STEEL: 2.0
+                PokemonType.NORMAL: 2.0,
+                PokemonType.ICE: 2.0,
+                PokemonType.POISON: 0.5,
+                PokemonType.FLYING: 0.5,
+                PokemonType.PSYCHIC: 0.5,
+                PokemonType.BUG: 0.5,
+                PokemonType.ROCK: 2.0,
+                PokemonType.GHOST: 0.0,
+                PokemonType.DARK: 2.0,
+                PokemonType.STEEL: 2.0,
             },
             PokemonType.POISON: {
-                PokemonType.GRASS: 2.0, PokemonType.POISON: 0.5, PokemonType.GROUND: 0.5,
-                PokemonType.ROCK: 0.5, PokemonType.GHOST: 0.5, PokemonType.STEEL: 0.0,
-                PokemonType.FAIRY: 2.0
+                PokemonType.GRASS: 2.0,
+                PokemonType.POISON: 0.5,
+                PokemonType.GROUND: 0.5,
+                PokemonType.ROCK: 0.5,
+                PokemonType.GHOST: 0.5,
+                PokemonType.STEEL: 0.0,
+                PokemonType.FAIRY: 2.0,
             },
             PokemonType.GROUND: {
-                PokemonType.FIRE: 2.0, PokemonType.ELECTRIC: 2.0, PokemonType.GRASS: 0.5,
-                PokemonType.POISON: 2.0, PokemonType.FLYING: 0.0, PokemonType.BUG: 0.5,
-                PokemonType.ROCK: 2.0, PokemonType.STEEL: 2.0
+                PokemonType.FIRE: 2.0,
+                PokemonType.ELECTRIC: 2.0,
+                PokemonType.GRASS: 0.5,
+                PokemonType.POISON: 2.0,
+                PokemonType.FLYING: 0.0,
+                PokemonType.BUG: 0.5,
+                PokemonType.ROCK: 2.0,
+                PokemonType.STEEL: 2.0,
             },
             PokemonType.FLYING: {
-                PokemonType.ELECTRIC: 0.5, PokemonType.GRASS: 2.0, PokemonType.FIGHTING: 2.0,
-                PokemonType.BUG: 2.0, PokemonType.ROCK: 0.5, PokemonType.STEEL: 0.5
+                PokemonType.ELECTRIC: 0.5,
+                PokemonType.GRASS: 2.0,
+                PokemonType.FIGHTING: 2.0,
+                PokemonType.BUG: 2.0,
+                PokemonType.ROCK: 0.5,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.PSYCHIC: {
-                PokemonType.FIGHTING: 2.0, PokemonType.POISON: 2.0, PokemonType.PSYCHIC: 0.5,
-                PokemonType.DARK: 0.0, PokemonType.STEEL: 0.5
+                PokemonType.FIGHTING: 2.0,
+                PokemonType.POISON: 2.0,
+                PokemonType.PSYCHIC: 0.5,
+                PokemonType.DARK: 0.0,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.BUG: {
-                PokemonType.FIRE: 0.5, PokemonType.GRASS: 2.0, PokemonType.FIGHTING: 0.5,
-                PokemonType.POISON: 0.5, PokemonType.FLYING: 0.5, PokemonType.PSYCHIC: 2.0,
-                PokemonType.GHOST: 0.5, PokemonType.DARK: 2.0, PokemonType.STEEL: 0.5,
-                PokemonType.FAIRY: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.GRASS: 2.0,
+                PokemonType.FIGHTING: 0.5,
+                PokemonType.POISON: 0.5,
+                PokemonType.FLYING: 0.5,
+                PokemonType.PSYCHIC: 2.0,
+                PokemonType.GHOST: 0.5,
+                PokemonType.DARK: 2.0,
+                PokemonType.STEEL: 0.5,
+                PokemonType.FAIRY: 0.5,
             },
             PokemonType.ROCK: {
-                PokemonType.FIRE: 2.0, PokemonType.ICE: 2.0, PokemonType.FIGHTING: 0.5,
-                PokemonType.GROUND: 0.5, PokemonType.FLYING: 2.0, PokemonType.BUG: 2.0,
-                PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 2.0,
+                PokemonType.ICE: 2.0,
+                PokemonType.FIGHTING: 0.5,
+                PokemonType.GROUND: 0.5,
+                PokemonType.FLYING: 2.0,
+                PokemonType.BUG: 2.0,
+                PokemonType.STEEL: 0.5,
             },
             PokemonType.GHOST: {
-                PokemonType.NORMAL: 0.0, PokemonType.PSYCHIC: 2.0, PokemonType.GHOST: 2.0,
-                PokemonType.DARK: 0.5
+                PokemonType.NORMAL: 0.0,
+                PokemonType.PSYCHIC: 2.0,
+                PokemonType.GHOST: 2.0,
+                PokemonType.DARK: 0.5,
             },
             PokemonType.DRAGON: {
-                PokemonType.DRAGON: 2.0, PokemonType.STEEL: 0.5, PokemonType.FAIRY: 0.0
+                PokemonType.DRAGON: 2.0,
+                PokemonType.STEEL: 0.5,
+                PokemonType.FAIRY: 0.0,
             },
             PokemonType.DARK: {
-                PokemonType.PSYCHIC: 2.0, PokemonType.GHOST: 2.0, PokemonType.FIGHTING: 0.5,
-                PokemonType.DARK: 0.5, PokemonType.FAIRY: 0.5
+                PokemonType.PSYCHIC: 2.0,
+                PokemonType.GHOST: 2.0,
+                PokemonType.FIGHTING: 0.5,
+                PokemonType.DARK: 0.5,
+                PokemonType.FAIRY: 0.5,
             },
             PokemonType.STEEL: {
-                PokemonType.FIRE: 0.5, PokemonType.WATER: 0.5, PokemonType.ELECTRIC: 0.5,
-                PokemonType.ICE: 2.0, PokemonType.ROCK: 2.0, PokemonType.STEEL: 0.5,
-                PokemonType.FAIRY: 2.0
+                PokemonType.FIRE: 0.5,
+                PokemonType.WATER: 0.5,
+                PokemonType.ELECTRIC: 0.5,
+                PokemonType.ICE: 2.0,
+                PokemonType.ROCK: 2.0,
+                PokemonType.STEEL: 0.5,
+                PokemonType.FAIRY: 2.0,
             },
             PokemonType.FAIRY: {
-                PokemonType.FIRE: 0.5, PokemonType.FIGHTING: 2.0, PokemonType.POISON: 0.5,
-                PokemonType.DRAGON: 2.0, PokemonType.DARK: 2.0, PokemonType.STEEL: 0.5
+                PokemonType.FIRE: 0.5,
+                PokemonType.FIGHTING: 2.0,
+                PokemonType.POISON: 0.5,
+                PokemonType.DRAGON: 2.0,
+                PokemonType.DARK: 2.0,
+                PokemonType.STEEL: 0.5,
             },
         }
 
-    def get_effectiveness(self, attack_type: PokemonType, 
-                          defender_types: List[PokemonType]) -> float:
+    def get_effectiveness(
+        self, attack_type: PokemonType, defender_types: List[PokemonType]
+    ) -> float:
         """Calculate type effectiveness for attack vs defender"""
         if attack_type not in self._chart:
             return 1.0
-        
+
         effectiveness = 1.0
         for defender_type in defender_types:
             if defender_type in self._chart[attack_type]:
                 effectiveness *= self._chart[attack_type][defender_type]
-        
+
         return effectiveness
 
-    def is_immune(self, attack_type: PokemonType, defender_types: List[PokemonType]) -> bool:
+    def is_immune(
+        self, attack_type: PokemonType, defender_types: List[PokemonType]
+    ) -> bool:
         """Check if attack type is completely immune"""
         return self.get_effectiveness(attack_type, defender_types) == 0.0
 
-    def is_super_effective(self, attack_type: PokemonType, 
-                           defender_types: List[PokemonType]) -> bool:
+    def is_super_effective(
+        self, attack_type: PokemonType, defender_types: List[PokemonType]
+    ) -> bool:
         """Check if attack is super effective (>= 2.0)"""
         return self.get_effectiveness(attack_type, defender_types) >= 2.0
 
-    def is_not_very_effective(self, attack_type: PokemonType,
-                               defender_types: List[PokemonType]) -> bool:
+    def is_not_very_effective(
+        self, attack_type: PokemonType, defender_types: List[PokemonType]
+    ) -> bool:
         """Check if attack is not very effective (<= 0.5)"""
         return 0.0 < self.get_effectiveness(attack_type, defender_types) <= 0.5
 
@@ -387,10 +487,10 @@ class TypeChart:
 class DamageCalculator:
     """
     Gen 1 damage calculation with exact formula.
-    
+
     Damage = (((2 * Level / 5 + 2) * Power * A / D) / 50 + 2) * Modifier
     Modifier = STAB * TypeEffectiveness * Critical * Random
-    
+
     Stat modifiers applied: Effective = Base * (1 + stage/2)
     """
 
@@ -406,17 +506,17 @@ class DamageCalculator:
         stab: float = 1.0,
         type_effectiveness: float = 1.0,
         is_critical: bool = False,
-        random_factor: float = 1.0
+        random_factor: float = 1.0,
     ) -> int:
         """Calculate final damage with Gen 1 formula"""
         base_damage = (((2 * level / 5 + 2) * power * attack / defense) / 50) + 2
-        
+
         modifier = stab * type_effectiveness * random_factor
         if is_critical:
             modifier *= 2.0
-        
+
         final_damage = int(base_damage * modifier)
-        
+
         return max(1, final_damage)
 
     def calculate_effective_stat(self, base_stat: int, stage: int) -> float:
@@ -424,7 +524,9 @@ class DamageCalculator:
         multiplier = 1.0 + (stage / 2)
         return base_stat * multiplier
 
-    def calculate_stab(self, move_type: PokemonType, pokemon_types: List[PokemonType]) -> float:
+    def calculate_stab(
+        self, move_type: PokemonType, pokemon_types: List[PokemonType]
+    ) -> float:
         """Calculate Same Type Attack Bonus (1.5x if move type matches)"""
         if move_type in pokemon_types:
             return 1.5
@@ -435,22 +537,34 @@ class DamageCalculator:
         attacker: Pokemon,
         defender: Pokemon,
         move: Move,
-        include_criticals: bool = True
+        include_criticals: bool = True,
     ) -> DamageRange:
         """Calculate min/max damage range for conservative planning"""
         if move.category == MoveCategory.STATUS:
             return DamageRange(
-                min_damage=0, max_damage=0, expected_damage=0,
-                critical_min=0, critical_max=0, ko_probability=0.0
+                min_damage=0,
+                max_damage=0,
+                expected_damage=0,
+                critical_min=0,
+                critical_max=0,
+                ko_probability=0.0,
             )
 
         attack = self.calculate_effective_stat(
-            attacker.attack if move.category == MoveCategory.PHYSICAL else attacker.special,
-            attacker.attack_stage if move.category == MoveCategory.PHYSICAL else attacker.special_stage
+            attacker.attack
+            if move.category == MoveCategory.PHYSICAL
+            else attacker.special,
+            attacker.attack_stage
+            if move.category == MoveCategory.PHYSICAL
+            else attacker.special_stage,
         )
         defense = self.calculate_effective_stat(
-            defender.defense if move.category == MoveCategory.PHYSICAL else defender.special,
-            defender.defense_stage if move.category == MoveCategory.PHYSICAL else defender.special_stage
+            defender.defense
+            if move.category == MoveCategory.PHYSICAL
+            else defender.special,
+            defender.defense_stage
+            if move.category == MoveCategory.PHYSICAL
+            else defender.special_stage,
         )
 
         stab = self.calculate_stab(move.move_type, attacker.types)
@@ -459,12 +573,24 @@ class DamageCalculator:
         )
 
         min_damage = self.calculate_base_damage(
-            attacker.level, move.power, attack, defense,
-            stab, type_effectiveness, is_critical=False, random_factor=0.85
+            attacker.level,
+            move.power,
+            attack,
+            defense,
+            stab,
+            type_effectiveness,
+            is_critical=False,
+            random_factor=0.85,
         )
         max_damage = self.calculate_base_damage(
-            attacker.level, move.power, attack, defense,
-            stab, type_effectiveness, is_critical=False, random_factor=1.0
+            attacker.level,
+            move.power,
+            attack,
+            defense,
+            stab,
+            type_effectiveness,
+            is_critical=False,
+            random_factor=1.0,
         )
 
         expected_damage = (min_damage + max_damage) // 2
@@ -489,14 +615,18 @@ class DamageCalculator:
             expected_damage=expected_damage,
             critical_min=crit_min,
             critical_max=crit_max,
-            ko_probability=ko_probability
+            ko_probability=ko_probability,
         )
 
-    def can_ko(self, damage_range: DamageRange, defender_hp: int, 
-               include_criticals: bool = False) -> Tuple[bool, bool, bool]:
+    def can_ko(
+        self,
+        damage_range: DamageRange,
+        defender_hp: int,
+        include_criticals: bool = False,
+    ) -> Tuple[bool, bool, bool]:
         """
         Determine KO possibilities.
-        
+
         Returns: (guaranteed_ko, likely_ko, possible_ko)
         """
         if include_criticals:
@@ -507,7 +637,7 @@ class DamageCalculator:
             possible = damage_range.max_damage >= defender_hp
             likely = damage_range.expected_damage >= defender_hp * 0.8
             guaranteed = damage_range.min_damage >= defender_hp
-        
+
         return guaranteed, likely, possible
 
     def get_crit_chance(self, attacker: Pokemon, move: Move) -> float:
@@ -543,7 +673,7 @@ class MoveSelector:
         defender: Pokemon,
         risk_averse: bool = True,
         setup_opportunity: bool = False,
-        opponent_weakened: bool = False
+        opponent_weakened: bool = False,
     ) -> MoveScore:
         """Score a single move for selection"""
         notes: List[str] = []
@@ -561,9 +691,9 @@ class MoveSelector:
         )
         has_stab = move.move_type in attacker.types
 
-        guaranteed_ko, likely_ko, _ = DamageCalculator(
-            self.type_chart
-        ).can_ko(damage_range, defender.current_hp)
+        guaranteed_ko, likely_ko, _ = DamageCalculator(self.type_chart).can_ko(
+            damage_range, defender.current_hp
+        )
 
         base_score = move.power / 10.0
 
@@ -574,9 +704,13 @@ class MoveSelector:
         elif effectiveness == 0.0:
             notes.append("Immune - avoid!")
             return MoveScore(
-                move=move, score=0.0, damage_range=damage_range,
-                ko_likely=False, effectiveness=effectiveness,
-                has_stab=has_stab, notes=notes
+                move=move,
+                score=0.0,
+                damage_range=damage_range,
+                ko_likely=False,
+                effectiveness=effectiveness,
+                has_stab=has_stab,
+                notes=notes,
             )
         elif effectiveness <= 0.5:
             notes.append("Not very effective")
@@ -620,8 +754,9 @@ class MoveSelector:
             coverage_bonus = 1.1
             notes.append("New type coverage")
 
-        final_score = (base_score * effectiveness_multiplier * 
-                      accuracy_factor * coverage_bonus)
+        final_score = (
+            base_score * effectiveness_multiplier * accuracy_factor * coverage_bonus
+        )
 
         return MoveScore(
             move=move,
@@ -630,17 +765,23 @@ class MoveSelector:
             ko_likely=ko_likely,
             effectiveness=effectiveness,
             has_stab=has_stab,
-            notes=notes
+            notes=notes,
         )
 
-    def _score_status_move(self, move: Move, defender: Pokemon, 
-                          notes: List[str]) -> MoveScore:
+    def _score_status_move(
+        self, move: Move, defender: Pokemon, notes: List[str]
+    ) -> MoveScore:
         """Score a status move"""
         if defender.status != StatusCondition.NONE:
             notes.append("Target already statused")
             return MoveScore(
-                move=move, score=0.0, damage_range=None,
-                ko_likely=False, effectiveness=1.0, has_stab=False, notes=notes
+                move=move,
+                score=0.0,
+                damage_range=None,
+                ko_likely=False,
+                effectiveness=1.0,
+                has_stab=False,
+                notes=notes,
             )
 
         score = 1.5
@@ -654,13 +795,21 @@ class MoveSelector:
             ko_likely=False,
             effectiveness=1.0,
             has_stab=False,
-            notes=notes
+            notes=notes,
         )
 
     def _is_setup_move(self, move: Move) -> bool:
         """Check if move is a setup move (raises stats)"""
-        setup_moves = ["Swords Dance", "Agility", "Tail Whip", "Leer", 
-                       "Growl", "Flash", "Sand Attack", "Kinesis"]
+        setup_moves = [
+            "Swords Dance",
+            "Agility",
+            "Tail Whip",
+            "Leer",
+            "Growl",
+            "Flash",
+            "Sand Attack",
+            "Kinesis",
+        ]
         return move.name in setup_moves
 
     def select_best_move(
@@ -670,25 +819,38 @@ class MoveSelector:
         risk_averse: bool = True,
         setup_opportunity: bool = False,
         opponent_weakened: bool = False,
-        prefer_powerful: bool = False
+        prefer_powerful: bool = False,
     ) -> MoveScore:
         """Select the best move from available options"""
         available_moves = [m for m in attacker.moves if m.pp > 0]
 
         if not available_moves:
-            fallback_move = attacker.moves[0] if attacker.moves else Move(
-                name="Struggle", move_type=PokemonType.NORMAL, power=50,
-                accuracy=100, pp=10, max_pp=10, category=MoveCategory.PHYSICAL
+            fallback_move = (
+                attacker.moves[0]
+                if attacker.moves
+                else Move(
+                    name="Struggle",
+                    move_type=PokemonType.NORMAL,
+                    power=50,
+                    accuracy=100,
+                    pp=10,
+                    max_pp=10,
+                    category=MoveCategory.PHYSICAL,
+                )
             )
             return MoveScore(
                 move=fallback_move,
-                score=0.0, damage_range=None,
-                ko_likely=False, effectiveness=1.0, has_stab=False
+                score=0.0,
+                damage_range=None,
+                ko_likely=False,
+                effectiveness=1.0,
+                has_stab=False,
             )
 
         scored_moves = [
-            self.score_move(m, attacker, defender, risk_averse, 
-                          setup_opportunity, opponent_weakened)
+            self.score_move(
+                m, attacker, defender, risk_averse, setup_opportunity, opponent_weakened
+            )
             for m in available_moves
         ]
 
@@ -696,14 +858,14 @@ class MoveSelector:
 
         return scored_moves[0]
 
-    def get_move_order(self, attacker: Pokemon, defender: Pokemon,
-                       risk_averse: bool = True) -> List[MoveScore]:
+    def get_move_order(
+        self, attacker: Pokemon, defender: Pokemon, risk_averse: bool = True
+    ) -> List[MoveScore]:
         """Get all moves ranked by score"""
         available_moves = [m for m in attacker.moves if m.pp > 0]
 
         scored_moves = [
-            self.score_move(m, attacker, defender, risk_averse)
-            for m in available_moves
+            self.score_move(m, attacker, defender, risk_averse) for m in available_moves
         ]
 
         return sorted(scored_moves, key=lambda x: x.score, reverse=True)
@@ -737,43 +899,43 @@ class EnemyPredictor:
             "aggression": 0.7,
             "prefer_strong_moves": True,
             "switch_frequency": 0.1,
-            "heal_threshold": 0.3
+            "heal_threshold": 0.3,
         },
         "lass": {
             "aggression": 0.5,
             "prefer_strong_moves": False,
             "switch_frequency": 0.2,
-            "heal_threshold": 0.4
+            "heal_threshold": 0.4,
         },
         "bug_catcher": {
             "aggression": 0.4,
             "prefer_strong_moves": False,
             "switch_frequency": 0.3,
-            "heal_threshold": 0.5
+            "heal_threshold": 0.5,
         },
         "hiker": {
             "aggression": 0.8,
             "prefer_strong_moves": True,
             "switch_frequency": 0.1,
-            "heal_threshold": 0.2
+            "heal_threshold": 0.2,
         },
         "gym_leader": {
             "aggression": 0.9,
             "prefer_strong_moves": True,
             "switch_frequency": 0.4,
-            "heal_threshold": 0.6
+            "heal_threshold": 0.6,
         },
         "rival": {
             "aggression": 0.85,
             "prefer_strong_moves": True,
             "switch_frequency": 0.5,
-            "heal_threshold": 0.5
+            "heal_threshold": 0.5,
         },
         "champion": {
             "aggression": 0.95,
             "prefer_strong_moves": True,
             "switch_frequency": 0.6,
-            "heal_threshold": 0.7
+            "heal_threshold": 0.7,
         },
     }
 
@@ -783,21 +945,18 @@ class EnemyPredictor:
 
     def predict_moves(self, species: str, level: int) -> List[str]:
         """Predict likely moves for a Pokemon species"""
-        return self._base_move_sets.get(species, 
-            ["Tackle", "Growl", "Scratch", "Ember"])
+        return self._base_move_sets.get(
+            species, ["Tackle", "Growl", "Scratch", "Ember"]
+        )
 
     def get_trainer_behavior(self, trainer_type: str) -> Dict[str, Any]:
         """Get behavior patterns for a trainer type"""
-        return self._trainer_behaviors.get(trainer_type, 
-            self._trainer_behaviors["youngster"])
+        return self._trainer_behaviors.get(
+            trainer_type, self._trainer_behaviors["youngster"]
+        )
 
     def predict_enemy_damage(
-        self,
-        enemy: Pokemon,
-        player: Pokemon,
-        move_name: str,
-        power: int,
-        accuracy: int
+        self, enemy: Pokemon, player: Pokemon, move_name: str, power: int, accuracy: int
     ) -> DamageRange:
         """Predict damage range from enemy move"""
         move_type = self._get_move_type(move_name)
@@ -810,7 +969,7 @@ class EnemyPredictor:
             accuracy=accuracy,
             pp=30,
             max_pp=30,
-            category=move_category
+            category=move_category,
         )
 
         return DamageCalculator(self.type_chart).calculate_damage_range(
@@ -822,9 +981,9 @@ class EnemyPredictor:
         max_damage = 0
         for move in enemy.moves:
             if move.category != MoveCategory.STATUS and move.pp > 0:
-                damage_range = DamageCalculator(
-                    self.type_chart
-                ).calculate_damage_range(enemy, player, move)
+                damage_range = DamageCalculator(self.type_chart).calculate_damage_range(
+                    enemy, player, move
+                )
                 max_damage = max(max_damage, damage_range.max_damage)
 
         if player.current_hp == 0:
@@ -836,21 +995,38 @@ class EnemyPredictor:
     def _get_move_type(self, move_name: str) -> PokemonType:
         """Infer move type from move name"""
         type_keywords = {
-            "Thunder": PokemonType.ELECTRIC, "Shock": PokemonType.ELECTRIC,
-            "Water": PokemonType.WATER, "Bubble": PokemonType.WATER,
-            "Fire": PokemonType.FIRE, "Ember": PokemonType.FIRE, "Flamethrower": PokemonType.FIRE,
-            "Grass": PokemonType.GRASS, "Vine": PokemonType.GRASS, "Leaf": PokemonType.GRASS,
-            "Ice": PokemonType.ICE, "Blizzard": PokemonType.ICE,
-            "Psychic": PokemonType.PSYCHIC, "Confusion": PokemonType.PSYCHIC,
-            "Ghost": PokemonType.GHOST, "Shadow": PokemonType.GHOST,
-            "Rock": PokemonType.ROCK, "Stone": PokemonType.ROCK,
-            "Ground": PokemonType.GROUND, "Earthquake": PokemonType.GROUND,
-            "Flying": PokemonType.FLYING, "Wing": PokemonType.FLYING,
-            "Fighting": PokemonType.FIGHTING, "Punch": PokemonType.FIGHTING,
-            "Bug": PokemonType.BUG, "Pin": PokemonType.BUG,
-            "Poison": PokemonType.POISON, "Toxic": PokemonType.POISON,
-            "Normal": PokemonType.NORMAL, "Tackle": PokemonType.NORMAL,
-            "Dragon": PokemonType.DRAGON, "Rage": PokemonType.DRAGON,
+            "Thunder": PokemonType.ELECTRIC,
+            "Shock": PokemonType.ELECTRIC,
+            "Water": PokemonType.WATER,
+            "Bubble": PokemonType.WATER,
+            "Fire": PokemonType.FIRE,
+            "Ember": PokemonType.FIRE,
+            "Flamethrower": PokemonType.FIRE,
+            "Grass": PokemonType.GRASS,
+            "Vine": PokemonType.GRASS,
+            "Leaf": PokemonType.GRASS,
+            "Ice": PokemonType.ICE,
+            "Blizzard": PokemonType.ICE,
+            "Psychic": PokemonType.PSYCHIC,
+            "Confusion": PokemonType.PSYCHIC,
+            "Ghost": PokemonType.GHOST,
+            "Shadow": PokemonType.GHOST,
+            "Rock": PokemonType.ROCK,
+            "Stone": PokemonType.ROCK,
+            "Ground": PokemonType.GROUND,
+            "Earthquake": PokemonType.GROUND,
+            "Flying": PokemonType.FLYING,
+            "Wing": PokemonType.FLYING,
+            "Fighting": PokemonType.FIGHTING,
+            "Punch": PokemonType.FIGHTING,
+            "Bug": PokemonType.BUG,
+            "Pin": PokemonType.BUG,
+            "Poison": PokemonType.POISON,
+            "Toxic": PokemonType.POISON,
+            "Normal": PokemonType.NORMAL,
+            "Tackle": PokemonType.NORMAL,
+            "Dragon": PokemonType.DRAGON,
+            "Rage": PokemonType.DRAGON,
         }
 
         for keyword, move_type in type_keywords.items():
@@ -861,15 +1037,36 @@ class EnemyPredictor:
 
     def _get_move_category(self, move_name: str) -> MoveCategory:
         """Infer move category from move name"""
-        status_moves = ["Growl", "Tail Whip", "Leech Seed", "Thunder Wave", 
-                       "Sleep Powder", "Toxic", "Reflect", "Light Screen",
-                       "Rest", "Substitute", "Protect", "Detect"]
+        status_moves = [
+            "Growl",
+            "Tail Whip",
+            "Leech Seed",
+            "Thunder Wave",
+            "Sleep Powder",
+            "Toxic",
+            "Reflect",
+            "Light Screen",
+            "Rest",
+            "Substitute",
+            "Protect",
+            "Detect",
+        ]
 
         if any(s.lower() in move_name.lower() for s in status_moves):
             return MoveCategory.STATUS
 
-        physical_keywords = ["Tackle", "Scratch", "Bite", "Punch", "Kick",
-                           "Slash", "Cut", "Fly", "Dig", "Rock Throw"]
+        physical_keywords = [
+            "Tackle",
+            "Scratch",
+            "Bite",
+            "Punch",
+            "Kick",
+            "Slash",
+            "Cut",
+            "Fly",
+            "Dig",
+            "Rock Throw",
+        ]
 
         if any(k.lower() in move_name.lower() for k in physical_keywords):
             return MoveCategory.PHYSICAL
@@ -894,11 +1091,11 @@ class BattleStrategist:
         current: Pokemon,
         opponent: Pokemon,
         party: List[Pokemon],
-        move_selector: MoveSelector
+        move_selector: MoveSelector,
     ) -> Tuple[bool, str, Optional[SwitchCandidate]]:
         """
         Determine if switching is the optimal choice.
-        
+
         Returns: (should_switch, reason, best_candidate)
         """
         if current.current_hp == 0:
@@ -923,7 +1120,9 @@ class BattleStrategist:
         threat_calculator.predict_threat_level(opponent, current)
 
         incoming_damage = 0
-        most_threatening_move_type = opponent.moves[0].move_type if opponent.moves else PokemonType.NORMAL
+        most_threatening_move_type = (
+            opponent.moves[0].move_type if opponent.moves else PokemonType.NORMAL
+        )
         for move in opponent.moves:
             if move.category != MoveCategory.STATUS:
                 damage_range = move_calculator.calculate_damage_range(
@@ -954,7 +1153,7 @@ class BattleStrategist:
         current: Pokemon,
         opponent: Pokemon,
         party: List[Pokemon],
-        move_selector: MoveSelector
+        move_selector: MoveSelector,
     ) -> List[SwitchCandidate]:
         """Evaluate all possible switch candidates"""
         candidates: List[SwitchCandidate] = []
@@ -974,15 +1173,23 @@ class BattleStrategist:
 
             survival_turns = pokemon.current_hp / max(incoming_damage, 1)
 
-            defensive_score = min(survival_turns / 3.0, 1.0) if survival_turns >= 1 else 0.0
+            defensive_score = (
+                min(survival_turns / 3.0, 1.0) if survival_turns >= 1 else 0.0
+            )
 
             best_move = move_selector.select_best_move(pokemon, opponent)
             offensive_score = best_move.score if best_move else 0.0
 
-            type_effectiveness = self.type_chart.get_effectiveness(
-                opponent.moves[0].move_type if opponent.moves else PokemonType.NORMAL,
-                pokemon.types
-            ) if opponent.moves else 1.0
+            type_effectiveness = (
+                self.type_chart.get_effectiveness(
+                    opponent.moves[0].move_type
+                    if opponent.moves
+                    else PokemonType.NORMAL,
+                    pokemon.types,
+                )
+                if opponent.moves
+                else 1.0
+            )
 
             if type_effectiveness <= 0.5:
                 matchup_bonus = 0.5
@@ -994,17 +1201,21 @@ class BattleStrategist:
                 matchup_bonus = 1.0
                 reasoning = "Neutral matchup"
 
-            total_score = (defensive_score * 0.4 + offensive_score * 0.6) * matchup_bonus
+            total_score = (
+                defensive_score * 0.4 + offensive_score * 0.6
+            ) * matchup_bonus
 
-            candidates.append(SwitchCandidate(
-                pokemon_name=pokemon.name,
-                score=total_score,
-                defensive_score=defensive_score,
-                offensive_score=offensive_score,
-                type_advantage=type_effectiveness,
-                survival_turns=survival_turns,
-                reasoning=reasoning
-            ))
+            candidates.append(
+                SwitchCandidate(
+                    pokemon_name=pokemon.name,
+                    score=total_score,
+                    defensive_score=defensive_score,
+                    offensive_score=offensive_score,
+                    type_advantage=type_effectiveness,
+                    survival_turns=survival_turns,
+                    reasoning=reasoning,
+                )
+            )
 
         return sorted(candidates, key=lambda x: x.score, reverse=True)
 
@@ -1014,22 +1225,38 @@ class BattleStrategist:
         max_hp: int,
         current_hp: int,
         status: StatusCondition,
-        ball_type: str
+        ball_type: str,
     ) -> CatchAttempt:
         """Calculate catch probability for wild Pokemon"""
         base_catch_rates = {
-            "Pikachu": 190, "Charmander": 45, "Squirtle": 45, "Bulbasaur": 45,
-            "Pidgey": 255, "Rattata": 255, "Zubat": 255, "Magikarp": 255,
-            "Geodude": 255, "Gyarados": 45, "Mewtwo": 3, "Mew": 3,
-            "Gengar": 45, "Snorlax": 25, "Dragonite": 45,
-            "legendary": 3, "rare": 45, "common": 255
+            "Pikachu": 190,
+            "Charmander": 45,
+            "Squirtle": 45,
+            "Bulbasaur": 45,
+            "Pidgey": 255,
+            "Rattata": 255,
+            "Zubat": 255,
+            "Magikarp": 255,
+            "Geodude": 255,
+            "Gyarados": 45,
+            "Mewtwo": 3,
+            "Mew": 3,
+            "Gengar": 45,
+            "Snorlax": 25,
+            "Dragonite": 45,
+            "legendary": 3,
+            "rare": 45,
+            "common": 255,
         }
 
         catch_rate = base_catch_rates.get(species, base_catch_rates["common"])
 
         ball_factors = {
-            "Poke Ball": 1.0, "Great Ball": 1.5, "Ultra Ball": 2.0,
-            "Master Ball": 255.0, "Safari Ball": 1.5
+            "Poke Ball": 1.0,
+            "Great Ball": 1.5,
+            "Ultra Ball": 2.0,
+            "Master Ball": 255.0,
+            "Safari Ball": 1.5,
         }
         ball_factor = ball_factors.get(ball_type, 1.0)
 
@@ -1039,7 +1266,7 @@ class BattleStrategist:
             StatusCondition.BURNED: 1.5,
             StatusCondition.PARALYZED: 1.5,
             StatusCondition.ASLEEP: 2.5,
-            StatusCondition.FROZEN: 2.5
+            StatusCondition.FROZEN: 2.5,
         }
         status_factor = status_factors.get(status, 1.0)
 
@@ -1052,7 +1279,9 @@ class BattleStrategist:
             recommended = "Master Ball"
             notes = ["Master Ball guarantees capture"]
         elif status in [StatusCondition.ASLEEP, StatusCondition.FROZEN]:
-            recommended = "Poke Ball" if ball_factors.get("Poke Ball", 0) >= 5 else "Great Ball"
+            recommended = (
+                "Poke Ball" if ball_factors.get("Poke Ball", 0) >= 5 else "Great Ball"
+            )
             notes = ["Status applied - good catch odds"]
         elif current_hp / max_hp < 0.2:
             recommended = "Great Ball"
@@ -1068,17 +1297,15 @@ class BattleStrategist:
             hp_factor=hp_factor,
             success_probability=success_probability,
             recommended_ball=recommended,
-            notes=notes
+            notes=notes,
         )
 
     def assess_setup_opportunity(
-        self,
-        attacker: Pokemon,
-        defender: Pokemon
+        self, attacker: Pokemon, defender: Pokemon
     ) -> Tuple[bool, float, str]:
         """
         Assess if setup (stat boosting) is safe.
-        
+
         Returns: (is_safe, opportunity_score, reasoning)
         """
         move_calculator = DamageCalculator(self.type_chart)
@@ -1103,20 +1330,15 @@ class BattleStrategist:
             return False, 0.0, "Unsafe - will be KO'd next hit"
 
     def assess_1_hp_risk(
-        self,
-        attacker: Pokemon,
-        defender: Pokemon,
-        move: Move
+        self, attacker: Pokemon, defender: Pokemon, move: Move
     ) -> Tuple[bool, str]:
         """
         Assess risk when enemy is at 1 HP.
-        
+
         Returns: (is_safe, reasoning)
         """
         move_calculator = DamageCalculator(self.type_chart)
-        damage_range = move_calculator.calculate_damage_range(
-            attacker, defender, move
-        )
+        damage_range = move_calculator.calculate_damage_range(attacker, defender, move)
 
         guaranteed_ko, likely_ko, _ = move_calculator.can_ko(
             damage_range, defender.current_hp
@@ -1132,10 +1354,7 @@ class BattleStrategist:
             return False, "Miss would give enemy another chance"
 
     def select_stat_boost_item(
-        self,
-        pokemon: Pokemon,
-        opponent: Pokemon,
-        inventory: Dict[str, int]
+        self, pokemon: Pokemon, opponent: Pokemon, inventory: Dict[str, int]
     ) -> Tuple[Optional[str], str]:
         """Select optimal stat boost item to use"""
         if "X Attack" in inventory and pokemon.attack_stage < 4:
@@ -1153,7 +1372,7 @@ class BattleStrategist:
 class CombatSystem:
     """
     Combat system with HP clamping, validation, and edge case handling.
-    
+
     Provides simple interface for damage calculation and HP management
     with proper validation and defaults for missing data.
     """
@@ -1175,7 +1394,9 @@ class CombatSystem:
         """
         return clamp_hp(current, max_hp)
 
-    def calculate_hp_after_damage(self, current_hp: int, damage: int, max_hp: Optional[int] = None) -> int:
+    def calculate_hp_after_damage(
+        self, current_hp: int, damage: int, max_hp: Optional[int] = None
+    ) -> int:
         """
         Calculate new HP after taking damage with clamping.
 
@@ -1192,40 +1413,37 @@ class CombatSystem:
         return calculate_hp_after_damage(current_hp, damage, max_hp)
 
     def calculate_damage(
-        self,
-        attacker: Dict[str, Any],
-        defender: Dict[str, Any],
-        move: Dict[str, Any]
+        self, attacker: Dict[str, Any], defender: Dict[str, Any], move: Dict[str, Any]
     ) -> int:
         """
         Calculate damage from attacker to defender with a move.
-        
+
         Handles missing data by using defaults for stats.
-        
+
         Args:
             attacker: Attacker Pokemon data dict
-            defender: Defender Pokemon data dict  
+            defender: Defender Pokemon data dict
             move: Move data dict with 'power' key
-            
+
         Returns:
             Calculated damage (0 for status moves or missing power)
         """
         power = move.get("power", 0)
-        
+
         if power is None or power == 0:
             return 0
-        
+
         level = attacker.get("level", get_default_stat("level"))
         attack = attacker.get("attack", get_default_stat("attack"))
         defense = defender.get("defense", get_default_stat("defense"))
-        
+
         stab = 1.0
         if "type" in attacker and "type" in move:
             if attacker["type"] == move["type"]:
                 stab = 1.5
-        
+
         type_effectiveness = 1.0
-        
+
         damage = self.damage_calculator.calculate_base_damage(
             level=level,
             power=power,
@@ -1234,30 +1452,30 @@ class CombatSystem:
             stab=stab,
             type_effectiveness=type_effectiveness,
             is_critical=False,
-            random_factor=1.0
+            random_factor=1.0,
         )
-        
+
         return damage
 
     def analyze_battle_state(self, battle_state: Dict[str, Any]) -> Dict[str, Any]:
         """
         Analyze a battle state and return insights.
-        
+
         Args:
             battle_state: Battle state dictionary
-            
+
         Returns:
             Analysis results dictionary
-            
+
         Raises:
             ValueError: If battle state is invalid
             TypeError: If battle state is not a dictionary
         """
         validate_pokemon_data(battle_state, required_fields=[])
-        
+
         if "player" not in battle_state and "enemy" not in battle_state:
             raise ValueError("Battle state must contain 'player' and/or 'enemy' keys")
-        
+
         return {
             "valid": True,
             "has_player": "player" in battle_state,
@@ -1278,15 +1496,10 @@ class CombatManager:
         self.strategist = BattleStrategist(self.type_chart)
 
     def get_combat_state(
-        self,
-        player_pokemon: Pokemon,
-        enemy_pokemon: Pokemon,
-        battle_type: str
+        self, player_pokemon: Pokemon, enemy_pokemon: Pokemon, battle_type: str
     ) -> Dict[str, Any]:
         """Get comprehensive combat state for AI decision making"""
-        best_move = self.move_selector.select_best_move(
-            player_pokemon, enemy_pokemon
-        )
+        best_move = self.move_selector.select_best_move(player_pokemon, enemy_pokemon)
 
         threat = self.enemy_predictor.predict_threat_level(
             enemy_pokemon, player_pokemon
@@ -1315,7 +1528,7 @@ class CombatManager:
         max_hp: int,
         current_hp: int,
         status: StatusCondition,
-        ball_type: str
+        ball_type: str,
     ) -> CatchAttempt:
         """Calculate catch odds for wild Pokemon"""
         return self.strategist.calculate_catch_probability(

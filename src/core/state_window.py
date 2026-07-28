@@ -36,28 +36,44 @@ logger = logging.getLogger(__name__)
 
 _DUCKBRAIN_CLI = os.path.expanduser("~/duckbrain/bin/duckbrain.js")
 
+
 def _duckbrain_remember(key: str, fact: str, namespace: str = "pokemon-global") -> str:
     """Store a discovery via DuckBrain CLI."""
     result = subprocess.run(
-        ["node", _DUCKBRAIN_CLI, "remember", key,
-         "--domain=concept",
-         f"--attr={json.dumps({'source': 'agent', 'fact': fact})}",
-         f"--namespace={namespace}"],
-        capture_output=True, text=True, timeout=10,
+        [
+            "node",
+            _DUCKBRAIN_CLI,
+            "remember",
+            key,
+            "--domain=concept",
+            f"--attr={json.dumps({'source': 'agent', 'fact': fact})}",
+            f"--namespace={namespace}",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
         cwd=os.path.expanduser("~/duckbrain"),
     )
     return result.stdout.strip() or result.stderr.strip()
 
+
 def _duckbrain_recall(query: str, namespace: str = "pokemon-global") -> str:
     """Query memories via DuckBrain CLI."""
     result = subprocess.run(
-        ["node", _DUCKBRAIN_CLI, "recall",
-         f"--prefix={query}",
-         f"--namespace={namespace}"],
-        capture_output=True, text=True, timeout=10,
+        [
+            "node",
+            _DUCKBRAIN_CLI,
+            "recall",
+            f"--prefix={query}",
+            f"--namespace={namespace}",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=10,
         cwd=os.path.expanduser("~/duckbrain"),
     )
     return result.stdout.strip() or "nothing found"
+
 
 # ── DuckBrain tools (added to every state window) ──────────────────────────
 
@@ -246,7 +262,9 @@ class StateWindow:
         initial_hsm_state = self._map_vision_to_hsm_state()
         if initial_hsm_state and initial_hsm_state != self.hsm.get_current_state_name():
             # Only attempt if it's a valid transition; otherwise just note the mismatch
-            if self.hsm.can_transition(self.hsm.get_current_state_name(), initial_hsm_state):
+            if self.hsm.can_transition(
+                self.hsm.get_current_state_name(), initial_hsm_state
+            ):
                 self.hsm.transition_to(initial_hsm_state, reason="StateWindow init")
             else:
                 logger.debug(
@@ -259,13 +277,15 @@ class StateWindow:
                 )
 
         # ── Battle tracking ──────────────────────────────────────────
-        self._in_battle = (self.state_type == "battle")
+        self._in_battle = self.state_type == "battle"
         self._battle_events: list[dict[str, Any]] = []
         if self._in_battle:
-            self._battle_events.append({
-                "event": "battle_start",
-                "screen_type": self.vision.get("screen_type", ""),
-            })
+            self._battle_events.append(
+                {
+                    "event": "battle_start",
+                    "screen_type": self.vision.get("screen_type", ""),
+                }
+            )
 
         # Save initial HSM state for outcome detection
         self._initial_hsm_state = self.hsm.get_current_state_name()
@@ -275,6 +295,7 @@ class StateWindow:
 
         # Load core + hint system prompt
         from src.core.prompt_loader import load_system_prompt
+
         self._system_prompt = load_system_prompt(hint_level=hint_level)
 
     # ── Public API ────────────────────────────────────────────────────
@@ -285,7 +306,7 @@ class StateWindow:
         Returns a result dict with 'outcome' and relevant data.
         """
         _auto_a_count = 0  # consecutive auto-A presses (safety cap)
-        _MAX_AUTO_A = 20   # fall back to AI deliberation after this many
+        _MAX_AUTO_A = 20  # fall back to AI deliberation after this many
 
         for _ in range(self.max_steps):
             self._step_count += 1
@@ -294,14 +315,23 @@ class StateWindow:
             if self.state_type == "dialog" and not self._is_interactive():
                 if _auto_a_count < _MAX_AUTO_A:
                     self.emulator.press_button("a", frames=30)
-                    self.emulator.wait(10)   # let game register
+                    self.emulator.wait(10)  # let game register
                     self.emulator.fast_forward(120)
-                    self._history.append({
-                        "step": self._step_count,
-                        "tool_call": {"name": "press_button", "arguments": {"button": "a", "duration": 30, "fast_forward": 120}},
-                        "action": "auto_a",
-                        "auto": True,
-                    })
+                    self._history.append(
+                        {
+                            "step": self._step_count,
+                            "tool_call": {
+                                "name": "press_button",
+                                "arguments": {
+                                    "button": "a",
+                                    "duration": 30,
+                                    "fast_forward": 120,
+                                },
+                            },
+                            "action": "auto_a",
+                            "auto": True,
+                        }
+                    )
                     _auto_a_count += 1
                     continue
                 else:
@@ -311,7 +341,20 @@ class StateWindow:
                 self.emulator.press_button("a", frames=30)
                 self.emulator.wait(10)
                 self.emulator.fast_forward(120)
-                self._history.append({"step":self._step_count,"tool_call":{"name":"press_button","arguments":{"button":"a","duration":30,"fast_forward":120}},"action":"name_entry_a_mash"})
+                self._history.append(
+                    {
+                        "step": self._step_count,
+                        "tool_call": {
+                            "name": "press_button",
+                            "arguments": {
+                                "button": "a",
+                                "duration": 30,
+                                "fast_forward": 120,
+                            },
+                        },
+                        "action": "name_entry_a_mash",
+                    }
+                )
                 _auto_a_count += 1
                 continue
 
@@ -362,11 +405,16 @@ class StateWindow:
 
                     self.emulator.press_button(button, frames=dur)
                     self.emulator.wait(10)
-                    self._history.append({
-                        "step": self._step_count,
-                        "tool_call": {"name": "press_button", "arguments": {"button": button, "duration": dur}},
-                        "action": f"name_entry_auto_{button}",
-                    })
+                    self._history.append(
+                        {
+                            "step": self._step_count,
+                            "tool_call": {
+                                "name": "press_button",
+                                "arguments": {"button": button, "duration": dur},
+                            },
+                            "action": f"name_entry_auto_{button}",
+                        }
+                    )
                     continue
                 # No keyboard_grid — fall through to LLM
             else:
@@ -406,7 +454,9 @@ class StateWindow:
             if tool_call["name"] == "query_global":
                 question = tool_call.get("arguments", {}).get("question", "")
                 answer = self._answer_global_query(question)
-                self._history.append({"role": "query_global", "question": question, "answer": answer})
+                self._history.append(
+                    {"role": "query_global", "question": question, "answer": answer}
+                )
                 continue  # re-loop with answer in history
 
             # Handle DuckBrain calls (no emulator action)
@@ -420,7 +470,9 @@ class StateWindow:
             if tool_call["name"] == "recall":
                 query = tool_call.get("arguments", {}).get("query", "/")
                 results = _duckbrain_recall(query=query)
-                self._history.append({"role": "recall", "query": query, "results": results[:200]})
+                self._history.append(
+                    {"role": "recall", "query": query, "results": results[:200]}
+                )
                 continue
 
             if tool_call["name"] == "set_goal":
@@ -436,11 +488,13 @@ class StateWindow:
                 arguments=tool_call.get("arguments", {}),
             )
 
-            self._history.append({
-                "step": self._step_count,
-                "tool_call": tool_call,
-                "action": action_result,
-            })
+            self._history.append(
+                {
+                    "step": self._step_count,
+                    "tool_call": tool_call,
+                    "action": action_result,
+                }
+            )
 
             # ── Recent actions memory window ──────────────────────
             self._record_recent_action(tool_call, action_result)
@@ -462,18 +516,23 @@ class StateWindow:
             if outcome:
                 # ── Battle end logging ──────────────────────────
                 if self._in_battle:
-                    self._battle_events.append({
-                        "event": "battle_end",
-                        "outcome": outcome.get("outcome", "unknown"),
-                        "to_type": outcome.get("to_type", "unknown"),
-                    })
+                    self._battle_events.append(
+                        {
+                            "event": "battle_end",
+                            "outcome": outcome.get("outcome", "unknown"),
+                            "to_type": outcome.get("to_type", "unknown"),
+                        }
+                    )
                 # ── Include battle events in result ──────────────
                 outcome["_battle_events"] = self._battle_events
                 return outcome
 
         # Max steps reached without resolution
-        result: dict[str, Any] = {"outcome": "max_steps", "steps": self._step_count,
-                          "_battle_events": self._battle_events}
+        result: dict[str, Any] = {
+            "outcome": "max_steps",
+            "steps": self._step_count,
+            "_battle_events": self._battle_events,
+        }
         return result
 
     # ── Prompt building ─────────────────────────────────────────────
@@ -526,16 +585,18 @@ class StateWindow:
             cr, cc = cursor.get("row", 0), cursor.get("col", 0)
             rows = kg.get("rows", [])
             name_field = self.vision.get("name_field", "")
-            
+
             # Figure out what letter the cursor is on
             cursor_letter = "?"
             if rows and cr < len(rows) and cc < len(rows[cr]):
                 cursor_letter = rows[cr][cc]
-            
+
             parts.append("\n  ⌨️ NAME ENTRY KEYBOARD — TYPE ONE LETTER AT A TIME:")
-            parts.append(f"  CURSOR IS ON LETTER: '{cursor_letter}' at row={cr}, col={cc}")
+            parts.append(
+                f"  CURSOR IS ON LETTER: '{cursor_letter}' at row={cr}, col={cc}"
+            )
             parts.append(f"  ALREADY TYPED: '{name_field}'")
-            
+
             # Determine target name and next action
             target_name = "ASH"  # default
             if name_field and len(name_field) > 0:
@@ -563,16 +624,28 @@ class StateWindow:
                             dirs.append(f"press LEFT {abs(dc)} time(s)")
                         elif dc > 0:
                             dirs.append(f"press RIGHT {dc} time(s)")
-                        parts.append(f"  NEXT LETTER TO TYPE: '{next_letter}' at row={tr}, col={tc}")
+                        parts.append(
+                            f"  NEXT LETTER TO TYPE: '{next_letter}' at row={tr}, col={tc}"
+                        )
                         if not dirs:
-                            parts.append(f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!")
+                            parts.append(
+                                f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!"
+                            )
                         else:
-                            parts.append(f"  TO REACH '{next_letter}': {' then '.join(dirs)}")
-                            parts.append("  After reaching it, press A to type the letter.")
+                            parts.append(
+                                f"  TO REACH '{next_letter}': {' then '.join(dirs)}"
+                            )
+                            parts.append(
+                                "  After reaching it, press A to type the letter."
+                            )
                     else:
-                        parts.append(f"  NEXT LETTER '{next_letter}' not found — navigate to END")
+                        parts.append(
+                            f"  NEXT LETTER '{next_letter}' not found — navigate to END"
+                        )
                 else:
-                    parts.append("  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A.")
+                    parts.append(
+                        "  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A."
+                    )
             else:
                 # Nothing typed yet — first letter of target
                 tr, tc = -1, -1
@@ -596,12 +669,18 @@ class StateWindow:
                         needed.append(f"LEFT {abs(dc)}")
                     elif dc > 0:
                         needed.append(f"RIGHT {dc}")
-                    parts.append(f"  TARGET NAME: '{target_name}' — first letter is '{first_letter}' at row={tr}, col={cc}")
+                    parts.append(
+                        f"  TARGET NAME: '{target_name}' — first letter is '{first_letter}' at row={tr}, col={cc}"
+                    )
                     if not needed:
-                        parts.append(f"  ⚡ CURSOR IS ON '{first_letter}' — press A NOW!")
+                        parts.append(
+                            f"  ⚡ CURSOR IS ON '{first_letter}' — press A NOW!"
+                        )
                     else:
-                        parts.append(f"  MOVE TO '{first_letter}': {' then '.join(needed)} — then press A.")
-            
+                        parts.append(
+                            f"  MOVE TO '{first_letter}': {' then '.join(needed)} — then press A."
+                        )
+
             if rows:
                 parts.append("  Grid reference:")
                 for ri, row in enumerate(rows):
@@ -610,6 +689,7 @@ class StateWindow:
 
         # Text content — the agent reads this to make decisions
         from src.core.prompt_loader import get_text_content
+
         content = get_text_content(self.vision)
         if content:
             parts.append("\n  SCREEN TEXT (read this — it tells you what to do):")
@@ -621,7 +701,9 @@ class StateWindow:
             parts.append(f"  Menu: {menu_items}")
         adj = self.vision.get("adjacent_tiles", {})
         if adj:
-            parts.append(f"  Surroundings: up={adj.get('up','?')} down={adj.get('down','?')} left={adj.get('left','?')} right={adj.get('right','?')}")
+            parts.append(
+                f"  Surroundings: up={adj.get('up', '?')} down={adj.get('down', '?')} left={adj.get('left', '?')} right={adj.get('right', '?')}"
+            )
 
         # 4. Step counter
         parts.append(f"\nStep {self._step_count} of {self.max_steps} in this state.")
@@ -637,15 +719,17 @@ class StateWindow:
             for h in self._history[-3:]:
                 role = h.get("role", "")
                 if role == "recall":
-                    parts.append(f"  Recalled: {h.get('query','')} → {h.get('results','')}")
+                    parts.append(
+                        f"  Recalled: {h.get('query', '')} → {h.get('results', '')}"
+                    )
                 elif role == "remember":
-                    parts.append(f"  Remembered: {h.get('key','')}")
+                    parts.append(f"  Remembered: {h.get('key', '')}")
                 elif role == "set_goal":
-                    parts.append(f"  Set goal: {h.get('goal','')}")
+                    parts.append(f"  Set goal: {h.get('goal', '')}")
                 elif role == "query_global":
-                    parts.append(f"  Asked global: {h.get('question','')}")
+                    parts.append(f"  Asked global: {h.get('question', '')}")
                 else:
-                    parts.append(f"  Step {h.get('step','?')}: {h.get('action','?')}")
+                    parts.append(f"  Step {h.get('step', '?')}: {h.get('action', '?')}")
 
         # 6. Output instruction
         parts.append(
@@ -769,8 +853,7 @@ class StateWindow:
         render: str = str(self.vision.get("render", ""))
         if render:
             return (
-                render
-                + "\n→ Call select_move(N) for move N (1-4), run_from_battle() "
+                render + "\n→ Call select_move(N) for move N (1-4), run_from_battle() "
                 "to flee, use_battle_item(name) to bag, or switch_pokemon(N) "
                 "to swap."
             )
@@ -828,7 +911,9 @@ class StateWindow:
             return "MENU.MAIN_MENU"
 
         # Dialog/text detection
-        if result == "dialog" or (text and not menu_items and result not in ("battle", "menu")):
+        if result == "dialog" or (
+            text and not menu_items and result not in ("battle", "menu")
+        ):
             return "DIALOG.TEXT_DISPLAY"
 
         # Overworld detection
@@ -855,9 +940,7 @@ class StateWindow:
         # Can't map
         return None
 
-    def _log_hsm_transition(
-        self, from_state: Any, to_state: Any
-    ) -> None:
+    def _log_hsm_transition(self, from_state: Any, to_state: Any) -> None:
         """Callback: log HSM state transitions to DuckBrain.
 
         Registered with ``hsm.register_transition_callback()``.
@@ -865,10 +948,7 @@ class StateWindow:
         try:
             from_name = from_state.name if from_state else "None"
             to_name = to_state.name if to_state else "None"
-            entry = (
-                f"HSM transition: {from_name} → {to_name} "
-                f"(tick={self.hsm._tick})"
-            )
+            entry = f"HSM transition: {from_name} → {to_name} (tick={self.hsm._tick})"
             _duckbrain_remember(
                 key=f"/play_sessions/transitions/{from_name}",
                 fact=entry,
@@ -1016,14 +1096,20 @@ class StateWindow:
             lines.append(f"  {action}")
 
         # ── Stuck detection: inject guidance when actions repeat uselessly ──
-        last_btns = [a.split(" → ")[0].replace("pressed ", "").strip()
-                     for a in self._recent_actions]
+        last_btns = [
+            a.split(" → ")[0].replace("pressed ", "").strip()
+            for a in self._recent_actions
+        ]
         if len(last_btns) >= 2:
             if all(b == last_btns[0] for b in last_btns[-3:]):
-                lines.append(f"\n⚠ You pressed {last_btns[0]} 3+ times and didn't move. "
-                             f"Try a DIFFERENT direction.")
+                lines.append(
+                    f"\n⚠ You pressed {last_btns[0]} 3+ times and didn't move. "
+                    f"Try a DIFFERENT direction."
+                )
             if all(b == "A" for b in last_btns[-3:]):
-                lines.append("\n⚠ You pressed A 3+ times — A doesn't move you. "
-                             "Press a DIRECTION (UP/DOWN/LEFT/RIGHT) to walk.")
+                lines.append(
+                    "\n⚠ You pressed A 3+ times — A doesn't move you. "
+                    "Press a DIRECTION (UP/DOWN/LEFT/RIGHT) to walk."
+                )
 
         return "\n".join(lines)

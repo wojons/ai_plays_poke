@@ -3,6 +3,7 @@ Tests for src/vision/sprite.py — SpriteRecognizer, SpriteMatch, HPBarResult, M
 Covers: grayscale conversion, resize, template matching, pokemon recognition,
 HP bar parsing, menu cursor detection, battle sprite finding, shiny detection.
 """
+
 import json
 import tempfile
 from pathlib import Path
@@ -20,10 +21,16 @@ from src.vision.sprite import (
 
 # ── Dataclass Tests ──────────────────────────────────────────────────
 
+
 class TestSpriteMatch:
     def test_creation(self):
-        sm = SpriteMatch(name="Pikachu", confidence=0.95, sprite_type="pokemon",
-                         position=(10, 20), size=(32, 32))
+        sm = SpriteMatch(
+            name="Pikachu",
+            confidence=0.95,
+            sprite_type="pokemon",
+            position=(10, 20),
+            size=(32, 32),
+        )
         assert sm.name == "Pikachu"
         assert sm.confidence == 0.95
         assert sm.sprite_type == "pokemon"
@@ -31,39 +38,45 @@ class TestSpriteMatch:
         assert sm.size == (32, 32)
 
     def test_defaults(self):
-        sm = SpriteMatch(name="", confidence=0.0, sprite_type="unknown",
-                         position=(0, 0), size=(0, 0))
+        sm = SpriteMatch(
+            name="", confidence=0.0, sprite_type="unknown", position=(0, 0), size=(0, 0)
+        )
         assert sm.confidence == 0.0
 
 
 class TestHPBarResult:
     def test_creation(self):
-        hp = HPBarResult(current=45, maximum=100, percentage=45.0,
-                         is_low=False, is_critical=False)
+        hp = HPBarResult(
+            current=45, maximum=100, percentage=45.0, is_low=False, is_critical=False
+        )
         assert hp.current == 45
         assert not hp.is_low
         assert not hp.is_critical
 
     def test_low_hp(self):
-        hp = HPBarResult(current=15, maximum=100, percentage=15.0,
-                         is_low=True, is_critical=False)
+        hp = HPBarResult(
+            current=15, maximum=100, percentage=15.0, is_low=True, is_critical=False
+        )
         assert hp.is_low
 
     def test_critical_hp(self):
-        hp = HPBarResult(current=5, maximum=100, percentage=5.0,
-                         is_low=True, is_critical=True)
+        hp = HPBarResult(
+            current=5, maximum=100, percentage=5.0, is_low=True, is_critical=True
+        )
         assert hp.is_critical
 
 
 class TestMenuCursorResult:
     def test_creation(self):
-        mc = MenuCursorResult(position=0, option_count=4,
-                              options=["FIGHT", "POKEMON", "ITEM", "RUN"])
+        mc = MenuCursorResult(
+            position=0, option_count=4, options=["FIGHT", "POKEMON", "ITEM", "RUN"]
+        )
         assert mc.position == 0
         assert mc.option_count == 4
 
 
 # ── _ensure_grayscale Tests ──────────────────────────────────────────
+
 
 class TestEnsureGrayscale:
     def test_3d_image_to_grayscale(self):
@@ -93,6 +106,7 @@ class TestEnsureGrayscale:
 
 # ── _resize_to_match Tests ───────────────────────────────────────────
 
+
 class TestResizeToMatch:
     def test_resize_larger_to_smaller(self):
         sr = _make_recognizer()
@@ -116,6 +130,7 @@ class TestResizeToMatch:
 
 
 # ── _template_match Tests ────────────────────────────────────────────
+
 
 class TestTemplateMatch:
     def test_identical_templates(self):
@@ -164,6 +179,7 @@ class TestTemplateMatch:
 
 
 # ── recognize_pokemon Tests ──────────────────────────────────────────
+
 
 class TestRecognizePokemon:
     def test_empty_region(self):
@@ -246,6 +262,7 @@ class TestRecognizePokemon:
 
 # ── parse_hp_bar Tests ───────────────────────────────────────────────
 
+
 class TestParseHPBar:
     def test_empty_image(self):
         sr = _make_recognizer()
@@ -303,6 +320,7 @@ class TestParseHPBar:
 
 # ── detect_menu_cursor Tests ─────────────────────────────────────────
 
+
 class TestDetectMenuCursor:
     def test_empty_image(self):
         sr = _make_recognizer()
@@ -341,18 +359,21 @@ class TestDetectMenuCursor:
 
 # ── find_pokemon_sprites Tests ───────────────────────────────────────
 
+
 class TestFindPokemonSprites:
     def test_non_battle_mode(self):
         sr = _make_recognizer()
         result = sr.find_pokemon_sprites(
-            np.ones((160, 240, 3), dtype=np.uint8) * 100, is_battle=False)
+            np.ones((160, 240, 3), dtype=np.uint8) * 100, is_battle=False
+        )
         assert result == []
 
     def test_single_pixel_image(self):
         """Edge case: single-pixel image — graceful handling."""
         sr = _make_recognizer()
         result = sr.find_pokemon_sprites(
-            np.ones((1, 1, 3), dtype=np.uint8) * 100, is_battle=True)
+            np.ones((1, 1, 3), dtype=np.uint8) * 100, is_battle=True
+        )
         assert result == []
 
     def test_battle_mode_same_region_sizes(self):
@@ -375,6 +396,7 @@ class TestFindPokemonSprites:
 
 # ── get_pokemon_types Tests ──────────────────────────────────────────
 
+
 class TestGetPokemonTypes:
     def test_known_pokemon(self):
         sr = _make_recognizer()
@@ -390,6 +412,7 @@ class TestGetPokemonTypes:
 
 
 # ── is_shiny Tests ───────────────────────────────────────────────────
+
 
 class TestIsShiny:
     def test_empty_region(self):
@@ -419,21 +442,26 @@ class TestIsShiny:
 
 # ── Database Load/Save Tests ──────────────────────────────────────────
 
+
 class TestSpriteDatabase:
     def test_load_existing_database(self):
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "sprites.json"
             test_data = {
                 "sprites": [
-                    {"name": "Bulbasaur", "template": [[0] * 32] * 32,
-                     "type": "pokemon", "types": ["Grass", "Poison"]}
+                    {
+                        "name": "Bulbasaur",
+                        "template": [[0] * 32] * 32,
+                        "type": "pokemon",
+                        "types": ["Grass", "Poison"],
+                    }
                 ],
                 "common_pokemon": ["Bulbasaur"],
-                "pokemon_types": {"Bulbasaur": ["Grass", "Poison"]}
+                "pokemon_types": {"Bulbasaur": ["Grass", "Poison"]},
             }
             db_path.write_text(json.dumps(test_data))
 
-            with patch.object(SpriteRecognizer, 'SPRITE_DATABASE_PATH', db_path):
+            with patch.object(SpriteRecognizer, "SPRITE_DATABASE_PATH", db_path):
                 sr = SpriteRecognizer()
                 assert "Bulbasaur" in sr.sprite_templates
                 assert sr.sprite_metadata["Bulbasaur"]["type"] == "pokemon"
@@ -443,7 +471,7 @@ class TestSpriteDatabase:
     def test_missing_file_creates_default(self):
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "nonexistent.json"
-            with patch.object(SpriteRecognizer, 'SPRITE_DATABASE_PATH', db_path):
+            with patch.object(SpriteRecognizer, "SPRITE_DATABASE_PATH", db_path):
                 sr = SpriteRecognizer()
                 assert "Pikachu" in sr.sprite_templates
                 assert len(sr.common_pokemon) == 26
@@ -452,7 +480,7 @@ class TestSpriteDatabase:
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "sprites.json"
             db_path.write_text("not valid json {{{")
-            with patch.object(SpriteRecognizer, 'SPRITE_DATABASE_PATH', db_path):
+            with patch.object(SpriteRecognizer, "SPRITE_DATABASE_PATH", db_path):
                 sr = SpriteRecognizer()
                 assert "Pikachu" in sr.sprite_templates
                 assert len(sr.common_pokemon) == 26
@@ -460,7 +488,7 @@ class TestSpriteDatabase:
     def test_save_database(self):
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "sprites.json"
-            with patch.object(SpriteRecognizer, 'SPRITE_DATABASE_PATH', db_path):
+            with patch.object(SpriteRecognizer, "SPRITE_DATABASE_PATH", db_path):
                 sr = SpriteRecognizer()
                 sr._save_sprite_database()
                 assert db_path.exists()
@@ -470,6 +498,7 @@ class TestSpriteDatabase:
 
 
 # ── Constructor Tests ─────────────────────────────────────────────────
+
 
 class TestConstructor:
     def test_hp_bar_colors_initialized(self):
@@ -492,6 +521,7 @@ class TestConstructor:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────
+
 
 def _make_recognizer() -> SpriteRecognizer:
     """Create a SpriteRecognizer with a clean in-memory database."""

@@ -14,6 +14,7 @@ from src.core.screenshot_manager import ScreenshotManager, LiveView
 
 # ── helpers ──────────────────────────────────────────────────────────
 
+
 def _fake_screen() -> np.ndarray:
     """Create a small test image (not 160x144 to keep tests fast)."""
     return np.zeros((20, 30, 3), dtype=np.uint8)
@@ -25,6 +26,7 @@ def _save_png(path: Path, arr: np.ndarray) -> None:
 
 
 # ── ScreenshotManager tests ──────────────────────────────────────────
+
 
 class TestScreenshotManagerInit:
     def test_creates_main_dir(self, tmp_path):
@@ -330,6 +332,7 @@ class TestGetScreenshotStats:
 
 # ── LiveView tests ───────────────────────────────────────────────────
 
+
 class TestLiveViewInit:
     def test_stores_manager(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path / "ss"))
@@ -378,11 +381,13 @@ class TestLiveViewUpdateDisplay:
         sm = ScreenshotManager(str(tmp_path / "ss"))
         lv = LiveView(sm)
         lv.is_displaying = True
-        with mock.patch("cv2.imshow") as mock_imshow, \
-             mock.patch("cv2.waitKey", return_value=0), \
-             mock.patch("cv2.resize", side_effect=lambda x, size, **kw: x), \
-             mock.patch("cv2.cvtColor", side_effect=lambda x, code: x), \
-             mock.patch("cv2.putText"):
+        with (
+            mock.patch("cv2.imshow") as mock_imshow,
+            mock.patch("cv2.waitKey", return_value=0),
+            mock.patch("cv2.resize", side_effect=lambda x, size, **kw: x),
+            mock.patch("cv2.cvtColor", side_effect=lambda x, code: x),
+            mock.patch("cv2.putText"),
+        ):
             lv.update_display(_fake_screen())
             mock_imshow.assert_called_once()
 
@@ -391,12 +396,14 @@ class TestLiveViewUpdateDisplay:
         sm = ScreenshotManager(str(tmp_path / "ss"))
         lv = LiveView(sm)
         lv.is_displaying = True
-        with mock.patch("cv2.imshow"), \
-             mock.patch("cv2.waitKey", return_value=ord("q")), \
-             mock.patch("cv2.resize", side_effect=lambda x, size, **kw: x), \
-             mock.patch("cv2.cvtColor", side_effect=lambda x, code: x), \
-             mock.patch("cv2.putText"), \
-             mock.patch("cv2.destroyWindow") as mock_destroy:
+        with (
+            mock.patch("cv2.imshow"),
+            mock.patch("cv2.waitKey", return_value=ord("q")),
+            mock.patch("cv2.resize", side_effect=lambda x, size, **kw: x),
+            mock.patch("cv2.cvtColor", side_effect=lambda x, code: x),
+            mock.patch("cv2.putText"),
+            mock.patch("cv2.destroyWindow") as mock_destroy,
+        ):
             lv.update_display(_fake_screen())
             mock_destroy.assert_called_once()
             assert lv.is_displaying is False

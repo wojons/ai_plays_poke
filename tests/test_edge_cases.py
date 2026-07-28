@@ -34,12 +34,13 @@ class TestROMHandling:
 
     def test_invalid_rom_header(self) -> None:
         """Invalid ROM → clear error message"""
-        with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".gb", delete=False) as f:
             f.write(b"NOT A VALID ROM HEADER" + b"\x00" * 100)
             temp_path = f.name
 
         try:
             from src.core.emulator import Emulator
+
             with pytest.raises(Exception):
                 Emulator(rom_path=temp_path)
         finally:
@@ -47,12 +48,13 @@ class TestROMHandling:
 
     def test_rom_corruption_recovery(self) -> None:
         """ROM corruption detected → graceful shutdown"""
-        with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".gb", delete=False) as f:
             f.write(b"\x00" * 100)
             temp_path = f.name
 
         try:
             from src.core.emulator import Emulator
+
             with pytest.raises(Exception):
                 Emulator(rom_path=temp_path)
         finally:
@@ -62,12 +64,14 @@ class TestROMHandling:
     def test_rom_path_with_spaces(self) -> None:
         """ROM path with spaces → proper handling"""
         import shutil
+
         with tempfile.TemporaryDirectory() as tmpdir:
             spaced_path = os.path.join(tmpdir, "my rom file.gb")
             # Copy a real ROM to the spaced path to test path handling
             shutil.copy2("data/rom/pokemon_red.gb", spaced_path)
 
             from src.core.emulator import Emulator
+
             emulator = Emulator(rom_path=spaced_path)
 
             assert emulator is not None
@@ -75,7 +79,7 @@ class TestROMHandling:
 
     def test_rom_permission_denied(self) -> None:
         """ROM file permission denied → appropriate error"""
-        with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".gb", delete=False) as f:
             f.write(b"\x00" * 32768)
             temp_path = f.name
 
@@ -83,6 +87,7 @@ class TestROMHandling:
             os.chmod(temp_path, 0o000)
 
             from src.core.emulator import Emulator
+
             with pytest.raises(Exception):
                 Emulator(rom_path=temp_path)
         finally:
@@ -91,11 +96,12 @@ class TestROMHandling:
 
     def test_rom_empty_file(self) -> None:
         """Empty ROM file → appropriate error"""
-        with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".gb", delete=False) as f:
             temp_path = f.name
 
         try:
             from src.core.emulator import Emulator
+
             with pytest.raises(Exception):
                 Emulator(rom_path=temp_path)
         finally:
@@ -103,12 +109,13 @@ class TestROMHandling:
 
     def test_rom_too_small(self) -> None:
         """ROM file too small → appropriate error"""
-        with tempfile.NamedTemporaryFile(suffix='.gb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".gb", delete=False) as f:
             f.write(b"\x00" * 100)
             temp_path = f.name
 
         try:
             from src.core.emulator import Emulator
+
             with pytest.raises(Exception):
                 Emulator(rom_path=temp_path)
         finally:
@@ -121,7 +128,9 @@ class TestAPIKeyHandling:
     def test_missing_api_key(self) -> None:
         """API key absent → stub fallback mode"""
         with patch.dict(os.environ, {}, clear=True):
-            with patch('src.core.ai_client.AIModelClient._load_api_key', return_value=None):
+            with patch(
+                "src.core.ai_client.AIModelClient._load_api_key", return_value=None
+            ):
                 from src.core.ai_client import AIModelClient
 
                 client = AIModelClient()
@@ -137,10 +146,11 @@ class TestAPIKeyHandling:
 
     def test_api_key_invalid_format(self) -> None:
         """Invalid API key format → clear error, no retry loop"""
-        with patch('src.core.ai_client.requests.post') as mock_post:
+        with patch("src.core.ai_client.requests.post") as mock_post:
             mock_post.side_effect = Exception("401 Unauthorized")
 
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient(api_key="invalid-key-format")
 
             with pytest.raises(Exception):
@@ -148,13 +158,16 @@ class TestAPIKeyHandling:
 
     def test_api_key_expired(self) -> None:
         """Expired API key → clear error message"""
-        with patch('src.core.ai_client.requests.post') as mock_post:
+        with patch("src.core.ai_client.requests.post") as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 401
-            mock_response.json.return_value = {"error": {"message": "This key has expired"}}
+            mock_response.json.return_value = {
+                "error": {"message": "This key has expired"}
+            }
             mock_post.return_value = mock_response
 
             from src.core.ai_client import AIModelClient
+
             with pytest.raises(Exception) as exc_info:
                 client = AIModelClient(api_key="sk-expired-key")
                 client._validate_api_key()
@@ -165,7 +178,7 @@ class TestAPIKeyHandling:
         """API key rate limited → retry with backoff"""
         call_count = 0
 
-        def raise_rate_limit(*args, **kwargs) :  # type: ignore[no-untyped-def]
+        def raise_rate_limit(*args, **kwargs):  # type: ignore[no-untyped-def]
 
             nonlocal call_count
             call_count += 1
@@ -176,8 +189,9 @@ class TestAPIKeyHandling:
             mock_response.json.return_value = {"choices": []}
             return mock_response
 
-        with patch('src.core.ai_client.requests.post', side_effect=raise_rate_limit):
+        with patch("src.core.ai_client.requests.post", side_effect=raise_rate_limit):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient(api_key="sk-test-key")
             client._make_request_with_retry("test", {})
             assert call_count >= 1
@@ -187,13 +201,18 @@ class TestAPIKeyHandling:
         with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-env-key"}):
             from src.core.ai_client import AIModelClient
 
-            with patch('src.core.ai_client.AIModelClient._load_api_key', return_value="sk-test-env-key") as mock_load:
+            with patch(
+                "src.core.ai_client.AIModelClient._load_api_key",
+                return_value="sk-test-env-key",
+            ) as mock_load:
                 AIModelClient()
                 mock_load.assert_called_once()
 
     def test_api_key_with_special_chars(self) -> None:
         """API key with special characters → proper handling"""
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-key-with-dashes-and_underscores.v3"}):
+        with patch.dict(
+            os.environ, {"OPENAI_API_KEY": "sk-key-with-dashes-and_underscores.v3"}
+        ):
             from src.core.ai_client import AIModelClient
 
             client = AIModelClient()
@@ -208,7 +227,7 @@ class TestNetworkHandling:
         """Network timeout → retry logic, eventual fallback"""
         call_count = 0
 
-        def raise_timeout(*args, **kwargs) :  # type: ignore[no-untyped-def]
+        def raise_timeout(*args, **kwargs):  # type: ignore[no-untyped-def]
 
             nonlocal call_count
             call_count += 1
@@ -219,79 +238,100 @@ class TestNetworkHandling:
             mock_response.json.return_value = {"choices": []}
             return mock_response
 
-        with patch('src.core.ai_client.requests.post', side_effect=raise_timeout):
+        with patch("src.core.ai_client.requests.post", side_effect=raise_timeout):
             from src.core.ai_client import AIModelClient
+
             client = AIModelClient(api_key="sk-test")
             client._make_request_with_retry("test", {})
             assert call_count >= 1
 
     def test_connection_refused(self) -> None:
         """Connection refused → appropriate error handling"""
-        with patch('src.core.ai_client.requests.post') as mock_post:
+        with patch("src.core.ai_client.requests.post") as mock_post:
             mock_post.side_effect = ConnectionRefusedError("Connection refused")
 
             from src.core.ai_client import AIModelClient
+
             with pytest.raises((ConnectionRefusedError, Exception)):
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {}, max_retries=0)
 
     def test_dns_resolution_failure(self) -> None:
         """DNS failure → clear error message"""
-        with patch('src.core.ai_client.requests.post') as mock_post:
-            mock_post.side_effect = Exception("nodename nor servname provided, or not known")
+        with patch("src.core.ai_client.requests.post") as mock_post:
+            mock_post.side_effect = Exception(
+                "nodename nor servname provided, or not known"
+            )
 
             from src.core.ai_client import AIModelClient
+
             with pytest.raises(Exception) as exc_info:
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
-            assert "dns" in str(exc_info.value).lower() or "resolve" in str(exc_info.value).lower() or "nodename" in str(exc_info.value).lower()
+            assert (
+                "dns" in str(exc_info.value).lower()
+                or "resolve" in str(exc_info.value).lower()
+                or "nodename" in str(exc_info.value).lower()
+            )
 
     def test_ssl_certificate_error(self) -> None:
         """SSL certificate error → appropriate handling"""
-        with patch('src.core.ai_client.requests.post') as mock_post:
+        with patch("src.core.ai_client.requests.post") as mock_post:
             import ssl
-            mock_post.side_effect = ssl.SSLCertVerificationError("Certificate verify failed")
+
+            mock_post.side_effect = ssl.SSLCertVerificationError(
+                "Certificate verify failed"
+            )
 
             from src.core.ai_client import AIModelClient
+
             with pytest.raises((ssl.SSLCertVerificationError, Exception)):
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
     def test_connection_reset_by_peer(self) -> None:
         """Connection reset by peer → retry or fail gracefully"""
-        with patch('src.core.ai_client.requests.post') as mock_post:
+        with patch("src.core.ai_client.requests.post") as mock_post:
             mock_post.side_effect = ConnectionResetError("Connection reset by peer")
 
             from src.core.ai_client import AIModelClient
+
             with pytest.raises((ConnectionResetError, Exception)):
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {}, max_retries=0)
 
     def test_partial_response_received(self) -> None:
         """Partial response received → handle incomplete data"""
-        with patch('src.core.ai_client.requests.post') as mock_post:
+        with patch("src.core.ai_client.requests.post") as mock_post:
             mock_response = MagicMock()
             mock_response.status_code = 200
-            mock_response.json.side_effect = json.JSONDecodeError("Expecting value", "", 0)
+            mock_response.json.side_effect = json.JSONDecodeError(
+                "Expecting value", "", 0
+            )
             mock_post.return_value = mock_response
 
             from src.core.ai_client import AIModelClient
+
             with pytest.raises((json.JSONDecodeError, Exception)):
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
     def test_too_many_redirects(self) -> None:
         """Too many redirects → handle redirect loop"""
-        with patch('src.core.ai_client.requests.post') as mock_post:
+        with patch("src.core.ai_client.requests.post") as mock_post:
             mock_post.side_effect = Exception("Too many redirects")
 
             from src.core.ai_client import AIModelClient
+
             with pytest.raises(Exception) as exc_info:
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
-            assert "redirect" in str(exc_info.value).lower() or "too many" in str(exc_info.value).lower()
+            assert (
+                "redirect" in str(exc_info.value).lower()
+                or "too many" in str(exc_info.value).lower()
+            )
 
 
 class TestDatabaseHandling:
@@ -299,14 +339,15 @@ class TestDatabaseHandling:
 
     def test_database_corruption(self) -> None:
         """DB corruption → graceful handling, data preservation"""
-        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
 
         try:
-            with open(db_path, 'w') as f:
+            with open(db_path, "w") as f:
                 f.write("CORRUPTED DATABASE CONTENT" + "\x00" * 100)
 
             from src.db.database import GameDatabase
+
             with pytest.raises((sqlite3.DatabaseError, Exception)):
                 GameDatabase(db_path=db_path)
         finally:
@@ -318,7 +359,7 @@ class TestDatabaseHandling:
         """DB locked by another process → retry or fail gracefully"""
         import sqlite3
 
-        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
 
         try:
@@ -336,6 +377,7 @@ class TestDatabaseHandling:
 
             with pytest.raises((sqlite3.OperationalError, Exception)):
                 from src.db.database import GameDatabase
+
                 GameDatabase(db_path=db_path)
         finally:
             if os.path.exists(db_path):
@@ -347,11 +389,12 @@ class TestDatabaseHandling:
 
     def test_database_constraint_violation(self) -> None:
         """Constraint violation → appropriate error handling"""
-        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
 
         try:
             from src.db.database import GameDatabase
+
             db = GameDatabase(db_path=db_path)
 
             db._execute("CREATE TABLE test (id INTEGER PRIMARY KEY)")
@@ -368,14 +411,15 @@ class TestDatabaseHandling:
     def test_database_interrupt_recovery(self) -> None:
         """Database operation interrupted → recovery attempt"""
 
-        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
 
         try:
             from src.db.database import GameDatabase
+
             db = GameDatabase(db_path=db_path)
 
-            with patch.object(db, '_execute', side_effect=KeyboardInterrupt):
+            with patch.object(db, "_execute", side_effect=KeyboardInterrupt):
                 with pytest.raises((KeyboardInterrupt, Exception)):
                     db.save_session_data({"test": "data"})
 
@@ -389,7 +433,7 @@ class TestDatabaseHandling:
 
     def test_database_missing_table(self) -> None:
         """Missing expected table → error gracefully"""
-        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as f:
+        with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
             db_path = f.name
 
         try:
@@ -399,6 +443,7 @@ class TestDatabaseHandling:
             conn.close()
 
             from src.db.database import GameDatabase
+
             db = GameDatabase(db_path=db_path)
 
             with pytest.raises((sqlite3.OperationalError, Exception)):
@@ -421,13 +466,14 @@ class TestScreenshotHandling:
 
         with pytest.raises((TypeError, ValueError, AttributeError, Exception)):
             pipeline.process(None)  # type: ignore
+
     def test_screenshot_memory_error(self) -> None:
         """Memory error during processing → graceful recovery"""
         from src.vision import VisionPipeline
 
         pipeline = VisionPipeline()
 
-        with patch('numpy.zeros', side_effect=MemoryError("Out of memory")):
+        with patch("numpy.zeros", side_effect=MemoryError("Out of memory")):
             with pytest.raises(MemoryError):
                 pipeline.process(np.zeros((144, 160, 3), dtype=np.uint8))
 
@@ -478,7 +524,9 @@ class TestScreenshotHandling:
 
         valid_screenshot = np.zeros((144, 160, 3), dtype=np.uint8)
 
-        with patch.object(pipeline, 'process', side_effect=TimeoutError("Processing timeout")):
+        with patch.object(
+            pipeline, "process", side_effect=TimeoutError("Processing timeout")
+        ):
             with pytest.raises((TimeoutError, Exception)):
                 pipeline.process(valid_screenshot)
 
@@ -557,9 +605,7 @@ class TestCombatEdgeCases:
         combat = CombatSystem()
 
         result = combat.calculate_damage(
-            attacker={},
-            defender={"name": "Pikachu"},
-            move={"power": 40}
+            attacker={}, defender={"name": "Pikachu"}, move={"power": 40}
         )
 
         assert result is not None
@@ -591,7 +637,7 @@ class TestCombatEdgeCases:
         result = combat.calculate_damage(
             attacker={"level": 10, "attack": 15},
             defender={"defense": 10},
-            move={"power": 0}
+            move={"power": 0},
         )
 
         assert result == 0

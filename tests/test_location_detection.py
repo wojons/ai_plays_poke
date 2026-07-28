@@ -3,6 +3,7 @@ LocationDetector Unit Tests — COV-3 (49% → 70%+)
 
 Tests for src/vision/location.py without ROM or API dependencies.
 """
+
 from __future__ import annotations
 
 import json
@@ -24,10 +25,11 @@ from src.vision.location import (
 # _extract_tiles uses range(0, h-16, 16) × range(0, w-16, 16)
 # For 144×160: range(0, 128, 16)=8 rows, range(0, 144, 16)=9 cols → 72 tiles
 _TILES_144x160 = 8 * 9  # 72
-_TILES_48x48 = 2 * 2     # 4  (range(0, 32, 16)=2 rows × 2 cols)
+_TILES_48x48 = 2 * 2  # 4  (range(0, 32, 16)=2 rows × 2 cols)
 
 
 # ── tile helpers (values chosen to hit specific _classify_tile branches) ──
+
 
 def _wall_tile() -> np.ndarray:
     """center_mean > 150 AND std < 30 → wall"""
@@ -90,7 +92,7 @@ def _door_tile() -> np.ndarray:
 
 def _sign_tile() -> np.ndarray:
     """edge_mean < center_mean - 20, centre_mean=90, tile_mean≈80.6, std<40.
-    Border = 50, interior = 90. Avoids grass (std<40), water (>80), tree/rock. """
+    Border = 50, interior = 90. Avoids grass (std<40), water (>80), tree/rock."""
     t = np.full((16, 16), 90, dtype=np.uint8)
     t[0, :] = 50
     t[-1, :] = 50
@@ -106,15 +108,22 @@ def _unknown_tile() -> np.ndarray:
 
 # ── screenshot builders ───────────────────────────────────────────────────
 
+
 def _make_screenshot(tile_fn, height: int = 144, width: int = 160) -> np.ndarray:
     """Create an RGB screenshot filled with tiles from tile_fn."""
     img = np.zeros((height, width, 3), dtype=np.uint8)
     for y in range(0, height, 16):
         for x in range(0, width, 16):
             tile = tile_fn()
-            img[y:min(y+16, height), x:min(x+16, width), 0] = tile[:min(16, height-y), :min(16, width-x)]
-            img[y:min(y+16, height), x:min(x+16, width), 1] = tile[:min(16, height-y), :min(16, width-x)]
-            img[y:min(y+16, height), x:min(x+16, width), 2] = tile[:min(16, height-y), :min(16, width-x)]
+            img[y : min(y + 16, height), x : min(x + 16, width), 0] = tile[
+                : min(16, height - y), : min(16, width - x)
+            ]
+            img[y : min(y + 16, height), x : min(x + 16, width), 1] = tile[
+                : min(16, height - y), : min(16, width - x)
+            ]
+            img[y : min(y + 16, height), x : min(x + 16, width), 2] = tile[
+                : min(16, height - y), : min(16, width - x)
+            ]
     return img
 
 
@@ -150,9 +159,9 @@ def _make_screenshot_mixed(patterns: list[tuple[str, int]]) -> np.ndarray:
         row = (i // _grid_cols) * 16
         col = (i % _grid_cols) * 16
         if row + 16 <= 144 and col + 16 <= 160:
-            img[row:row+16, col:col+16, 0] = tile
-            img[row:row+16, col:col+16, 1] = tile
-            img[row:row+16, col:col+16, 2] = tile
+            img[row : row + 16, col : col + 16, 0] = tile
+            img[row : row + 16, col : col + 16, 1] = tile
+            img[row : row + 16, col : col + 16, 2] = tile
     return img
 
 
@@ -171,12 +180,13 @@ def _make_route_1_screenshot() -> np.ndarray:
 
 # ── detector fixture ─────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def detector() -> Generator[LocationDetector, None, None]:
     """Return a fresh LocationDetector with a temp area database."""
     with tempfile.TemporaryDirectory() as td:
         db_path = Path(td) / "areas.json"
-        with patch.object(LocationDetector, 'AREA_DATABASE_PATH', db_path):
+        with patch.object(LocationDetector, "AREA_DATABASE_PATH", db_path):
             det = LocationDetector()
             det._create_default_area_database()
             yield det
@@ -186,13 +196,16 @@ def detector() -> Generator[LocationDetector, None, None]:
 # _classify_tile
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestClassifyTile:
     """Coverage: _classify_tile — tile type classification."""
 
     def test_wall_center_bright_low_std(self, detector: LocationDetector) -> None:
         assert detector._classify_tile(_wall_tile()) == "wall"
 
-    def test_door_center_bright_low_std_dark_edges(self, detector: LocationDetector) -> None:
+    def test_door_center_bright_low_std_dark_edges(
+        self, detector: LocationDetector
+    ) -> None:
         assert detector._classify_tile(_door_tile()) == "door"
 
     def test_path_center_bright_low_std(self, detector: LocationDetector) -> None:
@@ -224,6 +237,7 @@ class TestClassifyTile:
 # _extract_tiles
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestExtractTiles:
     """Coverage: _extract_tiles — screenshot → 16×16 tiles."""
 
@@ -243,7 +257,9 @@ class TestExtractTiles:
         tiles = detector._extract_tiles(gray)
         assert len(tiles) == _TILES_144x160
 
-    def test_smaller_image_produces_fewer_tiles(self, detector: LocationDetector) -> None:
+    def test_smaller_image_produces_fewer_tiles(
+        self, detector: LocationDetector
+    ) -> None:
         small = np.full((48, 48, 3), 100, dtype=np.uint8)
         tiles = detector._extract_tiles(small)
         assert len(tiles) == _TILES_48x48  # 2 rows × 2 cols
@@ -252,6 +268,7 @@ class TestExtractTiles:
 # ═══════════════════════════════════════════════════════════════════════════
 # _identify_tile_patterns
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestIdentifyTilePatterns:
     """Coverage: _identify_tile_patterns — tiles → counts."""
@@ -271,6 +288,7 @@ class TestIdentifyTilePatterns:
 # _compute_pattern_hash
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestComputePatternHash:
     """Coverage: _compute_pattern_hash — counts → hash string."""
 
@@ -287,6 +305,7 @@ class TestComputePatternHash:
 # ═══════════════════════════════════════════════════════════════════════════
 # _compute_tile_hash
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestComputeTileHash:
     """Coverage: _compute_tile_hash — tile → feature string."""
@@ -306,6 +325,7 @@ class TestComputeTileHash:
 # _detect_features
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestDetectFeatures:
     """Coverage: _detect_features — screenshot → feature flags."""
 
@@ -323,7 +343,7 @@ class TestDetectFeatures:
     def test_water_body_detected(self, detector: LocationDetector) -> None:
         img = _make_screenshot(_path_tile)
         h, w = 144, 160
-        center = img[int(h*0.3):int(h*0.7), int(w*0.3):int(w*0.7), :]
+        center = img[int(h * 0.3) : int(h * 0.7), int(w * 0.3) : int(w * 0.7), :]
         center[:] = 80
         feats = detector._detect_features(img)
         assert feats["water_body"] is True
@@ -332,6 +352,7 @@ class TestDetectFeatures:
 # ═══════════════════════════════════════════════════════════════════════════
 # _match_area
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestMatchArea:
     """Coverage: _match_area — patterns + features → location match."""
@@ -387,6 +408,7 @@ class TestMatchArea:
 # detect_location (integration of all internal methods)
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestDetectLocation:
     """AC-1, AC-2, AC-4: detect_location — end-to-end location detection."""
 
@@ -432,6 +454,7 @@ class TestDetectLocation:
 # Tile info lookups
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestTileLookups:
     """Coverage: get_tile_collision, is_tile_interactive."""
 
@@ -460,6 +483,7 @@ class TestTileLookups:
 # ═══════════════════════════════════════════════════════════════════════════
 # get_navigation_graph
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TestNavigationGraph:
     """Coverage: get_navigation_graph — screenshot → grid graph."""
@@ -499,13 +523,15 @@ class TestNavigationGraph:
 # find_path_to_target
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestFindPathToTarget:
     """Coverage: find_path_to_target — simple pathfinding."""
 
     def _make_passable_graph(self, w: int = 5, h: int = 5) -> dict:
         return {
             (x, y): {"passable": True, "collision": "passable"}
-            for y in range(h) for x in range(w)
+            for y in range(h)
+            for x in range(w)
         }
 
     def test_straight_horizontal(self, detector: LocationDetector) -> None:
@@ -542,20 +568,21 @@ class TestFindPathToTarget:
 # Screen-state detection helpers
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestScreenDetection:
     """Coverage: is_in_battle, is_in_dialog, classify_screen_type."""
 
     def test_is_in_battle_with_sprite_region(self, detector: LocationDetector) -> None:
         img = _make_screenshot(_path_tile)
         h, w = 144, 160
-        enemy = img[int(h*0.1):int(h*0.35), int(w*0.4):w, :]
+        enemy = img[int(h * 0.1) : int(h * 0.35), int(w * 0.4) : w, :]
         enemy[:] = np.random.randint(0, 256, enemy.shape, dtype=np.uint8)
         assert detector.is_in_battle(img) is True
 
     def test_is_in_battle_with_hp_bar(self, detector: LocationDetector) -> None:
         img = _make_screenshot(_path_tile)
         h, w = 144, 160
-        hp_bar = img[int(h*0.02):int(h*0.12), int(w*0.5):w, :]
+        hp_bar = img[int(h * 0.02) : int(h * 0.12), int(w * 0.5) : w, :]
         hp_bar[:] = 200
         assert detector.is_in_battle(img) is True
 
@@ -566,7 +593,7 @@ class TestScreenDetection:
     def test_is_in_dialog_dark_bottom(self, detector: LocationDetector) -> None:
         img = _make_screenshot(_path_tile)
         h = 144
-        img[int(h*0.6):h, :, :] = 40
+        img[int(h * 0.6) : h, :, :] = 40
         assert detector.is_in_dialog(img) is True
 
     def test_is_in_dialog_false_bright(self, detector: LocationDetector) -> None:
@@ -576,15 +603,18 @@ class TestScreenDetection:
     def test_classify_screen_type_battle(self, detector: LocationDetector) -> None:
         img = _make_screenshot(_path_tile)
         h, w = 144, 160
-        img[int(h*0.1):int(h*0.35), int(w*0.4):w, :] = np.random.randint(
-            0, 256, img[int(h*0.1):int(h*0.35), int(w*0.4):w, :].shape, dtype=np.uint8
+        img[int(h * 0.1) : int(h * 0.35), int(w * 0.4) : w, :] = np.random.randint(
+            0,
+            256,
+            img[int(h * 0.1) : int(h * 0.35), int(w * 0.4) : w, :].shape,
+            dtype=np.uint8,
         )
         assert detector.classify_screen_type(img) == "battle"
 
     def test_classify_screen_type_dialog(self, detector: LocationDetector) -> None:
         img = _make_screenshot(_path_tile)
         h = 144
-        img[int(h*0.6):h, :, :] = 40
+        img[int(h * 0.6) : h, :, :] = 40
         assert detector.is_in_battle(img) is False
         assert detector.is_in_dialog(img) is True
 
@@ -607,13 +637,14 @@ class TestScreenDetection:
 # Constructor — area database loading
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestConstructor:
     """Coverage: __init__, _load_area_database, _create_default_area_database, _save_area_database."""
 
     def test_default_database_created_when_no_file(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "areas.json"
-            with patch.object(LocationDetector, 'AREA_DATABASE_PATH', db_path):
+            with patch.object(LocationDetector, "AREA_DATABASE_PATH", db_path):
                 det = LocationDetector()
                 assert "pallet_town" in det.area_database
                 assert det.area_database["pallet_town"]["name"] == "Pallet Town"
@@ -622,13 +653,19 @@ class TestConstructor:
     def test_loads_existing_database(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "areas.json"
-            custom = {"custom_city": {"name": "Custom City", "type": "city",
-                                       "tile_patterns": ["grass"],
-                                       "features": {}, "connections": [],
-                                       "hash_pattern": ""}}
+            custom = {
+                "custom_city": {
+                    "name": "Custom City",
+                    "type": "city",
+                    "tile_patterns": ["grass"],
+                    "features": {},
+                    "connections": [],
+                    "hash_pattern": "",
+                }
+            }
             db_path.parent.mkdir(exist_ok=True)
             db_path.write_text(json.dumps(custom))
-            with patch.object(LocationDetector, 'AREA_DATABASE_PATH', db_path):
+            with patch.object(LocationDetector, "AREA_DATABASE_PATH", db_path):
                 det = LocationDetector()
                 assert "custom_city" in det.area_database
                 assert det.area_database["custom_city"]["name"] == "Custom City"
@@ -638,21 +675,21 @@ class TestConstructor:
             db_path = Path(td) / "areas.json"
             db_path.parent.mkdir(exist_ok=True)
             db_path.write_text("not valid json{{{")
-            with patch.object(LocationDetector, 'AREA_DATABASE_PATH', db_path):
+            with patch.object(LocationDetector, "AREA_DATABASE_PATH", db_path):
                 det = LocationDetector()
                 assert "pallet_town" in det.area_database
 
     def test_save_creates_directories(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "subdir" / "areas.json"
-            with patch.object(LocationDetector, 'AREA_DATABASE_PATH', db_path):
+            with patch.object(LocationDetector, "AREA_DATABASE_PATH", db_path):
                 LocationDetector()
                 assert db_path.exists()
 
     def test_tile_classifications_always_populated(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "areas.json"
-            with patch.object(LocationDetector, 'AREA_DATABASE_PATH', db_path):
+            with patch.object(LocationDetector, "AREA_DATABASE_PATH", db_path):
                 det = LocationDetector()
                 assert "grass" in det.tile_classifications
                 assert det.tile_classifications["grass"]["collision"] == "passable"
@@ -662,12 +699,14 @@ class TestConstructor:
 # LocationResult / TileInfo dataclasses
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class TestLocationResult:
     """Coverage: LocationResult + TileInfo dataclasses."""
 
     def test_location_result_creation(self) -> None:
-        r = LocationResult("Pallet Town", "town", 0.9, "hash123",
-                           {"pokemon_center": True})
+        r = LocationResult(
+            "Pallet Town", "town", 0.9, "hash123", {"pokemon_center": True}
+        )
         assert r.location_name == "Pallet Town"
         assert r.location_type == "town"
         assert r.confidence == 0.9

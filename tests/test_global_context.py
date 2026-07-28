@@ -1,11 +1,10 @@
 """Unit tests for GlobalContext — compacted game state manager."""
 
-
-
 from src.core.global_context import GlobalContext
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
+
 
 def make_ctx(**overrides) -> GlobalContext:
     """Create a GlobalContext with convenient overrides."""
@@ -30,6 +29,7 @@ def make_ctx(**overrides) -> GlobalContext:
 
 
 # ── Constructor & Dataclass Defaults ─────────────────────────────────────
+
 
 class TestConstructor:
     """Test GlobalContext construction and default values."""
@@ -100,6 +100,7 @@ class TestConstructor:
 
 
 # ── compact() ────────────────────────────────────────────────────────────
+
 
 class TestCompact:
     """Test the compact() summary method."""
@@ -183,9 +184,7 @@ class TestCompact:
         assert "RECENT: a → b → c" in result
 
     def test_compact_recent_actions_truncated_to_5(self):
-        ctx = GlobalContext(
-            recent_actions=["a1", "a2", "a3", "a4", "a5", "a6", "a7"]
-        )
+        ctx = GlobalContext(recent_actions=["a1", "a2", "a3", "a4", "a5", "a6", "a7"])
         result = ctx.compact()
         # Should show only last 5: a3-a7 (a1, a2 dropped)
         assert "a1" not in result
@@ -213,7 +212,9 @@ class TestCompact:
         ctx = make_ctx()
         result = ctx.compact()
         lines = result.split("\n")
-        assert len(lines) >= 5  # GAME + PLAYER + RIVAL + PARTY + GOALS + ACTIVE + PROGRESS + RECENT + ITEMS
+        assert (
+            len(lines) >= 5
+        )  # GAME + PLAYER + RIVAL + PARTY + GOALS + ACTIVE + PROGRESS + RECENT + ITEMS
         assert result.strip()  # not empty
 
     def test_compact_location_in_output(self):
@@ -228,6 +229,7 @@ class TestCompact:
 
 
 # ── record_action() ──────────────────────────────────────────────────────
+
 
 class TestRecordAction:
     """Test the record_action() method."""
@@ -277,6 +279,7 @@ class TestRecordAction:
 
 # ── add_goal() ───────────────────────────────────────────────────────────
 
+
 class TestAddGoal:
     """Test the add_goal() method."""
 
@@ -316,6 +319,7 @@ class TestAddGoal:
 
 
 # ── complete_goal() ──────────────────────────────────────────────────────
+
 
 class TestCompleteGoal:
     """Test the complete_goal() method."""
@@ -361,6 +365,7 @@ class TestCompleteGoal:
 
 # ── set_flag() ───────────────────────────────────────────────────────────
 
+
 class TestSetFlag:
     """Test the set_flag() method."""
 
@@ -391,6 +396,7 @@ class TestSetFlag:
 
 # ── update_party() ───────────────────────────────────────────────────────
 
+
 class TestUpdateParty:
     """Test the update_party() method."""
 
@@ -419,12 +425,15 @@ class TestUpdateParty:
 
     def test_update_party_reflected_in_compact(self):
         ctx = GlobalContext()
-        ctx.update_party([{"name": "EEVEE", "hp_pct": 90, "level": 12, "status": "sleep"}])
+        ctx.update_party(
+            [{"name": "EEVEE", "hp_pct": 90, "level": 12, "status": "sleep"}]
+        )
         result = ctx.compact()
         assert "EEVEE Lv12 HP:90% [sleep]" in result
 
 
 # ── set_location() ───────────────────────────────────────────────────────
+
 
 class TestSetLocation:
     """Test the set_location() method."""
@@ -453,6 +462,7 @@ class TestSetLocation:
 
 # ── Integration / Combined Operations ────────────────────────────────────
 
+
 class TestIntegration:
     """Test combined operations simulating real gameplay workflows."""
 
@@ -469,7 +479,9 @@ class TestIntegration:
         # Set flags
         ctx.set_flag("entered_lab")
         ctx.set_flag("got_starter")
-        ctx.update_party([{"name": "SQUIRTLE", "hp_pct": 100, "level": 5, "status": None}])
+        ctx.update_party(
+            [{"name": "SQUIRTLE", "hp_pct": 100, "level": 5, "status": None}]
+        )
 
         # Complete first goal
         ctx.complete_goal("get_starter")

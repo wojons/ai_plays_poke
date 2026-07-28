@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 class StateType(Enum):
     """High-level state categories"""
+
     BOOT = auto()
     TITLE = auto()
     MENU = auto()
@@ -37,6 +38,7 @@ class StateType(Enum):
 
 class BootSubState(Enum):
     """Bootstrap sequence states"""
+
     INITIALIZE = auto()
     TITLE_SCREEN = auto()
     PRESS_START = auto()
@@ -54,6 +56,7 @@ class BootSubState(Enum):
 
 class TitleSubState(Enum):
     """Title screen states"""
+
     SHOWING_LOGO = auto()
     WAITING_FOR_START = auto()
     GAME_MODE_MENU = auto()
@@ -61,6 +64,7 @@ class TitleSubState(Enum):
 
 class MenuSubState(Enum):
     """Menu navigation states"""
+
     MAIN_MENU = auto()
     POKEMON_MENU = auto()
     INVENTORY = auto()
@@ -73,6 +77,7 @@ class MenuSubState(Enum):
 
 class DialogSubState(Enum):
     """Dialog/text display states"""
+
     TEXT_DISPLAY = auto()
     CHOICE_MENU = auto()
     YES_NO_MENU = auto()
@@ -82,6 +87,7 @@ class DialogSubState(Enum):
 
 class OverworldSubState(Enum):
     """Overworld navigation states"""
+
     IDLE = auto()
     WALKING = auto()
     RUNNING = auto()
@@ -99,6 +105,7 @@ class OverworldSubState(Enum):
 
 class BattleSubState(Enum):
     """Battle system states"""
+
     BATTLE_INTRO = auto()
     BATTLE_MENU = auto()
     MOVE_SELECTION = auto()
@@ -114,6 +121,7 @@ class BattleSubState(Enum):
 
 class EmergencySubState(Enum):
     """Emergency interrupt states"""
+
     NORMAL_OPERATION = auto()
     SOFTLOCK_DETECTED = auto()
     ERROR_RECOVERY = auto()
@@ -127,6 +135,7 @@ class EmergencySubState(Enum):
 
 class StateTransitionResult(Enum):
     """Result of a state transition attempt"""
+
     SUCCESS = auto()
     INVALID_TRANSITION = auto()
     STATE_NOT_FOUND = auto()
@@ -137,6 +146,7 @@ class StateTransitionResult(Enum):
 @dataclass
 class StateTransition:
     """Records a single state transition for history"""
+
     from_state: str
     to_state: str
     timestamp: datetime = field(default_factory=datetime.now)
@@ -148,6 +158,7 @@ class StateTransition:
 @dataclass
 class TransitionCondition:
     """Condition that must be met for a transition"""
+
     name: str
     check_func: Callable[[], bool]
     error_message: str = ""
@@ -232,7 +243,9 @@ class State(ABC):
         return f"{self.__class__.__name__}({self.name})"
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} name='{self.name}' active={self._is_active}>"
+        return (
+            f"<{self.__class__.__name__} name='{self.name}' active={self._is_active}>"
+        )
 
 
 class HierarchicalStateMachine:
@@ -303,24 +316,71 @@ class HierarchicalStateMachine:
             "TITLE.SHOWING_LOGO": {"TITLE.WAITING_FOR_START"},
             "TITLE.WAITING_FOR_START": {"TITLE.GAME_MODE_MENU"},
             "TITLE.GAME_MODE_MENU": {"MENU.MAIN_MENU"},
-
-            "MENU.MAIN_MENU": {"MENU.POKEMON_MENU", "MENU.INVENTORY", "MENU.SAVE_MENU", "MENU.OPTIONS", "OVERWORLD.IDLE"},
-            "MENU.POKEMON_MENU": {"MENU.MAIN_MENU", "MENU.POKEMON_MENU", "OVERWORLD.IDLE"},
-            "MENU.INVENTORY": {"MENU.MAIN_MENU", "DIALOG.CHOICE_MENU", "OVERWORLD.IDLE"},
-            "MENU.SAVE_MENU": {"MENU.MAIN_MENU", "DIALOG.TEXT_DISPLAY", "OVERWORLD.IDLE"},
+            "MENU.MAIN_MENU": {
+                "MENU.POKEMON_MENU",
+                "MENU.INVENTORY",
+                "MENU.SAVE_MENU",
+                "MENU.OPTIONS",
+                "OVERWORLD.IDLE",
+            },
+            "MENU.POKEMON_MENU": {
+                "MENU.MAIN_MENU",
+                "MENU.POKEMON_MENU",
+                "OVERWORLD.IDLE",
+            },
+            "MENU.INVENTORY": {
+                "MENU.MAIN_MENU",
+                "DIALOG.CHOICE_MENU",
+                "OVERWORLD.IDLE",
+            },
+            "MENU.SAVE_MENU": {
+                "MENU.MAIN_MENU",
+                "DIALOG.TEXT_DISPLAY",
+                "OVERWORLD.IDLE",
+            },
             "MENU.OPTIONS": {"MENU.MAIN_MENU", "OVERWORLD.IDLE"},
             "MENU.PC_MENU": {"MENU.MAIN_MENU", "OVERWORLD.IDLE"},
             "MENU.TRAINER_CARD": {"MENU.MAIN_MENU", "OVERWORLD.IDLE"},
-
-            "DIALOG.TEXT_DISPLAY": {"DIALOG.AWAITING_INPUT", "DIALOG.CHOICE_MENU", "DIALOG.YES_NO_MENU", "OVERWORLD.IDLE", "MENU.MAIN_MENU"},
+            "DIALOG.TEXT_DISPLAY": {
+                "DIALOG.AWAITING_INPUT",
+                "DIALOG.CHOICE_MENU",
+                "DIALOG.YES_NO_MENU",
+                "OVERWORLD.IDLE",
+                "MENU.MAIN_MENU",
+            },
             "DIALOG.AWAITING_INPUT": {"DIALOG.TEXT_COMPLETE", "DIALOG.CHOICE_MENU"},
-            "DIALOG.CHOICE_MENU": {"DIALOG.TEXT_DISPLAY", "MENU.INVENTORY", "OVERWORLD.IDLE"},
-            "DIALOG.YES_NO_MENU": {"DIALOG.TEXT_DISPLAY", "MENU.SAVE_MENU", "OVERWORLD.IDLE"},
+            "DIALOG.CHOICE_MENU": {
+                "DIALOG.TEXT_DISPLAY",
+                "MENU.INVENTORY",
+                "OVERWORLD.IDLE",
+            },
+            "DIALOG.YES_NO_MENU": {
+                "DIALOG.TEXT_DISPLAY",
+                "MENU.SAVE_MENU",
+                "OVERWORLD.IDLE",
+            },
             "DIALOG.TEXT_COMPLETE": {"OVERWORLD.IDLE"},
-
-            "OVERWORLD.IDLE": {"OVERWORLD.WALKING", "MENU.MAIN_MENU", "BATTLE.BATTLE_INTRO", "OVERWORLD.INTERACTING_SIGN", "DIALOG.TEXT_DISPLAY"},
-            "OVERWORLD.WALKING": {"OVERWORLD.IDLE", "OVERWORLD.RUNNING", "OVERWORLD.INTERACTION_ZONE", "BATTLE.BATTLE_INTRO", "OVERWORLD.INTERACTING_SIGN", "OVERWORLD.APPROACHING_NPC", "DIALOG.TEXT_DISPLAY"},
-            "OVERWORLD.RUNNING": {"OVERWORLD.IDLE", "OVERWORLD.WALKING", "BATTLE.BATTLE_INTRO"},
+            "OVERWORLD.IDLE": {
+                "OVERWORLD.WALKING",
+                "MENU.MAIN_MENU",
+                "BATTLE.BATTLE_INTRO",
+                "OVERWORLD.INTERACTING_SIGN",
+                "DIALOG.TEXT_DISPLAY",
+            },
+            "OVERWORLD.WALKING": {
+                "OVERWORLD.IDLE",
+                "OVERWORLD.RUNNING",
+                "OVERWORLD.INTERACTION_ZONE",
+                "BATTLE.BATTLE_INTRO",
+                "OVERWORLD.INTERACTING_SIGN",
+                "OVERWORLD.APPROACHING_NPC",
+                "DIALOG.TEXT_DISPLAY",
+            },
+            "OVERWORLD.RUNNING": {
+                "OVERWORLD.IDLE",
+                "OVERWORLD.WALKING",
+                "BATTLE.BATTLE_INTRO",
+            },
             "OVERWORLD.SURFING": {"OVERWORLD.IDLE", "BATTLE.BATTLE_INTRO"},
             "OVERWORLD.FLYING": {"OVERWORLD.IDLE"},
             "OVERWORLD.BIKING": {"OVERWORLD.IDLE", "BATTLE.BATTLE_INTRO"},
@@ -330,24 +390,53 @@ class HierarchicalStateMachine:
             "OVERWORLD.FACING_DOOR": {"OVERWORLD.IDLE"},
             "OVERWORLD.INTERACTION_ZONE": {"DIALOG.TEXT_DISPLAY", "MENU.PC_MENU"},
             "OVERWORLD.CENTER_HEAL": {"DIALOG.TEXT_DISPLAY", "OVERWORLD.IDLE"},
-            "OVERWORLD.MART_SHOPPING": {"MENU.INVENTORY", "DIALOG.TEXT_DISPLAY", "OVERWORLD.IDLE"},
-
+            "OVERWORLD.MART_SHOPPING": {
+                "MENU.INVENTORY",
+                "DIALOG.TEXT_DISPLAY",
+                "OVERWORLD.IDLE",
+            },
             "BATTLE.BATTLE_INTRO": {"BATTLE.BATTLE_MENU", "BATTLE.BATTLE_END"},
-            "BATTLE.BATTLE_MENU": {"BATTLE.MOVE_SELECTION", "BATTLE.SWITCH_POKEMON", "BATTLE.USE_ITEM", "BATTLE.CATCH_ATTEMPT"},
-            "BATTLE.MENU": {"BATTLE.MOVE_SELECTION", "BATTLE.SWITCH_POKEMON", "BATTLE.USE_ITEM", "BATTLE.CATCH_ATTEMPT"},
-            "BATTLE.MOVE_SELECTION": {"BATTLE.TARGET_SELECTION", "BATTLE.BATTLE_ANIMATION"},
+            "BATTLE.BATTLE_MENU": {
+                "BATTLE.MOVE_SELECTION",
+                "BATTLE.SWITCH_POKEMON",
+                "BATTLE.USE_ITEM",
+                "BATTLE.CATCH_ATTEMPT",
+            },
+            "BATTLE.MENU": {
+                "BATTLE.MOVE_SELECTION",
+                "BATTLE.SWITCH_POKEMON",
+                "BATTLE.USE_ITEM",
+                "BATTLE.CATCH_ATTEMPT",
+            },
+            "BATTLE.MOVE_SELECTION": {
+                "BATTLE.TARGET_SELECTION",
+                "BATTLE.BATTLE_ANIMATION",
+            },
             "BATTLE.TARGET_SELECTION": {"BATTLE.BATTLE_ANIMATION"},
-            "BATTLE.BATTLE_ANIMATION": {"BATTLE.BATTLE_MESSAGE", "BATTLE.BATTLE_RESULT"},
+            "BATTLE.BATTLE_ANIMATION": {
+                "BATTLE.BATTLE_MESSAGE",
+                "BATTLE.BATTLE_RESULT",
+            },
             "BATTLE.BATTLE_MESSAGE": {"BATTLE.BATTLE_MENU", "BATTLE.BATTLE_RESULT"},
             "BATTLE.SWITCH_POKEMON": {"BATTLE.BATTLE_MENU", "BATTLE.BATTLE_ANIMATION"},
             "BATTLE.USE_ITEM": {"BATTLE.BATTLE_MENU", "BATTLE.BATTLE_ANIMATION"},
             "BATTLE.CATCH_ATTEMPT": {"BATTLE.BATTLE_ANIMATION", "BATTLE.BATTLE_RESULT"},
             "BATTLE.BATTLE_RESULT": {"BATTLE.BATTLE_END", "EMERGENCY.GAME_OVER"},
             "BATTLE.BATTLE_END": {"OVERWORLD.IDLE", "MENU.MAIN_MENU"},
-
-            "EMERGENCY.NORMAL_OPERATION": {"EMERGENCY.SOFTLOCK_DETECTED", "EMERGENCY.GAME_OVER", "BATTLE.BATTLE_INTRO"},
-            "EMERGENCY.SOFTLOCK_DETECTED": {"EMERGENCY.ERROR_RECOVERY", "EMERGENCY.MENU_ESCAPE", "OVERWORLD.IDLE"},
-            "EMERGENCY.ERROR_RECOVERY": {"OVERWORLD.IDLE", "EMERGENCY.EMERGENCY_SHUTDOWN"},
+            "EMERGENCY.NORMAL_OPERATION": {
+                "EMERGENCY.SOFTLOCK_DETECTED",
+                "EMERGENCY.GAME_OVER",
+                "BATTLE.BATTLE_INTRO",
+            },
+            "EMERGENCY.SOFTLOCK_DETECTED": {
+                "EMERGENCY.ERROR_RECOVERY",
+                "EMERGENCY.MENU_ESCAPE",
+                "OVERWORLD.IDLE",
+            },
+            "EMERGENCY.ERROR_RECOVERY": {
+                "OVERWORLD.IDLE",
+                "EMERGENCY.EMERGENCY_SHUTDOWN",
+            },
             "EMERGENCY.EMERGENCY_SHUTDOWN": set(),
             "EMERGENCY.GAME_OVER": {"EMERGENCY.BLACKOUT_RECOVERY"},
             "EMERGENCY.BLACKOUT_RECOVERY": {"OVERWORLD.IDLE"},
@@ -502,7 +591,9 @@ class HierarchicalStateMachine:
         self._emergency_reason = None
         logger.info("Emergency state cleared")
 
-    def transition_to(self, state_name: str, reason: str = "", tick: Optional[int] = None) -> StateTransitionResult:
+    def transition_to(
+        self, state_name: str, reason: str = "", tick: Optional[int] = None
+    ) -> StateTransitionResult:
         """
         Transition to a new state
         Returns the result of the transition attempt
@@ -512,7 +603,9 @@ class HierarchicalStateMachine:
             raise ValueError(f"State not found: {state_name}")
 
         if tick is not None and tick < self._tick:
-            raise ValueError(f"Invalid tick value: {tick} < {self._tick}. Ticks must be non-decreasing.")
+            raise ValueError(
+                f"Invalid tick value: {tick} < {self._tick}. Ticks must be non-decreasing."
+            )
 
         from_state = self._current_state.name if self._current_state else "None"
 
@@ -524,7 +617,9 @@ class HierarchicalStateMachine:
             return StateTransitionResult.SUCCESS
 
         if not self.can_transition(from_state, state_name):
-            logger.warning(f"Invalid transition attempted: {from_state} -> {state_name}")
+            logger.warning(
+                f"Invalid transition attempted: {from_state} -> {state_name}"
+            )
 
             if "EMERGENCY" in state_name:
                 if self._current_state:
@@ -558,7 +653,7 @@ class HierarchicalStateMachine:
             to_state=state_name,
             tick=self._tick,
             reason=reason,
-            duration_ms=duration_ms
+            duration_ms=duration_ms,
         )
         self._history.append(transition)
 
@@ -603,7 +698,9 @@ class HierarchicalStateMachine:
         """
         if tick is not None:
             if tick < self._tick:
-                raise ValueError(f"Invalid tick value: {tick} < {self._tick}. Ticks must be non-decreasing.")
+                raise ValueError(
+                    f"Invalid tick value: {tick} < {self._tick}. Ticks must be non-decreasing."
+                )
             self._tick = tick
         else:
             self._tick += 1
@@ -631,7 +728,9 @@ class HierarchicalStateMachine:
         return {
             "name": self.name,
             "current_state": self._current_state.name if self._current_state else None,
-            "previous_state": self._previous_state.name if self._previous_state else None,
+            "previous_state": self._previous_state.name
+            if self._previous_state
+            else None,
             "total_ticks": self._tick,
             "total_time_seconds": total_time,
             "transition_count": len(self._history),
@@ -706,14 +805,19 @@ class GameStateClassifier:
         self._last_classification_time = 0.0
         self._classification_interval = 0.016  # ~60fps
 
-    def classify(self, screen_data: Any, memory_data: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    def classify(
+        self, screen_data: Any, memory_data: Optional[Dict[str, Any]] = None
+    ) -> Optional[str]:
         """
         Classify the current game state and trigger appropriate transition
         Returns the new state name, or None if no transition needed
         """
         current_time = time.time()
 
-        if current_time - self._last_classification_time < self._classification_interval:
+        if (
+            current_time - self._last_classification_time
+            < self._classification_interval
+        ):
             return None
 
         self._last_classification_time = current_time
@@ -726,14 +830,20 @@ class GameStateClassifier:
 
         if suggested_state and suggested_state != current_state.name:
             if self.hsm.can_transition(current_state.name, suggested_state):
-                self.hsm.transition_to(suggested_state, reason=f"Classified from {current_state.name}")
+                self.hsm.transition_to(
+                    suggested_state, reason=f"Classified from {current_state.name}"
+                )
                 return suggested_state
             elif "EMERGENCY" in suggested_state:
-                self.hsm.trigger_emergency(f"State classifier suggested: {suggested_state}")
+                self.hsm.trigger_emergency(
+                    f"State classifier suggested: {suggested_state}"
+                )
 
         return None
 
-    def _determine_state(self, screen_data: Any, memory_data: Optional[Dict[str, Any]]) -> Optional[str]:
+    def _determine_state(
+        self, screen_data: Any, memory_data: Optional[Dict[str, Any]]
+    ) -> Optional[str]:
         """Determine the current state from screen/memory data"""
         return None
 

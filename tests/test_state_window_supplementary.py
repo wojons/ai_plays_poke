@@ -19,6 +19,7 @@ from src.core.global_context import GlobalContext
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def ctx():
     return GlobalContext(
@@ -55,6 +56,7 @@ def _make_window(state_type, ctx, emu, vision, **kwargs):
 
 
 # ── _hsm_type_to_state_type ────────────────────────────────────────────────
+
 
 class TestHsmTypeToStateType:
     """Static mapping from state_window state_type to HSM category."""
@@ -106,11 +108,15 @@ class TestHsmTypeToStateType:
 
 # ── _build_ram_fallback ────────────────────────────────────────────────────
 
+
 class TestBuildRamFallback:
     """Tests for _build_ram_fallback() — fallback when template is missing."""
 
     def test_fallback_returns_render_field(self, ctx, mock_emu):
-        vision = {"screen_type": "overworld", "render": "Map: Pallet Town\nPosition: (3,4)"}
+        vision = {
+            "screen_type": "overworld",
+            "render": "Map: Pallet Town\nPosition: (3,4)",
+        }
         window = _make_window("overworld", ctx, mock_emu, vision)
         result = window._build_ram_fallback()
         assert "Map: Pallet Town" in result
@@ -132,6 +138,7 @@ class TestBuildRamFallback:
 
 # ── _build_ram_prompt ──────────────────────────────────────────────────────
 
+
 class TestBuildRamPrompt:
     """Tests for _build_ram_prompt() — compact RAM-based overworld prompt."""
 
@@ -141,14 +148,18 @@ class TestBuildRamPrompt:
         gen1_dir = tmp_path / "configs" / "prompts" / "gen1"
         gen1_dir.mkdir(parents=True)
         tmpl = gen1_dir / "overworld_ram.yaml"
-        tmpl.write_text(yaml.dump({
-            "ram_overworld": (
-                "Map: {map_name} {map_dims}\n"
-                "Position: ({player_x}, {player_y}), facing {facing}\n"
-                "Adjacent: up={adj_up}, down={adj_down}, left={adj_left}, right={adj_right}\n"
-                "{minimap}"
+        tmpl.write_text(
+            yaml.dump(
+                {
+                    "ram_overworld": (
+                        "Map: {map_name} {map_dims}\n"
+                        "Position: ({player_x}, {player_y}), facing {facing}\n"
+                        "Adjacent: up={adj_up}, down={adj_down}, left={adj_left}, right={adj_right}\n"
+                        "{minimap}"
+                    )
+                }
             )
-        }))
+        )
 
         vision = {
             "result": "overworld",
@@ -157,7 +168,12 @@ class TestBuildRamPrompt:
             "player_x": 5,
             "player_y": 8,
             "player_facing": "south",
-            "adjacent": {"up": "floor", "down": "grass", "left": "wall", "right": "floor"},
+            "adjacent": {
+                "up": "floor",
+                "down": "grass",
+                "left": "wall",
+                "right": "floor",
+            },
             "overworld_grid": "...",
         }
 
@@ -190,11 +206,23 @@ class TestBuildRamPrompt:
         vision = {
             "result": "battle",
             "battle_state": {
-                "player": {"name": "Squirtle", "level": 5, "hp_pct": 80,
-                           "hp": 16, "max_hp": 20, "type": "Water",
-                           "moves": [{"name": "Tackle", "pp": 35, "pp_max": 35, "power": 40}]},
-                "enemy": {"name": "Pidgey", "level": 3, "hp_pct": 60,
-                          "hp": 12, "max_hp": 20, "type": "Normal/Flying"},
+                "player": {
+                    "name": "Squirtle",
+                    "level": 5,
+                    "hp_pct": 80,
+                    "hp": 16,
+                    "max_hp": 20,
+                    "type": "Water",
+                    "moves": [{"name": "Tackle", "pp": 35, "pp_max": 35, "power": 40}],
+                },
+                "enemy": {
+                    "name": "Pidgey",
+                    "level": 3,
+                    "hp_pct": 60,
+                    "hp": 12,
+                    "max_hp": 20,
+                    "type": "Normal/Flying",
+                },
                 "battle_type": "Wild",
             },
         }
@@ -227,6 +255,7 @@ class TestBuildRamPrompt:
 
 
 # ── _record_recent_action + _build_recent_actions_text ─────────────────────
+
 
 class TestRecentActions:
     """Tests for _record_recent_action and _build_recent_actions_text."""
@@ -325,7 +354,7 @@ class TestRecentActions:
         lines = text.split("\n")
         non_header_lines = [line for line in lines if line.startswith("  ")]
         assert "DOWN" in non_header_lines[0]  # most recent
-        assert "UP" in non_header_lines[1]     # older
+        assert "UP" in non_header_lines[1]  # older
 
     def test_record_action_with_no_button_key(self, ctx, mock_emu):
         """Tool call with no button in arguments → uses empty string."""
@@ -339,6 +368,7 @@ class TestRecentActions:
 
 
 # ── _map_vision_to_hsm_state ───────────────────────────────────────────────
+
 
 class TestMapVisionToHsmState:
     """Tests for _map_vision_to_hsm_state() — vision → HSM state mapping."""
@@ -445,6 +475,7 @@ class TestMapVisionToHsmState:
 
 # ── _check_outcome HSM transition path ─────────────────────────────────────
 
+
 class TestCheckOutcomeHsm:
     """_check_outcome with HSM state transition detection."""
 
@@ -474,6 +505,7 @@ class TestCheckOutcomeHsm:
 
 
 # ── _build_prompt HSM state section ────────────────────────────────────────
+
 
 class TestBuildPromptHsm:
     """_build_prompt HSM state section rendering."""

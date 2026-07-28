@@ -11,10 +11,16 @@ from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from memory_reader import read_pokemon_stats, scan_memory_for_pokemon_data, test_memory_scanning
+from memory_reader import (
+    read_pokemon_stats,
+    scan_memory_for_pokemon_data,
+    test_memory_scanning,
+)
 
 
-def make_pyboy(memory_values: dict[int, int] | None = None, default: int = 0) -> MagicMock:
+def make_pyboy(
+    memory_values: dict[int, int] | None = None, default: int = 0
+) -> MagicMock:
     """Build a mock PyBoy whose .memory[addr] returns values from the dict."""
     values = memory_values or {}
     memory = MagicMock()
@@ -113,8 +119,15 @@ class TestReadPokemonStats:
         assert addrs == [0xD158, 0xD159, 0xD16A, 0xD15E, 0xCFD8, 0xCFD9, 0xCFE2]
 
     def test_values_from_memory(self):
-        values = {0xD158: 35, 0xD159: 40, 0xD16A: 12, 0xD15E: 0,
-                  0xCFD8: 20, 0xCFD9: 22, 0xCFE2: 10}
+        values = {
+            0xD158: 35,
+            0xD159: 40,
+            0xD16A: 12,
+            0xD15E: 0,
+            0xCFD8: 20,
+            0xCFD9: 22,
+            0xCFE2: 10,
+        }
         pyboy = make_pyboy(values)
         stats = read_pokemon_stats(pyboy)
         assert stats == {

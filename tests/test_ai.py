@@ -16,8 +16,7 @@ class TestPromptSelection:
     """Tests for dynamic prompt selection based on game state"""
 
     @pytest.fixture
-    def mock_prompt_manager(self) :  # type: ignore[no-untyped-def]
-
+    def mock_prompt_manager(self):  # type: ignore[no-untyped-def]
         """Mock prompt manager for testing"""
         mock = MagicMock()
         mock.prompt_templates = []
@@ -26,34 +25,27 @@ class TestPromptSelection:
         return mock
 
     @pytest.fixture
-    def sample_game_contexts(self) :  # type: ignore[no-untyped-def]
-
+    def sample_game_contexts(self):  # type: ignore[no-untyped-def]
         """Sample game contexts for testing prompt selection"""
         return {
-            "battle": {
-                "is_battle": True,
-                "enemy_pokemon": "Pikachu",
-                "turn_number": 3
-            },
-            "menu": {
-                "is_battle": False,
-                "is_menu": True,
-                "menu_type": "pokemon"
-            },
+            "battle": {"is_battle": True, "enemy_pokemon": "Pikachu", "turn_number": 3},
+            "menu": {"is_battle": False, "is_menu": True, "menu_type": "pokemon"},
             "dialog": {
                 "is_battle": False,
                 "has_dialog": True,
-                "dialog_text": "Hello there!"
+                "dialog_text": "Hello there!",
             },
             "overworld": {
                 "is_battle": False,
                 "is_menu": False,
                 "has_dialog": False,
-                "location": "Route 1"
-            }
+                "location": "Route 1",
+            },
         }
 
-    def test_select_battle_prompts(self, sample_game_contexts, mock_prompt_manager) -> None:  # type: ignore[no-untyped-def]
+    def test_select_battle_prompts(
+        self, sample_game_contexts, mock_prompt_manager
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test correct prompts are selected for battle state"""
         from src.core.prompt_manager import PromptManager, PromptTemplate
 
@@ -62,18 +54,16 @@ class TestPromptSelection:
             category="battle",
             description="Basic battle tactics",
             content="Analyze this battle screenshot...",
-            priority=5
+            priority=5,
         )
 
-        with patch.object(PromptManager, '__init__', lambda x, y=None: None):
+        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = [battle_template]
             prompt_manager.prompt_usage_stats = {}
 
             prompts = prompt_manager.select_prompts_for_ai(
-                "battle",
-                sample_game_contexts["battle"],
-                "balanced"
+                "battle", sample_game_contexts["battle"], "balanced"
             )
 
             assert len(prompts) >= 0
@@ -82,14 +72,13 @@ class TestPromptSelection:
         """Test correct prompts are selected for menu state"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, '__init__', lambda x, y=None: None):
+        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
 
             relevant = prompt_manager.get_relevant_prompts(
-                "menu",
-                sample_game_contexts["menu"]
+                "menu", sample_game_contexts["menu"]
             )
 
             assert isinstance(relevant, list)
@@ -98,14 +87,13 @@ class TestPromptSelection:
         """Test correct prompts are selected for overworld state"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, '__init__', lambda x, y=None: None):
+        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
 
             relevant = prompt_manager.get_relevant_prompts(
-                "overworld",
-                sample_game_contexts["overworld"]
+                "overworld", sample_game_contexts["overworld"]
             )
 
             assert isinstance(relevant, list)
@@ -114,7 +102,7 @@ class TestPromptSelection:
         """Test AI preference affects prompt selection"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, '__init__', lambda x, y=None: None):
+        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
@@ -123,9 +111,7 @@ class TestPromptSelection:
 
             for pref in preferences:
                 prompts = prompt_manager.select_prompts_for_ai(
-                    "battle",
-                    {},
-                    ai_preference=pref
+                    "battle", {}, ai_preference=pref
                 )
                 assert isinstance(prompts, list)
 
@@ -133,7 +119,7 @@ class TestPromptSelection:
         """Test prompts are sorted by priority"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, '__init__', lambda x, y=None: None):
+        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
@@ -149,23 +135,19 @@ class TestResponseParsing:
     JSON_PARSING_THRESHOLD = 0.85
 
     @pytest.fixture
-    def mock_api_response(self) :  # type: ignore[no-untyped-def]
-
+    def mock_api_response(self):  # type: ignore[no-untyped-def]
         """Mock API response structure"""
         return {
             "content": "Sample AI response",
             "finish_reason": "stop",
             "model": "gpt-4o-mini",
-            "usage": {
-                "prompt_tokens": 150,
-                "completion_tokens": 100
-            },
-            "duration_ms": 500.0
+            "usage": {"prompt_tokens": 150, "completion_tokens": 100},
+            "duration_ms": 500.0,
         }
 
     def test_json_response_parsing(self) -> None:
         """Test successful JSON response parsing"""
-        json_response = '''
+        json_response = """
         {
             "screen_type": "battle",
             "enemy_pokemon": "Pikachu",
@@ -174,7 +156,7 @@ class TestResponseParsing:
             "recommended_action": "press:A",
             "reasoning": "Use Thunderbolt for super-effective damage"
         }
-        '''
+        """
 
         try:
             parsed = json.loads(json_response)
@@ -191,7 +173,7 @@ class TestResponseParsing:
             '{"confidence": 0.95}',
             '{"action": "press:A"}',
             '{"text": "Hello"}',
-            '{"valid": true}'
+            '{"valid": true}',
         ]
 
         success_count = 0
@@ -203,8 +185,9 @@ class TestResponseParsing:
                 pass
 
         success_rate = success_count / len(test_responses)
-        assert success_rate >= self.JSON_PARSING_THRESHOLD, \
+        assert success_rate >= self.JSON_PARSING_THRESHOLD, (
             f"JSON parse rate {success_rate} below threshold {self.JSON_PARSING_THRESHOLD}"
+        )
 
     def test_fallback_regex_parsing(self) -> None:
         """Test fallback regex parsing when JSON fails"""
@@ -212,7 +195,7 @@ class TestResponseParsing:
             "REASONING: Use Ember ACTION: press:A",
             "REASONING: Navigate menu ACTION: press:DOWN",
             "ACTION: press:B REASONING: Go back",
-            "press:UP to move north"
+            "press:UP to move north",
         ]
 
         for response in text_responses:
@@ -222,11 +205,11 @@ class TestResponseParsing:
 
     def _extract_action_from_text(self, text: str) -> Optional[str]:
         """Helper to extract action from text using regex"""
-        press_match = re.search(r'press:\s*(\w+)', text, re.IGNORECASE)
+        press_match = re.search(r"press:\s*(\w+)", text, re.IGNORECASE)
         if press_match:
             return f"press:{press_match.group(1).upper()}"
 
-        button_match = re.search(r'\b(A|B|UP|DOWN|LEFT|RIGHT)\b', text.upper())
+        button_match = re.search(r"\b(A|B|UP|DOWN|LEFT|RIGHT)\b", text.upper())
         if button_match:
             return f"press:{button_match.group(1)}"
 
@@ -234,12 +217,12 @@ class TestResponseParsing:
 
     def test_tactical_response_parsing(self) -> None:
         """Test parsing tactical decision responses"""
-        tactical_response = '''
+        tactical_response = """
         REASONING: The enemy Pikachu is at 50% HP and weak to Ground moves.
         ACTION: press:A
 
         Use Dig for super-effective damage!
-        '''
+        """
 
         reasoning, action = self._parse_tactical_response(tactical_response)
 
@@ -249,7 +232,7 @@ class TestResponseParsing:
 
     def _parse_tactical_response(self, response: str) -> tuple[Any, ...]:
         """Helper to parse tactical response"""
-        lines = response.strip().split('\n')
+        lines = response.strip().split("\n")
 
         reasoning = ""
         action = "press:A"
@@ -270,7 +253,7 @@ class TestResponseParsing:
 
     def test_strategic_response_parsing(self) -> None:
         """Test parsing strategic planning responses"""
-        strategic_response = '''
+        strategic_response = """
         OBJECTIVE: Reach Viridian City
         KEY_TACTICS:
         1. Follow the main road south
@@ -278,7 +261,7 @@ class TestResponseParsing:
         3. Keep Pokemon healthy
 
         CONFIDENCE: 0.85
-        '''
+        """
 
         parsed = self._parse_strategic_response(strategic_response)
 
@@ -288,21 +271,17 @@ class TestResponseParsing:
 
     def _parse_strategic_response(self, response: str) -> Dict[str, Any]:
         """Helper to parse strategic response"""
-        result = {
-            "objective": "",
-            "key_tactics": [],
-            "confidence": 0.5
-        }
+        result = {"objective": "", "key_tactics": [], "confidence": 0.5}
 
-        obj_match = re.search(r'OBJECTIVE[:\s]+(.*?)(?:\n|$)', response, re.IGNORECASE)
+        obj_match = re.search(r"OBJECTIVE[:\s]+(.*?)(?:\n|$)", response, re.IGNORECASE)
         if obj_match:
             result["objective"] = obj_match.group(1).strip()
 
-        items = re.findall(r'\d+\.\s+(.*?)(?=\n|$)', response)
+        items = re.findall(r"\d+\.\s+(.*?)(?=\n|$)", response)
         if items:
             result["key_tactics"] = items[:5]
 
-        conf_match = re.search(r'CONFIDENCE[:\s]+([\d.]+)', response, re.IGNORECASE)
+        conf_match = re.search(r"CONFIDENCE[:\s]+([\d.]+)", response, re.IGNORECASE)
         if conf_match:
             try:
                 result["confidence"] = float(conf_match.group(1))
@@ -313,7 +292,7 @@ class TestResponseParsing:
 
     def test_vision_analysis_response_parsing(self) -> None:
         """Test parsing vision analysis responses"""
-        vision_response = '''
+        vision_response = """
         {
             "screen_type": "battle",
             "enemy_pokemon": "Charmander",
@@ -322,7 +301,7 @@ class TestResponseParsing:
             "available_actions": ["A", "B", "DOWN"],
             "recommended_action": "press:A"
         }
-        '''
+        """
 
         parsed = self._parse_vision_response(vision_response)
 
@@ -335,7 +314,7 @@ class TestResponseParsing:
         import json as json_module
 
         try:
-            json_match = re.search(r'\{[^{}]*\}', response)
+            json_match = re.search(r"\{[^{}]*\}", response)
             if json_match:
                 return json_module.loads(json_match.group())  # type: ignore
         except json_module.JSONDecodeError:
@@ -351,8 +330,7 @@ class TestDecisionValidation:
     MIN_CONFIDENCE = 0.50
 
     @pytest.fixture
-    def valid_commands(self) :  # type: ignore[no-untyped-def]
-
+    def valid_commands(self):  # type: ignore[no-untyped-def]
         """List of valid command formats"""
         return [
             "press:A",
@@ -365,12 +343,11 @@ class TestDecisionValidation:
             "press:SELECT",
             "batch:UPx10",
             "batch:DOWNx5",
-            "sequence:UP,UP,LEFT,A"
+            "sequence:UP,UP,LEFT,A",
         ]
 
     @pytest.fixture
-    def invalid_commands(self) :  # type: ignore[no-untyped-def]
-
+    def invalid_commands(self):  # type: ignore[no-untyped-def]
         """List of invalid command formats"""
         return [
             "invalid:command",
@@ -379,7 +356,7 @@ class TestDecisionValidation:
             "",
             "press:",
             "batch:UP",
-            "sequence:UP,INVALID"
+            "sequence:UP,INVALID",
         ]
 
     def test_valid_command_format(self, valid_commands) -> None:  # type: ignore[no-untyped-def]
@@ -433,7 +410,16 @@ class TestDecisionValidation:
 
         command_type = parsed.get("command_type")
         if command_type == "press":
-            return "button" in parsed and parsed["button"] in ["A", "B", "UP", "DOWN", "LEFT", "RIGHT", "START", "SELECT"]
+            return "button" in parsed and parsed["button"] in [
+                "A",
+                "B",
+                "UP",
+                "DOWN",
+                "LEFT",
+                "RIGHT",
+                "START",
+                "SELECT",
+            ]
         elif command_type == "batch":
             return "batch_direction" in parsed and "batch_steps" in parsed
         elif command_type == "sequence":
@@ -456,6 +442,7 @@ class TestDecisionValidation:
                 assert decision["action"].startswith("press:")  # type: ignore[attr-defined]
             else:
                 assert decision["confidence"] >= self.MIN_CONFIDENCE  # type: ignore
+
     def test_confidence_score_range(self) -> None:
         """Test confidence scores are within valid range"""
         confidence_scores = [
@@ -465,7 +452,7 @@ class TestDecisionValidation:
             {"score": 0.50, "valid": True},
             {"score": 0.0, "valid": True},
             {"score": -0.1, "valid": False},
-            {"score": 1.1, "valid": False}
+            {"score": 1.1, "valid": False},
         ]
 
         for test in confidence_scores:
@@ -478,17 +465,23 @@ class TestDecisionValidation:
             {"action": "press:A", "context": "battle", "valid": True},
             {"action": "press:B", "context": "battle", "valid": True},
             {"action": "press:START", "context": "battle", "valid": False},
-            {"action": "batch:UPx10", "context": "battle", "valid": False}
+            {"action": "batch:UPx10", "context": "battle", "valid": False},
         ]
 
         battle_valid_buttons = ["A", "B"]
 
         for decision in battle_decisions:
             if decision["context"] == "battle":
-                button = decision["action"].split(":")[1] if ":" in decision["action"] else ""  # type: ignore
+                button = (
+                    decision["action"].split(":")[1]
+                    if ":" in decision["action"]
+                    else ""
+                )  # type: ignore
                 is_valid_battle_action = button in battle_valid_buttons
                 if decision["action"].startswith("press:"):  # type: ignore[attr-defined]
-                    assert is_valid_battle_action == decision["valid"], f"Battle action validation mismatch: {decision}"
+                    assert is_valid_battle_action == decision["valid"], (
+                        f"Battle action validation mismatch: {decision}"
+                    )
 
     def test_overworld_action_validation(self) -> None:
         """Test overworld actions are valid"""
@@ -496,7 +489,7 @@ class TestDecisionValidation:
             {"action": "press:A", "context": "overworld", "valid": True},
             {"action": "press:UP", "context": "overworld", "valid": True},
             {"action": "press:B", "context": "overworld", "valid": False},
-            {"action": "batch:UPx10", "context": "overworld", "valid": True}
+            {"action": "batch:UPx10", "context": "overworld", "valid": True},
         ]
 
         for decision in overworld_decisions:
@@ -505,7 +498,9 @@ class TestDecisionValidation:
                     assert decision["valid"]
                 elif decision["action"].startswith("press:"):  # type: ignore[attr-defined]
                     button = decision["action"].split(":")[1]  # type: ignore[attr-defined]
-                    assert (button in ["UP", "DOWN", "LEFT", "RIGHT", "A"]) == decision["valid"]
+                    assert (button in ["UP", "DOWN", "LEFT", "RIGHT", "A"]) == decision[
+                        "valid"
+                    ]
 
 
 class TestCostTracking:
@@ -514,14 +509,13 @@ class TestCostTracking:
     COST_CALCULATION_TOLERANCE = 0.0001
 
     @pytest.fixture
-    def sample_token_usage(self) :  # type: ignore[no-untyped-def]
-
+    def sample_token_usage(self):  # type: ignore[no-untyped-def]
         """Sample token usage data"""
         return [
             {"input_tokens": 100, "output_tokens": 50, "expected_cost": 0.000045},
             {"input_tokens": 500, "output_tokens": 200, "expected_cost": 0.000195},
             {"input_tokens": 1000, "output_tokens": 500, "expected_cost": 0.00045},
-            {"input_tokens": 2000, "output_tokens": 1000, "expected_cost": 0.0009}
+            {"input_tokens": 2000, "output_tokens": 1000, "expected_cost": 0.0009},
         ]
 
     def test_gpt_4o_mini_cost_calculation(self, sample_token_usage) -> None:  # type: ignore[no-untyped-def]
@@ -531,12 +525,16 @@ class TestCostTracking:
 
         for usage in sample_token_usage:
             calculated_cost = (
-                usage["input_tokens"] * input_cost_per_token +
-                usage["output_tokens"] * output_cost_per_token
+                usage["input_tokens"] * input_cost_per_token
+                + usage["output_tokens"] * output_cost_per_token
             )
 
-            assert abs(calculated_cost - usage["expected_cost"]) < self.COST_CALCULATION_TOLERANCE, \
+            assert (
+                abs(calculated_cost - usage["expected_cost"])
+                < self.COST_CALCULATION_TOLERANCE
+            ), (
                 f"Cost calculation mismatch: {calculated_cost} != {usage['expected_cost']}"
+            )
 
     def test_gpt_4o_cost_calculation(self) -> None:
         """Test GPT-4o cost calculation accuracy"""
@@ -550,21 +548,20 @@ class TestCostTracking:
 
         for test in test_cases:
             calculated = (
-                test["input_tokens"] * input_cost_per_token +
-                test["output_tokens"] * output_cost_per_token
+                test["input_tokens"] * input_cost_per_token
+                + test["output_tokens"] * output_cost_per_token
             )
 
             assert abs(calculated - test["expected"]) < 0.0001
 
     def test_token_counting_accuracy(self) -> None:
         """Test token counts are accurately recorded"""
-        api_usage = {
-            "prompt_tokens": 150,
-            "completion_tokens": 75,
-            "total_tokens": 225
-        }
+        api_usage = {"prompt_tokens": 150, "completion_tokens": 75, "total_tokens": 225}
 
-        assert api_usage["total_tokens"] == api_usage["prompt_tokens"] + api_usage["completion_tokens"]
+        assert (
+            api_usage["total_tokens"]
+            == api_usage["prompt_tokens"] + api_usage["completion_tokens"]
+        )
         assert all(v >= 0 for v in api_usage.values())
 
     def test_vision_model_cost_includes_image_tokens(self) -> None:
@@ -578,13 +575,13 @@ class TestCostTracking:
         output_cost_per_token = 0.000015
 
         vision_cost = (
-            total_input_tokens * input_cost_per_token +
-            output_tokens * output_cost_per_token
+            total_input_tokens * input_cost_per_token
+            + output_tokens * output_cost_per_token
         )
 
         base_text_cost = (
-            base_text_tokens * input_cost_per_token +
-            output_tokens * output_cost_per_token
+            base_text_tokens * input_cost_per_token
+            + output_tokens * output_cost_per_token
         )
 
         assert vision_cost > base_text_cost
@@ -606,11 +603,7 @@ class TestCostTracking:
 
     def test_cost_per_action_calculation(self) -> None:
         """Test cost per game action is calculated correctly"""
-        session_stats = {
-            "total_calls": 100,
-            "total_cost": 0.50,
-            "total_actions": 500
-        }
+        session_stats = {"total_calls": 100, "total_cost": 0.50, "total_actions": 500}
 
         cost_per_action = session_stats["total_cost"] / session_stats["total_actions"]
         expected_cost_per_action = 0.001
@@ -622,7 +615,7 @@ class TestCostTracking:
         pricing = {
             "gpt-4o-mini": {"input": 0.00000015, "output": 0.0000006},
             "gpt-4o": {"input": 0.000005, "output": 0.000015},
-            "gpt-4-vision-preview": {"input": 0.00001, "output": 0.00003}
+            "gpt-4-vision-preview": {"input": 0.00001, "output": 0.00003},
         }
 
         for model, prices in pricing.items():
@@ -634,7 +627,7 @@ class TestCostTracking:
         """Test token limits are properly tracked"""
         model_limits = {
             "gpt-4o-mini": {"max_tokens": 4000, "max_output": 500},
-            "gpt-4o": {"max_tokens": 8000, "max_output": 2000}
+            "gpt-4o": {"max_tokens": 8000, "max_output": 2000},
         }
 
         for model, limits in model_limits.items():
@@ -643,15 +636,17 @@ class TestCostTracking:
 
         test_usage = {"prompt_tokens": 3500, "completion_tokens": 400}
 
-        assert test_usage["prompt_tokens"] + test_usage["completion_tokens"] < model_limits["gpt-4o-mini"]["max_tokens"]
+        assert (
+            test_usage["prompt_tokens"] + test_usage["completion_tokens"]
+            < model_limits["gpt-4o-mini"]["max_tokens"]
+        )
 
 
 class TestAIIntegration:
     """Integration tests for AI system with mocked API responses"""
 
     @pytest.fixture
-    def mock_ai_client(self) :  # type: ignore[no-untyped-def]
-
+    def mock_ai_client(self):  # type: ignore[no-untyped-def]
         """Mock AI client with predefined responses"""
         client = MagicMock()
         client.generate_decision.return_value = {
@@ -669,7 +664,7 @@ class TestAIIntegration:
         game_state = {
             "screen_type": "battle",
             "enemy_pokemon": "Pikachu",
-            "player_hp": 75
+            "player_hp": 75,
         }
 
         decision = mock_ai_client.generate_decision(game_state)
@@ -691,8 +686,8 @@ class TestAIIntegration:
         """Test response parsing in integration context"""
         raw_responses = [
             '{"action": "press:A", "confidence": 0.9}',
-            'REASONING: Test ACTION: press:B',
-            'press:UP'
+            "REASONING: Test ACTION: press:B",
+            "press:UP",
         ]
 
         for response in raw_responses:
@@ -707,7 +702,7 @@ class TestAIIntegration:
             pass
 
         if "ACTION:" in response.upper():
-            match = re.search(r'ACTION:\s*(\w+)', response, re.IGNORECASE)
+            match = re.search(r"ACTION:\s*(\w+)", response, re.IGNORECASE)
             if match:
                 return {"action": f"press:{match.group(1).upper()}"}
 
@@ -720,7 +715,7 @@ class TestAIIntegration:
         """Test prompt selection integration"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, '__init__', lambda x, y=None: None):
+        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
@@ -735,30 +730,31 @@ class TestAIIntegration:
         """Test AI client can be initialized with mocks"""
         from src.core.ai_client import OpenRouterClient
 
-        with patch.object(OpenRouterClient, '__init__', lambda self, key=None: None):
+        with patch.object(OpenRouterClient, "__init__", lambda self, key=None: None):
             client = OpenRouterClient.__new__(OpenRouterClient)
             client.models = {
                 "vision": "openai/gpt-4o",
                 "thinking": "openai/gpt-4o-mini",
-                "acting": "openai/gpt-4o-mini"
+                "acting": "openai/gpt-4o-mini",
             }
             client.total_cost = 0.0  # type: ignore[attr-defined]
             client.call_count = 0  # type: ignore[attr-defined]
             assert "vision" in client.models
             assert "thinking" in client.models
             assert client.total_cost == 0.0  # type: ignore[attr-defined]
+
+
 class TestClaudeIntegration:
     """Tests for Claude API integration with mocked responses"""
 
     @pytest.fixture
-    def mock_anthropic_client(self) :  # type: ignore[no-untyped-def]
-
+    def mock_anthropic_client(self):  # type: ignore[no-untyped-def]
         """Mock Anthropic client for testing"""
         mock = MagicMock()
         mock.models = {
             "vision": "claude-3-sonnet-20240307",
             "thinking": "claude-3-haiku-20240307",
-            "acting": "claude-3-haiku-20240307"
+            "acting": "claude-3-haiku-20240307",
         }
         mock.circuit_breaker = MagicMock()
         mock.circuit_breaker.allow_request.return_value = True
@@ -766,12 +762,13 @@ class TestClaudeIntegration:
 
     def test_claude_client_initialization(self) -> None:
         """Test Claude client can be initialized"""
-        with patch('src.core.ai_client.ANTHROPIC_AVAILABLE', True):
-            with patch('src.core.ai_client.Anthropic') as mock_anthropic:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True):
+            with patch("src.core.ai_client.Anthropic") as mock_anthropic:
                 mock_client = MagicMock()
                 mock_anthropic.return_value = mock_client
 
                 from src.core.ai_client import ClaudeClient
+
                 client = ClaudeClient(api_key="test-key")
 
                 assert client.api_key == "test-key"
@@ -786,13 +783,10 @@ class TestClaudeIntegration:
         mock_response.content = [MagicMock(text="Test response")]
         mock_response.stop_reason = "stop"
         mock_response.id = "test-id-123"
-        mock_response.usage = MagicMock(
-            input_tokens=100,
-            output_tokens=50
-        )
+        mock_response.usage = MagicMock(input_tokens=100, output_tokens=50)
 
-        with patch('src.core.ai_client.ANTHROPIC_AVAILABLE', True):
-            with patch('src.core.ai_client.Anthropic') as mock_anthropic:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True):
+            with patch("src.core.ai_client.Anthropic") as mock_anthropic:
                 mock_client = MagicMock()
                 mock_client.messages.create.return_value = mock_response
                 mock_anthropic.return_value = mock_client
@@ -800,7 +794,7 @@ class TestClaudeIntegration:
                 client = ClaudeClient(api_key="test-key")
                 result = client.chat_completion(
                     model="claude-3-haiku-20240307",
-                    messages=[{"role": "user", "content": "Hello"}]
+                    messages=[{"role": "user", "content": "Hello"}],
                 )
 
                 assert result["content"] == "Test response"
@@ -817,16 +811,15 @@ class TestClaudeIntegration:
         mock_response.id = "test-id-456"
         mock_response.usage = MagicMock(input_tokens=200, output_tokens=100)
 
-        with patch('src.core.ai_client.ANTHROPIC_AVAILABLE', True):
-            with patch('src.core.ai_client.Anthropic') as mock_anthropic:
+        with patch("src.core.ai_client.ANTHROPIC_AVAILABLE", True):
+            with patch("src.core.ai_client.Anthropic") as mock_anthropic:
                 mock_client = MagicMock()
                 mock_client.messages.create.return_value = mock_response
                 mock_anthropic.return_value = mock_client
 
                 client = ClaudeClient(api_key="test-key")
                 response = client.get_text_response(
-                    prompt="Plan the battle",
-                    model="claude-3-haiku-20240307"
+                    prompt="Plan the battle", model="claude-3-haiku-20240307"
                 )
 
                 assert response == "Strategic plan: Battle Pidgey"
@@ -836,10 +829,10 @@ class TestTokenTracker:
     """Tests for token usage tracking and cost calculation"""
 
     @pytest.fixture
-    def token_tracker(self) :  # type: ignore[no-untyped-def]
-
+    def token_tracker(self):  # type: ignore[no-untyped-def]
         """Create a fresh TokenTracker for testing"""
         from src.core.ai_client import TokenTracker
+
         return TokenTracker()
 
     def test_token_tracker_initialization(self, token_tracker) -> None:  # type: ignore[no-untyped-def]
@@ -856,7 +849,7 @@ class TestTokenTracker:
             input_tokens=100,
             output_tokens=50,
             cost=0.000045,
-            duration_ms=150.0
+            duration_ms=150.0,
         )
 
         stats = token_tracker.get_session_stats()
@@ -870,7 +863,7 @@ class TestTokenTracker:
         requests = [
             {"model": "gpt-4o-mini", "input": 100, "output": 50, "cost": 0.000045},
             {"model": "gpt-4o-mini", "input": 200, "output": 100, "cost": 0.00009},
-            {"model": "gpt-4o-mini", "input": 150, "output": 75, "cost": 0.0000675}
+            {"model": "gpt-4o-mini", "input": 150, "output": 75, "cost": 0.0000675},
         ]
 
         for req in requests:
@@ -879,7 +872,7 @@ class TestTokenTracker:
                 input_tokens=req["input"],
                 output_tokens=req["output"],
                 cost=req["cost"],
-                duration_ms=100.0
+                duration_ms=100.0,
             )
 
         stats = token_tracker.get_session_stats()
@@ -895,7 +888,7 @@ class TestTokenTracker:
             input_tokens=1000,
             output_tokens=500,
             cost=0.00045,
-            duration_ms=200.0
+            duration_ms=200.0,
         )
 
         stats = token_tracker.get_session_stats()
@@ -911,7 +904,7 @@ class TestTokenTracker:
             input_tokens=100,
             output_tokens=50,
             cost=0.000045,
-            duration_ms=100.0
+            duration_ms=100.0,
         )
 
         token_tracker.reset()
@@ -925,24 +918,24 @@ class TestJSONResponseParser:
     """Tests for structured JSON response parsing"""
 
     @pytest.fixture
-    def parser(self) :  # type: ignore[no-untyped-def]
-
+    def parser(self):  # type: ignore[no-untyped-def]
         """Create a JSONResponseParser for testing"""
         from src.core.ai_client import JSONResponseParser
+
         return JSONResponseParser(
             schema={
                 "screen_type": str,
                 "enemy_pokemon": str,
                 "player_hp": int,
                 "enemy_hp": int,
-                "recommended_action": str
+                "recommended_action": str,
             },
-            max_retries=3
+            max_retries=3,
         )
 
     def test_valid_json_parsing(self, parser) -> None:  # type: ignore[no-untyped-def]
         """Test parsing valid JSON response"""
-        response = '''
+        response = """
         {
             "screen_type": "battle",
             "enemy_pokemon": "Pikachu",
@@ -950,7 +943,7 @@ class TestJSONResponseParser:
             "enemy_hp": 50,
             "recommended_action": "press:A"
         }
-        '''
+        """
         result = parser.parse(response)
 
         assert result["screen_type"] == "battle"
@@ -960,14 +953,14 @@ class TestJSONResponseParser:
 
     def test_json_with_code_blocks(self, parser) -> None:  # type: ignore[no-untyped-def]
         """Test parsing JSON wrapped in markdown code blocks"""
-        response = '''
+        response = """
         ```json
         {
             "screen_type": "menu",
             "action": "press:DOWN"
         }
         ```
-        '''
+        """
         result = parser.parse(response)
 
         assert result["screen_type"] == "menu"
@@ -975,13 +968,13 @@ class TestJSONResponseParser:
 
     def test_fallback_regex_extraction(self, parser) -> None:  # type: ignore[no-untyped-def]
         """Test regex fallback for malformed JSON"""
-        response = '''
+        response = """
         Here's my analysis:
         Screen type: battle
         Enemy: Charizard
         HP: 75%
         Action: press:A
-        '''
+        """
         try:
             result = parser.parse(response)
             assert result is not None
@@ -990,10 +983,7 @@ class TestJSONResponseParser:
 
     def test_parse_success_rate_tracking(self, parser) -> None:  # type: ignore[no-untyped-def]
         """Test parsing success rate is tracked"""
-        responses = [
-            '{"valid": true}',
-            '{"also": "valid"}'
-        ]
+        responses = ['{"valid": true}', '{"also": "valid"}']
 
         for response in responses:
             try:
@@ -1018,10 +1008,10 @@ class TestRateLimiter:
     """Tests for rate limiting with exponential backoff"""
 
     @pytest.fixture
-    def rate_limiter(self) :  # type: ignore[no-untyped-def]
-
+    def rate_limiter(self):  # type: ignore[no-untyped-def]
         """Create a RateLimiter for testing"""
         from src.core.ai_client import RateLimiter
+
         return RateLimiter(max_requests=10, time_window=0.1, base_delay=0.01)
 
     def test_rate_limiter_allows_requests_under_limit(self, rate_limiter) -> None:  # type: ignore[no-untyped-def]
@@ -1055,10 +1045,10 @@ class TestCircuitBreaker:
     """Tests for circuit breaker pattern"""
 
     @pytest.fixture
-    def circuit_breaker(self) :  # type: ignore[no-untyped-def]
-
+    def circuit_breaker(self):  # type: ignore[no-untyped-def]
         """Create a CircuitBreaker for testing"""
         from src.core.ai_client import CircuitBreaker
+
         return CircuitBreaker(failure_threshold=3, recovery_time=0.1)
 
     def test_circuit_breaker_allows_requests_initially(self, circuit_breaker) -> None:  # type: ignore[no-untyped-def]
@@ -1087,6 +1077,7 @@ class TestCircuitBreaker:
             circuit_breaker.record_failure()
 
         import time
+
         time.sleep(0.15)
 
         assert circuit_breaker.allow_request() is True
@@ -1097,10 +1088,10 @@ class TestModelRouter:
     """Tests for model selection and routing"""
 
     @pytest.fixture
-    def model_router(self) :  # type: ignore[no-untyped-def]
-
+    def model_router(self):  # type: ignore[no-untyped-def]
         """Create a ModelRouter for testing"""
         from src.core.ai_client import ModelRouter
+
         return ModelRouter()
 
     def test_select_model_for_speed(self, model_router) -> None:  # type: ignore[no-untyped-def]
@@ -1193,31 +1184,27 @@ class TestGameAIManagerIntegration:
 
     def test_game_ai_manager_with_prompt_manager(self) -> None:
         """Test GameAIManager initializes with PromptManager"""
-        with patch('src.core.ai_client.OpenRouterClient'):
-            with patch('src.core.prompt_manager.PromptManager') as mock_pm:
+        with patch("src.core.ai_client.OpenRouterClient"):
+            with patch("src.core.prompt_manager.PromptManager") as mock_pm:
                 mock_instance = MagicMock()
                 mock_pm.return_value = mock_instance
 
                 from src.core.ai_client import GameAIManager
-                manager = GameAIManager(
-                    api_key="test-key",
-                    enable_prompt_manager=True
-                )
+
+                manager = GameAIManager(api_key="test-key", enable_prompt_manager=True)
 
                 mock_pm.assert_called_once()
                 assert manager.prompt_manager is not None
 
     def test_game_ai_manager_without_prompt_manager(self) -> None:
         """Test GameAIManager works without PromptManager"""
-        with patch('src.core.ai_client.OpenRouterClient'):
-            with patch('src.core.prompt_manager.PromptManager') as mock_pm:
+        with patch("src.core.ai_client.OpenRouterClient"):
+            with patch("src.core.prompt_manager.PromptManager") as mock_pm:
                 mock_pm.side_effect = Exception("Not available")
 
                 from src.core.ai_client import GameAIManager
-                manager = GameAIManager(
-                    api_key="test-key",
-                    enable_prompt_manager=True
-                )
+
+                manager = GameAIManager(api_key="test-key", enable_prompt_manager=True)
 
                 assert manager.prompt_manager is None
 
@@ -1225,7 +1212,7 @@ class TestGameAIManagerIntegration:
         """Test session statistics are retrieved correctly"""
         from src.core.ai_client import GameAIManager
 
-        with patch('src.core.ai_client.OpenRouterClient'):
+        with patch("src.core.ai_client.OpenRouterClient"):
             manager = GameAIManager(api_key="test-key")
 
             stats = manager.get_session_stats()
@@ -1238,7 +1225,7 @@ class TestGameAIManagerIntegration:
         """Test session statistics can be reset"""
         from src.core.ai_client import GameAIManager
 
-        with patch('src.core.ai_client.OpenRouterClient'):
+        with patch("src.core.ai_client.OpenRouterClient"):
             manager = GameAIManager(api_key="test-key")
 
             manager.reset_session_stats()

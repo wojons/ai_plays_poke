@@ -27,6 +27,7 @@ def _write_jsonl(data_dir: Path, date_str: str, records: list[dict]) -> Path:
 
 # ── _ensure_namespace ────────────────────────────────────────────────
 
+
 class TestEnsureNamespace:
     def test_creates_data_dir(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-ns")
@@ -45,6 +46,7 @@ class TestEnsureNamespace:
 
 
 # ── remember ─────────────────────────────────────────────────────────
+
 
 class TestRemember:
     def test_returns_uuid_string(self, duckbrain_tmp):
@@ -121,12 +123,17 @@ class TestRemember:
         assert len(files) == 1
 
     def test_distinct_uuids(self, duckbrain_tmp):
-        id1 = dbc.remember(key="/u1", domain="concept", attributes={}, embedding_text="a")
-        id2 = dbc.remember(key="/u2", domain="concept", attributes={}, embedding_text="b")
+        id1 = dbc.remember(
+            key="/u1", domain="concept", attributes={}, embedding_text="a"
+        )
+        id2 = dbc.remember(
+            key="/u2", domain="concept", attributes={}, embedding_text="b"
+        )
         assert id1 != id2
 
 
 # ── recall ───────────────────────────────────────────────────────────
+
 
 class TestRecall:
     def test_empty_namespace_returns_empty_list(self, duckbrain_tmp):
@@ -135,47 +142,129 @@ class TestRecall:
 
     def test_recall_all(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-recall")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/a", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/b", "domain": "event", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/a",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/b",
+                    "domain": "event",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         results = dbc.recall(namespace="test-recall")
         assert len(results) == 2
 
     def test_filter_by_key(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-key")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/exact/match", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/other", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/exact/match",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/other",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         results = dbc.recall(key="/exact/match", namespace="test-key")
         assert len(results) == 1
         assert results[0]["id"] == "1"
 
     def test_filter_by_key_prefix(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-prefix")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/projects/mcp", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/projects/spec", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "3", "key": "/other", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/projects/mcp",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/projects/spec",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "3",
+                    "key": "/other",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         results = dbc.recall(key_prefix="/projects", namespace="test-prefix")
         assert len(results) == 2
 
     def test_filter_by_domain(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-domain")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/a", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/b", "domain": "event", "attributes": {}, "status": "active"},
-            {"id": "3", "key": "/c", "domain": "event", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/a",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/b",
+                    "domain": "event",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "3",
+                    "key": "/c",
+                    "domain": "event",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         results = dbc.recall(domain="event", namespace="test-domain")
         assert len(results) == 2
 
     def test_limit(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-limit")
         records = [
-            {"id": str(i), "key": f"/k{i}", "domain": "concept", "attributes": {}, "status": "active"}
+            {
+                "id": str(i),
+                "key": f"/k{i}",
+                "domain": "concept",
+                "attributes": {},
+                "status": "active",
+            }
             for i in range(10)
         ]
         _write_jsonl(data_dir, "2026-06-25", records)
@@ -184,10 +273,26 @@ class TestRecall:
 
     def test_skips_tombstones(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-tombstone")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/alive", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/dead", "domain": "concept", "attributes": {}, "status": "deleted"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/alive",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/dead",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "deleted",
+                },
+            ],
+        )
         results = dbc.recall(namespace="test-tombstone")
         assert len(results) == 1
         assert results[0]["id"] == "1"
@@ -197,7 +302,7 @@ class TestRecall:
         jsonl_path = data_dir / "memories-2026-06-25.jsonl"
         jsonl_path.write_text(
             '{"id":"1","key":"/good","domain":"concept","attributes":{},"status":"active"}\n'
-            'this is not json\n'
+            "this is not json\n"
             '{"id":"2","key":"/also-good","domain":"concept","attributes":{},"status":"active"}\n'
         )
         results = dbc.recall(namespace="test-corrupt")
@@ -207,9 +312,9 @@ class TestRecall:
         data_dir = dbc._ensure_namespace("test-empty")
         jsonl_path = data_dir / "memories-2026-06-25.jsonl"
         jsonl_path.write_text(
-            '\n'
+            "\n"
             '{"id":"1","key":"/only","domain":"concept","attributes":{},"status":"active"}\n'
-            '\n'
+            "\n"
         )
         results = dbc.recall(namespace="test-empty")
         assert len(results) == 1
@@ -220,10 +325,26 @@ class TestRecall:
 
     def test_key_and_key_prefix_mutually_filter(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-both")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/exact", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/exact/other", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/exact",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/exact/other",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         # key= takes priority — must be exact match
         results = dbc.recall(key="/exact", key_prefix="/exact", namespace="test-both")
         assert len(results) == 1
@@ -231,17 +352,38 @@ class TestRecall:
 
     def test_reads_multiple_jsonl_files(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-multi")
-        _write_jsonl(data_dir, "2026-06-24", [
-            {"id": "1", "key": "/old", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "2", "key": "/new", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-24",
+            [
+                {
+                    "id": "1",
+                    "key": "/old",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "2",
+                    "key": "/new",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         results = dbc.recall(namespace="test-multi")
         assert len(results) == 2
 
 
 # ── list_keys ────────────────────────────────────────────────────────
+
 
 class TestListKeys:
     def test_empty_namespace_returns_empty(self, duckbrain_tmp):
@@ -250,11 +392,33 @@ class TestListKeys:
 
     def test_lists_unique_keys(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-keys")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/a/b", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/a/c", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "3", "key": "/d", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/a/b",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/a/c",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "3",
+                    "key": "/d",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         keys = dbc.list_keys(namespace="test-keys")
         assert "/a/b" in keys
         assert "/a/c" in keys
@@ -262,11 +426,33 @@ class TestListKeys:
 
     def test_filter_by_prefix(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-prefix-keys")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/projects/a", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/projects/b", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "3", "key": "/other", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/projects/a",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/projects/b",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "3",
+                    "key": "/other",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         keys = dbc.list_keys(prefix="/projects", namespace="test-prefix-keys")
         assert len(keys) == 2
         assert "/projects/a" in keys
@@ -276,7 +462,13 @@ class TestListKeys:
     def test_respects_limit(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-limit-keys")
         records = [
-            {"id": str(i), "key": f"/k{i}", "domain": "concept", "attributes": {}, "status": "active"}
+            {
+                "id": str(i),
+                "key": f"/k{i}",
+                "domain": "concept",
+                "attributes": {},
+                "status": "active",
+            }
             for i in range(10)
         ]
         _write_jsonl(data_dir, "2026-06-25", records)
@@ -285,21 +477,59 @@ class TestListKeys:
 
     def test_skips_tombstones(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-keys-tomb")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/alive", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/dead", "domain": "concept", "attributes": {}, "status": "deleted"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/alive",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/dead",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "deleted",
+                },
+            ],
+        )
         keys = dbc.list_keys(namespace="test-keys-tomb")
         assert "/alive" in keys
         assert "/dead" not in keys
 
     def test_returns_sorted(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-sorted")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/z", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/a", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "3", "key": "/m", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/z",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/a",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "3",
+                    "key": "/m",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         keys = dbc.list_keys(namespace="test-sorted")
         assert keys == ["/a", "/m", "/z"]
 
@@ -309,20 +539,56 @@ class TestListKeys:
 
     def test_default_prefix_is_root_slash(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-default-prefix")
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "1", "key": "/any", "domain": "concept", "attributes": {}, "status": "active"},
-            {"id": "2", "key": "/path", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "1",
+                    "key": "/any",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+                {
+                    "id": "2",
+                    "key": "/path",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         keys = dbc.list_keys(namespace="test-default-prefix")
         assert len(keys) == 2
 
     def test_deduplicates_across_files(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-dedup")
-        _write_jsonl(data_dir, "2026-06-24", [
-            {"id": "1", "key": "/dup", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
-        _write_jsonl(data_dir, "2026-06-25", [
-            {"id": "2", "key": "/dup", "domain": "concept", "attributes": {}, "status": "active"},
-        ])
+        _write_jsonl(
+            data_dir,
+            "2026-06-24",
+            [
+                {
+                    "id": "1",
+                    "key": "/dup",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
+        _write_jsonl(
+            data_dir,
+            "2026-06-25",
+            [
+                {
+                    "id": "2",
+                    "key": "/dup",
+                    "domain": "concept",
+                    "attributes": {},
+                    "status": "active",
+                },
+            ],
+        )
         keys = dbc.list_keys(namespace="test-dedup")
         assert keys == ["/dup"]  # deduplicated

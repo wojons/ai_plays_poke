@@ -32,7 +32,7 @@ def detect_platform(rom_path: str | Path) -> str:
         fh.seek(0x0104)
         byte_104 = fh.read(1)
 
-    is_gb_logo = (byte_104 == b"\xCE") and (rom_path.stat().st_size <= 2_097_152)
+    is_gb_logo = (byte_104 == b"\xce") and (rom_path.stat().st_size <= 2_097_152)
 
     return "gb" if is_gb_logo else "gba"
 

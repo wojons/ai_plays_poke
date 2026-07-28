@@ -4,6 +4,7 @@ Unit tests for VisionPipeline — screenshot preprocessing and normalization.
 Covers all validation, processing, and softlock detection paths
 in src/vision/pipeline.py.
 """
+
 from __future__ import annotations
 
 import signal
@@ -21,6 +22,7 @@ from src.vision.pipeline import (
 
 # ── helpers ────────────────────────────────────────────────────────────────
 
+
 def _make_frame(h: int = 144, w: int = 160) -> np.ndarray:
     """Create a valid GB-resolution uint8 RGB frame."""
     return np.random.randint(0, 256, (h, w, 3), dtype=np.uint8)
@@ -37,6 +39,7 @@ def _make_constant_frame(value: int = 128, h: int = 144, w: int = 160) -> np.nda
 
 
 # ── error dataclasses ──────────────────────────────────────────────────────
+
 
 class TestScreenshotValidationError:
     """ScreenshotValidationError is a dataclass exception."""
@@ -64,7 +67,9 @@ class TestScreenshotValidationError:
         empty = np.array([], dtype=np.uint8)
         with pytest.raises(ScreenshotValidationError) as exc:
             vp.validate_screenshot_dimensions(empty)
-        assert "empty" in exc.value.message.lower() or "none" in exc.value.message.lower()
+        assert (
+            "empty" in exc.value.message.lower() or "none" in exc.value.message.lower()
+        )
 
 
 class TestScreenshotProcessingError:
@@ -85,6 +90,7 @@ class TestScreenshotProcessingError:
 
 
 # ── PreprocessingResult dataclass ──────────────────────────────────────────
+
 
 class TestPreprocessingResult:
     """PreprocessingResult dataclass holds all processed outputs."""
@@ -135,6 +141,7 @@ class TestPreprocessingResult:
 
 # ── VisionPipeline constructor ─────────────────────────────────────────────
 
+
 class TestVisionPipelineInit:
     """VisionPipeline.__init__ tests."""
 
@@ -166,6 +173,7 @@ class TestVisionPipelineInit:
 
 
 # ── validate_screenshot_dimensions ─────────────────────────────────────────
+
 
 class TestValidateScreenshotDimensions:
     """validate_screenshot_dimensions rejects bad shapes."""
@@ -214,6 +222,7 @@ class TestValidateScreenshotDimensions:
 
 # ── validate_screenshot_dtype ──────────────────────────────────────────────
 
+
 class TestValidateScreenshotDtype:
     """validate_screenshot_dtype rejects non-uint8 arrays."""
 
@@ -243,6 +252,7 @@ class TestValidateScreenshotDtype:
 
 
 # ── validate_pixel_data ────────────────────────────────────────────────────
+
 
 class TestValidatePixelData:
     """validate_pixel_data rejects NaN, infinity, and out-of-range values."""
@@ -285,6 +295,7 @@ class TestValidatePixelData:
 
 # ── validate_screenshot (composite) ────────────────────────────────────────
 
+
 class TestValidateScreenshotComposite:
     """validate_screenshot runs all validators."""
 
@@ -316,6 +327,7 @@ class TestValidateScreenshotComposite:
 
 
 # ── process ────────────────────────────────────────────────────────────────
+
 
 class TestProcess:
     """process() runs the full pipeline on a valid frame."""
@@ -416,6 +428,7 @@ class TestProcess:
 
 # ── process_with_timeout ───────────────────────────────────────────────────
 
+
 class TestProcessWithTimeout:
     """process_with_timeout wraps process() with signal.SIGALRM."""
 
@@ -461,6 +474,7 @@ class TestProcessWithTimeout:
 
 # ── _compute_frame_hash ────────────────────────────────────────────────────
 
+
 class TestComputeFrameHash:
     """_compute_frame_hash produces a stable perceptual hash."""
 
@@ -500,6 +514,7 @@ class TestComputeFrameHash:
 
 
 # ── _simple_dct_2d ─────────────────────────────────────────────────────────
+
 
 class TestSimpleDCT2D:
     """_simple_dct_2d computes a 2D DCT on a block."""
@@ -541,6 +556,7 @@ class TestSimpleDCT2D:
 
 # ── _check_duplicate ───────────────────────────────────────────────────────
 
+
 class TestCheckDuplicate:
     """_check_duplicate checks recent frame history."""
 
@@ -571,6 +587,7 @@ class TestCheckDuplicate:
 
 
 # ── _update_frame_history ──────────────────────────────────────────────────
+
 
 class TestUpdateFrameHistory:
     """_update_frame_history manages the frame hash ring buffer."""
@@ -604,6 +621,7 @@ class TestUpdateFrameHistory:
 
 # ── _is_frame_changed ──────────────────────────────────────────────────────
 
+
 class TestIsFrameChanged:
     """_is_frame_changed checks if latest two frames differ."""
 
@@ -635,6 +653,7 @@ class TestIsFrameChanged:
 
 
 # ── _normalize_aspect_ratio ────────────────────────────────────────────────
+
 
 class TestNormalizeAspectRatio:
     """_normalize_aspect_ratio enforces 4:3 (160:144) aspect ratio."""
@@ -668,6 +687,7 @@ class TestNormalizeAspectRatio:
 
 
 # ── _convert_to_grayscale ──────────────────────────────────────────────────
+
 
 class TestConvertToGrayscale:
     """_convert_to_grayscale converts RGB to luminance grayscale."""
@@ -716,6 +736,7 @@ class TestConvertToGrayscale:
 
 # ── _resize_to_target ──────────────────────────────────────────────────────
 
+
 class TestResizeToTarget:
     """_resize_to_target resizes frames for vision model input."""
 
@@ -746,6 +767,7 @@ class TestResizeToTarget:
 
 
 # ── _extract_battle_menu ───────────────────────────────────────────────────
+
 
 class TestExtractBattleMenu:
     """_extract_battle_menu extracts the menu region from the frame."""
@@ -783,6 +805,7 @@ class TestExtractBattleMenu:
 
 # ── _extract_dialog_box ────────────────────────────────────────────────────
 
+
 class TestExtractDialogBox:
     """_extract_dialog_box extracts the dialog region from the frame."""
 
@@ -818,6 +841,7 @@ class TestExtractDialogBox:
 
 # ── _extract_hud ───────────────────────────────────────────────────────────
 
+
 class TestExtractHUD:
     """_extract_hud extracts the HUD region from the frame."""
 
@@ -844,6 +868,7 @@ class TestExtractHUD:
 
 
 # ── softlock detection ─────────────────────────────────────────────────────
+
 
 class TestSoftlockDetection:
     """detect_softlock, reset_softlock_counter, get_stuck_counter."""
@@ -886,6 +911,7 @@ class TestSoftlockDetection:
 
 # ── edge cases ─────────────────────────────────────────────────────────────
 
+
 class TestEdgeCases:
     """Boundary and edge case tests for the pipeline."""
 
@@ -919,7 +945,7 @@ class TestEdgeCases:
         frame = _make_frame()
         r1 = vp1.process(frame)
         r2 = vp2.process(frame)
-        # Both should have different hashes from their own frame histories 
+        # Both should have different hashes from their own frame histories
         # (since both start empty, they should get same hash for same frame)
         assert r1.frame_hash == r2.frame_hash
 

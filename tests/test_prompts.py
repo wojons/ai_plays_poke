@@ -1,6 +1,8 @@
 """Verification script for the stacked prompt config system."""
+
 import os
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from src.core.prompt_assembler import PromptStack
@@ -42,13 +44,21 @@ assert "SQUIRTLE" in prompt
 for gen in ["gen1", "gen3"]:
     for st in ["battle", "overworld", "menu", "dialog"]:
         s = ps.load_stack(gen, st)
-        assert list(s.keys()) == ["system", "tools", "observation", "memory", "examples"]
+        assert list(s.keys()) == [
+            "system",
+            "tools",
+            "observation",
+            "memory",
+            "examples",
+        ]
         print(f"  ✓ {gen}/{st}")
 
 # Test available_stacks
 stacks = ps.available_stacks()
 print("Available stacks:", stacks)
-assert len(stacks) == 13  # gen1: battle, battle_ram, cartographer, core, dialog, menu, overworld, overworld_ram, title (9) + gen3: battle, dialog, menu, overworld (4)
+assert (
+    len(stacks) == 13
+)  # gen1: battle, battle_ram, cartographer, core, dialog, menu, overworld, overworld_ram, title (9) + gen3: battle, dialog, menu, overworld (4)
 
 # Test missing placeholder handling
 prompt2 = ps.assemble(

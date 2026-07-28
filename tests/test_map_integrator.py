@@ -8,7 +8,6 @@ emulator dependencies. All tests use plain string inputs and temp dirs.
 from __future__ import annotations
 
 
-
 from src.core.map_integrator import _dict_to_patch, _parse_raw
 
 
@@ -23,7 +22,9 @@ class TestParseRawJson:
         assert result == {"tick": 5, "prev_tick": 4}
 
     def test_valid_json_nested(self) -> None:
-        raw = '{"movement": {"input": "UP", "result": "moved", "player_delta": [0, -1]}}'
+        raw = (
+            '{"movement": {"input": "UP", "result": "moved", "player_delta": [0, -1]}}'
+        )
         result = _parse_raw(raw)
         assert result["movement"]["input"] == "UP"
         assert result["movement"]["player_delta"] == [0, -1]
@@ -69,26 +70,26 @@ class TestParseRawMarkdownFenced:
         assert result == {"tick": 99}
 
     def test_fenced_yaml(self) -> None:
-        raw = '```yaml\ntick: 7\nprev_tick: 6\n```'
+        raw = "```yaml\ntick: 7\nprev_tick: 6\n```"
         result = _parse_raw(raw)
         assert result["tick"] == 7
         assert result["prev_tick"] == 6
 
     def test_fenced_but_content_not_json_uses_yaml(self) -> None:
-        raw = '```\ntick: 3\nmovement:\n  input: A\n```'
+        raw = "```\ntick: 3\nmovement:\n  input: A\n```"
         result = _parse_raw(raw)
         assert result["tick"] == 3
         assert result["movement"]["input"] == "A"
 
     def test_fenced_empty_content(self) -> None:
-        raw = '```\n```'
+        raw = "```\n```"
         result = _parse_raw(raw)
         # Empty string after stripping fences — YAML safe_load("") returns None
         assert result == {}
 
     def test_fenced_with_only_opening_fence(self) -> None:
         """Only opening fence — treated as YAML with first line stripped."""
-        raw = '```\ntick: 5'
+        raw = "```\ntick: 5"
         result = _parse_raw(raw)
         assert result["tick"] == 5
 

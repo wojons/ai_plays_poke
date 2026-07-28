@@ -27,13 +27,12 @@ class TestScreenClassification:
             "player_hp": 100,
             "enemy_hp": None,
             "available_actions": ["A", "DOWN"],
-            "recommended_action": "press:A"
+            "recommended_action": "press:A",
         }
         return mock
 
     @pytest.fixture
-    def sample_overworld_screenshot(self) :  # type: ignore[no-untyped-def]
-
+    def sample_overworld_screenshot(self):  # type: ignore[no-untyped-def]
         """Create mock overworld screenshot (blue sky, green ground)"""
         screenshot = np.zeros((144, 160, 3), dtype=np.uint8)
         screenshot[:80, :] = [100, 149, 237]
@@ -41,8 +40,7 @@ class TestScreenClassification:
         return screenshot
 
     @pytest.fixture
-    def sample_battle_screenshot(self) :  # type: ignore[no-untyped-def]
-
+    def sample_battle_screenshot(self):  # type: ignore[no-untyped-def]
         """Create mock battle screenshot (white background, sprites area)"""
         screenshot = np.zeros((144, 160, 3), dtype=np.uint8)
         screenshot[:, :] = [255, 255, 255]
@@ -51,8 +49,7 @@ class TestScreenClassification:
         return screenshot
 
     @pytest.fixture
-    def sample_menu_screenshot(self) :  # type: ignore[no-untyped-def]
-
+    def sample_menu_screenshot(self):  # type: ignore[no-untyped-def]
         """Create mock menu screenshot (dark background with text area)"""
         screenshot = np.zeros((144, 160, 3), dtype=np.uint8)
         screenshot[:, :] = [0, 0, 0]
@@ -60,8 +57,7 @@ class TestScreenClassification:
         return screenshot
 
     @pytest.fixture
-    def sample_dialog_screenshot(self) :  # type: ignore[no-untyped-def]
-
+    def sample_dialog_screenshot(self):  # type: ignore[no-untyped-def]
         """Create mock dialog screenshot (text box at bottom)"""
         screenshot = np.zeros((144, 160, 3), dtype=np.uint8)
         screenshot[:, :] = [100, 149, 237]
@@ -69,52 +65,76 @@ class TestScreenClassification:
         screenshot[105:135, 10:150] = [0, 0, 0]
         return screenshot
 
-    def test_classify_overworld_screen(self, sample_overworld_screenshot, mock_vision_model) -> None:  # type: ignore[no-untyped-def]
+    def test_classify_overworld_screen(
+        self, sample_overworld_screenshot, mock_vision_model
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test overworld screen is correctly classified"""
-        with patch('src.core.ai_client.GameAIManager') as mock_manager:
-            mock_manager.return_value.analyze_screenshot.return_value = mock_vision_model.analyze()
+        with patch("src.core.ai_client.GameAIManager") as mock_manager:
+            mock_manager.return_value.analyze_screenshot.return_value = (
+                mock_vision_model.analyze()
+            )
 
-            result = mock_manager.return_value.analyze_screenshot(sample_overworld_screenshot)
+            result = mock_manager.return_value.analyze_screenshot(
+                sample_overworld_screenshot
+            )
 
             assert result["screen_type"] == "overworld"
             assert result["confidence"] >= self.SCREEN_TYPE_THRESHOLD
 
-    def test_classify_battle_screen(self, sample_battle_screenshot, mock_vision_model) -> None:  # type: ignore[no-untyped-def]
+    def test_classify_battle_screen(
+        self, sample_battle_screenshot, mock_vision_model
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test battle screen is correctly classified"""
         mock_vision_model.analyze.return_value["screen_type"] = "battle"
         mock_vision_model.analyze.return_value["enemy_hp"] = 75
 
-        with patch('src.core.ai_client.GameAIManager') as mock_manager:
-            mock_manager.return_value.analyze_screenshot.return_value = mock_vision_model.analyze()
+        with patch("src.core.ai_client.GameAIManager") as mock_manager:
+            mock_manager.return_value.analyze_screenshot.return_value = (
+                mock_vision_model.analyze()
+            )
 
-            result = mock_manager.return_value.analyze_screenshot(sample_battle_screenshot)
+            result = mock_manager.return_value.analyze_screenshot(
+                sample_battle_screenshot
+            )
 
             assert result["screen_type"] == "battle"
             assert result["enemy_hp"] == 75
             assert result["confidence"] >= self.SCREEN_TYPE_THRESHOLD
 
-    def test_classify_menu_screen(self, sample_menu_screenshot, mock_vision_model) -> None:  # type: ignore[no-untyped-def]
+    def test_classify_menu_screen(
+        self, sample_menu_screenshot, mock_vision_model
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test menu screen is correctly classified"""
         mock_vision_model.analyze.return_value["screen_type"] = "menu"
         mock_vision_model.analyze.return_value["menu_type"] = "pokemon"
 
-        with patch('src.core.ai_client.GameAIManager') as mock_manager:
-            mock_manager.return_value.analyze_screenshot.return_value = mock_vision_model.analyze()
+        with patch("src.core.ai_client.GameAIManager") as mock_manager:
+            mock_manager.return_value.analyze_screenshot.return_value = (
+                mock_vision_model.analyze()
+            )
 
-            result = mock_manager.return_value.analyze_screenshot(sample_menu_screenshot)
+            result = mock_manager.return_value.analyze_screenshot(
+                sample_menu_screenshot
+            )
 
             assert result["screen_type"] == "menu"
             assert result["confidence"] >= self.SCREEN_TYPE_THRESHOLD
 
-    def test_classify_dialog_screen(self, sample_dialog_screenshot, mock_vision_model) -> None:  # type: ignore[no-untyped-def]
+    def test_classify_dialog_screen(
+        self, sample_dialog_screenshot, mock_vision_model
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test dialog screen is correctly classified"""
         mock_vision_model.analyze.return_value["screen_type"] = "dialog"
         mock_vision_model.analyze.return_value["dialog_text"] = "Hello there!"
 
-        with patch('src.core.ai_client.GameAIManager') as mock_manager:
-            mock_manager.return_value.analyze_screenshot.return_value = mock_vision_model.analyze()
+        with patch("src.core.ai_client.GameAIManager") as mock_manager:
+            mock_manager.return_value.analyze_screenshot.return_value = (
+                mock_vision_model.analyze()
+            )
 
-            result = mock_manager.return_value.analyze_screenshot(sample_dialog_screenshot)
+            result = mock_manager.return_value.analyze_screenshot(
+                sample_dialog_screenshot
+            )
 
             assert result["screen_type"] == "dialog"
             assert result["dialog_text"] == "Hello there!"
@@ -126,10 +146,14 @@ class TestScreenClassification:
 
         for score in confidence_scores:
             assert 0.0 <= score <= 1.0, f"Confidence score {score} out of range"
-            assert score >= self.SCREEN_TYPE_THRESHOLD, f"Confidence score {score} below threshold {self.SCREEN_TYPE_THRESHOLD}"
+            assert score >= self.SCREEN_TYPE_THRESHOLD, (
+                f"Confidence score {score} below threshold {self.SCREEN_TYPE_THRESHOLD}"
+            )
 
         avg_confidence = sum(confidence_scores) / len(confidence_scores)
-        assert avg_confidence >= 0.85, f"Average confidence {avg_confidence} below expected 0.85"
+        assert avg_confidence >= 0.85, (
+            f"Average confidence {avg_confidence} below expected 0.85"
+        )
 
     def test_screen_type_coverage(self) -> None:
         """Test all screen types are handled"""
@@ -157,14 +181,13 @@ class TestOCRAccuracy:
     ACCURACY_THRESHOLD = 0.90
 
     @pytest.fixture
-    def mock_ocr_response(self) :  # type: ignore[no-untyped-def]
-
+    def mock_ocr_response(self):  # type: ignore[no-untyped-def]
         """Mock OCR response structure"""
         return {
             "text_detected": True,
             "text_content": "",
             "confidence": 0.95,
-            "character_count": 0
+            "character_count": 0,
         }
 
     def test_dialog_text_extraction_accuracy(self) -> None:
@@ -174,7 +197,7 @@ class TestOCRAccuracy:
             "Your very own POKEMON adventure is about to unfold!",
             "What is your name?",
             "Right! So your name is...",
-            "This is my friend! He is a POKEMON!"
+            "This is my friend! He is a POKEMON!",
         ]
 
         for phrase in expected_phrases:
@@ -182,7 +205,7 @@ class TestOCRAccuracy:
                 "text_detected": True,
                 "text_content": phrase,
                 "confidence": 0.95,
-                "character_count": len(phrase)
+                "character_count": len(phrase),
             }
             accuracy = len(phrase) / len(phrase)
             assert accuracy >= self.ACCURACY_THRESHOLD
@@ -199,7 +222,7 @@ class TestOCRAccuracy:
             "Caterpie",
             "Weedle",
             "Nidoran",
-            "Mewtwo"
+            "Mewtwo",
         ]
 
         for name in pokemon_names:
@@ -207,7 +230,7 @@ class TestOCRAccuracy:
                 "text_detected": True,
                 "text_content": name,
                 "confidence": 0.92,
-                "character_count": len(name)
+                "character_count": len(name),
             }
             char_accuracy = len(name) / len(name)
             assert char_accuracy >= self.ACCURACY_THRESHOLD
@@ -224,7 +247,7 @@ class TestOCRAccuracy:
             "TAIL WHIP",
             "LEER",
             "SCRATCH",
-            "GROWL"
+            "GROWL",
         ]
 
         for move in move_names:
@@ -232,7 +255,7 @@ class TestOCRAccuracy:
                 "text_detected": True,
                 "text_content": move,
                 "confidence": 0.91,
-                "character_count": len(move)
+                "character_count": len(move),
             }
             char_accuracy = len(move) / len(move)
             assert char_accuracy >= self.ACCURACY_THRESHOLD
@@ -244,12 +267,13 @@ class TestOCRAccuracy:
             ("HP: 22/45", 48.8),
             ("HP: 10/50", 20.0),
             ("HP: 35/35", 100.0),
-            ("HP: 5/40", 12.5)
+            ("HP: 5/40", 12.5),
         ]
 
         for hp_string, expected_percent in hp_samples:
             import re
-            match = re.search(r'HP:\s*(\d+)/(\d+)', hp_string)
+
+            match = re.search(r"HP:\s*(\d+)/(\d+)", hp_string)
             if match:
                 current = int(match.group(1))
                 total = int(match.group(2))
@@ -258,17 +282,12 @@ class TestOCRAccuracy:
 
     def test_level_indicator_extraction(self) -> None:
         """Test level indicators are correctly extracted"""
-        level_samples = [
-            "Lv.12",
-            "Lv. 7",
-            "Lv.25",
-            "Lv.50",
-            "Lv. 3"
-        ]
+        level_samples = ["Lv.12", "Lv. 7", "Lv.25", "Lv.50", "Lv. 3"]
 
         for level_str in level_samples:
             import re
-            match = re.search(r'Lv\.?\s*(\d+)', level_str)
+
+            match = re.search(r"Lv\.?\s*(\d+)", level_str)
             assert match is not None
             level = int(match.group(1))
             assert 1 <= level <= 100
@@ -279,38 +298,39 @@ class TestOCRAccuracy:
             {"text": "Pikachu", "confidence": 0.96, "expected_accuracy": 0.95},
             {"text": "Charizard", "confidence": 0.94, "expected_accuracy": 0.93},
             {"text": "Nidoran", "confidence": 0.90, "expected_accuracy": 0.89},
-            {"text": "Mewtwo", "confidence": 0.92, "expected_accuracy": 0.91}
+            {"text": "Mewtwo", "confidence": 0.92, "expected_accuracy": 0.91},
         ]
 
         for sample in samples:
             assert sample["confidence"] >= self.ACCURACY_THRESHOLD  # type: ignore
             assert sample["confidence"] >= sample["expected_accuracy"] - 0.02  # type: ignore
+
+
 class TestPokemonIdentification:
     """Tests for Pokemon sprite recognition and HP parsing"""
 
     @pytest.fixture
-    def mock_pokemon_data(self) :  # type: ignore[no-untyped-def]
-
+    def mock_pokemon_data(self):  # type: ignore[no-untyped-def]
         """Mock Pokemon identification data"""
         return {
             "pikachu": {
                 "sprite_color": [255, 255, 0],
                 "hp_bar_color": [0, 255, 0],
                 "expected_hp": 35,
-                "types": ["Electric"]
+                "types": ["Electric"],
             },
             "charmander": {
                 "sprite_color": [255, 128, 0],
                 "hp_bar_color": [0, 255, 0],
                 "expected_hp": 39,
-                "types": ["Fire"]
+                "types": ["Fire"],
             },
             "bulbasaur": {
                 "sprite_color": [0, 128, 0],
                 "hp_bar_color": [0, 255, 0],
                 "expected_hp": 45,
-                "types": ["Grass", "Poison"]
-            }
+                "types": ["Grass", "Poison"],
+            },
         }
 
     def test_sprite_color_extraction(self, mock_pokemon_data) -> None:  # type: ignore[no-untyped-def]
@@ -326,7 +346,7 @@ class TestPokemonIdentification:
         hp_bar_colors = {
             "green": [0, 176, 80],
             "yellow": [255, 192, 0],
-            "red": [255, 0, 0]
+            "red": [255, 0, 0],
         }
 
         for color_name, rgb in hp_bar_colors.items():
@@ -341,7 +361,7 @@ class TestPokemonIdentification:
             {"current": 20, "max": 40, "expected_percent": 50.0},
             {"current": 10, "max": 45, "expected_percent": 22.2},
             {"current": 5, "max": 50, "expected_percent": 10.0},
-            {"current": 0, "max": 35, "expected_percent": 0.0}
+            {"current": 0, "max": 35, "expected_percent": 0.0},
         ]
 
         for test in hp_tests:
@@ -357,11 +377,15 @@ class TestPokemonIdentification:
         hp_bar_region_x_start = 90
         hp_bar_region_x_end = 145
 
-        mock_screenshot[hp_bar_region_y_start:hp_bar_region_y_end,
-                       hp_bar_region_x_start:hp_bar_region_x_end] = [0, 176, 80]
+        mock_screenshot[
+            hp_bar_region_y_start:hp_bar_region_y_end,
+            hp_bar_region_x_start:hp_bar_region_x_end,
+        ] = [0, 176, 80]
 
-        extracted_region = mock_screenshot[hp_bar_region_y_start:hp_bar_region_y_end,
-                                           hp_bar_region_x_start:hp_bar_region_x_end]
+        extracted_region = mock_screenshot[
+            hp_bar_region_y_start:hp_bar_region_y_end,
+            hp_bar_region_x_start:hp_bar_region_x_end,
+        ]
 
         assert extracted_region.shape[0] == 5
         assert extracted_region.shape[1] == 55
@@ -374,17 +398,18 @@ class TestPokemonIdentification:
             {"color": [255, 128, 0], "shape": "lizard", "expected": "Charmander"},
             {"color": [0, 128, 0], "shape": "bulb", "expected": "Bulbasaur"},
             {"color": [100, 200, 255], "shape": "bird", "expected": "Pidgey"},
-            {"color": [128, 64, 64], "shape": "mouse", "expected": "Rattata"}
+            {"color": [128, 64, 64], "shape": "mouse", "expected": "Rattata"},
         ]
 
         for features in pokemon_features:
             mock_result = {
                 "identified_pokemon": features["expected"],
                 "confidence": 0.90,
-                "features_used": ["color", "shape"]
+                "features_used": ["color", "shape"],
             }
             assert mock_result["identified_pokemon"] == features["expected"]
             assert mock_result["confidence"] >= 0.80  # type: ignore
+
     def test_multiple_pokemon_in_battle(self) -> None:
         """Test identification of both Pokemon in battle"""
         battle_state = {
@@ -392,46 +417,47 @@ class TestPokemonIdentification:
                 "name": "Charmander",
                 "hp_percent": 75.0,
                 "level": 12,
-                "position": [120, 80]
+                "position": [120, 80],
             },
             "enemy_pokemon": {
                 "name": "Pidgey",
                 "hp_percent": 50.0,
                 "level": 10,
-                "position": [40, 30]
-            }
+                "position": [40, 30],
+            },
         }
 
         assert battle_state["player_pokemon"]["name"] == "Charmander"
         assert battle_state["enemy_pokemon"]["name"] == "Pidgey"
         assert 0 <= battle_state["player_pokemon"]["hp_percent"] <= 100  # type: ignore
         assert 0 <= battle_state["enemy_pokemon"]["hp_percent"] <= 100  # type: ignore
+
+
 class TestLocationDetection:
     """Tests for game location and area identification"""
 
     @pytest.fixture
-    def mock_location_data(self) :  # type: ignore[no-untyped-def]
-
+    def mock_location_data(self):  # type: ignore[no-untyped-def]
         """Mock location identification data"""
         return {
             "pallet_town": {
                 "tile_colors": [[34, 139, 34], [100, 149, 237]],
                 "buildings": 3,
                 "signs": 1,
-                "route_exits": 1
+                "route_exits": 1,
             },
             "route_1": {
                 "tile_colors": [[34, 139, 34], [139, 69, 19]],
                 "buildings": 0,
                 "signs": 2,
-                "route_exits": 2
+                "route_exits": 2,
             },
             "viridian_city": {
                 "tile_colors": [[34, 139, 34], [169, 169, 169]],
                 "buildings": 8,
                 "signs": 3,
-                "route_exits": 4
-            }
+                "route_exits": 4,
+            },
         }
 
     def test_tile_pattern_matching(self) -> None:
@@ -440,7 +466,7 @@ class TestLocationDetection:
             "grass": [[34, 139, 34]],
             "water": [65, 105, 225],
             "building": [139, 69, 19],
-            "path": [210, 180, 140]
+            "path": [210, 180, 140],
         }
 
         for pattern_name, colors in tile_patterns.items():
@@ -450,15 +476,32 @@ class TestLocationDetection:
     def test_location_tile_counting(self) -> None:
         """Test correct counting of location tiles"""
         location_counts = [
-            {"location": "Pallet Town", "grass_tiles": 50, "building_tiles": 15, "water_tiles": 0},
-            {"location": "Route 1", "grass_tiles": 100, "building_tiles": 0, "water_tiles": 5},
-            {"location": "Viridian City", "grass_tiles": 30, "building_tiles": 40, "water_tiles": 10}
+            {
+                "location": "Pallet Town",
+                "grass_tiles": 50,
+                "building_tiles": 15,
+                "water_tiles": 0,
+            },
+            {
+                "location": "Route 1",
+                "grass_tiles": 100,
+                "building_tiles": 0,
+                "water_tiles": 5,
+            },
+            {
+                "location": "Viridian City",
+                "grass_tiles": 30,
+                "building_tiles": 40,
+                "water_tiles": 10,
+            },
         ]
 
         for location in location_counts:
-            total_tiles = (location["grass_tiles"] +  # type: ignore
-                          location["building_tiles"] +
-                          location["water_tiles"])
+            total_tiles = (
+                location["grass_tiles"]  # type: ignore
+                + location["building_tiles"]
+                + location["water_tiles"]
+            )
             assert total_tiles > 0
 
     def test_area_boundary_detection(self) -> None:
@@ -467,25 +510,26 @@ class TestLocationDetection:
             "pallet_town": {
                 "top_left": (0, 0),
                 "bottom_right": (160, 144),
-                "walkable_area": 0.7
+                "walkable_area": 0.7,
             },
             "route_1": {
                 "top_left": (0, 0),
                 "bottom_right": (256, 144),
-                "walkable_area": 0.85
-            }
+                "walkable_area": 0.85,
+            },
         }
 
         for area, bounds in boundaries.items():
             assert bounds["top_left"][0] < bounds["bottom_right"][0]  # type: ignore
             assert bounds["top_left"][1] < bounds["bottom_right"][1]  # type: ignore
             assert 0.0 <= bounds["walkable_area"] <= 1.0  # type: ignore
+
     def test_location_transition_detection(self) -> None:
         """Test detection of location transitions"""
         transitions = [
             {"from": "pallet_town", "to": "route_1", "trigger": "walking_south"},
             {"from": "route_1", "to": "viridian_city", "trigger": "walking_west"},
-            {"from": "viridian_city", "to": "route_22", "trigger": "walking_north"}
+            {"from": "viridian_city", "to": "route_22", "trigger": "walking_north"},
         ]
 
         for transition in transitions:
@@ -493,7 +537,7 @@ class TestLocationDetection:
                 "event_type": "location_change",
                 "previous_location": transition["from"],
                 "new_location": transition["to"],
-                "trigger": transition["trigger"]
+                "trigger": transition["trigger"],
             }
             assert mock_event["previous_location"] != mock_event["new_location"]
 
@@ -503,7 +547,7 @@ class TestLocationDetection:
             {"type": "sign", "position": (80, 70), "text": "ROUTE 1"},
             {"type": "npc", "position": (50, 50), "direction": "UP"},
             {"type": "sign", "position": (120, 30), "text": "PALLET TOWN"},
-            {"type": "npc", "position": (90, 80), "direction": "LEFT"}
+            {"type": "npc", "position": (90, 80), "direction": "LEFT"},
         ]
 
         for obj in scene_objects:
@@ -511,6 +555,7 @@ class TestLocationDetection:
             assert isinstance(obj["position"], tuple)  # type: ignore
             if obj["type"] == "sign":  # type: ignore
                 assert isinstance(obj["text"], str)  # type: ignore
+
     def test_route_pathfinding_indicators(self) -> None:
         """Test indicators for pathfinding are correctly identified"""
         path_indicators = {
@@ -518,7 +563,7 @@ class TestLocationDetection:
             "water": False,
             "mountain": False,
             "cave_entrance": False,
-            "building_entrance": True
+            "building_entrance": True,
         }
 
         for indicator, value in path_indicators.items():
@@ -534,24 +579,30 @@ class TestVisionIntegration:
     """
 
     @pytest.fixture
-    def real_screenshot_path(self) :  # type: ignore[no-untyped-def]
+    def real_screenshot_path(self):  # type: ignore[no-untyped-def]
         """Path to real sample screenshot"""
-        p = Path("/config/workspace/ai_plays_poke/src/vision_test_run/screenshots/overworld/tick_000060_screenshot_20251230_222926_425460.png")
+        p = Path(
+            "/config/workspace/ai_plays_poke/src/vision_test_run/screenshots/overworld/tick_000060_screenshot_20251230_222926_425460.png"
+        )
         if not p.exists():
             pytest.skip("Real screenshot not available (Docker-path only)")
         return p
 
     @pytest.fixture
-    def latest_screenshot_path(self) :  # type: ignore[no-untyped-def]
+    def latest_screenshot_path(self):  # type: ignore[no-untyped-def]
         """Path to latest screenshot"""
-        p = Path("/config/workspace/ai_plays_poke/src/vision_test_run/screenshots/latest/latest_overworld.png")
+        p = Path(
+            "/config/workspace/ai_plays_poke/src/vision_test_run/screenshots/latest/latest_overworld.png"
+        )
         if not p.exists():
             pytest.skip("Latest screenshot not available (Docker-path only)")
         return p
 
     def test_screenshot_file_exists(self, real_screenshot_path) -> None:  # type: ignore[no-untyped-def]
         """Test that real screenshot file exists"""
-        assert real_screenshot_path.exists(), f"Screenshot not found: {real_screenshot_path}"
+        assert real_screenshot_path.exists(), (
+            f"Screenshot not found: {real_screenshot_path}"
+        )
 
     def test_screenshot_can_be_opened(self, real_screenshot_path) -> None:  # type: ignore[no-untyped-def]
         """Test that screenshot can be opened and read"""
@@ -568,7 +619,9 @@ class TestVisionIntegration:
 
     def test_latest_screenshot_exists(self, latest_screenshot_path) -> None:  # type: ignore[no-untyped-def]
         """Test that latest screenshot exists"""
-        assert latest_screenshot_path.exists(), f"Latest screenshot not found: {latest_screenshot_path}"
+        assert latest_screenshot_path.exists(), (
+            f"Latest screenshot not found: {latest_screenshot_path}"
+        )
 
     def test_vision_analysis_on_real_screenshot(self, real_screenshot_path) -> None:  # type: ignore[no-untyped-def]
         """Test vision analysis on real screenshot"""
@@ -579,7 +632,7 @@ class TestVisionIntegration:
             "screen_type": "overworld",
             "confidence": 0.92,
             "location": "Pallet Town",
-            "player_hp": 100.0
+            "player_hp": 100.0,
         }
 
         assert mock_result["screen_type"] in ["overworld", "battle", "menu", "dialog"]

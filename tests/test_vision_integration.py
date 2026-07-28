@@ -1,4 +1,5 @@
 """Integration test: Emulator + VisionClient with real API call."""
+
 import os  # noqa: E402
 import sys  # noqa: E402
 
@@ -41,6 +42,7 @@ print(f"Pixel range: {screen.min()}-{screen.max()}")
 
 # Save screenshot for debugging
 from PIL import Image  # noqa: E402
+
 Image.fromarray(screen).save("/tmp/pokemon_blue_capture.png")
 print("Saved screenshot to /tmp/pokemon_blue_capture.png")
 

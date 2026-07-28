@@ -21,9 +21,7 @@ import psutil
 import os
 
 from src.core.logger import LogCategory
-from src.core.state_machine import (
-    HierarchicalStateMachine
-)
+from src.core.state_machine import HierarchicalStateMachine
 
 
 logger = logging.getLogger(__name__)
@@ -31,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 class ConfidenceLevel(Enum):
     """Confidence level thresholds"""
+
     HIGH = 0.85
     MEDIUM = 0.70
     LOW = 0.50
@@ -40,6 +39,7 @@ class ConfidenceLevel(Enum):
 @dataclass
 class ConfidenceBreakdown:
     """Breakdown of confidence components"""
+
     ai_decision_confidence: float = 0.0
     vision_confidence: float = 0.0
     state_detection_confidence: float = 0.0
@@ -52,6 +52,7 @@ class ConfidenceBreakdown:
 @dataclass
 class SoftlockInfo:
     """Information about a detected softlock"""
+
     type: str
     severity: str
     description: str
@@ -68,6 +69,7 @@ class SoftlockInfo:
 @dataclass
 class RecoveryState:
     """State snapshot for recovery purposes"""
+
     tick: int
     timestamp: float
     mode: str
@@ -84,6 +86,7 @@ class RecoveryState:
 @dataclass
 class RecoveryResult:
     """Result of a recovery attempt"""
+
     success: bool
     recovery_type: str
     actions_taken: List[str]
@@ -97,6 +100,7 @@ class RecoveryResult:
 @dataclass
 class HealthMetrics:
     """System health metrics snapshot"""
+
     timestamp: float
     memory_usage_mb: float
     memory_percent: float
@@ -112,16 +116,19 @@ class HealthMetrics:
 class ConfidenceScorer:
     """
     Calculates and manages confidence scores for AI decisions
-    
+
     Combines:
     - AI decision confidence (from model response)
     - Vision confidence (from OCR certainty)
     - State detection confidence (from HSM state certainty)
     """
 
-    def __init__(self, default_threshold: float = 0.7,
-                 high_threshold: float = 0.85,
-                 critical_threshold: float = 0.3):
+    def __init__(
+        self,
+        default_threshold: float = 0.7,
+        high_threshold: float = 0.85,
+        critical_threshold: float = 0.3,
+    ):
         self.default_threshold = default_threshold
         self.high_threshold = high_threshold
         self.critical_threshold = critical_threshold
@@ -134,49 +141,49 @@ class ConfidenceScorer:
         ai_confidence: Optional[float] = None,
         vision_confidence: Optional[float] = None,
         state_confidence: Optional[float] = None,
-        tick: int = 0
+        tick: int = 0,
     ) -> ConfidenceBreakdown:
         """
         Calculate combined confidence score
-        
+
         Args:
             ai_confidence: Confidence from AI model response
             vision_confidence: Confidence from vision/OCR system
             state_confidence: Confidence from state detection
             tick: Current tick
-            
+
         Returns:
             ConfidenceBreakdown with all components and overall score
         """
         with self._lock:
             factors = []
-            
+
             ai_score = ai_confidence if ai_confidence is not None else 1.0
             if ai_confidence is None:
                 factors.append("AI confidence: default (1.0)")
-            
+
             vision_score = vision_confidence if vision_confidence is not None else 1.0
             if vision_confidence is None:
                 factors.append("Vision confidence: default (1.0)")
-            
+
             state_score = state_confidence if state_confidence is not None else 1.0
             if state_confidence is None:
                 factors.append("State confidence: default (1.0)")
-            
+
             if ai_confidence is not None:
                 factors.append(f"AI confidence: {ai_confidence:.2f}")
             if vision_confidence is not None:
                 factors.append(f"Vision confidence: {vision_confidence:.2f}")
             if state_confidence is not None:
                 factors.append(f"State confidence: {state_confidence:.2f}")
-            
+
             weights = {"ai": 0.4, "vision": 0.35, "state": 0.25}
             overall = (
-                weights["ai"] * ai_score +
-                weights["vision"] * vision_score +
-                weights["state"] * state_score
+                weights["ai"] * ai_score
+                + weights["vision"] * vision_score
+                + weights["state"] * state_score
             )
-            
+
             breakdown = ConfidenceBreakdown(
                 ai_decision_confidence=ai_score,
                 vision_confidence=vision_score,
@@ -184,12 +191,12 @@ class ConfidenceScorer:
                 overall_confidence=overall,
                 timestamp=time.time(),
                 tick=tick,
-                factors=factors
+                factors=factors,
             )
-            
+
             self._confidence_history.append(breakdown)
             self._last_confidence = breakdown
-            
+
             return breakdown
 
     def get_confidence_level(self, confidence: float) -> ConfidenceLevel:
@@ -209,13 +216,17 @@ class ConfidenceScorer:
     def get_recent_confidence_trend(self) -> Dict[str, Any]:
         """Get trend analysis of recent confidence scores"""
         if len(self._confidence_history) < 5:
-            return {"trend": "insufficient_data", "avg": None, "count": len(self._confidence_history)}
-        
+            return {
+                "trend": "insufficient_data",
+                "avg": None,
+                "count": len(self._confidence_history),
+            }
+
         recent = list(self._confidence_history)[-10:]
         scores = [c.overall_confidence for c in recent]
-        
+
         avg = sum(scores) / len(scores)
-        
+
         if len(scores) >= 3:
             early_avg = sum(scores[:3]) / 3
             late_avg = sum(scores[-3:]) / 3
@@ -227,8 +238,14 @@ class ConfidenceScorer:
                 trend = "stable"
         else:
             trend = "stable"
-        
-        return {"trend": trend, "avg": avg, "min": min(scores), "max": max(scores), "count": len(scores)}
+
+        return {
+            "trend": trend,
+            "avg": avg,
+            "min": min(scores),
+            "max": max(scores),
+            "count": len(scores),
+        }
 
     def get_last_confidence(self) -> Optional[ConfidenceBreakdown]:
         """Get the most recent confidence breakdown"""
@@ -242,21 +259,23 @@ class ConfidenceScorer:
 class SoftlockDetector:
     """
     Detects various types of softlocks and stuck conditions
-    
+
     Integrates with:
     - Mode Duration Tracking for anomaly detection
     - HSM for state transition tracking
     - Action history for repeated action detection
     """
 
-    def __init__(self,
-                 state_machine: Optional[HierarchicalStateMachine] = None,
-                 progress_window_seconds: float = 30.0,
-                 repeated_action_threshold: int = 10):
+    def __init__(
+        self,
+        state_machine: Optional[HierarchicalStateMachine] = None,
+        progress_window_seconds: float = 30.0,
+        repeated_action_threshold: int = 10,
+    ):
         self.state_machine = state_machine
         self.progress_window_seconds = progress_window_seconds
         self.repeated_action_threshold = repeated_action_threshold
-        
+
         self._lock = threading.Lock()
         self._action_history: deque[Tuple[int, Optional[str]]] = deque(maxlen=100)
         self._state_sequence: List[str] = []
@@ -273,48 +292,45 @@ class SoftlockDetector:
         current_duration: float,
         current_action: Optional[str],
         tick: int,
-        game_state: Optional[Dict[str, Any]] = None
+        game_state: Optional[Dict[str, Any]] = None,
     ) -> Optional[SoftlockInfo]:
         """
         Check for softlock conditions
-        
+
         Returns SoftlockInfo if softlock detected, None otherwise
         """
         with self._lock:
             softlock_info = None
-            
+
             mode_duration_issue = self._check_mode_duration(
                 current_mode, current_sub_mode, current_duration
             )
             if mode_duration_issue:
                 softlock_info = mode_duration_issue
-            
+
             repeated_action_issue = self._check_repeated_action(current_action, tick)
             if repeated_action_issue and not softlock_info:
                 softlock_info = repeated_action_issue
-            
+
             state_loop_issue = self._check_state_loop(tick)
             if state_loop_issue and not softlock_info:
                 softlock_info = state_loop_issue
-            
+
             progress_issue = self._check_zero_progress(tick, game_state)
             if progress_issue and not softlock_info:
                 softlock_info = progress_issue
-            
+
             if softlock_info:
                 self._softlock_history.append(softlock_info)
                 logger.warning(
                     f"Softlock detected: {softlock_info.type} - {softlock_info.description}",
-                    extra={"category": LogCategory.ERRORS, "tick": tick}
+                    extra={"category": LogCategory.ERRORS, "tick": tick},
                 )
-            
+
             return softlock_info
 
     def _check_mode_duration(
-        self,
-        mode: str,
-        sub_mode: str,
-        duration: float
+        self, mode: str, sub_mode: str, duration: float
     ) -> Optional[SoftlockInfo]:
         """Check if mode duration exceeds expected thresholds"""
         thresholds = {
@@ -329,10 +345,10 @@ class SoftlockDetector:
             ("MENU", "MAIN_MENU"): 180,
             ("OVERWORLD", "NAVIGATION"): 300,
         }
-        
+
         key = (mode, sub_mode)
         threshold = thresholds.get(key, 180)
-        
+
         if duration > threshold:
             severity = "HIGH" if duration > threshold * 2 else "MEDIUM"
             return SoftlockInfo(
@@ -343,27 +359,22 @@ class SoftlockDetector:
                 tick=0,
                 mode=mode,
                 sub_mode=sub_mode,
-                duration_seconds=duration
+                duration_seconds=duration,
             )
-        
+
         return None
 
     def _check_repeated_action(
-        self,
-        action: Optional[str],
-        tick: int
+        self, action: Optional[str], tick: int
     ) -> Optional[SoftlockInfo]:
         """Check for repeated same action"""
         if not action:
             return None
-        
+
         self._action_history.append((tick, action))
-        
-        recent_actions = [
-            a for t, a in self._action_history
-            if t >= tick - 30
-        ]
-        
+
+        recent_actions = [a for t, a in self._action_history if t >= tick - 30]
+
         if len(recent_actions) >= self.repeated_action_threshold:
             first_action = recent_actions[0]
             if all(a == first_action for a in recent_actions):
@@ -376,29 +387,29 @@ class SoftlockDetector:
                     mode="",
                     sub_mode="",
                     duration_seconds=0,
-                    repeated_action=first_action
+                    repeated_action=first_action,
                 )
-        
+
         return None
 
     def _check_state_loop(self, tick: int) -> Optional[SoftlockInfo]:
         """Check for state transition loops"""
         if not self.state_machine:
             return None
-        
+
         history = self.state_machine.get_state_history()
         if len(history) < 5:
             return None
-        
+
         recent_transitions = history[-10:]
         states = [t.to_state for t in recent_transitions]
-        
+
         if len(states) >= 6:
             oscillations = 0
             for i in range(len(states) - 2):
-                if states[i] != states[i+1] and states[i+1] != states[i+2]:
+                if states[i] != states[i + 1] and states[i + 1] != states[i + 2]:
                     oscillations += 1
-            
+
             oscillation_ratio = oscillations / (len(states) - 2)
             if oscillation_ratio > 0.8 and len(states) >= 8:
                 return SoftlockInfo(
@@ -410,38 +421,36 @@ class SoftlockDetector:
                     mode="",
                     sub_mode="",
                     duration_seconds=0,
-                    state_sequence=states[-10:]
+                    state_sequence=states[-10:],
                 )
-        
+
         return None
 
     def _check_zero_progress(
-        self,
-        tick: int,
-        game_state: Optional[Dict[str, Any]]
+        self, tick: int, game_state: Optional[Dict[str, Any]]
     ) -> Optional[SoftlockInfo]:
         """Check for zero progress over time window"""
         if not game_state:
             return None
-        
+
         progress_indicators = [
             game_state.get("tick"),
             game_state.get("location"),
             game_state.get("player_hp_percent"),
         ]
-        
+
         if None in progress_indicators:
             return None
-        
+
         if self._last_progress_tick == 0:
             self._last_progress_tick = tick
             self._last_progress_time = time.time()
             return None
-        
+
         time_since_last = time.time() - self._last_progress_time
         if time_since_last < self.progress_window_seconds:
             return None
-        
+
         ticks_since_last = tick - self._last_progress_tick
         if ticks_since_last == 0:
             return SoftlockInfo(
@@ -452,12 +461,12 @@ class SoftlockDetector:
                 tick=tick,
                 mode=game_state.get("screen_type", ""),
                 sub_mode=game_state.get("menu_type", ""),
-                duration_seconds=time_since_last
+                duration_seconds=time_since_last,
             )
-        
+
         self._last_progress_tick = tick
         self._last_progress_time = time.time()
-        
+
         return None
 
     def record_action(self, action: str, tick: int) -> None:
@@ -495,7 +504,7 @@ class SoftlockDetector:
 class EmergencyRecovery:
     """
     Handles emergency recovery procedures
-    
+
     Provides:
     - Graceful shutdown sequences
     - Emergency state snapshots
@@ -503,27 +512,29 @@ class EmergencyRecovery:
     - Recovery logging and analysis
     """
 
-    def __init__(self,
-                 state_machine: Optional[HierarchicalStateMachine] = None,
-                 snapshot_dir: str = "data/emergency_snapshots"):
+    def __init__(
+        self,
+        state_machine: Optional[HierarchicalStateMachine] = None,
+        snapshot_dir: str = "data/emergency_snapshots",
+    ):
         self.state_machine = state_machine
         self.snapshot_dir = snapshot_dir
         self._lock = threading.Lock()
         self._recovery_history: List[RecoveryResult] = []
         self._current_recovery: Optional[RecoveryResult] = None
         self._shutdown_requested = False
-        
+
         os.makedirs(snapshot_dir, exist_ok=True)
 
     def initiate_recovery(
         self,
         reason: str,
         softlock_info: Optional[SoftlockInfo] = None,
-        current_state: Optional[Dict[str, Any]] = None
+        current_state: Optional[Dict[str, Any]] = None,
     ) -> RecoveryResult:
         """
         Initiate emergency recovery procedure
-        
+
         Returns RecoveryResult with outcome details
         """
         with self._lock:
@@ -532,31 +543,35 @@ class EmergencyRecovery:
             success = False
             state_restored = False
             message = ""
-            
+
             try:
                 actions_taken.append("recovery_initiated")
-                
-                actions_taken.extend(self._log_state_snapshot(reason, softlock_info, current_state))
-                
+
+                actions_taken.extend(
+                    self._log_state_snapshot(reason, softlock_info, current_state)
+                )
+
                 actions_taken.extend(self._attempt_graceful_shutdown())
-                
+
                 recovered_state = self._attempt_state_rollback()
                 if recovered_state:
                     state_restored = True
                     actions_taken.append(f"state_rollback_success: {recovered_state}")
-                
-                actions_taken.extend(self._create_emergency_report(reason, softlock_info))
-                
+
+                actions_taken.extend(
+                    self._create_emergency_report(reason, softlock_info)
+                )
+
                 success = True
                 message = "Recovery completed successfully"
-                
+
             except Exception as e:
                 message = f"Recovery failed: {str(e)}"
                 actions_taken.append(f"recovery_error: {str(e)}")
                 logger.error(f"Emergency recovery failed: {e}", exc_info=True)
-            
+
             time_taken = (time.time() - start_time) * 1000
-            
+
             result = RecoveryResult(
                 success=success,
                 recovery_type=self._get_recovery_type(softlock_info),
@@ -565,32 +580,32 @@ class EmergencyRecovery:
                 new_confidence=0.0,
                 state_restored=state_restored,
                 message=message,
-                timestamp=time.time()
+                timestamp=time.time(),
             )
-            
+
             self._recovery_history.append(result)
             self._current_recovery = result
-            
+
             return result
 
     def _log_state_snapshot(
         self,
         reason: str,
         softlock_info: Optional[SoftlockInfo],
-        current_state: Optional[Dict[str, Any]]
+        current_state: Optional[Dict[str, Any]],
     ) -> List[str]:
         """Log current state snapshot"""
         actions = []
-        
+
         snapshot_data = {
             "timestamp": time.time(),
             "reason": reason,
             "softlock_type": softlock_info.type if softlock_info else None,
             "softlock_severity": softlock_info.severity if softlock_info else None,
             "current_state": current_state or {},
-            "state_machine": None
+            "state_machine": None,
         }
-        
+
         if self.state_machine:
             sm_state = self.state_machine.get_current_state()
             sm_stats = self.state_machine.get_statistics()
@@ -599,97 +614,95 @@ class EmergencyRecovery:
                 "current_state": sm_state.name if sm_state else None,
                 "previous_state": prev_state.name if prev_state else None,
                 "tick": sm_stats.get("total_ticks", 0),
-                "emergency_triggered": sm_stats.get("emergency_triggered", False)
+                "emergency_triggered": sm_stats.get("emergency_triggered", False),
             }
-        
+
         timestamp_str = time.strftime("%Y%m%d_%H%M%S")
         snapshot_file = os.path.join(
             self.snapshot_dir,
-            f"snapshot_{timestamp_str}_{int(time.time() * 1000 % 10000)}.json"
+            f"snapshot_{timestamp_str}_{int(time.time() * 1000 % 10000)}.json",
         )
-        
+
         try:
-            with open(snapshot_file, 'w') as f:
+            with open(snapshot_file, "w") as f:
                 json.dump(snapshot_data, f, indent=2, default=str)
             actions.append(f"snapshot_saved: {snapshot_file}")
         except Exception as e:
             actions.append(f"snapshot_failed: {str(e)}")
-        
+
         return actions
 
     def _attempt_graceful_shutdown(self) -> List[str]:
         """Attempt graceful shutdown of current operations"""
         actions = []
-        
+
         actions.append("stopping_tick_loop")
         actions.append("flushing_logs")
         actions.append("saving_progress")
-        
+
         return actions
 
     def _attempt_state_rollback(self) -> Optional[str]:
         """Attempt to rollback to known good state"""
         if not self.state_machine:
             return None
-        
+
         try:
             self.state_machine.clear_emergency()
-            
+
             current = self.state_machine.get_current_state_name()
             if current and "EMERGENCY" in current:
-                self.state_machine.transition_to("OVERWORLD.IDLE", reason="Recovery rollback")
+                self.state_machine.transition_to(
+                    "OVERWORLD.IDLE", reason="Recovery rollback"
+                )
                 return "OVERWORLD.IDLE"
-            
+
             return current if current else None
-            
+
         except Exception as e:
             logger.error(f"State rollback failed: {e}")
             return None
 
     def _create_emergency_report(
-        self,
-        reason: str,
-        softlock_info: Optional[SoftlockInfo]
+        self, reason: str, softlock_info: Optional[SoftlockInfo]
     ) -> List[str]:
         """Create emergency report for analysis"""
         actions = []
-        
+
         report = {
             "timestamp": time.time(),
             "reason": reason,
             "softlock": asdict(softlock_info) if softlock_info else None,
-            "recoveries_today": len([
-                r for r in self._recovery_history
-                if time.time() - r.timestamp < 86400
-            ])
+            "recoveries_today": len(
+                [r for r in self._recovery_history if time.time() - r.timestamp < 86400]
+            ),
         }
-        
+
         report_file = os.path.join(
-            self.snapshot_dir,
-            f"emergency_report_{int(time.time())}.json"
+            self.snapshot_dir, f"emergency_report_{int(time.time())}.json"
         )
-        
+
         try:
-            with open(report_file, 'w') as f:
+            with open(report_file, "w") as f:
                 json.dump(report, f, indent=2, default=str)
             actions.append(f"report_created: {report_file}")
         except Exception as e:
             actions.append(f"report_failed: {str(e)}")
-        
+
         return actions
 
     def _get_recovery_type(self, softlock_info: Optional[SoftlockInfo]) -> str:
         """Determine recovery type from softlock info"""
         if not softlock_info:
             return "general_recovery"
-        
+
         type_mapping = {
             "MODE_DURATION_EXCEEDED": "mode_duration_recovery",
             "REPEATED_ACTION": "action_stuck_recovery",
             "STATE_OSCILLATION": "state_loop_recovery",
             "ZERO_PROGRESS": "progress_stuck_recovery",
         }
-        
+
         return type_mapping.get(softlock_info.type, "unknown_recovery")
 
     def get_recovery_history(self, count: int = 20) -> List[RecoveryResult]:
@@ -707,16 +720,16 @@ class EmergencyRecovery:
 class DeathSpiralPreventer:
     """
     Prevents death spiral scenarios
-    
+
     MVP implementation with:
     - HP monitoring and threshold alerts
     - PP monitoring (stub)
     - Escape button availability check (stub)
     """
 
-    def __init__(self,
-                 warning_threshold: float = 0.25,
-                 critical_threshold: float = 0.10):
+    def __init__(
+        self, warning_threshold: float = 0.25, critical_threshold: float = 0.10
+    ):
         self.warning_threshold = warning_threshold
         self.critical_threshold = critical_threshold
         self._lock = threading.Lock()
@@ -729,11 +742,11 @@ class DeathSpiralPreventer:
         self,
         player_hp_percent: Optional[float],
         party_hp_percent: Optional[float],
-        tick: int = 0
+        tick: int = 0,
     ) -> Dict[str, Any]:
         """
         Check HP status and return alerts if needed
-        
+
         Returns dict with:
         - status: "healthy", "warning", "critical", "emergency"
         - alerts: list of alert messages
@@ -746,23 +759,27 @@ class DeathSpiralPreventer:
                 "alerts": [],
                 "should_heal": False,
                 "recommended_action": None,
-                "tick": tick
+                "tick": tick,
             }
-            
+
             if player_hp_percent is None:
                 return result
-            
+
             self._hp_history.append((tick, player_hp_percent))
-            
+
             if player_hp_percent <= self.critical_threshold:
                 result["status"] = "critical"
-                result["alerts"].append(f"CRITICAL: Player HP at {player_hp_percent:.1f}%")
+                result["alerts"].append(
+                    f"CRITICAL: Player HP at {player_hp_percent:.1f}%"
+                )
                 result["should_heal"] = True
                 result["recommended_action"] = "heal_immediately"
                 self._consecutive_low_hp_ticks += 1
             elif player_hp_percent <= self.warning_threshold:
                 result["status"] = "warning"
-                result["alerts"].append(f"WARNING: Player HP at {player_hp_percent:.1f}%")
+                result["alerts"].append(
+                    f"WARNING: Player HP at {player_hp_percent:.1f}%"
+                )
                 if self._consecutive_low_hp_ticks > 5:
                     result["should_heal"] = True
                     result["recommended_action"] = "heal_soon"
@@ -770,38 +787,38 @@ class DeathSpiralPreventer:
             else:
                 result["status"] = "healthy"
                 self._consecutive_low_hp_ticks = 0
-            
+
             if result["alerts"]:
                 alert_entry = {
                     "timestamp": time.time(),
                     "tick": tick,
                     "status": result["status"],
                     "hp_percent": player_hp_percent,
-                    "alerts": result["alerts"]
+                    "alerts": result["alerts"],
                 }
                 self._alerts.append(alert_entry)
                 logger.warning(
                     f"HP Alert: {result['status']} - {result['alerts']}",
-                    extra={"category": LogCategory.BATTLES, "tick": tick}
+                    extra={"category": LogCategory.BATTLES, "tick": tick},
                 )
-            
+
             return result
 
     def check_party_status(
-        self,
-        party_status: List[Dict[str, Any]],
-        tick: int = 0
+        self, party_status: List[Dict[str, Any]], tick: int = 0
     ) -> Dict[str, Any]:
         """Check overall party status"""
         if not party_status:
             return {"healthy": True, "can_battle": True, "tick": tick}
-        
+
         alive_count = sum(1 for p in party_status if p.get("hp_percent", 0) > 0)
         low_hp_count = sum(
-            1 for p in party_status
-            if p.get("hp_percent", 0) > 0 and p.get("hp_percent", 0) <= self.warning_threshold
+            1
+            for p in party_status
+            if p.get("hp_percent", 0) > 0
+            and p.get("hp_percent", 0) <= self.warning_threshold
         )
-        
+
         return {
             "healthy": alive_count == len(party_status),
             "can_battle": alive_count > 0,
@@ -809,21 +826,17 @@ class DeathSpiralPreventer:
             "total_count": len(party_status),
             "low_hp_count": low_hp_count,
             "should_heal": low_hp_count > len(party_status) // 2,
-            "tick": tick
+            "tick": tick,
         }
 
-    def check_pp_status(
-        self,
-        move_pp: Dict[str, int],
-        tick: int = 0
-    ) -> Dict[str, Any]:
+    def check_pp_status(self, move_pp: Dict[str, int], tick: int = 0) -> Dict[str, Any]:
         """Check move PP status (MVP stub)"""
         return {
             "has_pp": True,
             "can_fight": True,
             "needs_restore": False,
             "tick": tick,
-            "_stub": True
+            "_stub": True,
         }
 
     def check_escape_available(self, tick: int = 0) -> Dict[str, Any]:
@@ -833,17 +846,17 @@ class DeathSpiralPreventer:
             "success_rate": 0.0,
             "recommended": False,
             "tick": tick,
-            "_stub": True
+            "_stub": True,
         }
 
     def get_hp_trend(self) -> Dict[str, Any]:
         """Get HP trend analysis"""
         if len(self._hp_history) < 5:
             return {"trend": "insufficient_data"}
-        
+
         recent = list(self._hp_history)[-10:]
         hp_values = [hp for _, hp in recent]
-        
+
         if len(hp_values) >= 3:
             early_avg = sum(hp_values[:3]) / 3
             late_avg = sum(hp_values[-3:]) / 3
@@ -855,14 +868,14 @@ class DeathSpiralPreventer:
                 trend = "stable"
         else:
             trend = "stable"
-        
+
         return {
             "trend": trend,
             "current": hp_values[-1] if hp_values else None,
             "avg": sum(hp_values) / len(hp_values),
             "min": min(hp_values),
             "max": max(hp_values),
-            "samples": len(hp_values)
+            "samples": len(hp_values),
         }
 
     def get_alerts(self, count: int = 20) -> List[Dict[str, Any]]:
@@ -874,7 +887,7 @@ class DeathSpiralPreventer:
 class SystemHealthMonitor:
     """
     Monitors system health metrics
-    
+
     MVP implementation with:
     - Memory usage tracking
     - API latency monitoring
@@ -882,16 +895,18 @@ class SystemHealthMonitor:
     - Emulator state validation (stub)
     """
 
-    def __init__(self,
-                 memory_warning_mb: float = 512.0,
-                 memory_critical_mb: float = 1024.0,
-                 api_latency_warning_ms: float = 5000.0,
-                 api_latency_critical_ms: float = 10000.0):
+    def __init__(
+        self,
+        memory_warning_mb: float = 512.0,
+        memory_critical_mb: float = 1024.0,
+        api_latency_warning_ms: float = 5000.0,
+        api_latency_critical_ms: float = 10000.0,
+    ):
         self.memory_warning_mb = memory_warning_mb
         self.memory_critical_mb = memory_critical_mb
         self.api_latency_warning_ms = api_latency_warning_ms
         self.api_latency_critical_ms = api_latency_critical_ms
-        
+
         self._lock = threading.Lock()
         self._api_latency_history: deque[float] = deque(maxlen=50)
         self._health_history: List[HealthMetrics] = []
@@ -903,14 +918,14 @@ class SystemHealthMonitor:
             memory_info = self._process.memory_info()
             memory_mb = memory_info.rss / (1024 * 1024)
             memory_percent = self._process.memory_percent()
-            
+
             api_latency = self._get_recent_api_latency()
             api_success = self._get_api_success_rate()
-            
+
             score = self._calculate_health_score(
                 memory_mb, memory_percent, api_latency, api_success
             )
-            
+
             metrics = HealthMetrics(
                 timestamp=time.time(),
                 memory_usage_mb=memory_mb,
@@ -921,24 +936,24 @@ class SystemHealthMonitor:
                 db_healthy=True,
                 emulator_healthy=True,
                 tick_rate=0.0,
-                overall_score=score
+                overall_score=score,
             )
-            
+
             self._health_history.append(metrics)
             if len(self._health_history) > 1000:
                 self._health_history.pop(0)
-            
+
             return metrics
 
     def _get_recent_api_latency(self) -> float:
         """Get recent API latency average"""
         if not self._api_latency_history:
             return 0.0
-        
+
         recent = list(self._api_latency_history)[-10:]
         if not recent:
             return 0.0
-        
+
         return sum(recent) / len(recent)
 
     def _get_api_success_rate(self) -> float:
@@ -955,48 +970,48 @@ class SystemHealthMonitor:
         memory_mb: float,
         memory_percent: float,
         api_latency_ms: float,
-        api_success_rate: float
+        api_success_rate: float,
     ) -> float:
         """Calculate overall health score (0.0 - 1.0)"""
         score = 1.0
-        
+
         if memory_mb > self.memory_critical_mb:
             score -= 0.4
         elif memory_mb > self.memory_warning_mb:
             score -= 0.2
-        
+
         if api_latency_ms > self.api_latency_critical_ms:
             score -= 0.3
         elif api_latency_ms > self.api_latency_warning_ms:
             score -= 0.15
-        
+
         score *= api_success_rate
-        
+
         return max(0.0, min(1.0, score))
 
     def get_health_status(self) -> Dict[str, Any]:
         """Get simplified health status"""
         metrics = self.check_health()
-        
+
         status = "healthy"
         if metrics.overall_score < 0.5:
             status = "critical"
         elif metrics.overall_score < 0.7:
             status = "warning"
-        
+
         issues = []
         if metrics.memory_usage_mb > self.memory_warning_mb:
             issues.append(f"High memory: {metrics.memory_usage_mb:.0f}MB")
         if metrics.api_latency_ms > self.api_latency_warning_ms:
             issues.append(f"High latency: {metrics.api_latency_ms:.0f}ms")
-        
+
         return {
             "status": status,
             "score": metrics.overall_score,
             "memory_mb": metrics.memory_usage_mb,
             "cpu_percent": metrics.cpu_percent,
             "api_latency_ms": metrics.api_latency_ms,
-            "issues": issues
+            "issues": issues,
         }
 
     def get_health_history(self, count: int = 100) -> List[HealthMetrics]:
@@ -1008,7 +1023,7 @@ class SystemHealthMonitor:
 class FailsafeManager:
     """
     Main failsafe coordinator
-    
+
     Orchestrates all failsafe components:
     - ConfidenceScorer
     - SoftlockDetector
@@ -1017,19 +1032,21 @@ class FailsafeManager:
     - SystemHealthMonitor
     """
 
-    def __init__(self,
-                 state_machine: Optional[HierarchicalStateMachine] = None,
-                 confidence_threshold: float = 0.7):
+    def __init__(
+        self,
+        state_machine: Optional[HierarchicalStateMachine] = None,
+        confidence_threshold: float = 0.7,
+    ):
         self.state_machine = state_machine
-        
-        self.confidence_scorer = ConfidenceScorer(default_threshold=confidence_threshold)
-        self.softlock_detector = SoftlockDetector(
-            state_machine=state_machine
+
+        self.confidence_scorer = ConfidenceScorer(
+            default_threshold=confidence_threshold
         )
+        self.softlock_detector = SoftlockDetector(state_machine=state_machine)
         self.emergency_recovery = EmergencyRecovery(state_machine=state_machine)
         self.death_spiral_preventer = DeathSpiralPreventer()
         self.system_health_monitor = SystemHealthMonitor()
-        
+
         self._lock = threading.Lock()
         self._enabled = True
         self._tick = 0
@@ -1041,11 +1058,11 @@ class FailsafeManager:
         game_state: Dict[str, Any],
         ai_confidence: Optional[float] = None,
         vision_confidence: Optional[float] = None,
-        tick: int = 0
+        tick: int = 0,
     ) -> Dict[str, Any]:
         """
         Main update loop for failsafe system
-        
+
         Returns dict with:
         - confidence: Current confidence breakdown
         - softlock: Softlock info if detected
@@ -1055,44 +1072,44 @@ class FailsafeManager:
         """
         with self._lock:
             self._tick = tick
-            
+
             confidence = self.confidence_scorer.calculate_confidence(
                 ai_confidence=ai_confidence,
                 vision_confidence=vision_confidence,
                 state_confidence=game_state.get("state_confidence"),
-                tick=tick
+                tick=tick,
             )
-            
+
             softlock = self.softlock_detector.check_softlock(
                 current_mode=game_state.get("screen_type", "unknown"),
                 current_sub_mode=game_state.get("menu_type", ""),
                 current_duration=game_state.get("mode_duration", 0.0),
                 current_action=game_state.get("last_action"),
                 tick=tick,
-                game_state=game_state
+                game_state=game_state,
             )
-            
+
             recovery_triggered = False
             if softlock and self._enabled:
                 recovery_result = self.emergency_recovery.initiate_recovery(
                     reason=f"Softlock detected: {softlock.type}",
                     softlock_info=softlock,
-                    current_state=game_state
+                    current_state=game_state,
                 )
                 recovery_triggered = recovery_result.success
-            
+
             hp_status = self.death_spiral_preventer.check_hp_status(
                 player_hp_percent=game_state.get("player_hp_percent"),
                 party_hp_percent=game_state.get("party_hp_percent"),
-                tick=tick
+                tick=tick,
             )
-            
+
             health_status = self.system_health_monitor.get_health_status()
-            
+
             if time.time() - self._last_health_check > self._health_check_interval:
                 self.system_health_monitor.check_health()
                 self._last_health_check = time.time()
-            
+
             return {
                 "confidence": asdict(confidence),
                 "softlock": asdict(softlock) if softlock else None,
@@ -1105,7 +1122,7 @@ class FailsafeManager:
                 "confidence_level": self.confidence_scorer.get_confidence_level(
                     confidence.overall_confidence
                 ).value,
-                "tick": tick
+                "tick": tick,
             }
 
     def check_action(self, action: str, tick: int = 0) -> None:
@@ -1145,7 +1162,7 @@ class FailsafeManager:
         hp_trend = self.death_spiral_preventer.get_hp_trend()
         softlock_history = self.softlock_detector.get_softlock_history(5)
         recovery_history = self.emergency_recovery.get_recovery_history(5)
-        
+
         return {
             "enabled": self._enabled,
             "tick": self._tick,
@@ -1154,5 +1171,5 @@ class FailsafeManager:
             "hp_trend": hp_trend,
             "recent_softlocks": [asdict(s) for s in softlock_history],
             "recent_recoveries": [asdict(r) for r in recovery_history],
-            "health_status": self.system_health_monitor.get_health_status()
+            "health_status": self.system_health_monitor.get_health_status(),
         }

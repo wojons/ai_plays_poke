@@ -4,6 +4,7 @@ Unit tests for src/core/ram_reader.py — RAM-based game state reader.
 Mocks both the emulator (via read_u8/read_u16) and the ROM bytes so no
 real .gb file is needed.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -39,15 +40,15 @@ def _make_rom_bytes(
     # Map header at ROM offset 0x4100
     # bank=1 => rom_offset = 1 * 0x4000 + (0x4100 - 0x4000) = 0x4100
     offset = 0x4100
-    rom[offset] = 4          # tileset
-    rom[offset + 1] = 4      # height
-    rom[offset + 2] = 4      # width
+    rom[offset] = 4  # tileset
+    rom[offset + 1] = 4  # height
+    rom[offset + 2] = 4  # width
     struct.pack_into("<H", rom, offset + 3, 0x4110)  # block_ptr
 
     # Block data at 0x4110: 4×4 = 16 bytes
     block_offset = 0x4110
     # Row 0: floor, wall, floor, wall
-    rom[block_offset]     = 0x0F  # floor (tileset 4)
+    rom[block_offset] = 0x0F  # floor (tileset 4)
     rom[block_offset + 1] = 0x10  # wall
     rom[block_offset + 2] = 0x0F  # floor
     rom[block_offset + 3] = 0x10  # wall
@@ -57,8 +58,8 @@ def _make_rom_bytes(
     rom[block_offset + 6] = 0x10  # wall
     rom[block_offset + 7] = 0x0F  # floor
     # Row 2: floor, wall, object, floor
-    rom[block_offset + 8]  = 0x0F  # floor
-    rom[block_offset + 9]  = 0x10  # wall
+    rom[block_offset + 8] = 0x0F  # floor
+    rom[block_offset + 9] = 0x10  # wall
     rom[block_offset + 10] = 0x12  # object
     rom[block_offset + 11] = 0x0F  # floor
     # Row 3: wall, floor, floor, wall
@@ -97,13 +98,13 @@ def _emu_read_u16(addr: int) -> int:
 def _set_default_memory() -> None:
     """Set default emulator memory values — player in Pallet Town (map 0x00)."""
     _MEMORY.clear()
-    _MEMORY[0xD361] = 7   # wYCoord = 7 (player_y = 3 after -4)
-    _MEMORY[0xD362] = 9   # wXCoord = 9 (player_x = 5 after -4)
+    _MEMORY[0xD361] = 7  # wYCoord = 7 (player_y = 3 after -4)
+    _MEMORY[0xD362] = 9  # wXCoord = 9 (player_x = 5 after -4)
     _MEMORY[0xD35E] = 0x00  # wCurMap = Pallet Town
-    _MEMORY[0xCFC5] = 0      # wWalkCounter = 0 (not moving)
-    _MEMORY[0xD057] = 0      # wIsInBattle = 0 (overworld)
-    _MEMORY[0xCF2B] = 0      # wTextBoxFrame = 0
-    _MEMORY[0xCC47] = 0      # wNamingScreenType = 0
+    _MEMORY[0xCFC5] = 0  # wWalkCounter = 0 (not moving)
+    _MEMORY[0xD057] = 0  # wIsInBattle = 0 (overworld)
+    _MEMORY[0xCF2B] = 0  # wTextBoxFrame = 0
+    _MEMORY[0xCC47] = 0  # wNamingScreenType = 0
     # Sprite state data — facing direction (offset 9, bits 2-3 = 0x00 = down)
     _MEMORY[0xC109] = 0x00
 
@@ -170,6 +171,7 @@ class TestMapDBParseHeader:
     @pytest.fixture
     def db(self) -> object:
         from src.core.ram_reader import _MapDB
+
         return _MapDB.__new__(_MapDB)  # skip __init__, inject _rom
 
     def _patch_rom(self, db: object, rom: bytes) -> None:
@@ -482,18 +484,36 @@ class TestRAMReaderAdjacentBlocks:
                 "tileset": 4,
                 "width": 4,
                 "height": 4,
-                "block_data": [0x0F, 0x10, 0x0F, 0x10,
-                               0x10, 0x0D, 0x10, 0x0F,
-                               0x0F, 0x10, 0x12, 0x0F,
-                               0x10, 0x0F, 0x0F, 0x10],
+                "block_data": [
+                    0x0F,
+                    0x10,
+                    0x0F,
+                    0x10,
+                    0x10,
+                    0x0D,
+                    0x10,
+                    0x0F,
+                    0x0F,
+                    0x10,
+                    0x12,
+                    0x0F,
+                    0x10,
+                    0x0F,
+                    0x0F,
+                    0x10,
+                ],
             }
             mock_mapdb_cls.return_value = mock_db
 
             # Player at (5,3) — outside 4×4 map — all should be "void"
             reader = RAMReader(mock_emu, "/fake/rom.gb")
             adj = reader.adjacent_blocks()
-            assert adj == {"up": "void", "down": "void",
-                           "left": "void", "right": "void"}
+            assert adj == {
+                "up": "void",
+                "down": "void",
+                "left": "void",
+                "right": "void",
+            }
 
     def test_adjacent_inside_bounds(self, mock_emu: MagicMock) -> None:
         """Move player to (2,2) on 4×4 map — all 4 adjacent cells exist."""
@@ -508,14 +528,31 @@ class TestRAMReaderAdjacentBlocks:
                 "tileset": 4,
                 "width": 4,
                 "height": 4,
-                "block_data": [0x0F, 0x10, 0x0F, 0x10,
-                               0x10, 0x0D, 0x10, 0x0F,
-                               0x0F, 0x10, 0x12, 0x0F,
-                               0x10, 0x0F, 0x0F, 0x10],
+                "block_data": [
+                    0x0F,
+                    0x10,
+                    0x0F,
+                    0x10,
+                    0x10,
+                    0x0D,
+                    0x10,
+                    0x0F,
+                    0x0F,
+                    0x10,
+                    0x12,
+                    0x0F,
+                    0x10,
+                    0x0F,
+                    0x0F,
+                    0x10,
+                ],
             }
-            mock_db.classify_block.side_effect = \
-                lambda b, t: {0x0F: "floor", 0x10: "wall",
-                            0x0D: "stairs", 0x12: "object"}.get(b, "unknown")
+            mock_db.classify_block.side_effect = lambda b, t: {
+                0x0F: "floor",
+                0x10: "wall",
+                0x0D: "stairs",
+                0x12: "object",
+            }.get(b, "unknown")
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
@@ -543,14 +580,31 @@ class TestRAMReaderBuildMinimap:
                 "tileset": 4,
                 "width": 4,
                 "height": 4,
-                "block_data": [0x0F, 0x10, 0x0F, 0x10,
-                               0x10, 0x0D, 0x10, 0x0F,
-                               0x0F, 0x10, 0x12, 0x0F,
-                               0x10, 0x0F, 0x0F, 0x10],
+                "block_data": [
+                    0x0F,
+                    0x10,
+                    0x0F,
+                    0x10,
+                    0x10,
+                    0x0D,
+                    0x10,
+                    0x0F,
+                    0x0F,
+                    0x10,
+                    0x12,
+                    0x0F,
+                    0x10,
+                    0x0F,
+                    0x0F,
+                    0x10,
+                ],
             }
-            mock_db.classify_block.side_effect = \
-                lambda b, t: {0x0F: "floor", 0x10: "wall",
-                            0x0D: "stairs", 0x12: "object"}.get(b, "unknown")
+            mock_db.classify_block.side_effect = lambda b, t: {
+                0x0F: "floor",
+                0x10: "wall",
+                0x0D: "stairs",
+                0x12: "object",
+            }.get(b, "unknown")
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
@@ -622,7 +676,10 @@ class TestRAMReaderObserve:
             assert "minimap" in obs
             assert obs["map_dimensions"] == "4×4"
             assert obs["map_tileset"] == 4
-            assert "Pallet Town" in obs["suggested_action"] or "explore" in obs["suggested_action"]
+            assert (
+                "Pallet Town" in obs["suggested_action"]
+                or "explore" in obs["suggested_action"]
+            )
 
     def test_battle_observe(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xD057] = 1
@@ -681,8 +738,9 @@ class TestRAMReaderObserve:
                 "height": 4,
                 "block_data": [0x0F] * 16,
             }
-            mock_db.classify_block.side_effect = \
-                lambda b, t: {0x0F: "floor"}.get(b, "unknown")
+            mock_db.classify_block.side_effect = lambda b, t: {0x0F: "floor"}.get(
+                b, "unknown"
+            )
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
@@ -690,7 +748,10 @@ class TestRAMReaderObserve:
 
             # Player at (2,2): all adjacent are 0x0F→floor — no exits
             assert obs["visible_exits"] == []
-            assert "Pallet Town" in obs["suggested_action"] or "explore" in obs["suggested_action"]
+            assert (
+                "Pallet Town" in obs["suggested_action"]
+                or "explore" in obs["suggested_action"]
+            )
 
     def test_exits_detected_with_doors(self, mock_emu: MagicMock) -> None:
         """Player at (2,2) with a door to the right — exits should be found."""
@@ -702,15 +763,19 @@ class TestRAMReaderObserve:
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
             block_data = [0x0F] * 16
-            block_data[11] = 0x10  # right adjacent (idx = 2*4+3 = 11) — make it non-floor
+            block_data[11] = (
+                0x10  # right adjacent (idx = 2*4+3 = 11) — make it non-floor
+            )
             mock_db.get_map.return_value = {
                 "tileset": 4,
                 "width": 4,
                 "height": 4,
                 "block_data": block_data,
             }
-            mock_db.classify_block.side_effect = \
-                lambda b, t: {0x0F: "floor", 0x10: "door"}.get(b, "unknown")
+            mock_db.classify_block.side_effect = lambda b, t: {
+                0x0F: "floor",
+                0x10: "door",
+            }.get(b, "unknown")
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
@@ -815,14 +880,29 @@ class TestRenderOverworld:
                 "width": 4,
                 "height": 4,
                 "block_data": [
-                    0x0F, 0x10, 0x0F, 0x10,
-                    0x10, 0x0D, 0x10, 0x0F,
-                    0x0F, 0x10, 0x12, 0x0F,
-                    0x10, 0x0F, 0x0F, 0x10,
+                    0x0F,
+                    0x10,
+                    0x0F,
+                    0x10,
+                    0x10,
+                    0x0D,
+                    0x10,
+                    0x0F,
+                    0x0F,
+                    0x10,
+                    0x12,
+                    0x0F,
+                    0x10,
+                    0x0F,
+                    0x0F,
+                    0x10,
                 ],
             }
             mock_db.classify_block.side_effect = lambda b, t: {
-                0x0F: "floor", 0x10: "wall", 0x0D: "stairs", 0x12: "object",
+                0x0F: "floor",
+                0x10: "wall",
+                0x0D: "stairs",
+                0x12: "object",
             }.get(b, "unknown")
             mock_mapdb_cls.return_value = mock_db
 
@@ -837,9 +917,12 @@ class TestRenderOverworld:
 
             lines = output.split("\n")
             grid_lines = [
-                line for line in lines
-                if line.strip() and not line.startswith("Map")
-                and not line.startswith("Pos") and not line.startswith("Legend")
+                line
+                for line in lines
+                if line.strip()
+                and not line.startswith("Map")
+                and not line.startswith("Pos")
+                and not line.startswith("Legend")
             ]
             assert len(grid_lines) == 5
 
@@ -858,7 +941,7 @@ class TestRenderOverworld:
 
     def test_outdoor_grid(self, mock_emu: MagicMock) -> None:
         """Player at (6,5) on 10×9 outdoor map, facing down."""
-        _MEMORY[0xD361] = 9   # y = 5
+        _MEMORY[0xD361] = 9  # y = 5
         _MEMORY[0xD362] = 10  # x = 6
         _MEMORY[0xC109] = 0x00  # facing down
 
@@ -889,9 +972,12 @@ class TestRenderOverworld:
 
             lines = output.split("\n")
             grid_lines = [
-                line for line in lines
-                if line.strip() and not line.startswith("Map")
-                and not line.startswith("Pos") and not line.startswith("Legend")
+                line
+                for line in lines
+                if line.strip()
+                and not line.startswith("Map")
+                and not line.startswith("Pos")
+                and not line.startswith("Legend")
             ]
 
             center = grid_lines[2].split()
@@ -938,9 +1024,12 @@ class TestRenderOverworld:
 
                 lines = output.split("\n")
                 grid_lines = [
-                    line for line in lines
-                    if line.strip() and not line.startswith("Map")
-                    and not line.startswith("Pos") and not line.startswith("Legend")
+                    line
+                    for line in lines
+                    if line.strip()
+                    and not line.startswith("Map")
+                    and not line.startswith("Pos")
+                    and not line.startswith("Legend")
                 ]
 
                 center = grid_lines[2].split()
@@ -1008,9 +1097,12 @@ class TestRenderOverworld:
 
             lines = output.split("\n")
             grid_lines = [
-                line for line in lines
-                if line.strip() and not line.startswith("Map")
-                and not line.startswith("Pos") and not line.startswith("Legend")
+                line
+                for line in lines
+                if line.strip()
+                and not line.startswith("Map")
+                and not line.startswith("Pos")
+                and not line.startswith("Legend")
             ]
 
             # Row 0 (dy=-2): gy=-1 → all ?, except dx=-2 which is also ?
@@ -1098,9 +1190,9 @@ class TestReadBattleState:
     def test_player_hp_full(self, mock_emu: MagicMock) -> None:
         # HP = 0x0028 (40), max HP = 0x0028 (40) → 100%
         _MEMORY[0xD017] = 40  # ADDR_BATTLE_MON_HP low byte
-        _MEMORY[0xD018] = 0   # HP high byte
+        _MEMORY[0xD018] = 0  # HP high byte
         _MEMORY[0xD025] = 40  # ADDR_BATTLE_MON_MAX_HP low byte
-        _MEMORY[0xD026] = 0   # max HP high byte
+        _MEMORY[0xD026] = 0  # max HP high byte
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1156,10 +1248,10 @@ class TestReadBattleState:
             assert reader.read_battle_state()["player"]["level"] == 25
 
     def test_player_stats(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD027] = 50   # attack low
-        _MEMORY[0xD029] = 60   # defense low
-        _MEMORY[0xD02B] = 70   # speed low
-        _MEMORY[0xD02D] = 80   # special low
+        _MEMORY[0xD027] = 50  # attack low
+        _MEMORY[0xD029] = 60  # defense low
+        _MEMORY[0xD02B] = 70  # speed low
+        _MEMORY[0xD02D] = 80  # special low
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1183,7 +1275,7 @@ class TestReadBattleState:
 
     def test_player_type_dual(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xD01B] = 20  # Fire
-        _MEMORY[0xD01C] = 2   # Flying
+        _MEMORY[0xD01C] = 2  # Flying
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1200,13 +1292,13 @@ class TestReadBattleState:
 
     def test_player_moves_with_pp(self, mock_emu: MagicMock) -> None:
         # Move slots at 0xD01E-0xD021
-        _MEMORY[0xD01E] = 85   # Thunderbolt (move ID 85)
-        _MEMORY[0xD01F] = 45   # Growl
-        _MEMORY[0xD020] = 0    # empty slot
-        _MEMORY[0xD021] = 0    # empty slot
+        _MEMORY[0xD01E] = 85  # Thunderbolt (move ID 85)
+        _MEMORY[0xD01F] = 45  # Growl
+        _MEMORY[0xD020] = 0  # empty slot
+        _MEMORY[0xD021] = 0  # empty slot
         # PP at 0xD02F-0xD032
-        _MEMORY[0xD02F] = 15   # PP for Thunderbolt
-        _MEMORY[0xD030] = 40   # PP for Growl
+        _MEMORY[0xD02F] = 15  # PP for Thunderbolt
+        _MEMORY[0xD030] = 40  # PP for Growl
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1241,12 +1333,12 @@ class TestReadBattleState:
 
     def test_enemy_full_read(self, mock_emu: MagicMock) -> None:
         # Enemy Pidgey (species 36), Lv3, half HP
-        _MEMORY[0xCFE7] = 36   # Pidgey
-        _MEMORY[0xCFE8] = 14   # HP
-        _MEMORY[0xCFE9] = 0    # HP high byte
-        _MEMORY[0xCFF6] = 28   # max HP low
-        _MEMORY[0xCFF7] = 0    # max HP high
-        _MEMORY[0xCFF5] = 3    # level
+        _MEMORY[0xCFE7] = 36  # Pidgey
+        _MEMORY[0xCFE8] = 14  # HP
+        _MEMORY[0xCFE9] = 0  # HP high byte
+        _MEMORY[0xCFF6] = 28  # max HP low
+        _MEMORY[0xCFF7] = 0  # max HP high
+        _MEMORY[0xCFF5] = 3  # level
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1260,8 +1352,8 @@ class TestReadBattleState:
         assert enemy["level"] == 3
 
     def test_enemy_type_dual(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xCFEC] = 3   # Poison
-        _MEMORY[0xCFED] = 4   # Ground
+        _MEMORY[0xCFEC] = 3  # Poison
+        _MEMORY[0xCFED] = 4  # Ground
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1276,7 +1368,7 @@ class TestRenderBattle:
     """Tests for RAMReader.render_battle()."""
 
     def test_starts_with_battle_header(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD057] = 1   # wild battle
+        _MEMORY[0xD057] = 1  # wild battle
         _MEMORY[0xCFE7] = 79  # Pikachu (enemy)
         from src.core.ram_reader import RAMReader
 
@@ -1300,9 +1392,9 @@ class TestRenderBattle:
         assert "Trainer" in output
 
     def test_includes_player_info(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD016] = 1   # Rhydon (player)
+        _MEMORY[0xD016] = 1  # Rhydon (player)
         _MEMORY[0xD024] = 42  # level
-        _MEMORY[0xD025] = 100 # max_hp
+        _MEMORY[0xD025] = 100  # max_hp
         _MEMORY[0xD026] = 0
         _MEMORY[0xD017] = 50  # hp
         _MEMORY[0xD018] = 0
@@ -1334,10 +1426,10 @@ class TestRenderBattle:
         assert "17/35" in output
 
     def test_includes_moves(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD01E] = 33   # Tackle
-        _MEMORY[0xD01F] = 45   # Growl
-        _MEMORY[0xD02F] = 35   # Tackle PP (max 35)
-        _MEMORY[0xD030] = 40   # Growl PP (max 40)
+        _MEMORY[0xD01E] = 33  # Tackle
+        _MEMORY[0xD01F] = 45  # Growl
+        _MEMORY[0xD02F] = 35  # Tackle PP (max 35)
+        _MEMORY[0xD030] = 40  # Growl PP (max 40)
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1555,10 +1647,10 @@ class TestReadMenuState:
 
     def test_active_menu_fields(self, mock_emu: MagicMock) -> None:
         # Active start menu: 3 items (SAVE/OPTION/EXIT → max_item=2)
-        _MEMORY[0xCF88] = 1   # ADDR_LIST_MENU_ID = 1 (active menu)
-        _MEMORY[0xCC28] = 2   # ADDR_MAX_MENU_ITEM = 2
-        _MEMORY[0xCC26] = 1   # ADDR_CURRENT_MENU_ITEM = 1 (cursor on 2nd item)
-        _MEMORY[0xCC24] = 5   # ADDR_TOP_MENU_ITEM_Y
+        _MEMORY[0xCF88] = 1  # ADDR_LIST_MENU_ID = 1 (active menu)
+        _MEMORY[0xCC28] = 2  # ADDR_MAX_MENU_ITEM = 2
+        _MEMORY[0xCC26] = 1  # ADDR_CURRENT_MENU_ITEM = 1 (cursor on 2nd item)
+        _MEMORY[0xCC24] = 5  # ADDR_TOP_MENU_ITEM_Y
         _MEMORY[0xCC25] = 10  # ADDR_TOP_MENU_ITEM_X
         from src.core.ram_reader import RAMReader
 
@@ -1618,9 +1710,9 @@ class TestRenderMenu:
         assert "[3]" in output
 
     def test_cursor_arrow_on_current(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xCF88] = 1   # active
-        _MEMORY[0xCC28] = 3   # 4 items
-        _MEMORY[0xCC26] = 1   # cursor on 2nd item (index 1)
+        _MEMORY[0xCF88] = 1  # active
+        _MEMORY[0xCC28] = 3  # 4 items
+        _MEMORY[0xCC26] = 1  # cursor on 2nd item (index 1)
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1629,8 +1721,9 @@ class TestRenderMenu:
 
         lines = output.split("\n")
         # Verify arrow appears on the [2] line specifically
-        assert any("→" in line and "[2]" in line for line in lines), \
+        assert any("→" in line and "[2]" in line for line in lines), (
             "Expected → marker on item 2"
+        )
 
     def test_includes_navigation_hint(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCF88] = 1
@@ -1703,8 +1796,8 @@ class TestReadNameEntry:
 
     def test_lower_case(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCC47] = 1
-        _MEMORY[0xCC4D] = 1   # lowercase
-        _MEMORY[0xCC4F] = 0   # letter
+        _MEMORY[0xCC4D] = 1  # lowercase
+        _MEMORY[0xCC4F] = 0  # letter
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1717,7 +1810,7 @@ class TestReadNameEntry:
     def test_numerals_case(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCC47] = 1
         _MEMORY[0xCC4D] = 0
-        _MEMORY[0xCC4F] = 2   # numerals
+        _MEMORY[0xCC4F] = 2  # numerals
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1731,7 +1824,7 @@ class TestReadNameEntry:
     def test_symbols_case(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCC47] = 1
         _MEMORY[0xCC4D] = 0
-        _MEMORY[0xCC4F] = 3   # symbols
+        _MEMORY[0xCC4F] = 3  # symbols
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1881,8 +1974,9 @@ class TestRenderNameEntry:
 
         assert "Keyboard:" in output
         lines = output.split("\n")
-        assert any("A B C D E F G H I" in line for line in lines), \
+        assert any("A B C D E F G H I" in line for line in lines), (
             f"Expected uppercase row, got lines: {lines}"
+        )
 
     def test_navigation_hint(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCC47] = 1
@@ -1903,7 +1997,7 @@ class TestObserveExtended:
     """Tests for the extended observe() output (battle_state/menu_state/render)."""
 
     def test_battle_observe_includes_battle_state(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD057] = 1   # wild battle
+        _MEMORY[0xD057] = 1  # wild battle
         _MEMORY[0xD016] = 79  # Pikachu
         _MEMORY[0xCFE7] = 36  # Pidgey (enemy, species 36)
         from src.core.ram_reader import RAMReader
@@ -1924,7 +2018,7 @@ class TestObserveExtended:
         assert "BATTLE" in obs["render"]
 
     def test_dialog_observe_includes_render(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xCF2B] = 1   # dialog screen
+        _MEMORY[0xCF2B] = 1  # dialog screen
         # Write enough content (>= 3 chars) so first decode avoids the fallback
         # path. read_dialog_text reads 60 bytes and decodes up to 20.
         _MEMORY[0xCE00] = 0x88  # I

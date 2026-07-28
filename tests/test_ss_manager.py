@@ -2,6 +2,7 @@
 Unit tests for src/core/screenshot_manager.py
 Tests ScreenshotManager + LiveView classes with tmp_path — no ROM/API needed.
 """
+
 import base64
 import os
 import time
@@ -17,6 +18,7 @@ from src.core.screenshot_manager import LiveView, ScreenshotManager
 
 # ── helpers ────────────────────────────────────────────────────────────────
 
+
 def _make_rgb(w: int = 160, h: int = 144) -> np.ndarray:
     """Create a test RGB image (non-black)."""
     arr = np.zeros((h, w, 3), dtype=np.uint8)
@@ -27,10 +29,12 @@ def _make_rgb(w: int = 160, h: int = 144) -> np.ndarray:
 def _save_png(path: Path, arr: np.ndarray) -> None:
     """Save numpy array as PNG to path."""
     import cv2
+
     cv2.imwrite(str(path), cv2.cvtColor(arr, cv2.COLOR_RGB2BGR))
 
 
 # ── ScreenshotManager tests ────────────────────────────────────────────────
+
 
 class TestScreenshotManagerInit:
     def test_creates_dirs(self, tmp_path):
@@ -306,6 +310,7 @@ class TestGetScreenshotStats:
 
 # ── LiveView tests ─────────────────────────────────────────────────────────
 
+
 class TestLiveViewInit:
     def test_stores_manager(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path / "ss"))
@@ -338,7 +343,9 @@ class TestLiveViewUpdateDisplay:
     @patch("cv2.imshow")
     @patch("cv2.cvtColor")
     @patch("cv2.waitKey", return_value=0)
-    def test_scales_when_displaying(self, mock_waitkey, mock_cvt, mock_imshow, mock_puttext, mock_resize, tmp_path):
+    def test_scales_when_displaying(
+        self, mock_waitkey, mock_cvt, mock_imshow, mock_puttext, mock_resize, tmp_path
+    ):
         sm = ScreenshotManager(str(tmp_path / "ss"))
         lv = LiveView(sm)
         lv.is_displaying = True
@@ -382,7 +389,9 @@ class TestLiveViewDisplayScreenshot:
     @patch("cv2.putText")
     @patch("cv2.imshow")
     @patch("cv2.waitKey")
-    def test_valid_file_displays(self, mock_wait, mock_imshow, mock_puttext, mock_imread, tmp_path):
+    def test_valid_file_displays(
+        self, mock_wait, mock_imshow, mock_puttext, mock_imread, tmp_path
+    ):
         sm = ScreenshotManager(str(tmp_path / "ss"))
         lv = LiveView(sm)
         dummy = np.zeros((144, 160, 3), dtype=np.uint8)
@@ -400,6 +409,7 @@ class TestLiveViewDisplayScreenshot:
 
 
 # ── Integration ────────────────────────────────────────────────────────────
+
 
 class TestIntegration:
     def test_save_and_get_latest(self, tmp_path):

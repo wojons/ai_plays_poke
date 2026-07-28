@@ -16,6 +16,7 @@ from datetime import datetime
 
 class Button(str, Enum):
     """All Game Boy buttons"""
+
     A = "A"
     B = "B"
     START = "START"
@@ -28,19 +29,20 @@ class Button(str, Enum):
 
 class CommandType(str, Enum):
     """Types of commands the AI can send"""
-    PRESS = "press"           # Single button press
-    HOLD = "hold"           # Hold button for duration
-    RELEASE = "release"      # Release held button
-    SEQUENCE = "sequence"    # Sequence of buttons
-    BATCH = "batch"          # Batched movement (e.g., walk 10 steps)
-    WAIT = "wait"           # Wait for specified time
+
+    PRESS = "press"  # Single button press
+    HOLD = "hold"  # Hold button for duration
+    RELEASE = "release"  # Release held button
+    SEQUENCE = "sequence"  # Sequence of buttons
+    BATCH = "batch"  # Batched movement (e.g., walk 10 steps)
+    WAIT = "wait"  # Wait for specified time
 
 
 @dataclass
 class AICommand:
     """
     Base command structure from AI to emulator
-    
+
     Example:
     {
         "command_type": "press",
@@ -50,12 +52,13 @@ class AICommand:
         "wait_ticks": 60
     }
     """
+
     command_type: CommandType
     reasoning: str
     confidence: float
     tick: int
     timestamp: str
-    
+
     # Command-specific fields
     button: Optional[Button] = None
     button_sequence: Optional[List[Button]] = None
@@ -63,7 +66,7 @@ class AICommand:
     wait_ticks: int = 60
     batch_direction: Optional[str] = None
     batch_steps: int = 0
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for logging"""
         d = asdict(self)
@@ -75,7 +78,7 @@ class AICommand:
         if d.get("button_sequence"):
             d["button_sequence"] = [b.value for b in d["button_sequence"]]
         return d
-    
+
     def to_string(self) -> str:
         """Convert to simple string format: 'press:A'"""
         if self.command_type == CommandType.PRESS and self.button:
@@ -95,25 +98,26 @@ class AICommand:
 class AIThought:
     """
     AI thinking process for logging
-    
+
     Stores the reasoning behind AI decisions
     """
+
     tick: int
     timestamp: str
-    
+
     # The thought process
-    thought_process: str      # High-level what AI is doing
-    reasoning: str            # Detailed why AI is doing it
-    proposed_action: str      # What action AI wants to take
-    
+    thought_process: str  # High-level what AI is doing
+    reasoning: str  # Detailed why AI is doing it
+    proposed_action: str  # What action AI wants to take
+
     # Context
     game_state: Dict[str, Any]  # Current game state
-    
+
     # Metadata
-    model_used: str           # Which AI model
-    confidence: float         # Confidence in decision
-    tokens_used: int          # Input + output tokens
-    
+    model_used: str  # Which AI model
+    confidence: float  # Confidence in decision
+    tokens_used: int  # Input + output tokens
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for database logging"""
         d = asdict(self)
@@ -125,17 +129,18 @@ class AIThought:
 class GameState:
     """
     Current game state snapshot
-    
+
     Used to provide context to AI models
     """
+
     tick: int
     timestamp: str
-    
+
     # Screen state
-    screen_type: str         # "battle", "overworld", "menu", "dialog", "transition"
-    
+    screen_type: str  # "battle", "overworld", "menu", "dialog", "transition"
+
     # Battle state (if in battle)
-    is_battle: bool          # Are we in a battle?
+    is_battle: bool  # Are we in a battle?
     is_menu: bool
     has_dialog: bool
     can_move: bool = True
@@ -147,7 +152,7 @@ class GameState:
     cursor_position: Optional[tuple[int, int]] = None  # (x, y) on menu grid
     dialog_text: Optional[str] = None
     location: Optional[str] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for API/logging"""
         return asdict(self)
@@ -157,9 +162,10 @@ class GameState:
 class BattleState:
     """
     Detailed battle information for Strategist/Tactician
-    
+
     This is what the Vision System should extract and enrich with Pokédex data
     """
+
     tick: int
     timestamp: str
     enemy_pokemon: str
@@ -175,7 +181,7 @@ class BattleState:
     enemy_resistances: Optional[List[str]] = None
     turn_number: int = 0
     available_moves: Optional[List[str]] = None
-    
+
     def get_type_advice(self) -> str:
         """Generate type matchup advice string"""
         if not self.enemy_weaknesses:
@@ -188,12 +194,13 @@ class CommandExecutionResult:
     """
     Result of executing a command
     """
+
     command: AICommand
     success: bool
     execution_time_ms: float
     error_message: Optional[str] = None
     game_state_after: Optional[GameState] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for logging"""
         d: dict[str, Any] = {
@@ -204,7 +211,7 @@ class CommandExecutionResult:
             "confidence": self.command.confidence,
             "success": self.success,
             "error_message": self.error_message,
-            "execution_time_ms": self.execution_time_ms
+            "execution_time_ms": self.execution_time_ms,
         }
         if self.game_state_after:
             d["game_state_after"] = self.game_state_after.to_dict()
@@ -213,8 +220,10 @@ class CommandExecutionResult:
 
 # Helper functions
 
-def create_press_command(button: Button, reasoning: str, 
-                        tick: int, confidence: float = 0.8) -> AICommand:
+
+def create_press_command(
+    button: Button, reasoning: str, tick: int, confidence: float = 0.8
+) -> AICommand:
     """Create a simple press button command"""
     return AICommand(
         command_type=CommandType.PRESS,
@@ -222,12 +231,13 @@ def create_press_command(button: Button, reasoning: str,
         reasoning=reasoning,
         confidence=confidence,
         tick=tick,
-        timestamp=datetime.now().isoformat()
+        timestamp=datetime.now().isoformat(),
     )
 
 
-def create_batch_command(direction: str, steps: int, reasoning: str,
-                        tick: int, confidence: float = 0.8) -> AICommand:
+def create_batch_command(
+    direction: str, steps: int, reasoning: str, tick: int, confidence: float = 0.8
+) -> AICommand:
     """Create a batch navigation command"""
     return AICommand(
         command_type=CommandType.BATCH,
@@ -236,14 +246,14 @@ def create_batch_command(direction: str, steps: int, reasoning: str,
         reasoning=reasoning,
         confidence=confidence,
         tick=tick,
-        timestamp=datetime.now().isoformat()
+        timestamp=datetime.now().isoformat(),
     )
 
 
 def parse_command_string(command_str: str) -> Optional[Dict[str, Any]]:
     """
     Parse command string to components
-    
+
     Examples:
         "press:A" → {"command_type": "press", "button": "A"}
         "batch:UPx10" → {"command_type": "batch", "batch_direction": "UP", "batch_steps": 10}
@@ -252,10 +262,10 @@ def parse_command_string(command_str: str) -> Optional[Dict[str, Any]]:
     parts = command_str.split(":")
     if len(parts) != 2:
         return None
-    
+
     command_type, params = parts
     result: Dict[str, Any] = {"command_type": command_type}
-    
+
     if command_type == "press":
         if params in [b.value for b in Button]:
             result["button"] = params
@@ -271,5 +281,5 @@ def parse_command_string(command_str: str) -> Optional[Dict[str, Any]]:
         if all(b in [btn.value for btn in Button] for b in buttons):
             result["button_sequence"] = buttons
             return result
-    
+
     return None

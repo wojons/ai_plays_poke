@@ -307,6 +307,7 @@ class TestInventoryState:
         assert key_item is not None
         assert key_item.used is True
         assert key_item.use_location == "Route 25"
+
     def test_get_bag_summary(self) -> None:
         inv = InventoryState()
         inv.clear_inventory()
@@ -1034,9 +1035,7 @@ class TestItemUsageStrategy:
             money=5000,
         )
         value = strategy.calculate_item_value(
-            ItemType.HYPER_POTION,
-            party,
-            {"is_trainer_battle": False}
+            ItemType.HYPER_POTION, party, {"is_trainer_battle": False}
         )
         assert value >= 1.0
 
@@ -1044,22 +1043,14 @@ class TestItemUsageStrategy:
         inv = InventoryState()
         inv.clear_inventory()
         strategy = ItemUsageStrategy(inv)
-        efficiency = strategy.calculate_potion_efficiency(
-            ItemType.MAX_POTION,
-            50,
-            80
-        )
+        efficiency = strategy.calculate_potion_efficiency(ItemType.MAX_POTION, 50, 80)
         assert 0 < efficiency <= 1.0
 
     def test_calculate_potion_efficiency_no_heal_needed(self) -> None:
         inv = InventoryState()
         inv.clear_inventory()
         strategy = ItemUsageStrategy(inv)
-        efficiency = strategy.calculate_potion_efficiency(
-            ItemType.MAX_POTION,
-            80,
-            80
-        )
+        efficiency = strategy.calculate_potion_efficiency(ItemType.MAX_POTION, 80, 80)
         assert efficiency == 0.0
 
     def test_should_use_rare_candy(self) -> None:
@@ -1143,21 +1134,27 @@ class TestItemUsageStrategy:
         inv = InventoryState()
         inv.clear_inventory()
         strategy = ItemUsageStrategy(inv)
-        result = strategy.should_use_x_item({"is_trainer_battle": True, "turn_number": 1})
+        result = strategy.should_use_x_item(
+            {"is_trainer_battle": True, "turn_number": 1}
+        )
         assert result is True
 
     def test_should_use_x_item_wild_battle(self) -> None:
         inv = InventoryState()
         inv.clear_inventory()
         strategy = ItemUsageStrategy(inv)
-        result = strategy.should_use_x_item({"is_trainer_battle": False, "turn_number": 1})
+        result = strategy.should_use_x_item(
+            {"is_trainer_battle": False, "turn_number": 1}
+        )
         assert result is False
 
     def test_should_use_x_item_late_battle(self) -> None:
         inv = InventoryState()
         inv.clear_inventory()
         strategy = ItemUsageStrategy(inv)
-        result = strategy.should_use_x_item({"is_trainer_battle": True, "turn_number": 5})
+        result = strategy.should_use_x_item(
+            {"is_trainer_battle": True, "turn_number": 5}
+        )
         assert result is False
 
     def test_select_x_item(self) -> None:
@@ -1190,9 +1187,7 @@ class TestItemUsageStrategy:
             money=5000,
         )
         should_use, repel_type, reason = strategy.evaluate_repel_usage(
-            party,
-            "Cerulean City",
-            "VICTORY_ROAD"
+            party, "Cerulean City", "VICTORY_ROAD"
         )
         assert isinstance(should_use, bool)
 
@@ -1210,13 +1205,13 @@ class TestItemUsageStrategy:
         strategy = ItemUsageStrategy(inv)
         # Ensure HEALING_POWER is populated (shared class state, may be empty)
         from src.core.inventory import ShoppingHeuristic
+
         ShoppingHeuristic.HEALING_POWER[ItemType.HYPER_POTION] = 200
 
         # 124 HP missing (1/125), Hyper Potion heals 200, 200*0.3=60
         # 124 >= 60 → NOT wasteful
         is_wasteful, reason = strategy.check_waste_prevention(
-            ItemType.HYPER_POTION,
-            {"current_hp": 1, "max_hp": 125}
+            ItemType.HYPER_POTION, {"current_hp": 1, "max_hp": 125}
         )
         assert is_wasteful is False
 
@@ -1226,13 +1221,13 @@ class TestItemUsageStrategy:
         strategy = ItemUsageStrategy(inv)
         # Ensure HEALING_POWER is populated (shared class state, may be empty)
         from src.core.inventory import ShoppingHeuristic
+
         ShoppingHeuristic.HEALING_POWER[ItemType.HYPER_POTION] = 200
 
         # 30 HP missing (50/80), Hyper Potion heals 200, 200*0.3=60
         # 30 < 60 → IS wasteful
         is_wasteful, reason = strategy.check_waste_prevention(
-            ItemType.HYPER_POTION,
-            {"current_hp": 50, "max_hp": 80}
+            ItemType.HYPER_POTION, {"current_hp": 50, "max_hp": 80}
         )
         assert is_wasteful is True
         assert "wasted" in reason.lower()
@@ -1324,7 +1319,9 @@ class TestInventoryManager:
             ],
             money=5000,
         )
-        item, target = manager.get_battle_item_decision(party, 0, {"is_trainer_battle": False})
+        item, target = manager.get_battle_item_decision(
+            party, 0, {"is_trainer_battle": False}
+        )
         assert item is not None
 
     def test_record_item_usage(self) -> None:

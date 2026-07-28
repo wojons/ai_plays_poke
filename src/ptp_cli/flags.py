@@ -24,6 +24,7 @@ from enum import Enum
 
 class LimitAction(Enum):
     """Action to take when a limit is reached."""
+
     SAVE_AND_EXIT = "save-and-exit"
     SAVE_ONLY = "save-only"
     ABORT = "abort"
@@ -31,6 +32,7 @@ class LimitAction(Enum):
 
 class FailMode(Enum):
     """Behavior when experiment runs fail."""
+
     CONTINUE = "continue"
     FAST_FAIL = "fast-fail"
     RETRY = "retry"
@@ -38,6 +40,7 @@ class FailMode(Enum):
 
 class BudgetMode(Enum):
     """Budget period mode for cost limiting."""
+
     HOURLY = "hourly"
     DAILY = "daily"
     RUN = "run"
@@ -45,6 +48,7 @@ class BudgetMode(Enum):
 
 class ResultsFormat(Enum):
     """Output format for experiment results."""
+
     JSON = "json"
     CSV = "csv"
     PARQUET = "parquet"
@@ -53,6 +57,7 @@ class ResultsFormat(Enum):
 @dataclass
 class TickRateConfig:
     """Tick rate configuration."""
+
     base: int = 10
     battle: int = 2
     timeout: int = 30
@@ -76,7 +81,9 @@ class TickRateConfig:
         if self.adaptive and self.base > 30:
             errors.append("adaptive mode works best with tick-rate-base <= 30")
         if self.budget_mode and self.budget_limit is None:
-            errors.append("tick-rate-budget-limit required when tick-rate-budget is set")
+            errors.append(
+                "tick-rate-budget-limit required when tick-rate-budget is set"
+            )
         if self.budget_limit and self.budget_limit <= 0:
             errors.append("tick-rate-budget-limit must be positive")
         return errors
@@ -85,6 +92,7 @@ class TickRateConfig:
 @dataclass
 class ScreenshotConfig:
     """Screenshot configuration."""
+
     interval: int = 100
     battle_turn: int = 1
     on_error: int = 1
@@ -109,6 +117,7 @@ class ScreenshotConfig:
 @dataclass
 class CommandBufferConfig:
     """Command buffer configuration."""
+
     buffer_size: int = 10
     timeout: int = 5
     validation_enabled: bool = False
@@ -133,6 +142,7 @@ class CommandBufferConfig:
 @dataclass
 class RunLimitsConfig:
     """Run limits configuration."""
+
     max_time_seconds: Optional[int] = None
     max_ticks: Optional[int] = None
     max_cost: Optional[float] = None
@@ -153,7 +163,9 @@ class RunLimitsConfig:
             errors.append("max-cost must be positive")
         if self.max_pokemon_caught is not None and self.max_pokemon_caught <= 0:
             errors.append("max-pokemon-caught must be positive")
-        if self.max_badges is not None and (self.max_badges < 0 or self.max_badges > 16):
+        if self.max_badges is not None and (
+            self.max_badges < 0 or self.max_badges > 16
+        ):
             errors.append("max-badges must be 0-16")
         if self.max_level is not None and (self.max_level < 1 or self.max_level > 100):
             errors.append("max-level must be 1-100")
@@ -165,6 +177,7 @@ class RunLimitsConfig:
 @dataclass
 class SnapshotConfig:
     """Snapshot management configuration."""
+
     memory_count: int = 10
     disk_interval: int = 1000
     on_event: List[str] = field(default_factory=list)
@@ -197,6 +210,7 @@ class SnapshotConfig:
 @dataclass
 class SaveStateConfig:
     """Save state management configuration."""
+
     interval_ticks: int = 1000
     max_snapshots: int = 10
     on_event: List[str] = field(default_factory=lambda: ["battle", "level_up", "badge"])
@@ -207,7 +221,14 @@ class SaveStateConfig:
     def _validate_config(self) -> List[str]:
         """Validate configuration and return list of errors."""
         errors = []
-        valid_events = {"battle", "level_up", "badge", "catch", "location_change", "event"}
+        valid_events = {
+            "battle",
+            "level_up",
+            "badge",
+            "catch",
+            "location_change",
+            "event",
+        }
         for event in self.on_event:
             if event not in valid_events:
                 errors.append(f"invalid save-on-event: {event}")
@@ -223,6 +244,7 @@ class SaveStateConfig:
 @dataclass
 class ExperimentConfig:
     """Experiment orchestration configuration."""
+
     name: str = "default"
     parallel_workers: int = 1
     sequential_retry: int = 3
@@ -255,6 +277,7 @@ class ExperimentConfig:
 @dataclass
 class SystemConfig:
     """System-level configuration."""
+
     verbose: bool = False
     quiet: bool = False
     log_file: Optional[str] = None
@@ -267,6 +290,7 @@ class SystemConfig:
 @dataclass
 class FullConfig:
     """Complete configuration combining all flag categories."""
+
     rom_path: str = ""
     save_dir: str = "./game_saves"
 
@@ -308,7 +332,7 @@ class FullConfig:
                 "timeout": self.tick_rate.timeout,
                 "adaptive": self.tick_rate.adaptive,
                 "budget_mode": self.tick_rate.budget_mode,
-                "budget_limit": self.tick_rate.budget_limit
+                "budget_limit": self.tick_rate.budget_limit,
             },
             "screenshot": {
                 "interval": self.screenshot.interval,
@@ -318,7 +342,7 @@ class FullConfig:
                 "quality": self.screenshot.quality,
                 "max_storage_gb": self.screenshot.max_storage_gb,
                 "async_capture": self.screenshot.async_capture,
-                "compress": self.screenshot.compress
+                "compress": self.screenshot.compress,
             },
             "command_buffer": {
                 "buffer_size": self.command_buffer.buffer_size,
@@ -326,7 +350,7 @@ class FullConfig:
                 "validation_enabled": self.command_buffer.validation_enabled,
                 "rollback_history": self.command_buffer.rollback_history,
                 "interrupt_battle": self.command_buffer.interrupt_battle,
-                "stale_threshold": self.command_buffer.stale_threshold
+                "stale_threshold": self.command_buffer.stale_threshold,
             },
             "limits": {
                 "max_time_seconds": self.limits.max_time_seconds,
@@ -336,7 +360,7 @@ class FullConfig:
                 "max_badges": self.limits.max_badges,
                 "max_level": self.limits.max_level,
                 "on_limit": self.limits.on_limit,
-                "grace_period": self.limits.grace_period
+                "grace_period": self.limits.grace_period,
             },
             "snapshot": {
                 "memory_count": self.snapshot.memory_count,
@@ -348,7 +372,7 @@ class FullConfig:
                 "rollback_on_error": self.snapshot.rollback_on_error,
                 "rollback_grace": self.snapshot.rollback_grace,
                 "allow_share": self.snapshot.allow_share,
-                "name": self.snapshot.name
+                "name": self.snapshot.name,
             },
             "save_state": {
                 "interval_ticks": self.save_state.interval_ticks,
@@ -356,7 +380,7 @@ class FullConfig:
                 "on_event": self.save_state.on_event,
                 "emergency_count": self.save_state.emergency_count,
                 "validate_on_save": self.save_state.validate_on_save,
-                "compress_old": self.save_state.compress_old
+                "compress_old": self.save_state.compress_old,
             },
             "experiment": {
                 "name": self.experiment.name,
@@ -370,15 +394,15 @@ class FullConfig:
                 "resume_from": self.experiment.resume_from,
                 "config_file": self.experiment.config_file,
                 "export_results": self.experiment.export_results,
-                "results_format": self.experiment.results_format
+                "results_format": self.experiment.results_format,
             },
             "system": {
                 "verbose": self.system.verbose,
                 "quiet": self.system.quiet,
                 "log_file": self.system.log_file,
                 "config_file": self.system.config_file,
-                "random_seed": self.system.random_seed
-            }
+                "random_seed": self.system.random_seed,
+            },
         }
 
 
@@ -414,7 +438,7 @@ Examples:
   python src/game_loop.py --experiment-name benchmark --parallel-workers 4 --max-ticks 10000
 
 For more information, see: specs/ptp_01x_cli_control_infrastructure.md
-            """
+            """,
         )
         self._setup_flag_groups()
 
@@ -422,35 +446,35 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
         """Add tick rate control flags."""
         group = self.parser.add_argument_group(
             "Tick Rate Control",
-            "Control game loop execution speed and adaptive behavior"
+            "Control game loop execution speed and adaptive behavior",
         )
 
         group.add_argument(
             "--tick-rate-base",
             type=int,
             default=10,
-            help="Base tick rate for overworld exploration (ticks/second, default: 10)"
+            help="Base tick rate for overworld exploration (ticks/second, default: 10)",
         )
 
         group.add_argument(
             "--tick-rate-battle",
             type=int,
             default=2,
-            help="Tick rate during battle sequences (ticks/second, default: 2)"
+            help="Tick rate during battle sequences (ticks/second, default: 2)",
         )
 
         group.add_argument(
             "--tick-rate-timeout",
             type=int,
             default=30,
-            help="Maximum seconds without state change before timeout (default: 30)"
+            help="Maximum seconds without state change before timeout (default: 30)",
         )
 
         group.add_argument(
             "--tick-rate-adaptive",
             action="store_true",
             default=False,
-            help="Auto-adjust rate based on decision latency"
+            help="Auto-adjust rate based on decision latency",
         )
 
         group.add_argument(
@@ -458,49 +482,48 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             type=str,
             choices=["hourly", "daily", "run"],
             default=None,
-            help="Cost budget mode: hourly, daily, or run"
+            help="Cost budget mode: hourly, daily, or run",
         )
 
         group.add_argument(
             "--tick-rate-budget-limit",
             type=float,
             default=None,
-            help="Maximum budget in dollars per period (required with --tick-rate-budget)"
+            help="Maximum budget in dollars per period (required with --tick-rate-budget)",
         )
 
     def _add_screenshot_flags(self) -> None:
         """Add screenshot control flags."""
         group = self.parser.add_argument_group(
-            "Screenshot Control",
-            "Configure screenshot capture, quality, and storage"
+            "Screenshot Control", "Configure screenshot capture, quality, and storage"
         )
 
         group.add_argument(
             "--screenshot-interval",
             type=int,
             default=100,
-            help="Base screenshot interval in ticks (default: 100)"
+            help="Base screenshot interval in ticks (default: 100)",
         )
 
         group.add_argument(
             "--screenshot-battle-turn",
             type=int,
             default=1,
-            help="Screenshots captured per battle turn (default: 1)"
+            help="Screenshots captured per battle turn (default: 1)",
         )
 
         group.add_argument(
             "--screenshot-on-error",
             type=int,
             default=1,
-            help="Screenshots captured per error tick (default: 1)"
+            help="Screenshots captured per error tick (default: 1)",
         )
 
         group.add_argument(
             "--screenshot-on-change",
             action="store_true",
             default=False,
-            help="Capture screenshot on any state transition"
+            help="Capture screenshot on any state transition",
         )
 
         group.add_argument(
@@ -509,126 +532,125 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             default=85,
             choices=range(0, 101),
             metavar="[0-100]",
-            help="JPEG quality 0-100 (default: 85)"
+            help="JPEG quality 0-100 (default: 85)",
         )
 
         group.add_argument(
             "--screenshot-max-storage",
             type=float,
             default=50.0,
-            help="Maximum storage in GB for screenshots (default: 50.0)"
+            help="Maximum storage in GB for screenshots (default: 50.0)",
         )
 
         group.add_argument(
             "--screenshot-async",
             action="store_true",
             default=False,
-            help="Enable non-blocking (async) screenshot capture"
+            help="Enable non-blocking (async) screenshot capture",
         )
 
         group.add_argument(
             "--screenshot-compress",
             action="store_true",
             default=False,
-            help="Compress old screenshots to save storage"
+            help="Compress old screenshots to save storage",
         )
 
     def _add_command_buffer_flags(self) -> None:
         """Add command buffer control flags."""
         group = self.parser.add_argument_group(
             "Command Buffer Control",
-            "Configure command queuing, execution, and rollback"
+            "Configure command queuing, execution, and rollback",
         )
 
         group.add_argument(
             "--command-buffer-size",
             type=int,
             default=10,
-            help="Maximum number of queued commands (default: 10)"
+            help="Maximum number of queued commands (default: 10)",
         )
 
         group.add_argument(
             "--command-timeout",
             type=int,
             default=5,
-            help="Maximum seconds a command can wait in buffer (default: 5)"
+            help="Maximum seconds a command can wait in buffer (default: 5)",
         )
 
         group.add_argument(
             "--command-validate",
             action="store_true",
             default=False,
-            help="Validate commands against current game state before execution"
+            help="Validate commands against current game state before execution",
         )
 
         group.add_argument(
             "--command-rollback-history",
             type=int,
             default=100,
-            help="Number of commands stored for potential rollback (default: 100)"
+            help="Number of commands stored for potential rollback (default: 100)",
         )
 
         group.add_argument(
             "--command-interrupt-battle",
             action="store_true",
             default=True,
-            help="Clear command buffer when random battle starts (default: True)"
+            help="Clear command buffer when random battle starts (default: True)",
         )
 
         group.add_argument(
             "--command-stale-threshold",
             type=int,
             default=2,
-            help="Seconds before command is considered stale (default: 2)"
+            help="Seconds before command is considered stale (default: 2)",
         )
 
     def _add_limit_flags(self) -> None:
         """Add run limit flags."""
         group = self.parser.add_argument_group(
-            "Run Limits",
-            "Configure stopping conditions and limit behavior"
+            "Run Limits", "Configure stopping conditions and limit behavior"
         )
 
         group.add_argument(
             "--max-time",
             type=int,
             default=None,
-            help="Maximum real time in seconds (default: unlimited)"
+            help="Maximum real time in seconds (default: unlimited)",
         )
 
         group.add_argument(
             "--max-ticks",
             type=int,
             default=None,
-            help="Maximum game ticks to execute (default: unlimited)"
+            help="Maximum game ticks to execute (default: unlimited)",
         )
 
         group.add_argument(
             "--max-cost",
             type=float,
             default=None,
-            help="Maximum cost in USD (default: unlimited)"
+            help="Maximum cost in USD (default: unlimited)",
         )
 
         group.add_argument(
             "--max-pokemon-caught",
             type=int,
             default=None,
-            help="Stop after catching N Pokemon (default: unlimited)"
+            help="Stop after catching N Pokemon (default: unlimited)",
         )
 
         group.add_argument(
             "--max-badges",
             type=int,
             default=None,
-            help="Stop after earning N badges (0-16, default: unlimited)"
+            help="Stop after earning N badges (0-16, default: unlimited)",
         )
 
         group.add_argument(
             "--max-level",
             type=int,
             default=None,
-            help="Stop when Pokemon reaches level N (1-100, default: unlimited)"
+            help="Stop when Pokemon reaches level N (1-100, default: unlimited)",
         )
 
         group.add_argument(
@@ -636,189 +658,188 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             type=str,
             choices=["save-and-exit", "save-only", "abort"],
             default="save-and-exit",
-            help="Action when limit is reached (default: save-and-exit)"
+            help="Action when limit is reached (default: save-and-exit)",
         )
 
         group.add_argument(
             "--limit-grace-period",
             type=int,
             default=30,
-            help="Seconds to finish current decision before stopping (default: 30)"
+            help="Seconds to finish current decision before stopping (default: 30)",
         )
 
     def _add_snapshot_flags(self) -> None:
         """Add snapshot management flags."""
         group = self.parser.add_argument_group(
-            "Snapshot Management",
-            "Configure save states, rollback, and recovery"
+            "Snapshot Management", "Configure save states, rollback, and recovery"
         )
 
         group.add_argument(
             "--snapshot-memory",
             type=int,
             default=10,
-            help="Number of RAM snapshots for instant restore (default: 10)"
+            help="Number of RAM snapshots for instant restore (default: 10)",
         )
 
         group.add_argument(
             "--snapshot-disk",
             type=int,
             default=1000,
-            help="Interval in ticks for disk snapshots (default: 1000)"
+            help="Interval in ticks for disk snapshots (default: 1000)",
         )
 
         group.add_argument(
             "--snapshot-on-event",
             type=str,
             default="",
-            help="Event triggers for snapshots: catch,battle,badge,death (comma-separated)"
+            help="Event triggers for snapshots: catch,battle,badge,death (comma-separated)",
         )
 
         group.add_argument(
             "--snapshot-max-disk",
             type=float,
             default=20.0,
-            help="Maximum storage in GB for snapshots (default: 20.0)"
+            help="Maximum storage in GB for snapshots (default: 20.0)",
         )
 
         group.add_argument(
             "--snapshot-compress",
             action="store_true",
             default=False,
-            help="Compress disk snapshots to save storage"
+            help="Compress disk snapshots to save storage",
         )
 
         group.add_argument(
             "--snapshot-validate",
             action="store_true",
             default=False,
-            help="Validate snapshots can be restored after saving"
+            help="Validate snapshots can be restored after saving",
         )
 
         group.add_argument(
             "--rollback-on-error",
             action="store_true",
             default=False,
-            help="Automatically rollback to last good snapshot on error"
+            help="Automatically rollback to last good snapshot on error",
         )
 
         group.add_argument(
             "--rollback-grace",
             type=int,
             default=3,
-            help="Maximum rollback depth (default: 3)"
+            help="Maximum rollback depth (default: 3)",
         )
 
         group.add_argument(
             "--snapshot-share",
             action="store_true",
             default=False,
-            help="Allow sharing snapshots via network"
+            help="Allow sharing snapshots via network",
         )
 
         group.add_argument(
             "--snapshot-name",
             type=str,
             default=None,
-            help="Name for creating a named snapshot"
+            help="Name for creating a named snapshot",
         )
 
     def _add_save_state_flags(self) -> None:
         """Add save state control flags."""
         group = self.parser.add_argument_group(
             "Save State Control",
-            "Configure save state intervals, rotation, and event triggers"
+            "Configure save state intervals, rotation, and event triggers",
         )
 
         group.add_argument(
             "--save-interval-ticks",
             type=int,
             default=1000,
-            help="Snapshot interval in ticks (default: 1000)"
+            help="Snapshot interval in ticks (default: 1000)",
         )
 
         group.add_argument(
             "--save-max-snapshots",
             type=int,
             default=10,
-            help="Maximum number of snapshots to keep (default: 10)"
+            help="Maximum number of snapshots to keep (default: 10)",
         )
 
         group.add_argument(
             "--save-on-event",
             type=str,
             default="",
-            help="Event triggers for snapshots: battle,level_up,badge,catch,location_change (comma-separated)"
+            help="Event triggers for snapshots: battle,level_up,badge,catch,location_change (comma-separated)",
         )
 
         group.add_argument(
             "--emergency-snapshot-count",
             type=int,
             default=3,
-            help="Number of emergency snapshots to preserve on crash (default: 3)"
+            help="Number of emergency snapshots to preserve on crash (default: 3)",
         )
 
         group.add_argument(
             "--save-state-validate",
             action="store_true",
             default=False,
-            help="Validate save states can be restored after saving"
+            help="Validate save states can be restored after saving",
         )
 
         group.add_argument(
             "--save-state-compress",
             action="store_true",
             default=False,
-            help="Compress old save states to save storage"
+            help="Compress old save states to save storage",
         )
 
     def _add_experiment_flags(self) -> None:
         """Add experiment orchestration flags."""
         group = self.parser.add_argument_group(
             "Experiment Orchestration",
-            "Configure multi-run experiments and parallel execution"
+            "Configure multi-run experiments and parallel execution",
         )
 
         group.add_argument(
             "--experiment-name",
             type=str,
             default="default",
-            help="Experiment identifier for grouping results (default: default)"
+            help="Experiment identifier for grouping results (default: default)",
         )
 
         group.add_argument(
             "--parallel-workers",
             type=int,
             default=1,
-            help="Maximum concurrent game instances (default: 1)"
+            help="Maximum concurrent game instances (default: 1)",
         )
 
         group.add_argument(
             "--sequential-retry",
             type=int,
             default=3,
-            help="Number of retries on failure (default: 3)"
+            help="Number of retries on failure (default: 3)",
         )
 
         group.add_argument(
             "--parallel-memory-limit",
             type=float,
             default=8.0,
-            help="Per-worker memory limit in GB (default: 8.0)"
+            help="Per-worker memory limit in GB (default: 8.0)",
         )
 
         group.add_argument(
             "--parallel-api-rate-limit",
             type=int,
             default=100,
-            help="Maximum API calls per minute across all workers (default: 100)"
+            help="Maximum API calls per minute across all workers (default: 100)",
         )
 
         group.add_argument(
             "--aggregate-stats",
             action="store_true",
             default=False,
-            help="Calculate mean and standard deviation for parallel runs"
+            help="Calculate mean and standard deviation for parallel runs",
         )
 
         group.add_argument(
@@ -826,35 +847,35 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             type=str,
             choices=["continue", "fast-fail", "retry"],
             default="continue",
-            help="Behavior on failure: continue, fast-fail, or retry (default: continue)"
+            help="Behavior on failure: continue, fast-fail, or retry (default: continue)",
         )
 
         group.add_argument(
             "--checkpoint-frequency",
             type=int,
             default=10000,
-            help="Save checkpoint after N sequential runs (default: 10000)"
+            help="Save checkpoint after N sequential runs (default: 10000)",
         )
 
         group.add_argument(
             "--resume-from",
             type=str,
             default=None,
-            help="Resume experiment from checkpoint directory"
+            help="Resume experiment from checkpoint directory",
         )
 
         group.add_argument(
             "--experiment-config",
             type=str,
             default=None,
-            help="Load experiment settings from YAML config file"
+            help="Load experiment settings from YAML config file",
         )
 
         group.add_argument(
             "--export-results",
             action="store_true",
             default=False,
-            help="Export aggregated results after experiment completes"
+            help="Export aggregated results after experiment completes",
         )
 
         group.add_argument(
@@ -862,14 +883,13 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             type=str,
             choices=["json", "csv", "parquet"],
             default="json",
-            help="Output format for exported results (default: json)"
+            help="Output format for exported results (default: json)",
         )
 
     def _add_system_flags(self) -> None:
         """Add system-level flags."""
         group = self.parser.add_argument_group(
-            "System Flags",
-            "General system configuration and utilities"
+            "System Flags", "General system configuration and utilities"
         )
 
         group.add_argument(
@@ -877,7 +897,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             "--verbose",
             action="store_true",
             default=False,
-            help="Enable verbose output"
+            help="Enable verbose output",
         )
 
         group.add_argument(
@@ -885,28 +905,25 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             "--quiet",
             action="store_true",
             default=False,
-            help="Suppress all output except errors"
+            help="Suppress all output except errors",
         )
 
         group.add_argument(
-            "--log-file",
-            type=str,
-            default=None,
-            help="Write logs to specified file"
+            "--log-file", type=str, default=None, help="Write logs to specified file"
         )
 
         group.add_argument(
             "--config-file",
             type=str,
             default=None,
-            help="Load additional configuration from YAML file"
+            help="Load additional configuration from YAML file",
         )
 
         group.add_argument(
             "--random-seed",
             type=int,
             default=None,
-            help="Random seed for reproducibility"
+            help="Random seed for reproducibility",
         )
 
     def _add_required_flags(self) -> None:
@@ -915,14 +932,14 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             "--rom",
             type=str,
             required=True,
-            help="Path to Pokemon ROM file (.gb or .gbc)"
+            help="Path to Pokemon ROM file (.gb or .gbc)",
         )
 
         self.parser.add_argument(
             "--save-dir",
             type=str,
             default="./game_saves",
-            help="Directory for saves, database, and screenshots (default: ./game_saves)"
+            help="Directory for saves, database, and screenshots (default: ./game_saves)",
         )
 
     def _setup_flag_groups(self) -> None:
@@ -966,7 +983,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
                 timeout=parsed.tick_rate_timeout,
                 adaptive=parsed.tick_rate_adaptive,
                 budget_mode=parsed.tick_rate_budget,
-                budget_limit=parsed.tick_rate_budget_limit
+                budget_limit=parsed.tick_rate_budget_limit,
             ),
             screenshot=ScreenshotConfig(
                 interval=parsed.screenshot_interval,
@@ -976,7 +993,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
                 quality=parsed.screenshot_quality,
                 max_storage_gb=parsed.screenshot_max_storage,
                 async_capture=parsed.screenshot_async,
-                compress=parsed.screenshot_compress
+                compress=parsed.screenshot_compress,
             ),
             command_buffer=CommandBufferConfig(
                 buffer_size=parsed.command_buffer_size,
@@ -984,7 +1001,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
                 validation_enabled=parsed.command_validate,
                 rollback_history=parsed.command_rollback_history,
                 interrupt_battle=parsed.command_interrupt_battle,
-                stale_threshold=parsed.command_stale_threshold
+                stale_threshold=parsed.command_stale_threshold,
             ),
             limits=RunLimitsConfig(
                 max_time_seconds=parsed.max_time,
@@ -994,7 +1011,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
                 max_badges=parsed.max_badges,
                 max_level=parsed.max_level,
                 on_limit=parsed.on_limit,
-                grace_period=parsed.limit_grace_period
+                grace_period=parsed.limit_grace_period,
             ),
             snapshot=SnapshotConfig(
                 memory_count=parsed.snapshot_memory,
@@ -1006,7 +1023,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
                 rollback_on_error=parsed.rollback_on_error,
                 rollback_grace=parsed.rollback_grace,
                 allow_share=parsed.snapshot_share,
-                name=parsed.snapshot_name
+                name=parsed.snapshot_name,
             ),
             save_state=SaveStateConfig(
                 interval_ticks=parsed.save_interval_ticks,
@@ -1014,7 +1031,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
                 on_event=save_state_events,
                 emergency_count=parsed.emergency_snapshot_count,
                 validate_on_save=parsed.save_state_validate,
-                compress_old=parsed.save_state_compress
+                compress_old=parsed.save_state_compress,
             ),
             experiment=ExperimentConfig(
                 name=parsed.experiment_name,
@@ -1028,15 +1045,15 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
                 resume_from=parsed.resume_from,
                 config_file=parsed.experiment_config,
                 export_results=parsed.export_results,
-                results_format=parsed.results_format
+                results_format=parsed.results_format,
             ),
             system=SystemConfig(
                 verbose=parsed.verbose,
                 quiet=parsed.quiet,
                 log_file=parsed.log_file,
                 config_file=parsed.config_file,
-                random_seed=parsed.random_seed
-            )
+                random_seed=parsed.random_seed,
+            ),
         )
 
     def validate_config(self, config: FullConfig) -> List[str]:
@@ -1056,11 +1073,15 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
 
         if config.experiment.parallel_workers > 1 and config.experiment.resume_from:
             if not Path(config.experiment.resume_from).exists():
-                errors.append(f"Resume directory not found: {config.experiment.resume_from}")
+                errors.append(
+                    f"Resume directory not found: {config.experiment.resume_from}"
+                )
 
         return errors
 
-    def parse_and_validate(self, args: Optional[List[str]] = None) -> tuple[FullConfig, List[str]]:
+    def parse_and_validate(
+        self, args: Optional[List[str]] = None
+    ) -> tuple[FullConfig, List[str]]:
         """
         Parse arguments and validate configuration.
 

@@ -16,16 +16,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 # ── Fake dependencies to avoid real filesystem/SQLite ───────────────────
 
+
 class FakeScreenshotManager:
     """Fake ScreenshotManager that doesn't touch filesystem."""
+
     def __init__(self, *args, **kwargs):
         pass
+
     def get_latest_screenshot(self):
         return None
 
 
 class FakeGameDatabase:
     """Fake GameDatabase that doesn't touch SQLite."""
+
     def __init__(self, *args, **kwargs):
         pass
 
@@ -47,20 +51,24 @@ def auth():
 
 # ── DashboardSession Unit Tests ─────────────────────────────────────────
 
+
 class TestDashboardSessionInit:
     def test_init_stores_session_id(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test-session")
         assert ds.session_id == "test-session"
 
     def test_init_creates_save_dir(self, tmp_path):
         from src.dashboard.main import DashboardSession
+
         save_dir = tmp_path / "saves"
         _ = DashboardSession("test", str(save_dir))
         assert save_dir.exists()
 
     def test_init_default_state(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         assert ds.state["running"] is False
         assert ds.state["paused"] is False
@@ -71,11 +79,13 @@ class TestDashboardSessionInit:
 
     def test_init_command_history_empty(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         assert ds.command_history == []
 
     def test_init_default_save_dir(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         assert str(ds.save_dir) == "game_saves"  # Path("./game_saves") strips "./"
 
@@ -83,6 +93,7 @@ class TestDashboardSessionInit:
 class TestDashboardSessionLifecycle:
     def test_start_sets_running(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.start()
         assert ds.state["running"] is True
@@ -91,6 +102,7 @@ class TestDashboardSessionLifecycle:
 
     def test_pause_while_running(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.start()
         ds.pause()
@@ -98,12 +110,14 @@ class TestDashboardSessionLifecycle:
 
     def test_pause_while_stopped_noop(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.pause()
         assert ds.state["paused"] is False
 
     def test_resume_while_paused(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.start()
         ds.pause()
@@ -112,6 +126,7 @@ class TestDashboardSessionLifecycle:
 
     def test_stop_clears_running_and_paused(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.start()
         ds.stop()
@@ -122,6 +137,7 @@ class TestDashboardSessionLifecycle:
 class TestDashboardSessionUpdateTick:
     def test_increments_counter(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.update_tick()
         assert ds.state["tick_count"] == 1
@@ -130,18 +146,21 @@ class TestDashboardSessionUpdateTick:
 
     def test_sets_state(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.update_tick(new_state="battle")
         assert ds.state["current_state"] == "battle"
 
     def test_sets_location(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.update_tick(location="Pallet Town")
         assert ds.state["location"] == "Pallet Town"
 
     def test_tick_rate_window_capped(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         for _ in range(70):
             ds.update_tick()
@@ -151,6 +170,7 @@ class TestDashboardSessionUpdateTick:
 class TestDashboardSessionCommands:
     def test_add_command_stores_fields(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.add_command({"command": "A"})
         assert ds.command_history[0]["command"] == "A"
@@ -159,6 +179,7 @@ class TestDashboardSessionCommands:
 
     def test_history_capped_at_1000(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         for i in range(1500):
             ds.add_command({"command": str(i)})
@@ -168,6 +189,7 @@ class TestDashboardSessionCommands:
 class TestDashboardSessionStatus:
     def test_get_status_idle(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         status = ds.get_status()
         assert status["session_id"] == "test"
@@ -176,6 +198,7 @@ class TestDashboardSessionStatus:
 
     def test_get_status_running_with_location(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.start()
         ds.update_tick(new_state="overworld", location="Route 1")
@@ -188,6 +211,7 @@ class TestDashboardSessionStatus:
 class TestDashboardSessionMetrics:
     def test_empty_session(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         metrics = ds.get_metrics()
         assert metrics["total_ticks"] == 0
@@ -196,6 +220,7 @@ class TestDashboardSessionMetrics:
 
     def test_with_ticks(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.start()
         for _ in range(5):
@@ -204,6 +229,7 @@ class TestDashboardSessionMetrics:
 
     def test_with_mixed_commands(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         ds.add_command({"command": "A", "success": True, "confidence": 0.9})
         ds.add_command({"command": "B", "success": False, "confidence": 0.5})
@@ -216,6 +242,7 @@ class TestDashboardSessionMetrics:
 class TestDashboardSessionRecentActions:
     def test_returns_latest(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         for i in range(10):
             ds.add_command({"command": str(i)})
@@ -224,6 +251,7 @@ class TestDashboardSessionRecentActions:
 
     def test_default_limit_50(self):
         from src.dashboard.main import DashboardSession
+
         ds = DashboardSession("test")
         for i in range(5):
             ds.add_command({"command": str(i)})
@@ -232,6 +260,7 @@ class TestDashboardSessionRecentActions:
 
 
 # ── HTTP Endpoint Tests ─────────────────────────────────────────────────
+
 
 class TestHealthEndpoint:
     def test_no_auth_required(self, client):
@@ -319,15 +348,21 @@ class TestControlEndpoints:
 
     def test_command_not_running_returns_400(self, client, auth):
         # Use unique session ID to avoid cross-test state leak from test_start
-        resp = client.post("/control/command", json={"command": "A"}, headers=auth,
-                           params={"session_id": "fresh-cmd-test"})
+        resp = client.post(
+            "/control/command",
+            json={"command": "A"},
+            headers=auth,
+            params={"session_id": "fresh-cmd-test"},
+        )
         assert resp.status_code == 400
 
     def test_command_when_started(self, client, auth):
         client.post("/control/start", headers=auth)
-        resp = client.post("/control/command", json={
-            "command": "A", "reasoning": "test", "confidence": 0.8
-        }, headers=auth)
+        resp = client.post(
+            "/control/command",
+            json={"command": "A", "reasoning": "test", "confidence": 0.8},
+            headers=auth,
+        )
         assert resp.status_code == 200
         assert resp.json()["status"] == "queued"
 
@@ -363,10 +398,12 @@ class TestVerifyApiKey:
 class TestCreateDashboardApp:
     def test_returns_app(self):
         from src.dashboard.main import create_dashboard_app, app
+
         assert create_dashboard_app() is app
 
     def test_accepts_save_dir(self):
         from src.dashboard.main import create_dashboard_app
+
         assert create_dashboard_app(save_dir="./custom") is not None
 
 
@@ -392,8 +429,12 @@ class TestSessionsIntegration:
         client.post("/control/start?session_id=s1", headers=auth)
         client.post("/control/start?session_id=s2", headers=auth)
         client.post("/control/stop?session_id=s1", headers=auth)
-        assert client.get("/status?session_id=s1", headers=auth).json()["running"] is False
-        assert client.get("/status?session_id=s2", headers=auth).json()["running"] is True
+        assert (
+            client.get("/status?session_id=s1", headers=auth).json()["running"] is False
+        )
+        assert (
+            client.get("/status?session_id=s2", headers=auth).json()["running"] is True
+        )
 
     def test_list_sessions(self, client, auth):
         client.post("/control/start?session_id=s1", headers=auth)

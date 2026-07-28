@@ -30,6 +30,7 @@ from core.emulator import Emulator, Button  # noqa: E402
 
 class EmulatorManager:
     """Stub for planned multi-instance support — not yet implemented."""
+
     def __init__(self, rom_path: str, count: int) -> None:
         raise NotImplementedError("Multi-instance support not yet implemented")
 
@@ -41,6 +42,8 @@ class EmulatorManager:
 
     def get_instance(self, instance_id: str) -> "Emulator":
         raise NotImplementedError
+
+
 from core.screenshots import ScreenshotManager, SimpleLiveView  # noqa: E402
 from core.ai_client import GameAIManager, OpenRouterClient  # noqa: E402
 from core.save_manager import SaveManager, SaveManagerConfig, SnapshotReason  # noqa: E402
@@ -48,30 +51,31 @@ from src.core.vision import VisionClient  # noqa: E402
 from src.core.prompt_assembler import PromptStack  # noqa: E402
 from src.core.tools import TOOL_SCHEMA, parse_tool_call  # noqa: E402
 from schemas.commands import (  # noqa: E402
-    AIThought, GameState
+    AIThought,
+    GameState,
 )
 
 
 class GameLoop:
     """
     Main game loop coordinator
-    
+
     Manages the flow:
     Screenshot → AI Decision → Command → Execute → Log → Repeat
     """
-    
+
     def __init__(self, config: Dict[str, Any]):
         """
         Initialize game loop with configuration
-        
+
         Args:
             config: Configuration dictionary with settings
         """
         self.config = config
-        
+
         # Initialize components
         rom_path = config["rom_path"]
-        
+
         # Single emulator mode
         self.emulator_mgr: Optional[EmulatorManager] = None
         if config.get("multi_instance", False):
@@ -80,28 +84,30 @@ class GameLoop:
             self.current_instance = "instance_0"
         else:
             self.emulator = Emulator(rom_path)
-        
+
         # Database
         db_path = Path(config["save_dir"]) / "game_data.db"
         self.db = GameDatabase(str(db_path))
-        
+
         # Screenshot manager
         screenshot_dir = Path(config["save_dir"]) / "screenshots"
         self.screenshot_mgr = ScreenshotManager(str(screenshot_dir))
-        
+
         # Save Manager for snapshots
         save_config = SaveManagerConfig(
             save_dir=config["save_dir"],
             max_snapshots=config.get("save_max_snapshots", 10),
             snapshot_interval_ticks=config.get("save_interval_ticks", 1000),
-            save_on_events=config.get("save_on_events", ["battle", "level_up", "badge"]),
-            validate_on_save=config.get("save_validate", False)
+            save_on_events=config.get(
+                "save_on_events", ["battle", "level_up", "badge"]
+            ),
+            validate_on_save=config.get("save_validate", False),
         )
         self.save_manager = SaveManager(save_config)
-        
+
         # Live view
         self.live_view = SimpleLiveView(self.screenshot_mgr)
-        
+
         # AI Manager (with fallback to stub mode)
         try:
             self.ai_manager = GameAIManager()
@@ -126,22 +132,22 @@ class GameLoop:
             self.vision_client = None
             self.prompt_stack = None
             self.prompt_client = None
-        
+
         # State tracking
         self.current_tick = 0
         self.last_screenshot_tick = 0
         self.is_running = False
         self.paused = False
         self.session_id = None
-        
+
         # Command pipeline
         self.pending_commands: list[Dict[str, Any]] = []
         self.command_history: list[Dict[str, Any]] = []
-        
+
         # Current battle tracking
         self.current_battle_id: Optional[int] = None
         self.battle_turn_count = 0
-        
+
         # Metrics
         self.metrics: dict[str, Any] = {
             "total_ticks": 0,
@@ -151,21 +157,21 @@ class GameLoop:
             "battles_encountered": 0,
             "battles_won": 0,
             "battles_lost": 0,
-            "start_time": None
+            "start_time": None,
         }
-    
+
     def start(self) -> None:
         """Start the game loop"""
         rom_name = Path(self.config["rom_path"]).name
         save_dir = Path(self.config["save_dir"])
-        
+
         print("🎮 AI Plays Pokemon - Starting...")
         print(f"📁 ROM: {rom_name}")
         print(f"💾 Save Directory: {save_dir}")
         print(f"📊 Database: {save_dir}/game_data.db")
         print(f"📸 Screenshots: {save_dir}/screenshots/")
         print()
-        
+
         # Start emulator(s)
         if self.emulator_mgr:
             self.emulator_mgr.start_all()
@@ -175,22 +181,22 @@ class GameLoop:
         # Start database session
         self.session_id = self.db.start_session(
             rom_path=str(self.config["rom_path"]),
-            model_name=self.config.get("model_name", "stub_ai")
+            model_name=self.config.get("model_name", "stub_ai"),
         )
-        
+
         self.is_running = True
         self.metrics["start_time"] = datetime.now()
         print("✅ System initialized. Beginning game loop...")
         print("Press Ctrl+C to stop gracefully")
         print()
-    
+
     def stop(self) -> None:
         """Stop the game loop and save all state"""
         if not self.is_running:
             return
-        
+
         print("\n🛑 Stopping game loop gracefully...")
-        
+
         # Save emulator state
         save_path = Path(self.config["save_dir"]) / "emulator_state.state"
         if self.emulator_mgr:
@@ -199,29 +205,29 @@ class GameLoop:
         else:
             self.emulator.save_state(str(save_path))
         print(f"💾 Emulator state saved to {save_path}")
-        
+
         # End database session with final metrics
         final_metrics = {
             **self.metrics,
-            "final_state": {"final_tick": self.current_tick}
+            "final_state": {"final_tick": self.current_tick},
         }
         self.db.end_session(final_metrics)
-        
+
         # Export session data for analysis
         export_path = self.db.export_session_data(self.session_id)
         print(f"📊 Session data exported to {export_path}")
-        
+
         self.is_running = False
-        
+
         # Stop emulator(s)
         if self.emulator_mgr:
             self.emulator_mgr.stop_all()
         else:
             self.emulator.stop()
-        
+
         # Print final stats
         self._print_final_stats()
-    
+
     def _print_final_stats(self) -> None:
         """Print final statistics"""
         print()
@@ -234,11 +240,11 @@ class GameLoop:
         print(f"   Battles: {self.metrics['battles_encountered']}")
         print(f"   Wins: {self.metrics['battles_won']}")
         print(f"   Losses: {self.metrics['battles_lost']}")
-        
+
         if self.metrics["start_time"]:
             duration = (datetime.now() - self.metrics["start_time"]).total_seconds()
             print(f"   Duration: {duration:.1f} seconds")
-    
+
     def run_single_tick(self) -> None:
         """Execute one iteration of the game loop"""
         self.current_tick += 1
@@ -249,33 +255,37 @@ class GameLoop:
             emulator.tick()
         else:
             self.emulator.tick()
-        
+
         # Check if should take screenshot
         screenshot_interval = self.config.get("screenshot_interval", 60)
         if self.current_tick - self.last_screenshot_tick >= screenshot_interval:
             self._capture_and_process_screenshot()
             self.last_screenshot_tick = self.current_tick
-        
+
         # Execute pending AI commands
         if self.pending_commands:
             self._execute_pending_commands()
-        
+
         # Check for battle state transition
         self._detect_battle_transition()
-        
+
         # Check for save state snapshot
         self._check_save_snapshot()
-    
+
     def _check_save_snapshot(self) -> None:
         """Check if save state snapshot should be created"""
-        emulator = self.emulator_mgr.get_instance(self.current_instance) if self.emulator_mgr else self.emulator
-        
+        emulator = (
+            self.emulator_mgr.get_instance(self.current_instance)
+            if self.emulator_mgr
+            else self.emulator
+        )
+
         # Update save manager tick count
         self.save_manager.set_tick_count(self.current_tick)
-        
+
         # Get current game state for snapshot metadata
         game_state = self._analyze_game_state()
-        
+
         # Check interval-based snapshot
         if self.save_manager.should_snapshot_interval(self.current_tick):
             self.save_manager.save_snapshot(
@@ -283,9 +293,11 @@ class GameLoop:
                 tick_count=self.current_tick,
                 reason=SnapshotReason.INTERVAL,
                 state_description=f"Interval snapshot at tick {self.current_tick}",
-                game_state=game_state.to_dict() if hasattr(game_state, 'to_dict') else None
+                game_state=game_state.to_dict()
+                if hasattr(game_state, "to_dict")
+                else None,
             )
-        
+
         # Check event-based snapshots
         if game_state.is_battle and self.current_battle_id is None:
             self.save_manager.save_snapshot(
@@ -293,9 +305,11 @@ class GameLoop:
                 tick_count=self.current_tick,
                 reason=SnapshotReason.BATTLE_START,
                 state_description=f"Battle started at tick {self.current_tick}",
-                game_state=game_state.to_dict() if hasattr(game_state, 'to_dict') else None
+                game_state=game_state.to_dict()
+                if hasattr(game_state, "to_dict")
+                else None,
             )
-    
+
     def _capture_and_process_screenshot(self) -> None:
         """Capture screenshot, analyze, and trigger AI if needed"""
         # Get emulator
@@ -304,36 +318,34 @@ class GameLoop:
             screenshot = emulator.capture_screen()
         else:
             screenshot = self.emulator.capture_screen()
-        
+
         # Save screenshot
         game_state = self._analyze_game_state()
-        
+
         screenshot_path = self.screenshot_mgr.save_screenshot(
             screenshot,
             "screenshot",
             state_type=game_state.screen_type,
-            tick=self.current_tick
+            tick=self.current_tick,
         )
-        
+
         self.metrics["screenshots_taken"] += 1
         self.live_view.should_display = True  # For screenshot manager tracking
         self.live_view.current_image = screenshot
-        
+
         # Log to database
         self.db.log_screenshot(
-            self.current_tick,
-            str(screenshot_path),
-            game_state.to_dict()
+            self.current_tick, str(screenshot_path), game_state.to_dict()
         )
-        
+
         # Trigger AI decision if game state requires it
         if game_state.is_battle or game_state.is_menu or game_state.has_dialog:
             self._get_ai_decision(game_state)
-    
+
     def _analyze_game_state(self) -> GameState:
         """
         Analyze current game state using vision processing
-        
+
         Uses real AI vision analysis when available, falls back to stub logic
         """
         # Start with default game state
@@ -347,9 +359,9 @@ class GameLoop:
             can_move=True,
             turn_number=self.battle_turn_count,
             player_hp_percent=100.0,
-            enemy_hp_percent=100.0
+            enemy_hp_percent=100.0,
         )
-        
+
         # Capture current screenshot for vision analysis
         try:
             # Get screenshot from emulator
@@ -358,18 +370,18 @@ class GameLoop:
                 screenshot = emulator.capture_screen()
             else:
                 screenshot = self.emulator.capture_screen()
-            
+
             # Use real vision analysis if available
             if self.use_real_ai and self.ai_manager and screenshot is not None:
                 print("👀 Analyzing screenshot with AI vision...")
                 vision_result = self.ai_manager.analyze_screenshot(screenshot)
-                
+
                 # Extract game state from vision analysis
                 game_state.screen_type = vision_result.get("screen_type", "overworld")
                 game_state.enemy_pokemon = vision_result.get("enemy_pokemon")
                 game_state.player_hp_percent = vision_result.get("player_hp", 100.0)
                 game_state.enemy_hp_percent = vision_result.get("enemy_hp", 100.0)
-                
+
                 # Set flags based on screen type
                 if game_state.screen_type == "battle":
                     game_state.is_battle = True
@@ -377,32 +389,34 @@ class GameLoop:
                     game_state.is_menu = True
                 elif game_state.screen_type == "dialog":
                     game_state.has_dialog = True
-                    
-                print(f"✅ Vision analysis: {game_state.screen_type}, "
-                      f"HP({game_state.player_hp_percent:.0f}%, {game_state.enemy_hp_percent:.0f}%)")
-                
+
+                print(
+                    f"✅ Vision analysis: {game_state.screen_type}, "
+                    f"HP({game_state.player_hp_percent:.0f}%, {game_state.enemy_hp_percent:.0f}%)"
+                )
+
             else:
                 # Fallback to stub logic for now
                 game_state = self._analyze_game_state_stub(game_state)
-                
+
         except Exception as e:
             print(f"⚠️  Vision analysis failed: {e}, using stub logic")
             game_state = self._analyze_game_state_stub(game_state)
-        
+
         return game_state
-    
+
     def _analyze_game_state_stub(self, game_state: GameState) -> GameState:
         """
         Stub game state analysis (original implementation)
-        
+
         Args:
             game_state: Game state to update
-            
+
         Returns:
             Updated game state with simulated detection
         """
         # Simple state detection based on tick ranges (for testing)
-        
+
         # Simulate battle state at certain tick ranges
         if 100 < self.current_tick < 150:
             game_state.screen_type = "battle"
@@ -410,30 +424,32 @@ class GameLoop:
             game_state.enemy_pokemon = "Pidgey"
             game_state.player_hp_percent = 85.0
             game_state.enemy_hp_percent = 100.0
-        
+
         # Simulate menu state
         elif 200 < self.current_tick < 220:
             game_state.screen_type = "menu"
             game_state.is_menu = True
             game_state.menu_type = "main"
-        
+
         # Simulate dialog
         elif 300 < self.current_tick < 310:
             game_state.screen_type = "dialog"
             game_state.has_dialog = True
             game_state.dialog_text = "Welcome to the world of Pokemon!"
-        
+
         return game_state
-    
+
     def _get_ai_decision(self, game_state: GameState) -> None:
         """
         Get AI decision based on game state
-        
+
         Uses real AI (OpenRouter) when available, falls back to stub AI otherwise
         """
-        print(f"🤔 AI decision needed at tick {self.current_tick} ({game_state.screen_type})")
+        print(
+            f"🤔 AI decision needed at tick {self.current_tick} ({game_state.screen_type})"
+        )
         self.metrics["ai_decisions"] = cast(int, self.metrics["ai_decisions"]) + 1
-        
+
         # Check if we should use real AI or stub
         if self.use_real_ai and self.ai_manager:
             command = self._get_real_ai_decision(game_state)
@@ -443,7 +459,7 @@ class GameLoop:
             command = self._get_stub_ai_decision(game_state)
             model_used = "stub_ai"
             tokens_used = 0
-        
+
         # Log AI thought process
         thought = AIThought(
             tick=self.current_tick,
@@ -454,22 +470,26 @@ class GameLoop:
             game_state=game_state.to_dict(),
             model_used=model_used,
             confidence=command["confidence"],
-            tokens_used=tokens_used
+            tokens_used=tokens_used,
         )
-        
+
         self.db.log_ai_thought(thought.to_dict())
-        
+
         # Add to command pipeline
-        self.pending_commands.append({
-            "tick": self.current_tick,
-            "command": command["action"],
-            "reasoning": command["reasoning"],
-            "confidence": command["confidence"],
-            "button": command.get("button")
-        })
-        
-        print(f"✅ AI decision ({model_used}): {command['action']} - {command['reasoning']}")
-    
+        self.pending_commands.append(
+            {
+                "tick": self.current_tick,
+                "command": command["action"],
+                "reasoning": command["reasoning"],
+                "confidence": command["confidence"],
+                "button": command.get("button"),
+            }
+        )
+
+        print(
+            f"✅ AI decision ({model_used}): {command['action']} - {command['reasoning']}"
+        )
+
     def _get_real_ai_decision(self, game_state: GameState) -> Dict[str, Any]:
         """Get real AI decision using vision + thinking pipeline.
 
@@ -534,14 +554,14 @@ class GameLoop:
         except Exception as e:
             print(f"❌ Real AI decision failed: {e}, falling back to stub")
             return self._get_stub_ai_decision(game_state)
-    
+
     def _get_stub_ai_decision(self, game_state: GameState) -> Dict[str, Any]:
         """
         Get stub AI decision (original simple implementation)
-        
+
         Args:
             game_state: Current game state
-            
+
         Returns:
             Command dictionary with action, reasoning, and confidence
         """
@@ -553,161 +573,176 @@ class GameLoop:
             return self._simple_dialog_ai(game_state)
         else:
             return self._simple_exploration_ai(game_state)
-    
+
     def _simple_battle_ai(self, game_state: GameState) -> Dict[str, Any]:
         """Simple battle heuristic (stub)"""
         return {
             "action": "press:A",
             "button": Button.A,
             "reasoning": "In battle, press A to select default move",
-            "confidence": 0.6
+            "confidence": 0.6,
         }
-    
+
     def _simple_menu_ai(self, game_state: GameState) -> Dict[str, Any]:
         """Simple menu navigation"""
         return {
             "action": "press:DOWN",
             "button": Button.DOWN,
             "reasoning": "In menu, move cursor down",
-            "confidence": 0.5
+            "confidence": 0.5,
         }
-    
+
     def _simple_dialog_ai(self, game_state: GameState) -> Dict[str, Any]:
         """Simple dialog handling"""
         return {
             "action": "press:A",
             "button": Button.A,
             "reasoning": "Advance dialog text",
-            "confidence": 0.9
+            "confidence": 0.9,
         }
-    
+
     def _simple_exploration_ai(self, game_state: GameState) -> Dict[str, Any]:
         """Simple exploration"""
         return {
             "action": "press:UP",
             "button": Button.UP,
             "reasoning": "Exploring, move north",
-            "confidence": 0.4
+            "confidence": 0.4,
         }
-    
+
     def _execute_pending_commands(self) -> None:
         """Execute commands waiting in pipeline"""
         if not self.pending_commands:
             return
-        
+
         command = self.pending_commands.pop(0)
-        
+
         try:
             # Parse command (format: "press:A" or similar)
             parsed = self._parse_command(command["command"])
             if not parsed:
                 raise ValueError(f"Invalid command format: {command['command']}")
-            
+
             # Get emulator
             if self.emulator_mgr:
                 emulator = self.emulator_mgr.get_instance(self.current_instance)
             else:
                 emulator = self.emulator
-            
+
             # Execute
             start_time = time.time()
-            
+
             if parsed["type"] == "press" and parsed.get("button"):
                 button = parsed["button"]
                 emulator.press_button(button)
             else:
                 # Handle other command types later
                 print(f"⚠️  Command type not implemented: {parsed['type']}")
-            
+
             execution_time = (time.time() - start_time) * 1000  # Convert to ms
-            
+
             # Log executed command
-            self.command_history.append({
-                **command,
-                "executed_at": datetime.now().isoformat(),
-                "success": True,
-                "execution_time_ms": execution_time
-            })
-            
+            self.command_history.append(
+                {
+                    **command,
+                    "executed_at": datetime.now().isoformat(),
+                    "success": True,
+                    "execution_time_ms": execution_time,
+                }
+            )
+
             self.metrics["commands_sent"] += 1
-            self.db.log_command({
-                "tick": command["tick"],
-                "command_type": parsed.get("type", "unknown"),
-                "command_value": command["command"],
-                "reasoning": command["reasoning"],
-                "confidence": command["confidence"],
-                "success": True,
-                "execution_time_ms": execution_time
-            })
-            
+            self.db.log_command(
+                {
+                    "tick": command["tick"],
+                    "command_type": parsed.get("type", "unknown"),
+                    "command_value": command["command"],
+                    "reasoning": command["reasoning"],
+                    "confidence": command["confidence"],
+                    "success": True,
+                    "execution_time_ms": execution_time,
+                }
+            )
+
             print(f"⏎ Executed: {command['command']}")
-            
+
         except Exception as e:
             print(f"❌ Command execution failed: {e}")
-            self.db.log_command({
-                "tick": command["tick"],
-                "command_type": "error",
-                "command_value": command.get("command", "unknown"),
-                "reasoning": command.get("reasoning", ""),
-                "confidence": command["confidence"],
-                "success": False,
-                "error_message": str(e),
-                "execution_time_ms": 0
-            })
-    
+            self.db.log_command(
+                {
+                    "tick": command["tick"],
+                    "command_type": "error",
+                    "command_value": command.get("command", "unknown"),
+                    "reasoning": command.get("reasoning", ""),
+                    "confidence": command["confidence"],
+                    "success": False,
+                    "error_message": str(e),
+                    "execution_time_ms": 0,
+                }
+            )
+
     def _parse_command(self, command_str: str) -> Optional[Dict[str, Any]]:
         """Parse command string to components"""
         parts = command_str.split(":")
         if len(parts) != 2:
             return None
-        
+
         command_type, params = parts
-        
+
         if command_type == "press":
             button_map = {
-                "A": Button.A, "B": Button.B, "START": Button.START,
-                "SELECT": Button.SELECT, "UP": Button.UP, "DOWN": Button.DOWN,
-                "LEFT": Button.LEFT, "RIGHT": Button.RIGHT
+                "A": Button.A,
+                "B": Button.B,
+                "START": Button.START,
+                "SELECT": Button.SELECT,
+                "UP": Button.UP,
+                "DOWN": Button.DOWN,
+                "LEFT": Button.LEFT,
+                "RIGHT": Button.RIGHT,
             }
             if params.upper() in button_map:
                 return {"type": "press", "button": button_map[params.upper()]}
-        
+
         return None
-    
+
     def _detect_battle_transition(self) -> None:
         """Detect when battle starts/ends and log accordingly"""
         # Simple check: if in battle state
         game_state = self._analyze_game_state()
-        
+
         if game_state.is_battle and self.current_battle_id is None:
             # Battle started
-            self.current_battle_id = self.db.log_battle_start({
-                "tick": self.current_tick,
-                "enemy_pokemon": game_state.enemy_pokemon or "Unknown",
-                "enemy_level": 5,
-                "player_pokemon": "Starter",
-                "player_level": 5
-            })
+            self.current_battle_id = self.db.log_battle_start(
+                {
+                    "tick": self.current_tick,
+                    "enemy_pokemon": game_state.enemy_pokemon or "Unknown",
+                    "enemy_level": 5,
+                    "player_pokemon": "Starter",
+                    "player_level": 5,
+                }
+            )
             self.metrics["battles_encountered"] += 1
             self.battle_turn_count = 0
             print("⚔️ Battle started!")
-            
+
         elif game_state.is_battle and self.current_battle_id is not None:
             # In battle, increment turn counter
             self.battle_turn_count += 1
-            
+
         elif not game_state.is_battle and self.current_battle_id is not None:
             # Battle ended
             # For now, assume victory if survived
             outcome = "victory" if (game_state.player_hp_percent or 0) > 0 else "defeat"
-            self.db.log_battle_end(self.current_battle_id, outcome, self.battle_turn_count)
-            
+            self.db.log_battle_end(
+                self.current_battle_id, outcome, self.battle_turn_count
+            )
+
             if outcome == "victory":
                 self.metrics["battles_won"] += 1
             else:
                 self.metrics["battles_lost"] += 1
             print(f"🏁 Battle ended! Result: {outcome}")
-            
+
             self.current_battle_id = None
             self.battle_turn_count = 0
 
@@ -722,13 +757,13 @@ def create_config(args: Any) -> Dict[str, Any]:
         "max_ticks": args.max_ticks,
         "model_name": "stub_ai",  # Will be replaced with real AI
         "multi_instance": args.multi_instance,
-        "instance_count": args.instances
+        "instance_count": args.instances,
     }
 
 
 def main() -> int:
     """Main entry point"""
-    
+
     parser = argparse.ArgumentParser(
         description="AI Plays Pokemon - Orchestrated Intelligence Framework",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -751,59 +786,52 @@ Examples:
   
   # Long gameplay session with analysis
   python game_loop.py --rom pokemon_blue.gb --save-dir ./battle_session --max-ticks 1800
-        """
+        """,
     )
-    
+
     # Required arguments
     parser.add_argument(
-        "--rom",
-        type=str,
-        required=True,
-        help="Path to Pokemon ROM file (.gb)"
+        "--rom", type=str, required=True, help="Path to Pokemon ROM file (.gb)"
     )
-    
+
     parser.add_argument(
         "--save-dir",
         type=str,
         default="./game_saves",
-        help="Directory for saves, DB, and screenshots (default: ./game_saves)"
+        help="Directory for saves, DB, and screenshots (default: ./game_saves)",
     )
-    
+
     # Optional arguments
     parser.add_argument(
         "--screenshot-interval",
         type=int,
         default=60,
-        help="Ticks between screenshots (default: 60 = 1 second at 60fps). Lower values = more frequent AI analysis."
+        help="Ticks between screenshots (default: 60 = 1 second at 60fps). Lower values = more frequent AI analysis.",
     )
-    
+
     parser.add_argument(
-        "--load-state",
-        type=str,
-        help="Load existing emulator state file"
+        "--load-state", type=str, help="Load existing emulator state file"
     )
-    
+
     parser.add_argument(
-        "--max-ticks",
-        type=int,
-        help="Maximum ticks to run before stopping (optional)"
+        "--max-ticks", type=int, help="Maximum ticks to run before stopping (optional)"
     )
-    
+
     parser.add_argument(
         "--multi-instance",
         action="store_true",
-        help="Run multiple emulator instances simultaneously"
+        help="Run multiple emulator instances simultaneously",
     )
-    
+
     parser.add_argument(
         "--instances",
         type=int,
         default=3,
-        help="Number of instances for multi-instance mode (default: 3)"
+        help="Number of instances for multi-instance mode (default: 3)",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Validate ROM exists
     rom_path = Path(args.rom)
     if not rom_path.exists():
@@ -811,41 +839,44 @@ Examples:
         return 1
     # Create configuration
     config = create_config(args)
-    
+
     # Initialize game loop
     game_loop = GameLoop(config)
-    
+
     # Handle graceful shutdown
     def signal_handler(sig: int, frame: object) -> None:
         print("\n🤷 Signal received, stopping gracefully...")
         game_loop.stop()
         sys.exit(0)
-    
+
     signal.signal(signal.SIGINT, signal_handler)
-    
+
     try:
         # Start
         game_loop.start()
-        
+
         # Main loop
         while game_loop.is_running:
             if args.max_ticks and game_loop.current_tick >= args.max_ticks:
                 print(f"\n⏱️ Reached max ticks ({args.max_ticks}), stopping...")
                 break
-            
+
             game_loop.run_single_tick()
-            
+
             # Small delay to prevent CPU spinning
             time.sleep(0.001)
-            
+
     except Exception as e:
         print(f"\n💥 ERROR: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
     finally:
         game_loop.stop()
-    
+
     return 0
+
+
 if __name__ == "__main__":
     sys.exit(main())

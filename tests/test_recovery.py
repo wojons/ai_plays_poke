@@ -4,6 +4,7 @@ The recovery logic tracks consecutive same-direction button presses and
 triggers checkpoint rollback after a threshold. These tests verify the
 pure-function behavior without needing an emulator or ROM.
 """
+
 from __future__ import annotations
 
 
@@ -13,6 +14,7 @@ _DIRECTIONS = {"UP", "DOWN", "LEFT", "RIGHT"}
 
 
 # ── Pure functions extracted from cron_runner.py ──────────────────────────
+
 
 def _track_direction(
     button: str,
@@ -108,10 +110,10 @@ class TestDirectionTracking:
     def test_mixed_directions_dont_accumulate(self) -> None:
         """DOWN, DOWN, LEFT, DOWN should NOT accumulate DOWN to 4."""
         sd, count = None, 0
-        sd, count = _track_direction("DOWN", sd, count)   # DOWN x1
-        sd, count = _track_direction("DOWN", sd, count)   # DOWN x2
-        sd, count = _track_direction("LEFT", sd, count)   # LEFT x1 (resets)
-        sd, count = _track_direction("DOWN", sd, count)   # DOWN x1 (resets)
+        sd, count = _track_direction("DOWN", sd, count)  # DOWN x1
+        sd, count = _track_direction("DOWN", sd, count)  # DOWN x2
+        sd, count = _track_direction("LEFT", sd, count)  # LEFT x1 (resets)
+        sd, count = _track_direction("DOWN", sd, count)  # DOWN x1 (resets)
         assert count == 1  # Not 4
 
     def test_interleaved_a_press_resets(self) -> None:
@@ -190,8 +192,18 @@ class TestEndToEndSequence:
         last_slot: int | None = 0
 
         buttons = [
-            "DOWN", "DOWN", "A", "DOWN", "DOWN", "A",
-            "DOWN", "DOWN", "A", "DOWN", "DOWN", "A",
+            "DOWN",
+            "DOWN",
+            "A",
+            "DOWN",
+            "DOWN",
+            "A",
+            "DOWN",
+            "DOWN",
+            "A",
+            "DOWN",
+            "DOWN",
+            "A",
         ]
         recovered = False
         for btn in buttons:
@@ -202,8 +214,7 @@ class TestEndToEndSequence:
                 break
 
         assert not recovered, (
-            "Recovery should NOT fire with interleaved A presses "
-            f"(final count={count})"
+            f"Recovery should NOT fire with interleaved A presses (final count={count})"
         )
 
     def test_full_cart_steps_all_down_with_checkpoint(self) -> None:
@@ -240,9 +251,7 @@ class TestEndToEndSequence:
             if count >= MAX_SAME_DIRECTION:
                 warned = True  # We'd see the warning print in real code
 
-        assert not recovered, (
-            "Recovery should NOT fire without a checkpoint"
-        )
+        assert not recovered, "Recovery should NOT fire without a checkpoint"
         assert warned, (
             "Should have reached warning threshold "
             f"(count={count}, MAX={MAX_SAME_DIRECTION})"
@@ -269,10 +278,10 @@ class TestEndToEndSequence:
 
     def test_direction_switch_resets_count_correctly(self) -> None:
         """Switching from DOWN to UP resets count to 1 (not 0)."""
-        sd, count = _track_direction("DOWN", None, 0)   # DOWN x1
+        sd, count = _track_direction("DOWN", None, 0)  # DOWN x1
         sd, count = _track_direction("DOWN", sd, count)  # DOWN x2
         sd, count = _track_direction("DOWN", sd, count)  # DOWN x3
-        sd, count = _track_direction("UP", sd, count)    # UP x1 (reset)
+        sd, count = _track_direction("UP", sd, count)  # UP x1 (reset)
         assert count == 1
-        sd, count = _track_direction("UP", sd, count)    # UP x2
+        sd, count = _track_direction("UP", sd, count)  # UP x2
         assert count == 2

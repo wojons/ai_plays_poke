@@ -22,10 +22,10 @@ class TestCostOptimizer:
     """Tests for CostOptimizer budget tracking"""
 
     @pytest.fixture
-    def cost_optimizer(self) :  # type: ignore[no-untyped-def]
-
+    def cost_optimizer(self):  # type: ignore[no-untyped-def]
         """Create cost optimizer for testing"""
         from src.core.ai_client import CostOptimizer
+
         return CostOptimizer(budget=10.0)
 
     def test_track_cost_vision(self, cost_optimizer) -> None:  # type: ignore[no-untyped-def]
@@ -34,7 +34,7 @@ class TestCostOptimizer:
             model="openai/gpt-4o",
             task_type="vision",
             input_tokens=1000,
-            output_tokens=500
+            output_tokens=500,
         )
 
         assert cost > 0
@@ -76,8 +76,7 @@ class TestCostOptimizer:
         cost_optimizer.spent = 0.45
 
         result = cost_optimizer.should_switch_model(
-            task_complexity=0.5,
-            current_model="openai/gpt-4o"
+            task_complexity=0.5, current_model="openai/gpt-4o"
         )
 
         assert "4o-mini" in result.model or result.confidence < 0.7
@@ -86,8 +85,7 @@ class TestCostOptimizer:
     def test_should_switch_model_simple_task(self, cost_optimizer) -> None:  # type: ignore[no-untyped-def]
         """Test model switching for simple tasks"""
         result = cost_optimizer.should_switch_model(
-            task_complexity=0.2,
-            current_model="openai/gpt-4o"
+            task_complexity=0.2, current_model="openai/gpt-4o"
         )
 
         assert result.model == "openai/gpt-4o-mini"
@@ -98,8 +96,7 @@ class TestCostOptimizer:
         cost_optimizer.spent = 0.5
 
         result = cost_optimizer.should_switch_model(
-            task_complexity=0.8,
-            current_model="openai/gpt-4o-mini"
+            task_complexity=0.8, current_model="openai/gpt-4o-mini"
         )
 
         assert result.complexity == 0.8
@@ -127,7 +124,10 @@ class TestCostOptimizer:
 
         assert "openai/gpt-4o" in report["cost_per_model"]
         assert "openai/gpt-4o-mini" in report["cost_per_model"]
-        assert report["cost_per_model"]["openai/gpt-4o"] > report["cost_per_model"]["openai/gpt-4o-mini"]
+        assert (
+            report["cost_per_model"]["openai/gpt-4o"]
+            > report["cost_per_model"]["openai/gpt-4o-mini"]
+        )
 
     def test_cost_per_task_type_tracking(self, cost_optimizer) -> None:  # type: ignore[no-untyped-def]
         """Test cost tracking per task type"""
@@ -157,7 +157,9 @@ class TestCostOptimizer:
 
         report = cost_optimizer.get_cost_report()
         # avg_cost_per_decision is rounded to 6 decimal places by get_cost_report
-        assert round(report["avg_cost_per_decision"], 6) == report["avg_cost_per_decision"]
+        assert (
+            round(report["avg_cost_per_decision"], 6) == report["avg_cost_per_decision"]
+        )
         # For gpt-4o-mini with 100/50 tokens × 10 calls, cost should be tiny but positive
         assert report["total_spent"] > 0
 
@@ -166,10 +168,10 @@ class TestPerformanceTracker:
     """Tests for PerformanceTracker metrics"""
 
     @pytest.fixture
-    def performance_tracker(self) :  # type: ignore[no-untyped-def]
-
+    def performance_tracker(self):  # type: ignore[no-untyped-def]
         """Create performance tracker for testing"""
         from src.core.ai_client import PerformanceTracker
+
         return PerformanceTracker()
 
     def test_record_result_success(self, performance_tracker) -> None:  # type: ignore[no-untyped-def]
@@ -179,7 +181,7 @@ class TestPerformanceTracker:
             task_type="vision",
             success=True,
             latency_ms=1500.0,
-            tokens=1000
+            tokens=1000,
         )
 
         stats = performance_tracker.get_model_stats("openai/gpt-4o")
@@ -197,7 +199,7 @@ class TestPerformanceTracker:
             task_type="tactical",
             success=False,
             latency_ms=500.0,
-            tokens=200
+            tokens=200,
         )
 
         stats = performance_tracker.get_model_stats("openai/gpt-4o-mini")
@@ -216,7 +218,7 @@ class TestPerformanceTracker:
                 task_type="vision",
                 success=i < 4,
                 latency_ms=1500.0 + i * 10,
-                tokens=1000
+                tokens=1000,
             )
 
         stats = performance_tracker.get_model_stats("openai/gpt-4o")
@@ -240,7 +242,7 @@ class TestPerformanceTracker:
                 task_type="tactical",
                 success=True,
                 latency_ms=500.0,
-                tokens=300
+                tokens=300,
             )
 
         for i in range(10):
@@ -249,7 +251,7 @@ class TestPerformanceTracker:
                 task_type="tactical",
                 success=i < 8,
                 latency_ms=400.0,
-                tokens=250
+                tokens=250,
             )
 
         best = performance_tracker.get_best_model_for_task("tactical")
@@ -276,7 +278,7 @@ class TestPerformanceTracker:
                 task_type="tactical",
                 success=i < 12,
                 latency_ms=500.0,
-                tokens=200
+                tokens=200,
             )
 
         rate = performance_tracker.get_recent_success_rate("test-model", n=10)
@@ -292,7 +294,7 @@ class TestPerformanceTracker:
                 task_type="dialog",
                 success=True,
                 latency_ms=lat,
-                tokens=150
+                tokens=150,
             )
 
         avg_latency = performance_tracker.get_average_latency("dialog")
@@ -322,15 +324,14 @@ class TestResultMerger:
     """Tests for ResultMerger conflict resolution"""
 
     @pytest.fixture
-    def result_merger(self) :  # type: ignore[no-untyped-def]
-
+    def result_merger(self):  # type: ignore[no-untyped-def]
         """Create result merger for testing"""
         from src.core.ai_client import ResultMerger
+
         return ResultMerger(confidence_threshold=0.6)
 
     @pytest.fixture
-    def sample_results(self) :  # type: ignore[no-untyped-def]
-
+    def sample_results(self):  # type: ignore[no-untyped-def]
         """Create sample model results"""
         from src.core.ai_client import ModelResult
 
@@ -341,7 +342,7 @@ class TestResultMerger:
                 confidence=0.85,
                 success=True,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             ),
             ModelResult(
                 model="model_b",
@@ -349,7 +350,7 @@ class TestResultMerger:
                 confidence=0.80,
                 success=True,
                 latency_ms=600.0,
-                cost=0.001
+                cost=0.001,
             ),
             ModelResult(
                 model="model_c",
@@ -357,13 +358,12 @@ class TestResultMerger:
                 confidence=0.75,
                 success=True,
                 latency_ms=550.0,
-                cost=0.001
-            )
+                cost=0.001,
+            ),
         ]
 
     @pytest.fixture
-    def conflicting_results(self) :  # type: ignore[no-untyped-def]
-
+    def conflicting_results(self):  # type: ignore[no-untyped-def]
         """Create conflicting model results"""
         from src.core.ai_client import ModelResult
 
@@ -374,7 +374,7 @@ class TestResultMerger:
                 confidence=0.85,
                 success=True,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             ),
             ModelResult(
                 model="model_b",
@@ -382,8 +382,8 @@ class TestResultMerger:
                 confidence=0.80,
                 success=True,
                 latency_ms=600.0,
-                cost=0.001
-            )
+                cost=0.001,
+            ),
         ]
 
     def test_merge_single_result(self, result_merger) -> None:  # type: ignore[no-untyped-def]
@@ -397,7 +397,7 @@ class TestResultMerger:
                 confidence=0.90,
                 success=True,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             )
         ]
 
@@ -418,7 +418,9 @@ class TestResultMerger:
         assert not merged.conflicts_detected
         assert merged.merge_method == "consensus"
 
-    def test_merge_conflicting_results(self, result_merger, conflicting_results) -> None:  # type: ignore[no-untyped-def]
+    def test_merge_conflicting_results(
+        self, result_merger, conflicting_results
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test merging when results conflict"""
         merged = result_merger.merge_results(conflicting_results)
 
@@ -445,7 +447,7 @@ class TestResultMerger:
                 confidence=0.0,
                 success=False,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             ),
             ModelResult(
                 model="model_b",
@@ -453,8 +455,8 @@ class TestResultMerger:
                 confidence=0.0,
                 success=False,
                 latency_ms=600.0,
-                cost=0.001
-            )
+                cost=0.001,
+            ),
         ]
 
         merged = result_merger.merge_results(results)
@@ -473,7 +475,7 @@ class TestResultMerger:
                 confidence=0.70,
                 success=True,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             ),
             ModelResult(
                 model="model_b",
@@ -481,8 +483,8 @@ class TestResultMerger:
                 confidence=0.65,
                 success=True,
                 latency_ms=600.0,
-                cost=0.001
-            )
+                cost=0.001,
+            ),
         ]
 
         merged = result_merger.merge_results(results)
@@ -499,7 +501,9 @@ class TestResultMerger:
         assert "model_b" in merged.alternative_results
         assert "model_c" in merged.alternative_results
 
-    def test_detect_conflicts(self, result_merger, sample_results, conflicting_results) -> None:  # type: ignore[no-untyped-def]
+    def test_detect_conflicts(
+        self, result_merger, sample_results, conflicting_results
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test conflict detection"""
         no_conflicts = result_merger._detect_conflicts(sample_results)
         conflicts = result_merger._detect_conflicts(conflicting_results)
@@ -510,12 +514,10 @@ class TestResultMerger:
     def test_calculate_similarity(self, result_merger) -> None:  # type: ignore[no-untyped-def]
         """Test similarity calculation between texts"""
         sim_high = result_merger._calculate_similarity(
-            "use thunderbolt now",
-            "use thunderbolt now"
+            "use thunderbolt now", "use thunderbolt now"
         )
         sim_low = result_merger._calculate_similarity(
-            "use thunderbolt now",
-            "use flamethrower instead"
+            "use thunderbolt now", "use flamethrower instead"
         )
 
         assert sim_high == 1.0
@@ -528,7 +530,9 @@ class TestResultMerger:
         assert "THUNDER" in actions
         assert "QUICK" in actions
 
-    def test_consensus_check(self, result_merger, sample_results, conflicting_results) -> None:  # type: ignore[no-untyped-def]
+    def test_consensus_check(
+        self, result_merger, sample_results, conflicting_results
+    ) -> None:  # type: ignore[no-untyped-def]
         """Test consensus checking"""
         # All results agree on same content → consensus should be True
         sample_conflicts = result_merger._detect_conflicts(sample_results)
@@ -537,7 +541,9 @@ class TestResultMerger:
         # Conflicting results disagree → _has_consensus checks for high-confidence
         # disagreements. If conflicts have confidence < threshold, still consensus.
         result_conflicts = result_merger._detect_conflicts(conflicting_results)
-        no_consensus = result_merger._has_consensus(conflicting_results, result_conflicts)
+        no_consensus = result_merger._has_consensus(
+            conflicting_results, result_conflicts
+        )
 
         assert consensus
         # With default consensus_threshold=0.7 and conflicting confidences >=0.75,
@@ -575,11 +581,7 @@ class TestTaskComplexity:
         """Test custom complexity values"""
         from src.core.ai_client import TaskComplexity
 
-        tc = TaskComplexity(
-            vision_weight=0.95,
-            reasoning_weight=0.8,
-            speed_weight=0.6
-        )
+        tc = TaskComplexity(vision_weight=0.95, reasoning_weight=0.8, speed_weight=0.6)
 
         assert tc.vision_weight == 0.95
         assert tc.reasoning_weight == 0.8
@@ -600,7 +602,7 @@ class TestModelSelection:
             complexity=0.7,
             estimated_cost=0.005,
             estimated_latency_ms=1500.0,
-            reasoning="High quality model for complex task"
+            reasoning="High quality model for complex task",
         )
 
         assert selection.model == "openai/gpt-4o"
@@ -620,7 +622,7 @@ class TestModelSelection:
             complexity=0.3,
             estimated_cost=0.001,
             estimated_latency_ms=500.0,
-            reasoning="Fast model"
+            reasoning="Fast model",
         )
 
         assert selection.model == "openai/gpt-4o-mini"
@@ -651,7 +653,7 @@ class TestRoutingConfig:
             budget=25.0,
             max_latency_ms=3000.0,
             quality_threshold=0.8,
-            prefer_cheap_on_budget=False
+            prefer_cheap_on_budget=False,
         )
 
         assert config.budget == 25.0
@@ -691,7 +693,7 @@ class TestEdgeCases:
                 confidence=0.2,
                 success=True,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             ),
             ModelResult(
                 model="model_b",
@@ -699,8 +701,8 @@ class TestEdgeCases:
                 confidence=0.15,
                 success=True,
                 latency_ms=600.0,
-                cost=0.001
-            )
+                cost=0.001,
+            ),
         ]
 
         merged = merger.merge_results(results)
@@ -721,7 +723,7 @@ class TestEdgeCases:
                 confidence=0.95,
                 success=True,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             ),
             ModelResult(
                 model="model_b",
@@ -729,8 +731,8 @@ class TestEdgeCases:
                 confidence=0.92,
                 success=True,
                 latency_ms=550.0,
-                cost=0.001
-            )
+                cost=0.001,
+            ),
         ]
 
         merged = merger.merge_results(results)
@@ -751,7 +753,7 @@ class TestEdgeCases:
                 confidence=0.5,
                 success=True,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             )
         ]
 
@@ -779,7 +781,7 @@ class TestEdgeCases:
             threading.Thread(target=track_costs),
             threading.Thread(target=track_costs),
             threading.Thread(target=track_performance),
-            threading.Thread(target=track_performance)
+            threading.Thread(target=track_performance),
         ]
 
         for t in threads:
@@ -805,7 +807,7 @@ class TestEdgeCases:
                 confidence=0.85,
                 success=True,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             )
         ]
 
@@ -826,7 +828,7 @@ class TestEdgeCases:
                 confidence=0.85,
                 success=True,
                 latency_ms=500.0,
-                cost=0.001
+                cost=0.001,
             )
         ]
 

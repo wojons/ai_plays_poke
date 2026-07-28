@@ -27,6 +27,7 @@ from src.core.prompt_assembler import (
 # SafeDict — additional edge cases
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestSafeDictExtended:
     """Extended SafeDict tests beyond basic missing/existing key coverage."""
 
@@ -66,6 +67,7 @@ class TestSafeDictExtended:
 # _join_list — additional edge cases
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestJoinListExtended:
     """Extended _join_list tests for non-list, non-string, non-None values."""
 
@@ -92,6 +94,7 @@ class TestJoinListExtended:
 # ════════════════════════════════════════════════════════════════════════════
 # _build_hp_info — additional edge cases
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class TestBuildHpInfoExtended:
     """Extended _build_hp_info tests — 0-value, empty fallback, composite fallback."""
@@ -145,6 +148,7 @@ class TestBuildHpInfoExtended:
 # _build_enemy_info — additional edge cases
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestBuildEnemyInfoExtended:
     """Extended _build_enemy_info tests — empty string, falsy values."""
 
@@ -179,6 +183,7 @@ class TestBuildEnemyInfoExtended:
 # PromptStack with temp YAML directories
 # ════════════════════════════════════════════════════════════════════════════
 
+
 def _make_temp_config(
     tmp_path: Path,
     generation: str = "gen1",
@@ -209,7 +214,9 @@ def _make_temp_config(
         yaml.dump(layers, fh, default_flow_style=False)
 
     if include_flow:
-        flow = flow_content or {"flow": "GAME FLOW: Start → Oak's Lab → Route 1 → Viridian City"}
+        flow = flow_content or {
+            "flow": "GAME FLOW: Start → Oak's Lab → Route 1 → Viridian City"
+        }
         flow_path = configs_dir / "flow.yaml"
         with open(flow_path, "w", encoding="utf-8") as fh:
             yaml.dump(flow, fh, default_flow_style=False)
@@ -386,7 +393,8 @@ class TestPromptStackWithTempDirs:
     def test_load_flow_missing_key(self, tmp_path: Path) -> None:
         """flow.yaml exists but has no 'flow' key."""
         configs = _make_temp_config(
-            tmp_path, include_flow=True,
+            tmp_path,
+            include_flow=True,
             flow_content={"other_key": "not the flow key"},
         )
         ps = PromptStack(str(configs))
@@ -409,6 +417,7 @@ class TestPromptStackWithTempDirs:
 # ════════════════════════════════════════════════════════════════════════════
 # _format_layer — extended edge cases
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class TestFormatLayerExtended:
     """Extended _format_layer tests for non-string, non-list types."""
@@ -459,6 +468,7 @@ class TestFormatLayerExtended:
 # PromptStack __init__ edge cases
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestPromptStackInit:
     """PromptStack constructor edge cases."""
 
@@ -484,6 +494,7 @@ class TestPromptStackInit:
 # Module-level constants
 # ════════════════════════════════════════════════════════════════════════════
 
+
 class TestModuleConstants:
     """Verify module-level constants are correct."""
 
@@ -502,6 +513,7 @@ class TestModuleConstants:
 # ════════════════════════════════════════════════════════════════════════════
 # assemble — menu_options fallback and enemy_info injection
 # ════════════════════════════════════════════════════════════════════════════
+
 
 class TestAssembleInjection:
     """Tests for format_map injection paths through assemble()."""

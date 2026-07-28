@@ -15,6 +15,7 @@ ROM_PATH = Path("data/rom/pokemon_red.gb")
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
+
 def _has_rom() -> bool:
     return ROM_PATH.is_file()
 
@@ -34,6 +35,7 @@ def _count_action_types(log_path: Path) -> dict[str, int]:
 
 
 # ── Tests ──────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.rom
 @pytest.mark.skipif(not _has_rom(), reason="ROM not found at data/rom/pokemon_red.gb")
@@ -60,8 +62,9 @@ class TestFullGameplay:
             emu.wait(10)
 
         obs = reader.observe()
-        assert obs["result"] in ("overworld", "dialog", "name_entry"), \
+        assert obs["result"] in ("overworld", "dialog", "name_entry"), (
             f"Expected overworld/dialog/name_entry, got {obs['result']}"
+        )
 
         emu.stop()
 
@@ -121,7 +124,9 @@ class TestFullGameplay:
         assert len(lines) >= 7, f"Expected >=7 lines, got {len(lines)}:\n{render}"
 
         # Grid lines should contain @ (player) symbol
-        grid_lines = [line for line in lines if "@" in line or "?" in line or "." in line]
+        grid_lines = [
+            line for line in lines if "@" in line or "?" in line or "." in line
+        ]
         assert len(grid_lines) >= 3, f"Expected >=3 grid rows, got {len(grid_lines)}"
 
         emu.stop()
@@ -146,8 +151,9 @@ class TestFullGameplay:
         bs = obs.get("battle_state", {})
 
         # Not in battle — battle_state should be empty or have null values
-        assert not bs or bs.get("player", {}).get("hp", 0) == 0, \
+        assert not bs or bs.get("player", {}).get("hp", 0) == 0, (
             f"Expected empty battle state, got {bs}"
+        )
 
         emu.stop()
 
@@ -171,8 +177,9 @@ class TestFullGameplay:
         ms = obs.get("menu_state", {})
 
         # No menu should be active
-        assert ms.get("num_items", 0) == 0 or ms.get("active", False) is False, \
+        assert ms.get("num_items", 0) == 0 or ms.get("active", False) is False, (
             f"Expected no active menu, got {ms}"
+        )
 
         emu.stop()
 
@@ -220,7 +227,6 @@ class TestRamReaderAccuracy:
         reader = RAMReader(emu, ROM_PATH)
         facing = reader.player_facing()
 
-        assert facing in ("up", "down", "left", "right"), \
-            f"Invalid facing: {facing}"
+        assert facing in ("up", "down", "left", "right"), f"Invalid facing: {facing}"
 
         emu.stop()

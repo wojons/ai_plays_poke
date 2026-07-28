@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 class GoalType(Enum):
     """Goal type categories"""
+
     IMMEDIATE = auto()
     SHORT_TERM = auto()
     MEDIUM_TERM = auto()
@@ -34,6 +35,7 @@ class GoalType(Enum):
 
 class ActionType(Enum):
     """Action type categories"""
+
     NAVIGATION = auto()
     BATTLE = auto()
     MENU = auto()
@@ -43,6 +45,7 @@ class ActionType(Enum):
 
 class PlanStatus(Enum):
     """Status of a plan"""
+
     PENDING = auto()
     EXECUTING = auto()
     COMPLETED = auto()
@@ -52,6 +55,7 @@ class PlanStatus(Enum):
 
 class PriorityLevel(Enum):
     """Priority levels for goals"""
+
     CRITICAL = 95
     HIGH = 70
     MEDIUM = 40
@@ -61,6 +65,7 @@ class PriorityLevel(Enum):
 @dataclass
 class GameState:
     """Represents the current game state for planning"""
+
     tick: int = 0
     timestamp: str = ""
     location: str = ""
@@ -91,7 +96,9 @@ class GameState:
         return sum(1 for p in self.party if p.get("current_hp", 0) == 0)
 
     def get_low_hp_pokemon(self) -> List[Dict[str, Any]]:
-        return [p for p in self.party if p.get("current_hp", 0) / p.get("max_hp", 1) < 0.25]
+        return [
+            p for p in self.party if p.get("current_hp", 0) / p.get("max_hp", 1) < 0.25
+        ]
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -122,6 +129,7 @@ class GameState:
 @dataclass
 class Goal:
     """Base class for all goals"""
+
     goal_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = ""
     description: str = ""
@@ -182,8 +190,14 @@ class Goal:
 class DefeatGymGoal(Goal):
     """Goal to defeat a specific gym leader"""
 
-    def __init__(self, gym_name: str, gym_leader: str, required_badges: int = 1,
-                 required_level: int = 12, estimated_cost: float = 1000.0):
+    def __init__(
+        self,
+        gym_name: str,
+        gym_leader: str,
+        required_badges: int = 1,
+        required_level: int = 12,
+        estimated_cost: float = 1000.0,
+    ):
         super().__init__(
             goal_id=str(uuid.uuid4()),
             name=f"Defeat {gym_leader}",
@@ -192,7 +206,7 @@ class DefeatGymGoal(Goal):
             priority=80,
             required_resources={"badges": required_badges, "level": required_level},
             estimated_cost=estimated_cost,
-            estimated_value=100.0
+            estimated_value=100.0,
         )
         self.gym_name = gym_name
         self.gym_leader = gym_leader
@@ -203,8 +217,14 @@ class DefeatGymGoal(Goal):
 class CatchPokemonGoal(Goal):
     """Goal to catch a specific Pokemon species"""
 
-    def __init__(self, species: str, min_level: int = 1, max_level: int = 100,
-                 location: Optional[str] = None, estimated_cost: float = 100.0):
+    def __init__(
+        self,
+        species: str,
+        min_level: int = 1,
+        max_level: int = 100,
+        location: Optional[str] = None,
+        estimated_cost: float = 100.0,
+    ):
         super().__init__(
             goal_id=str(uuid.uuid4()),
             name=f"Catch {species}",
@@ -213,7 +233,7 @@ class CatchPokemonGoal(Goal):
             priority=60,
             required_resources={},
             estimated_cost=estimated_cost,
-            estimated_value=50.0
+            estimated_value=50.0,
         )
         self.species = species
         self.min_level = min_level
@@ -230,8 +250,13 @@ class CatchPokemonGoal(Goal):
 class ReachLocationGoal(Goal):
     """Goal to reach a specific location"""
 
-    def __init__(self, location_name: str, location_type: str = "route",
-                 required_badges: int = 0, estimated_cost: float = 200.0):
+    def __init__(
+        self,
+        location_name: str,
+        location_type: str = "route",
+        required_badges: int = 0,
+        estimated_cost: float = 200.0,
+    ):
         super().__init__(
             goal_id=str(uuid.uuid4()),
             name=f"Reach {location_name}",
@@ -240,7 +265,7 @@ class ReachLocationGoal(Goal):
             priority=50,
             required_resources={"badges": required_badges},
             estimated_cost=estimated_cost,
-            estimated_value=30.0
+            estimated_value=30.0,
         )
         self.location_name = location_name
         self.location_type = location_type
@@ -260,7 +285,7 @@ class HealPartyGoal(Goal):
             priority=priority,
             required_resources={},
             estimated_cost=50.0,
-            estimated_value=80.0
+            estimated_value=80.0,
         )
         self.urgency = urgency
 
@@ -268,8 +293,12 @@ class HealPartyGoal(Goal):
 class TrainPokemonGoal(Goal):
     """Goal to train Pokemon to a target level"""
 
-    def __init__(self, target_level: int, training_location: str = "nearest_route",
-                 estimated_cost: float = 500.0):
+    def __init__(
+        self,
+        target_level: int,
+        training_location: str = "nearest_route",
+        estimated_cost: float = 500.0,
+    ):
         super().__init__(
             goal_id=str(uuid.uuid4()),
             name=f"Train to Level {target_level}",
@@ -278,7 +307,7 @@ class TrainPokemonGoal(Goal):
             priority=55,
             required_resources={"level": target_level},
             estimated_cost=estimated_cost,
-            estimated_value=60.0
+            estimated_value=60.0,
         )
         self.target_level = target_level
         self.training_location = training_location
@@ -287,8 +316,14 @@ class TrainPokemonGoal(Goal):
 class ObtainItemGoal(Goal):
     """Goal to obtain a specific item"""
 
-    def __init__(self, item_name: str, quantity: int = 1, buy: bool = True,
-                 target_price: Optional[int] = None, estimated_cost: float = 100.0):
+    def __init__(
+        self,
+        item_name: str,
+        quantity: int = 1,
+        buy: bool = True,
+        target_price: Optional[int] = None,
+        estimated_cost: float = 100.0,
+    ):
         priority = 90 if item_name in ["Poke Ball", "Potion"] else 50
         super().__init__(
             goal_id=str(uuid.uuid4()),
@@ -298,7 +333,7 @@ class ObtainItemGoal(Goal):
             priority=priority,
             required_resources={"money": target_price} if buy and target_price else {},
             estimated_cost=estimated_cost,
-            estimated_value=40.0
+            estimated_value=40.0,
         )
         self.item_name = item_name
         self.quantity = quantity
@@ -362,8 +397,12 @@ class Action(ABC):
 class NavigateAction(Action):
     """Action to navigate to a location"""
 
-    def __init__(self, target_location: str, method: str = "astar",
-                 action_id: Optional[str] = None):
+    def __init__(
+        self,
+        target_location: str,
+        method: str = "astar",
+        action_id: Optional[str] = None,
+    ):
         super().__init__(action_id)
         self.target_location = target_location
         self.method = method
@@ -397,8 +436,13 @@ class NavigateAction(Action):
 class BattleAction(Action):
     """Action to engage in battle"""
 
-    def __init__(self, battle_type: str = "wild", target: Optional[str] = None,
-                 strategy: str = "auto", action_id: Optional[str] = None):
+    def __init__(
+        self,
+        battle_type: str = "wild",
+        target: Optional[str] = None,
+        strategy: str = "auto",
+        action_id: Optional[str] = None,
+    ):
         super().__init__(action_id)
         self.battle_type = battle_type
         self.target = target
@@ -433,8 +477,14 @@ class BattleAction(Action):
 class MenuAction(Action):
     """Action to perform menu operations"""
 
-    def __init__(self, menu_type: str, action: str, target: Optional[str] = None,
-                 quantity: int = 1, action_id: Optional[str] = None):
+    def __init__(
+        self,
+        menu_type: str,
+        action: str,
+        target: Optional[str] = None,
+        quantity: int = 1,
+        action_id: Optional[str] = None,
+    ):
         super().__init__(action_id)
         self.menu_type = menu_type
         self.action = action
@@ -465,10 +515,14 @@ class MenuAction(Action):
             new_state = GameState(**state.to_dict())
             if self.menu_type == "shop" and self.action == "buy":
                 if self.target:
-                    new_state.inventory[self.target] = new_state.inventory.get(self.target, 0) + self.quantity
+                    new_state.inventory[self.target] = (
+                        new_state.inventory.get(self.target, 0) + self.quantity
+                    )
             elif self.menu_type == "pokemon_center" and self.action == "heal":
                 for pokemon in new_state.party:
-                    pokemon["current_hp"] = pokemon.get("max_hp", pokemon.get("current_hp", 100))
+                    pokemon["current_hp"] = pokemon.get(
+                        "max_hp", pokemon.get("current_hp", 100)
+                    )
             self.status = "COMPLETED"
             return True, new_state
         except Exception as e:
@@ -480,8 +534,9 @@ class MenuAction(Action):
 class DialogAction(Action):
     """Action to interact with NPCs via dialog"""
 
-    def __init__(self, npc_name: str, dialog_type: str = "talk",
-                 action_id: Optional[str] = None):
+    def __init__(
+        self, npc_name: str, dialog_type: str = "talk", action_id: Optional[str] = None
+    ):
         super().__init__(action_id)
         self.npc_name = npc_name
         self.dialog_type = dialog_type
@@ -501,7 +556,9 @@ class DialogAction(Action):
 
     def execute(self, state: GameState) -> Tuple[bool, GameState]:
         try:
-            logger.info(f"Executing dialog action: {self.dialog_type} with {self.npc_name}")
+            logger.info(
+                f"Executing dialog action: {self.dialog_type} with {self.npc_name}"
+            )
             new_state = GameState(**state.to_dict())
             self.status = "COMPLETED"
             return True, new_state
@@ -514,6 +571,7 @@ class DialogAction(Action):
 @dataclass
 class Plan:
     """Represents a plan to achieve a goal"""
+
     plan_id: str
     goal_id: str
     actions: List[Action]
@@ -582,9 +640,17 @@ class GoalStack:
         return False
 
     def get_all_goals(self) -> List[Goal]:
-        type_order = {GoalType.IMMEDIATE: 0, GoalType.SHORT_TERM: 1,
-                      GoalType.MEDIUM_TERM: 2, GoalType.LONG_TERM: 3}
-        return sorted(self.stack, key=lambda g: (g.priority, type_order.get(g.goal_type, 4)), reverse=True)
+        type_order = {
+            GoalType.IMMEDIATE: 0,
+            GoalType.SHORT_TERM: 1,
+            GoalType.MEDIUM_TERM: 2,
+            GoalType.LONG_TERM: 3,
+        }
+        return sorted(
+            self.stack,
+            key=lambda g: (g.priority, type_order.get(g.goal_type, 4)),
+            reverse=True,
+        )
 
     def is_empty(self) -> bool:
         return len(self.stack) == 0
@@ -714,9 +780,13 @@ class GoalPriorityCalculator:
 
         risk_penalty = self._calculate_risk_penalty(goal, state)
 
-        final_priority = (base_priority * temporal_multiplier *
-                         dependency_multiplier * efficiency_multiplier *
-                         success_multiplier) - risk_penalty
+        final_priority = (
+            base_priority
+            * temporal_multiplier
+            * dependency_multiplier
+            * efficiency_multiplier
+            * success_multiplier
+        ) - risk_penalty
 
         return min(max(final_priority, 0), 100)
 
@@ -763,8 +833,13 @@ class GoalPriorityCalculator:
         return 0
 
     def _estimate_failure_probability(self, goal: Goal, state: GameState) -> float:
-        base_failure = {"BATTLE": 0.3, "SHOPPING": 0.0, "HEALING": 0.0,
-                       "NAVIGATION": 0.1, "EXPLORATION": 0.2}.get(goal.name.split()[0].lower(), 0.2)
+        base_failure = {
+            "BATTLE": 0.3,
+            "SHOPPING": 0.0,
+            "HEALING": 0.0,
+            "NAVIGATION": 0.1,
+            "EXPLORATION": 0.2,
+        }.get(goal.name.split()[0].lower(), 0.2)
         if "battle" in goal.name.lower() or "defeat" in goal.name.lower():
             party_level = state.get_avg_party_level()
             target_level = goal.required_resources.get("level", party_level)
@@ -853,11 +928,7 @@ class Planner:
 
     def create_plan(self, goal: Goal, state: GameState) -> Plan:
         actions = self._decompose_goal(goal, state)
-        plan = Plan(
-            plan_id=str(uuid.uuid4()),
-            goal_id=goal.goal_id,
-            actions=actions
-        )
+        plan = Plan(plan_id=str(uuid.uuid4()), goal_id=goal.goal_id, actions=actions)
         self.plans[plan.plan_id] = plan
         return plan
 
@@ -879,7 +950,9 @@ class Planner:
 
         return actions
 
-    def _decompose_gym_goal(self, goal: DefeatGymGoal, state: GameState) -> List[Action]:
+    def _decompose_gym_goal(
+        self, goal: DefeatGymGoal, state: GameState
+    ) -> List[Action]:
         actions: List[Action] = []
         if state.get_avg_party_level() < goal.required_level:
             train_goal = TrainPokemonGoal(goal.required_level)
@@ -889,7 +962,9 @@ class Planner:
         actions.append(BattleAction("trainer", goal.gym_leader, "gym_strategy"))
         return actions
 
-    def _decompose_catch_goal(self, goal: CatchPokemonGoal, state: GameState) -> List[Action]:
+    def _decompose_catch_goal(
+        self, goal: CatchPokemonGoal, state: GameState
+    ) -> List[Action]:
         actions: List[Action] = []
         if goal.location:
             actions.append(NavigateAction(goal.location))
@@ -897,20 +972,26 @@ class Planner:
         actions.append(MenuAction("bag", "use_item", "Poke Ball"))
         return actions
 
-    def _decompose_heal_goal(self, goal: HealPartyGoal, state: GameState) -> List[Action]:
+    def _decompose_heal_goal(
+        self, goal: HealPartyGoal, state: GameState
+    ) -> List[Action]:
         actions: List[Action] = []
         actions.append(NavigateAction("Pokemon Center", method="nearest"))
         actions.append(DialogAction("Nurse", "heal"))
         return actions
 
-    def _decompose_train_goal(self, goal: TrainPokemonGoal, state: GameState) -> List[Action]:
+    def _decompose_train_goal(
+        self, goal: TrainPokemonGoal, state: GameState
+    ) -> List[Action]:
         actions: List[Action] = []
         actions.append(NavigateAction(goal.training_location))
         while state.get_avg_party_level() < goal.target_level:
             actions.append(BattleAction("wild", strategy="train"))
         return actions
 
-    def _decompose_item_goal(self, goal: ObtainItemGoal, state: GameState) -> List[Action]:
+    def _decompose_item_goal(
+        self, goal: ObtainItemGoal, state: GameState
+    ) -> List[Action]:
         actions: List[Action] = []
         if goal.buy:
             actions.append(NavigateAction("PokeMart", method="nearest"))
@@ -952,7 +1033,9 @@ class PlanMonitor:
         self.failure_count: int = 0
         self.last_replan_time: Optional[float] = None
 
-    def monitor_execution(self, plan: Plan, state: GameState) -> Tuple[bool, Optional[Plan]]:
+    def monitor_execution(
+        self, plan: Plan, state: GameState
+    ) -> Tuple[bool, Optional[Plan]]:
         current_action = plan.get_current_action()
         if not current_action:
             return True, None
@@ -965,12 +1048,14 @@ class PlanMonitor:
 
         success, new_state = current_action.execute(state)
 
-        self.execution_history.append({
-            "timestamp": time.time(),
-            "action": current_action.action_type.name,
-            "success": success,
-            "state": new_state.to_dict() if new_state else None
-        })
+        self.execution_history.append(
+            {
+                "timestamp": time.time(),
+                "action": current_action.action_type.name,
+                "success": success,
+                "state": new_state.to_dict() if new_state else None,
+            }
+        )
 
         if success:
             plan.current_action_index += 1
@@ -980,7 +1065,9 @@ class PlanMonitor:
         else:
             return self._handle_action_failure(plan, state)
 
-    def _handle_action_failure(self, plan: Plan, state: GameState) -> Tuple[bool, Optional[Plan]]:
+    def _handle_action_failure(
+        self, plan: Plan, state: GameState
+    ) -> Tuple[bool, Optional[Plan]]:
         self.failure_count += 1
         goal = self.planner.goal_prioritizer.goal_dag.nodes.get(plan.goal_id)
         if goal:
@@ -990,7 +1077,9 @@ class PlanMonitor:
 
         return self._replan(plan, state)
 
-    def _replan(self, failed_plan: Plan, state: GameState) -> Tuple[bool, Optional[Plan]]:
+    def _replan(
+        self, failed_plan: Plan, state: GameState
+    ) -> Tuple[bool, Optional[Plan]]:
         self.replan_count += 1
         self.last_replan_time = time.time()
 
@@ -1011,7 +1100,9 @@ class PlanMonitor:
         logger.info(f"Replanned for goal {goal.name}")
         return False, new_plan
 
-    def handle_interruption(self, interruption_type: str, state: GameState) -> Tuple[bool, Optional[Plan]]:
+    def handle_interruption(
+        self, interruption_type: str, state: GameState
+    ) -> Tuple[bool, Optional[Plan]]:
         if interruption_type == "random_battle":
             logger.info("Random battle interruption - pausing plan")
             return True, None
@@ -1030,7 +1121,8 @@ class PlanMonitor:
             "total_executions": len(self.execution_history),
             "replan_count": self.replan_count,
             "failure_count": self.failure_count,
-            "success_rate": len([e for e in self.execution_history if e.get("success")]) / max(len(self.execution_history), 1),
+            "success_rate": len([e for e in self.execution_history if e.get("success")])
+            / max(len(self.execution_history), 1),
             "last_replan_time": self.last_replan_time,
         }
 
@@ -1070,7 +1162,9 @@ class HierarchicalPlanner:
                 return True, None, state
             self.current_plan = new_plan
 
-        success, new_plan = self.plan_monitor.monitor_execution(self.current_plan, state)
+        success, new_plan = self.plan_monitor.monitor_execution(
+            self.current_plan, state
+        )
 
         if new_plan:
             self.current_plan = new_plan
@@ -1085,7 +1179,9 @@ class HierarchicalPlanner:
 
         return False, self.current_plan, state
 
-    def handle_interruption(self, interruption_type: str, state: GameState) -> Tuple[bool, Optional[Plan]]:
+    def handle_interruption(
+        self, interruption_type: str, state: GameState
+    ) -> Tuple[bool, Optional[Plan]]:
         return self.plan_monitor.handle_interruption(interruption_type, state)
 
     def add_goal(self, goal: Goal, state: GameState) -> None:
@@ -1108,14 +1204,21 @@ def create_default_game_state() -> GameState:
         badges=0,
         money=3000,
         party=[
-            {"name": "Pikachu", "species": "Pikachu", "level": 5, "current_hp": 35, "max_hp": 35, "moves": ["Tackle", "Growl", "Thunder Shock", "Quick Attack"]}
+            {
+                "name": "Pikachu",
+                "species": "Pikachu",
+                "level": 5,
+                "current_hp": 35,
+                "max_hp": 35,
+                "moves": ["Tackle", "Growl", "Thunder Shock", "Quick Attack"],
+            }
         ],
         inventory={"Poke Ball": 5, "Potion": 2},
         active_quests=["becoming_champion"],
         pokedex_caught=0,
         pokedex_seen=3,
         hms_obtained=[],
-        tms_obtained=[]
+        tms_obtained=[],
     )
 
 

@@ -248,6 +248,7 @@ class TestExtractTileStrip:
         assert strip.shape[0] == GB_TILE_PX
         # Width > height (horizontal strip)
         assert strip.shape[1] > strip.shape[0]
+
     def test_out_of_bounds_returns_none(self) -> None:
         """Extracting beyond screen edges returns None."""
         screen = self._make_screen()

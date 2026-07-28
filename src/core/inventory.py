@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 class ItemCategory(Enum):
     """Item category classifications"""
+
     POTION = auto()
     POKEBALL = auto()
     STATUS_CURE = auto()
@@ -48,6 +49,7 @@ class ItemCategory(Enum):
 
 class ItemType(Enum):
     """All item types in Pokemon Yellow"""
+
     POTION = "Potion"
     SUPER_POTION = "Super Potion"
     HYPER_POTION = "Hyper Potion"
@@ -168,6 +170,7 @@ class ItemType(Enum):
 
 class HealingPriority(Enum):
     """Priority levels for healing decisions"""
+
     CRITICAL = 95
     HIGH = 70
     MEDIUM = 40
@@ -176,6 +179,7 @@ class HealingPriority(Enum):
 
 class ShoppingPriority(Enum):
     """Priority levels for shopping decisions"""
+
     CRITICAL = 95
     HIGH = 70
     MEDIUM = 40
@@ -185,6 +189,7 @@ class ShoppingPriority(Enum):
 @dataclass
 class ItemData:
     """Static data for an item type"""
+
     item_type: ItemType
     name: str
     category: ItemCategory
@@ -200,6 +205,7 @@ class ItemData:
 @dataclass
 class InventoryItem:
     """An item instance in the inventory"""
+
     item_type: ItemType
     quantity: int = 1
     max_quantity: int = 99
@@ -233,6 +239,7 @@ class InventoryItem:
 @dataclass
 class TMData:
     """TM/HM data including compatibility"""
+
     tm_number: int
     item_type: ItemType
     move_name: str
@@ -247,6 +254,7 @@ class TMData:
 @dataclass
 class KeyItem:
     """Key item tracking (HM moves, badges, event items)"""
+
     item_type: ItemType
     name: str
     description: str
@@ -259,6 +267,7 @@ class KeyItem:
 @dataclass
 class PokemonState:
     """State of a Pokemon for item usage decisions"""
+
     species: str
     level: int
     current_hp: int
@@ -272,6 +281,7 @@ class PokemonState:
 @dataclass
 class PartyState:
     """Complete party state for healing/item decisions"""
+
     pokemon: List[PokemonState]
     money: int
 
@@ -290,10 +300,7 @@ class PartyState:
     def get_lowest_hp_percent(self) -> float:
         if not self.pokemon:
             return 1.0
-        return min(
-            p.current_hp / p.max_hp if p.max_hp > 0 else 0
-            for p in self.pokemon
-        )
+        return min(p.current_hp / p.max_hp if p.max_hp > 0 else 0 for p in self.pokemon)
 
     def get_fainted_count(self) -> int:
         return sum(1 for p in self.pokemon if p.current_hp == 0)
@@ -302,10 +309,7 @@ class PartyState:
         return sum(1 for p in self.pokemon if p.status != "NONE")
 
     def get_healthy_count(self) -> int:
-        return sum(
-            1 for p in self.pokemon
-            if p.current_hp > 0 and p.status == "NONE"
-        )
+        return sum(1 for p in self.pokemon if p.current_hp > 0 and p.status == "NONE")
 
     def get_total_pp_remaining(self) -> int:
         total = 0
@@ -323,6 +327,7 @@ class PartyState:
 @dataclass
 class ShoppingListItem:
     """An item to purchase"""
+
     item_type: ItemType
     quantity: int
     priority: ShoppingPriority
@@ -333,6 +338,7 @@ class ShoppingListItem:
 @dataclass
 class ShoppingPlan:
     """Complete shopping plan"""
+
     items: List[ShoppingListItem]
     total_cost: int
     available_budget: int
@@ -441,8 +447,14 @@ class InventoryState:
         ]
 
         all_items = (
-            healing_items + pokeballs + status_cures + pp_items +
-            repel_items + x_items + evolution_stones + key_items
+            healing_items
+            + pokeballs
+            + status_cures
+            + pp_items
+            + repel_items
+            + x_items
+            + evolution_stones
+            + key_items
         )
 
         for item_info in all_items:
@@ -464,98 +476,98 @@ class InventoryState:
             item_type=ItemType.RARE_CANDY,
             name="Rare Candy",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.ESCAPE_ROPE] = ItemData(
             item_type=ItemType.ESCAPE_ROPE,
             name="Escape Rope",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.CHARCOAL] = ItemData(
             item_type=ItemType.CHARCOAL,
             name="Charcoal",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.MYSTIC_WATER] = ItemData(
             item_type=ItemType.MYSTIC_WATER,
             name="Mystic Water",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.MIRACLE_SEED] = ItemData(
             item_type=ItemType.MIRACLE_SEED,
             name="Miracle Seed",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.BLACK_BELT] = ItemData(
             item_type=ItemType.BLACK_BELT,
             name="Black Belt",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.SHARP_BEAK] = ItemData(
             item_type=ItemType.SHARP_BEAK,
             name="Sharp Beak",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.POISON_BARB] = ItemData(
             item_type=ItemType.POISON_BARB,
             name="Poison Barb",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.SOFT_SAND] = ItemData(
             item_type=ItemType.SOFT_SAND,
             name="Soft Sand",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.HARD_STONE] = ItemData(
             item_type=ItemType.HARD_STONE,
             name="Hard Stone",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.SILVER_POWDER] = ItemData(
             item_type=ItemType.SILVER_POWDER,
             name="Silver Powder",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.SPELL_TAG] = ItemData(
             item_type=ItemType.SPELL_TAG,
             name="Spell Tag",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.TWISTED_SPOON] = ItemData(
             item_type=ItemType.TWISTED_SPOON,
             name="Twisted Spoon",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         item_db[ItemType.METAL_COAT] = ItemData(
             item_type=ItemType.METAL_COAT,
             name="Metal Coat",
             category=ItemCategory.MISC,
-            base_price= 0,
+            base_price=0,
         )
 
         InventoryState.ITEM_DATABASE = item_db
@@ -620,7 +632,15 @@ class InventoryState:
             (50, ItemType.TM50, "Substitute", "Normal", 0, 100, []),
         ]
 
-        for number, item_type, move_name, move_type, power, accuracy, compatible in tm_data_list:
+        for (
+            number,
+            item_type,
+            move_name,
+            move_type,
+            power,
+            accuracy,
+            compatible,
+        ) in tm_data_list:
             tm_db[number] = TMData(
                 tm_number=number,
                 item_type=item_type,
@@ -691,34 +711,54 @@ class InventoryState:
         """Get all items in a category"""
         category_items = self._get_category_mapping().get(category, set())
         return [
-            item for item in self._items.values()
-            if item.item_type in category_items
+            item for item in self._items.values() if item.item_type in category_items
         ]
 
     def _get_category_mapping(self) -> Dict[ItemCategory, Set[ItemType]]:
         """Get mapping of categories to item types"""
         return {
             ItemCategory.POTION: {
-                ItemType.POTION, ItemType.SUPER_POTION, ItemType.HYPER_POTION,
-                ItemType.MAX_POTION, ItemType.FULL_RESTORE,
+                ItemType.POTION,
+                ItemType.SUPER_POTION,
+                ItemType.HYPER_POTION,
+                ItemType.MAX_POTION,
+                ItemType.FULL_RESTORE,
             },
             ItemCategory.POKEBALL: {
-                ItemType.POKE_BALL, ItemType.GREAT_BALL, ItemType.ULTRA_BALL,
-                ItemType.MASTER_BALL, ItemType.SAFARI_BALL,
+                ItemType.POKE_BALL,
+                ItemType.GREAT_BALL,
+                ItemType.ULTRA_BALL,
+                ItemType.MASTER_BALL,
+                ItemType.SAFARI_BALL,
             },
             ItemCategory.STATUS_CURE: {
-                ItemType.ANTIDOTE, ItemType.BURN_HEAL, ItemType.ICE_HEAL,
-                ItemType.AWAKENING, ItemType.PARALYZE_HEAL, ItemType.FULL_HEAL,
-                ItemType.REVIVE, ItemType.MAX_REVIVE,
+                ItemType.ANTIDOTE,
+                ItemType.BURN_HEAL,
+                ItemType.ICE_HEAL,
+                ItemType.AWAKENING,
+                ItemType.PARALYZE_HEAL,
+                ItemType.FULL_HEAL,
+                ItemType.REVIVE,
+                ItemType.MAX_REVIVE,
             },
             ItemCategory.BATTLE_ITEM: {
-                ItemType.X_ATTACK, ItemType.X_DEFEND, ItemType.X_SPEED,
-                ItemType.X_SPECIAL, ItemType.DIRE_HIT, ItemType.GUARD_SPEC,
+                ItemType.X_ATTACK,
+                ItemType.X_DEFEND,
+                ItemType.X_SPEED,
+                ItemType.X_SPECIAL,
+                ItemType.DIRE_HIT,
+                ItemType.GUARD_SPEC,
             },
             ItemCategory.KEY_ITEM: {
-                ItemType.BICYCLE, ItemType.COIN_CASE, ItemType.ITEMFINDER,
-                ItemType.OLD_ROD, ItemType.GOOD_ROD, ItemType.SUPER_ROD,
-                ItemType.POKEDEX, ItemType.TOWN_MAP, ItemType.VS_SEEKER,
+                ItemType.BICYCLE,
+                ItemType.COIN_CASE,
+                ItemType.ITEMFINDER,
+                ItemType.OLD_ROD,
+                ItemType.GOOD_ROD,
+                ItemType.SUPER_ROD,
+                ItemType.POKEDEX,
+                ItemType.TOWN_MAP,
+                ItemType.VS_SEEKER,
                 ItemType.BASEMENT_KEY,
             },
             ItemCategory.TM_HM: set(),
@@ -805,7 +845,9 @@ class InventoryState:
             "total_items": len(self._items),
             "total_quantity": sum(i.quantity for i in self._items.values()),
             "by_category": category_summary,
-            "key_items_obtained": len([k for k in self._key_items.values() if k.obtained]),
+            "key_items_obtained": len(
+                [k for k in self._key_items.values() if k.obtained]
+            ),
             "tms_obtained": self.get_tm_count(),
             "bag_capacity": self._bag_capacity,
             "bag_used": sum(i.quantity for i in self._items.values()),
@@ -1086,9 +1128,7 @@ class ShoppingHeuristic:
         Returns:
             ShoppingPlan with items, costs, and priorities
         """
-        available_budget, emergency_reserve = self.calculate_budget(
-            available_money, []
-        )
+        available_budget, emergency_reserve = self.calculate_budget(available_money, [])
 
         shopping_needs: Dict[ItemType, int] = {}
 
@@ -1105,8 +1145,7 @@ class ShoppingHeuristic:
 
         if upcoming_route and upcoming_route in ShoppingHeuristic.ROUTE_SHOPPING_NEEDS:
             route_needs = self.analyze_route_needs(
-                upcoming_route,
-                party_state.get_avg_level()
+                upcoming_route, party_state.get_avg_level()
             )
             for item_type, quantity in route_needs.items():
                 if item_type in shopping_needs:
@@ -1170,13 +1209,19 @@ class ShoppingHeuristic:
             needs[ItemType.BURN_HEAL] = needs.get(ItemType.BURN_HEAL, 0) + 5
 
         if route_data.get("status_frequency", 0) > 0.5:
-            for status_item in [ItemType.ANTIDOTE, ItemType.PARALYZE_HEAL, ItemType.BURN_HEAL]:
+            for status_item in [
+                ItemType.ANTIDOTE,
+                ItemType.PARALYZE_HEAL,
+                ItemType.BURN_HEAL,
+            ]:
                 needs[status_item] = needs.get(status_item, 0) + 3
 
         if route_data.get("has_shiny_pokemon", False):
             needs[ItemType.POKE_BALL] = 30
 
-        needs[ItemType.POKE_BALL] = max(needs.get(ItemType.POKE_BALL, 0), route_data.get("recommended_balls", 15))
+        needs[ItemType.POKE_BALL] = max(
+            needs.get(ItemType.POKE_BALL, 0), route_data.get("recommended_balls", 15)
+        )
 
         return needs
 
@@ -1270,13 +1315,15 @@ class ShoppingHeuristic:
             total_cost = cost * quantity
             reason = f"Need {quantity} {item_type.value} (Priority: {priority.name})"
 
-            scored_items.append(ShoppingListItem(
-                item_type=item_type,
-                quantity=quantity,
-                priority=priority,
-                estimated_cost=total_cost,
-                reason=reason,
-            ))
+            scored_items.append(
+                ShoppingListItem(
+                    item_type=item_type,
+                    quantity=quantity,
+                    priority=priority,
+                    estimated_cost=total_cost,
+                    reason=reason,
+                )
+            )
 
         scored_items.sort(key=lambda x: x.priority.value, reverse=True)
 
@@ -1288,9 +1335,13 @@ class ShoppingHeuristic:
                 selected_items.append(item)
                 remaining_budget -= item.estimated_cost
             elif item.estimated_cost > remaining_budget and remaining_budget > 0:
-                affordable_qty = remaining_budget // ShoppingHeuristic.ITEM_COSTS.get(item.item_type, 1)
+                affordable_qty = remaining_budget // ShoppingHeuristic.ITEM_COSTS.get(
+                    item.item_type, 1
+                )
                 if affordable_qty > 0:
-                    new_cost = affordable_qty * ShoppingHeuristic.ITEM_COSTS.get(item.item_type, 1)
+                    new_cost = affordable_qty * ShoppingHeuristic.ITEM_COSTS.get(
+                        item.item_type, 1
+                    )
                     new_item = ShoppingListItem(
                         item_type=item.item_type,
                         quantity=affordable_qty,
@@ -1395,7 +1446,9 @@ class PokemonCenterProtocol:
         self._heal_threshold_percent = heal_percent
         self._critical_threshold_percent = critical_percent
 
-    def assess_healing_need(self, party_state: PartyState) -> Tuple[bool, HealingPriority, str]:
+    def assess_healing_need(
+        self, party_state: PartyState
+    ) -> Tuple[bool, HealingPriority, str]:
         """
         Assess if party needs healing and at what priority.
 
@@ -1410,9 +1463,17 @@ class PokemonCenterProtocol:
         pp_percent = total_pp / max_pp if max_pp > 0 else 1.0
 
         if fainted > 0 or lowest_hp < 0.10:
-            return True, HealingPriority.CRITICAL, f"{fainted} fainted, lowest HP {lowest_hp:.1%}"
+            return (
+                True,
+                HealingPriority.CRITICAL,
+                f"{fainted} fainted, lowest HP {lowest_hp:.1%}",
+            )
         elif status > 0 or lowest_hp < 0.25:
-            return True, HealingPriority.HIGH, f"{status} status, lowest HP {lowest_hp:.1%}"
+            return (
+                True,
+                HealingPriority.HIGH,
+                f"{status} status, lowest HP {lowest_hp:.1%}",
+            )
         elif lowest_hp < 0.50:
             return True, HealingPriority.MEDIUM, f"Lowest HP {lowest_hp:.1%}"
         elif pp_percent < 0.30:
@@ -1430,7 +1491,8 @@ class PokemonCenterProtocol:
         indices.sort(
             key=lambda i: (
                 party_state.pokemon[i].current_hp / party_state.pokemon[i].max_hp
-                if party_state.pokemon[i].max_hp > 0 else 1.0
+                if party_state.pokemon[i].max_hp > 0
+                else 1.0
             )
         )
         return indices
@@ -1531,7 +1593,7 @@ class PokemonCenterProtocol:
             box_idx = high_box_indices.pop(0)
             swaps.append((party_idx, box_idx))
 
-        return swaps[:self._pc_swaps_max]
+        return swaps[: self._pc_swaps_max]
 
     def _calculate_carry_scores(self, pokemon_list: List[PokemonState]) -> List[int]:
         """Calculate carry scores for Pokemon list"""
@@ -1601,7 +1663,11 @@ class ItemUsageStrategy:
             return None, None
 
         active_pokemon = party_state.pokemon[active_index]
-        hp_percent = active_pokemon.current_hp / active_pokemon.max_hp if active_pokemon.max_hp > 0 else 0
+        hp_percent = (
+            active_pokemon.current_hp / active_pokemon.max_hp
+            if active_pokemon.max_hp > 0
+            else 0
+        )
         status = active_pokemon.status
 
         healthy_count = party_state.get_healthy_count()
@@ -1629,7 +1695,9 @@ class ItemUsageStrategy:
                     return ItemType.FULL_RESTORE, active_index
 
         if status in ["PARALYZED", "ASLEEP", "FROZEN"]:
-            if status == "PARALYZED" and self._inventory.has_item(ItemType.PARALYZE_HEAL):
+            if status == "PARALYZED" and self._inventory.has_item(
+                ItemType.PARALYZE_HEAL
+            ):
                 return ItemType.PARALYZE_HEAL, active_index
             elif status == "ASLEEP" and self._inventory.has_item(ItemType.AWAKENING):
                 return ItemType.AWAKENING, active_index
@@ -1724,7 +1792,9 @@ class ItemUsageStrategy:
         blocking_statuses = ["PARALYZED", "ASLEEP", "FROZEN"]
         if pokemon.status in blocking_statuses:
             return True
-        if pokemon.status in ["POISONED", "BURNED"] and battle_context.get("is_trainer_battle", False):
+        if pokemon.status in ["POISONED", "BURNED"] and battle_context.get(
+            "is_trainer_battle", False
+        ):
             return True
         return False
 
@@ -1770,8 +1840,14 @@ class ItemUsageStrategy:
             elif lowest_hp < 0.75:
                 urgency = 1.5
 
-        if item_type in [ItemType.ANTIDOTE, ItemType.BURN_HEAL, ItemType.ICE_HEAL,
-                         ItemType.AWAKENING, ItemType.PARALYZE_HEAL, ItemType.FULL_HEAL]:
+        if item_type in [
+            ItemType.ANTIDOTE,
+            ItemType.BURN_HEAL,
+            ItemType.ICE_HEAL,
+            ItemType.AWAKENING,
+            ItemType.PARALYZE_HEAL,
+            ItemType.FULL_HEAL,
+        ]:
             if status_count > 0:
                 urgency = 2.5 * status_count
 
@@ -1919,11 +1995,23 @@ class ItemUsageStrategy:
 
             if avg_level > max_wild_level + 10:
                 if self._inventory.has_item(ItemType.MAX_REPEL):
-                    return True, ItemType.MAX_REPEL, f"Party level {avg_level} >> wild levels"
+                    return (
+                        True,
+                        ItemType.MAX_REPEL,
+                        f"Party level {avg_level} >> wild levels",
+                    )
                 elif self._inventory.has_item(ItemType.SUPER_REPEL):
-                    return True, ItemType.SUPER_REPEL, f"Party level {avg_level} >> wild levels"
+                    return (
+                        True,
+                        ItemType.SUPER_REPEL,
+                        f"Party level {avg_level} >> wild levels",
+                    )
                 elif self._inventory.has_item(ItemType.REPEL):
-                    return True, ItemType.REPEL, f"Party level {avg_level} >> wild levels"
+                    return (
+                        True,
+                        ItemType.REPEL,
+                        f"Party level {avg_level} >> wild levels",
+                    )
 
         route_length = 50
         if upcoming_route in ShoppingHeuristic.ROUTE_SHOPPING_NEEDS:
@@ -1935,7 +2023,11 @@ class ItemUsageStrategy:
                 return True, ItemType.MAX_REPEL, f"Long route ({route_length} tiles)"
         elif route_length > 50:
             if self._inventory.has_item(ItemType.SUPER_REPEL):
-                return True, ItemType.SUPER_REPEL, f"Medium route ({route_length} tiles)"
+                return (
+                    True,
+                    ItemType.SUPER_REPEL,
+                    f"Medium route ({route_length} tiles)",
+                )
 
         return False, None, ""
 
@@ -1962,14 +2054,21 @@ class ItemUsageStrategy:
         if item_type in no_waste:
             return False, ""
 
-        if item_type in [ItemType.HYPER_POTION, ItemType.MAX_POTION, ItemType.FULL_RESTORE]:
+        if item_type in [
+            ItemType.HYPER_POTION,
+            ItemType.MAX_POTION,
+            ItemType.FULL_RESTORE,
+        ]:
             current_hp = target_state.get("current_hp", 0)
             max_hp = target_state.get("max_hp", 1)
             missing_hp = max_hp - current_hp
             healing_power = ShoppingHeuristic.HEALING_POWER.get(item_type, 0)
 
             if healing_power > 0 and missing_hp < healing_power * 0.3:
-                return True, f"Only {missing_hp} HP missing, {healing_power} would be wasted"
+                return (
+                    True,
+                    f"Only {missing_hp} HP missing, {healing_power} would be wasted",
+                )
 
         return False, ""
 
@@ -2023,11 +2122,18 @@ class InventoryManager:
             except ValueError:
                 logger.warning(f"Unknown item type from vision: {item_type_str}")
 
-    def get_shopping_goal(self, party_state: PartyState, money: int) -> Optional[ShoppingPlan]:
+    def get_shopping_goal(
+        self, party_state: PartyState, money: int
+    ) -> Optional[ShoppingPlan]:
         """Generate shopping goal for GOAP planner"""
-        return cast(Optional[ShoppingPlan], self._shopping.generate_shopping_list(party_state, None, money))
+        return cast(
+            Optional[ShoppingPlan],
+            self._shopping.generate_shopping_list(party_state, None, money),
+        )
 
-    def get_healing_goal(self, party_state: PartyState) -> Optional[Tuple[bool, HealingPriority, str]]:
+    def get_healing_goal(
+        self, party_state: PartyState
+    ) -> Optional[Tuple[bool, HealingPriority, str]]:
         """Generate healing goal for GOAP planner"""
         return self._center.assess_healing_need(party_state)
 

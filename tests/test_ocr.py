@@ -18,8 +18,10 @@ from PIL import Image, ImageDraw, ImageFont
 # Helper: fabricate an image containing recognisable text
 # ---------------------------------------------------------------------------
 
-def _make_text_image(text: str, width: int = 160, height: int = 24,
-                     font_size: int = 8) -> np.ndarray:
+
+def _make_text_image(
+    text: str, width: int = 160, height: int = 24, font_size: int = 8
+) -> np.ndarray:
     """Draw white text on a black background using PIL and return as numpy."""
     img = Image.new("L", (width, height), 0)
     draw = ImageDraw.Draw(img)
@@ -47,11 +49,13 @@ def _make_blank_image(width: int = 160, height: int = 24) -> np.ndarray:
 # OCRResult & FontTemplate dataclasses
 # ---------------------------------------------------------------------------
 
+
 class TestOCRResultDataclass:
     """OCRResult dataclass construction and defaults."""
 
     def test_default_construction(self) -> None:
         from src.vision.ocr import OCRResult
+
         r = OCRResult(text="Pikachu", confidence=0.95, character_count=7)
         assert r.text == "Pikachu"
         assert r.confidence == 0.95
@@ -61,10 +65,14 @@ class TestOCRResultDataclass:
 
     def test_full_construction(self) -> None:
         from src.vision.ocr import OCRResult
+
         chars = [{"char": "A", "confidence": 0.9, "position": 0, "width": 6}]
         r = OCRResult(
-            text="A", confidence=0.9, character_count=1,
-            processing_time_ms=12.5, characters=chars
+            text="A",
+            confidence=0.9,
+            character_count=1,
+            processing_time_ms=12.5,
+            characters=chars,
         )
         assert r.text == "A"
         assert r.confidence == 0.9
@@ -78,9 +86,15 @@ class TestFontTemplateDataclass:
 
     def test_construction(self) -> None:
         from src.vision.ocr import FontTemplate
+
         tpl = FontTemplate(
-            char="A", template=np.zeros((8, 6), dtype=np.uint8),
-            unicode_value=65, width=6, height=8, samples=2, confidence=0.98
+            char="A",
+            template=np.zeros((8, 6), dtype=np.uint8),
+            unicode_value=65,
+            width=6,
+            height=8,
+            samples=2,
+            confidence=0.98,
         )
         assert tpl.char == "A"
         assert tpl.unicode_value == 65
@@ -95,12 +109,14 @@ class TestFontTemplateDataclass:
 # OCREngine construction
 # ---------------------------------------------------------------------------
 
+
 class TestOCREngineInit:
     """OCREngine construction and font database loading."""
 
     def test_constructor_creates_default_database(self, tmp_path: Path) -> None:
         """When fonts.json doesn't exist, _create_default_font_database runs."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         # Redirect to a non-existent path so _create_default_font_database runs
         engine.FONT_DATABASE_PATH = tmp_path / "nonexistent.json"
@@ -114,6 +130,7 @@ class TestOCREngineInit:
     def test_custom_common_words(self) -> None:
         """_build_common_words_set returns expected set for Pokémon context."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         assert "PIKACHU" in engine.common_words
         assert "POKEMON" in engine.common_words
@@ -123,6 +140,7 @@ class TestOCREngineInit:
     def test_special_cases_structure(self) -> None:
         """special_cases dict has expected keys."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         assert "contraction_pattern" in engine.special_cases
         assert "gender_symbols" in engine.special_cases
@@ -133,9 +151,11 @@ class TestOCREngineInit:
 # _binarize_image
 # ---------------------------------------------------------------------------
 
+
 class TestBinarize:
     def test_all_white_above_threshold(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         gray = np.full((8, 8), 200, dtype=np.uint8)
         binary = engine._binarize_image(gray, threshold=128)
@@ -143,6 +163,7 @@ class TestBinarize:
 
     def test_all_black_below_threshold(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         gray = np.full((8, 8), 50, dtype=np.uint8)
         binary = engine._binarize_image(gray, threshold=128)
@@ -150,6 +171,7 @@ class TestBinarize:
 
     def test_custom_threshold(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         gray = np.array([[0, 100], [150, 255]], dtype=np.uint8)
         binary = engine._binarize_image(gray, threshold=125)
@@ -161,9 +183,11 @@ class TestBinarize:
 # _split_into_lines
 # ---------------------------------------------------------------------------
 
+
 class TestSplitLines:
     def test_single_line(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         # One row of "text" pixels
         img = np.zeros((10, 60), dtype=np.uint8)
@@ -173,6 +197,7 @@ class TestSplitLines:
 
     def test_multiple_lines(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = np.zeros((30, 60), dtype=np.uint8)
         img[3:4, 10:50] = 255
@@ -183,6 +208,7 @@ class TestSplitLines:
 
     def test_empty_image(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = np.zeros((10, 60), dtype=np.uint8)
         lines = engine._split_into_lines(img)
@@ -190,6 +216,7 @@ class TestSplitLines:
 
     def test_line_at_bottom(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = np.zeros((10, 60), dtype=np.uint8)
         img[9, 10:50] = 255
@@ -201,9 +228,11 @@ class TestSplitLines:
 # _find_character_width
 # ---------------------------------------------------------------------------
 
+
 class TestFindCharWidth:
     def test_standard_char(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         # A 6-pixel wide character blob on a 60-wide line
         line = np.zeros((8, 60), dtype=np.uint8)
@@ -213,6 +242,7 @@ class TestFindCharWidth:
 
     def test_at_end_of_line(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         line = np.zeros((8, 20), dtype=np.uint8)
         line[:, 16:20] = 255
@@ -224,9 +254,11 @@ class TestFindCharWidth:
 # _template_match
 # ---------------------------------------------------------------------------
 
+
 class TestTemplateMatch:
     def test_perfect_match(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         tpl = np.array([[0, 255], [255, 0]], dtype=np.uint8)
         score = engine._template_match(tpl.copy(), tpl)
@@ -234,6 +266,7 @@ class TestTemplateMatch:
 
     def test_inverse_is_zero(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         tpl = np.array([[0, 255], [255, 0]], dtype=np.uint8)
         inv = np.array([[255, 0], [0, 255]], dtype=np.uint8)
@@ -242,6 +275,7 @@ class TestTemplateMatch:
 
     def test_different_shapes_resize(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         tpl = np.ones((8, 6), dtype=np.uint8) * 200
         region = np.ones((10, 8), dtype=np.uint8) * 200
@@ -252,6 +286,7 @@ class TestTemplateMatch:
 
     def test_zero_denominator(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         tpl = np.zeros((8, 6), dtype=np.uint8)
         region = np.zeros((8, 6), dtype=np.uint8)
@@ -263,9 +298,11 @@ class TestTemplateMatch:
 # _resize_to_match
 # ---------------------------------------------------------------------------
 
+
 class TestResizeToMatch:
     def test_same_size_no_change(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         region = np.ones((8, 6), dtype=np.uint8) * 128
         result = engine._resize_to_match(region, (8, 6))
@@ -274,6 +311,7 @@ class TestResizeToMatch:
 
     def test_larger_region_cropped(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         region = np.ones((10, 8), dtype=np.uint8) * 128
         result = engine._resize_to_match(region, (8, 6))
@@ -281,6 +319,7 @@ class TestResizeToMatch:
 
     def test_smaller_region_padded(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         region = np.ones((4, 3), dtype=np.uint8) * 128
         result = engine._resize_to_match(region, (8, 6))
@@ -295,21 +334,25 @@ class TestResizeToMatch:
 # _postprocess_text
 # ---------------------------------------------------------------------------
 
+
 class TestPostprocess:
     def test_strips_question_marks(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         result = engine._postprocess_text("PI?KACHU")
         assert "?" not in result
 
     def test_collapses_whitespace(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         result = engine._postprocess_text("PIKA   CHU")
         assert result == "PIKA CHU"
 
     def test_uppercases(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         result = engine._postprocess_text("pikachu")
         assert result == "PIKACHU"
@@ -319,9 +362,11 @@ class TestPostprocess:
 # _fix_contractions
 # ---------------------------------------------------------------------------
 
+
 class TestFixContractions:
     def test_common_contraction_fixed(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         # NOTE: _fix_contractions has a pre-existing bug — apostrophe_remap
         # keys already contain ' (e.g., "'d"), so "'" + wrong produces "''d".
@@ -335,15 +380,18 @@ class TestFixContractions:
 # _validate_and_correct / _suggest_correction
 # ---------------------------------------------------------------------------
 
+
 class TestValidateAndCorrect:
     def test_known_word_preserved(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         result = engine._validate_and_correct("PIKACHU")
         assert result == "PIKACHU"
 
     def test_unknown_word_returned_as_is(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         result = engine._validate_and_correct("XYZZY")
         # _suggest_correction returns word unchanged if len > 2,
@@ -352,12 +400,14 @@ class TestValidateAndCorrect:
 
     def test_short_word_returned(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         result = engine._suggest_correction("AB")
         assert result == "AB"
 
     def test_longer_word_returned(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         result = engine._suggest_correction("XYZPDQ")
         assert result == "XYZPDQ"
@@ -367,9 +417,11 @@ class TestValidateAndCorrect:
 # _recognize_character
 # ---------------------------------------------------------------------------
 
+
 class TestRecognizeCharacter:
     def test_recognize_known_char(self, tmp_path: Path) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         # Force default database creation in temp dir
         engine.FONT_DATABASE_PATH = tmp_path / "fonts.json"
@@ -383,6 +435,7 @@ class TestRecognizeCharacter:
 
     def test_unknown_region_returns_question_mark(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         # A region with no structural similarity to any template
         region = np.zeros((8, 6), dtype=np.uint8)
@@ -394,12 +447,14 @@ class TestRecognizeCharacter:
 # extract_text — main entry point
 # ---------------------------------------------------------------------------
 
+
 class TestExtractText:
     """Tests for OCREngine.extract_text() — the main OCR entry point."""
 
     def test_extract_text_empty_image(self) -> None:
         """AC-2: extract_text with empty image → returns empty string."""
         from src.vision.ocr import OCREngine, OCRResult
+
         engine = OCREngine()
         img = _make_blank_image(160, 24)
         result = engine.extract_text(img)
@@ -410,6 +465,7 @@ class TestExtractText:
     def test_extract_text_rgb_image(self) -> None:
         """3-channel RGB image should be converted to grayscale."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_rgb_text_image("A", 160, 24)
         result = engine.extract_text(img)
@@ -419,6 +475,7 @@ class TestExtractText:
     def test_extract_text_with_known_text(self) -> None:
         """AC-1: extract_text with known text image → returns expected string."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_text_image("A", 160, 24)
         result = engine.extract_text(img)
@@ -430,6 +487,7 @@ class TestExtractText:
     def test_extract_text_min_confidence_filtering(self) -> None:
         """Low min_confidence should allow more chars; high filters more."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_text_image("AB", 160, 24)
         r_lo = engine.extract_text(img, min_confidence=0.1)
@@ -440,6 +498,7 @@ class TestExtractText:
     def test_extract_text_garbled_image(self) -> None:
         """AC-5: garbled image → graceful fallback (no crash, returns result)."""
         from src.vision.ocr import OCREngine, OCRResult
+
         engine = OCREngine()
         # Random noise as "garbled" image
         img = np.random.randint(0, 256, (24, 160), dtype=np.uint8)
@@ -450,6 +509,7 @@ class TestExtractText:
     def test_extract_text_includes_timing(self) -> None:
         """processing_time_ms should be populated."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_text_image("POKEMON", 200, 24)
         result = engine.extract_text(img)
@@ -460,12 +520,14 @@ class TestExtractText:
 # extract_dialog
 # ---------------------------------------------------------------------------
 
+
 class TestExtractDialog:
     """Tests for OCREngine.extract_dialog()."""
 
     def test_extract_dialog_returns_string(self) -> None:
         """AC-4 (adapted): extract_dialog with dialog image → returns text string."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_text_image("PROF OAK", 160, 24)
         result = engine.extract_dialog(img)
@@ -473,6 +535,7 @@ class TestExtractDialog:
 
     def test_extract_dialog_empty(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_blank_image(160, 24)
         result = engine.extract_dialog(img)
@@ -483,11 +546,13 @@ class TestExtractDialog:
 # extract_pokemon_name
 # ---------------------------------------------------------------------------
 
+
 class TestExtractPokemonName:
     """Tests for OCREngine.extract_pokemon_name()."""
 
     def test_extract_pokemon_name_returns_string(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_text_image("PIKACHU", 160, 24)
         result = engine.extract_pokemon_name(img)
@@ -496,6 +561,7 @@ class TestExtractPokemonName:
 
     def test_extract_pokemon_name_empty_image_returns_none(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_blank_image(160, 24)
         result = engine.extract_pokemon_name(img)
@@ -506,11 +572,13 @@ class TestExtractPokemonName:
 # extract_hp_value
 # ---------------------------------------------------------------------------
 
+
 class TestExtractHPValue:
     """Tests for OCREngine.extract_hp_value()."""
 
     def test_extract_hp_value_returns_int_or_none(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_text_image("42", 80, 24)
         result = engine.extract_hp_value(img)
@@ -519,6 +587,7 @@ class TestExtractHPValue:
 
     def test_extract_hp_value_empty_image_returns_none(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_blank_image(80, 24)
         result = engine.extract_hp_value(img)
@@ -528,6 +597,7 @@ class TestExtractHPValue:
 # ---------------------------------------------------------------------------
 # Font database save/load cycle
 # ---------------------------------------------------------------------------
+
 
 class TestFontDatabase:
     """Tests for font database persistence."""
@@ -559,6 +629,7 @@ class TestFontDatabase:
     def test_load_nonexistent_file_creates_default(self, tmp_path: Path) -> None:
         """When font file doesn't exist, _create_default_font_database runs."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         engine.font_templates = {}
         engine.FONT_DATABASE_PATH = tmp_path / "nonexistent.json"
@@ -570,9 +641,11 @@ class TestFontDatabase:
 # _recognize_line integration
 # ---------------------------------------------------------------------------
 
+
 class TestRecognizeLine:
     def test_empty_line(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         line = np.zeros((8, 60), dtype=np.uint8)
         text, conf, chars = engine._recognize_line(line, 0.7)
@@ -582,6 +655,7 @@ class TestRecognizeLine:
 
     def test_single_char_line(self, tmp_path: Path) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         engine.FONT_DATABASE_PATH = tmp_path / "fonts.json"
         engine.font_templates = {}
@@ -598,10 +672,12 @@ class TestRecognizeLine:
 # Edge case: very large image, weird shapes
 # ---------------------------------------------------------------------------
 
+
 class TestEdgeCases:
     def test_1d_array_graceful(self) -> None:
         """1D array raises ValueError — pre-existing: _split_into_lines expects 2D."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = np.zeros(160, dtype=np.uint8)
         with pytest.raises(ValueError, match="not enough values to unpack"):
@@ -609,6 +685,7 @@ class TestEdgeCases:
 
     def test_single_pixel(self) -> None:
         from src.vision.ocr import OCREngine, OCRResult
+
         engine = OCREngine()
         img = np.array([[128]], dtype=np.uint8)
         result = engine.extract_text(img)
@@ -616,6 +693,7 @@ class TestEdgeCases:
 
     def test_all_white(self) -> None:
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = np.full((24, 160), 255, dtype=np.uint8)
         result = engine.extract_text(img)
@@ -625,6 +703,7 @@ class TestEdgeCases:
     def test_extract_dialog_does_not_crash_on_rgb(self) -> None:
         """extract_dialog with RGB input should work via extract_text."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_rgb_text_image("OAK", 160, 24)
         result = engine.extract_dialog(img)
@@ -633,6 +712,7 @@ class TestEdgeCases:
     def test_extract_hp_value_with_numbers(self) -> None:
         """Realistic HP extraction from a number image."""
         from src.vision.ocr import OCREngine
+
         engine = OCREngine()
         img = _make_text_image("35", 80, 24)
         result = engine.extract_hp_value(img)
@@ -643,6 +723,7 @@ class TestEdgeCases:
     def test_extract_text_with_very_narrow_image(self) -> None:
         """Very narrow image — should not crash."""
         from src.vision.ocr import OCREngine, OCRResult
+
         engine = OCREngine()
         img = np.zeros((30, 2), dtype=np.uint8)
         result = engine.extract_text(img)

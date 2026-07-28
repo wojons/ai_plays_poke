@@ -39,12 +39,30 @@ from src.core.symbols import (
 
 # ── Terrain dicts ───────────────────────────────────────────────────────────
 
+
 class TestTerrainDicts:
     """TERRAIN_EMOJI and TERRAIN_ASCII — key coverage and lookup correctness."""
 
     TERRAIN_KEYS = [
-        "?", ".", "g", "G", "T", "#", "~", "=", "^", "v",
-        "<", ">", ":", "s", "i", "f", "d", "S", "p",
+        "?",
+        ".",
+        "g",
+        "G",
+        "T",
+        "#",
+        "~",
+        "=",
+        "^",
+        "v",
+        "<",
+        ">",
+        ":",
+        "s",
+        "i",
+        "f",
+        "d",
+        "S",
+        "p",
     ]
 
     def test_terrain_emoji_has_all_keys(self):
@@ -78,12 +96,26 @@ class TestTerrainDicts:
 
 # ── Object dicts ────────────────────────────────────────────────────────────
 
+
 class TestObjectDicts:
     """OBJECT_EMOJI and OBJECT_ASCII — key coverage."""
 
     OBJECT_KEYS = [
-        "D", "S", "C", "I", "B", "M", "H", "F", "N", "P",
-        "K", "R", "T", "X", "Y",
+        "D",
+        "S",
+        "C",
+        "I",
+        "B",
+        "M",
+        "H",
+        "F",
+        "N",
+        "P",
+        "K",
+        "R",
+        "T",
+        "X",
+        "Y",
     ]
 
     def test_object_emoji_has_all_keys(self):
@@ -113,12 +145,32 @@ class TestObjectDicts:
 
 # ── Actor dicts ─────────────────────────────────────────────────────────────
 
+
 class TestActorDicts:
     """ACTOR_EMOJI and ACTOR_ASCII — key coverage."""
 
     ACTOR_KEYS = [
-        "u", "n", "o", "m", "p", "r", "t", "T", "b", "l",
-        "h", "g", "s", "f", "c", "e", "k", "K", "P", "R", "x",
+        "u",
+        "n",
+        "o",
+        "m",
+        "p",
+        "r",
+        "t",
+        "T",
+        "b",
+        "l",
+        "h",
+        "g",
+        "s",
+        "f",
+        "c",
+        "e",
+        "k",
+        "K",
+        "P",
+        "R",
+        "x",
     ]
 
     def test_actor_emoji_has_all_keys(self):
@@ -148,6 +200,7 @@ class TestActorDicts:
 
 # ── Player facing dicts ─────────────────────────────────────────────────────
 
+
 class TestPlayerFacingDicts:
     """PLAYER_FACING_EMOJI and PLAYER_FACING_ASCII — N/S/E/W directions."""
 
@@ -173,6 +226,7 @@ class TestPlayerFacingDicts:
 
 # ── Mode emoji dict ─────────────────────────────────────────────────────────
 
+
 class TestModeEmoji:
     """MODE_EMOJI — all game modes."""
 
@@ -189,6 +243,7 @@ class TestModeEmoji:
 
 
 # ── Lighting emoji dict ─────────────────────────────────────────────────────
+
 
 class TestLightingEmoji:
     """LIGHTING_EMOJI — lighting/visibility states."""
@@ -207,10 +262,19 @@ class TestLightingEmoji:
 
 # ── Edge outcome emoji dict ─────────────────────────────────────────────────
 
+
 class TestEdgeOutcomeEmoji:
     """EDGE_OUTCOME_EMOJI — movement edge outcomes."""
 
-    EDGES = {"open", "blocked", "one_way_ledge", "warp", "npc_block", "water_edge", "unknown"}
+    EDGES = {
+        "open",
+        "blocked",
+        "one_way_ledge",
+        "warp",
+        "npc_block",
+        "water_edge",
+        "unknown",
+    }
 
     def test_all_edges_present(self):
         """All 7 edge outcome keys present."""
@@ -223,6 +287,7 @@ class TestEdgeOutcomeEmoji:
 
 
 # ── Visited dicts ───────────────────────────────────────────────────────────
+
 
 class TestVisitedDicts:
     """VISITED_EMOJI and VISITED_ASCII — tile visited states."""
@@ -246,6 +311,7 @@ class TestVisitedDicts:
 
 
 # ── terrain_to_emoji / terrain_to_ascii ─────────────────────────────────────
+
 
 class TestTerrainToEmoji:
     """terrain_to_emoji() — known keys and unknown fallback."""
@@ -304,6 +370,7 @@ class TestTerrainToAscii:
 
 # ── object_to_emoji / object_to_ascii ──────────────────────────────────────
 
+
 class TestObjectToEmoji:
     """object_to_emoji() — space handling and known keys."""
 
@@ -354,6 +421,7 @@ class TestObjectToAscii:
 
 
 # ── actor_to_emoji / actor_to_ascii ────────────────────────────────────────
+
 
 class TestActorToEmoji:
     """actor_to_emoji() — known kinds and empty string fallback."""
@@ -406,6 +474,7 @@ class TestActorToAscii:
 
 # ── facing_emoji / facing_ascii ────────────────────────────────────────────
 
+
 class TestFacingEmoji:
     """facing_emoji() — N/S/E/W directions."""
 
@@ -450,6 +519,7 @@ class TestFacingAscii:
 
 # ── mode_emoji ─────────────────────────────────────────────────────────────
 
+
 class TestModeEmojiFunction:
     """mode_emoji() — known modes and unknown fallback."""
 
@@ -482,6 +552,7 @@ class TestModeEmojiFunction:
 
 # ── edge_emoji ─────────────────────────────────────────────────────────────
 
+
 class TestEdgeEmoji:
     """edge_emoji() — all edge outcomes."""
 
@@ -510,6 +581,7 @@ class TestEdgeEmoji:
 
 
 # ── visited_emoji / visited_ascii ──────────────────────────────────────────
+
 
 class TestVisitedEmoji:
     """visited_emoji() — all visited states."""
@@ -555,6 +627,7 @@ class TestVisitedAscii:
 
 # ── describe_tile ──────────────────────────────────────────────────────────
 
+
 class TestDescribeTile:
     """describe_tile() — terrain-only, terrain+object, terrain+object+actor."""
 
@@ -597,6 +670,7 @@ class TestDescribeTile:
 
 # ── TSV_STRIP_REFERENCE ─────────────────────────────────────────────────────
 
+
 class TestTSVStripReference:
     """TSV_STRIP_REFERENCE — format reference string."""
 
@@ -613,6 +687,7 @@ class TestTSVStripReference:
 
 
 # ── SYMBOL_REFERENCE ────────────────────────────────────────────────────────
+
 
 class TestSymbolReference:
     """SYMBOL_REFERENCE — contains key terrain symbols for prompts."""

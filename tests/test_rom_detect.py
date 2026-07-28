@@ -16,7 +16,13 @@ from src.core.rom_detect import detect_platform, get_game_name
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
-def _make_rom(path: Path, byte_104: bytes, size: int = 0, title_bytes: tuple[int, bytes] | None = None) -> None:
+
+def _make_rom(
+    path: Path,
+    byte_104: bytes,
+    size: int = 0,
+    title_bytes: tuple[int, bytes] | None = None,
+) -> None:
     """Create a minimal ROM file with the specified header byte and optional title."""
     data = bytearray(size)
     # Pad to at least 0x105 bytes so we can set byte at 0x0104
@@ -32,6 +38,7 @@ def _make_rom(path: Path, byte_104: bytes, size: int = 0, title_bytes: tuple[int
 
 # ── detect_platform ──────────────────────────────────────────────────────────
 
+
 class TestDetectPlatform:
     """Tests for detect_platform()."""
 
@@ -40,19 +47,19 @@ class TestDetectPlatform:
     def test_gb_with_ce_byte_and_small_size(self, tmp_path):
         """ROM with 0xCE at 0x0104 and size ≤ 2 MiB → 'gb'."""
         rom = tmp_path / "pokemon_blue.gb"
-        _make_rom(rom, b"\xCE", size=1_048_576)  # 1 MiB
+        _make_rom(rom, b"\xce", size=1_048_576)  # 1 MiB
         assert detect_platform(rom) == "gb"
 
     def test_gb_with_ce_byte_at_exact_max_size(self, tmp_path):
         """ROM with 0xCE exactly at 2 MiB → 'gb'."""
         rom = tmp_path / "pokemon_gold.gb"
-        _make_rom(rom, b"\xCE", size=2_097_152)  # exactly 2 MiB
+        _make_rom(rom, b"\xce", size=2_097_152)  # exactly 2 MiB
         assert detect_platform(rom) == "gb"
 
     def test_gb_with_ce_byte_edge(self, tmp_path):
         """ROM with 0xCE and size=1 → 'gb' (smallest valid)."""
         rom = tmp_path / "tiny.gb"
-        _make_rom(rom, b"\xCE", size=1)
+        _make_rom(rom, b"\xce", size=1)
         assert detect_platform(rom) == "gb"
 
     # ── GBA detection ────────────────────────────────────────────────────
@@ -66,19 +73,19 @@ class TestDetectPlatform:
     def test_gba_with_ff_byte(self, tmp_path):
         """ROM with 0xFF at 0x0104 → 'gba'."""
         rom = tmp_path / "unknown.gba"
-        _make_rom(rom, b"\xFF", size=8_388_608)
+        _make_rom(rom, b"\xff", size=8_388_608)
         assert detect_platform(rom) == "gba"
 
     def test_gba_oversized_even_with_ce(self, tmp_path):
         """ROM with 0xCE but size > 2 MiB → 'gba' (size disqualifies)."""
         rom = tmp_path / "oversized.gba"
-        _make_rom(rom, b"\xCE", size=2_097_153)  # 2 MiB + 1
+        _make_rom(rom, b"\xce", size=2_097_153)  # 2 MiB + 1
         assert detect_platform(rom) == "gba"
 
     def test_gba_ce_byte_but_large_size(self, tmp_path):
         """ROM with 0xCE and 32 MiB → 'gba'."""
         rom = tmp_path / "big.gba"
-        _make_rom(rom, b"\xCE", size=33_554_432)
+        _make_rom(rom, b"\xce", size=33_554_432)
         assert detect_platform(rom) == "gba"
 
     # ── Path-as-string ───────────────────────────────────────────────────
@@ -86,7 +93,7 @@ class TestDetectPlatform:
     def test_accepts_string_path(self, tmp_path):
         """detect_platform accepts a string path."""
         rom = tmp_path / "test.gb"
-        _make_rom(rom, b"\xCE", size=32768)
+        _make_rom(rom, b"\xce", size=32768)
         assert detect_platform(str(rom)) == "gb"
 
     # ── Error cases ──────────────────────────────────────────────────────
@@ -104,6 +111,7 @@ class TestDetectPlatform:
 
 # ── get_game_name ────────────────────────────────────────────────────────────
 
+
 class TestGetGameName:
     """Tests for get_game_name()."""
 
@@ -113,35 +121,35 @@ class TestGetGameName:
         """GB ROM: title at 0x134, up to 16 chars."""
         rom = tmp_path / "pokemon_red.gb"
         title = b"POKEMON RED\x00\x00\x00\x00\x00"
-        _make_rom(rom, b"\xCE", size=1_048_576, title_bytes=(0x0134, title))
+        _make_rom(rom, b"\xce", size=1_048_576, title_bytes=(0x0134, title))
         assert get_game_name(rom) == "POKEMON RED"
 
     def test_gb_title_16_chars(self, tmp_path):
         """GB ROM: title exactly 16 chars, no null byte."""
         rom = tmp_path / "full.gb"
         title = b"POKEMON BLUEVER1"
-        _make_rom(rom, b"\xCE", size=1_048_576, title_bytes=(0x0134, title))
+        _make_rom(rom, b"\xce", size=1_048_576, title_bytes=(0x0134, title))
         assert get_game_name(rom) == "POKEMON BLUEVER1"
 
     def test_gb_title_null_terminated(self, tmp_path):
         """GB ROM: null byte mid-title → stop at null."""
         rom = tmp_path / "nullterm.gb"
         title = b"PM RED\x00PADDING123"
-        _make_rom(rom, b"\xCE", size=1_048_576, title_bytes=(0x0134, title))
+        _make_rom(rom, b"\xce", size=1_048_576, title_bytes=(0x0134, title))
         assert get_game_name(rom) == "PM RED"
 
     def test_gb_title_all_nulls(self, tmp_path):
         """GB ROM: all nulls → 'UNKNOWN'."""
         rom = tmp_path / "nulls.gb"
         title = b"\x00" * 16
-        _make_rom(rom, b"\xCE", size=1_048_576, title_bytes=(0x0134, title))
+        _make_rom(rom, b"\xce", size=1_048_576, title_bytes=(0x0134, title))
         assert get_game_name(rom) == "UNKNOWN"
 
     def test_gb_title_with_spaces(self, tmp_path):
         """GB ROM: title with trailing spaces → stripped."""
         rom = tmp_path / "spaces.gb"
         title = b"POKE BLUE   \x00\x00\x00"
-        _make_rom(rom, b"\xCE", size=1_048_576, title_bytes=(0x0134, title))
+        _make_rom(rom, b"\xce", size=1_048_576, title_bytes=(0x0134, title))
         assert get_game_name(rom) == "POKE BLUE"
 
     # ── GBA titles ───────────────────────────────────────────────────────
@@ -157,7 +165,7 @@ class TestGetGameName:
         """GBA ROM: title exactly 12 chars."""
         rom = tmp_path / "twelve.gba"
         title = b"POKEMONFIRE1"
-        _make_rom(rom, b"\xFF", size=16_777_216, title_bytes=(0x00A0, title))
+        _make_rom(rom, b"\xff", size=16_777_216, title_bytes=(0x00A0, title))
         assert get_game_name(rom) == "POKEMONFIRE1"
 
     def test_gba_title_null_terminated(self, tmp_path):
@@ -171,7 +179,7 @@ class TestGetGameName:
         """GBA ROM: all nulls → 'UNKNOWN'."""
         rom = tmp_path / "nulls_gba.gba"
         title = b"\x00" * 12
-        _make_rom(rom, b"\xFF", size=16_777_216, title_bytes=(0x00A0, title))
+        _make_rom(rom, b"\xff", size=16_777_216, title_bytes=(0x00A0, title))
         assert get_game_name(rom) == "UNKNOWN"
 
     # ── Error cases ──────────────────────────────────────────────────────
@@ -187,8 +195,8 @@ class TestGetGameName:
         """Non-ASCII bytes in title → replaced with replacement char."""
         rom = tmp_path / "nonascii.gb"
         # 0xFF is not valid ASCII
-        title = b"POKE\xFFMON RED\x00\x00\x00"
-        _make_rom(rom, b"\xCE", size=1_048_576, title_bytes=(0x0134, title))
+        title = b"POKE\xffMON RED\x00\x00\x00"
+        _make_rom(rom, b"\xce", size=1_048_576, title_bytes=(0x0134, title))
         result = get_game_name(rom)
         assert "POKE" in result
         assert "MON RED" in result
@@ -198,6 +206,7 @@ class TestGetGameName:
 
 # ── Integration ──────────────────────────────────────────────────────────────
 
+
 class TestIntegration:
     """End-to-end: detect → extract."""
 
@@ -205,7 +214,7 @@ class TestIntegration:
         """detect_platform + get_game_name on a GB ROM."""
         rom = tmp_path / "complete.gb"
         title = b"POKEMON RED\x00\x00\x00\x00\x00"
-        _make_rom(rom, b"\xCE", size=1_048_576, title_bytes=(0x0134, title))
+        _make_rom(rom, b"\xce", size=1_048_576, title_bytes=(0x0134, title))
         assert detect_platform(rom) == "gb"
         assert get_game_name(rom) == "POKEMON RED"
 
@@ -220,6 +229,6 @@ class TestIntegration:
     def test_gb_unknown_title(self, tmp_path):
         """detect_platform works even when title is UNKNOWN."""
         rom = tmp_path / "unknown.gb"
-        _make_rom(rom, b"\xCE", size=32_768, title_bytes=(0x0134, b"\x00" * 16))
+        _make_rom(rom, b"\xce", size=32_768, title_bytes=(0x0134, b"\x00" * 16))
         assert detect_platform(rom) == "gb"
         assert get_game_name(rom) == "UNKNOWN"

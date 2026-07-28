@@ -18,7 +18,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Depends, Header, WebSocket, WebSocketDisconnect, Query
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Depends,
+    Header,
+    WebSocket,
+    WebSocketDisconnect,
+    Query,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 
@@ -48,7 +56,7 @@ app = FastAPI(
     title="PTP-01X Observability Dashboard",
     description="Real-time monitoring and control for PTP-01X Pokémon AI",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -74,7 +82,7 @@ class DashboardSession:
             "current_state": "idle",
             "location": "Unknown",
             "start_time": None,
-            "last_action_time": None
+            "last_action_time": None,
         }
         self.command_history: List[Dict[str, Any]] = []
         self._tick_rate_window: List[float] = []
@@ -98,7 +106,9 @@ class DashboardSession:
         self.state["running"] = False
         self.state["paused"] = False
 
-    def update_tick(self, new_state: Optional[str] = None, location: Optional[str] = None) -> None:
+    def update_tick(
+        self, new_state: Optional[str] = None, location: Optional[str] = None
+    ) -> None:
         current_time = time.time()
         delta = current_time - self._last_tick_time
         self._tick_rate_window.append(delta)
@@ -113,11 +123,13 @@ class DashboardSession:
         self.state["last_action_time"] = datetime.now().isoformat()
 
     def add_command(self, command: Dict[str, Any]) -> None:
-        self.command_history.append({
-            **command,
-            "timestamp": datetime.now().isoformat(),
-            "tick": self.state["tick_count"]
-        })
+        self.command_history.append(
+            {
+                **command,
+                "timestamp": datetime.now().isoformat(),
+                "tick": self.state["tick_count"],
+            }
+        )
         if len(self.command_history) > 1000:
             self.command_history = self.command_history[-1000:]
 
@@ -141,7 +153,7 @@ class DashboardSession:
             "current_state": self.state["current_state"],
             "location": self.state["location"],
             "start_time": self.state["start_time"],
-            "last_action_time": self.state["last_action_time"]
+            "last_action_time": self.state["last_action_time"],
         }
 
     def get_metrics(self) -> Dict[str, Any]:
@@ -150,7 +162,11 @@ class DashboardSession:
         success_count = sum(1 for c in self.command_history if c.get("success", True))
         avg_confidence = 0.0
         if self.command_history:
-            confidences = [c.get("confidence", 0) for c in self.command_history if c.get("confidence")]
+            confidences = [
+                c.get("confidence", 0)
+                for c in self.command_history
+                if c.get("confidence")
+            ]
             avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
 
         elapsed = 0.0
@@ -166,12 +182,16 @@ class DashboardSession:
             "ticks_per_second": round(avg_tick_rate, 2),
             "total_ticks": self.state["tick_count"],
             "total_commands": total_commands,
-            "commands_per_minute": round(total_commands / (elapsed / 60), 2) if elapsed > 0 else 0,
-            "success_rate": round(success_count / total_commands, 4) if total_commands > 0 else 1.0,
+            "commands_per_minute": round(total_commands / (elapsed / 60), 2)
+            if elapsed > 0
+            else 0,
+            "success_rate": round(success_count / total_commands, 4)
+            if total_commands > 0
+            else 1.0,
             "avg_confidence": round(avg_confidence, 4),
             "total_cost_estimate": round(total_cost, 6),
             "elapsed_seconds": round(elapsed, 2),
-            "session_active": self.state["running"] and not self.state["paused"]
+            "session_active": self.state["running"] and not self.state["paused"],
         }
 
     def get_recent_actions(self, limit: int = 50) -> List[Dict[str, Any]]:
@@ -196,7 +216,9 @@ async def root() -> FileResponse:
 
 
 @app.get("/status")
-async def get_status(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any]:
+async def get_status(
+    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+) -> Dict[str, Any]:
     session = get_session(session_id)
     return session.get_status()
 
@@ -205,31 +227,43 @@ async def get_status(x_api_key: bool = Depends(verify_api_key), session_id: str 
 async def get_latest_screenshot(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
-    format: str = "json"
+    format: str = "json",
 ) -> Response:
     session = get_session(session_id)
     screenshot_path = session.get_latest_screenshot_path()
-    
+
     if not screenshot_path:
-        return JSONResponse(content={"error": "No screenshots available"}, status_code=404)
-    
+        return JSONResponse(
+            content={"error": "No screenshots available"}, status_code=404
+        )
+
     if format == "base64":
         try:
             with open(screenshot_path, "rb") as f:
                 encoded = base64.b64encode(f.read()).decode()
-            return JSONResponse(content={
-                "image": f"data:image/png;base64,{encoded}",
-                "path": str(screenshot_path),
-                "timestamp": datetime.fromtimestamp(screenshot_path.stat().st_mtime).isoformat()
-            })
+            return JSONResponse(
+                content={
+                    "image": f"data:image/png;base64,{encoded}",
+                    "path": str(screenshot_path),
+                    "timestamp": datetime.fromtimestamp(
+                        screenshot_path.stat().st_mtime
+                    ).isoformat(),
+                }
+            )
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to read screenshot: {e}")
+            raise HTTPException(
+                status_code=500, detail=f"Failed to read screenshot: {e}"
+            )
     else:
-        return JSONResponse(content={
-            "path": str(screenshot_path),
-            "url": f"/screenshots/file?path={screenshot_path}",
-            "timestamp": datetime.fromtimestamp(screenshot_path.stat().st_mtime).isoformat()
-        })
+        return JSONResponse(
+            content={
+                "path": str(screenshot_path),
+                "url": f"/screenshots/file?path={screenshot_path}",
+                "timestamp": datetime.fromtimestamp(
+                    screenshot_path.stat().st_mtime
+                ).isoformat(),
+            }
+        )
 
 
 @app.get("/screenshots/file")
@@ -244,23 +278,27 @@ async def get_screenshot_file(path: str = Query(...)) -> FileResponse:
 async def get_recent_actions(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
-    limit: int = 50
+    limit: int = 50,
 ) -> Dict[str, Any]:
     session = get_session(session_id)
     return {
         "actions": session.get_recent_actions(limit),
-        "total_count": len(session.command_history)
+        "total_count": len(session.command_history),
     }
 
 
 @app.get("/metrics")
-async def get_metrics(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any]:
+async def get_metrics(
+    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+) -> Dict[str, Any]:
     session = get_session(session_id)
     return session.get_metrics()
 
 
 @app.post("/control/pause", response_model=None)
-async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any] | JSONResponse:
+async def pause_session(
+    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+) -> Dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -269,7 +307,9 @@ async def pause_session(x_api_key: bool = Depends(verify_api_key), session_id: s
 
 
 @app.post("/control/resume", response_model=None)
-async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any] | JSONResponse:
+async def resume_session(
+    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+) -> Dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -278,7 +318,9 @@ async def resume_session(x_api_key: bool = Depends(verify_api_key), session_id: 
 
 
 @app.post("/control/stop")
-async def stop_session(x_api_key: bool = Depends(verify_api_key), session_id: str = "default") -> Dict[str, Any]:
+async def stop_session(
+    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+) -> Dict[str, Any]:
     session = get_session(session_id)
     session.stop()
     return {"status": "stopped", "session_id": session_id}
@@ -288,7 +330,7 @@ async def stop_session(x_api_key: bool = Depends(verify_api_key), session_id: st
 async def start_session(
     x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
-    save_dir: str = "./game_saves"
+    save_dir: str = "./game_saves",
 ) -> Dict[str, Any]:
     if session_id in dashboard_sessions:
         dashboard_sessions[session_id].stop()
@@ -301,30 +343,29 @@ async def start_session(
 async def send_command(
     command: Dict[str, Any],
     x_api_key: bool = Depends(verify_api_key),
-    session_id: str = "default"
+    session_id: str = "default",
 ) -> Dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"] or session.state["paused"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
-    
+
     command_entry = {
         "command": command.get("command", "unknown"),
         "reasoning": command.get("reasoning", ""),
         "confidence": command.get("confidence", 0.0),
-        "success": True
+        "success": True,
     }
     session.add_command(command_entry)
     return {"status": "queued", "command": command}
 
 
 @app.get("/sessions")
-async def list_sessions(x_api_key: bool = Depends(verify_api_key)) -> Dict[str, List[Dict[str, Any]]]:
+async def list_sessions(
+    x_api_key: bool = Depends(verify_api_key),
+) -> Dict[str, List[Dict[str, Any]]]:
     return {
         "sessions": [
-            {
-                "session_id": sid,
-                **sess.get_status()
-            }
+            {"session_id": sid, **sess.get_status()}
             for sid, sess in dashboard_sessions.items()
         ]
     }
@@ -333,50 +374,57 @@ async def list_sessions(x_api_key: bool = Depends(verify_api_key)) -> Dict[str, 
 @app.websocket("/ws/screenshots/{session_id}")
 async def websocket_screenshot(websocket: WebSocket, session_id: str) -> None:
     await websocket.accept()
-    
+
     if session_id not in dashboard_sessions:
         dashboard_sessions[session_id] = DashboardSession(session_id)
-    
+
     session = dashboard_sessions[session_id]
     connection_manager[session_id] = websocket
-    
+
     try:
         last_screenshot_time = 0.0
         while True:
             screenshot_path = session.get_latest_screenshot_path()
-            
-            if screenshot_path and screenshot_path.stat().st_mtime > last_screenshot_time:
+
+            if (
+                screenshot_path
+                and screenshot_path.stat().st_mtime > last_screenshot_time
+            ):
                 last_screenshot_time = screenshot_path.stat().st_mtime
                 try:
                     with open(screenshot_path, "rb") as f:
                         encoded = base64.b64encode(f.read()).decode()
-                    
-                    await websocket.send_json({
-                        "type": "screenshot",
-                        "image": f"data:image/png;base64,{encoded}",
-                        "path": str(screenshot_path),
-                        "timestamp": datetime.fromisoformat(
-                            datetime.fromtimestamp(last_screenshot_time).isoformat()
-                        ).isoformat(),
-                        "tick": session.state["tick_count"],
-                        "state": session.state["current_state"]
-                    })
+
+                    await websocket.send_json(
+                        {
+                            "type": "screenshot",
+                            "image": f"data:image/png;base64,{encoded}",
+                            "path": str(screenshot_path),
+                            "timestamp": datetime.fromisoformat(
+                                datetime.fromtimestamp(last_screenshot_time).isoformat()
+                            ).isoformat(),
+                            "tick": session.state["tick_count"],
+                            "state": session.state["current_state"],
+                        }
+                    )
                 except Exception as e:
                     await websocket.send_json({"type": "error", "message": str(e)})
-            
+
             status = session.get_status()
             metrics = session.get_metrics()
-            
-            await websocket.send_json({
-                "type": "status",
-                "tick": status["tick_count"],
-                "state": status["current_state"],
-                "paused": status["paused"],
-                "tick_rate": metrics["ticks_per_second"]
-            })
-            
+
+            await websocket.send_json(
+                {
+                    "type": "status",
+                    "tick": status["tick_count"],
+                    "state": status["current_state"],
+                    "paused": status["paused"],
+                    "tick_rate": metrics["ticks_per_second"],
+                }
+            )
+
             await asyncio.sleep(0.5)
-            
+
     except WebSocketDisconnect:
         if session_id in connection_manager:
             del connection_manager[session_id]
@@ -385,19 +433,16 @@ async def websocket_screenshot(websocket: WebSocket, session_id: str) -> None:
 @app.websocket("/ws/metrics/{session_id}")
 async def websocket_metrics(websocket: WebSocket, session_id: str) -> None:
     await websocket.accept()
-    
+
     if session_id not in dashboard_sessions:
         dashboard_sessions[session_id] = DashboardSession(session_id)
-    
+
     session = dashboard_sessions[session_id]
-    
+
     try:
         while True:
             metrics = session.get_metrics()
-            await websocket.send_json({
-                "type": "metrics",
-                **metrics
-            })
+            await websocket.send_json({"type": "metrics", **metrics})
             await asyncio.sleep(1.0)
     except WebSocketDisconnect:
         pass
@@ -425,8 +470,8 @@ async def api_docs() -> Dict[str, Any]:
             "POST /control/command": "Queue a command",
             "GET /sessions": "List all sessions",
             "WS /ws/screenshots/{id}": "Real-time screenshot stream",
-            "WS /ws/metrics/{id}": "Real-time metrics stream"
-        }
+            "WS /ws/metrics/{id}": "Real-time metrics stream",
+        },
     }
 
 
@@ -436,11 +481,12 @@ def create_dashboard_app(save_dir: str = "./game_saves") -> FastAPI:
 
 if __name__ == "__main__":
     import uvicorn
+
     port = int(os.getenv("PTP_DASHBOARD_PORT", "8000"))
     host = os.getenv("PTP_DASHBOARD_HOST", "0.0.0.0")
-    
+
     print(f"Starting PTP-01X Dashboard on {host}:{port}")
     print(f"API Key: {API_KEY}")
     print(f"Documentation: http://{host}:{port}/api/docs")
-    
+
     uvicorn.run(app, host=host, port=port)

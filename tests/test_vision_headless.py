@@ -65,17 +65,19 @@ class TestVisionClientParsing:
     # ── clean JSON - direct parse ───────────────────────────────────────
 
     def test_parse_clean_battle_json(self) -> None:
-        text = json.dumps({
-            "screen_type": "battle",
-            "enemy_pokemon": "Pidgey",
-            "player_hp_pct": 85,
-            "enemy_hp_pct": 40,
-            "text_lines": ["What will", "PIKACHU do?"],
-            "menu_items": ["FIGHT", "BAG", "POKéMON", "RUN"],
-            "adjacent_info": "grass all around",
-            "status_icons": [],
-            "dialog_prompt": None,
-        })
+        text = json.dumps(
+            {
+                "screen_type": "battle",
+                "enemy_pokemon": "Pidgey",
+                "player_hp_pct": 85,
+                "enemy_hp_pct": 40,
+                "text_lines": ["What will", "PIKACHU do?"],
+                "menu_items": ["FIGHT", "BAG", "POKéMON", "RUN"],
+                "adjacent_info": "grass all around",
+                "status_icons": [],
+                "dialog_prompt": None,
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert result["screen_type"] == "battle"
@@ -85,68 +87,83 @@ class TestVisionClientParsing:
         assert result["menu_items"] == ["FIGHT", "BAG", "POKéMON", "RUN"]
 
     def test_parse_clean_overworld_json(self) -> None:
-        text = json.dumps({
-            "screen_type": "overworld",
-            "enemy_pokemon": None,
-            "player_hp_pct": 0,
-            "enemy_hp_pct": 0,
-            "text_lines": [],
-            "menu_items": [],
-            "adjacent_info": "path leading north, grass to the east",
-            "status_icons": [],
-            "dialog_prompt": None,
-        })
+        text = json.dumps(
+            {
+                "screen_type": "overworld",
+                "enemy_pokemon": None,
+                "player_hp_pct": 0,
+                "enemy_hp_pct": 0,
+                "text_lines": [],
+                "menu_items": [],
+                "adjacent_info": "path leading north, grass to the east",
+                "status_icons": [],
+                "dialog_prompt": None,
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert result["screen_type"] == "overworld"
         assert result["enemy_pokemon"] is None
 
     def test_parse_menu_json(self) -> None:
-        text = json.dumps({
-            "screen_type": "menu",
-            "enemy_pokemon": None,
-            "player_hp_pct": 0,
-            "enemy_hp_pct": 0,
-            "text_lines": [],
-            "menu_items": ["POKéDEX", "POKéMON", "BAG", "TRAINER", "SAVE", "OPTIONS"],
-            "adjacent_info": "",
-            "status_icons": [],
-            "dialog_prompt": None,
-        })
+        text = json.dumps(
+            {
+                "screen_type": "menu",
+                "enemy_pokemon": None,
+                "player_hp_pct": 0,
+                "enemy_hp_pct": 0,
+                "text_lines": [],
+                "menu_items": [
+                    "POKéDEX",
+                    "POKéMON",
+                    "BAG",
+                    "TRAINER",
+                    "SAVE",
+                    "OPTIONS",
+                ],
+                "adjacent_info": "",
+                "status_icons": [],
+                "dialog_prompt": None,
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert result["screen_type"] == "menu"
         assert len(result["menu_items"]) == 6
 
     def test_parse_dialog_json(self) -> None:
-        text = json.dumps({
-            "screen_type": "dialog",
-            "enemy_pokemon": None,
-            "player_hp_pct": 0,
-            "enemy_hp_pct": 0,
-            "text_lines": ["Welcome to the world", "of Pokémon!"],
-            "menu_items": [],
-            "adjacent_info": "",
-            "status_icons": [],
-            "dialog_prompt": None,
-        })
+        text = json.dumps(
+            {
+                "screen_type": "dialog",
+                "enemy_pokemon": None,
+                "player_hp_pct": 0,
+                "enemy_hp_pct": 0,
+                "text_lines": ["Welcome to the world", "of Pokémon!"],
+                "menu_items": [],
+                "adjacent_info": "",
+                "status_icons": [],
+                "dialog_prompt": None,
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert result["screen_type"] == "dialog"
         assert len(result["text_lines"]) == 2
 
     def test_parse_title_json(self) -> None:
-        text = json.dumps({
-            "screen_type": "title",
-            "enemy_pokemon": None,
-            "player_hp_pct": 0,
-            "enemy_hp_pct": 0,
-            "text_lines": ["POKéMON FIRE RED"],
-            "menu_items": ["NEW GAME", "CONTINUE"],
-            "adjacent_info": "",
-            "status_icons": [],
-            "dialog_prompt": None,
-        })
+        text = json.dumps(
+            {
+                "screen_type": "title",
+                "enemy_pokemon": None,
+                "player_hp_pct": 0,
+                "enemy_hp_pct": 0,
+                "text_lines": ["POKéMON FIRE RED"],
+                "menu_items": ["NEW GAME", "CONTINUE"],
+                "adjacent_info": "",
+                "status_icons": [],
+                "dialog_prompt": None,
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert result["screen_type"] == "title"
@@ -187,17 +204,19 @@ class TestVisionClientParsing:
         assert result["enemy_pokemon"] == "Rattata"
 
     def test_parse_json_with_nested_braces(self) -> None:
-        text = json.dumps({
-            "screen_type": "battle",
-            "enemy_pokemon": "Charmander",
-            "player_hp_pct": 67,
-            "enemy_hp_pct": 22,
-            "text_lines": ["PIKACHU used", "THUNDERBOLT!"],
-            "menu_items": ["FIGHT", "BAG", "POKéMON", "RUN"],
-            "adjacent_info": "grass",
-            "status_icons": ["par"],
-            "dialog_prompt": None,
-        })
+        text = json.dumps(
+            {
+                "screen_type": "battle",
+                "enemy_pokemon": "Charmander",
+                "player_hp_pct": 67,
+                "enemy_hp_pct": 22,
+                "text_lines": ["PIKACHU used", "THUNDERBOLT!"],
+                "menu_items": ["FIGHT", "BAG", "POKéMON", "RUN"],
+                "adjacent_info": "grass",
+                "status_icons": ["par"],
+                "dialog_prompt": None,
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert result["status_icons"] == ["par"]
@@ -309,17 +328,19 @@ class TestVisionClientEncoding:
     # ── text extraction from parsed responses (OCR equivalent) ──────────
 
     def test_text_extraction_from_battle_response(self) -> None:
-        text = json.dumps({
-            "screen_type": "battle",
-            "enemy_pokemon": "Geodude",
-            "player_hp_pct": 55,
-            "enemy_hp_pct": 30,
-            "text_lines": ["Go! PIKACHU!", "PIKACHU used", "THUNDER SHOCK!"],
-            "menu_items": ["FIGHT", "BAG", "POKéMON", "RUN"],
-            "adjacent_info": "cave",
-            "status_icons": [],
-            "dialog_prompt": None,
-        })
+        text = json.dumps(
+            {
+                "screen_type": "battle",
+                "enemy_pokemon": "Geodude",
+                "player_hp_pct": 55,
+                "enemy_hp_pct": 30,
+                "text_lines": ["Go! PIKACHU!", "PIKACHU used", "THUNDER SHOCK!"],
+                "menu_items": ["FIGHT", "BAG", "POKéMON", "RUN"],
+                "adjacent_info": "cave",
+                "status_icons": [],
+                "dialog_prompt": None,
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert len(result["text_lines"]) == 3
@@ -327,17 +348,19 @@ class TestVisionClientEncoding:
         assert result["menu_items"][0] == "FIGHT"
 
     def test_text_extraction_from_dialog_with_yes_no(self) -> None:
-        text = json.dumps({
-            "screen_type": "dialog",
-            "enemy_pokemon": None,
-            "player_hp_pct": 0,
-            "enemy_hp_pct": 0,
-            "text_lines": ["Would you like to", "save the game?"],
-            "menu_items": ["YES", "NO"],
-            "adjacent_info": "",
-            "status_icons": [],
-            "dialog_prompt": "Would you like to save the game?",
-        })
+        text = json.dumps(
+            {
+                "screen_type": "dialog",
+                "enemy_pokemon": None,
+                "player_hp_pct": 0,
+                "enemy_hp_pct": 0,
+                "text_lines": ["Would you like to", "save the game?"],
+                "menu_items": ["YES", "NO"],
+                "adjacent_info": "",
+                "status_icons": [],
+                "dialog_prompt": "Would you like to save the game?",
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert result["dialog_prompt"] == "Would you like to save the game?"
@@ -345,17 +368,19 @@ class TestVisionClientEncoding:
 
     def test_text_extraction_special_chars(self) -> None:
         """Verify that PokéMon-specific characters survive parsing."""
-        text = json.dumps({
-            "screen_type": "menu",
-            "enemy_pokemon": "Farfetch'd",
-            "player_hp_pct": 0,
-            "enemy_hp_pct": 0,
-            "text_lines": [],
-            "menu_items": ["POKéDEX", "POKéMON", "BAG", "PIKACHU♂", "SAVE"],
-            "adjacent_info": "",
-            "status_icons": [],
-            "dialog_prompt": None,
-        })
+        text = json.dumps(
+            {
+                "screen_type": "menu",
+                "enemy_pokemon": "Farfetch'd",
+                "player_hp_pct": 0,
+                "enemy_hp_pct": 0,
+                "text_lines": [],
+                "menu_items": ["POKéDEX", "POKéMON", "BAG", "PIKACHU♂", "SAVE"],
+                "adjacent_info": "",
+                "status_icons": [],
+                "dialog_prompt": None,
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert "POKéDEX" in result["menu_items"]
@@ -363,17 +388,19 @@ class TestVisionClientEncoding:
 
     def test_text_extraction_all_caps(self) -> None:
         """Game text is ALL CAPS — verify preservation."""
-        text = json.dumps({
-            "screen_type": "battle",
-            "enemy_pokemon": "SQUIRTLE",
-            "player_hp_pct": 100,
-            "enemy_hp_pct": 100,
-            "text_lines": ["A wild SQUIRTLE", "appeared!"],
-            "menu_items": ["FIGHT", "BAG", "POKéMON", "RUN"],
-            "adjacent_info": "route 1",
-            "status_icons": [],
-            "dialog_prompt": None,
-        })
+        text = json.dumps(
+            {
+                "screen_type": "battle",
+                "enemy_pokemon": "SQUIRTLE",
+                "player_hp_pct": 100,
+                "enemy_hp_pct": 100,
+                "text_lines": ["A wild SQUIRTLE", "appeared!"],
+                "menu_items": ["FIGHT", "BAG", "POKéMON", "RUN"],
+                "adjacent_info": "route 1",
+                "status_icons": [],
+                "dialog_prompt": None,
+            }
+        )
         result = VisionClient._parse_response(text)
         assert result is not None
         assert result["enemy_pokemon"] == "SQUIRTLE"
@@ -389,7 +416,7 @@ class TestPromptStackCore:
     """Test PromptStack loading, assembly, and introspection."""
 
     @pytest.fixture
-    def stack(self) :  # type: ignore[no-untyped-def]
+    def stack(self):  # type: ignore[no-untyped-def]
 
         return PromptStack(str(_PROJECT / "configs" / "prompts"))
 
@@ -593,7 +620,7 @@ class TestPromptStackAssemblyEdgeCases:
     """Edge cases for assemble()."""
 
     @pytest.fixture
-    def stack(self) :  # type: ignore[no-untyped-def]
+    def stack(self):  # type: ignore[no-untyped-def]
 
         return PromptStack(str(_PROJECT / "configs" / "prompts"))
 
@@ -605,7 +632,9 @@ class TestPromptStackAssemblyEdgeCases:
 
     def test_unknown_screen_type_still_formats(self, stack) -> None:  # type: ignore[no-untyped-def]
         """If the screen type config exists, VisionClient dict keys are used."""
-        prompt = stack.assemble("gen3", "battle", {"screen_type": "not_real_screen"}, {})
+        prompt = stack.assemble(
+            "gen3", "battle", {"screen_type": "not_real_screen"}, {}
+        )
         assert "not_real_screen" in prompt.lower()
 
     def test_examples_layer_present(self, stack) -> None:  # type: ignore[no-untyped-def]

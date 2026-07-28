@@ -33,9 +33,11 @@ def _find_rom() -> Path | None:
 
     PyBoy is GB/GBC-only, so prefer .gb and .gbc over .gba.
     """
-    candidates = sorted(_PROJECT.glob("data/rom/*.gb")) + sorted(
-        _PROJECT.glob("data/rom/*.gbc")
-    ) + sorted(_PROJECT.glob("data/rom/*.gba"))
+    candidates = (
+        sorted(_PROJECT.glob("data/rom/*.gb"))
+        + sorted(_PROJECT.glob("data/rom/*.gbc"))
+        + sorted(_PROJECT.glob("data/rom/*.gba"))
+    )
     return candidates[0] if candidates else None
 
 
@@ -45,6 +47,7 @@ def _has_api_key() -> bool:
 
 
 # ── prerequisite check fixture ─────────────────────────────────────────────
+
 
 @pytest.fixture(scope="session")
 def _require_live() -> Path:
@@ -58,6 +61,7 @@ def _require_live() -> Path:
 
 
 # ── AC-010: DemoRunner.run() completes ≥1 cycle ────────────────────────────
+
 
 @pytest.mark.integration
 @pytest.mark.live_api
@@ -74,13 +78,16 @@ def test_live_completes_one_cycle(_require_live: Path) -> None:
         assert "screen_type" in step
         assert "action" in step
         assert "success" in step
-        print(f"  AC-010 PASS: 1 cycle, screen_type={step['screen_type']}, "
-              f"success={step['success']}, action={step['action'][:80]}")
+        print(
+            f"  AC-010 PASS: 1 cycle, screen_type={step['screen_type']}, "
+            f"success={step['success']}, action={step['action'][:80]}"
+        )
     finally:
         runner.cleanup()
 
 
 # ── AC-011: Decision loop produces valid tool calls ─────────────────────────
+
 
 @pytest.mark.integration
 @pytest.mark.live_api
@@ -121,13 +128,16 @@ def test_tool_calls_are_valid(_require_live: Path) -> None:
             f"No valid tool calls found in {len(result['results'])} cycles. "
             f"Results: {[r.get('tool_call') for r in result['results']]}"
         )
-        print(f"  AC-011 PASS: {sum(1 for r in result['results'] if r.get('tool_call'))}/{len(result['results'])} "
-              f"cycles produced valid tool calls")
+        print(
+            f"  AC-011 PASS: {sum(1 for r in result['results'] if r.get('tool_call'))}/{len(result['results'])} "
+            f"cycles produced valid tool calls"
+        )
     finally:
         runner.cleanup()
 
 
 # ── AC-012: Screenshots are valid numpy arrays ──────────────────────────────
+
 
 @pytest.mark.integration
 @pytest.mark.live_api
@@ -164,9 +174,7 @@ def test_screenshots_valid_numpy_arrays(_require_live: Path) -> None:
             assert isinstance(shot, np.ndarray), (
                 f"Screenshot {idx}: expected np.ndarray, got {type(shot)}"
             )
-            assert shot.ndim == 3, (
-                f"Screenshot {idx}: expected 3 dims, got {shot.ndim}"
-            )
+            assert shot.ndim == 3, f"Screenshot {idx}: expected 3 dims, got {shot.ndim}"
             assert shot.shape == expected_shape, (
                 f"Screenshot {idx}: expected shape {expected_shape} ({'GB' if is_gb else 'GBA'}), "
                 f"got {shot.shape}"
@@ -179,13 +187,16 @@ def test_screenshots_valid_numpy_arrays(_require_live: Path) -> None:
                 f"Screenshot {idx}: pixel values out of range [{shot.min()}, {shot.max()}]"
             )
 
-        print(f"  AC-012 PASS: 5 screenshots validated — shape={expected_shape}, "
-              f"dtype=uint8, {'GB' if is_gb else 'GBA'} platform")
+        print(
+            f"  AC-012 PASS: 5 screenshots validated — shape={expected_shape}, "
+            f"dtype=uint8, {'GB' if is_gb else 'GBA'} platform"
+        )
     finally:
         runner.cleanup()
 
 
 # ── AC-013: Demo summary fields ──────────────────────────────────────────────
+
 
 @pytest.mark.integration
 @pytest.mark.live_api
@@ -221,8 +232,10 @@ def test_demo_summary_fields(_require_live: Path) -> None:
         assert "Screen types:" in summary or "screen_types" in summary.lower()
         assert "Elapsed:" in summary
 
-        print(f"  AC-013 PASS: screen_types_seen={result['screen_types_seen']}, "
-              f"success_rate={result['success_rate']:.2f}, "
-              f"elapsed_s={result['elapsed_s']:.1f}")
+        print(
+            f"  AC-013 PASS: screen_types_seen={result['screen_types_seen']}, "
+            f"success_rate={result['success_rate']:.2f}, "
+            f"elapsed_s={result['elapsed_s']:.1f}"
+        )
     finally:
         runner.cleanup()

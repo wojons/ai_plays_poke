@@ -18,6 +18,7 @@ from src.core.tools import (
 
 # ── helpers ────────────────────────────────────────────────────────────────
 
+
 def _mock_emulator() -> MagicMock:
     """Return a MagicMock with press_button, wait, and combo methods."""
     emu = MagicMock()
@@ -28,6 +29,7 @@ def _mock_emulator() -> MagicMock:
 
 
 # ── AC-014: parse_tool_call code-fenced JSON ────────────────────────────────
+
 
 class TestParseToolCallCodeFenced:
     """AC-014: code-fenced JSON → correct tool name + args."""
@@ -48,9 +50,9 @@ class TestParseToolCallCodeFenced:
 
     def test_code_fenced_combo(self) -> None:
         resp = (
-            '```json\n'
+            "```json\n"
             '{"name": "combo", "arguments": {"buttons": ["up", "right"], "duration": 10}}\n'
-            '```'
+            "```"
         )
         result = parse_tool_call(resp)
         assert result is not None
@@ -78,18 +80,21 @@ class TestParseToolCallCodeFenced:
         assert result["arguments"] == {"button": "a"}
 
     def test_code_fenced_invalid_json_returns_none(self) -> None:
-        resp = '```json\n{not valid json}\n```'
+        resp = "```json\n{not valid json}\n```"
         result = parse_tool_call(resp)
         assert result is None
 
 
 # ── AC-015: parse_tool_call inline / bare JSON ──────────────────────────────
 
+
 class TestParseToolCallInline:
     """AC-015: inline format → extracted action."""
 
     def test_bare_json_press_button(self) -> None:
-        resp = '{"name": "press_button", "arguments": {"button": "start", "duration": 3}}'
+        resp = (
+            '{"name": "press_button", "arguments": {"button": "start", "duration": 3}}'
+        )
         result = parse_tool_call(resp)
         assert result is not None
         assert result["name"] == "press_button"
@@ -107,7 +112,7 @@ class TestParseToolCallInline:
         resp = (
             '{"tool_calls": ['
             '  {"function": {"name": "press_button", "arguments": {"button": "a"}}}'
-            ']}'
+            "]}"
         )
         result = parse_tool_call(resp)
         assert result is not None
@@ -119,7 +124,7 @@ class TestParseToolCallInline:
             '{"tool_calls": ['
             '  {"function": {"name": "wait", "arguments": {"frames": 10}}},'
             '  {"function": {"name": "press_button", "arguments": {"button": "b"}}}'
-            ']}'
+            "]}"
         )
         result = parse_tool_call(resp)
         assert result is not None
@@ -141,6 +146,7 @@ class TestParseToolCallInline:
 
 
 # ── COV-26: parse_tool_call XML (owl-alpha) format ──────────────────────────
+
 
 class TestParseToolCallXML:
     """COV-26: longcat XML tool call format parsing."""
@@ -223,6 +229,7 @@ class TestParseToolCallXML:
 
 # ── AC-016: execute_tool_call press_button ──────────────────────────────────
 
+
 class TestExecuteToolCallPressButton:
     """AC-016: press_button call → emulator receives correct method."""
 
@@ -253,6 +260,7 @@ class TestExecuteToolCallPressButton:
 
 # ── AC-017: execute_tool_call wait ──────────────────────────────────────────
 
+
 class TestExecuteToolCallWait:
     """AC-017: wait call → emulator advances correct frames."""
 
@@ -276,6 +284,7 @@ class TestExecuteToolCallWait:
 
 
 # ── AC-018: execute_tool_call invalid / unknown tool ─────────────────────────
+
 
 class TestExecuteToolCallInvalid:
     """AC-018: unknown tool name → handled gracefully."""
@@ -303,6 +312,7 @@ class TestExecuteToolCallInvalid:
 
 
 # ── additional coverage: combo tool ─────────────────────────────────────────
+
 
 class TestExecuteToolCallCombo:
     """Combo execution — multiple simultaneous buttons."""
@@ -336,6 +346,7 @@ class TestExecuteToolCallCombo:
 
 # ── additional coverage: TOOL_SCHEMA validation ─────────────────────────────
 
+
 class TestToolSchema:
     """Verify the TOOL_SCHEMA is well-formed."""
 
@@ -350,10 +361,15 @@ class TestToolSchema:
     def test_tool_schema_names_match(self) -> None:
         """Schema names match what execute_tool_call accepts."""
         expected_names = {
-            "press_button", "wait", "combo", "fast_forward",
+            "press_button",
+            "wait",
+            "combo",
+            "fast_forward",
             # Battle composite tools (BATTLE-AGENT task)
-            "select_move", "run_from_battle",
-            "use_battle_item", "switch_pokemon",
+            "select_move",
+            "run_from_battle",
+            "use_battle_item",
+            "switch_pokemon",
         }
         actual_names = {t["function"]["name"] for t in TOOL_SCHEMA}
         assert actual_names == expected_names
@@ -385,6 +401,7 @@ class TestToolSchema:
 
 
 # ── fast_forward tool execution ────────────────────────────────────────────
+
 
 class TestExecuteToolCallFastForward:
     """fast_forward execution delegates to emulator.fast_forward."""
@@ -484,9 +501,7 @@ class TestExecuteSelectMove:
         emu = _mock_emulator()
         result = execute_tool_call(emu, "select_move", {"move_number": 1})
         assert "Selected move 1" in result
-        a_calls = [
-            c for c in emu.press_button.call_args_list if c.args[0] == "a"
-        ]
+        a_calls = [c for c in emu.press_button.call_args_list if c.args[0] == "a"]
         assert len(a_calls) == 2  # FIGHT confirm + move 1 confirm
         assert emu.fast_forward.call_count >= _BATTLE_ANIM_TAIL
 
@@ -501,9 +516,7 @@ class TestExecuteSelectMove:
     def test_move_3_uses_down(self) -> None:
         emu = _mock_emulator()
         execute_tool_call(emu, "select_move", {"move_number": 3})
-        down_calls = [
-            c for c in emu.press_button.call_args_list if c.args[0] == "down"
-        ]
+        down_calls = [c for c in emu.press_button.call_args_list if c.args[0] == "down"]
         assert len(down_calls) == 1
 
     def test_move_4_uses_right_then_down(self) -> None:
@@ -512,9 +525,7 @@ class TestExecuteSelectMove:
         right_calls = [
             c for c in emu.press_button.call_args_list if c.args[0] == "right"
         ]
-        down_calls = [
-            c for c in emu.press_button.call_args_list if c.args[0] == "down"
-        ]
+        down_calls = [c for c in emu.press_button.call_args_list if c.args[0] == "down"]
         assert len(right_calls) == 1
         assert len(down_calls) == 1
 

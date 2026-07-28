@@ -9,16 +9,36 @@ from datetime import datetime, timedelta
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from core.goap import (
-    GoalType, ActionType, PlanStatus, PriorityLevel,
-    GameState, Goal, DefeatGymGoal, CatchPokemonGoal, ReachLocationGoal,
-    HealPartyGoal, TrainPokemonGoal, ObtainItemGoal,
-    NavigateAction, BattleAction, MenuAction, DialogAction,
-    Plan, GoalStack, GoalDAG, PriorityQueue, GoalPriorityCalculator,
-    GoalPrioritizer, Planner, PlanMonitor, HierarchicalPlanner,
-    create_default_game_state, create_goap_system
+    GoalType,
+    ActionType,
+    PlanStatus,
+    PriorityLevel,
+    GameState,
+    Goal,
+    DefeatGymGoal,
+    CatchPokemonGoal,
+    ReachLocationGoal,
+    HealPartyGoal,
+    TrainPokemonGoal,
+    ObtainItemGoal,
+    NavigateAction,
+    BattleAction,
+    MenuAction,
+    DialogAction,
+    Plan,
+    GoalStack,
+    GoalDAG,
+    PriorityQueue,
+    GoalPriorityCalculator,
+    GoalPrioritizer,
+    Planner,
+    PlanMonitor,
+    HierarchicalPlanner,
+    create_default_game_state,
+    create_goap_system,
 )
 
 
@@ -124,7 +144,7 @@ class TestGameState:
         state = GameState(
             party=[
                 {"name": "Pikachu", "level": 5, "current_hp": 35, "max_hp": 35},
-                {"name": "Charmander", "level": 5, "current_hp": 30, "max_hp": 39}
+                {"name": "Charmander", "level": 5, "current_hp": 30, "max_hp": 39},
             ]
         )
         assert len(state.party) == 2
@@ -132,10 +152,7 @@ class TestGameState:
 
     def test_get_party_hp_percent(self) -> None:
         state = GameState(
-            party=[
-                {"current_hp": 50, "max_hp": 100},
-                {"current_hp": 25, "max_hp": 50}
-            ]
+            party=[{"current_hp": 50, "max_hp": 100}, {"current_hp": 25, "max_hp": 50}]
         )
         assert state.get_party_hp_percent() == 0.5
 
@@ -144,7 +161,7 @@ class TestGameState:
             party=[
                 {"current_hp": 0, "max_hp": 100},
                 {"current_hp": 50, "max_hp": 100},
-                {"current_hp": 0, "max_hp": 100}
+                {"current_hp": 0, "max_hp": 100},
             ]
         )
         assert state.get_fainted_count() == 2
@@ -154,7 +171,7 @@ class TestGameState:
             party=[
                 {"name": "A", "current_hp": 10, "max_hp": 100},
                 {"name": "B", "current_hp": 50, "max_hp": 100},
-                {"name": "C", "current_hp": 20, "max_hp": 100}
+                {"name": "C", "current_hp": 20, "max_hp": 100},
             ]
         )
         low_hp = state.get_low_hp_pokemon()
@@ -170,9 +187,7 @@ class TestGameState:
 
     def test_to_state_dict(self) -> None:
         state = GameState(
-            party=[
-                {"name": "Pikachu", "level": 5, "current_hp": 35, "max_hp": 35}
-            ]
+            party=[{"name": "Pikachu", "level": 5, "current_hp": 35, "max_hp": 35}]
         )
         result = state.to_state_dict()
         assert result["location"] == ""
@@ -189,7 +204,7 @@ class TestGoal:
             name="Test Goal",
             description="A test goal",
             goal_type=GoalType.SHORT_TERM,
-            priority=50
+            priority=50,
         )
         assert goal.goal_id == "test-1"
         assert goal.name == "Test Goal"
@@ -201,7 +216,7 @@ class TestGoal:
             name="Test Goal",
             description="A test goal",
             goal_type=GoalType.IMMEDIATE,
-            priority=100
+            priority=100,
         )
         assert goal.goal_id is not None
         assert len(goal.goal_id) > 0
@@ -211,7 +226,7 @@ class TestGoal:
             name="Test Goal",
             description="A test goal",
             goal_type=GoalType.IMMEDIATE,
-            priority=50
+            priority=50,
         )
         state = GameState()
         feasible, missing = goal.is_feasible(state)
@@ -224,7 +239,7 @@ class TestGoal:
             description="Buy a potion",
             goal_type=GoalType.SHORT_TERM,
             priority=50,
-            required_resources={"money": 500}
+            required_resources={"money": 500},
         )
         state = GameState(money=300)
         feasible, missing = goal.is_feasible(state)
@@ -237,7 +252,7 @@ class TestGoal:
             description="Buy a potion",
             goal_type=GoalType.SHORT_TERM,
             priority=50,
-            required_resources={"money": 500}
+            required_resources={"money": 500},
         )
         state = GameState(money=1000)
         feasible, missing = goal.is_feasible(state)
@@ -249,7 +264,7 @@ class TestGoal:
             description="Defeat a gym",
             goal_type=GoalType.MEDIUM_TERM,
             priority=80,
-            required_resources={"level": 12}
+            required_resources={"level": 12},
         )
         state = GameState(party=[{"level": 5}])
         feasible, missing = goal.is_feasible(state)
@@ -262,7 +277,7 @@ class TestGoal:
             goal_type=GoalType.SHORT_TERM,
             priority=50,
             estimated_cost=100.0,
-            estimated_value=200.0
+            estimated_value=200.0,
         )
         state = GameState()
         utility = goal.calculate_utility(state)
@@ -275,7 +290,7 @@ class TestGoal:
             goal_type=GoalType.SHORT_TERM,
             priority=50,
             estimated_cost=0.0,
-            estimated_value=200.0
+            estimated_value=200.0,
         )
         state = GameState()
         utility = goal.calculate_utility(state)
@@ -307,7 +322,7 @@ class TestGoal:
             description="Need 2 badges",
             goal_type=GoalType.SHORT_TERM,
             priority=50,
-            required_resources={"badges": 2}
+            required_resources={"badges": 2},
         )
         state = GameState(badges=1)
         feasible, missing = goal.is_feasible(state)
@@ -320,7 +335,7 @@ class TestGoal:
             description="Need water pokemon",
             goal_type=GoalType.SHORT_TERM,
             priority=50,
-            required_resources={"pokemon_species": "Squirtle"}
+            required_resources={"pokemon_species": "Squirtle"},
         )
         state = GameState(party=[{"species": "Pikachu"}])
         feasible, missing = goal.is_feasible(state)
@@ -333,7 +348,7 @@ class TestGoal:
             description="Need water pokemon",
             goal_type=GoalType.SHORT_TERM,
             priority=50,
-            required_resources={"pokemon_species": "Squirtle"}
+            required_resources={"pokemon_species": "Squirtle"},
         )
         state = GameState(party=[{"species": "Squirtle"}])
         feasible, missing = goal.is_feasible(state)
@@ -348,7 +363,7 @@ class TestDefeatGymGoal:
             gym_name="Pewter City",
             gym_leader="Brock",
             required_badges=0,
-            required_level=12
+            required_level=12,
         )
         assert goal.gym_name == "Pewter City"
         assert goal.gym_leader == "Brock"
@@ -413,7 +428,9 @@ class TestObtainItemGoal:
     """Tests for ObtainItemGoal"""
 
     def test_creation_buy(self) -> None:
-        goal = ObtainItemGoal(item_name="Poke Ball", quantity=10, buy=True, target_price=200)
+        goal = ObtainItemGoal(
+            item_name="Poke Ball", quantity=10, buy=True, target_price=200
+        )
         assert goal.item_name == "Poke Ball"
         assert goal.quantity == 10
         assert goal.buy is True
@@ -586,8 +603,12 @@ class TestGoalStack:
 
     def test_push_and_pop(self) -> None:
         stack = GoalStack()
-        goal1 = Goal(name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        goal2 = Goal(name="Goal 2", description="", goal_type=GoalType.SHORT_TERM, priority=60)
+        goal1 = Goal(
+            name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50
+        )
+        goal2 = Goal(
+            name="Goal 2", description="", goal_type=GoalType.SHORT_TERM, priority=60
+        )
 
         stack.push(goal1)
         stack.push(goal2)
@@ -597,8 +618,12 @@ class TestGoalStack:
 
     def test_push_duplicate_updates_priority(self) -> None:
         stack = GoalStack()
-        goal1 = Goal(name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        goal2 = Goal(name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=80)
+        goal1 = Goal(
+            name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=50
+        )
+        goal2 = Goal(
+            name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=80
+        )
 
         stack.push(goal1)
         stack.push(goal2)
@@ -607,7 +632,13 @@ class TestGoalStack:
 
     def test_remove(self) -> None:
         stack = GoalStack()
-        goal = Goal(goal_id="goal-1", name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        goal = Goal(
+            goal_id="goal-1",
+            name="Goal",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
         stack.push(goal)
         assert stack.remove("goal-1")
         assert stack.is_empty()
@@ -615,9 +646,15 @@ class TestGoalStack:
 
     def test_get_all_goals_sorted(self) -> None:
         stack = GoalStack()
-        goal1 = Goal(name="Low", description="", goal_type=GoalType.SHORT_TERM, priority=30)
-        goal2 = Goal(name="High", description="", goal_type=GoalType.IMMEDIATE, priority=90)
-        goal3 = Goal(name="Medium", description="", goal_type=GoalType.SHORT_TERM, priority=60)
+        goal1 = Goal(
+            name="Low", description="", goal_type=GoalType.SHORT_TERM, priority=30
+        )
+        goal2 = Goal(
+            name="High", description="", goal_type=GoalType.IMMEDIATE, priority=90
+        )
+        goal3 = Goal(
+            name="Medium", description="", goal_type=GoalType.SHORT_TERM, priority=60
+        )
 
         stack.push(goal1)
         stack.push(goal2)
@@ -637,14 +674,32 @@ class TestGoalDAG:
 
     def test_add_goal(self) -> None:
         dag = GoalDAG()
-        goal = Goal(goal_id="g1", name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        goal = Goal(
+            goal_id="g1",
+            name="Goal 1",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
         dag.add_goal(goal)
         assert "g1" in dag.nodes
 
     def test_add_prerequisite(self) -> None:
         dag = GoalDAG()
-        goal1 = Goal(goal_id="g1", name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        goal2 = Goal(goal_id="g2", name="Goal 2", description="", goal_type=GoalType.MEDIUM_TERM, priority=60)
+        goal1 = Goal(
+            goal_id="g1",
+            name="Goal 1",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
+        goal2 = Goal(
+            goal_id="g2",
+            name="Goal 2",
+            description="",
+            goal_type=GoalType.MEDIUM_TERM,
+            priority=60,
+        )
         dag.add_goal(goal1)
         dag.add_goal(goal2)
         dag.add_prerequisite("g2", "g1")
@@ -654,8 +709,20 @@ class TestGoalDAG:
 
     def test_get_dependents(self) -> None:
         dag = GoalDAG()
-        goal1 = Goal(goal_id="g1", name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        goal2 = Goal(goal_id="g2", name="Goal 2", description="", goal_type=GoalType.MEDIUM_TERM, priority=60)
+        goal1 = Goal(
+            goal_id="g1",
+            name="Goal 1",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
+        goal2 = Goal(
+            goal_id="g2",
+            name="Goal 2",
+            description="",
+            goal_type=GoalType.MEDIUM_TERM,
+            priority=60,
+        )
         dag.add_goal(goal1)
         dag.add_goal(goal2)
         dag.add_prerequisite("g2", "g1")
@@ -665,9 +732,27 @@ class TestGoalDAG:
 
     def test_topological_sort(self) -> None:
         dag = GoalDAG()
-        goal1 = Goal(goal_id="g1", name="Goal 1", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        goal2 = Goal(goal_id="g2", name="Goal 2", description="", goal_type=GoalType.SHORT_TERM, priority=60)
-        goal3 = Goal(goal_id="g3", name="Goal 3", description="", goal_type=GoalType.SHORT_TERM, priority=70)
+        goal1 = Goal(
+            goal_id="g1",
+            name="Goal 1",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
+        goal2 = Goal(
+            goal_id="g2",
+            name="Goal 2",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=60,
+        )
+        goal3 = Goal(
+            goal_id="g3",
+            name="Goal 3",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=70,
+        )
         dag.add_goal(goal1)
         dag.add_goal(goal2)
         dag.add_goal(goal3)
@@ -688,8 +773,12 @@ class TestPriorityQueue:
 
     def test_push_and_pop(self) -> None:
         pq = PriorityQueue()
-        goal1 = Goal(name="Low", description="", goal_type=GoalType.SHORT_TERM, priority=30)
-        goal2 = Goal(name="High", description="", goal_type=GoalType.SHORT_TERM, priority=90)
+        goal1 = Goal(
+            name="Low", description="", goal_type=GoalType.SHORT_TERM, priority=30
+        )
+        goal2 = Goal(
+            name="High", description="", goal_type=GoalType.SHORT_TERM, priority=90
+        )
 
         pq.push(goal1, 30)
         pq.push(goal2, 90)
@@ -699,7 +788,13 @@ class TestPriorityQueue:
 
     def test_update_priority(self) -> None:
         pq = PriorityQueue()
-        goal = Goal(goal_id="g1", name="Goal", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        goal = Goal(
+            goal_id="g1",
+            name="Goal",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
         pq.push(goal, 50)
 
         result = pq.update_priority("g1", 80)
@@ -718,22 +813,31 @@ class TestGoalPriorityCalculator:
 
     def test_calculate_priority_basic(self) -> None:
         calc = GoalPriorityCalculator()
-        goal = Goal(name="Test", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        goal = Goal(
+            name="Test", description="", goal_type=GoalType.SHORT_TERM, priority=50
+        )
         state = GameState()
         priority = calc.calculate_priority(goal, state)
         assert priority > 0
 
     def test_temporal_multiplier(self) -> None:
         calc = GoalPriorityCalculator()
-        goal = Goal(name="Test", description="", goal_type=GoalType.IMMEDIATE, priority=50,
-                    deadline=datetime.now() + timedelta(seconds=30))
+        goal = Goal(
+            name="Test",
+            description="",
+            goal_type=GoalType.IMMEDIATE,
+            priority=50,
+            deadline=datetime.now() + timedelta(seconds=30),
+        )
         state = GameState()
         priority = calc.calculate_priority(goal, state)
         assert priority > 50
 
     def test_record_success(self) -> None:
         calc = GoalPriorityCalculator()
-        goal = Goal(name="Test", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        goal = Goal(
+            name="Test", description="", goal_type=GoalType.SHORT_TERM, priority=50
+        )
         calc.record_success(goal, True)
         calc.record_success(goal, True)
         calc.record_success(goal, False)
@@ -781,7 +885,9 @@ class TestPlanner:
     def test_create_plan_gym(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
-        goal = DefeatGymGoal(gym_name="Pewter City", gym_leader="Brock", required_level=12)
+        goal = DefeatGymGoal(
+            gym_name="Pewter City", gym_leader="Brock", required_level=12
+        )
         state = GameState(party=[{"level": 15}])
 
         plan = planner.create_plan(goal, state)
@@ -951,7 +1057,14 @@ class TestEdgeCases:
     def test_goal_stack_max_size(self) -> None:
         stack = GoalStack(max_size=3)
         for i in range(5):
-            stack.push(Goal(name=f"Goal {i}", description="", goal_type=GoalType.SHORT_TERM, priority=50))
+            stack.push(
+                Goal(
+                    name=f"Goal {i}",
+                    description="",
+                    goal_type=GoalType.SHORT_TERM,
+                    priority=50,
+                )
+            )
         assert len(stack.stack) == 3
 
     def test_invalid_priority_update(self) -> None:
@@ -979,16 +1092,40 @@ class TestGoalDAGCriticalPath:
 
     def test_single_node_path(self) -> None:
         dag = GoalDAG()
-        goal = Goal(goal_id="g1", name="Only", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        goal = Goal(
+            goal_id="g1",
+            name="Only",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
         dag.add_goal(goal)
         path = dag.get_critical_path()
         assert path == ["g1"]
 
     def test_linear_chain_path(self) -> None:
         dag = GoalDAG()
-        g1 = Goal(goal_id="g1", name="First", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        g2 = Goal(goal_id="g2", name="Second", description="", goal_type=GoalType.MEDIUM_TERM, priority=60)
-        g3 = Goal(goal_id="g3", name="Third", description="", goal_type=GoalType.LONG_TERM, priority=70)
+        g1 = Goal(
+            goal_id="g1",
+            name="First",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
+        g2 = Goal(
+            goal_id="g2",
+            name="Second",
+            description="",
+            goal_type=GoalType.MEDIUM_TERM,
+            priority=60,
+        )
+        g3 = Goal(
+            goal_id="g3",
+            name="Third",
+            description="",
+            goal_type=GoalType.LONG_TERM,
+            priority=70,
+        )
         dag.add_goal(g1)
         dag.add_goal(g2)
         dag.add_goal(g3)
@@ -999,10 +1136,34 @@ class TestGoalDAGCriticalPath:
 
     def test_branching_path_picks_longest(self) -> None:
         dag = GoalDAG()
-        g1 = Goal(goal_id="g1", name="Root", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        g2 = Goal(goal_id="g2", name="Short", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        g3 = Goal(goal_id="g3", name="MidA", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        g4 = Goal(goal_id="g4", name="Long", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        g1 = Goal(
+            goal_id="g1",
+            name="Root",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
+        g2 = Goal(
+            goal_id="g2",
+            name="Short",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
+        g3 = Goal(
+            goal_id="g3",
+            name="MidA",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
+        g4 = Goal(
+            goal_id="g4",
+            name="Long",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
         dag.add_goal(g1)
         dag.add_goal(g2)
         dag.add_goal(g3)
@@ -1020,8 +1181,12 @@ class TestGoalPrioritizerExtended:
     def test_get_urgent_goals_immediate(self) -> None:
         prioritizer = GoalPrioritizer()
         state = GameState()
-        g1 = Goal(name="Heal", description="", goal_type=GoalType.IMMEDIATE, priority=50)
-        g2 = Goal(name="Explore", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        g1 = Goal(
+            name="Heal", description="", goal_type=GoalType.IMMEDIATE, priority=50
+        )
+        g2 = Goal(
+            name="Explore", description="", goal_type=GoalType.SHORT_TERM, priority=50
+        )
         prioritizer.goal_dag.add_goal(g1)
         prioritizer.goal_dag.add_goal(g2)
         urgent = prioritizer.get_urgent_goals(state)
@@ -1031,8 +1196,12 @@ class TestGoalPrioritizerExtended:
     def test_get_urgent_goals_critical_priority(self) -> None:
         prioritizer = GoalPrioritizer()
         state = GameState()
-        g1 = Goal(name="Crit", description="", goal_type=GoalType.SHORT_TERM, priority=95)
-        g2 = Goal(name="Normal", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        g1 = Goal(
+            name="Crit", description="", goal_type=GoalType.SHORT_TERM, priority=95
+        )
+        g2 = Goal(
+            name="Normal", description="", goal_type=GoalType.SHORT_TERM, priority=50
+        )
         prioritizer.goal_dag.add_goal(g1)
         prioritizer.goal_dag.add_goal(g2)
         urgent = prioritizer.get_urgent_goals(state)
@@ -1042,8 +1211,12 @@ class TestGoalPrioritizerExtended:
     def test_get_urgent_goals_sorted_by_priority(self) -> None:
         prioritizer = GoalPrioritizer()
         state = GameState()
-        g1 = Goal(name="LowCrit", description="", goal_type=GoalType.IMMEDIATE, priority=80)
-        g2 = Goal(name="HighCrit", description="", goal_type=GoalType.IMMEDIATE, priority=95)
+        g1 = Goal(
+            name="LowCrit", description="", goal_type=GoalType.IMMEDIATE, priority=80
+        )
+        g2 = Goal(
+            name="HighCrit", description="", goal_type=GoalType.IMMEDIATE, priority=95
+        )
         prioritizer.goal_dag.add_goal(g1)
         prioritizer.goal_dag.add_goal(g2)
         urgent = prioritizer.get_urgent_goals(state)
@@ -1054,9 +1227,15 @@ class TestGoalPrioritizerExtended:
         prioritizer = GoalPrioritizer()
         state = GameState()
         g1 = Goal(name="Imm", description="", goal_type=GoalType.IMMEDIATE, priority=50)
-        g2 = Goal(name="Short", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        g3 = Goal(name="Medium", description="", goal_type=GoalType.MEDIUM_TERM, priority=60)
-        g4 = Goal(name="Long", description="", goal_type=GoalType.LONG_TERM, priority=70)
+        g2 = Goal(
+            name="Short", description="", goal_type=GoalType.SHORT_TERM, priority=50
+        )
+        g3 = Goal(
+            name="Medium", description="", goal_type=GoalType.MEDIUM_TERM, priority=60
+        )
+        g4 = Goal(
+            name="Long", description="", goal_type=GoalType.LONG_TERM, priority=70
+        )
         prioritizer.goal_dag.add_goal(g1)
         prioritizer.goal_dag.add_goal(g2)
         prioritizer.goal_dag.add_goal(g3)
@@ -1069,8 +1248,12 @@ class TestGoalPrioritizerExtended:
     def test_get_strategic_goals_sorted_by_priority(self) -> None:
         prioritizer = GoalPrioritizer()
         state = GameState()
-        g1 = Goal(name="Low", description="", goal_type=GoalType.MEDIUM_TERM, priority=40)
-        g2 = Goal(name="High", description="", goal_type=GoalType.MEDIUM_TERM, priority=70)
+        g1 = Goal(
+            name="Low", description="", goal_type=GoalType.MEDIUM_TERM, priority=40
+        )
+        g2 = Goal(
+            name="High", description="", goal_type=GoalType.MEDIUM_TERM, priority=70
+        )
         prioritizer.goal_dag.add_goal(g1)
         prioritizer.goal_dag.add_goal(g2)
         strategic = prioritizer.get_strategic_goals(state)
@@ -1166,15 +1349,21 @@ class TestPlannerExtended:
         When fixed, change to party=[{\"level\": 5}] to get >=4 actions."""
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
-        goal = DefeatGymGoal(gym_name="Pewter City", gym_leader="Brock", required_level=12)
-        state = GameState(party=[{"level": 15}])  # at-level avoids infinite loop in _decompose_train_goal
+        goal = DefeatGymGoal(
+            gym_name="Pewter City", gym_leader="Brock", required_level=12
+        )
+        state = GameState(
+            party=[{"level": 15}]
+        )  # at-level avoids infinite loop in _decompose_train_goal
         plan = planner.create_plan(goal, state)
         assert len(plan.actions) == 3  # navigate + dialog + battle, no training needed
 
     def test_create_plan_gym_at_level(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
-        goal = DefeatGymGoal(gym_name="Pewter City", gym_leader="Brock", required_level=12)
+        goal = DefeatGymGoal(
+            gym_name="Pewter City", gym_leader="Brock", required_level=12
+        )
         state = GameState(party=[{"level": 15}])
         plan = planner.create_plan(goal, state)
         assert len(plan.actions) == 3  # navigate + dialog + battle, no training
@@ -1193,7 +1382,13 @@ class TestPlannerExtended:
     def test_resolve_dependencies_no_prerequisites(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
-        goal = Goal(goal_id="g1", name="B", description="", goal_type=GoalType.SHORT_TERM, priority=50)
+        goal = Goal(
+            goal_id="g1",
+            name="B",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
         prioritizer.goal_dag.add_goal(goal)
         deps = planner.resolve_dependencies(goal, GameState())
         assert deps == []
@@ -1201,10 +1396,22 @@ class TestPlannerExtended:
     def test_resolve_dependencies_with_prerequisites(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
-        prereq = Goal(goal_id="g1", name="A", description="", goal_type=GoalType.SHORT_TERM, priority=50,
-                      required_resources={"money": 500})
-        goal = Goal(goal_id="g2", name="B", description="", goal_type=GoalType.MEDIUM_TERM, priority=60,
-                    prerequisites=["g1"])
+        prereq = Goal(
+            goal_id="g1",
+            name="A",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+            required_resources={"money": 500},
+        )
+        goal = Goal(
+            goal_id="g2",
+            name="B",
+            description="",
+            goal_type=GoalType.MEDIUM_TERM,
+            priority=60,
+            prerequisites=["g1"],
+        )
         prioritizer.goal_dag.add_goal(prereq)
         prioritizer.goal_dag.add_goal(goal)
         state = GameState(money=100)  # prereq infeasible
@@ -1215,9 +1422,21 @@ class TestPlannerExtended:
     def test_resolve_dependencies_feasible_prereq_not_included(self) -> None:
         prioritizer = GoalPrioritizer()
         planner = Planner(prioritizer)
-        prereq = Goal(goal_id="g1", name="A", description="", goal_type=GoalType.SHORT_TERM, priority=50)
-        goal = Goal(goal_id="g2", name="B", description="", goal_type=GoalType.MEDIUM_TERM, priority=60,
-                    prerequisites=["g1"])
+        prereq = Goal(
+            goal_id="g1",
+            name="A",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+        )
+        goal = Goal(
+            goal_id="g2",
+            name="B",
+            description="",
+            goal_type=GoalType.MEDIUM_TERM,
+            priority=60,
+            prerequisites=["g1"],
+        )
         prioritizer.goal_dag.add_goal(prereq)
         prioritizer.goal_dag.add_goal(goal)
         deps = planner.resolve_dependencies(goal, GameState())
@@ -1274,10 +1493,12 @@ class TestActionExecution:
 
     def test_menu_action_heal_restores_hp(self) -> None:
         action = MenuAction("pokemon_center", "heal")
-        state = GameState(party=[
-            {"name": "Pikachu", "current_hp": 10, "max_hp": 35},
-            {"name": "Bulbasaur", "current_hp": 5, "max_hp": 45},
-        ])
+        state = GameState(
+            party=[
+                {"name": "Pikachu", "current_hp": 10, "max_hp": 35},
+                {"name": "Bulbasaur", "current_hp": 5, "max_hp": 45},
+            ]
+        )
         success, new_state = action.execute(state)
         assert success is True
         assert new_state.party[0]["current_hp"] == 35
@@ -1286,9 +1507,11 @@ class TestActionExecution:
 
     def test_menu_action_heal_pokemon_without_max_hp(self) -> None:
         action = MenuAction("pokemon_center", "heal")
-        state = GameState(party=[
-            {"name": "Pikachu", "current_hp": 10},
-        ])
+        state = GameState(
+            party=[
+                {"name": "Pikachu", "current_hp": 10},
+            ]
+        )
         success, new_state = action.execute(state)
         assert success is True
         # No max_hp → fallback uses current_hp as max_hp → stays at 10
@@ -1304,11 +1527,13 @@ class TestActionExecution:
     def test_action_execute_exception_path(self) -> None:
         """Simulate exception during action execution — verify status becomes FAILED."""
         action = NavigateAction("Route 1")
+
         # Override logger to force exception
         def failing_execute(state):
             action.status = "FAILED"
             action.error_message = "Simulated failure"
             return False, state
+
         action.execute = failing_execute  # type: ignore[method-assign]
         state = GameState()
         success, new_state = action.execute(state)
@@ -1375,7 +1600,13 @@ class TestPlanMonitorExtended:
 
     def test_monitor_execution_action_fails_then_replan(self) -> None:
         prioritizer = GoalPrioritizer()
-        g1 = Goal(goal_id="g1", name="TestBattle", description="", goal_type=GoalType.IMMEDIATE, priority=80)
+        g1 = Goal(
+            goal_id="g1",
+            name="TestBattle",
+            description="",
+            goal_type=GoalType.IMMEDIATE,
+            priority=80,
+        )
         prioritizer.goal_dag.add_goal(g1)
         planner = Planner(prioritizer)
         monitor = PlanMonitor(planner)
@@ -1388,7 +1619,13 @@ class TestPlanMonitorExtended:
 
     def test_monitor_execution_action_retry_exhausted(self) -> None:
         prioritizer = GoalPrioritizer()
-        g1 = Goal(goal_id="g1", name="Test", description="", goal_type=GoalType.IMMEDIATE, priority=80)
+        g1 = Goal(
+            goal_id="g1",
+            name="Test",
+            description="",
+            goal_type=GoalType.IMMEDIATE,
+            priority=80,
+        )
         prioritizer.goal_dag.add_goal(g1)
         planner = Planner(prioritizer)
         monitor = PlanMonitor(planner)
@@ -1439,7 +1676,9 @@ class TestHierarchicalPlannerExtended:
     def test_add_multiple_goals_selects_by_priority(self) -> None:
         planner = HierarchicalPlanner()
         state = GameState(party=[{"level": 15}])
-        low_goal = Goal(name="LowPri", description="", goal_type=GoalType.SHORT_TERM, priority=10)
+        low_goal = Goal(
+            name="LowPri", description="", goal_type=GoalType.SHORT_TERM, priority=10
+        )
         high_goal = HealPartyGoal()  # priority 70
         planner.add_goal(low_goal, state)
         planner.add_goal(high_goal, state)
@@ -1458,7 +1697,7 @@ class TestGoalIsFeasibleExtended:
             description="Need grass pokemon",
             goal_type=GoalType.SHORT_TERM,
             priority=50,
-            required_resources={"pokemon_species": "Bulbasaur"}
+            required_resources={"pokemon_species": "Bulbasaur"},
         )
         state = GameState(party=[{"species": "Bulbasaur"}])
         feasible, missing = goal.is_feasible(state)
@@ -1470,7 +1709,7 @@ class TestGoalIsFeasibleExtended:
             description="Need grass pokemon",
             goal_type=GoalType.SHORT_TERM,
             priority=50,
-            required_resources={"pokemon_species": "Bulbasaur"}
+            required_resources={"pokemon_species": "Bulbasaur"},
         )
         state = GameState(party=[{"species": "Pikachu"}, {"species": "Charmander"}])
         feasible, missing = goal.is_feasible(state)
@@ -1479,9 +1718,11 @@ class TestGoalIsFeasibleExtended:
     def test_feasible_with_deadline_check(self) -> None:
         future = datetime.now() + timedelta(hours=2)
         goal = Goal(
-            name="Timed", description="",
-            goal_type=GoalType.IMMEDIATE, priority=50,
-            deadline=future
+            name="Timed",
+            description="",
+            goal_type=GoalType.IMMEDIATE,
+            priority=50,
+            deadline=future,
         )
         state = GameState()
         feasible, _ = goal.is_feasible(state)
@@ -1489,9 +1730,11 @@ class TestGoalIsFeasibleExtended:
 
     def test_feasible_with_all_multiple_requirements(self) -> None:
         goal = Goal(
-            name="Multi-req", description="",
-            goal_type=GoalType.SHORT_TERM, priority=50,
-            required_resources={"money": 500, "badges": 2}
+            name="Multi-req",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+            required_resources={"money": 500, "badges": 2},
         )
         state = GameState(money=1000, badges=2)
         feasible, missing = goal.is_feasible(state)
@@ -1499,9 +1742,11 @@ class TestGoalIsFeasibleExtended:
 
     def test_feasible_multiple_missing(self) -> None:
         goal = Goal(
-            name="Multi-req", description="",
-            goal_type=GoalType.SHORT_TERM, priority=50,
-            required_resources={"money": 500, "badges": 2}
+            name="Multi-req",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=50,
+            required_resources={"money": 500, "badges": 2},
         )
         state = GameState(money=100, badges=0)
         feasible, missing = goal.is_feasible(state)
@@ -1538,8 +1783,20 @@ class TestPriorityQueueExtended:
 
     def test_peek_returns_highest_priority(self) -> None:
         pq = PriorityQueue()
-        g1 = Goal(goal_id="g1", name="Low", description="", goal_type=GoalType.SHORT_TERM, priority=30)
-        g2 = Goal(goal_id="g2", name="High", description="", goal_type=GoalType.SHORT_TERM, priority=90)
+        g1 = Goal(
+            goal_id="g1",
+            name="Low",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=30,
+        )
+        g2 = Goal(
+            goal_id="g2",
+            name="High",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=90,
+        )
         pq.push(g1, 30)
         pq.push(g2, 90)
         assert pq.peek() == g2
@@ -1552,7 +1809,13 @@ class TestPriorityQueueExtended:
         """Update priority creates a duplicate entry; pop should skip stale ones.
         After first pop, the stale entry remains in heap — pop it too."""
         pq = PriorityQueue()
-        g1 = Goal(goal_id="g1", name="G", description="", goal_type=GoalType.SHORT_TERM, priority=30)
+        g1 = Goal(
+            goal_id="g1",
+            name="G",
+            description="",
+            goal_type=GoalType.SHORT_TERM,
+            priority=30,
+        )
         pq.push(g1, 30)
         pq.update_priority("g1", 80)
         popped = pq.pop()

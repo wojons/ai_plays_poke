@@ -62,12 +62,12 @@ class TestTerrainEmojiTranslation:
 
     def test_known_terrain_emoji(self) -> None:
         """Each known terrain char maps to its emoji."""
-        assert terrain_to_emoji(".") == "⬜"    # walkable floor
-        assert terrain_to_emoji("g") == "🌿"    # tall grass
-        assert terrain_to_emoji("T") == "🌲"    # tree
-        assert terrain_to_emoji("#") == "🧱"    # wall
-        assert terrain_to_emoji("~") == "🌊"    # water
-        assert terrain_to_emoji("d") == "🚪"    # door
+        assert terrain_to_emoji(".") == "⬜"  # walkable floor
+        assert terrain_to_emoji("g") == "🌿"  # tall grass
+        assert terrain_to_emoji("T") == "🌲"  # tree
+        assert terrain_to_emoji("#") == "🧱"  # wall
+        assert terrain_to_emoji("~") == "🌊"  # water
+        assert terrain_to_emoji("d") == "🚪"  # door
 
     def test_unknown_terrain_emoji(self) -> None:
         """Unknown terrain chars fall back to ❓."""
@@ -100,9 +100,9 @@ class TestObjectEmojiTranslation:
 
     def test_known_object_emoji(self) -> None:
         """Known object chars map to emoji."""
-        assert object_to_emoji("D") == "🚪"    # door
-        assert object_to_emoji("S") == "🪧"    # sign
-        assert object_to_emoji("I") == "💎"    # item
+        assert object_to_emoji("D") == "🚪"  # door
+        assert object_to_emoji("S") == "🪧"  # sign
+        assert object_to_emoji("I") == "💎"  # item
 
     def test_space_object_emoji(self) -> None:
         """Space returns double-width spacer for alignment."""
@@ -116,7 +116,7 @@ class TestObjectEmojiTranslation:
         """Known object chars map to ASCII."""
         assert object_to_ascii("D") == "D"
         assert object_to_ascii("I") == "I"
-        assert object_to_ascii("X") == "X"     # cut tree
+        assert object_to_ascii("X") == "X"  # cut tree
 
     def test_space_object_ascii(self) -> None:
         """Space returns regular space."""
@@ -132,9 +132,9 @@ class TestActorEmojiTranslation:
 
     def test_known_actor_emoji(self) -> None:
         """Known actor kinds map to emoji."""
-        assert actor_to_emoji("n") == "👩‍⚕️"     # nurse Joy
-        assert actor_to_emoji("o") == "👮"       # officer Jenny
-        assert actor_to_emoji("P") == "🧬"       # wild Pokémon
+        assert actor_to_emoji("n") == "👩‍⚕️"  # nurse Joy
+        assert actor_to_emoji("o") == "👮"  # officer Jenny
+        assert actor_to_emoji("P") == "🧬"  # wild Pokémon
 
     def test_unknown_actor_emoji(self) -> None:
         """Unknown actor kinds fall back to 👤."""
@@ -262,9 +262,9 @@ class TestDescribeTile:
 
     def test_terrain_object_and_actor(self) -> None:
         result = describe_tile("~", obj="I", actor_kind="s")
-        assert "🌊" in result   # water
-        assert "💎" in result   # item
-        assert "🏊" in result   # swimmer
+        assert "🌊" in result  # water
+        assert "💎" in result  # item
+        assert "🏊" in result  # swimmer
 
     def test_space_object_skipped(self) -> None:
         result = describe_tile(".", obj=" ")
@@ -299,8 +299,8 @@ class TestWorldStateInitBlank:
     def test_creates_terrain_grid(self) -> None:
         ws = WorldState()
         ws.init_blank(5, 3)
-        assert len(ws.terrain) == 3          # height (rows)
-        assert len(ws.terrain[0]) == 5       # width (cols)
+        assert len(ws.terrain) == 3  # height (rows)
+        assert len(ws.terrain[0]) == 5  # width (cols)
         assert all(ch == "?" for row in ws.terrain for ch in row)
 
     def test_creates_objects_grid(self) -> None:
@@ -433,11 +433,11 @@ class TestComposedView:
         assert len(lines) == 3  # height=3
         assert len(lines[0]) == 5  # width=5
         # Row 0: terrain chars
-        assert lines[0][0] == "."     # floor
-        assert lines[0][1] == "g"    # grass
-        assert lines[0][2] == "#"    # wall
+        assert lines[0][0] == "."  # floor
+        assert lines[0][1] == "g"  # grass
+        assert lines[0][2] == "#"  # wall
         # Row 1: player at (0,1)
-        assert lines[1][0] == ">"     # facing East → ASCII >
+        assert lines[1][0] == ">"  # facing East → ASCII >
         # Row 2: unknown
         assert lines[2][0] == "?"
 
@@ -566,8 +566,9 @@ class TestWorldStateSaveLoad:
         ws.viewport = Viewport(size=(15, 11), origin=(0, 0))
         ws.lighting = "indoor"
         ws.visibility_radius = 3
-        ws.actors["guy"] = Actor(id="guy", kind="t", pos=(2, 1), confidence=0.8,
-                                  last_seen_tick=30)
+        ws.actors["guy"] = Actor(
+            id="guy", kind="t", pos=(2, 1), confidence=0.8, last_seen_tick=30
+        )
         ws.set_edge(1, 1, "N", "blocked", "tree")
         ws.last_button = "UP"
         ws.last_result = "blocked"
@@ -663,6 +664,8 @@ movement:
         assert patch.tick == 5
         assert patch.movement.result == "moved"  # type: ignore[union-attr]
         assert patch.movement.player_delta == [1, 0]  # type: ignore[union-attr]
+
+
 class TestParseObsPatchBlocked:
     """parse_obs_patch with movement result: blocked."""
 
@@ -759,7 +762,13 @@ class TestParseObsPatchActorUpdates:
             "tick": 5,
             "movement": {"input": "A", "result": "moved"},
             "actor_updates": [
-                {"id": "npc_1", "kind": "n", "pos": [3, 4], "facing": "W", "confidence": 0.8},
+                {
+                    "id": "npc_1",
+                    "kind": "n",
+                    "pos": [3, 4],
+                    "facing": "W",
+                    "confidence": 0.8,
+                },
             ],
         }
         patch = parse_obs_patch(data)
@@ -1023,7 +1032,12 @@ class TestMapIntegratorApplySuccess:
 
         data = {
             "tick": 1,
-            "movement": {"input": "RIGHT", "result": "moved", "player_delta": [1, 0], "facing": "E"},
+            "movement": {
+                "input": "RIGHT",
+                "result": "moved",
+                "player_delta": [1, 0],
+                "facing": "E",
+            },
         }
         result = mi.apply(data)
         assert result is True
@@ -1060,9 +1074,20 @@ class TestMapIntegratorApplySuccess:
 
         data = {
             "tick": 3,
-            "movement": {"input": "DOWN", "result": "moved", "player_delta": [0, 1], "facing": "S"},
+            "movement": {
+                "input": "DOWN",
+                "result": "moved",
+                "player_delta": [0, 1],
+                "facing": "S",
+            },
             "corrections": [
-                {"layer": "terrain", "at": [3, 3], "from": "?", "to": ".", "confidence": 0.9},
+                {
+                    "layer": "terrain",
+                    "at": [3, 3],
+                    "from": "?",
+                    "to": ".",
+                    "confidence": 0.9,
+                },
             ],
         }
         result = mi.apply(data)
@@ -1078,7 +1103,12 @@ class TestMapIntegratorApplySuccess:
 
         data = {
             "tick": 4,
-            "movement": {"input": "UP", "result": "moved", "player_delta": [0, -1], "facing": "N"},
+            "movement": {
+                "input": "UP",
+                "result": "moved",
+                "player_delta": [0, -1],
+                "facing": "N",
+            },
             "viewport": {"origin_delta": [0, -1], "new_edge": "N"},
             "strip": {
                 "edge": "N",
@@ -1130,7 +1160,12 @@ class TestMapIntegratorApplySuccess:
 
         data = {
             "tick": 5,
-            "movement": {"input": "RIGHT", "result": "moved", "player_delta": [1, 0], "facing": "E"},
+            "movement": {
+                "input": "RIGHT",
+                "result": "moved",
+                "player_delta": [1, 0],
+                "facing": "E",
+            },
             "visited_add": [[0, 0]],
         }
         result = mi.apply(data)
@@ -1145,7 +1180,12 @@ class TestMapIntegratorApplySuccess:
 
         data = {
             "tick": 6,
-            "movement": {"input": "DOWN", "result": "moved", "player_delta": [0, 1], "facing": "S"},
+            "movement": {
+                "input": "DOWN",
+                "result": "moved",
+                "player_delta": [0, 1],
+                "facing": "S",
+            },
             "actor_updates": [
                 {"id": "joy", "kind": "n", "pos": [7, 4], "confidence": 0.9},
             ],
@@ -1164,7 +1204,13 @@ class TestMapIntegratorApplySuccess:
 
         data = {
             "tick": 7,
-            "movement": {"input": "A", "result": "moved", "player_delta": [0, 0], "facing": "N", "mode": "bike"},
+            "movement": {
+                "input": "A",
+                "result": "moved",
+                "player_delta": [0, 0],
+                "facing": "N",
+                "mode": "bike",
+            },
         }
         result = mi.apply(data)
         assert result is True
@@ -1196,7 +1242,11 @@ class TestMapIntegratorApplyRejection:
         mi = MapIntegrator()
         data = {
             "tick": 1,
-            "movement": {"input": "LEFT", "result": "turned_only", "player_delta": [1, 0]},
+            "movement": {
+                "input": "LEFT",
+                "result": "turned_only",
+                "player_delta": [1, 0],
+            },
         }
         result = mi.apply(data)
         assert result is False
@@ -1246,10 +1296,12 @@ class TestMapIntegratorStats:
 
     def test_stats_after_successful_apply(self) -> None:
         mi = MapIntegrator()
-        mi.apply({
-            "tick": 1,
-            "movement": {"input": "UP", "result": "moved", "player_delta": [0, -1]},
-        })
+        mi.apply(
+            {
+                "tick": 1,
+                "movement": {"input": "UP", "result": "moved", "player_delta": [0, -1]},
+            }
+        )
         s = mi.stats
         assert s["patches_applied"] == 1
         assert s["patches_rejected"] == 0
@@ -1257,7 +1309,9 @@ class TestMapIntegratorStats:
     def test_stats_rejection_rate(self) -> None:
         mi = MapIntegrator()
         mi.apply({"tick": 1, "movement": {"input": "UP", "result": "moved"}})
-        mi.apply({"tick": 2, "movement": {"input": "UP", "result": "blocked"}})  # rejected: no edges
+        mi.apply(
+            {"tick": 2, "movement": {"input": "UP", "result": "blocked"}}
+        )  # rejected: no edges
         s = mi.stats
         assert s["total_patches"] == 2
         assert s["rejection_rate"] == 0.5

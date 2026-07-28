@@ -9,6 +9,7 @@ from src.core.decision import DecisionLoop
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 
+
 def mock_screenshot():
     """Return a small numpy array representing a GBA screenshot."""
     return np.zeros((240, 160, 3), dtype=np.uint8)
@@ -47,6 +48,7 @@ def create_decision_loop(**overrides):
 
 
 # ── Constructor ──────────────────────────────────────────────────────────
+
 
 class TestConstructor:
     """Test DecisionLoop.__init__."""
@@ -108,6 +110,7 @@ class TestConstructor:
 
 # ── step() — Happy Path ──────────────────────────────────────────────────
 
+
 class TestStepHappyPath:
     """Test DecisionLoop.step() through the full pipeline with all components succeeding."""
 
@@ -116,12 +119,19 @@ class TestStepHappyPath:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "assembled prompt"
             loop._mock_memory.snapshot.return_value = {"recent_actions": []}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray") as mock_img:
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray") as mock_img,
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "pressed a (5 frames)"
                 mock_img.return_value.save = MagicMock()
 
@@ -136,12 +146,19 @@ class TestStepHappyPath:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray") as mock_img:
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray") as mock_img,
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 loop.step()
@@ -153,12 +170,19 @@ class TestStepHappyPath:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 loop.step()
@@ -168,15 +192,25 @@ class TestStepHappyPath:
 
     def test_step_assemble_prompt_with_screen_type(self):
         for loop in create_decision_loop():
-            loop._mock_vision.analyze.return_value = {"screen_type": "battle", "enemy": "PIDGEY"}
+            loop._mock_vision.analyze.return_value = {
+                "screen_type": "battle",
+                "enemy": "PIDGEY",
+            }
             loop._mock_prompt.assemble.return_value = "battle prompt"
             loop._mock_memory.snapshot.return_value = {"active_goal": "win"}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 loop.step()
@@ -193,10 +227,15 @@ class TestStepHappyPath:
             loop._mock_memory.snapshot.return_value = {}
             loop._mock_client.send_tool_request.return_value = "raw response"
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 loop.step()
@@ -212,11 +251,15 @@ class TestStepHappyPath:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "wait", "arguments": {"frames": 30}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "wait", "arguments": {"frames": 30}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
                 mock_parse.return_value = {"name": "wait", "arguments": {"frames": 30}}
                 mock_exec.return_value = "waited 30 frames"
 
@@ -232,12 +275,19 @@ class TestStepHappyPath:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "pressed a (5 frames)"
 
                 result = loop.step()
@@ -248,37 +298,63 @@ class TestStepHappyPath:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "walked up 1 tile"
 
                 loop.step()
-                loop._mock_memory.record_action.assert_called_once_with("walked up 1 tile")
+                loop._mock_memory.record_action.assert_called_once_with(
+                    "walked up 1 tile"
+                )
 
     def test_step_result_has_all_keys(self):
         for loop in create_decision_loop():
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 result = loop.step()
-                for key in ("vision", "screen_type", "prompt", "raw_response",
-                            "tool_call", "action", "success", "screenshot", "run_dir"):
+                for key in (
+                    "vision",
+                    "screen_type",
+                    "prompt",
+                    "raw_response",
+                    "tool_call",
+                    "action",
+                    "success",
+                    "screenshot",
+                    "run_dir",
+                ):
                     assert key in result, f"Missing key: {key}"
 
 
 # ── step() — Vision Failure ──────────────────────────────────────────────
+
 
 class TestStepVisionFailure:
     """Test DecisionLoop.step() when vision analysis fails."""
@@ -288,12 +364,19 @@ class TestStepVisionFailure:
             loop._mock_vision.analyze.side_effect = RuntimeError("vision failed")
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 result = loop.step()
@@ -303,25 +386,40 @@ class TestStepVisionFailure:
     def test_vision_failure_preserves_last_known_state(self):
         for loop in create_decision_loop():
             # First step succeeds
-            loop._mock_vision.analyze.return_value = {"screen_type": "overworld", "location": "pallet"}
+            loop._mock_vision.analyze.return_value = {
+                "screen_type": "overworld",
+                "location": "pallet",
+            }
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 loop.step()
 
             # Second step: vision fails → uses _last_vision from step 1
             loop._mock_vision.analyze.side_effect = RuntimeError("vision failed")
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 result = loop.step()
@@ -329,6 +427,7 @@ class TestStepVisionFailure:
 
 
 # ── step() — Prompt Assembly Failure ─────────────────────────────────────
+
 
 class TestStepPromptFailure:
     """Test DecisionLoop.step() when prompt assembly fails."""
@@ -338,15 +437,22 @@ class TestStepPromptFailure:
             loop._mock_vision.analyze.return_value = {"screen_type": "unknown_screen"}
             loop._mock_prompt.assemble.side_effect = [
                 ValueError("no prompt for unknown_screen"),  # first call fails
-                "overworld prompt",                          # fallback succeeds
+                "overworld prompt",  # fallback succeeds
             ]
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 result = loop.step()
@@ -359,6 +465,7 @@ class TestStepPromptFailure:
 
 # ── step() — Thinking Model Failure ──────────────────────────────────────
 
+
 class TestStepThinkingFailure:
     """Test DecisionLoop.step() when the thinking model API fails."""
 
@@ -369,9 +476,11 @@ class TestStepThinkingFailure:
             loop._mock_memory.snapshot.return_value = {}
             loop._mock_client.send_tool_request.side_effect = RuntimeError("API down")
 
-            with patch("src.core.decision.parse_tool_call"), \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
+            with (
+                patch("src.core.decision.parse_tool_call"),
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
                 mock_exec.return_value = "pressed a (5 frames)"
 
                 result = loop.step()
@@ -389,9 +498,11 @@ class TestStepThinkingFailure:
             loop._mock_memory.snapshot.return_value = {}
             loop._mock_client.send_tool_request.side_effect = RuntimeError("API down")
 
-            with patch("src.core.decision.parse_tool_call"), \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
+            with (
+                patch("src.core.decision.parse_tool_call"),
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
                 mock_exec.return_value = "Error: button failed"
 
                 result = loop.step()
@@ -399,6 +510,7 @@ class TestStepThinkingFailure:
 
 
 # ── step() — Tool Parse Failure ──────────────────────────────────────────
+
 
 class TestStepToolParseFailure:
     """Test DecisionLoop.step() when tool call parsing fails."""
@@ -410,14 +522,19 @@ class TestStepToolParseFailure:
             loop._mock_memory.snapshot.return_value = {}
             loop._mock_client.send_tool_request.return_value = "garbage response"
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
                 mock_parse.return_value = None  # parse fails
                 mock_exec.return_value = "pressed a (5 frames)"
 
                 result = loop.step()
-                assert result["tool_call"] == {"name": "press_button", "arguments": {"button": "a", "duration": 5}}
+                assert result["tool_call"] == {
+                    "name": "press_button",
+                    "arguments": {"button": "a", "duration": 5},
+                }
 
     def test_empty_response_uses_default(self):
         for loop in create_decision_loop():
@@ -426,9 +543,11 @@ class TestStepToolParseFailure:
             loop._mock_memory.snapshot.return_value = {}
             loop._mock_client.send_tool_request.return_value = ""  # empty
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
                 mock_exec.return_value = "OK"
 
                 result = loop.step()
@@ -439,6 +558,7 @@ class TestStepToolParseFailure:
 
 # ── step() — Execution Result Mapping ────────────────────────────────────
 
+
 class TestStepExecutionResult:
     """Test DecisionLoop.step() success/failure detection from execute_tool_call output."""
 
@@ -447,12 +567,19 @@ class TestStepExecutionResult:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "Error: invalid button 'x'"
 
                 result = loop.step()
@@ -464,12 +591,19 @@ class TestStepExecutionResult:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "pressed a (5 frames)"
 
                 result = loop.step()
@@ -477,6 +611,7 @@ class TestStepExecutionResult:
 
 
 # ── run() ────────────────────────────────────────────────────────────────
+
 
 class TestRun:
     """Test DecisionLoop.run() — the loop wrapper."""
@@ -486,12 +621,19 @@ class TestRun:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 results = loop.run(max_steps=3, screenshot_interval=30)
@@ -504,13 +646,20 @@ class TestRun:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"), \
-                 patch("src.core.decision.traceback.print_exc"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+                patch("src.core.decision.traceback.print_exc"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 # Step 2: execute_tool_call throws → step() propagates to run()'s handler
                 mock_exec.side_effect = [
                     "OK",
@@ -531,12 +680,19 @@ class TestRun:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 results = loop.run(max_steps=2)
@@ -548,6 +704,7 @@ class TestRun:
 
 # ── Integration — Screenshot Paths ───────────────────────────────────────
 
+
 class TestScreenshotPaths:
     """Test that screenshots are saved with correct paths."""
 
@@ -556,12 +713,19 @@ class TestScreenshotPaths:
             loop._mock_vision.analyze.return_value = {"screen_type": "overworld"}
             loop._mock_prompt.assemble.return_value = "prompt"
             loop._mock_memory.snapshot.return_value = {}
-            loop._mock_client.send_tool_request.return_value = '{"name": "press_button", "arguments": {"button": "a"}}'
+            loop._mock_client.send_tool_request.return_value = (
+                '{"name": "press_button", "arguments": {"button": "a"}}'
+            )
 
-            with patch("src.core.decision.parse_tool_call") as mock_parse, \
-                 patch("src.core.decision.execute_tool_call") as mock_exec, \
-                 patch("src.core.decision.Image.fromarray"):
-                mock_parse.return_value = {"name": "press_button", "arguments": {"button": "a"}}
+            with (
+                patch("src.core.decision.parse_tool_call") as mock_parse,
+                patch("src.core.decision.execute_tool_call") as mock_exec,
+                patch("src.core.decision.Image.fromarray"),
+            ):
+                mock_parse.return_value = {
+                    "name": "press_button",
+                    "arguments": {"button": "a"},
+                }
                 mock_exec.return_value = "OK"
 
                 result = loop.step()

@@ -555,7 +555,9 @@ class TestCommandValidation:
             player_hp_percent=75.0,
         )
         assert state.enemy_hp_percent is None or 0.0 <= state.enemy_hp_percent <= 100.0
-        assert state.player_hp_percent is None or 0.0 <= state.player_hp_percent <= 100.0
+        assert (
+            state.player_hp_percent is None or 0.0 <= state.player_hp_percent <= 100.0
+        )
 
     def test_command_type_values(self) -> None:
         """Verify command types have expected string values"""

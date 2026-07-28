@@ -35,28 +35,31 @@ from .symbols import (
 @dataclass
 class PlayerState:
     """Position, facing, and mode of the player character."""
-    pos: tuple[int, int] = (0, 0)       # global [x, y]
-    facing: str = "S"                    # N | E | S | W
+
+    pos: tuple[int, int] = (0, 0)  # global [x, y]
+    facing: str = "S"  # N | E | S | W
     screen_pos: tuple[int, int] = (0, 0)  # position within viewport
-    mode: str = "walk"                   # walk | bike | surf | menu | battle | dialog | cutscene
+    mode: str = "walk"  # walk | bike | surf | menu | battle | dialog | cutscene
 
 
 @dataclass
 class Viewport:
     """Visible area of the game world."""
-    size: tuple[int, int] = (15, 11)     # width, height in tiles
-    origin: tuple[int, int] = (0, 0)     # global coord of top-left tile
+
+    size: tuple[int, int] = (15, 11)  # width, height in tiles
+    origin: tuple[int, int] = (0, 0)  # global coord of top-left tile
 
 
 @dataclass
 class Actor:
     """Dynamic NPC or entity in the world."""
+
     id: str
-    kind: str = "u"                      # see symbols.ACTOR_EMOJI keys
+    kind: str = "u"  # see symbols.ACTOR_EMOJI keys
     pos: tuple[int, int] = (0, 0)
     facing: str = "S"
     blocks_movement: bool = True
-    mobility: str = "static"             # static | wanders | patrol | scripted
+    mobility: str = "static"  # static | wanders | patrol | scripted
     confidence: float = 0.5
     last_seen_tick: int = 0
     symbol: str = ""  # overridden kind char
@@ -65,9 +68,10 @@ class Actor:
 @dataclass
 class MovementEdge:
     """Directed movement edge from a tile in a direction."""
+
     from_pos: tuple[int, int]
-    direction: str                       # N | E | S | W
-    outcome: str                         # open | blocked | one_way_ledge | warp | npc_block | water_edge
+    direction: str  # N | E | S | W
+    outcome: str  # open | blocked | one_way_ledge | warp | npc_block | water_edge
     reason: str = ""
     tick: int = 0
 
@@ -86,8 +90,8 @@ class WorldState:
     viewport: Viewport = field(default_factory=Viewport)
 
     # Lighting
-    lighting: str = "normal"             # normal | dark | flash | indoor | cave
-    visibility_radius: int = 0           # 0 = unlimited, >0 = dark/cave
+    lighting: str = "normal"  # normal | dark | flash | indoor | cave
+    visibility_radius: int = 0  # 0 = unlimited, >0 = dark/cave
 
     # Layers (grids as 2D lists of single-char strings)
     terrain: list[list[str]] = field(default_factory=list)
@@ -100,7 +104,9 @@ class WorldState:
 
     # Last input
     last_button: str = ""
-    last_result: str = "unknown"         # moved | blocked | turned_only | dialog | warp | battle | unknown
+    last_result: str = (
+        "unknown"  # moved | blocked | turned_only | dialog | warp | battle | unknown
+    )
 
     def init_blank(self, width: int, height: int) -> None:
         """Initialise all grids to unknown (?)."""
@@ -133,10 +139,21 @@ class WorldState:
     def edge_at(self, x: int, y: int, direction: str) -> MovementEdge | None:
         return self.edges.get(((x, y), direction))
 
-    def set_edge(self, x: int, y: int, direction: str, outcome: str, reason: str = "", tick: int = 0) -> None:
+    def set_edge(
+        self,
+        x: int,
+        y: int,
+        direction: str,
+        outcome: str,
+        reason: str = "",
+        tick: int = 0,
+    ) -> None:
         self.edges[((x, y), direction)] = MovementEdge(
-            from_pos=(x, y), direction=direction,
-            outcome=outcome, reason=reason, tick=tick or self.tick,
+            from_pos=(x, y),
+            direction=direction,
+            outcome=outcome,
+            reason=reason,
+            tick=tick or self.tick,
         )
 
     # ── Composed view ───────────────────────────────────────────────────
@@ -163,6 +180,7 @@ class WorldState:
                         row_chars.append(facing_ascii(self.player.facing))
                     else:
                         from .symbols import facing_emoji
+
                         row_chars.append(facing_emoji(self.player.facing))
                     continue
 
@@ -170,7 +188,8 @@ class WorldState:
                 actor = self.actor_at(global_x, global_y)
                 if actor:
                     row_chars.append(
-                        actor_to_ascii(actor.kind) if use_ascii
+                        actor_to_ascii(actor.kind)
+                        if use_ascii
                         else actor.symbol or actor_to_ascii(actor.kind)
                     )
                     continue
@@ -178,9 +197,7 @@ class WorldState:
                 # Object?
                 obj = self.object_at(global_x, global_y)
                 if obj and obj != " ":
-                    row_chars.append(
-                        object_to_ascii(obj) if use_ascii else obj
-                    )
+                    row_chars.append(object_to_ascii(obj) if use_ascii else obj)
                     continue
 
                 # Terrain
@@ -189,6 +206,7 @@ class WorldState:
                     row_chars.append(terrain_to_ascii(ter))
                 else:
                     from .symbols import terrain_to_emoji
+
                     row_chars.append(terrain_to_emoji(ter))
 
             rows.append("".join(row_chars))
@@ -219,7 +237,8 @@ class WorldState:
         # Actors in viewport
         vp = self.viewport
         visible_actors = [
-            a for a in self.actors.values()
+            a
+            for a in self.actors.values()
             if vp.origin[0] <= a.pos[0] < vp.origin[0] + vp.size[0]
             and vp.origin[1] <= a.pos[1] < vp.origin[1] + vp.size[1]
         ]
@@ -261,7 +280,9 @@ class WorldState:
             "last_button": self.last_button,
             "last_result": self.last_result,
         }
-        (directory / "state.yaml").write_text(yaml.dump(state, default_flow_style=False))
+        (directory / "state.yaml").write_text(
+            yaml.dump(state, default_flow_style=False)
+        )
 
         # terrain.map
         (directory / "terrain.map").write_text(
@@ -292,7 +313,9 @@ class WorldState:
             }
             for aid, a in self.actors.items()
         }
-        (directory / "actors.yaml").write_text(yaml.dump(actors_data, default_flow_style=False))
+        (directory / "actors.yaml").write_text(
+            yaml.dump(actors_data, default_flow_style=False)
+        )
 
         # movement_edges.yaml
         edges_data = [
@@ -305,7 +328,9 @@ class WorldState:
             }
             for e in self.edges.values()
         ]
-        (directory / "movement_edges.yaml").write_text(yaml.dump(edges_data, default_flow_style=False))
+        (directory / "movement_edges.yaml").write_text(
+            yaml.dump(edges_data, default_flow_style=False)
+        )
 
     @classmethod
     def load(cls, directory: Path) -> "WorldState":
@@ -338,17 +363,26 @@ class WorldState:
         # terrain.map
         terrain_path = directory / "terrain.map"
         if terrain_path.exists():
-            ws.terrain = [list(line.rstrip("\n")) for line in terrain_path.read_text().splitlines()]
+            ws.terrain = [
+                list(line.rstrip("\n"))
+                for line in terrain_path.read_text().splitlines()
+            ]
 
         # objects.map
         objects_path = directory / "objects.map"
         if objects_path.exists():
-            ws.objects = [list(line.rstrip("\n")) for line in objects_path.read_text().splitlines()]
+            ws.objects = [
+                list(line.rstrip("\n"))
+                for line in objects_path.read_text().splitlines()
+            ]
 
         # visited.map
         visited_path = directory / "visited.map"
         if visited_path.exists():
-            ws.visited = [list(line.rstrip("\n")) for line in visited_path.read_text().splitlines()]
+            ws.visited = [
+                list(line.rstrip("\n"))
+                for line in visited_path.read_text().splitlines()
+            ]
 
         # actors.yaml
         actors_path = directory / "actors.yaml"

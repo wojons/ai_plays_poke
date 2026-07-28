@@ -1,6 +1,7 @@
 """
 Unit tests for Emulator class — mock PyBoy to test without ROM files.
 """
+
 from __future__ import annotations
 
 import contextlib
@@ -13,6 +14,7 @@ from pyboy.utils import WindowEvent
 
 
 # ── Fixture: mock PyBoy for all emulator tests ──────────────────────────
+
 
 @contextlib.contextmanager
 def _mock_pyboy():
@@ -40,6 +42,7 @@ def emu():
     """Create an Emulator with fully mocked PyBoy internals."""
     with _mock_pyboy() as mock_pyboy:
         from src.core.emulator import Emulator
+
         e = Emulator("/fake/rom.gb")
         e._pyboy = mock_pyboy
         yield e
@@ -58,12 +61,14 @@ def emu_with_state():
         mock_pyboy.screen.ndarray = np.zeros((144, 160, 4), dtype=np.uint8)
         mock_pyboy_cls.return_value = mock_pyboy
         from src.core.emulator import Emulator
+
         e = Emulator("/fake/rom.gb")
         e._pyboy = mock_pyboy
         yield e
 
 
 # ── tests ──────────────────────────────────────────────────────────────────
+
 
 class TestEmulatorProperties:
     """Property accessors: is_gb, platform, rom_path."""
@@ -81,6 +86,7 @@ class TestEmulatorProperties:
     def test_button_compat(self) -> None:
         """Button constants have correct lowercase values."""
         from src.core.emulator import Button
+
         assert Button.A == "a"
         assert Button.B == "b"
         assert Button.START == "start"
@@ -257,7 +263,8 @@ class TestEnterName:
         """Entering 'ASH' should navigate grid and press A for each char + END."""
         emu.enter_name()
         press_a_calls = [
-            c for c in emu._pyboy.send_input.call_args_list
+            c
+            for c in emu._pyboy.send_input.call_args_list
             if c[0][0] == WindowEvent.PRESS_BUTTON_A
         ]
         assert len(press_a_calls) == 4
@@ -266,7 +273,8 @@ class TestEnterName:
         """Entering 'A' (already at cursor) just presses A then END."""
         emu.enter_name("A")
         press_a_calls = [
-            c for c in emu._pyboy.send_input.call_args_list
+            c
+            for c in emu._pyboy.send_input.call_args_list
             if c[0][0] == WindowEvent.PRESS_BUTTON_A
         ]
         assert len(press_a_calls) == 2
@@ -275,7 +283,8 @@ class TestEnterName:
         """Lowercase input is uppercased, same result as uppercase."""
         emu.enter_name("ash")
         press_a_calls = [
-            c for c in emu._pyboy.send_input.call_args_list
+            c
+            for c in emu._pyboy.send_input.call_args_list
             if c[0][0] == WindowEvent.PRESS_BUTTON_A
         ]
         assert len(press_a_calls) == 4
@@ -326,7 +335,9 @@ class TestCompatAliases:
             mock_reset.assert_called_once()
 
     def test_capture_screen_calls_capture(self, emu) -> None:
-        with patch.object(emu, "capture", return_value=np.zeros((144, 160, 3))) as mock_cap:
+        with patch.object(
+            emu, "capture", return_value=np.zeros((144, 160, 3))
+        ) as mock_cap:
             result = emu.capture_screen()
             mock_cap.assert_called_once()
             assert isinstance(result, np.ndarray)
