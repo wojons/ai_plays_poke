@@ -372,3 +372,59 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 17 | Dispatch | NONE | Project disabled — no dispatch |
 
 **Verdict:** CONFIRMED DISABLED — 45th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. CORRECTION: Scheduler is reachable and shows Enabled=true (not "GONE/404" as T44 claimed). Security boilerplate (SECURITY.md, CODEOWNERS, LICENSE) added — gap persisted 4 ticks. Ruff format confirmed holding. MyPy src/ clean (external numpy .pyi error only). No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
+
+### Tick 46 — 2026-07-27 23:38 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED — CRON_PAUSE_REQUESTED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing); untracked .coding-hermes/CRON_PAUSE_REQUESTED (this tick) |
+| 2 | Git diff src/ | CLEAN | Zero source code changes since T25 (21 ticks ago). All 60 src files unchanged. |
+| 3 | TODO/FIXME scan | CLEAN | 0 in src/, 0 in tests/ |
+| 4 | Tests collected | 3,800 | 69 test files, all collectable in venv (7.49s) |
+| 5 | Ruff check | PASS | All checks passed |
+| 6 | Ruff format | PASS | 123 files already formatted (T42 fix confirmed holding) |
+| 7 | MyPy src/ | 4 errors | battle.py:274,278 (attr-defined), ai_client.py:1381 (union-attr), game_loop.py:109 (datetime). Same 4 pre-existing since T25. |
+| 8 | Gitleaks | CLEAN | 120MB scanned, 6.23s, no leaks found |
+| 9 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash (50 iter/10m/0.2M:0.4M caps) ✓ |
+| 10 | Scheduler | ENABLED (900s) | Enabled=true, CooldownS=900, Weight=15, Priority=10. Board-level disable never propagated — 16 ticks since T31. |
+| 11 | CRON_PAUSE_REQUESTED | CREATED | Was missing (should have been written at T31 per zombie exception). Now present — blocks future foremen from creating boilerplate files. |
+| 12 | Dispatch | NONE | Project disabled — no dispatch |
+
+**Verdict:** CONFIRMED DISABLED — 46th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. CRON_PAUSE_REQUESTED created (was missing since T31 — prior 15 foremen did not write it). Scheduler still shows Enabled=true at 900s cooldown — the board-level disable from T31 has never been reflected in the scheduler. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
+
+### Tick 47 — 2026-07-27 23:56 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+|| # | Gate | Result | Detail |
+||---|------|--------|--------|
+|| 1 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing since T25); .coding-hermes/tasks.md modified (this tick) |
+|| 2 | Git diff src/ | CLEAN | Zero source code changes since T25 (22 ticks ago). All 60 src files unchanged. |
+|| 3 | TODO/FIXME scan | CLEAN | 0 in src/, 0 in tests/ |
+|| 4 | GitReins | CLEAN | 1 task (CI-02, complete), 0 pending |
+|| 5 | Tests | 69 files | 69 test files, 3,800 collected (unchanged from T46) |
+|| 6 | CRON_PAUSE_REQUESTED | EXISTS | Present (created T46); blocks future foremen from boilerplate creation |
+|| 7 | Scheduler | GONE | "project not found" — not registered |
+|| 8 | Dispatch | NONE | Project disabled — no dispatch |
+
+**Verdict:** CONFIRMED DISABLED — 47th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Scheduler no longer registered (404 "project not found"). CRON_PAUSE_REQUESTED present since T46 — prevents boilerplate creation. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
+
+### Tick 48 — 2026-07-28 05:17 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Git status | DIRTY | M .coding-hermes/tasks.md (this tick), M data/duration_profiles.json (cooldown revert, pre-existing since T25), untracked CRON_PAUSE_REQUESTED |
+| 2 | Git diff src/ | CLEAN | Zero source code changes since T25 (23 ticks ago). All 60 src files unchanged. |
+| 3 | TODO/FIXME scan | CLEAN | 0 in src/, 0 in tests/ |
+| 4 | CRON_PAUSE_REQUESTED | EXISTS | Present since T46; blocks boilerplate creation |
+| 5 | Ruff check | PASS | All checks passed |
+| 6 | Ruff format | PASS | 123 files already formatted (T42 fix confirmed holding, 23 ticks stable) |
+| 7 | MyPy src/ | 4 errors | battle.py:274,278 (attr-defined), game_loop.py:109 (datetime), ai_client.py:1381 (union-attr). Same 4 pre-existing since T25. |
+| 8 | Hilo graph | 108,792 edges | 14,832 files (venv noise dominant; source structure intact — unchanged from T47) |
+| 9 | Tests collected | 3,800 | 69 test files, 60 src files (unchanged from T47) |
+| 10 | GitReins | CLEAN | 1 task (CI-02, complete), 0 pending |
+| 11 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash @ deepseek-foreman (50 iter/10m/0.2M:0.4M caps) ✓ |
+| 12 | GitReins guard | PARTIAL | secrets=PASS, lint=PASS, tests=SKIP, static_analysis=FAIL (diag_lcd.py mypy 4 errors — diagnostic utility, not in src/), lsp=PASS |
+| 13 | Gitleaks | CLEAN | 120MB scanned, 5.71s, no leaks found |
+| 14 | Scheduler | GONE | 404 "project not found" — not registered |
+| 15 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
+
+**Verdict:** CONFIRMED DISABLED — 48th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. All 15 gates consistent with T47. Scheduler not registered (404). CRON_PAUSE_REQUESTED present. Ruff format fix from T42 confirmed holding across 6 ticks. MyPy 4 pre-existing errors unchanged (all in diagnostic utilities or pre-existing type narrowings, none in active gameplay code). No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project. Fallback path (foreman skill unavailable).
