@@ -27,7 +27,7 @@
 
 > **Core purpose:** Autonomous AI agent that plays Pokémon through emulation — RAM reader for perfect state, DeepSeek-powered controller, HSM-driven gameplay, DuckBrain context memory.
 > **Language:** Python 3.x | **Stack:** PyBoy emulator, DeepSeek V4 Flash controller, 69-state HSM, Streamlit dashboard
-> **Status:** ⛔ DISABLED (T31 confirmed) — All gameplay tasks complete. 36 idle ticks. Zero gaps. Requires manual Bane intervention to re-enable.
+> **Status:** ⛔ DISABLED (T31 confirmed, T43 verified) — All gameplay tasks complete. 43 idle ticks. Zero gaps. Scheduler still Enabled (900s) — board disable never propagated. Requires manual Bane intervention to re-enable or disable scheduler.
 
 ## Active Tasks
 
@@ -306,3 +306,27 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 15 | Dispatch | NONE | Project disabled — no dispatch |
 
 **Verdict:** CONFIRMED DISABLED — 42nd consecutive idle tick. First foreman to run `ruff format --check` in this project (prior 41 ticks only ran `ruff check` which passes on formatting drift). 117 files accumulated formatting drift silently — fixed with `ruff format src/ tests/`. Scheduler IS reachable this tick (T41 "GONE" was a transient API issue). Scheduler shows Enabled=true, CooldownS=900 — board-level disable never propagated. Zero gameplay gaps, all 3,800 tests collectable, mypy clean. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or disable scheduler.
+
+### Tick 43 — 2026-07-28 03:36 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Self-heal | PASS | Git identity: Alexis Okuwa; co-author: Alexis Okuwa <wojonstech@gmail.com>; workdir clean except pre-existing duration_profiles |
+| 2 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing since T25) |
+| 3 | Git diff src/ | CLEAN | Zero source code changes since T25 (18 ticks ago). All 60 src files unchanged. |
+| 4 | TODO/FIXME scan | CLEAN | 0 in src/, 0 in tests/ |
+| 5 | Ruff check | PASS | All checks passed |
+| 6 | Ruff format | PASS | 123 files already formatted (T42 fix confirmed holding) |
+| 7 | MyPy src/ | FAIL | 4 errors in 3 files — battle.py:274,278 (attr-defined, pre-existing), ai_client.py:1381 (union-attr, pre-existing), game_loop.py:109 (datetime note). Same 4 errors since T25. |
+| 8 | Tests collected | 3,800 | 69 test files, all collectable in venv (5.53s) |
+| 9 | Hilo graph | 108,792 edges | 14,832 files (venv noise dominant; source structure unchanged from T42) |
+| 10 | GitReins | CLEAN | 1 task (CI-02, complete), 0 pending |
+| 11 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash (50 iter/10m/0.2M:0.4M caps) |
+| 12 | Deps outdated | 13 packages | Non-blocking; pydantic_core still pinned at 2.46.4 (pydantic 2.13.4 exact pin) |
+| 13 | Secrets | CLEAN | gitleaks: clean (120MB, 5.81s) |
+| 14 | Security files | GAPS | SECURITY.md, CODEOWNERS, LICENSE missing; .env not in .gitignore; !.coding-hermes/tasks.md exception missing from .gitignore (not fixed — disabled project) |
+| 15 | DuckBrain | 3 keys | /projects/ai-plays-poke/ — unchanged from prior ticks |
+| 16 | Scheduler | ENABLED (900s) | Enabled=true, CooldownS=900, Weight=15, Priority=10. Board-level disable never propagated. |
+| 17 | Dispatch | NONE | Project disabled — no dispatch |
+
+**Verdict:** CONFIRMED DISABLED — 43rd consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Ruff format fix from T42 confirmed holding (123 files clean). MyPy shows same 4 pre-existing errors (battle.py attr-defined + ai_client.py union-attr). Scheduler still shows Enabled=true, CooldownS=900 — the board-level "disable" has never been reflected in the scheduler. No automated re-enable criteria met. Requires manual Bane intervention: either disable via scheduler API (`PUT enabled=false`) or re-scope with new gameplay tasks.
