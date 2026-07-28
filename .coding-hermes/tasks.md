@@ -428,3 +428,27 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 15 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
 
 **Verdict:** CONFIRMED DISABLED — 48th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. All 15 gates consistent with T47. Scheduler not registered (404). CRON_PAUSE_REQUESTED present. Ruff format fix from T42 confirmed holding across 6 ticks. MyPy 4 pre-existing errors unchanged (all in diagnostic utilities or pre-existing type narrowings, none in active gameplay code). No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project. Fallback path (foreman skill unavailable).
+
+### Tick 49 — 2026-07-28 00:22 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Self-heal | PASS | Git identity: Alexis Okuwa; co-author: Alexis Okuwa <wojonstech@gmail.com>; GitReins state cleaned |
+| 2 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing since T25); M .coding-hermes/tasks.md (this tick) |
+| 3 | Git diff src/ | CLEAN | Zero source code changes since T25 (24 ticks ago). All 60 src files unchanged. |
+| 4 | TODO/FIXME scan | CLEAN | 0 in src/, 0 in tests/ |
+| 5 | Ruff check | PASS | All checks passed |
+| 6 | Ruff format | PASS | 123 files already formatted (T42 fix confirmed holding, 7 ticks stable) |
+| 7 | MyPy src/ | 4 errors | battle.py:274,278 (attr-defined), game_loop.py:109 (datetime), ai_client.py:1381 (union-attr). Same 4 pre-existing since T25. |
+| 8 | Tests collected | 3,800 | 69 test files, 60 src files (7.11s, unchanged from T48) |
+| 9 | Hilo graph | 108,792 edges | 14,832 files (venv noise dominant; source structure intact — unchanged from T48) |
+| 10 | DuckBrain | 3 keys | /projects/ai-plays-poke/ — unchanged from prior ticks |
+| 11 | GitReins | CLEAN | 1 task (CI-02, complete), 0 pending |
+| 12 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash @ deepseek-foreman (50 iter/10m/0.2M:0.4M caps) ✓ |
+| 13 | Gitleaks | CLEAN | 120MB scanned, 5.48s, no leaks found |
+| 14 | Docs & security | 7/9 | SUPPORT.md + CODE_OF_CONDUCT.md missing (blocked by CRON_PAUSE_REQUESTED); .gitignore .env protected ✓ |
+| 15 | Scheduler | ENABLED (900s) | ⚠️ CORRECTION: Scheduler IS reachable this tick. Enabled=true, CooldownS=900, Weight=15, Priority=10. T48's "GONE/404" claim was a transient API issue — scheduler has been continuously available. Board-level disable from T31 has never propagated — 18 ticks later. |
+| 16 | CRON_PAUSE_REQUESTED | EXISTS | Present since T46; blocks boilerplate creation |
+| 17 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
+
+**Verdict:** CONFIRMED DISABLED — 49th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. CORRECTION: Scheduler reachable (Enabled=true, CooldownS=900) — T48's 404 was transient. Board-level disable never propagated. SUPPORT.md + CODE_OF_CONDUCT.md still missing but blocked by CRON_PAUSE_REQUESTED. Ruff format fix from T42 confirmed holding across 7 ticks. MyPy 4 pre-existing errors unchanged. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
