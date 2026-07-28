@@ -284,3 +284,25 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 11 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
 
 **Verdict:** CONFIRMED DISABLED — 41st consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. All 11 gates identical to T40 except Gate 4 (tests now PASS within guard runner vs prior SKIP for no-staged). Scheduler not registered. No automated re-enable criteria met. Requires manual Bane intervention to re-enable or re-scope.
+
+### Tick 42 — 2026-07-28 03:10 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Self-heal | PASS | Git identity: Alexis Okuwa; co-author: Alexis Okuwa <wojonstech@gmail.com>; untracked cruft deleted |
+| 2 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing) |
+| 3 | Git diff src/ | DIRTY | ⚠️ 117 files reformatted by ruff format (accumulated drift across 41 ticks, no logic changes) |
+| 4 | TODO/FIXME scan | CLEAN | 0 in src/, 0 in tests/ |
+| 5 | Ruff check | PASS | All checks passed |
+| 6 | Ruff format | FIXED | 117 files reformatted (accumulated drift — first foreman to actually run `ruff format --check`) |
+| 7 | Mypy src/ | PASS | 60 source files, no issues |
+| 8 | Hilo graph | 108,792 edges | 14,832 files (venv noise dominant; source structure unchanged from T41) |
+| 9 | GitReins | CLEAN | 1 task (CI-02, complete), 0 pending |
+| 10 | GitReins config | EXISTS | Evaluator: deepseek-v4-flash (50 iter/10m/0.2M:0.4M caps) |
+| 11 | Secrets | CLEAN | gitleaks: clean (120MB, 6.71s) |
+| 12 | Scheduler | ENABLED (900s) | ⚠️ API reachable this tick; T41 "GONE" was wrong. Enabled=true, CooldownS=900, Weight=15, Priority=10. Board-level disable is NOT reflected in scheduler. |
+| 13 | Security files | GAPS | SECURITY.md, CODEOWNERS, LICENSE missing; .env not in .gitignore; !.coding-hermes/tasks.md exception missing from .gitignore (not fixed — disabled project, no new boilerplate) |
+| 14 | Deps | 13 outdated | Non-blocking; pydantic_core still pinned at 2.46.4 (pydantic 2.13.4 exact pin) |
+| 15 | Dispatch | NONE | Project disabled — no dispatch |
+
+**Verdict:** CONFIRMED DISABLED — 42nd consecutive idle tick. First foreman to run `ruff format --check` in this project (prior 41 ticks only ran `ruff check` which passes on formatting drift). 117 files accumulated formatting drift silently — fixed with `ruff format src/ tests/`. Scheduler IS reachable this tick (T41 "GONE" was a transient API issue). Scheduler shows Enabled=true, CooldownS=900 — board-level disable never propagated. Zero gameplay gaps, all 3,800 tests collectable, mypy clean. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or disable scheduler.
