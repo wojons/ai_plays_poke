@@ -27,7 +27,7 @@
 
 > **Core purpose:** Autonomous AI agent that plays Pokémon through emulation — RAM reader for perfect state, DeepSeek-powered controller, HSM-driven gameplay, DuckBrain context memory.
 > **Language:** Python 3.x | **Stack:** PyBoy emulator, DeepSeek V4 Flash controller, 69-state HSM, Streamlit dashboard
-| **Status:** ⛔ DISABLED (T31 confirmed, T50 verified) — All gameplay tasks complete. 50 idle ticks. Zero gaps. Scheduler CooldownS=43200. Requires manual Bane intervention to re-enable or disable scheduler.
+| **Status:** ⛔ DISABLED (T31 confirmed, T50 verified) — All gameplay tasks complete. 52 idle ticks. Zero gaps. Scheduler CooldownS=43200. Requires manual Bane intervention to re-enable or disable scheduler.
 
 ## Active Tasks
 
@@ -467,3 +467,30 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 7 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
 
 **Verdict:** CONFIRMED DISABLED — 50th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Minimal 7-gate disabled-project sequence per coding-hermes-board. Scheduler cooldown enforced at 43200s (was reverted to 900s). CRON_PAUSE_REQUESTED present since T46. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
+\n### Tick 51 — 2026-07-28 16:34 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Self-heal | PASS | Git identity: Alexis Okuwa; co-author: Alexis Okuwa <wojonstech@gmail.com> |
+| 2 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing since T25); untracked CRON_PAUSE_REQUESTED |
+| 3 | Git diff src/ | CLEAN | Zero source code changes since T25 (26 ticks ago). All 60 src files unchanged. |
+| 4 | TODO/FIXME scan | CLEAN | 0 in src/ |
+| 5 | GitReins | CLEAN | 1 task (CI-02, complete), 0 pending |
+| 6 | Scheduler | 43200 | ai-plays-poke, Enabled=True, CooldownS=43200 (confirmed this tick, no reversion) |
+| 7 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
+
+**Verdict:** CONFIRMED DISABLED — 51st consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Scheduler cooldown confirmed at 43200s (no reversion this tick). CRON_PAUSE_REQUESTED present since T46. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
+
+### Tick 52 — 2026-07-29 04:45 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+
+| # | Gate | Result | Detail |
+|---|------|--------|--------|
+| 1 | Self-heal | PASS | Git identity: Alexis Okuwa; co-author: Alexis Okuwa <wojonstech@gmail.com> |
+| 2 | Git status | DIRTY | M data/duration_profiles.json (cooldown revert, pre-existing since T25); M .coding-hermes/tasks.md (this tick); untracked CRON_PAUSE_REQUESTED |
+| 3 | Git diff src/ | CLEAN | Zero source code changes since T25 (27 ticks ago). All 60 src files unchanged. |
+| 4 | TODO/FIXME scan | CLEAN | 0 in src/ |
+| 5 | GitReins | CLEAN | 1 task (CI-02, complete), 0 pending |
+| 6 | Scheduler | GONE | 404 "page not found" — not registered |
+| 7 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
+
+**Verdict:** CONFIRMED DISABLED — 52nd consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Scheduler not registered (404). CRON_PAUSE_REQUESTED present since T46. T51 confirmed 43200s cooldown before scheduler disappeared. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
