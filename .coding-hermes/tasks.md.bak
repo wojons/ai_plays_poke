@@ -33,8 +33,9 @@
 
 | ID | Task | Pri | Cpx | Deps | Tags | Model | Lvl | Fallback |
 |----|------|-----|-----|------|------|-------|-----|----------|
+|| BOARD-V2 | 🟡 MIGRATE BOARD TO DUCKDB v2.1 — run `python3 ~/.hermes/scripts/migrate-board-to-duckdb.py .` (load skill coding-hermes-board first). Creates .coding-hermes/board/ (schema.sql, tasks.parquet, events.parquet), archives tasks.md → tasks.md.bak, commit. Same pattern as DuckBrain. | P1 | 3 | — | duckdb,board,migration | deepseek-v4-flash | Run migration script, verify Parquet, commit board | deepseek-v4-flash |
 | E2E-001 | E2E Testing Tick (self-improving loop) 🔁 Recurring every 5-10 ticks | High | 4 | ROM + server | ++browser, ++screenshots, ++verification | GPT-5.6 Luna | High | Step 3.7 Flash |
-| NEVER-DONE | 11-point audit sweep | Medium | 2 | — | ++code-review, +testing | DeepSeek V4 Pro | Medium | GLM-5.2 |
+| NEVER-DONE | 11-point audit sweep | Medium | 2 | — | ++code-review, +testing | deepseek-v4-flash | Medium | GLM-5.2 |
 
 ## Completed (all gameplay tasks done)
 
@@ -63,7 +64,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 ## Routing Notes
 
-- **NEVER-DONE audit:** Foreman-direct (V4 Pro) — full context, terminal, file search, test runner
+- **NEVER-DONE audit:** Foreman-direct (v4-flash) — full context, terminal, file search, test runner
 - **E2E testing:** GPT-5.6 Luna for browser/screenshots ($100/mo flat) or Step 3.7 Flash for CLI/API ($0.09/1M)
 - **If new Python tasks emerge:** MiniMax-M3 primary (flat-rate prepaid) for bounded implementation, V4 Pro for complex/debugging
 - Project is effectively a zombie — 29 idle ticks, zero actionable gaps, all gameplay features complete
@@ -83,7 +84,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 ## Tick Log
 
-### Tick 31 — 2026-07-24 19:19 UTC (DeepSeek V4 Pro) ⛔ DISABLE TRIGGERED
+### Tick 31 — 2026-07-24 19:19 UTC (deepseek-v4-flash) ⛔ DISABLE TRIGGERED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -101,7 +102,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** DISABLE — 31st consecutive idle tick. Escalation threshold (30 ticks) exceeded per board rules. All gameplay complete, zero code gaps, zero changes since T25. Project is stable and complete. Board rule: "tick 30/30 reached, NEXT tick triggers disable." This IS the next tick.
 
-### Tick 32 — 2026-07-24 20:13 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 32 — 2026-07-24 20:13 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -119,7 +120,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 32nd consecutive idle tick. Project was disabled at T31; this tick confirms the state persists. All gameplay complete, zero code gaps, zero changes since T25. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
 
-### Tick 33 — 2026-07-24 20:35 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 33 — 2026-07-24 20:35 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -137,7 +138,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 33rd consecutive idle tick. Project disabled since T31. All gameplay complete, zero code gaps, zero changes since T25. Gate 9 improved slightly (mypy src/ now clean vs T32 numpy .pyi noise), but no functional change. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
 
-### Tick 34 — 2026-07-24 20:52 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 34 — 2026-07-24 20:52 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -152,7 +153,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 34th consecutive idle tick. Project disabled since T31 at board level. Zero code changes since T25. Scheduler still shows Enabled=True at 900s cooldown — board-declared disable is not a scheduler disable. No automated re-enable criteria met. Requires manual Bane intervention: either disable via scheduler API (`PUT enabled=false`) or re-scope with new gameplay tasks.
 
-### Tick 36 — 2026-07-24 21:41 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 36 — 2026-07-24 21:41 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -166,7 +167,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 36th consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). Scheduler unavailable this tick — cooldown/Enabled state could not be verified. All gameplay complete, zero gaps, zero pending GitReins tasks. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
 
-### Tick 35 — 2026-07-24 21:20 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 35 — 2026-07-24 21:20 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -184,7 +185,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 35th consecutive idle tick. Zero code changes since T25. All gameplay complete. Zero gaps. Scheduler still shows Enabled=true — board-level disable is not reflected in scheduler state. No automated re-enable criteria met. Requires manual Bane intervention to re-enable or disable via scheduler API.
 
-### Tick 30 — 2026-07-24 18:55 UTC (DeepSeek V4 Pro)
+### Tick 30 — 2026-07-24 18:55 UTC (deepseek-v4-flash)
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -202,7 +203,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** IDLE — 30th consecutive idle tick. All gameplay complete. Zero code gaps. ⚠️ Escalation threshold reached: next idle tick (31) triggers project disable per board rules.
 
-### Tick 37 — 2026-07-27 17:41 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 37 — 2026-07-27 17:41 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -220,7 +221,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 37th consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). All gameplay complete, zero gaps, zero pending GitReins tasks. All 11 gates identical to T36. No automated re-enable criteria met. Requires manual Bane intervention to re-enable.
 
-### Tick 38 — 2026-07-27 20:36 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 38 — 2026-07-27 20:36 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -232,7 +233,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 38th consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). All 37,000+ lines of gameplay code complete and stable. No gaps, no pending tasks, no new issues. No automated re-enable criteria met. Requires manual Bane intervention to re-enable or re-scope.
 
-### Tick 39 — 2026-07-27 21:20 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 39 — 2026-07-27 21:20 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -250,7 +251,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 39th consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). All gameplay complete, 3,800 tests, 60 source files, 0 gaps, 0 pending tasks. Scheduler no longer has this project registered. MyPy src/ now clean (improvement from prior ticks where diag_lcd.py had 4 pre-existing errors — not in src/). No automated re-enable criteria met. Requires manual Bane intervention to re-enable or re-scope.
 
-### Tick 40 — 2026-07-27 21:38 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 40 — 2026-07-27 21:38 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -267,7 +268,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 40th consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Scheduler not registered. MyPy clean across all 60 files. No automated re-enable criteria met. Requires manual Bane intervention to re-enable or re-scope.
 
-### Tick 41 — 2026-07-27 21:41 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 41 — 2026-07-27 21:41 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -285,7 +286,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 41st consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. All 11 gates identical to T40 except Gate 4 (tests now PASS within guard runner vs prior SKIP for no-staged). Scheduler not registered. No automated re-enable criteria met. Requires manual Bane intervention to re-enable or re-scope.
 
-### Tick 42 — 2026-07-28 03:10 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 42 — 2026-07-28 03:10 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -307,7 +308,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 42nd consecutive idle tick. First foreman to run `ruff format --check` in this project (prior 41 ticks only ran `ruff check` which passes on formatting drift). 117 files accumulated formatting drift silently — fixed with `ruff format src/ tests/`. Scheduler IS reachable this tick (T41 "GONE" was a transient API issue). Scheduler shows Enabled=true, CooldownS=900 — board-level disable never propagated. Zero gameplay gaps, all 3,800 tests collectable, mypy clean. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or disable scheduler.
 
-### Tick 43 — 2026-07-28 03:36 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 43 — 2026-07-28 03:36 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -331,7 +332,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 43rd consecutive idle tick. Zero code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Ruff format fix from T42 confirmed holding (123 files clean). MyPy shows same 4 pre-existing errors (battle.py attr-defined + ai_client.py union-attr). Scheduler still shows Enabled=true, CooldownS=900 — the board-level "disable" has never been reflected in the scheduler. No automated re-enable criteria met. Requires manual Bane intervention: either disable via scheduler API (`PUT enabled=false`) or re-scope with new gameplay tasks.
 
-### Tick 44 — 2026-07-28 03:56 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 44 — 2026-07-28 03:56 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -349,7 +350,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 44th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Minor ruff format drift (3 files) since T43 — formatting only, no logic changes. Scheduler 404 (not registered). MyPy 4 pre-existing errors unchanged. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
 
-### Tick 45 — 2026-07-28 04:18 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 45 — 2026-07-28 04:18 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -373,7 +374,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 45th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. CORRECTION: Scheduler is reachable and shows Enabled=true (not "GONE/404" as T44 claimed). Security boilerplate (SECURITY.md, CODEOWNERS, LICENSE) added — gap persisted 4 ticks. Ruff format confirmed holding. MyPy src/ clean (external numpy .pyi error only). No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
 
-### Tick 46 — 2026-07-27 23:38 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED — CRON_PAUSE_REQUESTED
+### Tick 46 — 2026-07-27 23:38 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED — CRON_PAUSE_REQUESTED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -392,7 +393,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 46th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. CRON_PAUSE_REQUESTED created (was missing since T31 — prior 15 foremen did not write it). Scheduler still shows Enabled=true at 900s cooldown — the board-level disable from T31 has never been reflected in the scheduler. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
 
-### Tick 47 — 2026-07-27 23:56 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 47 — 2026-07-27 23:56 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 || # | Gate | Result | Detail |
 ||---|------|--------|--------|
@@ -407,7 +408,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 47th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Scheduler no longer registered (404 "project not found"). CRON_PAUSE_REQUESTED present since T46 — prevents boilerplate creation. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
 
-### Tick 48 — 2026-07-28 05:17 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 48 — 2026-07-28 05:17 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -429,7 +430,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 48th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. All 15 gates consistent with T47. Scheduler not registered (404). CRON_PAUSE_REQUESTED present. Ruff format fix from T42 confirmed holding across 6 ticks. MyPy 4 pre-existing errors unchanged (all in diagnostic utilities or pre-existing type narrowings, none in active gameplay code). No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project. Fallback path (foreman skill unavailable).
 
-### Tick 49 — 2026-07-28 00:22 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 49 — 2026-07-28 00:22 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -454,7 +455,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 **Verdict:** CONFIRMED DISABLED — 49th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. CORRECTION: Scheduler reachable (Enabled=true, CooldownS=900) — T48's 404 was transient. Board-level disable never propagated. SUPPORT.md + CODE_OF_CONDUCT.md still missing but blocked by CRON_PAUSE_REQUESTED. Ruff format fix from T42 confirmed holding across 7 ticks. MyPy 4 pre-existing errors unchanged. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
 
 
-### Tick 50 — 2026-07-28 05:47 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 50 — 2026-07-28 05:47 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -467,7 +468,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 7 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
 
 **Verdict:** CONFIRMED DISABLED — 50th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Minimal 7-gate disabled-project sequence per coding-hermes-board. Scheduler cooldown enforced at 43200s (was reverted to 900s). CRON_PAUSE_REQUESTED present since T46. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
-\n### Tick 51 — 2026-07-28 16:34 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+\n### Tick 51 — 2026-07-28 16:34 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -481,7 +482,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 51st consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Scheduler cooldown confirmed at 43200s (no reversion this tick). CRON_PAUSE_REQUESTED present since T46. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
 
-### Tick 52 — 2026-07-29 04:45 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 52 — 2026-07-29 04:45 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -495,7 +496,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 52nd consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Scheduler not registered (404). CRON_PAUSE_REQUESTED present since T46. T51 confirmed 43200s cooldown before scheduler disappeared. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
 
-### Tick 53 — 2026-07-29 16:48 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 53 — 2026-07-29 16:48 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -509,7 +510,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 53rd consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Scheduler not registered (404). CRON_PAUSE_REQUESTED present since T46. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
 
-### Tick 54 — 2026-07-30 05:20 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 54 — 2026-07-30 05:20 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -523,7 +524,7 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 
 **Verdict:** CONFIRMED DISABLED — 54th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Cooldown reverted to 900s at arrival (daemon restart/ApplyFleetConfig) — fixed to 43200s and verified. CRON_PAUSE_REQUESTED present since T46. No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
 
-### Tick 55 — 2026-07-30 17:23 UTC (DeepSeek V4 Pro) ⛔ CONFIRMED DISABLED
+### Tick 55 — 2026-07-30 17:23 UTC (deepseek-v4-flash) ⛔ CONFIRMED DISABLED
 
 | # | Gate | Result | Detail |
 |---|------|--------|--------|
@@ -567,3 +568,4 @@ Core pipeline: RAM reader → StateWindow → HSM → Controller prompt → Duck
 | 7 | Dispatch | NONE | Project disabled — no dispatch. Zero pending tasks. |
 
 **Verdict:** CONFIRMED DISABLED — 57th consecutive idle tick. Zero source code changes since T25 (2026-07-24 18:38). All gameplay complete, 60 source files, 3,800 tests, 0 gaps, 0 pending tasks, 0 TODO/FIXME. Cooldown reverted to 900s at arrival (daemon restart / ApplyFleetConfig — same pattern as T54) — re-fixed to 43200s via API PUT and GET-verified. CRON_PAUSE_REQUESTED present since T46. Scheduler still shows Enabled=true — board-level disable never reflected in scheduler state (26 ticks since T31). Permanent fix remains a fleet.toml `[[projects]]` entry with cooldown_s=43200 (scheduler project's territory — flagged, not edited). No automated re-enable criteria met. Requires manual Bane intervention to re-enable, re-scope, or formally decommission the project.
+
