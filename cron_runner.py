@@ -430,7 +430,7 @@ def controller_plan(
     )
 
     response = client.chat_completion(
-        model="deepseek-v4-flash",  # DeepSeek V4 Flash via OpenRouter
+        model="openai/gpt-5.6-luna",  # Luna via OpenRouter (double-discount pricing)
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": msg},
