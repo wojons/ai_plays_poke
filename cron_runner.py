@@ -83,6 +83,7 @@ from src.core.state_window import StateWindow
 from src.core.ai_client import OpenRouterClient
 from src.core.prompt_loader import load_system_prompt
 from src.core.ram_reader import RAMReader
+from src.core.frame_cache import FrameCache
 
 # ── Config ──────────────────────────────────────────────────────────
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
@@ -357,6 +358,7 @@ def controller_plan(
     blocked_count: int = 0,
     max_actions: int = 6,
     screenshot: Any = None,
+    frame_ref: str | None = None,
 ) -> dict[str, Any]:
     """Controller model (Luna via OpenRouter) outputs a movement PLAN.
 
@@ -366,6 +368,12 @@ def controller_plan(
 
     When `screenshot` is provided, the live game frame is attached as an
     image so Luna can use its own vision to see the screen.
+
+    When `frame_ref` is provided (uuid of a previously-seen identical
+    frame from the persistent FrameCache), NO image is attached — the
+    prompt instead carries a text marker telling Luna this exact frame
+    was already sent before, so it should rely on the spatial summary
+    (identical visuals). Saves the image tokens on repeat sightings.
     """
     # Build a compact spatial summary string
     facing = spatial_desc.get("player_facing", "?")
@@ -433,8 +441,18 @@ def controller_plan(
         f"Output a movement plan (max {max_actions} actions). JSON only."
     )
 
-    # Build user message — include live screenshot for Luna's own vision
-    if screenshot is not None:
+    # Build user message — include live screenshot for Luna's own vision.
+    # On a FrameCache hit (frame_ref set), attach a text marker instead of
+    # the image: Luna has seen this exact frame before, so the spatial
+    # summary + reference carry the same information at ~zero image tokens.
+    if frame_ref:
+        ref_marker = (
+            f"\n[SCREEN REF {frame_ref}] This exact game frame was sent to you "
+            f"in a previous cycle — identical pixels (same location, same "
+            f"dialog/state). Use the spatial summary above; no new image needed.\n"
+        )
+        user_content = f"{ref_marker}{msg}"
+    elif screenshot is not None:
         try:
             img_b64 = screenshot_to_base64(screenshot)
             user_content: Any = [
@@ -520,6 +538,12 @@ def main() -> None:
         safe_print(f"[{run_id}] Starting run with visual-reference cartographer pipeline...")
         safe_print("  Reference image: reference/bedroom_overworld.png")
 
+    # Persistent frame cache — UUID references for repeated screenshots.
+    # Survives runs, so revisiting a map in a later session also hits.
+    _frame_cache = FrameCache("data/frame_cache.json")
+    safe_print(f"[{run_id}] Frame cache: {_frame_cache.unique_frames} known frames "
+               f"({_frame_cache.total_seen} total references) — {_frame_cache.MAX_ENTRIES} max")
+
     # Init AI clients
     if USE_VISION_CLIENT:
         vision = VisionClient()  # noqa: F841 — conditionally enabled debug classifier
@@ -562,6 +586,17 @@ def main() -> None:
     # still, dialog open) re-send the same ~2500 image tokens every
     # cycle — pure waste. RAM text still flows every cycle.
     _last_controller_frame_hash: str = ""
+
+    # ── Persistent frame cache (UUID references across runs) ──────
+    # Screenshots are md5-hashed and stored in a disk-backed LRU cache
+    # (max 1000). First sighting sends the image; any repeat sighting
+    # (battle loop, re-walking the same tile, same dialog box) sends a
+    # short text reference "<uuid>" instead of the image bytes — same
+    # visual info, ~zero image tokens. Survives restarts, so revisiting
+    # a map in a later session still hits.
+    # NOTE: bound at line ~543 in the pipeline-init block, before the
+    # main loop. Do NOT declare here — an assignment would wipe it.
+    _frame_cache: Any
 
     # ── Deterministic intro bypass ──────────────────────────────────
     # Decoupled: A-mash aggressively in large batches, sparse
@@ -875,13 +910,31 @@ def main() -> None:
                         _a_press_count = trackers.a_press_count
 
                 # Step 2b: Controller outputs movement PLAN from spatial description
-                # Vision dedup: only attach the screenshot when the frame changed.
-                # Identical frames (standing still / dialog) reuse the cached
-                # frame — RAM text still flows, image tokens are not re-spent.
+                # Frame-cache dedup: hash the raw screenshot; if this exact
+                # frame was seen before (same tile, same dialog box, battle
+                # idle, looping flow), pass a text UUID reference instead of
+                # re-sending the image bytes. First sighting → send image.
                 import hashlib as _hashlib
                 _ctrl_frame_hash = _hashlib.md5(screenshot.tobytes()).hexdigest()
-                _vision_frame = screenshot if _ctrl_frame_hash != _last_controller_frame_hash else None
-                _last_controller_frame_hash = _ctrl_frame_hash
+                _frame_ref = None
+                _cached_entry = _frame_cache.lookup(_ctrl_frame_hash) if _frame_cache else None
+                if _cached_entry is not None:
+                    # Repeat sighting — reference, don't re-send the image
+                    _frame_cache.touch(_cached_entry, cycle + 1)
+                    _vision_frame = None
+                    _frame_ref = _cached_entry["uuid"]
+                    _seen_n = _cached_entry.get("seen_count", 1)
+                    safe_print(f"  [CACHE-HIT] frame {_ctrl_frame_hash[:8]} → ref {_frame_ref} (seen {_seen_n}x)")
+                else:
+                    # New frame — send the image, remember it
+                    _vision_frame = screenshot
+                    _frame_ref = None
+                    if _frame_cache is not None:
+                        _frame_cache.register(
+                            _ctrl_frame_hash, cycle + 1,
+                            map_name=patch_data.get("map_name", ""),
+                            screen=st,
+                        )
                 decision = controller_plan(
                     controller_client, patch_data,
                     _last_direction or "",
@@ -889,7 +942,8 @@ def main() -> None:
                     blocked_dir=_same_dir or "",
                     blocked_count=_same_dir_count,
                     max_actions=CART_STEPS,
-                    screenshot=_vision_frame,  # None when frame unchanged → no image cost
+                    screenshot=_vision_frame,   # None on cache hit → no image cost
+                    frame_ref=_frame_ref,        # UUID text ref on cache hit
                 )
                 plan = decision.get("plan", ["A"])
                 intent = decision.get("intent", "")
@@ -958,6 +1012,8 @@ def main() -> None:
                     "plan": plan,
                     "intent": intent,
                     "controller_raw": decision.get("raw_response", ""),
+                    "frame_cache": "hit" if _frame_ref else "miss",
+                    "frame_uuid": _frame_ref,
                     "cartographer_raw": carto_raw,
                     "map_id": patch_data.get("map_id"),
                     "map_name": patch_data.get("map_name"),
@@ -1316,6 +1372,13 @@ def main() -> None:
     safe_print(f"\n[{run_id}] Done. {len(results)} actions. Screens: {screens}")
     safe_print(f"Log: {log_path}")
     safe_print(f"Screenshots: {SCREENSHOT_DIR}")
+
+    # Persist frame cache for the next run (cross-run dedup)
+    if _frame_cache is not None:
+        _frame_cache.save()
+        safe_print(f"[{run_id}] Frame cache saved: {_frame_cache.unique_frames} unique "
+                   f"frames / {_frame_cache.total_seen} total references "
+                   f"({_frame_cache.stats()['max_entries']} max)")
 
 
 if __name__ == "__main__":
