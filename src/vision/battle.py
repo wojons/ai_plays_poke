@@ -273,11 +273,11 @@ class BattleAnalyzer:
         if is_enemy:
             sprite_region = self.sprite_recognizer._extract_enemy_sprite_region(
                 screenshot
-            )  # type: ignore[attr-defined]
+            )
         else:
             sprite_region = self.sprite_recognizer._extract_player_sprite_region(
                 screenshot
-            )  # type: ignore[attr-defined]
+            )
         if sprite_region is not None:
             is_shiny = self.sprite_recognizer.is_shiny(sprite_region)
 

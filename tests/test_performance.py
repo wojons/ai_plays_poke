@@ -217,6 +217,7 @@ class TestBenchmarks:
             0xCFC5: 0,  # wWalkCounter
             0xCF2B: 0,  # wTextBoxFrame
             0xCC47: 0,  # wNamingScreenType
+            0xC100: 1,  # wSpriteStateData1 — non-zero ⇒ overworld (screen_type gate, 0f80f4d)
         }
 
         emu = MagicMock()

@@ -1382,9 +1382,9 @@ Format: REASONING: [explanation] ACTION: [button]
             if hasattr(client, "get_vision_response"):
                 response = client.get_vision_response(prompt, screenshot, model=model)
             else:
-                response = self.openrouter_client.get_vision_response(
+                response = self.openrouter_client.get_vision_response(  # type: ignore[union-attr]
                     prompt, screenshot, model=model
-                )  # type: ignore[union-attr]
+                )
             print(f"📝 Vision response ({len(response)} chars): {response[:200]}...")
 
             result = self.json_parser.parse(response)

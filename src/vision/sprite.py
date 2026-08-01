@@ -268,6 +268,16 @@ class SpriteRecognizer:
             options=["FIGHT", "POKEMON", "ITEM", "RUN"],
         )
 
+    def _extract_enemy_sprite_region(self, image: np.ndarray) -> np.ndarray:
+        """Extract the enemy (top-right) sprite region in a battle screen."""
+        h, w = image.shape[:2]
+        return image[int(h * 0.1) : int(h * 0.45), int(w * 0.45) : int(w * 0.9)]
+
+    def _extract_player_sprite_region(self, image: np.ndarray) -> np.ndarray:
+        """Extract the player (bottom-left) sprite region in a battle screen."""
+        h, w = image.shape[:2]
+        return image[int(h * 0.55) : int(h * 0.85), int(w * 0.05) : int(w * 0.5)]
+
     def find_pokemon_sprites(
         self, image: np.ndarray, is_battle: bool = True
     ) -> List[SpriteMatch]:

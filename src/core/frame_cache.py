@@ -88,7 +88,7 @@ class FrameCache:
     ) -> dict[str, Any]:
         """Store a new frame; returns the created entry (with uuid)."""
         self._seq += 1
-        entry = {
+        entry: dict[str, Any] = {
             "uuid": _uuid.uuid4().hex[:12],
             "hash": frame_hash,
             "seen_count": 1,

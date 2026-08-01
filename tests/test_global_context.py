@@ -1,5 +1,7 @@
 """Unit tests for GlobalContext — compacted game state manager."""
 
+from typing import Any
+
 from src.core.global_context import GlobalContext
 
 
@@ -8,7 +10,7 @@ from src.core.global_context import GlobalContext
 
 def make_ctx(**overrides) -> GlobalContext:
     """Create a GlobalContext with convenient overrides."""
-    kwargs = {
+    kwargs: dict[str, Any] = {
         "player_name": "RED",
         "rival_name": "BLUE",
         "location": "pallet_town",

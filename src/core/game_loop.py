@@ -69,7 +69,7 @@ class GameLoop:
         self.command_history: List[Dict[str, Any]] = []
 
         # Performance tracking
-        self.metrics = {
+        self.metrics: Dict[str, Any] = {
             "total_ticks": 0,
             "screenshots_taken": 0,
             "commands_sent": 0,
