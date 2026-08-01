@@ -9,3 +9,15 @@ tasks:
   status: complete
   created_at: '2026-07-19T23:48:18.712518+00:00'
   completed_at: '2026-07-19T23:51:39.053506+00:00'
+- id: GAMEPLAY-SOL
+  title: 'SOL-SESSION: gpt-5.6-sol gameplay fixes — controller nav, stuck loops, long-run validation'
+  criteria:
+  - Controller navigation validated with live runs: map_id changes from 0x0 (leaves Pallet Town) in cron_logs/run_sol_nav_proven_20260801_130349.jsonl — reached Oak's Lab (map 40) at cycle 18
+  - STUCK-LOOPS fixed: _reset_recovery_trackers() resets _a_press_count when recovery triggers (cron_runner.py)
+  - PROGRESS-ASSERT added: test_player_coordinates_change_over_60_gameplay_cycles in tests/test_full_gameplay.py asserts coordinates change over 60 cycles, gated with rom marker
+  - Coordinate-aware navigation hints: _suggested_map_action() in ram_reader.py returns position-based guidance (player_tile_x/y methods added)
+  - Full test suite green: pytest tests/ -k 'not benchmark' passes with zero failures
+  - Commit 0f80f4d has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer
+  status: complete
+  created_at: '2026-08-01T18:44:42.334883+00:00'
+  completed_at: '2026-08-01T18:49:11.823561+00:00'

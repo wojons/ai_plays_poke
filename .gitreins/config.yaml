@@ -12,9 +12,9 @@ guards:
     - mypy
 evaluator:
   max_iterations: 50
-  max_time: 10m
-  max_input_tokens: 0.2M
-  max_output_tokens: 0.4M
+  max_time: 30m
+  max_input_tokens: 16M
+  max_output_tokens: 4M
   tool_call_weight: 0.1
   fast_track: auto
 
