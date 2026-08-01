@@ -814,12 +814,20 @@ class RAMReader:
     # ── Player state ────────────────────────────────────────────────
 
     def player_x(self) -> int:
-        """Player X in map block coordinates (0-indexed, border offset removed)."""
-        return self.read_u8(ADDR_X_COORD) - 4
+        """Player X in 2×2 map-block coordinates."""
+        return self.player_tile_x() // 2
 
     def player_y(self) -> int:
-        """Player Y in map block coordinates (0-indexed, border offset removed)."""
-        return self.read_u8(ADDR_Y_COORD) - 4
+        """Player Y in 2×2 map-block coordinates."""
+        return self.player_tile_y() // 2
+
+    def player_tile_x(self) -> int:
+        """Exact player X tile coordinate from wXCoord."""
+        return self.read_u8(ADDR_X_COORD)
+
+    def player_tile_y(self) -> int:
+        """Exact player Y tile coordinate from wYCoord."""
+        return self.read_u8(ADDR_Y_COORD)
 
     def player_facing(self) -> str:
         facing = self.read_u8(ADDR_SPRITE_STATE_DATA + 9) & 0x0C
@@ -842,15 +850,55 @@ class RAMReader:
         if battle != 0:
             return SCREEN_BATTLE
 
-        text_frame = self.read_u8(ADDR_TEXT_BOX_FRAME)
-        if text_frame != 0:
-            return SCREEN_DIALOG
-
         naming_state = self.read_u8(ADDR_NAMING_SCREEN)
-        if naming_state != 0:
+        if naming_state != 0 or self._has_name_entry_keyboard():
             return SCREEN_NAME_ENTRY
 
+        text_frame = self.read_u8(ADDR_TEXT_BOX_FRAME)
+        if text_frame != 0 or self._has_bottom_textbox():
+            return SCREEN_DIALOG
+
+        if all(tile == 0x7F for tile in self._tilemap_row(0)):
+            return SCREEN_UNKNOWN
+
+        if self.read_u8(ADDR_SPRITE_STATE_DATA) == 0:
+            if (
+                self.current_map_id() == 0
+                and self.player_tile_x() == 0
+                and self.player_tile_y() == 0
+            ):
+                return SCREEN_TITLE
+            return SCREEN_UNKNOWN
+
         return SCREEN_OVERWORLD
+
+    def _tilemap_row(self, row: int) -> list[int]:
+        start = ADDR_TILE_MAP + row * TILE_MAP_WIDTH
+        return [self.read_u8(start + col) for col in range(TILE_MAP_WIDTH)]
+
+    def _has_name_entry_keyboard(self) -> bool:
+        """Detect the Gen 1 naming keyboard from its four letter rows."""
+        letter_tiles = 0
+        for row in (5, 7, 9, 11):
+            letter_tiles += sum(0x80 <= tile <= 0x9F for tile in self._tilemap_row(row))
+        return (
+            self.read_u8(ADDR_MAX_MENU_ITEM) == 7
+            and self.read_u8(ADDR_LAST_MENU_ITEM) != 0
+            and letter_tiles >= 20
+        )
+
+    def _has_bottom_textbox(self) -> bool:
+        """Detect a rendered 20×6 text box after wTextBoxFrame returns to zero."""
+        top = self._tilemap_row(12)
+        bottom = self._tilemap_row(17)
+        return (
+            top[0] == 0x79
+            and top[-1] == 0x7B
+            and bottom[0] == 0x7D
+            and bottom[-1] == 0x7E
+            and all(tile == 0x7A for tile in top[1:-1])
+            and all(tile == 0x7A for tile in bottom[1:-1])
+        )
 
     # ── Map / minimap ────────────────────────────────────────────────
 
@@ -1099,9 +1147,11 @@ class RAMReader:
                 "speed": pspd,
                 "special": pspc,
                 "status": pstatus,
-                "type": f"{self._type_name(ptype1)}/{self._type_name(ptype2)}"
-                if ptype2 != ptype1
-                else self._type_name(ptype1),
+                "type": (
+                    f"{self._type_name(ptype1)}/{self._type_name(ptype2)}"
+                    if ptype2 != ptype1
+                    else self._type_name(ptype1)
+                ),
                 "moves": pmoves,
             },
             "enemy": {
@@ -1114,9 +1164,11 @@ class RAMReader:
                 "defense": edef,
                 "speed": espd,
                 "special": espc,
-                "type": f"{self._type_name(etype1)}/{self._type_name(etype2)}"
-                if etype2 != etype1
-                else self._type_name(etype1),
+                "type": (
+                    f"{self._type_name(etype1)}/{self._type_name(etype2)}"
+                    if etype2 != etype1
+                    else self._type_name(etype1)
+                ),
             },
         }
 
@@ -1262,7 +1314,9 @@ class RAMReader:
     # These hints give minimal guidance so the controller can make
     # informed decisions instead of walking into walls.
     _MAP_HINTS: dict[str, str] = {
-        "Pallet Town": "Pallet Town. Exit north to Route 1. Prof. Oak's lab is northwest.",
+        "Pallet Town": "North exit is centered near tile x=10. From the house door, move DOWN first (UP re-enters the house), align with x=10, then move UP to Route 1 and trigger Professor Oak.",
+        "Red's House 2F": "From the bedroom spawn, the collision-verified path to the stairs is RIGHT, UP, UP, UP, RIGHT.",
+        "Red's House 1F": "From the upstairs warp, the collision-verified exit path is DOWN, DOWN, DOWN, LEFT, LEFT, DOWN.",
         "Viridian City": "Viridian City. Exit north to Route 2, south to Route 1.",
         "Route 1": "Route 1. North to Viridian City, south to Pallet Town. Grass has wild Pokémon.",
         "Route 2": "Route 2. North to Pewter City (through forest), south to Viridian City.",
@@ -1276,6 +1330,20 @@ class RAMReader:
         "If you're in a building, look for stairs (usually DOWN). If outside, try NORTH.",
     ]
 
+    def _suggested_map_action(self, map_name: str) -> str:
+        """Return coordinate-aware navigation for maps with known choke points."""
+        if map_name == "Pallet Town":
+            tile_x = self.player_tile_x()
+            tile_y = self.player_tile_y()
+            if tile_y <= 6 and tile_x <= 6:
+                return "Move DOWN away from the house door before turning toward Route 1. Do not press UP here; it re-enters the house."
+            if tile_x < 9:
+                return "Move RIGHT only until aligned with Pallet Town's north exit near tile x=10."
+            if tile_x > 11:
+                return "Move LEFT only until aligned with Pallet Town's north exit near tile x=10."
+            return "Move UP only toward Route 1. At the north map edge, keep moving UP to trigger Professor Oak."
+        return self._MAP_HINTS.get(map_name, "")
+
     def observe(self) -> dict[str, Any]:
         """Produce a structured observation matching the cartographer's JSON schema.
 
@@ -1285,6 +1353,7 @@ class RAMReader:
         mid = self.current_map_id()
         mname = self.current_map_name()
         px, py = self.player_x(), self.player_y()
+        ptx, pty = self.player_tile_x(), self.player_tile_y()
         facing = self.player_facing()
 
         obs: dict[str, Any] = {
@@ -1292,6 +1361,8 @@ class RAMReader:
             "player_facing": facing,
             "player_x": px,
             "player_y": py,
+            "player_tile_x": ptx,
+            "player_tile_y": pty,
             "map_id": mid,
             "map_name": mname,
             "adjacent": {},
@@ -1335,7 +1406,7 @@ class RAMReader:
             obs["render"] = self.render_overworld()
 
             # Use map-specific hint for suggested_action
-            hint = self._MAP_HINTS.get(mname, "")
+            hint = self._suggested_map_action(mname)
             if hint:
                 obs["suggested_action"] = hint
             else:

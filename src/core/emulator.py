@@ -228,7 +228,7 @@ class Emulator:
             "y": (5, 6),
             "z": (5, 7),
         }
-        _END_POS = (6, 9)
+        _END_POS = (4, 8)
 
         cur_r, cur_c = 0, 0
 
@@ -241,18 +241,22 @@ class Emulator:
             dc = tc - cur_c
             if dc > 0:
                 for _ in range(dc):
-                    self.press_button("right", frames=4)
+                    self.press_button("right", frames=5)
+                    self.wait(15)
             elif dc < 0:
                 for _ in range(-dc):
-                    self.press_button("left", frames=4)
+                    self.press_button("left", frames=5)
+                    self.wait(15)
             if dr > 0:
                 for _ in range(dr):
-                    self.press_button("down", frames=4)
+                    self.press_button("down", frames=5)
+                    self.wait(15)
             elif dr < 0:
                 for _ in range(-dr):
-                    self.press_button("up", frames=4)
+                    self.press_button("up", frames=5)
+                    self.wait(15)
             self.wait(6)
-            self.press_button("a", frames=8)
+            self.press_button("a", frames=15)
             self.wait(12)
             cur_r, cur_c = tr, tc
 
@@ -261,19 +265,36 @@ class Emulator:
         dc = _END_POS[1] - cur_c
         if dc > 0:
             for _ in range(dc):
-                self.press_button("right", frames=4)
+                self.press_button("right", frames=5)
+                self.wait(15)
         elif dc < 0:
             for _ in range(-dc):
-                self.press_button("left", frames=4)
+                self.press_button("left", frames=5)
+                self.wait(15)
         if dr > 0:
             for _ in range(dr):
-                self.press_button("down", frames=4)
+                self.press_button("down", frames=5)
+                self.wait(15)
         elif dr < 0:
             for _ in range(-dr):
-                self.press_button("up", frames=4)
+                self.press_button("up", frames=5)
+                self.wait(15)
         self.wait(6)
-        self.press_button("a", frames=8)
+        self.press_button("a", frames=15)
         self.wait(30)
+
+    def submit_name(self) -> None:
+        """Enter one A, then move from the A key to END and accept the name."""
+        self.press_button("a", frames=15)
+        self.wait(15)
+        for _ in range(4):
+            self.press_button("down", frames=5)
+            self.wait(15)
+        for _ in range(8):
+            self.press_button("right", frames=5)
+            self.wait(15)
+        self.press_button("a", frames=15)
+        self.wait(60)
 
     # ── lifecycle ────────────────────────────────────────────────────
 

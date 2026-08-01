@@ -10,7 +10,6 @@ from __future__ import annotations
 import pytest
 from unittest.mock import MagicMock, patch
 
-
 # ── helpers ────────────────────────────────────────────────────────────────
 
 
@@ -98,13 +97,14 @@ def _emu_read_u16(addr: int) -> int:
 def _set_default_memory() -> None:
     """Set default emulator memory values — player in Pallet Town (map 0x00)."""
     _MEMORY.clear()
-    _MEMORY[0xD361] = 7  # wYCoord = 7 (player_y = 3 after -4)
-    _MEMORY[0xD362] = 9  # wXCoord = 9 (player_x = 5 after -4)
+    _MEMORY[0xD361] = 6  # tile y=6 → block y=3
+    _MEMORY[0xD362] = 10  # tile x=10 → block x=5
     _MEMORY[0xD35E] = 0x00  # wCurMap = Pallet Town
     _MEMORY[0xCFC5] = 0  # wWalkCounter = 0 (not moving)
     _MEMORY[0xD057] = 0  # wIsInBattle = 0 (overworld)
     _MEMORY[0xCF2B] = 0  # wTextBoxFrame = 0
     _MEMORY[0xCC47] = 0  # wNamingScreenType = 0
+    _MEMORY[0xC100] = 1  # player sprite active
     # Sprite state data — facing direction (offset 9, bits 2-3 = 0x00 = down)
     _MEMORY[0xC109] = 0x00
 
@@ -352,14 +352,16 @@ class TestRAMReaderPlayerState:
 
         with patch("src.core.ram_reader._MapDB"):
             reader = RAMReader(mock_emu, "/fake/rom.gb")
-            assert reader.player_x() == 5  # 9 - 4 = 5
+            assert reader.player_x() == 5
+            assert reader.player_tile_x() == 10
 
     def test_player_y(self, mock_emu: MagicMock) -> None:
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
             reader = RAMReader(mock_emu, "/fake/rom.gb")
-            assert reader.player_y() == 3  # 7 - 4 = 3
+            assert reader.player_y() == 3
+            assert reader.player_tile_y() == 6
 
     def test_player_facing_down(self, mock_emu: MagicMock) -> None:
         from src.core.ram_reader import RAMReader
@@ -470,6 +472,44 @@ class TestRAMReaderScreenType:
             reader = RAMReader(mock_emu, "/fake/rom.gb")
             assert reader.screen_type() == "name_entry"
 
+    def test_name_entry_detected_from_keyboard_tilemap(
+        self, mock_emu: MagicMock
+    ) -> None:
+        """The real ROM leaves wNamingScreenType at zero on the keyboard."""
+        _MEMORY[0xCC47] = 0
+        _MEMORY[0xCC28] = 7
+        _MEMORY[0xCC2A] = 1
+        for row in (5, 7, 9, 11):
+            for col in range(2, 18, 2):
+                _MEMORY[0xC3A0 + row * 20 + col] = 0x80 + col
+
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.screen_type() == "name_entry"
+
+    def test_dialog_detected_from_bottom_textbox_border(
+        self, mock_emu: MagicMock
+    ) -> None:
+        """The real ROM leaves wTextBoxFrame at zero after text is rendered."""
+        _MEMORY[0xCF2B] = 0
+        top = 0xC3A0 + 12 * 20
+        bottom = 0xC3A0 + 17 * 20
+        _MEMORY[top] = 0x79
+        _MEMORY[top + 19] = 0x7B
+        _MEMORY[bottom] = 0x7D
+        _MEMORY[bottom + 19] = 0x7E
+        for col in range(1, 19):
+            _MEMORY[top + col] = 0x7A
+            _MEMORY[bottom + col] = 0x7A
+
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.screen_type() == "dialog"
+
 
 class TestRAMReaderAdjacentBlocks:
     def test_adjacent_returns_blocks(self, mock_emu: MagicMock) -> None:
@@ -517,8 +557,8 @@ class TestRAMReaderAdjacentBlocks:
 
     def test_adjacent_inside_bounds(self, mock_emu: MagicMock) -> None:
         """Move player to (2,2) on 4×4 map — all 4 adjacent cells exist."""
-        _MEMORY[0xD361] = 6  # y = 2
-        _MEMORY[0xD362] = 6  # x = 2
+        _MEMORY[0xD361] = 4  # tile y=4 → block y=2
+        _MEMORY[0xD362] = 4  # tile x=4 → block x=2
 
         from src.core.ram_reader import RAMReader
 
@@ -569,8 +609,8 @@ class TestRAMReaderAdjacentBlocks:
 class TestRAMReaderBuildMinimap:
     def test_minimap_renders_player_position(self, mock_emu: MagicMock) -> None:
         """Player at (2,2) on a 4×4 map — minimap shows PP at centre."""
-        _MEMORY[0xD361] = 6  # y = 2
-        _MEMORY[0xD362] = 6  # x = 2
+        _MEMORY[0xD361] = 4  # tile y=4 → block y=2
+        _MEMORY[0xD362] = 4  # tile x=4 → block x=2
 
         from src.core.ram_reader import RAMReader
 
@@ -649,6 +689,28 @@ class TestRAMReaderBuildMinimap:
 
 
 class TestRAMReaderObserve:
+    @pytest.mark.parametrize(
+        ("tile_x", "tile_y", "expected_direction"),
+        [(5, 6, "DOWN"), (5, 10, "RIGHT"), (14, 10, "LEFT"), (10, 10, "UP")],
+    )
+    def test_pallet_hint_is_coordinate_aware(
+        self,
+        mock_emu: MagicMock,
+        tile_x: int,
+        tile_y: int,
+        expected_direction: str,
+    ) -> None:
+        _MEMORY[0xD362] = tile_x
+        _MEMORY[0xD361] = tile_y
+
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader._suggested_map_action("Pallet Town").startswith(
+                f"Move {expected_direction}"
+            )
+
     def test_returns_structured_dict(self, mock_emu: MagicMock) -> None:
         from src.core.ram_reader import RAMReader
 
@@ -676,10 +738,8 @@ class TestRAMReaderObserve:
             assert "minimap" in obs
             assert obs["map_dimensions"] == "4×4"
             assert obs["map_tileset"] == 4
-            assert (
-                "Pallet Town" in obs["suggested_action"]
-                or "explore" in obs["suggested_action"]
-            )
+            # Coordinate-aware hint: player tile (10,6) → north-exit guidance
+            assert "Route 1" in obs["suggested_action"]
 
     def test_battle_observe(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xD057] = 1
@@ -725,8 +785,8 @@ class TestRAMReaderObserve:
 
     def test_exits_detected(self, mock_emu: MagicMock) -> None:
         """Player at (2,2) adjacent to stairs and door."""
-        _MEMORY[0xD361] = 6  # y = 2
-        _MEMORY[0xD362] = 6  # x = 2
+        _MEMORY[0xD361] = 4  # tile y=4 → block y=2
+        _MEMORY[0xD362] = 4  # tile x=4 → block x=2
 
         from src.core.ram_reader import RAMReader
 
@@ -748,15 +808,13 @@ class TestRAMReaderObserve:
 
             # Player at (2,2): all adjacent are 0x0F→floor — no exits
             assert obs["visible_exits"] == []
-            assert (
-                "Pallet Town" in obs["suggested_action"]
-                or "explore" in obs["suggested_action"]
-            )
+            # Coordinate-aware hint: player tile (4,4) → house-door guidance
+            assert "Move DOWN" in obs["suggested_action"]
 
     def test_exits_detected_with_doors(self, mock_emu: MagicMock) -> None:
         """Player at (2,2) with a door to the right — exits should be found."""
-        _MEMORY[0xD361] = 6  # y = 2
-        _MEMORY[0xD362] = 6  # x = 2
+        _MEMORY[0xD361] = 4  # tile y=4 → block y=2
+        _MEMORY[0xD362] = 4  # tile x=4 → block x=2
 
         from src.core.ram_reader import RAMReader
 
@@ -867,8 +925,8 @@ class TestMapDBClassifyTileset0:
 class TestRenderOverworld:
     def test_indoor_grid(self, mock_emu: MagicMock) -> None:
         """Player at (2,2) on 4×4 indoor map, facing down."""
-        _MEMORY[0xD361] = 6  # y = 2
-        _MEMORY[0xD362] = 6  # x = 2
+        _MEMORY[0xD361] = 4  # tile y=4 → block y=2
+        _MEMORY[0xD362] = 4  # tile x=4 → block x=2
         _MEMORY[0xC109] = 0x00  # facing down
 
         from src.core.ram_reader import RAMReader
@@ -941,8 +999,8 @@ class TestRenderOverworld:
 
     def test_outdoor_grid(self, mock_emu: MagicMock) -> None:
         """Player at (6,5) on 10×9 outdoor map, facing down."""
-        _MEMORY[0xD361] = 9  # y = 5
-        _MEMORY[0xD362] = 10  # x = 6
+        _MEMORY[0xD361] = 10  # tile y=10 → block y=5
+        _MEMORY[0xD362] = 12  # tile x=12 → block x=6
         _MEMORY[0xC109] = 0x00  # facing down
 
         from src.core.ram_reader import RAMReader, _MapDB as RealMapDB
@@ -1004,8 +1062,8 @@ class TestRenderOverworld:
         ]
 
         for facing_byte, expected_arrow, facing_name in directions:
-            _MEMORY[0xD361] = 6  # y = 2
-            _MEMORY[0xD362] = 6  # x = 2
+            _MEMORY[0xD361] = 4  # tile y=4 → block y=2
+            _MEMORY[0xD362] = 4  # tile x=4 → block x=2
             _MEMORY[0xC109] = facing_byte
 
             with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
@@ -1076,8 +1134,8 @@ class TestRenderOverworld:
 
     def test_out_of_bounds_shows_question_mark(self, mock_emu: MagicMock) -> None:
         """Player at (1,1) on 4×4 map — cells at dx=-2 and dy=-2 are '?'."""
-        _MEMORY[0xD361] = 5  # y = 1
-        _MEMORY[0xD362] = 5  # x = 1
+        _MEMORY[0xD361] = 2  # tile y=2 → block y=1
+        _MEMORY[0xD362] = 2  # tile x=2 → block x=1
 
         from src.core.ram_reader import RAMReader
 
@@ -1721,9 +1779,9 @@ class TestRenderMenu:
 
         lines = output.split("\n")
         # Verify arrow appears on the [2] line specifically
-        assert any("→" in line and "[2]" in line for line in lines), (
-            "Expected → marker on item 2"
-        )
+        assert any(
+            "→" in line and "[2]" in line for line in lines
+        ), "Expected → marker on item 2"
 
     def test_includes_navigation_hint(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCF88] = 1
@@ -1974,9 +2032,9 @@ class TestRenderNameEntry:
 
         assert "Keyboard:" in output
         lines = output.split("\n")
-        assert any("A B C D E F G H I" in line for line in lines), (
-            f"Expected uppercase row, got lines: {lines}"
-        )
+        assert any(
+            "A B C D E F G H I" in line for line in lines
+        ), f"Expected uppercase row, got lines: {lines}"
 
     def test_navigation_hint(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCC47] = 1

@@ -7,6 +7,11 @@ pure-function behavior without needing an emulator or ROM.
 
 from __future__ import annotations
 
+from cron_runner import (
+    PRESS_FRAMES,
+    _blocked_spatial_directions,
+    _reset_recovery_trackers,
+)
 
 # ── Constants matching cron_runner.py ─────────────────────────────────────
 MAX_SAME_DIRECTION = 5
@@ -181,6 +186,33 @@ class TestRecoveryDecision:
         should, reason = _should_recover(1, 0)
         assert not should
 
+    def test_a_press_recovery_resets_a_counter(self) -> None:
+        counters = _reset_recovery_trackers(
+            "A-press locked (A x3)",
+            same_dir="RIGHT",
+            same_dir_count=2,
+            same_screen_count=1,
+            void_cycles=1,
+            a_press_count=3,
+        )
+
+        assert counters.a_press_count == 0
+
+    def test_controller_press_duration_represents_one_tile(self) -> None:
+        assert PRESS_FRAMES == 5
+
+    def test_pallet_north_exit_is_not_filtered_as_wall(self) -> None:
+        blocked = _blocked_spatial_directions(
+            {
+                "map_name": "Pallet Town",
+                "player_tile_x": 10,
+                "player_tile_y": 2,
+                "adjacent": {"up": "wall", "down": "floor"},
+            }
+        )
+
+        assert "up" not in blocked
+
 
 class TestEndToEndSequence:
     """Full sequences simulating cron_runner.py cartographer loop behavior."""
@@ -213,9 +245,9 @@ class TestEndToEndSequence:
                 recovered = True
                 break
 
-        assert not recovered, (
-            f"Recovery should NOT fire with interleaved A presses (final count={count})"
-        )
+        assert (
+            not recovered
+        ), f"Recovery should NOT fire with interleaved A presses (final count={count})"
 
     def test_full_cart_steps_all_down_with_checkpoint(self) -> None:
         """12 consecutive DOWNs with checkpoint available — recovery fires."""

@@ -12,7 +12,6 @@ from unittest.mock import MagicMock, mock_open, patch
 
 from pyboy.utils import WindowEvent
 
-
 # ── Fixture: mock PyBoy for all emulator tests ──────────────────────────
 
 
@@ -301,6 +300,14 @@ class TestEnterName:
         ]
         direction_used = [e for e in direction_events if e in all_press]
         assert len(direction_used) > 0
+
+    def test_submit_name_navigates_to_real_end_key(self, emu) -> None:
+        emu.submit_name()
+        presses = [call[0][0] for call in emu._pyboy.send_input.call_args_list]
+
+        assert presses.count(WindowEvent.PRESS_ARROW_DOWN) == 4
+        assert presses.count(WindowEvent.PRESS_ARROW_RIGHT) == 8
+        assert presses.count(WindowEvent.PRESS_BUTTON_A) == 2
 
 
 class TestCombo:

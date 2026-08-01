@@ -16,6 +16,8 @@ def safe_print(*args, **kwargs):
     except (BrokenPipeError, OSError):
         pass
 
+import argparse
+from dataclasses import dataclass
 from typing import Any
 import sys
 import os
@@ -91,8 +93,8 @@ USE_RAM_READER = True   # True = RAM-based state reader (instant, free), False =
 HINT_LEVEL = 4  # 0=benchmark, 1=mechanics, 2=genre, 3=starter, 4=navigation
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 6  # controller steps per overworld cycle (reduced from 12 — short moves, more cartographer feedback)
-PRESS_FRAMES = 120  # hold button for 2s game time
-STEP_FORWARD = 300  # fast-forward between steps (~5s game time)
+PRESS_FRAMES = 5  # one deliberate D-pad/button press (roughly one tile)
+STEP_FORWARD = 15  # settle without triggering D-pad key repeat
 LOG_DIR = Path("cron_logs")
 LOG_DIR.mkdir(exist_ok=True)
 run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -138,6 +140,62 @@ else:
     REFERENCE_IMAGE_B64 = ""
 
 # ── Helpers ─────────────────────────────────────────────────────────
+
+@dataclass(frozen=True)
+class _RecoveryTrackers:
+    same_dir: str | None
+    same_dir_count: int
+    same_screen_count: int
+    void_cycles: int
+    a_press_count: int
+
+
+def _reset_recovery_trackers(
+    recovery_reason: str,
+    *,
+    same_dir: str | None,
+    same_dir_count: int,
+    same_screen_count: int,
+    void_cycles: int,
+    a_press_count: int,
+) -> _RecoveryTrackers:
+    """Clear the tracker that fired, including A presses after any recovery."""
+    if "direction-locked" in recovery_reason:
+        same_dir = None
+        same_dir_count = 0
+    elif "screen-locked" in recovery_reason:
+        same_screen_count = 0
+    elif "void-locked" in recovery_reason:
+        void_cycles = 0
+
+    return _RecoveryTrackers(
+        same_dir=same_dir,
+        same_dir_count=same_dir_count,
+        same_screen_count=same_screen_count,
+        void_cycles=void_cycles,
+        a_press_count=0,
+    )
+
+
+def _blocked_spatial_directions(spatial_desc: dict[str, Any]) -> set[str]:
+    """Return blocked directions, preserving known map-edge exits."""
+    adjacent = spatial_desc.get("adjacent", {})
+    blocked = {
+        direction
+        for direction, tile_type in adjacent.items()
+        if tile_type in ("wall", "object")
+    }
+
+    # Route 1 is a map-edge warp, so the coarse 2×2 block classifier sees
+    # its north-edge tile as a wall. At the center opening, UP is the exit.
+    if spatial_desc.get("map_name") == "Pallet Town":
+        tile_x = int(spatial_desc.get("player_tile_x", -1))
+        tile_y = int(spatial_desc.get("player_tile_y", 99))
+        if 8 <= tile_x <= 12 and tile_y <= 2:
+            blocked.discard("up")
+
+    return blocked
+
 
 def screenshot_to_base64(screenshot: np.ndarray) -> str:
     """Convert numpy RGB screenshot to base64 data URL."""
@@ -311,12 +369,17 @@ def controller_plan(
     exits = spatial_desc.get("visible_exits", [])
     suggested = spatial_desc.get("suggested_action", "")
     text = spatial_desc.get("text_content", [])
+    map_name = spatial_desc.get("map_name", "Unknown")
+    tile_x = spatial_desc.get("player_tile_x", "?")
+    tile_y = spatial_desc.get("player_tile_y", "?")
 
     adj_str = ", ".join(f"{d}={adj.get(d, '?')}" for d in ["up", "down", "left", "right"])
     exits_str = "; ".join(exits) if exits else "none visible"
     text_str = " | ".join(text) if text else "none"
 
     spatial_summary = (
+        f"MAP: {map_name}\n"
+        f"PLAYER TILE: x={tile_x}, y={tile_y}\n"
         f"PLAYER FACING: {facing}\n"
         f"ADJACENT TILES: {adj_str}\n"
         f"VISIBLE EXITS: {exits_str}\n"
@@ -373,7 +436,8 @@ def controller_plan(
             {"role": "user", "content": msg},
         ],
         temperature=0.3,
-        max_tokens=1000,
+        max_tokens=300,
+        thinking={"type": "disabled"},
     )
 
     text = response.get("content", "{}")
@@ -413,6 +477,18 @@ def controller_plan(
 # ── Main ────────────────────────────────────────────────────────────
 
 def main() -> None:
+    global CYCLES, run_id, log_path, SCREENSHOT_DIR
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--run-id", default=None)
+    parser.add_argument("--cycles", type=int, default=CYCLES)
+    args = parser.parse_args()
+    CYCLES = max(1, args.cycles)
+    run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_path = LOG_DIR / f"run_{run_id}.jsonl"
+    SCREENSHOT_DIR = Path("screenshots") / f"run_{run_id}"
+    SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
+
     results = []
     emu = Emulator(ROM)
 
@@ -469,7 +545,9 @@ def main() -> None:
     # RAM reader path: instant state reads, no LLM calls.
     safe_print(f"[{run_id}] Bypassing intro via {pipeline_name}...")
 
-    # Step 1: Title screen → press START
+    # Step 1: Title screen → press START. PyBoy starts before the title is
+    # ready for input, so let it finish drawing before sending START.
+    emu.wait(180)
     emu.bypass_title()
     # Brief settle — intro loop detects state changes via RAM, no need for long waits.
     emu.wait(30)
@@ -532,14 +610,15 @@ def main() -> None:
         elif st == "name_entry":
             _name_entry_stuck += 1
             if _name_entry_stuck >= _NAME_ENTRY_STUCK_MAX:
-                # Stuck in name entry — use deterministic keyboard typing
+                # A-mashing may already have filled the name. Navigate from
+                # the default A key directly to END and accept it.
                 if not _player_named:
-                    safe_print("  [intro] Name entry stuck — typing ASH programmatically")
-                    emu.enter_name("ASH")
+                    safe_print("  [intro] Name entry stuck — accepting player name")
+                    emu.submit_name()
                     _player_named = True
                 elif not _rival_named:
-                    safe_print("  [intro] Rival name stuck — typing BLUE programmatically")
-                    emu.enter_name("BLUE")
+                    safe_print("  [intro] Rival name stuck — accepting rival name")
+                    emu.submit_name()
                     _rival_named = True
                 _name_entry_stuck = 0
             else:
@@ -596,19 +675,21 @@ def main() -> None:
     emu.wait(30)
 
     # ── Leave bedroom ────────────────────────────────────────────
-    # Path: center → DOWN to bottom row → LEFT along bottom to stairs.
-    # Sleeping Pokémon Red/Blue speedrun strat. DOWN from center is
-    # obstacle-free; LEFT traverses the bottom row to the stairs at
-    # bottom-left. Stairs auto-transition on contact.
-    safe_print("  [intro] Walking to bedroom stairs (DOWN then LEFT)...")
-    for _ in range(5):
-        emu.press_button("down", frames=30)
+    # A 30-frame press advances roughly two tiles. The collision-verified path
+    # from spawn (3,6) to the bedroom warp (7,1) is R,U,U,U,R.
+    safe_print("  [intro] Walking to bedroom stairs (R,U,U,U,R)...")
+    for button in ("right", "up", "up", "up", "right"):
+        emu.press_button(button, frames=30)
         emu.fast_forward(60)
-    emu.wait(15)
-    for _ in range(4):
-        emu.press_button("left", frames=30)
-        emu.fast_forward(60)
-    emu.wait(90)  # let the stairs transition happen
+    emu.wait(90)
+
+    # Continue through the ground floor so the controller starts outdoors.
+    if emu.read_u8(0xD35E) == 0x25:  # wCurMap: Red's House 1F
+        safe_print("  [intro] Leaving ground floor for Pallet Town...")
+        for button in ("down", "down", "down", "left", "left", "down"):
+            emu.press_button(button, frames=30)
+            emu.fast_forward(60)
+        emu.wait(90)
 
     ctx = GlobalContext(generation="gen1", location="bedroom")
     # If we bypassed the intro, set player/rival names
@@ -755,14 +836,19 @@ def main() -> None:
                         results.append(evt)
                         log_file.write(json.dumps(evt, default=str) + "\n")
                         log_file.flush()
-                        # Reset the triggering tracker
-                        if "direction-locked" in recovery_reason:
-                            _same_dir = None
-                            _same_dir_count = 0
-                        elif "screen-locked" in recovery_reason:
-                            _same_screen_count = 0
-                        elif "void-locked" in recovery_reason:
-                            _void_cycles = 0
+                        trackers = _reset_recovery_trackers(
+                            recovery_reason,
+                            same_dir=_same_dir,
+                            same_dir_count=_same_dir_count,
+                            same_screen_count=_same_screen_count,
+                            void_cycles=_void_cycles,
+                            a_press_count=_a_press_count,
+                        )
+                        _same_dir = trackers.same_dir
+                        _same_dir_count = trackers.same_dir_count
+                        _same_screen_count = trackers.same_screen_count
+                        _void_cycles = trackers.void_cycles
+                        _a_press_count = trackers.a_press_count
 
                 # Step 2b: Controller outputs movement PLAN from spatial description
                 decision = controller_plan(
@@ -802,9 +888,7 @@ def main() -> None:
                 # The cartographer tells us what's actually adjacent. If it says
                 # a tile is "wall" or "object", walking there is impossible.
                 # Strip those directions BEFORE execution regardless of LLM output.
-                adj_data = patch_data.get("adjacent", {})
-                _blocked_spatial = {d for d, v in adj_data.items()
-                                    if v in ("wall", "object")}
+                _blocked_spatial = _blocked_spatial_directions(patch_data)
                 if _blocked_spatial:
                     _before_filter = plan[:]
                     _blocked_upper = {d.upper() for d in _blocked_spatial}
@@ -843,6 +927,12 @@ def main() -> None:
                     "intent": intent,
                     "controller_raw": decision.get("raw_response", ""),
                     "cartographer_raw": carto_raw,
+                    "map_id": patch_data.get("map_id"),
+                    "map_name": patch_data.get("map_name"),
+                    "player_x": patch_data.get("player_x"),
+                    "player_y": patch_data.get("player_y"),
+                    "player_tile_x": patch_data.get("player_tile_x"),
+                    "player_tile_y": patch_data.get("player_tile_y"),
                 }
                 results.append(plan_entry)
                 log_file.write(json.dumps(plan_entry, default=str) + "\n")
@@ -905,13 +995,13 @@ def main() -> None:
 
                 if _main_ne_stuck >= _NAME_ENTRY_STUCK_MAX:
                     if not _player_named:
-                        safe_print("  [main] Name entry stuck — typing ASH programmatically")
-                        emu.enter_name("ASH")
+                        safe_print("  [main] Name entry stuck — accepting player name")
+                        emu.submit_name()
                         _player_named = True
                         ctx.player_name = "ASH"
                     elif not _rival_named:
-                        safe_print("  [main] Rival name stuck — typing BLUE programmatically")
-                        emu.enter_name("BLUE")
+                        safe_print("  [main] Rival name stuck — accepting rival name")
+                        emu.submit_name()
                         _rival_named = True
                         ctx.rival_name = "GARY"
                     _main_ne_stuck_box[0] = 0
@@ -1044,9 +1134,19 @@ def main() -> None:
                         results.append(evt)
                         log_file.write(json.dumps(evt, default=str) + "\n")
                         log_file.flush()
-                        _same_screen_count = 0
-                        _same_dir = None
-                        _same_dir_count = 0
+                        trackers = _reset_recovery_trackers(
+                            recovery_reason,
+                            same_dir=_same_dir,
+                            same_dir_count=_same_dir_count,
+                            same_screen_count=_same_screen_count,
+                            void_cycles=_void_cycles,
+                            a_press_count=_a_press_count,
+                        )
+                        _same_dir = trackers.same_dir
+                        _same_dir_count = trackers.same_dir_count
+                        _same_screen_count = trackers.same_screen_count
+                        _void_cycles = trackers.void_cycles
+                        _a_press_count = trackers.a_press_count
                         continue  # skip StateWindow, let next cycle re-classify
 
                 state_type = st

@@ -515,6 +515,7 @@ class OpenRouterClient:
         stream: bool = False,
         retry_count: int = 0,
         tools: Optional[List[Dict[str, Any]]] = None,
+        thinking: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Make a chat completion request to OpenRouter (or DeepSeek direct).
@@ -551,6 +552,9 @@ class OpenRouterClient:
             # NOTE: Do NOT set response_format when tools are present.
             # response_format conflicts with tool_calls — the model must
             # return tool_calls, not raw JSON content.
+
+        if thinking is not None:
+            payload["thinking"] = thinking
 
         if images and len(images) > 0:
             image_content = []

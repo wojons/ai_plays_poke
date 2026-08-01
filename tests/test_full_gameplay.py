@@ -20,6 +20,31 @@ def _has_rom() -> bool:
     return ROM_PATH.is_file()
 
 
+def _advance_to_overworld(emu, reader, max_cycles: int = 120) -> None:
+    """Advance both naming screens and dialogs to a controllable map."""
+    emu.wait(180)
+    emu.bypass_title()
+    emu.press_button("a", frames=15)
+    emu.fast_forward(60)
+
+    name_entries = 0
+    for _ in range(max_cycles):
+        screen = reader.screen_type()
+        if screen == "name_entry":
+            emu.submit_name()
+            name_entries += 1
+        elif screen == "overworld" and emu.read_u8(0xC100) != 0:
+            return
+        else:
+            emu.press_button("a", frames=20)
+            emu.fast_forward(60)
+
+    pytest.fail(
+        f"Did not reach controllable overworld within {max_cycles} cycles "
+        f"(last screen={reader.screen_type()}, names={name_entries})"
+    )
+
+
 def _count_action_types(log_path: Path) -> dict[str, int]:
     """Count the types of actions taken across cycles."""
     counts: dict[str, int] = {}
@@ -43,30 +68,18 @@ class TestFullGameplay:
     """End-to-end gameplay test with real ROM."""
 
     def test_boots_and_reaches_overworld(self) -> None:
-        """Boot ROM, bypass intro, assert overworld screen appears within 50 cycles."""
+        """Boot ROM, bypass intro, and reach a controllable overworld."""
         from src.core.emulator import Emulator
         from src.core.ram_reader import RAMReader
 
         emu = Emulator(ROM_PATH)
-
-        # Bypass title screen
-        emu.bypass_title()
-        for _ in range(240):  # fast-forward through Oak's intro
-            emu._pyboy.tick()
-
-        reader = RAMReader(emu, ROM_PATH)
-
-        # Try A-mash to get past remaining intro
-        for _ in range(30):
-            emu.press_button("a", frames=5)
-            emu.wait(10)
-
-        obs = reader.observe()
-        assert obs["result"] in ("overworld", "dialog", "name_entry"), (
-            f"Expected overworld/dialog/name_entry, got {obs['result']}"
-        )
-
-        emu.stop()
+        try:
+            reader = RAMReader(emu, ROM_PATH)
+            _advance_to_overworld(emu, reader)
+            obs = reader.observe()
+            assert obs["result"] == "overworld"
+        finally:
+            emu.stop()
 
     def test_ram_reader_produces_valid_state(self) -> None:
         """RAM reader returns structured observation with required keys after boot."""
@@ -151,9 +164,9 @@ class TestFullGameplay:
         bs = obs.get("battle_state", {})
 
         # Not in battle — battle_state should be empty or have null values
-        assert not bs or bs.get("player", {}).get("hp", 0) == 0, (
-            f"Expected empty battle state, got {bs}"
-        )
+        assert (
+            not bs or bs.get("player", {}).get("hp", 0) == 0
+        ), f"Expected empty battle state, got {bs}"
 
         emu.stop()
 
@@ -177,11 +190,43 @@ class TestFullGameplay:
         ms = obs.get("menu_state", {})
 
         # No menu should be active
-        assert ms.get("num_items", 0) == 0 or ms.get("active", False) is False, (
-            f"Expected no active menu, got {ms}"
-        )
+        assert (
+            ms.get("num_items", 0) == 0 or ms.get("active", False) is False
+        ), f"Expected no active menu, got {ms}"
 
         emu.stop()
+
+    def test_player_coordinates_change_over_60_gameplay_cycles(self) -> None:
+        """A real-ROM run must move the player, not merely boot the emulator."""
+        from src.core.emulator import Emulator
+        from src.core.ram_reader import RAMReader
+
+        emu = Emulator(ROM_PATH)
+        try:
+            reader = RAMReader(emu, ROM_PATH)
+            _advance_to_overworld(emu, reader)
+
+            coordinates: list[tuple[int, int, int]] = []
+            route = ["right"] * 4 + ["up"] * 5 + ["left"] * 5 + ["down"] * 6
+            for cycle in range(60):
+                if reader.screen_type() == "dialog":
+                    emu.press_button("a", frames=30)
+                else:
+                    emu.press_button(route[cycle % len(route)], frames=30)
+                emu.fast_forward(60)
+                coordinates.append(
+                    (
+                        reader.current_map_id(),
+                        reader.player_x(),
+                        reader.player_y(),
+                    )
+                )
+
+            assert (
+                len(set(coordinates)) > 1
+            ), f"Player never moved over 60 cycles: {coordinates[0]}"
+        finally:
+            emu.stop()
 
 
 @pytest.mark.rom

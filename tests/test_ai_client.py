@@ -15,7 +15,6 @@ from unittest.mock import patch
 from datetime import datetime
 from typing import Any
 
-
 # ── Module-level functions ──────────────────────────────────────────────
 
 
@@ -1227,7 +1226,10 @@ class TestAIModelClientInit:
             assert client._api_key is None
 
     def test_init_with_openrouter_env(self) -> None:
-        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-or-key"}):
+        with patch.dict(
+            os.environ,
+            {"OPENROUTER_API_KEY": "sk-or-key", "OPENAI_API_KEY": ""},
+        ):
             from src.core.ai_client import AIModelClient
 
             client = AIModelClient()
@@ -1250,7 +1252,10 @@ class TestAIModelClientInit:
         assert result == "sk-constructor"
 
     def test_load_api_key_stores_and_returns_env_key(self) -> None:
-        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "sk-env"}):
+        with patch.dict(
+            os.environ,
+            {"OPENROUTER_API_KEY": "sk-env", "OPENAI_API_KEY": ""},
+        ):
             from src.core.ai_client import AIModelClient
 
             client = AIModelClient()
@@ -1772,6 +1777,28 @@ class TestOpenRouterClientChatCompletion:
             assert result["content"] == "hello"
             assert result["model"] == "test-model"
             assert result["request_id"] == "req-123"
+
+    def test_thinking_mode_is_forwarded(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+
+        with requests_mock.Mocker() as m:
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [{"message": {"content": "{}"}}],
+                    "model": "test-model",
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                },
+            )
+            client = OpenRouterClient(api_key="sk-or-test")
+            client.chat_completion(
+                "test-model",
+                [{"role": "user", "content": "hi"}],
+                thinking={"type": "disabled"},
+            )
+
+            assert m.request_history[0].json()["thinking"] == {"type": "disabled"}
 
     def test_circuit_breaker_open(self) -> None:
         from src.core.ai_client import OpenRouterClient
