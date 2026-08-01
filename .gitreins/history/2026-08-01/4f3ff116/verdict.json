@@ -1,0 +1,74 @@
+{
+  "task_id": "GAMEPLAY-SOL",
+  "task_title": "SOL-SESSION: gpt-5.6-sol gameplay fixes \u2014 controller nav, stuck loops, long-run validation",
+  "task_criteria": [
+    {
+      "Controller navigation validated with live runs": "map_id changes from 0x0 (leaves Pallet Town) in cron_logs/run_sol_nav_proven_20260801_130349.jsonl \u2014 reached Oak's Lab (map 40) at cycle 18"
+    },
+    {
+      "STUCK-LOOPS fixed": "_reset_recovery_trackers() resets _a_press_count when recovery triggers (cron_runner.py)"
+    },
+    {
+      "PROGRESS-ASSERT added": "test_player_coordinates_change_over_60_gameplay_cycles in tests/test_full_gameplay.py asserts coordinates change over 60 cycles, gated with rom marker"
+    },
+    {
+      "Coordinate-aware navigation hints": "_suggested_map_action() in ram_reader.py returns position-based guidance (player_tile_x/y methods added)"
+    },
+    {
+      "Full test suite green": "pytest tests/ -k 'not benchmark' passes with zero failures"
+    },
+    {
+      "Commit 0f80f4d has Co-authored-by": "Alexis Okuwa <wojonstech@gmail.com> trailer"
+    }
+  ],
+  "passed": true,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: \n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n  \u2713 secrets: \n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m2:04PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~125474621",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": ""
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.0.2, pluggy-1.6.0 -- /home/kara/.hermes/hermes-agent/venv/bin/python3\ncachedir: .pytest_cache\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: mock-3.15.1, timeout-2.4.0, cov-7.1.0, asyncio-1.3.0, anyio-4.14.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollec",
+          "error": ""
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m2:04PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~125474621 bytes (125.47 MB) in 21.5s\u001b[0m\n\u001b[90m2:04PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": ""
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Controller navigation validated with live runs: cron_logs/run_sol_nav_proven_20260801_130349.jsonl: map_id changes from 0 (Pallet Town) to 40 (Oak's Lab, hex 0x40) at cycle 18 \u2014 verified via python parse of the 125-line log (cycle 18: map_id 40, map_name \"Oak's Lab\").\n  \u2713 STUCK-LOOPS fixed: cron_runner.py:153-176 `_reset_recovery_trackers()` returns `_RecoveryTrackers(..., a_press_count=0)` \u2014 resets _a_press_count to 0 when recovery triggers; caller at line 851 assigns `_a_press_count = trackers.a_press_count`. Docstring: 'Clear the tracker that fired, including A presses after any recovery.'\n  \u2713 PROGRESS-ASSERT added: tests/test_full_gameplay.py:199 `test_player_coordinates_change_over_60_gameplay_cycles` asserts `len(set(coordinates)) > 1` over 60 cycles (line 227). Gated with rom marker: class TestFullGameplay (line 67) decorated with `@pytest.mark.rom` + `@pytest.mark.skipif(not _has_rom(), ...)`.\n  \u2713 Coordinate-aware navigation hints: src/core/ram_reader.py:1333 `_suggested_map_action()` returns position-based guidance using player_tile_x()/player_tile_y() (lines 824, 828); returns 'Move DOWN/RIGHT/LEFT/UP' based on tile coords for Pallet Town; called in observe() at line 1409.\n  \u2713 Full test suite green: `venv/bin/python -m pytest tests/ -k 'not benchmark' -q` \u2192 '3799 passed, 8 skipped, 5 deselected in 328.17s' \u2014 zero failures, matching commit message claim.\n  \u2713 Commit 0f80f4d has Co-authored-by: `git show 0f80f4d --format=\"%B\" -s` shows 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>' trailer (plus 'Co-authored-by: gpt-5.6-sol').\nAll 6 criteria verified: live nav log proves map 0x0\u21920x40 Oak's Lab at cycle 18, stuck-loop A-press counter reset present, 60-cycle progress assert gated with rom marker, coordinate-aware hints in ram_reader, full suite 3799 passed/0 failed, and commit 0f80f4d carries the Co-authored-by trailer.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Controller navigation validated with live runs: cron_logs/run_sol_nav_proven_20260801_130349.jsonl: map_id changes from 0 (Pallet Town) to 40 (Oak's Lab, hex 0x40) at cycle 18 \u2014 verified via python parse of the 125-line log (cycle 18: map_id 40, map_name \"Oak's Lab\").\n  \u2713 STUCK-LOOPS fixed: cron_runner.py:153-176 `_reset_recovery_trackers()` returns `_RecoveryTrackers(..., a_press_count=0)` \u2014 resets _a_press_count to 0 when recovery triggers; caller at line 851 assigns `_a_press_cou",
+          "error": ""
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAMEPLAY-SOL\n\nStage tier1: PASS\n    \u2713 lint: \n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n  \u2713 secrets: \n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m2:04PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~125474621\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Controller navigation validated with live runs: cron_logs/run_sol_nav_proven_20260801_130349.jsonl: map_id changes from 0 (Pallet Town) to 40 (Oak's Lab, hex 0x40) at cycle 18 \u2014 verified via python parse of the 125-line log (cycle 18: map_id 40, map_name \"Oak's Lab\").\n  \u2713 STUCK-LOOPS fixed: cron_runner.py:153-176 `_reset_recovery_trackers()` returns `_RecoveryTrackers(..., a_press_count=0)` \u2014 resets _a_press_count to 0 when recovery triggers; caller at line 851 assigns `_a_press_count = trackers.a_press_count`. Docstring: 'Clear the tracker that fired, including A presses after any recovery.'\n  \u2713 PROGRESS-ASSERT added: tests/test_full_gameplay.py:199 `test_player_coordinates_change_over_60_gameplay_cycles` asserts `len(set(coordinates)) > 1` over 60 cycles (line 227). Gated with rom marker: class TestFullGameplay (line 67) decorated with `@pytest.mark.rom` + `@pytest.mark.skipif(not _has_rom(), ...)`.\n  \u2713 Coordinate-aware navigation hints: src/core/ram_reader.py:1333 `_suggested_map_action()` returns position-based guidance using player_tile_x()/player_tile_y() (lines 824, 828); returns 'Move DOWN/RIGHT/LEFT/UP' based on tile coords for Pallet Town; called in observe() at line 1409.\n  \u2713 Full test suite green: `venv/bin/python -m pytest tests/ -k 'not benchmark' -q` \u2192 '3799 passed, 8 skipped, 5 deselected in 328.17s' \u2014 zero failures, matching commit message claim.\n  \u2713 Commit 0f80f4d has Co-authored-by: `git show 0f80f4d --format=\"%B\" -s` shows 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>' trailer (plus 'Co-authored-by: gpt-5.6-sol').\nAll 6 criteria verified: live nav log proves map 0x0\u21920x40 Oak's Lab at cycle 18, stuck-loop A-press counter reset present, 60-cycle progress assert gated with rom marker, coordinate-aware hints in ram_reader, full suite 3799 passed/0 failed, and commit 0f80f4d carries the Co-authored-by trailer.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-08-01T19:11:34.129075"
+}
