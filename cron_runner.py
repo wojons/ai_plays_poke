@@ -351,17 +351,21 @@ def _extract_spatial_json(text: str) -> dict[str, Any]:
 def controller_plan(
     client: OpenRouterClient,
     spatial_desc: dict[str, Any],
-    last_button: str = "",
-    last_result: str = "",
+    last_button: str,
+    last_result: str,
     blocked_dir: str = "",
     blocked_count: int = 0,
-    max_actions: int = 12,
+    max_actions: int = 6,
+    screenshot: Any = None,
 ) -> dict[str, Any]:
-    """Controller model (DeepSeek V4 Flash) outputs a movement PLAN.
+    """Controller model (Luna via OpenRouter) outputs a movement PLAN.
 
     Now takes the cartographer's spatial JSON directly (adjacent tiles,
     visible_exits, player_facing, suggested_action) instead of an ASCII
     tile map. The model gets richer, more accurate spatial info.
+
+    When `screenshot` is provided, the live game frame is attached as an
+    image so Luna can use its own vision to see the screen.
     """
     # Build a compact spatial summary string
     facing = spatial_desc.get("player_facing", "?")
@@ -429,11 +433,24 @@ def controller_plan(
         f"Output a movement plan (max {max_actions} actions). JSON only."
     )
 
+    # Build user message — include live screenshot for Luna's own vision
+    if screenshot is not None:
+        try:
+            img_b64 = screenshot_to_base64(screenshot)
+            user_content: Any = [
+                {"type": "text", "text": msg},
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
+            ]
+        except Exception:
+            user_content = msg
+    else:
+        user_content = msg
+
     response = client.chat_completion(
         model="openai/gpt-5.6-luna",  # Luna via OpenRouter (double-discount pricing)
         messages=[
             {"role": "system", "content": system},
-            {"role": "user", "content": msg},
+            {"role": "user", "content": user_content},
         ],
         temperature=0.3,
         max_tokens=300,
@@ -538,6 +555,13 @@ def main() -> None:
     _last_frame_hash: str = ""   # for frame hashing — skip cartographer on identical frames
     _cached_patch: dict[str, Any] = {}  # cached cartographer output
     _cached_carto_raw: str = ""  # cached raw cartographer text
+
+    # ── Frame hashing for Luna vision (controller screenshot dedup) ─
+    # Only attach the screenshot to the controller prompt when the
+    # frame CHANGED since the last call. Identical frames (standing
+    # still, dialog open) re-send the same ~2500 image tokens every
+    # cycle — pure waste. RAM text still flows every cycle.
+    _last_controller_frame_hash: str = ""
 
     # ── Deterministic intro bypass ──────────────────────────────────
     # Decoupled: A-mash aggressively in large batches, sparse
@@ -767,7 +791,7 @@ def main() -> None:
                     _void_tile_pct = unknown_tiles / total_tiles if total_tiles > 0 else 0.0
                     if _void_tile_pct > 0.95:
                         _void_cycles += 1
-                        safe_print(f"  [VOID] {unknown_tiles}/{total_tiles} tiles unknown ({_void_tile_pct:.0%}) — cycle {_void_cycles}/{MAX_VOID_CYCLES}")
+                        safe_print(f"  [VOID] {unknown_tiles}/{total_tiles} tiles unknown ({_void_tile_pct:.0%}) — cycle {_void_cycles}/{MAX_VOID_CYCLES} | map_id={patch_data.get('map_id')} map={patch_data.get('map_name')} player=({patch_data.get('player_tile_x')},{patch_data.get('player_tile_y')})")
                     else:
                         _void_cycles = 0
                 else:
@@ -851,6 +875,13 @@ def main() -> None:
                         _a_press_count = trackers.a_press_count
 
                 # Step 2b: Controller outputs movement PLAN from spatial description
+                # Vision dedup: only attach the screenshot when the frame changed.
+                # Identical frames (standing still / dialog) reuse the cached
+                # frame — RAM text still flows, image tokens are not re-spent.
+                import hashlib as _hashlib
+                _ctrl_frame_hash = _hashlib.md5(screenshot.tobytes()).hexdigest()
+                _vision_frame = screenshot if _ctrl_frame_hash != _last_controller_frame_hash else None
+                _last_controller_frame_hash = _ctrl_frame_hash
                 decision = controller_plan(
                     controller_client, patch_data,
                     _last_direction or "",
@@ -858,6 +889,7 @@ def main() -> None:
                     blocked_dir=_same_dir or "",
                     blocked_count=_same_dir_count,
                     max_actions=CART_STEPS,
+                    screenshot=_vision_frame,  # None when frame unchanged → no image cost
                 )
                 plan = decision.get("plan", ["A"])
                 intent = decision.get("intent", "")
@@ -1117,6 +1149,39 @@ def main() -> None:
                             log_file.flush()
                     else:
                         _recovery_attempts += 1
+                        # ── Dialog fast-path ─────────────────────────
+                        # A dialog box is NOT a stuck state — it needs A
+                        # presses to advance the text. The generic ladder
+                        # (START→B→B menu_redraw) is wrong here and was
+                        # keeping the agent trapped in Oak's dialog for
+                        # 70+ cycles. A-mash to advance the conversation.
+                        if st == "dialog":
+                            for _ in range(12):
+                                emu.press_button("a", frames=_A_FRAMES)
+                                emu.fast_forward(_FF_FRAMES)
+                            strategy, desc = ("dialog_advance", "12× A — advancing dialog text")
+                            safe_print(f"  [RECOVER] {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]")
+                            evt = {"cycle": cycle + 1, "event": "recovery",
+                                   "level": _recovery_level, "strategy": strategy,
+                                   "reason": recovery_reason, "attempt": _recovery_attempts,
+                                   "description": desc}
+                            results.append(evt)
+                            log_file.write(json.dumps(evt, default=str) + "\n")
+                            log_file.flush()
+                            trackers = _reset_recovery_trackers(
+                                recovery_reason,
+                                same_dir=_same_dir,
+                                same_dir_count=_same_dir_count,
+                                same_screen_count=_same_screen_count,
+                                void_cycles=_void_cycles,
+                                a_press_count=_a_press_count,
+                            )
+                            _same_dir = trackers.same_dir
+                            _same_dir_count = trackers.same_dir_count
+                            _same_screen_count = trackers.same_screen_count
+                            _void_cycles = trackers.void_cycles
+                            _a_press_count = trackers.a_press_count
+                            continue  # skip StateWindow, let next cycle re-classify
                         strategy, desc = _escalating_recovery(
                             emu, _recovery_level, _last_direction,
                             _last_saved_slot

@@ -279,6 +279,38 @@ class _MapDB:
         0x12: "object",  # bottom-right object
     }
 
+    # Tileset 5 (indoor lab — Oak's Lab). Source: pret/pokered
+    # data/block_sets/lab.asm. The lab floor block is 0x05 (NOT the
+    # generic 0x0F), so without this table every tile reads "unknown"
+    # and the controller is blind inside Oak's Lab (void-locked).
+    _TILESET5_CLASSES: dict[int, str] = {
+        0x04: "door",  # lab exit warp (bottom-center of Oak's Lab)
+        0x05: "floor",  # lab floor (the walkable open area)
+        0x65: "wall",  # top-left corner
+        0x66: "wall",  # top edge
+        0x67: "wall",  # top-right corner
+        0x68: "wall",  # right edge / vertical wall
+        0x69: "wall",  # right edge
+        0x6A: "wall",  # right edge
+        0x6B: "wall",  # left edge
+        0x6D: "object",  # lab machine (right side)
+        0x6E: "object",  # lab machine (right side)
+    }
+
+    # Tileset 1 (house interior — Red's House 1F). Floor blocks are
+    # 0x0F (generic rule already catches it) plus the interior walls
+    # and furniture so house maps don't read as partial voids.
+    _TILESET1_CLASSES: dict[int, str] = {
+        0x01: "floor",  # house floor variant
+        0x02: "floor",  # house floor variant
+        0x04: "wall",  # interior wall
+        0x05: "wall",  # interior wall
+        0x07: "wall",  # interior wall
+        0x09: "wall",  # interior wall
+        0x0B: "wall",  # interior wall
+        0x0F: "floor",  # main house floor
+    }
+
     # Known block → classification for tileset 0 (outdoor: towns, routes)
     # Source: pret/pokered disassembly block sets
     _TILESET0_CLASSES: dict[int, str] = {
@@ -345,6 +377,12 @@ class _MapDB:
             return self._TILESET4_CLASSES.get(block_id, "unknown")
         if tileset == 0:
             return self._TILESET0_CLASSES.get(block_id, "unknown")
+        if tileset == 5:
+            # Indoor lab (Oak's Lab) — floor block is 0x05, not 0x0F
+            return self._TILESET5_CLASSES.get(block_id, "unknown")
+        if tileset == 1:
+            # House interiors (Red's House 1F)
+            return self._TILESET1_CLASSES.get(block_id, "unknown")
         # Generic heuristic: if block_id is 0x0F, assume floor
         if block_id == 0x0F:
             return "floor"
