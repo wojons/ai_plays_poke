@@ -499,7 +499,7 @@ class TestRunSingleTick:
             gl.last_screenshot_tick = 0
             gl.is_running = True
             gl.paused = False
-            gl.session_id = "test-session"
+            gl.session_id = 42
             gl.pending_commands = []
             gl.command_history = []
             gl.current_battle_id = None
@@ -719,33 +719,33 @@ class TestGameLoopLifecycle:
 
     def test_stop_stops_emulator(self, gl: GameLoop) -> None:
         gl.is_running = True
-        gl.session_id = "sess-001"
+        gl.session_id = 42
         gl.stop()
         gl.emulator.stop.assert_called_once()
 
     def test_stop_sets_running_false(self, gl: GameLoop) -> None:
         gl.is_running = True
-        gl.session_id = "sess-001"
+        gl.session_id = 42
         gl.stop()
         assert gl.is_running is False
 
     def test_stop_saves_emulator_state(self, gl: GameLoop) -> None:
         gl.is_running = True
-        gl.session_id = "sess-001"
+        gl.session_id = 42
         gl.stop()
         gl.emulator.save_state.assert_called_once()
 
     def test_stop_calls_db_end_session(self, gl: GameLoop) -> None:
         gl.is_running = True
-        gl.session_id = "sess-001"
+        gl.session_id = 42
         gl.stop()
         gl.db.end_session.assert_called_once()
 
     def test_stop_exports_session_data(self, gl: GameLoop) -> None:
         gl.is_running = True
-        gl.session_id = "sess-001"
+        gl.session_id = 42
         gl.stop()
-        gl.db.export_session_data.assert_called_once_with("sess-001")
+        gl.db.export_session_data.assert_called_once_with(42)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -817,7 +817,7 @@ class TestPrintFinalStats:
 
     def test_prints_stats_without_crashing(self) -> None:
         gl = GameLoop.__new__(GameLoop)
-        gl.session_id = "test-123"
+        gl.session_id = 42
         gl.metrics = {
             "total_ticks": 42,
             "screenshots_taken": 5,

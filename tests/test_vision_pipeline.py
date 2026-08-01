@@ -186,7 +186,7 @@ class TestValidateScreenshotDimensions:
     def test_none_input(self) -> None:
         vp = VisionPipeline()
         with pytest.raises(ScreenshotValidationError) as exc:
-            vp.validate_screenshot_dimensions(None)
+            vp.validate_screenshot_dimensions(None)  # type: ignore[arg-type]
         assert exc.value.error_type == "empty_screenshot"
 
     def test_empty_array(self) -> None:
@@ -404,7 +404,7 @@ class TestProcess:
     def test_invalid_frame_raises(self) -> None:
         vp = VisionPipeline()
         with pytest.raises(ScreenshotValidationError):
-            vp.process(None)
+            vp.process(None)  # type: ignore[arg-type]
 
     def test_small_random_frame_different_hashes(self) -> None:
         vp = VisionPipeline()
@@ -458,7 +458,7 @@ class TestProcessWithTimeout:
         old = signal.signal(signal.SIGALRM, signal.SIG_DFL)
         try:
             with pytest.raises(ScreenshotValidationError):
-                vp.process_with_timeout(None, timeout=5)
+                vp.process_with_timeout(None, timeout=5)  # type: ignore[arg-type]
             # Signal handler should be restored (SIG_DFL we set)
             assert signal.getsignal(signal.SIGALRM) is signal.SIG_DFL
         finally:
@@ -784,6 +784,7 @@ class TestExtractBattleMenu:
         h, w = 224, 224
         frame = np.zeros((h, w), dtype=np.uint8)
         result = vp._extract_battle_menu(frame)
+        assert result is not None
         # For (224, 224): y1=int(224*0.85)=190, y2=224, x1=int(224*0.5)=112, x2=224
         y_slice, x_slice = result.shape[:2]
         assert y_slice == 224 - 190  # 34
@@ -800,6 +801,7 @@ class TestExtractBattleMenu:
         vp = VisionPipeline()
         frame = np.ones((224, 224), dtype=np.uint8)
         result = vp._extract_battle_menu(frame)
+        assert result is not None
         assert np.all(result >= 0)
 
 
@@ -821,6 +823,7 @@ class TestExtractDialogBox:
         h, w = 224, 224
         frame = np.zeros((h, w), dtype=np.uint8)
         result = vp._extract_dialog_box(frame)
+        assert result is not None
         y_slice = result.shape[0]
         # First candidate: (int(h*0.6)=134, 224) → y_slice ≈ 90
         assert y_slice > 0
@@ -857,6 +860,7 @@ class TestExtractHUD:
         h, w = 224, 224
         frame = np.zeros((h, w), dtype=np.uint8)
         result = vp._extract_hud(frame)
+        assert result is not None
         # First candidate: y1=0, y2=int(224*0.15)=33
         assert result.shape[0] == 33
 

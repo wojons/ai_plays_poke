@@ -461,7 +461,7 @@ class TestDecisionValidation:
 
     def test_battle_action_validation(self) -> None:
         """Test battle actions are valid"""
-        battle_decisions = [
+        battle_decisions: list[dict[str, Any]] = [
             {"action": "press:A", "context": "battle", "valid": True},
             {"action": "press:B", "context": "battle", "valid": True},
             {"action": "press:START", "context": "battle", "valid": False},
@@ -472,11 +472,8 @@ class TestDecisionValidation:
 
         for decision in battle_decisions:
             if decision["context"] == "battle":
-                button = (
-                    decision["action"].split(":")[1]
-                    if ":" in decision["action"]
-                    else ""
-                )  # type: ignore
+                action = decision["action"]
+                button = action.split(":")[1] if ":" in action else ""
                 is_valid_battle_action = button in battle_valid_buttons
                 if decision["action"].startswith("press:"):  # type: ignore[attr-defined]
                     assert is_valid_battle_action == decision["valid"], (

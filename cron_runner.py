@@ -18,7 +18,7 @@ def safe_print(*args, **kwargs):
 
 import argparse
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 import sys
 import os
 import time
@@ -203,7 +203,7 @@ def screenshot_to_base64(screenshot: np.ndarray) -> str:
     img = Image.fromarray(screenshot)
     # Scale 3x with nearest-neighbor (pixel-perfect) so the vision model
     # can distinguish wall edges from floor seams at 144x160 native res.
-    img = img.resize((img.width * 3, img.height * 3), Image.NEAREST)
+    img = img.resize((img.width * 3, img.height * 3), Image.Resampling.NEAREST)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode()
@@ -325,7 +325,7 @@ def _extract_spatial_json(text: str) -> dict[str, Any]:
 
     # Try whole-string JSON first
     try:
-        return json.loads(text)
+        return cast(dict[str, Any], json.loads(text))
     except (json.JSONDecodeError, ValueError):
         pass
 
@@ -334,7 +334,7 @@ def _extract_spatial_json(text: str) -> dict[str, Any]:
     m = re.search(r'\{[^{}]*\}', text, re.DOTALL)
     if m:
         try:
-            return json.loads(m.group())
+            return cast(dict[str, Any], json.loads(m.group()))
         except (json.JSONDecodeError, ValueError):
             pass
 
@@ -445,6 +445,7 @@ def controller_plan(
     # On a FrameCache hit (frame_ref set), attach a text marker instead of
     # the image: Luna has seen this exact frame before, so the spatial
     # summary + reference carry the same information at ~zero image tokens.
+    user_content: Any
     if frame_ref:
         ref_marker = (
             f"\n[SCREEN REF {frame_ref}] This exact game frame was sent to you "
@@ -455,7 +456,7 @@ def controller_plan(
     elif screenshot is not None:
         try:
             img_b64 = screenshot_to_base64(screenshot)
-            user_content: Any = [
+            user_content = [
                 {"type": "text", "text": msg},
                 {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
             ]
@@ -596,7 +597,7 @@ def main() -> None:
     # a map in a later session still hits.
     # NOTE: bound at line ~543 in the pipeline-init block, before the
     # main loop. Do NOT declare here — an assignment would wipe it.
-    _frame_cache: Any
+    assert _frame_cache is not None  # bound in pipeline-init block above
 
     # ── Deterministic intro bypass ──────────────────────────────────
     # Decoupled: A-mash aggressively in large batches, sparse

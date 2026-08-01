@@ -106,7 +106,7 @@ def log_api_call(
 
 
 def log_vision_analysis(
-    screen_type: str, enemy_pokemon: str, player_hp: float, enemy_hp: float
+    screen_type: str, enemy_pokemon: Optional[str], player_hp: float, enemy_hp: float
 ) -> None:
     """Simple logging function for vision analysis (survives broken stdout)"""
     try:

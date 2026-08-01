@@ -12,6 +12,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from PIL import Image, ImageDraw, ImageFont
+from typing import Any
 
 
 # ---------------------------------------------------------------------------
@@ -26,7 +27,7 @@ def _make_text_image(
     img = Image.new("L", (width, height), 0)
     draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype(
+        font: Any = ImageFont.truetype(
             "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", font_size
         )
     except Exception:

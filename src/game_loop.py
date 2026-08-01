@@ -138,7 +138,7 @@ class GameLoop:
         self.last_screenshot_tick = 0
         self.is_running = False
         self.paused = False
-        self.session_id = None
+        self.session_id: Optional[int] = None
 
         # Command pipeline
         self.pending_commands: list[Dict[str, Any]] = []

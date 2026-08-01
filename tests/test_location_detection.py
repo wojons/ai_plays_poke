@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import tempfile
 from pathlib import Path
-from typing import Generator
+from typing import Callable, Generator
 from unittest.mock import patch
 
 import numpy as np
@@ -133,7 +133,7 @@ def _make_screenshot_mixed(patterns: list[tuple[str, int]]) -> np.ndarray:
     patterns: list of (tile_type, count) — tiles are placed left-to-right, top-to-bottom.
     Remaining slots filled with path tiles.
     """
-    tile_map: dict[str, type] = {
+    tile_map: dict[str, Callable[[], np.ndarray]] = {
         "wall": _wall_tile,
         "path": _path_tile,
         "grass": _grass_tile,
@@ -622,7 +622,7 @@ class TestScreenDetection:
         """Overworld = not battle, not menu, not dialog.
         NOTE: is_in_menu has a shape[:0] bug — monkeypatched to bypass."""
         img = _make_screenshot(_path_tile)
-        detector.is_in_menu = lambda s: False  # type: ignore[method-assign]
+        detector.is_in_menu = lambda screenshot: False  # type: ignore[method-assign]
         result = detector.classify_screen_type(img)
         assert result == "overworld"
 

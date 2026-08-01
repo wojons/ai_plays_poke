@@ -10,6 +10,8 @@ from __future__ import annotations
 import pytest
 from unittest.mock import MagicMock, patch
 
+from src.core.ram_reader import _MapDB
+
 # ── helpers ────────────────────────────────────────────────────────────────
 
 
@@ -150,31 +152,31 @@ class TestMapDBRomOffset:
     def test_bank_zero_returns_ptr_directly(self) -> None:
         from src.core.ram_reader import _MapDB
 
-        assert _MapDB._rom_offset(None, 0x1234, 0) == 0x1234
+        assert _MapDB._rom_offset(_MapDB.__new__(_MapDB), 0x1234, 0) == 0x1234
 
     def test_bank_nonzero(self) -> None:
         from src.core.ram_reader import _MapDB
 
         # bank=2: offset = 2 * 0x4000 + (ptr - 0x4000) = ptr + 0x4000
-        assert _MapDB._rom_offset(None, 0x5000, 2) == 0x9000
+        assert _MapDB._rom_offset(_MapDB.__new__(_MapDB), 0x5000, 2) == 0x9000
 
     def test_bank_one(self) -> None:
         from src.core.ram_reader import _MapDB
 
         # bank=1: offset = 1 * 0x4000 + (ptr - 0x4000) = ptr
-        assert _MapDB._rom_offset(None, 0x4200, 1) == 0x4200
+        assert _MapDB._rom_offset(_MapDB.__new__(_MapDB), 0x4200, 1) == 0x4200
 
 
 class TestMapDBParseHeader:
     """_parse_header with fake ROM bytes."""
 
     @pytest.fixture
-    def db(self) -> object:
+    def db(self) -> _MapDB:
         from src.core.ram_reader import _MapDB
 
         return _MapDB.__new__(_MapDB)  # skip __init__, inject _rom
 
-    def _patch_rom(self, db: object, rom: bytes) -> None:
+    def _patch_rom(self, db: _MapDB, rom: bytes) -> None:
         db._rom = rom
         db._cache = {}
 

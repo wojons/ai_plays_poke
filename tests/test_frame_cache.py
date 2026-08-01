@@ -59,8 +59,9 @@ def test_persistence_across_instances(cache_path: Path) -> None:
     c1.save()
 
     c2 = FrameCache(cache_path)  # fresh instance, same path
-    assert c2.lookup(h) is not None
-    assert c2.lookup(h)["map_name"] == "Oak's Lab"
+    entry = c2.lookup(h)
+    assert entry is not None
+    assert entry["map_name"] == "Oak's Lab"
     assert c2.size == 1
 
 
@@ -102,6 +103,7 @@ def test_stats_report(cache_path: Path) -> None:
     h = cache.hash_frame(b"stats-frame")
     cache.register(h, cycle=1)
     entry = cache.lookup(h)
+    assert entry is not None
     cache.touch(entry, cycle=2)
     stats = cache.stats()
     assert stats["cached_frames"] == 1
