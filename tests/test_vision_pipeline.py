@@ -8,6 +8,7 @@ in src/vision/pipeline.py.
 from __future__ import annotations
 
 import signal
+from typing import Any, cast
 
 import numpy as np
 import pytest
@@ -186,7 +187,7 @@ class TestValidateScreenshotDimensions:
     def test_none_input(self) -> None:
         vp = VisionPipeline()
         with pytest.raises(ScreenshotValidationError) as exc:
-            vp.validate_screenshot_dimensions(None)  # type: ignore[arg-type]
+            vp.validate_screenshot_dimensions(cast(Any, None))
         assert exc.value.error_type == "empty_screenshot"
 
     def test_empty_array(self) -> None:
@@ -404,7 +405,7 @@ class TestProcess:
     def test_invalid_frame_raises(self) -> None:
         vp = VisionPipeline()
         with pytest.raises(ScreenshotValidationError):
-            vp.process(None)  # type: ignore[arg-type]
+            vp.process(cast(Any, None))
 
     def test_small_random_frame_different_hashes(self) -> None:
         vp = VisionPipeline()
@@ -458,7 +459,7 @@ class TestProcessWithTimeout:
         old = signal.signal(signal.SIGALRM, signal.SIG_DFL)
         try:
             with pytest.raises(ScreenshotValidationError):
-                vp.process_with_timeout(None, timeout=5)  # type: ignore[arg-type]
+                vp.process_with_timeout(cast(Any, None), timeout=5)
             # Signal handler should be restored (SIG_DFL we set)
             assert signal.getsignal(signal.SIGALRM) is signal.SIG_DFL
         finally:
