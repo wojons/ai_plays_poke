@@ -1,0 +1,61 @@
+{
+  "task_id": "MYPY-CLEANUP-001",
+  "task_title": "Fix 6 pre-existing mypy errors in tracked files (guard static_analysis blocker)",
+  "task_criteria": [
+    "venv/bin/mypy src/ --ignore-missing-imports reports zero errors in tracked files (game_loop.py:109, battle.py:274/278, ai_client.py:1385, frame_cache.py:101, test_global_context.py:28)",
+    "SpriteRecognizer._extract_enemy_sprite_region and _extract_player_sprite_region methods exist in src/vision/sprite.py (latent AttributeError fix \u2014 methods were called but never defined)",
+    "No new type: ignore comments added \u2014 misplaced ignores removed/relocated to the correct lines",
+    "Full test suite passes: venv/bin/pytest tests/ -k 'not benchmark' (3808 passed, 8 skipped) AND benchmark test test_bench_ram_reader_observe passes (mock updated with 0xC100 sprite-state byte so screen_type returns overworld)",
+    "Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m7:43PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~149480321\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": ""
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m7:43PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~149480321 bytes (149.48 MB) in 10.6s\u001b[0m\n\u001b[90m7:43PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": ""
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out"
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 venv/bin/mypy src/ --ignore-missing-imports reports zero errors in tracked files (game_loop.py:109, battle.py:274/278, ai_client.py:1385, frame_cache.py:101, test_global_context.py:28): PASS: venv/bin/mypy src/ --ignore-missing-imports returns \"Success: no issues found in 61 source files\"\n  \u2713 SpriteRecognizer._extract_enemy_sprite_region and _extract_player_sprite_region methods exist in src/vision/sprite.py (latent AttributeError fix \u2014 methods were called but never defined): PASS: src/vision/sprite.py:271 has _extract_enemy_sprite_region, line 276 has _extract_player_sprite_region (confirmed via grep)\n  \u2713 No new type: ignore comments added \u2014 misplaced ignores removed/relocated to the correct lines: PASS: No new type: ignore comments remain. test_vision_pipeline.py has 0 type: ignore (3 added in 94d7a40 were replaced with cast(Any,None) in dbd3a38 at lines 190/408/462). ai_client.py:1385 ignore relocated to correct line. battle.py ignores removed (methods now exist).\n  \u2717 Full test suite passes: venv/bin/pytest tests/ -k 'not benchmark' (3808 passed, 8 skipped) AND benchmark test test_bench_ram_reader_observe passes (mock updated with 0xC100 sprite-state byte so screen_type returns overworld): Not verified \u2014 evaluation terminated before this criterion was checked\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: PASS: All 3 commits (7ecf121, 94d7a40, dbd3a38) have \"Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>\" trailer (confirmed via git log %b)\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 venv/bin/mypy src/ --ignore-missing-imports reports zero errors in tracked files (game_loop.py:109, battle.py:274/278, ai_client.py:1385, frame_cache.py:101, test_global_context.py:28): PASS: venv/bin/mypy src/ --ignore-missing-imports returns \"Success: no issues found in 61 source files\"\n  \u2713 SpriteRecognizer._extract_enemy_sprite_region and _extract_player_sprite_region methods exist in src/vision/sprite.py (latent AttributeError fix \u2014 methods were called but never defined): PASS: ",
+          "error": ""
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: MYPY-CLEANUP-001\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2713 secrets: \n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m7:43PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~149480321\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 venv/bin/mypy src/ --ignore-missing-imports reports zero errors in tracked files (game_loop.py:109, battle.py:274/278, ai_client.py:1385, frame_cache.py:101, test_global_context.py:28): PASS: venv/bin/mypy src/ --ignore-missing-imports returns \"Success: no issues found in 61 source files\"\n  \u2713 SpriteRecognizer._extract_enemy_sprite_region and _extract_player_sprite_region methods exist in src/vision/sprite.py (latent AttributeError fix \u2014 methods were called but never defined): PASS: src/vision/sprite.py:271 has _extract_enemy_sprite_region, line 276 has _extract_player_sprite_region (confirmed via grep)\n  \u2713 No new type: ignore comments added \u2014 misplaced ignores removed/relocated to the correct lines: PASS: No new type: ignore comments remain. test_vision_pipeline.py has 0 type: ignore (3 added in 94d7a40 were replaced with cast(Any,None) in dbd3a38 at lines 190/408/462). ai_client.py:1385 ignore relocated to correct line. battle.py ignores removed (methods now exist).\n  \u2717 Full test suite passes: venv/bin/pytest tests/ -k 'not benchmark' (3808 passed, 8 skipped) AND benchmark test test_bench_ram_reader_observe passes (mock updated with 0xC100 sprite-state byte so screen_type returns overworld): Not verified \u2014 evaluation terminated before this criterion was checked\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: PASS: All 3 commits (7ecf121, 94d7a40, dbd3a38) have \"Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>\" trailer (confirmed via git log %b)\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-02T00:50:18.078907"
+}
