@@ -73,7 +73,6 @@ def test_corrupt_cache_starts_fresh(cache_path: Path) -> None:
 
 
 def test_lru_eviction_keeps_newest(cache_path: Path) -> None:
-    cache = FrameCache(cache_path)
     # Bypass MAX_ENTRIES via a tiny subclass to test eviction cheaply
     class TinyCache(FrameCache):
         MAX_ENTRIES = 3
