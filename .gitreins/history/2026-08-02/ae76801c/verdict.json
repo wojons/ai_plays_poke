@@ -1,0 +1,62 @@
+{
+  "task_id": "GAMEPLAY-STARTER-001",
+  "task_title": "Break starter-pick loop in Oak's Lab \u2014 same-tile stuck detector + starter-selection branch + party-count milestone",
+  "task_criteria": [
+    "Same-TILE stuck detector: consecutive cycles with unchanged (map_id, player_tile_x, player_tile_y) trigger recovery regardless of screen type \u2014 verified live: 'tile-locked (map 40 @ (5,3) x8 cycles)' fired during dialog<->overworld oscillation in run_starter_20260802_1440 (cycle 17) and run_starter_20260802_1435 (5 tile-locked recoveries)",
+    "Starter-selection branch: in Oak's Lab (map 40) with party count ($D163)==0 and menu detected, agent deterministically picks a starter \u2014 verified live: starter branch fired at cycle 18 (screen menu, party 0->1, species Charmander) in run_starter_20260802_1440",
+    "Post-choice milestone: party count 0->1 transition logs starter_picked event + [STARTER-PICKED] console marker \u2014 verified live: starter_picked event present in cron_logs/run_starter_20260802_1440.jsonl",
+    "Nickname prompt handled: NO selected, zero name_entry states after starter selection in live run",
+    "Full test suite green: 3830 passed, 8 skipped, 0 failed; mypy 0 errors/61 files; ruff PASS; gitreins guard 5/5 PASS",
+    "Commit 463a405 has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer and was pushed to origin/main"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m2:55PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~149864007\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": ""
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m2:55PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~149864007 bytes (149.86 MB) in 6.42s\u001b[0m\n\u001b[90m2:55PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": ""
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out"
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Same-TILE stuck detector: consecutive cycles with unchanged (map_id, player_tile_x, player_tile_y) trigger recovery regardless of screen type \u2014 verified live: 'tile-locked (map 40 @ (5,3) x8 cycles)' fired during dialog<->overworld oscillation in run_starter_20260802_1440 (cycle 17) and run_starter_20260802_1435 (5 tile-locked recoveries): Code: cron_runner.py _track_same_tile (line 190), _tile_lock_reason (line 203), MAX_SAME_TILE_CYCLES=8 (line 118). Live: cron_logs/run_run_starter_20260802_1440.jsonl line 18 has {\"cycle\":17,\"reason\":\"tile-locked (map 40 @ (5,3) x8 cycles)\"}; run_run_starter_20260802_1435.jsonl has 5 tile-locked recoveries (grep -c = 5).\n  \u2713 Starter-selection branch: in Oak's Lab (map 40) with party count ($D163)==0 and menu detected, agent deterministically picks a starter \u2014 verified live: starter branch fired at cycle 18 (screen menu, party 0->1, species Charmander) in run_starter_20260802_1440: Code: cron_runner.py _should_select_starter (line 216, requires map_id==40, party_count==0, menu_detected) and _select_starter_from_menu (line 291). Live: run_run_starter_20260802_1440.jsonl line 19 {\"cycle\":18,\"screen\":\"menu\",\"event\":\"starter_selection\",\"map_id\":40,\"party_count_before\":0,\"party_count_after\":1}.\n  \u2713 Post-choice milestone: party count 0->1 transition logs starter_picked event + [STARTER-PICKED] console marker \u2014 verified live: starter_picked event present in cron_logs/run_starter_20260802_1440.jsonl: Code: cron_runner.py _starter_picked_event (line 319) emits {\"event\":\"starter_picked\",\"party_count\":1}; [STARTER-PICKED] safe_print at lines 1008/1054. Live: run_run_starter_20260802_1440.jsonl line 20 {\"cycle\":18,\"event\":\"starter_picked\",\"party_count\":1,\"species_hint\":\"Charmander\"}.\n  \u2713 Nickname prompt handled: NO selected, zero name_entry states after starter selection in live run: Code: _select_starter_from_menu (cron_runner.py:291) presses B decline_presses=8 times to resolve the default-YES nickname prompt as NO. Live: run_run_starter_20260802_1440.jsonl has ZERO name_entry occurrences (grep -c = 0); cycle 19 is overworld immediately after starter picked at cycle 18.\n  \u2713 Full test suite green: 3830 passed, 8 skipped, 0 failed; mypy 0 errors/61 files; ruff PASS; gitreins guard 5/5 PASS: venv/bin/python -m pytest: '3830 passed, 8 skipped in 275.80s' (0 failed). mypy: 'Success: no issues found in 188 source files' (src/ contains exactly 61 files). ruff: 'All checks passed!'. gitreins guard: 'Tier 1 Guards: PASS (test mode: full)' with 5 checks (secrets, lint, tests, static_analysis, lsp).\n  \u2713 Commit 463a405 has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer and was pushed to origin/main: git show 463a405 -s shows trailer 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'. git merge-base --is-ancestor 463a405 origin/main returns true (pushed to origin/main). The 2 commits ahead of origin/main (727e8be, a11083c) are post-feature board/task-record bookkeeping, not the feature commit.\nAll 6 criteria verified: tile-locked detector, starter-selection branch, starter_picked milestone, nickname-as-NO handling, full green test suite (3830 passed/8 skipped/0 failed, mypy 0, ruff PASS, guard 5/5), and commit 463a405 with Co-authored-by trailer pushed to origin/main.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Same-TILE stuck detector: consecutive cycles with unchanged (map_id, player_tile_x, player_tile_y) trigger recovery regardless of screen type \u2014 verified live: 'tile-locked (map 40 @ (5,3) x8 cycles)' fired during dialog<->overworld oscillation in run_starter_20260802_1440 (cycle 17) and run_starter_20260802_1435 (5 tile-locked recoveries): Code: cron_runner.py _track_same_tile (line 190), _tile_lock_reason (line 203), MAX_SAME_TILE_CYCLES=8 (line 118). Live: cron_logs/run_run_starte",
+          "error": ""
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAMEPLAY-STARTER-001\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2713 secrets: \n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m2:55PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~149864007\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Same-TILE stuck detector: consecutive cycles with unchanged (map_id, player_tile_x, player_tile_y) trigger recovery regardless of screen type \u2014 verified live: 'tile-locked (map 40 @ (5,3) x8 cycles)' fired during dialog<->overworld oscillation in run_starter_20260802_1440 (cycle 17) and run_starter_20260802_1435 (5 tile-locked recoveries): Code: cron_runner.py _track_same_tile (line 190), _tile_lock_reason (line 203), MAX_SAME_TILE_CYCLES=8 (line 118). Live: cron_logs/run_run_starter_20260802_1440.jsonl line 18 has {\"cycle\":17,\"reason\":\"tile-locked (map 40 @ (5,3) x8 cycles)\"}; run_run_starter_20260802_1435.jsonl has 5 tile-locked recoveries (grep -c = 5).\n  \u2713 Starter-selection branch: in Oak's Lab (map 40) with party count ($D163)==0 and menu detected, agent deterministically picks a starter \u2014 verified live: starter branch fired at cycle 18 (screen menu, party 0->1, species Charmander) in run_starter_20260802_1440: Code: cron_runner.py _should_select_starter (line 216, requires map_id==40, party_count==0, menu_detected) and _select_starter_from_menu (line 291). Live: run_run_starter_20260802_1440.jsonl line 19 {\"cycle\":18,\"screen\":\"menu\",\"event\":\"starter_selection\",\"map_id\":40,\"party_count_before\":0,\"party_count_after\":1}.\n  \u2713 Post-choice milestone: party count 0->1 transition logs starter_picked event + [STARTER-PICKED] console marker \u2014 verified live: starter_picked event present in cron_logs/run_starter_20260802_1440.jsonl: Code: cron_runner.py _starter_picked_event (line 319) emits {\"event\":\"starter_picked\",\"party_count\":1}; [STARTER-PICKED] safe_print at lines 1008/1054. Live: run_run_starter_20260802_1440.jsonl line 20 {\"cycle\":18,\"event\":\"starter_picked\",\"party_count\":1,\"species_hint\":\"Charmander\"}.\n  \u2713 Nickname prompt handled: NO selected, zero name_entry states after starter selection in live run: Code: _select_starter_from_menu (cron_runner.py:291) presses B decline_presses=8 times to resolve the default-YES nickname prompt as NO. Live: run_run_starter_20260802_1440.jsonl has ZERO name_entry occurrences (grep -c = 0); cycle 19 is overworld immediately after starter picked at cycle 18.\n  \u2713 Full test suite green: 3830 passed, 8 skipped, 0 failed; mypy 0 errors/61 files; ruff PASS; gitreins guard 5/5 PASS: venv/bin/python -m pytest: '3830 passed, 8 skipped in 275.80s' (0 failed). mypy: 'Success: no issues found in 188 source files' (src/ contains exactly 61 files). ruff: 'All checks passed!'. gitreins guard: 'Tier 1 Guards: PASS (test mode: full)' with 5 checks (secrets, lint, tests, static_analysis, lsp).\n  \u2713 Commit 463a405 has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer and was pushed to origin/main: git show 463a405 -s shows trailer 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'. git merge-base --is-ancestor 463a405 origin/main returns true (pushed to origin/main). The 2 commits ahead of origin/main (727e8be, a11083c) are post-feature board/task-record bookkeeping, not the feature commit.\nAll 6 criteria verified: tile-locked detector, starter-selection branch, starter_picked milestone, nickname-as-NO handling, full green test suite (3830 passed/8 skipped/0 failed, mypy 0, ruff PASS, guard 5/5), and commit 463a405 with Co-authored-by trailer pushed to origin/main.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-02T20:04:44.597608"
+}
