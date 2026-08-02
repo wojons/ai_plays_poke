@@ -115,8 +115,12 @@ MAX_SAME_DIRECTION = 5     # blocked-direction threshold before rollback (legacy
 # ── Recovery (STUCK-RECOVER) ──────────────────────────────────────
 MAX_RECOVERY_ATTEMPTS = 5     # total recovery escalations before giving up
 MAX_SAME_SCREEN_CYCLES = 5    # same screen for N cycles → stuck
+MAX_SAME_TILE_CYCLES = 8      # same RAM tile across any screen types → stuck
 MAX_VOID_CYCLES = 3           # >95% unknown-tile cycles → void
 MAX_STUCK_SAME_DIR = 4        # same direction N times → direction-locked
+OAKS_LAB_MAP_ID = 40
+STARTER_ACTION_FRAMES = 20
+STARTER_ADVANCE_FRAMES = 120
 # Opposite direction map for step-back recovery
 _OPPOSITE_DIR = {"UP": "DOWN", "DOWN": "UP", "LEFT": "RIGHT", "RIGHT": "LEFT"}
 # Direction rotation map for alternate-direction recovery (90° clockwise)
@@ -147,6 +151,7 @@ class _RecoveryTrackers:
     same_dir: str | None
     same_dir_count: int
     same_screen_count: int
+    same_tile_count: int
     void_cycles: int
     a_press_count: int
 
@@ -157,6 +162,7 @@ def _reset_recovery_trackers(
     same_dir: str | None,
     same_dir_count: int,
     same_screen_count: int,
+    same_tile_count: int,
     void_cycles: int,
     a_press_count: int,
 ) -> _RecoveryTrackers:
@@ -166,6 +172,8 @@ def _reset_recovery_trackers(
         same_dir_count = 0
     elif "screen-locked" in recovery_reason:
         same_screen_count = 0
+    elif "tile-locked" in recovery_reason:
+        same_tile_count = 0
     elif "void-locked" in recovery_reason:
         void_cycles = 0
 
@@ -173,9 +181,154 @@ def _reset_recovery_trackers(
         same_dir=same_dir,
         same_dir_count=same_dir_count,
         same_screen_count=same_screen_count,
+        same_tile_count=same_tile_count,
         void_cycles=void_cycles,
         a_press_count=0,
     )
+
+
+def _track_same_tile(
+    current_tile: tuple[int, int, int] | None,
+    last_tile: tuple[int, int, int] | None,
+    same_tile_count: int,
+) -> tuple[tuple[int, int, int] | None, int]:
+    """Track a RAM map/tile tuple without considering the screen type."""
+    if current_tile is None:
+        return None, 0
+    if current_tile == last_tile:
+        return current_tile, same_tile_count + 1
+    return current_tile, 1
+
+
+def _tile_lock_reason(
+    tile: tuple[int, int, int] | None, same_tile_count: int
+) -> str:
+    """Return the recovery reason for a tile streak at the configured limit."""
+    if tile is None or same_tile_count < MAX_SAME_TILE_CYCLES:
+        return ""
+    map_id, tile_x, tile_y = tile
+    return (
+        f"tile-locked (map {map_id} @ ({tile_x},{tile_y}) "
+        f"x{same_tile_count} cycles)"
+    )
+
+
+def _should_select_starter(
+    *,
+    map_id: int,
+    party_count: int,
+    screen_type: str,
+    menu_state: dict[str, Any],
+) -> bool:
+    """Return whether Oak's empty-party starter menu must bypass the LLM."""
+    menu_detected = (
+        int(menu_state.get("menu_id", 0)) > 0
+        or screen_type in ("menu", "list_menu")
+    )
+    return (
+        map_id == OAKS_LAB_MAP_ID
+        and party_count == 0
+        and menu_detected
+    )
+
+
+def _approach_first_starter(
+    emu: Any,
+    ram_reader: RAMReader,
+    *,
+    max_dialog_advances: int = 12,
+) -> bool:
+    """Leave Oak's tile loop and interact with the nearest starter ball."""
+    # A just-triggered interaction can still look like overworld for a few
+    # frames; settle before deciding whether movement is controllable.
+    emu.fast_forward(STARTER_ADVANCE_FRAMES)
+    screen_type = ram_reader.screen_type()
+    if screen_type != "overworld":
+        for _ in range(max_dialog_advances):
+            emu.press_button("a", frames=STARTER_ACTION_FRAMES)
+            emu.fast_forward(STARTER_ADVANCE_FRAMES)
+            screen_type = ram_reader.screen_type()
+            if screen_type == "overworld":
+                break
+    if screen_type != "overworld":
+        return False
+
+    tile_x = ram_reader.player_tile_x()
+    tile_y = ram_reader.player_tile_y()
+    moves: list[str] = []
+    moves.extend(["down"] * max(0, 4 - tile_y))
+    moves.extend(["up"] * max(0, tile_y - 4))
+    moves.extend(["right"] * max(0, 6 - tile_x))
+    moves.extend(["left"] * max(0, tile_x - 6))
+    if len(moves) > 12:
+        return False
+
+    for button in moves:
+        emu.press_button(button, frames=PRESS_FRAMES)
+        emu.fast_forward(STEP_FORWARD)
+    emu.press_button("up", frames=PRESS_FRAMES)
+    emu.fast_forward(STEP_FORWARD)
+    emu.press_button("a", frames=STARTER_ACTION_FRAMES)
+    emu.fast_forward(STARTER_ADVANCE_FRAMES)
+
+    # Do not return control to the LLM during the transient overworld frames:
+    # an A-heavy generic plan can race straight through the YES/NO prompt.
+    # Advance only until the starter choice is visibly active, then let the
+    # deterministic menu branch confirm it on the next cycle.
+    for _ in range(max_dialog_advances):
+        current_screen = ram_reader.screen_type()
+        current_menu = ram_reader.read_menu_state()
+        if (
+            current_screen in ("menu", "list_menu")
+            or int(current_menu.get("menu_id", 0)) > 0
+        ):
+            return True
+        emu.press_button("a", frames=STARTER_ACTION_FRAMES)
+        emu.fast_forward(STARTER_ADVANCE_FRAMES)
+    return False
+
+
+def _select_starter_from_menu(
+    emu: Any,
+    ram_reader: RAMReader,
+    *,
+    max_advances: int = 16,
+    decline_presses: int = 8,
+) -> int:
+    """Confirm the first starter, then B through the nickname prompt as NO."""
+    party_count = ram_reader.party_count()
+    emu.press_button("a", frames=STARTER_ACTION_FRAMES)
+    emu.fast_forward(STARTER_ADVANCE_FRAMES)
+
+    for _ in range(max_advances):
+        party_count = ram_reader.party_count()
+        if party_count > 0:
+            break
+        emu.press_button("a", frames=STARTER_ACTION_FRAMES)
+        emu.fast_forward(STARTER_ADVANCE_FRAMES)
+
+    if party_count > 0:
+        # Verified live against Pokémon Blue: B advances the remaining text and
+        # resolves the default-YES nickname prompt as NO without name entry.
+        for _ in range(decline_presses):
+            emu.press_button("b", frames=STARTER_ACTION_FRAMES)
+            emu.fast_forward(STARTER_ADVANCE_FRAMES)
+    return party_count
+
+
+def _starter_picked_event(
+    previous_party_count: int,
+    current_party_count: int,
+    species_hint: str | None,
+) -> dict[str, Any] | None:
+    """Build the one-time milestone for the starter 0→1 party transition."""
+    if previous_party_count != 0 or current_party_count != 1:
+        return None
+    return {
+        "event": "starter_picked",
+        "party_count": 1,
+        "species_hint": species_hint,
+    }
 
 
 def _blocked_spatial_directions(spatial_desc: dict[str, Any]) -> set[str]:
@@ -557,11 +710,13 @@ def main() -> None:
     _last_direction: str = ""  # last direction pressed (for controller context)
     _last_result: str = "unknown"  # last movement result
 
-    # ── Stuck detection (3 independent dimensions) ──────────────────
+    # ── Stuck detection (4 independent dimensions) ──────────────────
     _same_dir: str | None = None   # last repeated direction
     _same_dir_count: int = 0       # consecutive same-direction presses
     _same_screen_count: int = 0    # consecutive cycles on same screen type
     _last_screen_type: str = ""    # for same-screen detection
+    _same_tile_count: int = 0      # consecutive cycles on same RAM tile
+    _last_tile: tuple[int, int, int] | None = None
     _void_tile_pct: float = 0.0    # % of tiles classified as unknown/void
     _void_cycles: int = 0          # consecutive cycles with >95% void tiles
 
@@ -769,6 +924,7 @@ def main() -> None:
     # the intro phase still escalates to programmatic typing after 3
     # cycles.
     _main_ne_stuck_box: list[int] = [0]
+    _last_party_count = ram_reader.party_count() if USE_RAM_READER else 0
 
     for cycle in range(CYCLES):
         try:
@@ -809,7 +965,102 @@ def main() -> None:
                     safe_print(f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result','?')})")
             st = patch_data.get("result", "unknown")
 
+            raw_map_id = patch_data.get("map_id")
+            raw_tile_x = patch_data.get("player_tile_x")
+            raw_tile_y = patch_data.get("player_tile_y")
+            current_tile = None
+            if (
+                isinstance(raw_map_id, int)
+                and isinstance(raw_tile_x, int)
+                and isinstance(raw_tile_y, int)
+            ):
+                current_tile = (raw_map_id, raw_tile_x, raw_tile_y)
+            _last_tile, _same_tile_count = _track_same_tile(
+                current_tile, _last_tile, _same_tile_count
+            )
+            tile_recovery_reason = _tile_lock_reason(
+                _last_tile, _same_tile_count
+            )
+
+            map_id = int(raw_map_id) if isinstance(raw_map_id, int) else -1
+            if USE_RAM_READER:
+                party_count = ram_reader.party_count()
+                menu_state = ram_reader.read_menu_state()
+            else:
+                raw_party_count = patch_data.get("party_count", 0)
+                party_count = (
+                    int(raw_party_count) if isinstance(raw_party_count, int) else 0
+                )
+                raw_menu_state = patch_data.get("menu_state", {})
+                menu_state = raw_menu_state if isinstance(raw_menu_state, dict) else {}
+
+            starter_event = _starter_picked_event(
+                _last_party_count,
+                party_count,
+                ram_reader.first_party_species_hint() if USE_RAM_READER else None,
+            )
+            if starter_event is not None:
+                milestone = {"cycle": cycle + 1, **starter_event}
+                results.append(milestone)
+                log_file.write(json.dumps(milestone, default=str) + "\n")
+                log_file.flush()
+                safe_print(
+                    "  [STARTER-PICKED] "
+                    f"party_count={party_count} "
+                    f"species_hint={starter_event['species_hint']}"
+                )
+            _last_party_count = party_count
+
             t0 = time.time()
+
+            # Deterministic starter selection must pre-empt generic menu handling.
+            if USE_RAM_READER and _should_select_starter(
+                map_id=map_id,
+                party_count=party_count,
+                screen_type=st,
+                menu_state=menu_state,
+            ):
+                safe_print(
+                    f"  [STARTER] Oak's Lab menu detected at cycle {cycle + 1}; "
+                    "selecting first starter"
+                )
+                selected_party_count = _select_starter_from_menu(emu, ram_reader)
+                selection_entry = {
+                    "cycle": cycle + 1,
+                    "screen": st,
+                    "event": "starter_selection",
+                    "action": "confirm_first_starter_then_decline_nickname",
+                    "map_id": map_id,
+                    "party_count_before": party_count,
+                    "party_count_after": selected_party_count,
+                    "player_tile_x": raw_tile_x,
+                    "player_tile_y": raw_tile_y,
+                }
+                results.append(selection_entry)
+                log_file.write(json.dumps(selection_entry, default=str) + "\n")
+                log_file.flush()
+
+                starter_event = _starter_picked_event(
+                    party_count,
+                    selected_party_count,
+                    ram_reader.first_party_species_hint(),
+                )
+                if starter_event is not None:
+                    milestone = {"cycle": cycle + 1, **starter_event}
+                    results.append(milestone)
+                    log_file.write(json.dumps(milestone, default=str) + "\n")
+                    log_file.flush()
+                    safe_print(
+                        "  [STARTER-PICKED] "
+                        f"party_count={selected_party_count} "
+                        f"species_hint={starter_event['species_hint']}"
+                    )
+                _last_party_count = selected_party_count
+                safe_print(
+                    f"  [{cycle + 1}/{CYCLES}] starter_selection | "
+                    f"party={selected_party_count} | {time.time() - t0:.1f}s"
+                )
+                continue
 
             if st == "overworld":
                 # Out of name_entry — reset stuck counter for any future re-entry.
@@ -854,6 +1105,9 @@ def main() -> None:
                 recovery_reason = ""
                 if _gave_up:
                     pass  # already exhausted — no more recovery
+                elif tile_recovery_reason:
+                    needs_recovery = True
+                    recovery_reason = tile_recovery_reason
                 elif _same_dir_count >= MAX_STUCK_SAME_DIR:
                     needs_recovery = True
                     recovery_reason = f"direction-locked ({_same_dir} x{_same_dir_count})"
@@ -867,6 +1121,7 @@ def main() -> None:
                     needs_recovery = True
                     recovery_reason = f"A-press locked (A x{_a_press_count})"
 
+                starter_approached = False
                 if needs_recovery:
                     if _recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
                         if not _gave_up:
@@ -879,10 +1134,25 @@ def main() -> None:
                             log_file.flush()
                     else:
                         _recovery_attempts += 1
-                        strategy, desc = _escalating_recovery(
-                            emu, _recovery_level, _last_direction,
-                            _last_saved_slot
-                        )
+                        if (
+                            "tile-locked" in recovery_reason
+                            and USE_RAM_READER
+                            and map_id == OAKS_LAB_MAP_ID
+                            and party_count == 0
+                        ):
+                            starter_approached = _approach_first_starter(
+                                emu, ram_reader
+                            )
+                        if starter_approached:
+                            strategy, desc = (
+                                "starter_approach",
+                                "moved to the first Poké Ball and pressed A",
+                            )
+                        else:
+                            strategy, desc = _escalating_recovery(
+                                emu, _recovery_level, _last_direction,
+                                _last_saved_slot
+                            )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
                         if strategy == "load_checkpoint" and _same_dir and _same_dir in _DIR_ROTATION:
@@ -901,14 +1171,18 @@ def main() -> None:
                             same_dir=_same_dir,
                             same_dir_count=_same_dir_count,
                             same_screen_count=_same_screen_count,
+                            same_tile_count=_same_tile_count,
                             void_cycles=_void_cycles,
                             a_press_count=_a_press_count,
                         )
                         _same_dir = trackers.same_dir
                         _same_dir_count = trackers.same_dir_count
                         _same_screen_count = trackers.same_screen_count
+                        _same_tile_count = trackers.same_tile_count
                         _void_cycles = trackers.void_cycles
                         _a_press_count = trackers.a_press_count
+                        if starter_approached:
+                            continue
 
                 # Step 2b: Controller outputs movement PLAN from spatial description
                 # Frame-cache dedup: hash the raw screenshot; if this exact
@@ -1187,6 +1461,9 @@ def main() -> None:
                 recovery_reason = ""
                 if _gave_up:
                     pass
+                elif tile_recovery_reason:
+                    needs_recovery = True
+                    recovery_reason = tile_recovery_reason
                 elif _same_screen_count >= MAX_SAME_SCREEN_CYCLES and st != "overworld":
                     needs_recovery = True
                     recovery_reason = f"screen-locked ({st} x{_same_screen_count})"
@@ -1194,6 +1471,7 @@ def main() -> None:
                     needs_recovery = True
                     recovery_reason = f"direction-locked ({_same_dir} x{_same_dir_count})"
 
+                starter_approached = False
                 if needs_recovery:
                     if _recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
                         if not _gave_up:
@@ -1206,13 +1484,22 @@ def main() -> None:
                             log_file.flush()
                     else:
                         _recovery_attempts += 1
+                        if (
+                            "tile-locked" in recovery_reason
+                            and USE_RAM_READER
+                            and map_id == OAKS_LAB_MAP_ID
+                            and party_count == 0
+                        ):
+                            starter_approached = _approach_first_starter(
+                                emu, ram_reader
+                            )
                         # ── Dialog fast-path ─────────────────────────
                         # A dialog box is NOT a stuck state — it needs A
                         # presses to advance the text. The generic ladder
                         # (START→B→B menu_redraw) is wrong here and was
                         # keeping the agent trapped in Oak's dialog for
                         # 70+ cycles. A-mash to advance the conversation.
-                        if st == "dialog":
+                        if st == "dialog" and not starter_approached:
                             for _ in range(12):
                                 emu.press_button("a", frames=_A_FRAMES)
                                 emu.fast_forward(_FF_FRAMES)
@@ -1230,19 +1517,27 @@ def main() -> None:
                                 same_dir=_same_dir,
                                 same_dir_count=_same_dir_count,
                                 same_screen_count=_same_screen_count,
+                                same_tile_count=_same_tile_count,
                                 void_cycles=_void_cycles,
                                 a_press_count=_a_press_count,
                             )
                             _same_dir = trackers.same_dir
                             _same_dir_count = trackers.same_dir_count
                             _same_screen_count = trackers.same_screen_count
+                            _same_tile_count = trackers.same_tile_count
                             _void_cycles = trackers.void_cycles
                             _a_press_count = trackers.a_press_count
                             continue  # skip StateWindow, let next cycle re-classify
-                        strategy, desc = _escalating_recovery(
-                            emu, _recovery_level, _last_direction,
-                            _last_saved_slot
-                        )
+                        if starter_approached:
+                            strategy, desc = (
+                                "starter_approach",
+                                "moved to the first Poké Ball and pressed A",
+                            )
+                        else:
+                            strategy, desc = _escalating_recovery(
+                                emu, _recovery_level, _last_direction,
+                                _last_saved_slot
+                            )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
                         if strategy == "load_checkpoint" and _same_dir and _same_dir in _DIR_ROTATION:
@@ -1261,12 +1556,14 @@ def main() -> None:
                             same_dir=_same_dir,
                             same_dir_count=_same_dir_count,
                             same_screen_count=_same_screen_count,
+                            same_tile_count=_same_tile_count,
                             void_cycles=_void_cycles,
                             a_press_count=_a_press_count,
                         )
                         _same_dir = trackers.same_dir
                         _same_dir_count = trackers.same_dir_count
                         _same_screen_count = trackers.same_screen_count
+                        _same_tile_count = trackers.same_tile_count
                         _void_cycles = trackers.void_cycles
                         _a_press_count = trackers.a_press_count
                         continue  # skip StateWindow, let next cycle re-classify

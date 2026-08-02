@@ -8,8 +8,17 @@ Skip in CI without ROM: ``pytest -m "not rom"``
 from __future__ import annotations
 
 import json
-import pytest
 from pathlib import Path
+from unittest.mock import MagicMock, call
+
+import pytest
+
+from cron_runner import (
+    _approach_first_starter,
+    _select_starter_from_menu,
+    _should_select_starter,
+    _starter_picked_event,
+)
 
 ROM_PATH = Path("data/rom/pokemon_red.gb")
 
@@ -57,6 +66,93 @@ def _count_action_types(log_path: Path) -> dict[str, int]:
             except json.JSONDecodeError:
                 pass
     return counts
+
+
+class TestStarterSelection:
+    def test_branch_requires_oaks_lab_empty_party_and_menu(self) -> None:
+        assert _should_select_starter(
+            map_id=40,
+            party_count=0,
+            screen_type="menu",
+            menu_state={"menu_id": 0, "active": True},
+        )
+        assert _should_select_starter(
+            map_id=40,
+            party_count=0,
+            screen_type="dialog",
+            menu_state={"menu_id": 1, "active": True},
+        )
+
+    @pytest.mark.parametrize(
+        ("map_id", "party_count", "screen_type", "menu_state"),
+        [
+            (0, 0, "menu", {"menu_id": 1, "active": True}),
+            (40, 1, "menu", {"menu_id": 1, "active": True}),
+            (40, 0, "dialog", {"menu_id": 0}),
+        ],
+    )
+    def test_branch_does_not_fire_outside_starter_menu(
+        self,
+        map_id: int,
+        party_count: int,
+        screen_type: str,
+        menu_state: dict[str, object],
+    ) -> None:
+        assert not _should_select_starter(
+            map_id=map_id,
+            party_count=party_count,
+            screen_type=screen_type,
+            menu_state=menu_state,
+        )
+
+    def test_tile_lock_approaches_first_starter_with_one_tile_taps(self) -> None:
+        emu = MagicMock()
+        reader = MagicMock()
+        reader.screen_type.side_effect = ["overworld", "menu"]
+        reader.player_tile_x.return_value = 5
+        reader.player_tile_y.return_value = 3
+
+        assert _approach_first_starter(emu, reader)
+        assert reader.screen_type.call_count == 2
+        assert emu.press_button.call_args_list == [
+            call("down", frames=5),
+            call("right", frames=5),
+            call("up", frames=5),
+            call("a", frames=20),
+        ]
+
+    def test_deterministic_branch_confirms_then_declines_nickname(self) -> None:
+        emu = MagicMock()
+        reader = MagicMock()
+        reader.party_count.side_effect = [0, 0, 1]
+
+        party_count = _select_starter_from_menu(
+            emu,
+            reader,
+            max_advances=4,
+            decline_presses=2,
+        )
+
+        assert party_count == 1
+        assert emu.press_button.call_args_list == [
+            call("a", frames=20),
+            call("a", frames=20),
+            call("b", frames=20),
+            call("b", frames=20),
+        ]
+
+    def test_party_count_transition_builds_starter_milestone(self) -> None:
+        assert _starter_picked_event(0, 1, "Charmander") == {
+            "event": "starter_picked",
+            "party_count": 1,
+            "species_hint": "Charmander",
+        }
+
+    @pytest.mark.parametrize("before,after", [(0, 0), (1, 1), (1, 2)])
+    def test_non_starter_transitions_do_not_build_milestone(
+        self, before: int, after: int
+    ) -> None:
+        assert _starter_picked_event(before, after, None) is None
 
 
 # ── Tests ──────────────────────────────────────────────────────────────────

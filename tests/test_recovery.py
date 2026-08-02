@@ -8,9 +8,12 @@ pure-function behavior without needing an emulator or ROM.
 from __future__ import annotations
 
 from cron_runner import (
+    MAX_SAME_TILE_CYCLES,
     PRESS_FRAMES,
     _blocked_spatial_directions,
     _reset_recovery_trackers,
+    _tile_lock_reason,
+    _track_same_tile,
 )
 
 # ── Constants matching cron_runner.py ─────────────────────────────────────
@@ -192,11 +195,40 @@ class TestRecoveryDecision:
             same_dir="RIGHT",
             same_dir_count=2,
             same_screen_count=1,
+            same_tile_count=1,
             void_cycles=1,
             a_press_count=3,
         )
 
         assert counters.a_press_count == 0
+
+    def test_same_tile_triggers_while_screen_type_alternates(self) -> None:
+        last_tile = None
+        same_tile_count = 0
+
+        for screen_type in ("dialog", "overworld") * 4:
+            assert screen_type in {"dialog", "overworld"}
+            last_tile, same_tile_count = _track_same_tile(
+                (40, 5, 3), last_tile, same_tile_count
+            )
+
+        assert same_tile_count == MAX_SAME_TILE_CYCLES
+        assert _tile_lock_reason(last_tile, same_tile_count) == (
+            "tile-locked (map 40 @ (5,3) x8 cycles)"
+        )
+
+    def test_tile_lock_recovery_resets_tile_counter(self) -> None:
+        counters = _reset_recovery_trackers(
+            "tile-locked (map 40 @ (5,3) x8 cycles)",
+            same_dir=None,
+            same_dir_count=0,
+            same_screen_count=0,
+            same_tile_count=8,
+            void_cycles=0,
+            a_press_count=0,
+        )
+
+        assert counters.same_tile_count == 0
 
     def test_controller_press_duration_represents_one_tile(self) -> None:
         assert PRESS_FRAMES == 5

@@ -418,6 +418,32 @@ class TestRAMReaderPlayerState:
             reader = RAMReader(mock_emu, "/fake/rom.gb")
             assert reader.current_map_id() == 0x00
 
+    def test_party_count(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD163] = 1
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.party_count() == 1
+
+    def test_first_party_species_hint_for_starter(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD163] = 1
+        _MEMORY[0xD164] = 176
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.first_party_species_hint() == "Charmander"
+
+    def test_first_party_species_hint_empty_party(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD163] = 0
+        _MEMORY[0xD164] = 0xFF
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.first_party_species_hint() is None
+
     def test_current_map_name_pallet(self, mock_emu: MagicMock) -> None:
         from src.core.ram_reader import RAMReader
 
@@ -465,6 +491,22 @@ class TestRAMReaderScreenType:
         with patch("src.core.ram_reader._MapDB"):
             reader = RAMReader(mock_emu, "/fake/rom.gb")
             assert reader.screen_type() == "dialog"
+
+    def test_yes_no_prompt_is_menu_before_dialog(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xCF2B] = 1
+        _MEMORY[0xCC24] = 8
+        _MEMORY[0xCC25] = 15
+        _MEMORY[0xCC26] = 0
+        _MEMORY[0xCC28] = 1
+        _MEMORY[0xC3A0 + 7 * 20 + 14] = 0x79
+        _MEMORY[0xC3A0 + 7 * 20 + 19] = 0x7B
+        _MEMORY[0xC3A0 + 11 * 20 + 14] = 0x7D
+        _MEMORY[0xC3A0 + 11 * 20 + 19] = 0x7E
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.screen_type() == "menu"
 
     def test_name_entry(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCC47] = 1
@@ -1723,6 +1765,28 @@ class TestReadMenuState:
         assert state["current_item"] == 1
         assert state["cursor_pos"] == (10, 5)
         assert state["active"] is True
+
+    def test_yes_no_menu_without_list_menu_id_is_active(
+        self, mock_emu: MagicMock
+    ) -> None:
+        _MEMORY[0xCF88] = 0
+        _MEMORY[0xCC24] = 8
+        _MEMORY[0xCC25] = 15
+        _MEMORY[0xCC26] = 0
+        _MEMORY[0xCC28] = 1
+        _MEMORY[0xC3A0 + 7 * 20 + 14] = 0x79
+        _MEMORY[0xC3A0 + 7 * 20 + 19] = 0x7B
+        _MEMORY[0xC3A0 + 11 * 20 + 14] = 0x7D
+        _MEMORY[0xC3A0 + 11 * 20 + 19] = 0x7E
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            state = reader.read_menu_state()
+
+        assert state["active"] is True
+        assert state["menu_kind"] == "yes_no"
+        assert state["num_items"] == 2
 
     def test_max_item_zero_returns_no_items(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCF88] = 5  # active menu

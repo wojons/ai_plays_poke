@@ -27,6 +27,8 @@ ADDR_Y_COORD = 0xD361  # wYCoord — player Y on map (in blocks)
 ADDR_X_COORD = 0xD362  # wXCoord — player X on map (in blocks)
 ADDR_CUR_MAP = 0xD35E  # wCurMap — current map ID
 ADDR_WALK_COUNTER = 0xCFC5  # wWalkCounter — non-zero → moving
+ADDR_PARTY_COUNT = 0xD163  # wPartyCount — 0 before starter, 1 after
+ADDR_PARTY_SPECIES = 0xD164  # wPartySpecies — first party slot species ID
 
 # Screen tile buffer: 20×18 tiles at $C3A0 (wTileMap)
 ADDR_TILE_MAP = 0xC3A0
@@ -390,6 +392,14 @@ class _MapDB:
 
 
 # ── Pokémon species names (index → name, Gen 1 1-indexed) ────────────────
+
+# Gen 1 uses internal species IDs in wPartySpecies. These three non-Pokédex
+# values are the only species possible during the 0→1 starter transition.
+STARTER_SPECIES_NAMES: dict[int, str] = {
+    153: "Bulbasaur",
+    176: "Charmander",
+    177: "Squirtle",
+}
 
 POKEMON_NAMES: dict[int, str] = {
     1: "Rhydon",
@@ -881,6 +891,21 @@ class RAMReader:
         mid = self.current_map_id()
         return MAP_NAMES.get(mid, f"Map_{mid:02X}")
 
+    def party_count(self) -> int:
+        """Return wPartyCount (0 before choosing a starter)."""
+        return self.read_u8(ADDR_PARTY_COUNT)
+
+    def first_party_species_hint(self) -> str | None:
+        """Return the first party species name when a party member exists."""
+        if self.party_count() == 0:
+            return None
+        species_id = self.read_u8(ADDR_PARTY_SPECIES)
+        if species_id in (0, 0xFF):
+            return None
+        return STARTER_SPECIES_NAMES.get(
+            species_id, POKEMON_NAMES.get(species_id, f"Species#{species_id}")
+        )
+
     # ── Screen type ──────────────────────────────────────────────────
 
     def screen_type(self) -> str:
@@ -891,6 +916,9 @@ class RAMReader:
         naming_state = self.read_u8(ADDR_NAMING_SCREEN)
         if naming_state != 0 or self._has_name_entry_keyboard():
             return SCREEN_NAME_ENTRY
+
+        if self._has_yes_no_menu():
+            return SCREEN_MENU
 
         text_frame = self.read_u8(ADDR_TEXT_BOX_FRAME)
         if text_frame != 0 or self._has_bottom_textbox():
@@ -923,6 +951,24 @@ class RAMReader:
             self.read_u8(ADDR_MAX_MENU_ITEM) == 7
             and self.read_u8(ADDR_LAST_MENU_ITEM) != 0
             and letter_tiles >= 20
+        )
+
+    def _has_yes_no_menu(self) -> bool:
+        """Detect Gen 1's YES/NO box, whose wListMenuID stays zero."""
+        if (
+            self.read_u8(ADDR_CURRENT_MENU_ITEM) not in (0, 1)
+            or self.read_u8(ADDR_MAX_MENU_ITEM) != 1
+            or self.read_u8(ADDR_TOP_MENU_ITEM_X) != 15
+            or self.read_u8(ADDR_TOP_MENU_ITEM_Y) != 8
+        ):
+            return False
+        top = self._tilemap_row(7)
+        bottom = self._tilemap_row(11)
+        return (
+            top[14] == 0x79
+            and top[19] == 0x7B
+            and bottom[14] == 0x7D
+            and bottom[19] == 0x7E
         )
 
     def _has_bottom_textbox(self) -> bool:
@@ -1257,10 +1303,11 @@ class RAMReader:
         menu_id = self.read_u8(ADDR_LIST_MENU_ID)
         y = self.read_u8(ADDR_TOP_MENU_ITEM_Y)
         x = self.read_u8(ADDR_TOP_MENU_ITEM_X)
+        yes_no_menu = self._has_yes_no_menu()
 
-        # Guard: only report menu when one is actually active.
-        # wListMenuID is zeroed when no menu is on screen.
-        if menu_id == 0:
+        # wListMenuID is zero for Gen 1's YES/NO prompt, so combine the
+        # stable menu coordinates with the rendered box border to detect it.
+        if menu_id == 0 and not yes_no_menu:
             return {
                 "menu_id": 0,
                 "current_item": 0,
@@ -1270,6 +1317,7 @@ class RAMReader:
 
         return {
             "menu_id": menu_id,
+            "menu_kind": "yes_no" if yes_no_menu else "list",
             "current_item": cur,
             "num_items": max_item + 1 if max_item > 0 else 0,
             "cursor_pos": (x, y),
@@ -1403,6 +1451,8 @@ class RAMReader:
             "player_tile_y": pty,
             "map_id": mid,
             "map_name": mname,
+            "party_count": self.party_count(),
+            "first_party_species": self.first_party_species_hint(),
             "adjacent": {},
             "minimap": "",
             "overworld_grid": "",
@@ -1427,6 +1477,13 @@ class RAMReader:
             obs["suggested_action"] = "choose a battle action"
             obs["battle_state"] = self.read_battle_state()
             obs["render"] = self.render_battle()
+        elif st == SCREEN_MENU:
+            obs["suggested_action"] = "choose a menu item"
+            obs["menu_state"] = self.read_menu_state()
+            obs["menu_items"] = [
+                f"Item {i}" for i in range(obs["menu_state"]["num_items"])
+            ]
+            obs["render"] = self.render_menu()
         elif st == SCREEN_DIALOG:
             obs["suggested_action"] = "advance the dialogue"
             obs["text_content"] = [self.read_dialog_text()]
