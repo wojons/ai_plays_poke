@@ -45,3 +45,28 @@ tasks:
   status: complete
   created_at: '2026-08-01T22:59:01.022899+00:00'
   completed_at: '2026-08-01T23:53:41.301135+00:00'
+- id: GAMEPLAY-STARTER-001
+  title: "Break starter-pick loop in Oak's Lab \u2014 same-tile stuck detector + starter-selection\
+    \ branch + party-count milestone"
+  criteria:
+  - "Same-TILE stuck detector: consecutive cycles with unchanged (map_id, player_tile_x,\
+    \ player_tile_y) trigger recovery regardless of screen type \u2014 verified live:\
+    \ 'tile-locked (map 40 @ (5,3) x8 cycles)' fired during dialog<->overworld oscillation\
+    \ in run_starter_20260802_1440 (cycle 17) and run_starter_20260802_1435 (5 tile-locked\
+    \ recoveries)"
+  - "Starter-selection branch: in Oak's Lab (map 40) with party count ($D163)==0 and\
+    \ menu detected, agent deterministically picks a starter \u2014 verified live:\
+    \ starter branch fired at cycle 18 (screen menu, party 0->1, species Charmander)\
+    \ in run_starter_20260802_1440"
+  - "Post-choice milestone: party count 0->1 transition logs starter_picked event\
+    \ + [STARTER-PICKED] console marker \u2014 verified live: starter_picked event\
+    \ present in cron_logs/run_starter_20260802_1440.jsonl"
+  - 'Nickname prompt handled: NO selected, zero name_entry states after starter selection
+    in live run'
+  - 'Full test suite green: 3830 passed, 8 skipped, 0 failed; mypy 0 errors/61 files;
+    ruff PASS; gitreins guard 5/5 PASS'
+  - 'Commit 463a405 has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer
+    and was pushed to origin/main'
+  status: complete
+  created_at: '2026-08-02T19:54:58.182706+00:00'
+  completed_at: '2026-08-02T19:55:01.235318+00:00'
