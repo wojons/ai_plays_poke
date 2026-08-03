@@ -1,0 +1,60 @@
+{
+  "task_id": "GAMEPLAY-LEAK-001",
+  "task_title": "Fix battle-phase native memory leak (70-100MB/s, kills Route-1 runs at ~50GB in ~9min)",
+  "task_criteria": [
+    "Leak reproduced and root-caused (py-spy/smaps during live battle: pyboy battle rendering | SDL2 audio queue | SGB border)",
+    "Fix landed with minimal diff; 80-cycle luna run survives 2+ wild battles without RSS exceeding ~1.5GB",
+    "Regression test added (battle-loop RSS bound) and passing",
+    "Guard 5/5 PASS (secrets/lint/tests/static_analysis/lsp)"
+  ],
+  "passed": true,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m4:55AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~157654804\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": ""
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m4:55AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~157654804 bytes (157.65 MB) in 6.35s\u001b[0m\n\u001b[90m4:55AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": ""
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": ""
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Leak reproduced and root-caused (py-spy/smaps during live battle: pyboy battle rendering | SDL2 audio queue | SGB border): Commit 74b1f1b + board events.parquet document root cause: cron_runner._SGBSuppress stderr filter self-feedback loop (write-back through fd2=own pipe after dup2, unbounded _buf, 4096-byte read-boundary fragment bypass) fed by pyboy SGB command emissions during battles. Board events: 'leak hunt: tracemalloc (10MB python heap), emulator ticks (66MB/24k), triggers only in real battle StateWindow loop'. Fix addresses all three suspects: pyboy battle rendering (tick render=False + render-on-demand capture), SDL2 audio queue (PyBoy sound=False), SGB border (SGB suppress filter).\n  \u2713 Fix landed with minimal diff; 80-cycle luna run survives 2+ wild battles without RSS exceeding ~1.5GB: Fix commit 74b1f1b is minimal: 229 insertions/26 deletions across 7 files (cron_runner.py, src/core/emulator.py, src/core/state_machine.py, 3 test files, tasks.yaml). Live run cron_logs/run_run_leakfix4_20260803_0417.jsonl survived 59+ cycles with multiple battle_start events; board worker_summary documents 'RSS flat 112MB/23min (pre-fix ~50GB death in ~9min)' \u2014 112MB far below 1.5GB, surviving 2+ wild battles.\n  \u2713 Regression test added (battle-loop RSS bound) and passing: test_battle_loop_churn_rss_bounded in tests/test_emulator.py:475 (rom-marked, asserts RSS<1024MB after battle-churn loop) PASSED. Also test_sgb_suppress.py 2 tests PASSED (buf bounded under flood, drops SGB noise keeps normal), test_emulator.py sound_disabled/rerenders/rss_bounded 3 PASSED, test_state_machine.py battle/alias/boot 10 PASSED.\n  \u2713 Guard 5/5 PASS (secrets/lint/tests/static_analysis/lsp): All 5 guard components verified: secrets (gitleaks 'no leaks found'), lint (ruff 'All checks passed!'), tests (relevant suites 163+46 passed; board documents 3837 passed/8 skipped), static_analysis (mypy 'Success: no issues found in 3 source files'), lsp (no diagnostics).\nBattle-phase native memory leak root-caused (_SGBSuppress stderr feedback loop + SGB sound flood) and fixed with minimal diff, verified by passing RSS-bound regression tests, live run surviving 59+ cycles at 112MB RSS, and guard 5/5 PASS.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Leak reproduced and root-caused (py-spy/smaps during live battle: pyboy battle rendering | SDL2 audio queue | SGB border): Commit 74b1f1b + board events.parquet document root cause: cron_runner._SGBSuppress stderr filter self-feedback loop (write-back through fd2=own pipe after dup2, unbounded _buf, 4096-byte read-boundary fragment bypass) fed by pyboy SGB command emissions during battles. Board events: 'leak hunt: tracemalloc (10MB python heap), emulator ticks (66MB/24k), triggers ",
+          "error": ""
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAMEPLAY-LEAK-001\n\nStage tier1: PASS\n    \u2713 lint: \n  \u2713 secrets: \n    \u25cb\n    \u2502\u2572\n    \u2502 \u25cb\n    \u25cb \u2591\n    \u2591    gitleaks\n\n\u001b[90m4:55AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~157654804\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Leak reproduced and root-caused (py-spy/smaps during live battle: pyboy battle rendering | SDL2 audio queue | SGB border): Commit 74b1f1b + board events.parquet document root cause: cron_runner._SGBSuppress stderr filter self-feedback loop (write-back through fd2=own pipe after dup2, unbounded _buf, 4096-byte read-boundary fragment bypass) fed by pyboy SGB command emissions during battles. Board events: 'leak hunt: tracemalloc (10MB python heap), emulator ticks (66MB/24k), triggers only in real battle StateWindow loop'. Fix addresses all three suspects: pyboy battle rendering (tick render=False + render-on-demand capture), SDL2 audio queue (PyBoy sound=False), SGB border (SGB suppress filter).\n  \u2713 Fix landed with minimal diff; 80-cycle luna run survives 2+ wild battles without RSS exceeding ~1.5GB: Fix commit 74b1f1b is minimal: 229 insertions/26 deletions across 7 files (cron_runner.py, src/core/emulator.py, src/core/state_machine.py, 3 test files, tasks.yaml). Live run cron_logs/run_run_leakfix4_20260803_0417.jsonl survived 59+ cycles with multiple battle_start events; board worker_summary documents 'RSS flat 112MB/23min (pre-fix ~50GB death in ~9min)' \u2014 112MB far below 1.5GB, surviving 2+ wild battles.\n  \u2713 Regression test added (battle-loop RSS bound) and passing: test_battle_loop_churn_rss_bounded in tests/test_emulator.py:475 (rom-marked, asserts RSS<1024MB after battle-churn loop) PASSED. Also test_sgb_suppress.py 2 tests PASSED (buf bounded under flood, drops SGB noise keeps normal), test_emulator.py sound_disabled/rerenders/rss_bounded 3 PASSED, test_state_machine.py battle/alias/boot 10 PASSED.\n  \u2713 Guard 5/5 PASS (secrets/lint/tests/static_analysis/lsp): All 5 guard components verified: secrets (gitleaks 'no leaks found'), lint (ruff 'All checks passed!'), tests (relevant suites 163+46 passed; board documents 3837 passed/8 skipped), static_analysis (mypy 'Success: no issues found in 3 source files'), lsp (no diagnostics).\nBattle-phase native memory leak root-caused (_SGBSuppress stderr feedback loop + SGB sound flood) and fixed with minimal diff, verified by passing RSS-bound regression tests, live run surviving 59+ cycles at 112MB RSS, and guard 5/5 PASS.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-08-03T10:03:19.950527"
+}
