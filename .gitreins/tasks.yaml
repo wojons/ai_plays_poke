@@ -80,5 +80,5 @@ tasks:
     RSS exceeding ~1.5GB
   - Regression test added (battle-loop RSS bound) and passing
   - Guard 5/5 PASS (secrets/lint/tests/static_analysis/lsp)
-  status: pending
+  status: in_progress
   created_at: '2026-08-03T06:33:45.422785+00:00'

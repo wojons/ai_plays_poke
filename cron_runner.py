@@ -37,7 +37,21 @@ from PIL import Image
 # mGBA core prints "GB: Unimplemented SGB command: 0F" to stderr when
 # running SGB-enhanced ROMs. These are harmless noise in cron runs.
 class _SGBSuppress:
-    """Context manager that filters SGB warnings from stderr."""
+    """Context manager that filters SGB warnings from stderr.
+
+    GAMEPLAY-LEAK-001 fix: the original implementation (a) wrote non-SGB
+    lines back through the ``sys.stderr`` file object, whose fd was
+    already dup2'd to this class's own pipe — so filtered lines re-entered
+    the pipe and looped forever, growing an unbounded ``_buf`` at
+    70-100 MB/s; and (b) split lines at 4096-byte read boundaries, so
+    truncated ``Unimplemented SGB`` lines bypassed the filter and fed the
+    loop. Now: writes go to the dup'd original stderr fd (no loop),
+    partial lines are carried across reads (no bypass), and ``_buf`` is a
+    bounded debug tail.
+    """
+
+    _MAX_BUF_LINES = 200
+
     def __init__(self) -> None:
         # These get set in __enter__
         self._real_stderr = sys.stderr
@@ -45,24 +59,39 @@ class _SGBSuppress:
         self._pipe_r = -1
         self._pipe_w = -1
         self._thread: threading.Thread | None = None
+        self._buf: list[str] = []
 
     def __enter__(self) -> '_SGBSuppress':
         self._pipe_r, self._pipe_w = os.pipe()
         self._real_stderr_fd = os.dup(2)
         os.dup2(self._pipe_w, 2)
         os.close(self._pipe_w)
-        self._buf: list[str] = []
+        self._buf = []
 
         def _filter() -> None:
+            pending = ""  # incomplete line carried across read boundaries
             while True:
                 data = os.read(self._pipe_r, 4096)
                 if not data:
                     break
-                for line in data.decode(errors="replace").split("\n"):
-                    if line and "Unimplemented SGB" not in line:
+                pending += data.decode(errors="replace")
+                lines = pending.split("\n")
+                pending = lines.pop()  # last element is an incomplete tail
+                for line in lines:
+                    if not line or "Unimplemented SGB" in line:
+                        continue  # drop SGB noise (even truncated fragments)
+                    if len(self._buf) < self._MAX_BUF_LINES:
                         self._buf.append(line)
-                        self._real_stderr.write(line + "\n")
-                        self._real_stderr.flush()
+                    # Write to the dup'd ORIGINAL stderr fd, never fd 2
+                    # (fd 2 is this class's own pipe — writing there would
+                    # feed the feedback loop).
+                    try:
+                        os.write(
+                            self._real_stderr_fd,
+                            line.encode(errors="replace") + b"\n",
+                        )
+                    except OSError:
+                        pass
 
         self._thread = threading.Thread(target=_filter, daemon=True)
         self._thread.start()

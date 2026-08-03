@@ -97,19 +97,22 @@ class TestEmulatorProperties:
 
 
 class TestFastForward:
-    """fast_forward(n) calls _pyboy.tick() n times."""
+    """fast_forward(n) advances n frames without per-frame rendering."""
 
     def test_fast_forward_positive(self, emu) -> None:
         emu.fast_forward(10)
-        assert emu._pyboy.tick.call_count == 10
+        emu._pyboy.tick.assert_called_once_with(10, render=False)
+        assert emu._render_debt == 10
 
     def test_fast_forward_zero(self, emu) -> None:
         emu.fast_forward(0)
         assert emu._pyboy.tick.call_count == 0
+        assert emu._render_debt == 0
 
     def test_fast_forward_negative(self, emu) -> None:
         emu.fast_forward(-5)
         assert emu._pyboy.tick.call_count == 0
+        assert emu._render_debt == 0
 
 
 class TestPressButton:
@@ -119,7 +122,9 @@ class TestPressButton:
         emu.press_button("a", frames=3)
         emu._pyboy.send_input.assert_any_call(WindowEvent.PRESS_BUTTON_A)
         emu._pyboy.send_input.assert_any_call(WindowEvent.RELEASE_BUTTON_A)
-        assert emu._pyboy.tick.call_count == 3
+        # hold frames tick without rendering, final tick renders
+        emu._pyboy.tick.assert_any_call(2, render=False)
+        emu._pyboy.tick.assert_any_call(1, render=True)
 
     def test_press_start(self, emu) -> None:
         emu.press_button("start", frames=3)
@@ -160,7 +165,7 @@ class TestWait:
 
     def test_wait_positive(self, emu) -> None:
         emu.wait(20)
-        assert emu._pyboy.tick.call_count == 20
+        emu._pyboy.tick.assert_called_once_with(20, render=False)
 
     def test_wait_zero(self, emu) -> None:
         emu.wait(0)
@@ -321,12 +326,14 @@ class TestCombo:
     def test_combo_single_button(self, emu) -> None:
         emu.combo(["a"], frames=5)
         assert emu._pyboy.send_input.call_count == 2
-        assert emu._pyboy.tick.call_count == 5
+        emu._pyboy.tick.assert_any_call(4, render=False)
+        emu._pyboy.tick.assert_any_call(1, render=True)
 
     def test_combo_multiple_buttons(self, emu) -> None:
         emu.combo(["a", "start"], frames=3)
         assert emu._pyboy.send_input.call_count == 4
-        assert emu._pyboy.tick.call_count == 3
+        emu._pyboy.tick.assert_any_call(2, render=False)
+        emu._pyboy.tick.assert_any_call(1, render=True)
 
     def test_combo_unknown_button_raises(self, emu) -> None:
         with pytest.raises(ValueError, match="Unknown button"):
@@ -351,7 +358,7 @@ class TestCompatAliases:
 
     def test_tick_calls_fast_forward(self, emu) -> None:
         emu.tick(5)
-        assert emu._pyboy.tick.call_count == 5
+        emu._pyboy.tick.assert_called_once_with(5, render=False)
 
     def test_tick_defaults_to_one_frame(self, emu) -> None:
         emu.tick()
@@ -424,3 +431,70 @@ class TestRAMReading:
     def test_read_u16_little_endian(self, emu) -> None:
         emu._pyboy.memory = {0xC000: 0x34, 0xC001: 0x12}
         assert emu.read_u16(0xC000) == 0x1234
+
+
+_LEAK_ROM_PATH = Path("data/rom/pokemon_red.gb")
+
+
+def _leak_has_rom() -> bool:
+    return _LEAK_ROM_PATH.is_file()
+
+
+class TestLeakRegression:
+    """GAMEPLAY-LEAK-001: battle-loop native memory leak regression guards."""
+
+    def test_pyboy_constructed_with_sound_disabled(self) -> None:
+        """SDL2 audio must be disabled at construction (leak suspect b)."""
+        with (
+            patch("src.core.emulator._PyBoy") as mock_pyboy_cls,
+            patch("pathlib.Path.is_file", return_value=True),
+            patch("pathlib.Path.resolve", return_value=Path("/fake/rom.gb")),
+        ):
+            mock_pyboy = MagicMock()
+            mock_pyboy.screen.ndarray = np.zeros((144, 160, 4), dtype=np.uint8)
+            mock_pyboy_cls.return_value = mock_pyboy
+
+            from src.core.emulator import Emulator
+
+            Emulator("/fake/rom.gb")
+            kwargs = mock_pyboy_cls.call_args.kwargs
+            assert kwargs.get("sound") is False, (
+                "sound=False required — SDL2 audio queue is a prime leak suspect"
+            )
+
+    def test_capture_rerenders_after_fast_forward_debt(self, emu) -> None:
+        """Fast-forward skips rendering; capture re-renders exactly one frame."""
+        emu.fast_forward(30)
+        assert emu._render_debt == 30
+        emu.capture()
+        emu._pyboy.tick.assert_any_call(1, render=True)
+        assert emu._render_debt == 0
+
+    @pytest.mark.rom
+    @pytest.mark.skipif(not _leak_has_rom(), reason="ROM not found at data/rom/pokemon_red.gb")
+    def test_battle_loop_churn_rss_bounded(self) -> None:
+        """Battle StateWindow churn (FF spans + wait + press + capture) must not grow RSS.
+
+        Pre-fix runs leaked 70-100 MB/s during battle cycles and died at ~50 GB.
+        This mirrors the animation-span pattern (fast_forward(180)+wait(60)+
+        capture per cycle) without LLM calls; the bound catches render-path
+        regressions deterministically.
+        """
+        import resource
+
+        from src.core.emulator import Emulator
+
+        emu = Emulator(str(_LEAK_ROM_PATH))
+        try:
+            emu.wait(60)
+            for _ in range(12):
+                emu.fast_forward(180)  # battle animation span
+                emu.wait(60)
+                emu.press_button("a", frames=15)
+                _ = emu.capture()
+            rss_mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+            assert rss_mb < 1024, (
+                f"RSS {rss_mb:.0f}MB after battle-churn loop — leak regression"
+            )
+        finally:
+            emu.stop()

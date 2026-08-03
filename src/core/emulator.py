@@ -75,9 +75,13 @@ class Emulator:
             raise FileNotFoundError(f"ROM not found: {rom_path}")
 
         self._rom_path = rom_path
-        self._pyboy: _PyBoy = _PyBoy(str(rom_path), window="null")
+        # GAMEPLAY-LEAK-001: Disable SDL2 audio to prevent native-memory
+        # accumulation in the audio queue during battle fast-forward spans
+        # (SGB ROMs render SGB audio commands every frame at ~60 Hz).
+        self._pyboy: _PyBoy = _PyBoy(str(rom_path), window="null", sound=False)
         self._running: bool = True
         self._is_gb: bool = True  # PyBoy only supports GB/GBC
+        self._render_debt: int = 0  # frames run without re-render (for capture freshness)
 
     # ── properties ───────────────────────────────────────────────────
 
@@ -97,6 +101,7 @@ class Emulator:
 
     def capture(self) -> np.ndarray:
         """Capture the current screen as an RGB numpy array (144×160)."""
+        self._ensure_rendered()
         # PyBoy screen is (144, 160, 4) RGBA, no SGB border
         screen = self._pyboy.screen.ndarray
         # Convert RGBA → RGB
@@ -105,9 +110,20 @@ class Emulator:
     # ── timing ───────────────────────────────────────────────────────
 
     def fast_forward(self, frames: int) -> None:
-        """Run *frames* at maximum emulator speed."""
-        for _ in range(max(frames, 0)):
-            self._pyboy.tick()
+        """Run *frames* at maximum emulator speed without rendering."""
+        if frames <= 0:
+            return
+        # GAMEPLAY-LEAK-001: Skip per-frame rendering during fast-forward to
+        # reduce SDL2 GPU-memory churn. The screen is only re-rendered on demand
+        # when capture() is called.
+        self._pyboy.tick(frames, render=False)
+        self._render_debt += frames
+
+    def _ensure_rendered(self) -> None:
+        """Re-render the current frame if we have render debt from fast_forward."""
+        if self._render_debt > 0:
+            self._pyboy.tick(1, render=True)
+            self._render_debt = 0
 
     def wait(self, frames: int) -> None:
         """Advance by *frames* without pressing any button."""
@@ -128,10 +144,11 @@ class Emulator:
             )
         frames = max(frames, 1)
         self._pyboy.send_input(_BUTTON_EVENTS[button])
-        for _ in range(frames - 1):
-            self._pyboy.tick()
+        if frames > 1:
+            self._pyboy.tick(frames - 1, render=False)
         self._pyboy.send_input(_RELEASE_EVENTS[button])
-        self._pyboy.tick()
+        self._pyboy.tick(1, render=True)
+        self._render_debt = 0
 
     def combo(self, buttons: list[str], frames: int = 5) -> None:
         """Press multiple buttons simultaneously for *frames*."""
@@ -143,11 +160,12 @@ class Emulator:
             if btn not in _BUTTON_EVENTS:
                 raise ValueError(f"Unknown button: {btn!r}")
             self._pyboy.send_input(_BUTTON_EVENTS[btn])
-        for _ in range(frames - 1):
-            self._pyboy.tick()
+        if frames > 1:
+            self._pyboy.tick(frames - 1, render=False)
         for btn in buttons:
             self._pyboy.send_input(_RELEASE_EVENTS[btn.lower()])
-        self._pyboy.tick()
+        self._pyboy.tick(1, render=True)
+        self._render_debt = 0
 
     # ── intro skip ───────────────────────────────────────────────────
 

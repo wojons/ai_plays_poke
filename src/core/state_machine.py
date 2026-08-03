@@ -296,11 +296,23 @@ class HierarchicalStateMachine:
         """Create state aliases for convenience"""
         if "BATTLE.BATTLE_MENU" in self._states:
             self._states["BATTLE.MENU"] = self._states["BATTLE.BATTLE_MENU"]
+        # Canonical-name map for alias-aware transition validation
+        # (GAMEPLAY-LEAK-001: vision mapper emits BATTLE.BATTLE_MENU, legal
+        # table historically listed the BATTLE.MENU alias — both spellings
+        # must resolve before the legality check).
+        self._state_aliases: Dict[str, str] = {
+            "BATTLE.MENU": "BATTLE.BATTLE_MENU",
+            "BATTLE.BATTLE_MENU": "BATTLE.BATTLE_MENU",
+        }
 
     def _setup_legal_transitions(self) -> None:
         """Define valid state transitions"""
         self._legal_transitions: Dict[str, Set[str]] = {
-            "BOOT.INITIALIZE": {"BOOT.TITLE_SCREEN", "OVERWORLD.IDLE", "BATTLE.MENU"},
+            "BOOT.INITIALIZE": {
+                "BOOT.TITLE_SCREEN",
+                "OVERWORLD.IDLE",
+                "BATTLE.BATTLE_MENU",
+            },
             "BOOT.TITLE_SCREEN": {"BOOT.PRESS_START", "BOOT.DETECT_CONTINUE"},
             "BOOT.PRESS_START": {"BOOT.SELECT_GAME_MODE"},
             "BOOT.DETECT_CONTINUE": {"BOOT.SELECT_GAME_MODE"},
@@ -557,9 +569,12 @@ class HierarchicalStateMachine:
         return self._transition_count.get((from_state, to_state), 0)
 
     def can_transition(self, from_state: str, to_state: str) -> bool:
-        """Check if a transition is valid"""
+        """Check if a transition is valid (alias-aware)."""
         if from_state == "None" or from_state is None:
             return True
+        aliases = getattr(self, "_state_aliases", {})
+        from_state = aliases.get(from_state, from_state)
+        to_state = aliases.get(to_state, to_state)
         allowed = self._legal_transitions.get(from_state, set())
         return to_state in allowed
 

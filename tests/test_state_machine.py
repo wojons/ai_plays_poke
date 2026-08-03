@@ -381,6 +381,21 @@ class TestHSMCanTransition:
         hsm = HierarchicalStateMachine()
         assert hsm.can_transition(None, "ANYTHING") is True  # type: ignore[arg-type]
 
+    def test_battle_menu_canonical_from_boot(self):
+        """GAMEPLAY-LEAK-001: vision mapper emits BATTLE.BATTLE_MENU during
+        boot — must be a legal target (was rejected, spamming
+        'Invalid transition attempted' in an infinite loop)."""
+        hsm = HierarchicalStateMachine()
+        assert hsm.can_transition("BOOT.INITIALIZE", "BATTLE.BATTLE_MENU") is True
+        result = hsm.transition_to("BATTLE.BATTLE_MENU")
+        assert result == StateTransitionResult.SUCCESS
+        assert hsm.get_current_state().name == "BATTLE.BATTLE_MENU"
+
+    def test_battle_menu_alias_still_legal(self):
+        """Legacy BATTLE.MENU spelling must keep working (alias resolution)."""
+        hsm = HierarchicalStateMachine()
+        assert hsm.can_transition("BOOT.INITIALIZE", "BATTLE.MENU") is True
+
 
 class TestHSMTransitionTo:
     def test_valid_transition(self):
