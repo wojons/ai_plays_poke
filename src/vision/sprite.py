@@ -237,7 +237,9 @@ class SpriteRecognizer:
             return None
         filled_ratio = np.mean(filled)
         is_low, is_critical = bool(filled_ratio < 0.3), bool(filled_ratio < 0.1)
-        percentage = max(0.0, min(100.0, filled_ratio * 100))
+        # float() cast: np.mean returns np.float64 — explicit narrowing keeps
+        # HPBarResult.percentage (float) valid under every numpy stub version.
+        percentage = float(max(0.0, min(100.0, filled_ratio * 100)))
         return HPBarResult(
             current=int(percentage),
             maximum=100,
