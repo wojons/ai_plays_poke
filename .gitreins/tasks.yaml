@@ -70,3 +70,15 @@ tasks:
   status: complete
   created_at: '2026-08-02T19:54:58.182706+00:00'
   completed_at: '2026-08-02T19:55:01.235318+00:00'
+- id: GAMEPLAY-LEAK-001
+  title: Fix battle-phase native memory leak (70-100MB/s, kills Route-1 runs at ~50GB
+    in ~9min)
+  criteria:
+  - 'Leak reproduced and root-caused (py-spy/smaps during live battle: pyboy battle
+    rendering | SDL2 audio queue | SGB border)'
+  - Fix landed with minimal diff; 80-cycle luna run survives 2+ wild battles without
+    RSS exceeding ~1.5GB
+  - Regression test added (battle-loop RSS bound) and passing
+  - Guard 5/5 PASS (secrets/lint/tests/static_analysis/lsp)
+  status: pending
+  created_at: '2026-08-03T06:33:45.422785+00:00'

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITREP PRD — AI Plays Pokémon — T72 E2E</title>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #1a2233; --panel2: #232e45;
+    --text: #e8ecf4; --muted: #9aa7bd; --accent: #4ade80;
+    --accent2: #60a5fa; --warn: #fbbf24; --danger: #f87171; --border: #2e3a52;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.55; padding: 32px 20px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  header {
+    background: linear-gradient(135deg, #16213e 0%, #1a2233 60%);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 28px 32px; margin-bottom: 24px;
+  }
+  h1 { font-size: 1.5rem; letter-spacing: 0.02em; }
+  .sub { color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
+  .status-badge {
+    display: inline-block; background: #2a2110; border: 1px solid #7a5a1a;
+    color: var(--warn); padding: 8px 16px; border-radius: 999px; font-weight: 600;
+    font-size: 0.85rem; margin-top: 12px;
+  }
+  .gb-frame {
+    display: inline-block; background: #0a0f0a; padding: 10px;
+    border-radius: 10px; border: 3px solid #333; box-shadow: 0 0 0 1px #555, 0 8px 24px rgba(0,0,0,.5);
+  }
+  .gb-screen {
+    image-rendering: pixelated; image-rendering: crisp-edges;
+    width: 192px; height: auto; border-radius: 2px;
+  }
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px 28px; margin-bottom: 20px;
+  }
+  h2 {
+    font-size: 1.1rem; margin-bottom: 14px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border); color: var(--accent2);
+    letter-spacing: 0.03em; text-transform: uppercase; font-size: 0.95rem;
+  }
+  h3 { font-size: 0.95rem; color: var(--text); margin: 16px 0 8px; }
+  p, li { color: var(--text); font-size: 0.92rem; }
+  .muted { color: var(--muted); }
+  ul { padding-left: 20px; }
+  li { margin-bottom: 4px; }
+  .shot-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 20px; margin-top: 8px;
+  }
+  .shot { text-align: center; }
+  .shot p { font-size: 0.8rem; color: var(--muted); margin-top: 6px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.88rem; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.04em; }
+  td { vertical-align: top; }
+  .ok { color: var(--accent); font-weight: 600; }
+  .warn { color: var(--warn); font-weight: 600; }
+  .bad { color: var(--danger); font-weight: 600; }
+  .finding {
+    background: #2a1414; border: 1px solid #7a2a2a; border-radius: 10px;
+    padding: 16px 20px; margin: 12px 0;
+  }
+  .finding h3 { color: var(--danger); margin-top: 0; }
+  .finding ul { margin-top: 8px; }
+  code { background: var(--panel2); padding: 1px 6px; border-radius: 4px; font-size: 0.85em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>🟡 SITREP PRD — AI Plays Pokémon (ai-plays-poke)</h1>
+  <div class="sub">E2E Tick T72 (E2E-001 fixture) — 2026-08-03 — PTP-01X Autonomous Pokémon Gen-1 Gameplay AI Benchmark</div>
+  <div class="status-badge">STARTER PICKED LIVE ✅ · BATTLE-PHASE MEMORY LEAK FOUND 🚨 · GAMEPLAY-LEAK-001 CREATED</div>
+</header>
+
+<section>
+  <h2>1. Executive Summary</h2>
+  <p>The recurring E2E tick ran five live Luna-controller gameplay sessions. Two milestones, one critical finding:</p>
+  <ul>
+    <li><span class="ok">✅ Starter Pokémon picked LIVE</span> — the T68 fix (same-tile stuck detector + deterministic starter branch) broke the Oak's Lab loop that blocked the project since T62. Runs 3 &amp; 4 both picked the starter (party 0→1, nickname declined, no name-entry stall) at cycles 21 and 18.</li>
+    <li><span class="ok">✅ Full recovery ladder exercised</span> — direction-locked (c3), screen-locked dialog (c17), tile-locked (c20) all fired in one run; the escalating recovery is real, not stubbed.</li>
+    <li><span class="bad">🚨 Battle-phase native memory leak (~70–100 MB/s)</span> — every run that engaged a wild battle died at ~50 GB RSS within ~9 minutes. Python heap clean, emulator ticking clean, battle-loop-only trigger. First manifestation today because T67 never reached Route 1 — the starter fix exposed a pre-existing battle-path leak. New P0 task <b>GAMEPLAY-LEAK-001</b>.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>2. Run Log (2026-08-03, luna_v11_*)</h2>
+  <table>
+    <tr><th>Run</th><th>Cycles</th><th>Starter</th><th>Battle</th><th>Death</th><th>Leak</th></tr>
+    <tr><td>1 (05:20Z)</td><td>29</td><td>—</td><td>cycle 22</td><td>SIGTERM ~05:29Z</td><td class="bad">yes (48 GB RSS)</td></tr>
+    <tr><td>2 (05:32Z)</td><td>41</td><td>—</td><td>cycle 34</td><td>killed ~05:41Z</td><td class="bad">yes (50 GB RSS)</td></tr>
+    <tr><td>3 (05:59Z)</td><td>75</td><td class="ok">✅ c21</td><td>cycle 75</td><td>12 GB ulimit</td><td class="bad">yes (8.7 GB @ c75)</td></tr>
+    <tr><td>4 (06:09Z)</td><td>26</td><td class="ok">✅ c18</td><td>cycle 24</td><td>16 GB ulimit</td><td class="bad">yes (1.5 GB / 20 s)</td></tr>
+    <tr><td>5 (06:18Z)</td><td>56 stuck</td><td>—</td><td>HSM reject</td><td>killed (stuck)</td><td class="ok">no (134 MB flat)</td></tr>
+  </table>
+  <p class="muted">Run 3: 89 entries — overworld 55 (62%), dialog 16, unknown 16, menu 1, battle 1. Recovery: direction-locked c3, dialog screen-locked c17, tile-locked c20 → starter_approach, starter_picked c21, battle_start c75. Frame cache 76/159.</p>
+</section>
+
+<section>
+  <h2>3. Screenshot Report (run 3)</h2>
+  <div class="shot-grid">
+    <div class="shot"><span class="gb-frame"><img class="gb-screen" src="screenshots/run_luna_v11_20260803_055934/step_0020.png" alt="tile-locked"></span><p><b>c20</b> — tile-locked (5,3) x8 → starter_approach</p></div>
+    <div class="shot"><span class="gb-frame"><img class="gb-screen" src="screenshots/run_luna_v11_20260803_055934/step_0021.png" alt="starter menu"></span><p><b>c21</b> — starter_selection, party 0→1</p></div>
+    <div class="shot"><span class="gb-frame"><img class="gb-screen" src="screenshots/run_luna_v11_20260803_055934/step_0022.png" alt="post-starter"></span><p><b>c22</b> — walking away with party_count=1</p></div>
+    <div class="shot"><span class="gb-frame"><img class="gb-screen" src="screenshots/run_luna_v11_20260803_055934/step_0075.png" alt="wild battle"></span><p><b>c75</b> — first wild battle (leak engages)</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>4. Capability Matrix</h2>
+  <table>
+    <tr><th>Capability</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>Boot ROM / intro / name entry</td><td class="ok">✅</td><td>deterministic A-mash bypass</td></tr>
+    <tr><td>Navigate Pallet Town</td><td class="ok">✅</td><td>direction-locked recovery live</td></tr>
+    <tr><td>Enter Oak's Lab (map 40)</td><td class="ok">✅</td><td>tileset 5 classified</td></tr>
+    <tr><td>Dialog advance</td><td class="ok">✅</td><td>dialog_advance, no menu_redraw trap</td></tr>
+    <tr><td><b>Starter selection</b></td><td class="ok">✅ NEW</td><td>picked c21 (run 3) / c18 (run 4)</td></tr>
+    <tr><td>Same-tile stuck detection</td><td class="ok">✅ NEW</td><td>fired (5,3) x8 → starter_approach</td></tr>
+    <tr><td>Leave lab / Route 1</td><td class="warn">🟡</td><td>reaches grass, battle c24–75</td></tr>
+    <tr><td>Wild battle loop</td><td class="bad">🚨 LEAK</td><td>battle engages, dies at ~50 GB</td></tr>
+    <tr><td>Frame cache dedup</td><td class="ok">✅</td><td>76/159 refs, cross-run</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>5. Memory Leak Finding (GAMEPLAY-LEAK-001, P0)</h2>
+  <div class="finding">
+    <h3>🚨 Battle-phase native leak — ~70–100 MB/s</h3>
+    <p><b>Symptoms:</b> RSS grows linearly from the first real battle cycle; process dies at ~50 GB (~9 min). Output truncates mid-line — instant death, no Python traceback.</p>
+    <p><b>Evidence chain:</b></p>
+    <ul>
+      <li>mem-monitor: avail 49 G → 4.3 G while a <code>venv/bin/python</code> held 48–50 GB; freed within 30 s of death. cgroup <code>oom 0</code> — not cgroup OOM.</li>
+      <li>tracemalloc in-process: Python heap <b>10 MB flat</b> through battle start — not a Python-object leak.</li>
+      <li>Pure-emulator bisect: 24,000 ticks + captures from 5 checkpoints — <b>66–72 MB flat</b>.</li>
+      <li>Control (run 5, no battle loop): 134 MB flat for 10+ min, 23 Luna calls.</li>
+      <li>All leaking runs share: battle StateWindow loop (12× deepseek-v4-flash + battle tools + <code>wait(60)+fast_forward(180)</code> spans).</li>
+    </ul>
+    <p><b>Ruled out:</b> Python heap, frame cache, state_window history, OpenRouterClient, plain ticking.</p>
+    <p><b>Prime suspects:</b> (a) pyboy native battle rendering at fast-forward; (b) SDL2 audio queue on SGB ROM; (c) RAM-read × pyboy memory-view interaction.</p>
+    <p><b>Next:</b> worker task — py-spy/smaps during live battle, bisect pyboy/SDL2/SGB, fix + regression test. Until fixed, Route-1 runs die at ~9 min.</p>
+  </div>
+  <p class="muted"><b>Secondary:</b> HSM rejects <code>BOOT.INITIALIZE → BATTLE.BATTLE_MENU</code> and spams "Invalid transition attempted" in a loop when battle detection races the HSM (run 5) — folded into GAMEPLAY-LEAK-001 scope.</p>
+</section>
+
+<section>
+  <h2>6. NEVER-DONE Audit (all clean)</h2>
+  <table>
+    <tr><th>Check</th><th>Result</th></tr>
+    <tr><td>git status</td><td class="ok">CLEAN except duration_profiles.json (bookkeeping, committed)</td></tr>
+    <tr><td>GitReins guard (full)</td><td class="ok">✅ PASS 5/5</td></tr>
+    <tr><td>mypy</td><td class="ok">✅ 0 errors / 61 files</td></tr>
+    <tr><td>ruff</td><td class="ok">✅ PASS</td></tr>
+    <tr><td>compileall / TODO-FIXME</td><td class="ok">✅ PASS / 0</td></tr>
+    <tr><td>GitReins tasks</td><td class="ok">✅ 4/4 complete, 0 pending</td></tr>
+    <tr><td>CI</td><td class="ok">✅ green 5/5</td></tr>
+    <tr><td>Scheduler</td><td class="ok">✅ Enabled, CooldownS=7200 pinned (no PUT)</td></tr>
+    <tr><td>Remote</td><td class="ok">✅ 0 unpushed, no external commits</td></tr>
+    <tr><td>Board</td><td class="ok">✅ T72 event + GAMEPLAY-LEAK-001 created</td></tr>
+  </table>
+  <p class="muted">E2E-001 executed at first tick of due window (T72–T77). Next due T77. Fixture remains pending (recurring).</p>
+</section>
+
+</div>
+</body>
+</html>
