@@ -111,10 +111,10 @@ def build_srt(entries: list[dict], total_frames: int, fps: float) -> str:
     parts = []
     for i in range(total_frames):
         cycle = i + 1
-        e = by_cycle.get(cycle)
+        entry = by_cycle.get(cycle)
         text = f"Cycle {cycle}"
-        if e:
-            text += f"  {fmt_entry(e)}"
+        if entry:
+            text += f"  {fmt_entry(entry)}"
         text = text.replace("\n", " ")
         start = _srt_time(i * dur)
         end = _srt_time((i + 1) * dur)

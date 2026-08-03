@@ -11,9 +11,8 @@ Each run gets its own URL. Timeline auto-scrolls and auto-refreshes.
 import json
 import asyncio
 from pathlib import Path
-from datetime import datetime
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn

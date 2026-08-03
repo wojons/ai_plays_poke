@@ -119,6 +119,9 @@ data/rom/*.gbc
 data/rom/*.gba
 data/rom/*.zip
 
+# Generated replay videos (regenerable from screenshots/ via make_run_video.py)
+videos/
+
 # Game save files and RTC files
 data/rom/*.ram
 data/rom/*.rtc
