@@ -83,3 +83,31 @@ tasks:
   status: complete
   created_at: '2026-08-03T06:33:45.422785+00:00'
   completed_at: '2026-08-03T09:55:39.703096+00:00'
+- id: GAMEPLAY-ESCAPE-001
+  title: 'Break battle-escape loop: flee never lands, recovery ladder not battle-aware'
+  criteria:
+  - "Flee lands in escapable battles: _execute_run_from_battle navigates to RUN and\
+    \ the battle actually exits for wild battles \u2014 proven by a unit/integration\
+    \ test (battle-state stub: menu at FIGHT, after tool call battle flag clears)\
+    \ AND/OR live-run evidence (battle_start -> battle_end within few cycles of run_from_battle\
+    \ call in cron_logs)"
+  - "No empty-arg flee spam: repeated run_from_battle calls without state change are\
+    \ bounded \u2014 after N failed flee attempts (e.g. 3), the system stops re-issuing\
+    \ run_from_battle and switches to a different battle action (select_move) or escalates;\
+    \ verified by test asserting the decision logic"
+  - "Battle-aware recovery: escalating recovery ladder (_escalating_recovery in cron_runner.py)\
+    \ detects battle state and does NOT fire generic non-battle recovery (A-press\
+    \ loops, direction jams) while in battle \u2014 battle recovery instead re-issues\
+    \ a battle-menu action; verified by unit test with battle-state game_state"
+  - "Trainer-battle guard if detectable: when enemy is a trainer (flee impossible),\
+    \ run_from_battle returns a clear error string instead of tapping blindly (skip\
+    \ only if RAM reader cannot distinguish trainer battles \u2014 document why)"
+  - Regression tests added and passing (flee nav + battle-aware recovery)
+  - 'Full suite green: .venv/bin/pytest tests/ -k ''not benchmark'' passes (>=3830
+    passed, 8 skipped), .venv/bin/mypy src/ --python-version 3.13 --ignore-missing-imports
+    = 0 errors, .venv/bin/ruff check src/ tests/ cron_runner.py PASS, gitreins guard
+    5/5 PASS'
+  - 'Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer and was
+    pushed to origin/main'
+  status: pending
+  created_at: '2026-08-03T22:04:50.010865+00:00'
