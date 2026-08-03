@@ -12,6 +12,14 @@ import json
 import re
 from typing import Any, Iterator
 
+from src.core.ram_reader import (
+    ADDR_CURRENT_MENU_ITEM,
+    ADDR_IS_IN_BATTLE,
+    ADDR_MAX_MENU_ITEM,
+    ADDR_TOP_MENU_ITEM_X,
+    ADDR_TOP_MENU_ITEM_Y,
+)
+
 # ── Tool schema (OpenAI function-calling format) ─────────────────────────────
 
 TOOL_SCHEMA: list[dict[str, Any]] = [
@@ -300,6 +308,8 @@ def execute_tool_call(emulator: Any, tool_name: str, arguments: dict[str, Any]) 
 
 _BATTLE_MENU_TAP_FRAMES = 8  # one tap of A or D-pad for menu navigation
 _BATTLE_MENU_WAIT = 12  # inter-tap settle (frames)
+_BATTLE_MENU_PREP_ATTEMPTS = 6
+MAX_FAILED_FLEE_ATTEMPTS = 3
 
 
 def _tap(emulator: Any, button: str, frames: int = _BATTLE_MENU_TAP_FRAMES) -> None:
@@ -308,12 +318,103 @@ def _tap(emulator: Any, button: str, frames: int = _BATTLE_MENU_TAP_FRAMES) -> N
     emulator.wait(_BATTLE_MENU_WAIT)
 
 
+def _read_u8(emulator: Any, address: int) -> int | None:
+    """Best-effort RAM read for battle tools that also support simple mocks."""
+    read_u8 = getattr(emulator, "read_u8", None)
+    if not callable(read_u8):
+        return None
+    try:
+        value = read_u8(address)
+    except Exception:
+        return None
+    return value if isinstance(value, int) else None
+
+
+def battle_status(emulator: Any) -> str | None:
+    """Return ``wild``, ``trainer``, ``ended``, or ``None`` when RAM is unavailable."""
+    code = _read_u8(emulator, ADDR_IS_IN_BATTLE)
+    if code == 1:
+        return "wild"
+    if code == 2:
+        return "trainer"
+    if code in (0, 0xFF):
+        return "ended"
+    return None
+
+
+def _battle_menu_is_actionable(emulator: Any) -> bool | None:
+    """Detect Gen 1's two-column FIGHT/ITEM/PKMN/RUN command menu.
+
+    ``DisplayBattleMenu`` sets Y=14, X=9 or 15, and max item=1. The move
+    submenu instead uses Y=12/X=5, which is the exact state seen at T77 cycle
+    20. ``None`` means the emulator does not expose RAM (legacy unit mocks).
+    """
+    y = _read_u8(emulator, ADDR_TOP_MENU_ITEM_Y)
+    x = _read_u8(emulator, ADDR_TOP_MENU_ITEM_X)
+    current = _read_u8(emulator, ADDR_CURRENT_MENU_ITEM)
+    maximum = _read_u8(emulator, ADDR_MAX_MENU_ITEM)
+    if None in (y, x, current, maximum):
+        return None
+    return y == 14 and x in (9, 15) and current in (0, 1) and maximum == 1
+
+
+def _prepare_battle_menu(emulator: Any) -> str | None:
+    """Wait for and normalize the Gen 1 command menu to FIGHT (top-left).
+
+    B safely dismisses battle text and cancels the move/party submenus; it is
+    ignored by the main battle menu. We therefore use bounded B taps until RAM
+    reports the actionable command-menu geometry, then UP+LEFT anchors the
+    cursor regardless of the previously saved battle-menu item.
+
+    Returns an error string when a RAM-capable emulator never reaches the
+    command menu. RAM-less mocks use one best-effort cancel tap.
+    """
+    status = battle_status(emulator)
+    if status == "ended":
+        return "Error: Battle is no longer active."
+
+    menu_state = _battle_menu_is_actionable(emulator)
+    attempts = 1 if menu_state is None else _BATTLE_MENU_PREP_ATTEMPTS
+    for _ in range(attempts):
+        # Always issue at least one B: menu RAM can remain stale while text such
+        # as "Can't escape!" is waiting for acknowledgement.
+        _tap(emulator, "b")
+        emulator.fast_forward(30)
+        if battle_status(emulator) == "ended":
+            return "Error: Battle ended while waiting for its command menu."
+        menu_state = _battle_menu_is_actionable(emulator)
+        if menu_state is True or menu_state is None:
+            break
+    else:
+        return "Error: Battle command menu did not become actionable."
+
+    # Absolute cursor normalization: top row, then left column = FIGHT.
+    _tap(emulator, "up")
+    _tap(emulator, "left")
+    return None
+
+
+def decide_battle_tool_call(
+    requested: dict[str, Any], failed_flee_attempts: int
+) -> dict[str, Any]:
+    """Bound repeated flee requests and fall back to the first usable move."""
+    if (
+        requested.get("name") == "run_from_battle"
+        and failed_flee_attempts >= MAX_FAILED_FLEE_ATTEMPTS
+    ):
+        return {"name": "select_move", "arguments": {"move_number": 1}}
+    return requested
+
+
 def _execute_select_move(emulator: Any, arguments: dict[str, Any]) -> str:
     """Navigate FIGHT → moves → move N (1-4) → A, then wait for animation."""
     move_number = arguments.get("move_number")
     if not isinstance(move_number, int) or not 1 <= move_number <= 4:
         return f"Error: select_move requires move_number in 1..4 (got {move_number!r})."
-    # Enter FIGHT (cursor is on FIGHT on entry)
+    menu_error = _prepare_battle_menu(emulator)
+    if menu_error:
+        return menu_error
+    # Enter FIGHT after absolute menu normalization.
     _tap(emulator, "a")
     # Moves grid: 1=TL, 2=TR, 3=BL, 4=BR. Cursor at move 1.
     if move_number == 1:
@@ -334,13 +435,29 @@ def _execute_select_move(emulator: Any, arguments: dict[str, Any]) -> str:
 
 
 def _execute_run_from_battle(emulator: Any) -> str:
-    """Navigate to RUN (FIGHT→right→down) and press A, then wait for flee anim."""
-    # Cursor at FIGHT (TL). RUN is BR.
+    """Normalize the command menu, select RUN, and verify RAM battle exit."""
+    status = battle_status(emulator)
+    if status == "trainer":
+        return "Error: Cannot run from a trainer battle; choose a move or switch Pokémon."
+    if status == "ended":
+        return "Error: Cannot run; no battle is active."
+
+    menu_error = _prepare_battle_menu(emulator)
+    if menu_error:
+        return menu_error
+    # Cursor is now anchored at FIGHT (top-left); RUN is bottom-right.
     _tap(emulator, "right")
     _tap(emulator, "down")
     _tap(emulator, "a")
     emulator.wait(60)
     emulator.fast_forward(180)
+    status = battle_status(emulator)
+    if status == "ended":
+        return "Escaped from wild battle."
+    if status == "wild":
+        return "Flee attempt failed; wild battle is still active."
+    if status == "trainer":
+        return "Error: Cannot run from a trainer battle; battle is still active."
     return "Ran from battle."
 
 
@@ -356,7 +473,10 @@ def _execute_use_battle_item(emulator: Any, arguments: dict[str, Any]) -> str:
     item_name = arguments.get("item_name", "")
     if not item_name:
         return "Error: use_battle_item requires item_name."
-    # FIGHT (TL) → BAG (TR)
+    menu_error = _prepare_battle_menu(emulator)
+    if menu_error:
+        return menu_error
+    # FIGHT (TL) → BAG (TR), after absolute menu normalization.
     _tap(emulator, "right")
     _tap(emulator, "a")
     # We're now in USE/SELL/QUIT. Cursor on USE (first row).
@@ -381,7 +501,10 @@ def _execute_switch_pokemon(emulator: Any, arguments: dict[str, Any]) -> str:
     slot = arguments.get("slot")
     if not isinstance(slot, int) or not 1 <= slot <= 6:
         return f"Error: switch_pokemon requires slot in 1..6 (got {slot!r})."
-    # FIGHT (TL) → PKMN (BL)
+    menu_error = _prepare_battle_menu(emulator)
+    if menu_error:
+        return menu_error
+    # FIGHT (TL) → PKMN (BL), after absolute menu normalization.
     _tap(emulator, "down")
     _tap(emulator, "a")
     # Party list — cursor starts on active slot. We use absolute nav by

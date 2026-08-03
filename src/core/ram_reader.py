@@ -41,7 +41,7 @@ ADDR_TEXT_PROMPT = 0xCF4C  # wTextScrollPrompt — text box scroll indicator
 
 # Battle state
 ADDR_IS_IN_BATTLE = 0xD057  # wIsInBattle — 0=none, 1=wild, 2=trainer
-ADDR_BATTLE_TYPE = 0xD05A  # wBattleType — 1=wild, 2=trainer
+ADDR_BATTLE_TYPE = 0xD05A  # wBattleType — 0=normal, 1=old man, 2=Safari
 ADDR_CUR_OPPONENT = 0xD058  # wCurOpponent — species (wild) or trainer class+offset
 
 # Battle — Player mon (wBattleMon, 0xD016–0xD032)
@@ -1180,8 +1180,12 @@ class RAMReader:
 
     def read_battle_state(self) -> dict[str, Any]:
         """Read full battle state from RAM. Returns structured dict for LLM consumption."""
-        bt = self.read_u8(ADDR_BATTLE_TYPE)
-        is_trainer = bt == 2
+        # wIsInBattle is the opponent discriminator (1=wild, 2=trainer).
+        # wBattleType is a separate mode flag (normal/old-man/Safari); using
+        # wBattleType mislabeled T77's rival fight as wild and invited futile
+        # RUN calls despite the on-screen "No running from a trainer battle".
+        battle_code = self.read_u8(ADDR_IS_IN_BATTLE)
+        is_trainer = battle_code == 2
 
         # Player mon
         pspecies = self.read_u8(ADDR_BATTLE_MON_SPECIES)
@@ -1219,7 +1223,13 @@ class RAMReader:
         ehpct = round(ehp / max(emaxhp, 1) * 100)
 
         return {
-            "battle_type": "trainer" if is_trainer else "wild",
+            "battle_type": (
+                "trainer"
+                if is_trainer
+                else "wild"
+                if battle_code == 1
+                else "unknown"
+            ),
             "player": {
                 "name": self._pokemon_name(pspecies),
                 "hp": php,

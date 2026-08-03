@@ -113,6 +113,7 @@ from src.core.ai_client import OpenRouterClient
 from src.core.prompt_loader import load_system_prompt
 from src.core.ram_reader import RAMReader
 from src.core.frame_cache import FrameCache
+from src.core.tools import execute_tool_call
 
 # ── Config ──────────────────────────────────────────────────────────
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
@@ -391,11 +392,22 @@ def screenshot_to_base64(screenshot: np.ndarray) -> str:
     return base64.b64encode(buf.getvalue()).decode()
 
 
+def _is_battle_game_state(game_state: dict[str, Any] | None) -> bool:
+    """Return whether an observed game-state dict represents an active battle."""
+    if not game_state:
+        return False
+    screen = game_state.get(
+        "result", game_state.get("screen_type", game_state.get("screen", ""))
+    )
+    return screen == "battle" or bool(game_state.get("battle_state"))
+
+
 def _escalating_recovery(
     emu,
     recovery_level: int,
     last_direction: str,
     last_saved_slot: int | None,
+    game_state: dict[str, Any] | None = None,
 ) -> tuple[str, str]:
     """Execute escalating recovery action. Returns (strategy_name, description).
 
@@ -408,7 +420,18 @@ def _escalating_recovery(
 
     If no last_direction or no checkpoint available, skips to next level.
     Recovery level wraps at 4 (always does A-mash on max).
+
+    Battles bypass every generic rung. Loading a checkpoint can erase the
+    encounter, START/B/direction recovery is not a legal turn, and blind A-mash
+    can choose an unintended move. Re-issue a normalized move action instead.
     """
+    if _is_battle_game_state(game_state):
+        result = execute_tool_call(emu, "select_move", {"move_number": 1})
+        return (
+            "battle_select_move",
+            f"select_move(1) re-issued from live battle state — {result}",
+        )
+
     # Clamp level
     level = min(recovery_level, 4)
 
@@ -453,7 +476,11 @@ def _escalating_recovery(
 
     # Fallback: try next level
     return _escalating_recovery(
-        emu, recovery_level + 1, last_direction, last_saved_slot
+        emu,
+        recovery_level + 1,
+        last_direction,
+        last_saved_slot,
+        game_state=game_state,
     )
 
 
@@ -954,6 +981,7 @@ def main() -> None:
     # cycles.
     _main_ne_stuck_box: list[int] = [0]
     _last_party_count = ram_reader.party_count() if USE_RAM_READER else 0
+    _failed_flee_attempts = 0
 
     for cycle in range(CYCLES):
         try:
@@ -993,6 +1021,8 @@ def main() -> None:
                     carto_raw = _cached_carto_raw
                     safe_print(f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result','?')})")
             st = patch_data.get("result", "unknown")
+            if st != "battle":
+                _failed_flee_attempts = 0
 
             raw_map_id = patch_data.get("map_id")
             raw_tile_x = patch_data.get("player_tile_x")
@@ -1179,8 +1209,11 @@ def main() -> None:
                             )
                         else:
                             strategy, desc = _escalating_recovery(
-                                emu, _recovery_level, _last_direction,
-                                _last_saved_slot
+                                emu,
+                                _recovery_level,
+                                _last_direction,
+                                _last_saved_slot,
+                                game_state=patch_data,
                             )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
@@ -1564,8 +1597,11 @@ def main() -> None:
                             )
                         else:
                             strategy, desc = _escalating_recovery(
-                                emu, _recovery_level, _last_direction,
-                                _last_saved_slot
+                                emu,
+                                _recovery_level,
+                                _last_direction,
+                                _last_saved_slot,
+                                game_state=patch_data,
                             )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
@@ -1615,8 +1651,28 @@ def main() -> None:
                     log_file.flush()
                     safe_print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle+1}")
 
-                win = StateWindow(state_type, ctx, emu, vis_dict, generation="gen1", max_steps=(1 if state_type == "name_entry" else STATE_STEPS), hint_level=HINT_LEVEL, use_ram_prompts=True)
+                # Battle windows execute one action against one fresh RAM read.
+                # The former 12-step loop reused a stale cycle-20 move-menu
+                # snapshot and generated multiple empty-arg RUN calls before
+                # cron_runner could observe the next battle phase.
+                win = StateWindow(
+                    state_type,
+                    ctx,
+                    emu,
+                    vis_dict,
+                    generation="gen1",
+                    max_steps=(
+                        1 if state_type in ("name_entry", "battle") else STATE_STEPS
+                    ),
+                    hint_level=HINT_LEVEL,
+                    use_ram_prompts=True,
+                    failed_flee_attempts=_failed_flee_attempts,
+                )
                 result = win.run()
+                if state_type == "battle":
+                    _failed_flee_attempts = int(
+                        result.get("_failed_flee_attempts", _failed_flee_attempts)
+                    )
                 emu.fast_forward(FAST_FORWARD_FRAMES)
                 elapsed = time.time() - t0
 
@@ -1642,6 +1698,7 @@ def main() -> None:
                     "cartographer_raw": carto_raw,
                     "state_window_raw": "\n\n---\n".join(win._raw_responses) if getattr(win, '_raw_responses', None) else "",
                     "battle_events": battle_events,
+                    "failed_flee_attempts": _failed_flee_attempts,
                 }
                 results.append(entry)
                 log_file.write(json.dumps(entry, default=str) + "\n")

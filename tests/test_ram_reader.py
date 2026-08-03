@@ -1265,12 +1265,24 @@ class TestReadBattleState:
             assert reader.read_battle_state()["battle_type"] == "wild"
 
     def test_battle_type_trainer(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD05A] = 2  # ADDR_BATTLE_TYPE
+        _MEMORY[0xD057] = 2  # wIsInBattle is the wild/trainer discriminator
+        _MEMORY[0xD05A] = 0  # normal battle mode, not a wild/trainer flag
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
             reader = RAMReader(mock_emu, "/fake/rom.gb")
             assert reader.read_battle_state()["battle_type"] == "trainer"
+
+    def test_special_battle_mode_does_not_mislabel_wild_as_trainer(
+        self, mock_emu: MagicMock
+    ) -> None:
+        _MEMORY[0xD057] = 1  # wild battle
+        _MEMORY[0xD05A] = 2  # Safari mode, not trainer battle
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.read_battle_state()["battle_type"] == "wild"
 
     def test_player_species_lookups(self, mock_emu: MagicMock) -> None:
         # Pikachu = species 79
@@ -1484,7 +1496,7 @@ class TestRenderBattle:
         assert "Pikachu" in output
 
     def test_trainer_battle_label(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD05A] = 2  # trainer battle
+        _MEMORY[0xD057] = 2  # trainer battle
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):

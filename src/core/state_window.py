@@ -25,7 +25,13 @@ from src.core.state_machine import (
     HierarchicalStateMachine,
     create_hierarchical_state_machine,
 )
-from src.core.tools import TOOL_SCHEMA, execute_tool_call
+from src.core.tools import (
+    MAX_FAILED_FLEE_ATTEMPTS,
+    TOOL_SCHEMA,
+    battle_status,
+    decide_battle_tool_call,
+    execute_tool_call,
+)
 import subprocess
 import os
 import logging
@@ -220,6 +226,7 @@ class StateWindow:
         vision_client: Any = None,
         use_ram_prompts: bool = False,
         hsm: HierarchicalStateMachine | None = None,
+        failed_flee_attempts: int = 0,
     ) -> None:
         self.state_type = state_type
         self.global_ctx = global_ctx
@@ -238,6 +245,7 @@ class StateWindow:
         self._raw_responses: list[str] = []  # raw LLM text per step
         # Sliding window of last 5 actions with outcomes for controller context
         self._recent_actions: list[str] = []  # "pressed DOWN → moved to (3,5)"
+        self._failed_flee_attempts = max(0, failed_flee_attempts)
 
         # Track last known player position for movement detection
         self._last_player_pos: tuple[int, int] | None = None
@@ -481,6 +489,15 @@ class StateWindow:
                 self._history.append({"role": "set_goal", "goal": goal})
                 continue
 
+            # Bound repeated flee requests. The counter is supplied by the
+            # outer cron loop, so it survives fresh StateWindow instances on
+            # subsequent cycles of the same battle.
+            requested_tool_call = tool_call
+            if self.state_type == "battle":
+                tool_call = decide_battle_tool_call(
+                    requested_tool_call, self._failed_flee_attempts
+                )
+
             # Execute on emulator
             action_result = execute_tool_call(
                 self.emulator,
@@ -505,6 +522,14 @@ class StateWindow:
             if self.state_type == "battle":
                 self.emulator.wait(60)
                 self.emulator.fast_forward(180)
+                current_battle_status = battle_status(self.emulator)
+                if (
+                    tool_call["name"] == "run_from_battle"
+                    and current_battle_status in ("wild", "trainer")
+                ):
+                    self._failed_flee_attempts += 1
+                elif current_battle_status == "ended":
+                    self._failed_flee_attempts = 0
 
             # ── HSM state update ──────────────────────────────────
             new_hsm_state = self._map_vision_to_hsm_state()
@@ -523,8 +548,9 @@ class StateWindow:
                             "to_type": outcome.get("to_type", "unknown"),
                         }
                     )
-                # ── Include battle events in result ──────────────
+                # ── Include battle events and flee policy state in result ──
                 outcome["_battle_events"] = self._battle_events
+                outcome["_failed_flee_attempts"] = self._failed_flee_attempts
                 return outcome
 
         # Max steps reached without resolution
@@ -532,6 +558,7 @@ class StateWindow:
             "outcome": "max_steps",
             "steps": self._step_count,
             "_battle_events": self._battle_events,
+            "_failed_flee_attempts": self._failed_flee_attempts,
         }
         return result
 
@@ -807,10 +834,11 @@ class StateWindow:
 
         # Get battle state from vision dict (populated by ram_reader.observe())
         battle_state = self.vision.get("battle_state", {})
+        battle_type = str(battle_state.get("battle_type", "unknown"))
+        prompt = ""
         if battle_state:
             p = battle_state.get("player", {})
             e = battle_state.get("enemy", {})
-            battle_type = battle_state.get("battle_type", "Wild")
 
             # Build moves list. pp_max and power are not currently
             # returned by read_battle_state() but are accepted if
@@ -830,7 +858,7 @@ class StateWindow:
 
             if tmpl:
                 try:
-                    return tmpl.format(
+                    prompt = tmpl.format(
                         battle_type=battle_type,
                         enemy_name=e.get("name", "Unknown"),
                         player_name=p.get("name", "Pokémon"),
@@ -849,17 +877,40 @@ class StateWindow:
                 except (KeyError, ValueError, AttributeError):
                     pass
 
-        # Fallback: use the render field from ram_reader
-        render: str = str(self.vision.get("render", ""))
-        if render:
-            return (
-                render + "\n→ Call select_move(N) for move N (1-4), run_from_battle() "
-                "to flee, use_battle_item(name) to bag, or switch_pokemon(N) "
-                "to swap."
+        if not prompt:
+            render = str(self.vision.get("render", ""))
+            if render:
+                prompt = (
+                    render
+                    + "\n→ Call select_move(N) for move N (1-4), "
+                    "run_from_battle() to flee, use_battle_item(name) to bag, "
+                    "or switch_pokemon(N) to swap."
+                )
+            else:
+                prompt = self._build_ram_fallback()
+
+        if battle_type.lower() == "trainer":
+            prompt += (
+                "\nPOLICY: This is a TRAINER battle. Fleeing is impossible; "
+                "do NOT call run_from_battle. Call select_move(1) or another "
+                "legal battle action."
+            )
+        elif self._failed_flee_attempts >= MAX_FAILED_FLEE_ATTEMPTS:
+            prompt += (
+                f"\nPOLICY: {self._failed_flee_attempts} flee attempts failed. "
+                "The flee limit is reached; call select_move(1), not "
+                "run_from_battle."
+            )
+        else:
+            prompt += (
+                f"\nFlee failures: {self._failed_flee_attempts}/"
+                f"{MAX_FAILED_FLEE_ATTEMPTS}."
             )
 
-        # Last resort: standard RAM fallback
-        return self._build_ram_fallback()
+        recent = self._build_recent_actions_text()
+        if recent:
+            prompt += "\n\n" + recent
+        return prompt
 
     def _build_ram_fallback(self) -> str:
         """Fallback: use the 'render' field from ram_reader as the prompt."""
@@ -1001,6 +1052,17 @@ class StateWindow:
 
         Returns an outcome dict if the state transitioned, or None.
         """
+        # ── Primary: direct battle RAM transition detection ───────────
+        # RAM-reader StateWindows otherwise keep their initial vision dict for
+        # every step. T77 consequently issued RUN repeatedly even after inputs
+        # had advanced the battle. wIsInBattle is the live source of truth.
+        if self._in_battle and battle_status(self.emulator) == "ended":
+            return {
+                "outcome": "battle_ended",
+                "from_type": "battle",
+                "to_type": "non_battle",
+            }
+
         # ── Primary: HSM-based state change detection ────────────────
         current_hsm = self.hsm.get_current_state_name()
         if current_hsm != self._initial_hsm_state:
