@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITREP PRD — AI Plays Pokémon — T77 E2E</title>
+<style>
+  :root {
+    --bg: #0f1420; --panel: #1a2233; --panel2: #232e45;
+    --text: #e8ecf4; --muted: #9aa7bd; --accent: #4ade80;
+    --accent2: #60a5fa; --warn: #fbbf24; --danger: #f87171; --border: #2e3a52;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg); color: var(--text);
+    line-height: 1.55; padding: 2rem 1rem; max-width: 980px; margin: 0 auto;
+  }
+  h1 { font-size: 1.6rem; margin-bottom: .3rem; }
+  h2 { font-size: 1.15rem; margin: 2rem 0 .8rem; color: var(--accent2); border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+  h3 { font-size: 1rem; margin: 1.2rem 0 .5rem; color: var(--accent); }
+  .meta { color: var(--muted); font-size: .9rem; margin-bottom: 1.5rem; }
+  .status-banner {
+    display: inline-block; padding: .5rem 1rem; border-radius: 8px;
+    background: var(--panel2); border: 1px solid var(--accent);
+    font-weight: 600; margin: 1rem 0;
+  }
+  .status-banner.green { border-color: var(--accent); color: var(--accent); }
+  .status-banner.yellow { border-color: var(--warn); color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .9rem; }
+  th, td { text-align: left; padding: .5rem .6rem; border: 1px solid var(--border); vertical-align: top; }
+  th { background: var(--panel2); color: var(--accent2); }
+  tr:nth-child(even) td { background: rgba(255,255,255,.02); }
+  .ok { color: var(--accent); font-weight: 600; }
+  .warn { color: var(--warn); font-weight: 600; }
+  .bad { color: var(--danger); font-weight: 600; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem; margin: 1rem 0; }
+  .shots { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1rem 0; }
+  .shot { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: .6rem; width: 260px; }
+  .shot p { font-size: .78rem; color: var(--muted); margin-top: .4rem; text-align: center; }
+  .gb-frame { display: block; background: #222; border-radius: 8px; padding: 8px; }
+  .gb-screen { width: 100%; image-rendering: pixelated; border-radius: 4px; display: block; }
+  ul { padding-left: 1.4rem; margin: .5rem 0; }
+  li { margin: .3rem 0; }
+  code { background: var(--panel2); padding: .1rem .35rem; border-radius: 4px; font-size: .85em; }
+  .footer { color: var(--muted); font-size: .8rem; margin-top: 2.5rem; text-align: center; }
+</style>
+</head>
+<body>
+
+<h1>🎮 SITREP PRD — AI Plays Pokémon (PTP-01X)</h1>
+<div class="meta">Tick <b>T77</b> (E2E-001 fixture — last of window T72–T77) · 2026-08-03 · Repo <code>/home/kara/ai_plays_poke</code> · Pre-tick HEAD <code>5c4cd52</code></div>
+
+<div class="status-banner green">🟢 LEAK FIX VERIFIED — GAMEPLAY-LEAK-001 HOLDS LIVE · New P2: battle-escape loop</div>
+
+<h2>1. Executive Summary</h2>
+<div class="panel">
+<p>E2E-001 executed at the last tick of its due window with <b>2 live Luna-controller runs</b> (RAM-reader pipeline, <code>openai/gpt-5.6-luna</code> via OpenRouter + deepseek-v4-flash battle loop), each under an RSS watchdog (kill &gt; 2.5 GB).</p>
+<ul>
+<li><span class="ok">✅ CRITICAL GATE — LEAK FIX HOLDS.</span> The P0 battle-phase leak (~70–100 MB/s, ~50 GB death at T72) is gone: run 1 survived <b>14 battle cycles + 9 flee attempts over 30 min at 108 MB flat</b>; run 2 completed all <b>80 cycles at 108 MB flat</b>. RSS slope 0 MB/s.</li>
+<li><span class="ok">✅ Starter picked LIVE again</span> — c14 (run 1) / c22 (run 2), party 0→1, nickname declined.</li>
+<li><span class="ok">✅ HSM spam GONE</span> — 0 <code>Invalid transition attempted</code> messages (T72: infinite loop). Alias-transition fix holds.</li>
+<li><span class="warn">🚨 NEW P2 — Battle-escape loop:</span> run 1 entered a wild battle at c20 and called <code>run_from_battle({})</code> with empty args <b>14 times</b> over 18 cycles; flee never lands. Recovery ladder fires (6 events) but has no battle-aware rung. Pre-existing signature (T73 leakfix4: 10× same call). New task <b>GAMEPLAY-ESCAPE-001</b>.</li>
+</ul>
+</div>
+
+<h2>2. Run Log</h2>
+<table>
+<tr><th>Run</th><th>Cycles</th><th>Starter</th><th>Battle</th><th>End</th><th>Peak RSS</th><th>API cost</th></tr>
+<tr><td>1 (14:18Z)</td><td>38</td><td class="ok">✅ c14</td><td>c20 — 14× flee loop</td><td>killed (loop cap)</td><td class="ok">108 MB</td><td>~$3.77</td></tr>
+<tr><td>2 (14:44Z)</td><td>80 (full)</td><td class="ok">✅ c22</td><td>none</td><td>natural, exit 0</td><td class="ok">108 MB</td><td>~$0.63</td></tr>
+</table>
+<p style="font-size:.85rem;color:var(--muted)">Run 1 events: recovery ×6 (c10/13/25/26/31/33/36) · starter_selection+picked c14 · battle_start c20 · state_saved c20/30. Run 2: 46 overworld + 27 dialog + 1 menu, 7 checkpoints, recovery ×5 (overworld/dialog only — ladder healthy). Frame cache: 76→125 unique frames.</p>
+
+<h2>3. Memory Verification (GAMEPLAY-LEAK-001)</h2>
+<table>
+<tr><th>Metric</th><th>T72 (pre-fix)</th><th>T77 run 1</th><th>T77 run 2</th></tr>
+<tr><td>Peak RSS</td><td class="bad">~50 GB (death)</td><td class="ok">108 MB</td><td class="ok">108 MB</td></tr>
+<tr><td>Battle cycles survived</td><td class="bad">4/4 runs died</td><td class="ok">14+ battle cycles</td><td>n/a (no battle)</td></tr>
+<tr><td>Runtime</td><td class="bad">~9 min to death</td><td class="ok">30 min (capped)</td><td class="ok">80 cycles full</td></tr>
+<tr><td>HSM spam</td><td class="bad">infinite</td><td class="ok">0</td><td class="ok">0</td></tr>
+<tr><td>RSS slope</td><td class="bad">+70–100 MB/s</td><td class="ok">0 MB/s</td><td class="ok">0 MB/s</td></tr>
+</table>
+
+<h2>4. Screenshot Evidence (run 1 — luna_v12_20260803_141825)</h2>
+<div class="shots">
+  <div class="shot"><span class="gb-frame"><img class="gb-screen" src="screenshots/run_luna_v12_20260803_141825/step_0014.png" alt="starter picked"></span><p><b>c14</b> — starter_selection, party 0→1 (Charmander)</p></div>
+  <div class="shot"><span class="gb-frame"><img class="gb-screen" src="screenshots/run_luna_v12_20260803_141825/step_0020.png" alt="battle start"></span><p><b>c20</b> — battle_start: first wild battle (leak fix: RSS 108 MB flat)</p></div>
+  <div class="shot"><span class="gb-frame"><img class="gb-screen" src="screenshots/run_luna_v12_20260803_141825/step_0030.png" alt="battle persist"></span><p><b>c30</b> — battle persists after 10× run_from_battle (escape loop finding)</p></div>
+</div>
+
+<h2>5. Battle-Escape Finding (GAMEPLAY-ESCAPE-001, P2)</h2>
+<div class="panel">
+<p><b>Symptoms:</b> wild battle at c20; <code>run_from_battle({})</code> selected 14 consecutive times with empty args; flee never lands (battle RAM state persists); recovery ladder fires but has no battle-aware rung. Same signature as T73 leakfix4 (10×, cycles 43–58) — pre-existing, independent of the leak fix.</p>
+<p><b>Hypotheses for the worker:</b></p>
+<ul>
+<li>Flee menu navigation misses RUN — cursor may not be at FIGHT after state-window re-entry (tool assumes FIGHT→right→down).</li>
+<li>Flee succeeds but battle RAM flag / HSM state persists → state window never sees the transition (battle_end at state_window.py:521 may not fire on flee).</li>
+<li>deepseek battle prompt keeps recommending flee (single lvl-5 Charmander vs faster wild) — needs move/switch fallback.</li>
+</ul>
+<p><b>Proposed scope:</b> flee-attempt counter + battle-menu cursor RAM read, <code>select_move</code> fallback after N flee failures, battle-aware recovery rung (press B to reset menu, re-read RAM). Verify: 80-cycle run survives battle and re-enters overworld. Model: gpt-5.6-sol @ openai-codex (proven on GAMEPLAY tasks).</p>
+</div>
+
+<h2>6. NEVER-DONE Audit (11-point)</h2>
+<table>
+<tr><th>Check</th><th>Result</th></tr>
+<tr><td>git status</td><td class="ok">CLEAN (logs/videos/screenshots gitignored)</td></tr>
+<tr><td>GitReins guard (full)</td><td class="ok">PASS 5/5 — 1st run transient mypy cache miss (fastapi py3.14 site-packages); clean re-run, exact cmd EXIT=0</td></tr>
+<tr><td>mypy</td><td class="ok">0 errors / 61 files</td></tr>
+<tr><td>ruff / compileall</td><td class="ok">PASS / PASS</td></tr>
+<tr><td>TODO/FIXME</td><td class="ok">0</td></tr>
+<tr><td>pytest collected</td><td class="ok">3845 (6.2 s)</td></tr>
+<tr><td>GitReins tasks</td><td class="ok">5/5 complete, 0 pending</td></tr>
+<tr><td>CI (gh run list)</td><td class="ok">green 5/5 (last 30835624470, T76, 3m11s)</td></tr>
+<tr><td>Scheduler</td><td class="ok">Enabled=true, CooldownS=7200, DecayRate=1, W15/P10 — fleet.toml pin matches, no PUT</td></tr>
+<tr><td>Remote</td><td class="ok">0 unpushed, 0 incoming, 0 open issues</td></tr>
+<tr><td>Deps</td><td class="warn">outdated non-blocking (standing decision: aiohttp 3.14.3, anthropic 0.120.2)</td></tr>
+</table>
+
+<h2>7. E2E-001 Disposition</h2>
+<div class="panel">
+<p>Executed at the <b>LAST tick of due window T72–T77</b>. All three T72-era fixes verified live (leak / HSM / starter). One new P2 task created (GAMEPLAY-ESCAPE-001). Next due: <b>T82</b> (cadence 5–10). Fixture remains pending (recurring — never marked complete).</p>
+</div>
+
+<div class="footer">Generated by Hermes foreman, T77 — 2026-08-03 · videos: videos/luna_v12_20260803_144417.mp4 (80f, 40s) · videos/luna_v12_20260803_141825.mp4 (39f, 20s)</div>
+</body>
+</html>
