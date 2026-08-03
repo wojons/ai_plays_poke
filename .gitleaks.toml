@@ -19,8 +19,4 @@ paths = [
   '''.mypy_cache/''',
   '''.pytest_cache/''',
   '''.ruff_cache/''',
-  '''specs/''',
-  '''docs/''',
-  '''.*\\.spec\\.md$''',
-  '''.*\\.md$''',
 ]
