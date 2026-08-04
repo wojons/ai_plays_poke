@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITREP T82 — AI Plays Pokémon E2E</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --green:#3fb950; --yellow:#d29922; --red:#f85149; --blue:#58a6ff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; line-height:1.6; padding:32px 16px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:1.6rem; margin-bottom:4px; }
+  .sub { color:var(--muted); font-size:.95rem; margin-bottom:24px; }
+  h2 { font-size:1.15rem; margin:28px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--blue); }
+  .badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:.8rem; font-weight:600; }
+  .ok { background:rgba(63,185,80,.15); color:var(--green); border:1px solid rgba(63,185,80,.4); }
+  .warn { background:rgba(210,153,34,.15); color:var(--yellow); border:1px solid rgba(210,153,34,.4); }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:.9rem; }
+  th, td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:var(--panel); color:var(--muted); font-weight:600; }
+  tr:nth-child(even) td { background:rgba(255,255,255,.02); }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin:12px 0; }
+  .stat { display:inline-block; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px 18px; margin:6px 8px 6px 0; min-width:140px; }
+  .stat b { display:block; font-size:1.4rem; color:var(--green); }
+  .stat span { font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  code { background:rgba(110,118,129,.2); padding:1px 6px; border-radius:4px; font-size:.85em; }
+  .muted { color:var(--muted); }
+  ul { margin:8px 0 8px 20px; }
+  li { margin:4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🟢 SITREP — AI Plays Pokémon (PTP-01X)</h1>
+  <div class="sub">E2E Tick T82 · 2026-08-04 · <span class="badge ok">ALL FIXES HOLD</span> <span class="badge ok">NO NEW FINDINGS</span></div>
+
+  <h2>1. Executive Summary</h2>
+  <div class="card">
+    E2E-001 executed at the <b>first tick of due window T82–T87</b>: one live Luna-controller run
+    (<code>cron_runner.py --run-id luna_v13_20260804_0400 --cycles 80</code>, openai/gpt-5.6-luna via OpenRouter)
+    under the RSS watchdog (kill &gt; 2.5 GB, 10s /proc poll).
+  </div>
+
+  <div class="stat"><b>c16</b><span>Starter picked (fastest yet)</span></div>
+  <div class="stat"><b>108 MB</b><span>Peak RSS flat</span></div>
+  <div class="stat"><b>0</b><span>HSM spam</span></div>
+  <div class="stat"><b>12</b><span>Recovery events (bounded)</span></div>
+  <div class="stat"><b>80/80</b><span>Cycles, exit 0</span></div>
+  <div class="stat"><b>$0.52</b><span>Run cost (38 calls)</span></div>
+
+  <h2>2. Fix Verification</h2>
+  <table>
+    <tr><th>Fix</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>Starter pick (GAMEPLAY-STARTER-001)</td><td><span class="badge ok">✅ HOLDS</span></td><td>Oak's Lab menu detected c16 → deterministic first-starter branch → party 0→1, Charmander, nickname declined. Tile-locked detector fired first (map 40 @(5,3) x8 → starter_approach L0). Faster than T77 (c14/c22), T72 (c18-21).</td></tr>
+    <tr><td>Battle memory leak (GAMEPLAY-LEAK-001)</td><td><span class="badge ok">✅ HOLDS</span></td><td>107→108 MB RSS across full run, zero slope. T72 pre-fix: ~50 GB death in ~9 min. (No battle this run; battle-path proof stands from T72 5-run suite + T77 14-battle-cycle run.)</td></tr>
+    <tr><td>HSM spam (T72 secondary)</td><td><span class="badge ok">✅ HOLDS</span></td><td>0 "Invalid transition attempted" messages.</td></tr>
+    <tr><td>Battle-escape (GAMEPLAY-ESCAPE-001)</td><td><span class="badge ok">✅ STANDS</span></td><td>Not re-exercised (no battles). Live proof at T78: run2 t78_flee_verify2 — 0 futile flee calls (was 14x), battle-aware recovery bounded.</td></tr>
+  </table>
+
+  <h2>3. Run Log — luna_v13_20260804_0400</h2>
+  <table>
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Cycles / end</td><td>80/80 · natural exit 0 · ~3.5 min wall</td></tr>
+    <tr><td>Screens</td><td>overworld 38 · dialog 33 · starter_selection 1 · intro/other 8</td></tr>
+    <tr><td>Maps</td><td>Pallet Town (map 0) → Oak's Lab (map 40) ×7</td></tr>
+    <tr><td>Recovery</td><td>12 events: 7× dialog_advance (screen-locked, attempts 2-3/5), 5× Level-0 starter_approach</td></tr>
+    <tr><td>API</td><td>38 calls · 93,811 in / 3,531 out tokens · 100% Success · $0.522 total</td></tr>
+    <tr><td>HSM spam / flee calls</td><td>0 / 0 (no battles)</td></tr>
+    <tr><td>Video</td><td><code>videos/luna_v13_20260804_0400.mp4</code> (672 KB, 40s @2fps)</td></tr>
+  </table>
+
+  <h2>4. NEVER-DONE Audit (same tick)</h2>
+  <table>
+    <tr><th>Gate</th><th>Result</th></tr>
+    <tr><td>gitreins guard</td><td><span class="badge warn">4/5</span> static_analysis FAIL = <b>standing T81 tooling drift</b> — gitreins 0.8.2 wheel hardcodes <code>--strict</code> (engine static_analysis.py:345), overrides mypy.ini <code>disallow_untyped_defs=False</code>. Not a repo regression; do not annotate test defs.</td></tr>
+    <tr><td>mypy src/ · ruff · compileall · TODO/FIXME</td><td>0/61 · PASS · PASS · 0</td></tr>
+    <tr><td>CI</td><td><span class="badge ok">green 5/5</span> (last 30884759969 = T81 push)</td></tr>
+    <tr><td>gitreins tasks</td><td>6/6 complete, 0 pending</td></tr>
+    <tr><td>Issues / unpushed / incoming</td><td>0 / 0 / 0</td></tr>
+    <tr><td>Scheduler</td><td>Enabled · CooldownS=7200 pinned (fleet.toml = API, no PUT)</td></tr>
+    <tr><td>Deps</td><td>minor churn standing (aiohttp, anthropic) — no action</td></tr>
+  </table>
+
+  <h2>5. Off-by-One &amp; Next</h2>
+  <div class="card">
+    <ul>
+      <li>Off-by-one: drift-class submission resubmitted ONCE (sub_b9e43e, queued — sub_0d86be instant-failed server-side; protocol: resubmit once, stop on repeat). Discover → not_found.</li>
+      <li>DuckBrain: status + <code>/ticks/t82-e2e</code> written.</li>
+      <li>Next (T83): NEVER-DONE audit. E2E-001 next due T87. No worker spawn needed.</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
