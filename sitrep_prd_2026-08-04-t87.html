@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITREP T87 — AI Plays Pokémon E2E</title>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --text:#e6edf3; --muted:#8b949e; --green:#3fb950; --yellow:#d29922; --red:#f85149; --blue:#58a6ff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; line-height:1.6; padding:32px 16px; }
+  .wrap { max-width:960px; margin:0 auto; }
+  h1 { font-size:1.6rem; margin-bottom:4px; }
+  .sub { color:var(--muted); font-size:.95rem; margin-bottom:24px; }
+  h2 { font-size:1.15rem; margin:28px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); color:var(--blue); }
+  .badge { display:inline-block; padding:2px 10px; border-radius:12px; font-size:.8rem; font-weight:600; }
+  .ok { background:rgba(63,185,80,.15); color:var(--green); border:1px solid rgba(63,185,80,.4); }
+  .warn { background:rgba(210,153,34,.15); color:var(--yellow); border:1px solid rgba(210,153,34,.4); }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:.9rem; }
+  th, td { border:1px solid var(--border); padding:8px 10px; text-align:left; }
+  th { background:var(--panel); color:var(--muted); font-weight:600; }
+  tr:nth-child(even) td { background:rgba(255,255,255,.02); }
+  .card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin:12px 0; }
+  .stat { display:inline-block; background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:12px 18px; margin:6px 8px 6px 0; min-width:140px; }
+  .stat b { display:block; font-size:1.4rem; color:var(--green); }
+  .stat span { font-size:.78rem; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; }
+  code { background:rgba(110,118,129,.2); padding:1px 6px; border-radius:4px; font-size:.85em; }
+  .muted { color:var(--muted); }
+  ul { margin:8px 0 8px 20px; }
+  li { margin:4px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🟢 SITREP — AI Plays Pokémon (PTP-01X)</h1>
+  <div class="sub">E2E Tick T87 · 2026-08-04 · <span class="badge ok">ALL FIXES HOLD</span> <span class="badge ok">TRAINER BATTLE RE-EXERCISED</span></div>
+
+  <h2>1. Executive Summary</h2>
+  <div class="card">
+    E2E-001 executed at the <b>last tick of due window T82–T87</b>: one live Luna-controller run
+    (<code>cron_runner.py --run-id luna_v14_20260804_1724 --cycles 80</code>, openai/gpt-5.6-luna +
+    deepseek-v4-flash via OpenRouter) under the RSS watchdog (kill &gt; 2.5 GB, 10s /proc poll).
+    <b>The run hit a TRAINER BATTLE (cycle 52 → 80)</b> — the first battle E2E since T78, re-exercising
+    both battle-phase fixes live.
+  </div>
+
+  <div class="stat"><b>c38</b><span>Starter picked (Charmander)</span></div>
+  <div class="stat"><b>108 MB</b><span>Peak RSS — flat through 28 battle cycles</span></div>
+  <div class="stat"><b>0</b><span>HSM spam</span></div>
+  <div class="stat"><b>0</b><span>Futile flee attempts (trainer battle)</span></div>
+  <div class="stat"><b>80/80</b><span>Cycles, exit 0</span></div>
+  <div class="stat"><b>$0.91</b><span>Run cost (58 calls)</span></div>
+
+  <h2>2. Fix Verification</h2>
+  <table>
+    <tr><th>Fix</th><th>Status</th><th>Evidence</th></tr>
+    <tr><td>Battle-escape (GAMEPLAY-ESCAPE-001)</td><td><span class="badge ok">✅ HOLDS — LIVE RE-PROOF</span></td><td>Trainer battle correctly classified as TRAINER (0xD057 fix; T77 misread 0xD05A). <b>0 futile flee calls</b> (failed_flee_attempts=0 every cycle; T77: 14x). Controller fought: select_move(1) with battle-aware recovery L0→L4, bounded 5/5. No unbounded loop.</td></tr>
+    <tr><td>Battle memory leak (GAMEPLAY-LEAK-001)</td><td><span class="badge ok">✅ HOLDS — STRONGEST PROOF</span></td><td>107→108 MB RSS across the whole run INCLUDING ~28 consecutive battle cycles — the exact StateWindow loop that killed T72 at ~50 GB/9 min. T82: no battle; T77: 14 battle cycles. This is the first full battle-phase endurance since the fix.</td></tr>
+    <tr><td>Starter pick (GAMEPLAY-STARTER-001)</td><td><span class="badge ok">✅ HOLDS</span></td><td>Oak's Lab menu detected c38 → deterministic first-starter branch → party 0→1, Charmander, nickname declined. Tile-locked detector fired first (map 40 @(5,3) x8 → starter_approach L0, attempt 1/5).</td></tr>
+    <tr><td>HSM spam (T72 secondary)</td><td><span class="badge ok">✅ HOLDS</span></td><td>0 "Invalid transition attempted" messages.</td></tr>
+  </table>
+
+  <h2>3. Run Log — luna_v14_20260804_1724</h2>
+  <table>
+    <tr><th>Metric</th><th>Value</th></tr>
+    <tr><td>Cycles / end</td><td>80/80 · natural exit 0 · ~5.4 min wall</td></tr>
+    <tr><td>Battle</td><td>⚔️ TRAINER battle c52→80: correctly identified trainer; 0 flee; move-1 fight strategy; recovery L0-L4 bounded 5/5; battle unresolved at 80-cycle cap (observation, non-blocking)</td></tr>
+    <tr><td>Screens</td><td>battle · overworld · menu · dialog</td></tr>
+    <tr><td>Maps</td><td>Pallet Town (map 0) → Oak's Lab (map 40) → Route 1 trainer battle</td></tr>
+    <tr><td>Recovery</td><td>10 events: 5× battle_select_move (ladder L0-L4, attempts 1-5/5), 1× starter_approach, 1× alternate_direction, 3× dialog</td></tr>
+    <tr><td>API</td><td>58 calls · 100% Success · $0.913 total (Luna early game, deepseek-v4-flash battle)</td></tr>
+    <tr><td>HSM spam / flee calls</td><td>0 / 0</td></tr>
+    <tr><td>Video</td><td><code>videos/luna_v14_20260804_1724.mp4</code></td></tr>
+  </table>
+
+  <h2>4. NEVER-DONE Audit (same tick)</h2>
+  <table>
+    <tr><th>Gate</th><th>Result</th></tr>
+    <tr><td>gitreins guard</td><td><span class="badge ok">5/5 PASS</span> full mode — gitreins 0.11.0; T81-T83 <code>--strict</code> drift resolution holds</td></tr>
+    <tr><td>mypy src/ · ruff · compileall · TODO/FIXME</td><td>0/61 · PASS · PASS · 0</td></tr>
+    <tr><td>pytest collect</td><td>3860 (T81 baseline)</td></tr>
+    <tr><td>CI</td><td><span class="badge ok">green 5/5</span> (last 30947138972 = T86 push, 3m20s)</td></tr>
+    <tr><td>gitreins tasks</td><td>6/6 complete, 0 pending</td></tr>
+    <tr><td>Issues / unpushed / incoming</td><td>0 / 0 / 0</td></tr>
+    <tr><td>Scheduler</td><td>Enabled · CooldownS=900 enforcer-applied (E2E-001 fixture pending) vs fleet.toml pin 7200 — NO PUT</td></tr>
+    <tr><td>Deps</td><td>minor churn standing (aiohttp, anthropic) — no action</td></tr>
+  </table>
+
+  <h2>5. Off-by-One &amp; Next</h2>
+  <div class="card">
+    <ul>
+      <li>Off-by-one: new submission for battle-path leak-hold problem class (python-emulator-battlepath-leak-hold).</li>
+      <li>DuckBrain: status + <code>/ticks/t87-e2e</code> written.</li>
+      <li>Next (T88): NEVER-DONE audit. E2E-001 next due ~T92. Battle win/loss resolution inside the 80-cycle envelope = only standing observation (not taskified; no re-open of ESCAPE-001 without new negative evidence).</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
