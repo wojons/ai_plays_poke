@@ -2101,3 +2101,40 @@ class TestGameAIManagerAnalyzeScreenshotNoneHP:
         mock_log.assert_called_once_with("overworld", None, 100, 100)
         assert result["player_hp"] == 100
         assert result["enemy_hp"] == 100
+
+    def test_none_vision_response_does_not_crash(self) -> None:
+        """A None response (API 200 with empty content) must not crash the
+        tick loop — observed live: 'object of type NoneType has no len()'
+        at the response print. Regression for AP-GAP-001."""
+        from unittest.mock import MagicMock
+
+        from src.core.ai_client import GameAIManager
+        import src.core.ai_client as ai_client_module
+
+        mgr = GameAIManager.__new__(GameAIManager)
+        mgr.vision_model = "openai/gpt-5.6-luna"
+        mgr.model_priority = "balanced"
+        mgr.prompts = {"vision_analysis": "Analyze this game screenshot."}
+        setattr(mgr, "prompt_manager", None)
+        mgr.model_router = MagicMock()
+        mgr.model_router.select_model.return_value = ("openrouter", "openai/gpt-5.6-luna")
+        fake_client = MagicMock()
+        fake_client.get_vision_response.return_value = None  # the crash trigger
+        setattr(mgr, "_get_client_for_model", MagicMock(return_value=fake_client))
+        mgr.json_parser = MagicMock()
+        mgr.json_parser.parse.return_value = {
+            "screen_type": "overworld",
+            "enemy_pokemon": None,
+            "player_hp": None,
+            "enemy_hp": None,
+            "available_actions": [],
+            "recommended_action": "walk",
+        }
+        mgr.token_tracker = MagicMock()
+
+        screenshot = np.zeros((144, 160, 3), dtype=np.uint8)
+        with patch.object(ai_client_module, "log_vision_analysis"):
+            result = mgr.analyze_screenshot(screenshot)
+
+        assert result["screen_type"] == "overworld"
+        assert result["player_hp"] == 100

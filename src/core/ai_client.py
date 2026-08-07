@@ -1389,6 +1389,11 @@ Format: REASONING: [explanation] ACTION: [button]
                 response = self.openrouter_client.get_vision_response(  # type: ignore[union-attr]
                     prompt, screenshot, model=model
                 )
+            # Defensive: a 200 with empty content can return None (observed
+            # live: one empty vision response crashed the tick loop with
+            # "object of type 'NoneType' has no len()").
+            if response is None:
+                response = ""
             print(f"📝 Vision response ({len(response)} chars): {response[:200]}...")
 
             result = self.json_parser.parse(response)
