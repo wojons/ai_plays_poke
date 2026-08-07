@@ -716,25 +716,35 @@ class TestSessionSummary:
 class TestExportSessionData:
     """Test export_session_data JSON export."""
 
-    def test_get_session_data_bug_double_fetchone(self, db):
-        """BUG: _get_session_data calls cursor.fetchone() TWICE.
+    def test_export_session_data_with_session(self, db):
+        """export_session_data succeeds for a session that has a row.
 
-        Line 472: return dict(zip(..., cursor.fetchone())) if cursor.fetchone() else {}
-        First call consumes the row, second returns None → TypeError on zip.
-        This is a pre-existing production bug — export_session_data is broken
-        for sessions that have data.
+        Regression for GAP-001: _get_session_data previously called
+        cursor.fetchone() TWICE — the first call consumed the row and the
+        second returned None, making dict(zip(..., None)) raise TypeError
+        on clean exit. The row must be captured once and reused.
         """
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        with pytest.raises(TypeError, match="'NoneType' object is not iterable"):
-            db.export_session_data(1)
+        output_path = db.export_session_data(1)
+        assert Path(output_path).exists()
+        with open(output_path) as f:
+            data = json.load(f)
+        assert data["session"]["rom_path"] == "/tmp/test.gb"
+        assert data["session"]["model_name"] == "test"
 
     def test_export_session_data_empty_session(self, db):
-        """export_session_data for session with no rows (empty tables) — fails same bug."""
-        db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        # BUG: _get_session_data double-fetchone — always TypeError if a session row exists.
-        # The 'if cursor.fetchone()' check consumes the row, then zip gets None.
-        with pytest.raises(TypeError):
-            db.export_session_data(1)
+        """export_session_data with no session row returns {} session data.
+
+        Regression for GAP-001: the empty path (row is None → {}) must still
+        work — the export path writes session_<id>_export.json without
+        crashing. Previously the double fetchone() made the None-handling
+        branch unreachable and raised TypeError.
+        """
+        output_path = db.export_session_data(99999)
+        assert Path(output_path).exists()
+        with open(output_path) as f:
+            data = json.load(f)
+        assert data["session"] == {}
 
 
 # ============================================================================

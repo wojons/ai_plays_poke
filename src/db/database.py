@@ -505,12 +505,10 @@ class GameDatabase:
         self, cursor: sqlite3.Cursor, session_id: int
     ) -> Dict[str, Any]:
         cursor.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
-        # BUG: double-fetchone — first call consumes the row, second always returns None
-        return (
-            dict(zip([d[0] for d in cursor.description], cursor.fetchone()))
-            if cursor.fetchone()
-            else {}
-        )
+        row = cursor.fetchone()
+        if not row:
+            return {}
+        return dict(zip([d[0] for d in cursor.description], row))
 
     def _get_commands(
         self, cursor: sqlite3.Cursor, session_id: int
