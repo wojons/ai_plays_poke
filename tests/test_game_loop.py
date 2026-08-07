@@ -541,6 +541,23 @@ class TestRunSingleTick:
         # current_tick(2) - last_screenshot_tick(1) = 1 < 10 → no screenshot
         assert gl.last_screenshot_tick == 1  # unchanged
 
+    def test_boot_progression_presses_start_at_tick_16_when_no_decisions(
+        self, gl: GameLoop
+    ) -> None:
+        """No AI decision by tick 16 (boot/title screen) → press START once."""
+        gl.current_tick = 15
+        gl.run_single_tick()
+        gl.emulator.press_button.assert_called_once_with("start")
+
+    def test_boot_progression_skips_start_after_first_decision(
+        self, gl: GameLoop
+    ) -> None:
+        """Once a decision has fired, tick 16 does not press START."""
+        gl.current_tick = 15
+        gl.metrics["ai_decisions"] = 1
+        gl.run_single_tick()
+        gl.emulator.press_button.assert_not_called()
+
     def test_executes_pending_commands_when_present(self, gl: GameLoop) -> None:
         gl.config["screenshot_interval"] = 999  # suppress screenshots
         gl.pending_commands = [

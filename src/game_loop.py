@@ -259,6 +259,28 @@ class GameLoop:
         else:
             self.emulator.tick(frames=60)
 
+        # Boot progression: the title screen needs a START press to reach the
+        # main menu, and the vision classifier rarely labels it "title"
+        # (mostly "transition"/"unknown" during boot). If no AI decision has
+        # fired by tick 16 (~16s of game time, title screen visible) and no
+        # command is queued, press START once so the quickstart run can
+        # actually reach a decision-worthy state.
+        if (
+            self.current_tick == 16
+            and self.metrics.get("ai_decisions", 0) == 0
+            and not self.pending_commands
+        ):
+            emulator = (
+                self.emulator_mgr.get_instance(self.current_instance)
+                if self.emulator_mgr
+                else self.emulator
+            )
+            emulator.press_button("start")
+            print(
+                "🎮 Boot progression: pressed START at title screen "
+                f"(tick {self.current_tick})"
+            )
+
         # Check if should take screenshot (always capture tick 1 so any run
         # produces at least one screenshot)
         screenshot_interval = self.config.get("screenshot_interval", 60)
