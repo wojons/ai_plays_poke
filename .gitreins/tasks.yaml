@@ -185,5 +185,6 @@ tasks:
     \ state and is impossible for a working pipeline)"
   - root cause of the 401 documented in the commit message
   - regression tests added for the fixed bugs and full test suite passes
-  status: in_progress
+  status: complete
   created_at: '2026-08-07T14:18:10.807567+00:00'
+  completed_at: '2026-08-07T15:04:37.485979+00:00'
