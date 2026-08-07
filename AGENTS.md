@@ -61,6 +61,11 @@ pre-commit run --all-files
 ```
 
 ### Running the AI
+
+> **⚠️ Use `cron_runner.py` for real gameplay.** `src/game_loop.py` (shown below) is the
+> legacy path whose vision pipeline is under repair — see README's
+> [Quick Start (working path)](README.md#quick-start-working-path).
+
 ```bash
 # Basic run
 python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir ./battle_session --max-ticks 1800

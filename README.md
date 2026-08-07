@@ -138,7 +138,55 @@ Open `web/index.html` in a browser to run a live Game Boy emulator with RAM stat
 
 The overlay shows player position, current map, screen type, and party Pokémon — the same data the Python RAM reader extracts.
 
-## Quick Start
+## Quick Start (working path)
+
+The primary working entry point for autonomous gameplay is `cron_runner.py` — an E2E runner
+that reads game state directly from emulator RAM (free, instant) and uses LLM calls only for
+game decisions.
+
+```bash
+# 1. Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Set up API key
+cp .env.example .env
+# Edit .env — add your OPENROUTER_API_KEY
+
+# 4. Run (example: 80 AI decision cycles)
+python3 cron_runner.py --run-id demo1 --cycles 80
+```
+
+**What this does:** Each cycle reads the game state directly from emulator RAM (no paid
+vision API calls per tick), sends the spatial data to the LLM controller
+(`openai/gpt-5.6-luna` for overworld navigation, `deepseek-v4-flash` for battles), and
+executes the returned button plan with built-in recovery (direction-lock detection,
+checkpoint rollback).
+
+**Outputs:**
+- `cron_logs/run_<id>.jsonl` — one JSON line per cycle: screen type, button plan, LLM
+  intent, player coordinates (x/y), map name, plus event rows (recovery, state saved).
+- `screenshots/run_<id>/step_NNNN.png` — 160×144 RGB frame per cycle.
+
+**Flags:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--run-id` | auto-generated timestamp | Label for this run's logs and screenshots |
+| `--cycles` | 200 | Number of AI decision cycles |
+
+**Proven results:** 10/10 cycles in dogfood runs (real LLM decisions, map movement,
+recovery firing); 80/80 cycles in E2E (RSS flat ~110 MB, $0.60 for 43 LLM calls).
+
+> **Note:** `src/game_loop.py` (documented below) is the legacy/simplified entry point
+> whose vision pipeline is currently under repair (AP-GAP-001). It performs paid
+> OpenRouter vision calls every tick that crash on null HP values, producing 0 AI
+> decisions. Use `cron_runner.py` for real autonomous gameplay.
+
+## Quick Start (legacy game_loop.py)
 
 ```bash
 # 1. Create virtual environment
@@ -159,7 +207,7 @@ cp .env.example .env
 python3 src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir runs/test_001
 ```
 
-## How to Run
+## How to Run (legacy game_loop.py)
 
 The main entry point is `src/game_loop.py` which accepts the following arguments:
 
