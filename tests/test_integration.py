@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import pytest
 import time
+import numpy as np
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
@@ -175,7 +176,9 @@ class TestFullTickCycle:
             game_loop.last_screenshot_tick = 0
 
             mock_emulator.tick = MagicMock()
-            mock_emulator.capture_screen = MagicMock(return_value=MagicMock())
+            mock_emulator.capture_screen = MagicMock(
+                return_value=np.zeros((144, 160, 3), dtype=np.uint8)
+            )
             mock_emulator.press_button = MagicMock()
             mock_db_connection.log_screenshot = MagicMock()
             mock_db_connection.log_command = MagicMock()
