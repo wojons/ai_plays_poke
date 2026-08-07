@@ -1,7 +1,7 @@
 """
 Vision Client for AI Plays Pokémon
 
-Uses OpenRouter API with Gemma 3 12B (google/gemma-3-12b-it) to analyze
+Uses OpenRouter API with GPT-5.6 Luna (openai/gpt-5.6-luna) to analyze
 Game Boy / GBA screenshots and return structured JSON about game state.
 """
 
@@ -73,7 +73,7 @@ class VisionClient:
 
     _FALLBACK_RESULT: dict[str, Any] = {"screen_type": "unknown"}
 
-    def __init__(self, model: str = "google/gemma-3-12b-it") -> None:
+    def __init__(self, model: str = "openai/gpt-5.6-luna") -> None:
         """Initialise the vision client.
 
         Args:

@@ -121,10 +121,10 @@ class GameLoop:
 
         # Vision + decision pipeline (wired to real AI)
         self._generation = "gen3"
-        self._thinking_model = "openrouter/owl-alpha"
+        self._thinking_model = "openai/gpt-5.6-luna"
         if self.use_real_ai:
             self.vision_client: Optional[VisionClient] = VisionClient(
-                model="google/gemma-3-12b-it"
+                model="openai/gpt-5.6-luna"
             )
             self.prompt_stack: Optional[PromptStack] = PromptStack()
             self.prompt_client: Optional[OpenRouterClient] = OpenRouterClient()
@@ -199,6 +199,7 @@ class GameLoop:
 
         # Save emulator state
         save_path = Path(self.config["save_dir"]) / "emulator_state.state"
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if self.emulator_mgr:
             emulator = self.emulator_mgr.get_instance(self.current_instance)
             emulator.save_state(str(save_path))
@@ -377,10 +378,19 @@ class GameLoop:
                 vision_result = self.ai_manager.analyze_screenshot(screenshot)
 
                 # Extract game state from vision analysis
-                game_state.screen_type = vision_result.get("screen_type", "overworld")
+                raw_screen = vision_result.get("screen_type", "overworld")
+                game_state.screen_type = raw_screen if raw_screen else "overworld"
                 game_state.enemy_pokemon = vision_result.get("enemy_pokemon")
-                game_state.player_hp_percent = vision_result.get("player_hp", 100.0)
-                game_state.enemy_hp_percent = vision_result.get("enemy_hp", 100.0)
+                # Defensive: coerce HP to float; None → 100.0 to avoid
+                # "unsupported format string passed to NoneType" crash.
+                raw_player_hp = vision_result.get("player_hp", 100.0)
+                raw_enemy_hp = vision_result.get("enemy_hp", 100.0)
+                game_state.player_hp_percent = (
+                    float(raw_player_hp) if raw_player_hp is not None else 100.0
+                )
+                game_state.enemy_hp_percent = (
+                    float(raw_enemy_hp) if raw_enemy_hp is not None else 100.0
+                )
 
                 # Set flags based on screen type
                 if game_state.screen_type == "battle":

@@ -830,3 +830,72 @@ class TestPrintFinalStats:
         }
         # Should not crash (no asserts needed — just exercising the code path)
         gl._print_final_stats()
+
+
+# ── Regression: AP-GAP-001 ───────────────────────────────────────────────
+
+
+class TestAnalyzeGameStateNoneHP:
+    """None HP values from vision must not crash tick-loop formatting."""
+
+    @pytest.fixture
+    def loop_with_vision(self) -> GameLoop:
+        """A GameLoop stub with real AI enabled and mocked vision result."""
+        with patch.object(GameLoop, "__init__", lambda self, config: None):
+            gl = GameLoop.__new__(GameLoop)
+            gl.current_tick = 1
+            gl.battle_turn_count = 0
+            gl.emulator_mgr = None
+            gl.metrics = {}
+            gl.use_real_ai = True
+            gl.ai_manager = MagicMock()
+            gl.emulator = MagicMock()
+            gl.emulator.capture_screen.return_value = None
+            gl._analyze_game_state_stub = MagicMock(
+                return_value=_basic_game_state()
+            )
+            return gl
+
+    def test_none_player_hp_defaults_to_100(self, loop_with_vision: GameLoop) -> None:
+        """player_hp=None → 100.0, no crash."""
+        loop_with_vision.ai_manager.analyze_screenshot.return_value = {
+            "screen_type": "battle",
+            "player_hp": None,
+            "enemy_hp": 50,
+        }
+        result = loop_with_vision._analyze_game_state()
+        assert result.player_hp_percent == 100.0
+
+    def test_none_enemy_hp_defaults_to_100(self, loop_with_vision: GameLoop) -> None:
+        """enemy_hp=None → 100.0, no crash."""
+        loop_with_vision.ai_manager.analyze_screenshot.return_value = {
+            "screen_type": "battle",
+            "player_hp": 80,
+            "enemy_hp": None,
+        }
+        result = loop_with_vision._analyze_game_state()
+        assert result.enemy_hp_percent == 100.0
+
+    def test_none_screen_type_defaults_to_overworld(
+        self, loop_with_vision: GameLoop
+    ) -> None:
+        """screen_type=None → 'overworld', no crash."""
+        loop_with_vision.ai_manager.analyze_screenshot.return_value = {
+            "screen_type": None,
+            "player_hp": 100,
+            "enemy_hp": 100,
+        }
+        result = loop_with_vision._analyze_game_state()
+        assert result.screen_type == "overworld"
+
+    def test_format_string_safe_with_none(self, loop_with_vision: GameLoop) -> None:
+        """The HP format string must not crash when values are None."""
+        loop_with_vision.ai_manager.analyze_screenshot.return_value = {
+            "screen_type": "battle",
+            "player_hp": None,
+            "enemy_hp": None,
+        }
+        # This should not raise — the fix coerces None → 100.0
+        result = loop_with_vision._analyze_game_state()
+        assert result.player_hp_percent == 100.0
+        assert result.enemy_hp_percent == 100.0

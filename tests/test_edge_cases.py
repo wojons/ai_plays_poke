@@ -211,7 +211,11 @@ class TestAPIKeyHandling:
     def test_api_key_with_special_chars(self) -> None:
         """API key with special characters → proper handling"""
         with patch.dict(
-            os.environ, {"OPENAI_API_KEY": "sk-key-with-dashes-and_underscores.v3"}
+            os.environ,
+            {
+                "OPENAI_API_KEY": "sk-key-with-dashes-and_underscores.v3",
+                "OPENROUTER_API_KEY": "",
+            },
         ):
             from src.core.ai_client import AIModelClient
 

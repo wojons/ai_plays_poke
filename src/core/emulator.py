@@ -338,11 +338,22 @@ class Emulator:
 
     # ── save / load state ────────────────────────────────────────────
 
-    def save_state(self, slot: int) -> None:
-        """Save full emulator checkpoint to a numbered slot."""
-        _cp_dir = Path("checkpoints")
-        _cp_dir.mkdir(parents=True, exist_ok=True)
-        path = _cp_dir / f"{slot}.state"
+    def save_state(self, slot: int | str | Path) -> None:
+        """Save full emulator checkpoint.
+
+        When *slot* is an ``int`` the checkpoint is written to
+        ``checkpoints/<slot>.state`` (numbered-slot API, backward
+        compatible).  When *slot* is a ``str`` or ``Path`` it is treated
+        as a literal file path — parent directories are created
+        automatically and no ``.state`` suffix is appended.
+        """
+        if isinstance(slot, (str, Path)):
+            path = Path(slot)
+            path.parent.mkdir(parents=True, exist_ok=True)
+        else:
+            _cp_dir = Path("checkpoints")
+            _cp_dir.mkdir(parents=True, exist_ok=True)
+            path = _cp_dir / f"{slot}.state"
         with open(path, "wb") as fh:
             self._pyboy.save_state(fh)
 

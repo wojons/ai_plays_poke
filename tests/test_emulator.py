@@ -420,6 +420,33 @@ class TestCheckpointing:
         assert any("0.state" in c for c in open_calls)
         assert any("3.state" in c for c in open_calls)
 
+    # ── AP-GAP-001 regression ────────────────────────────────────────
+
+    def test_save_state_path_creates_parent_dirs(self, emu_with_state) -> None:
+        """Path-based save creates intermediate directories (no FileNotFoundError)."""
+        m_open = mock_open()
+        with (
+            patch("builtins.open", m_open),
+            patch("pathlib.Path.mkdir") as mock_mkdir,
+        ):
+            emu_with_state.save_state("game_saves/emulator_state.state")
+            mock_mkdir.assert_called()
+            m_open.assert_called_once()
+
+    def test_save_state_path_no_double_suffix(self, emu_with_state) -> None:
+        """Path-based save writes to the EXACT path given — no extra .state."""
+        with patch("builtins.open", mock_open()) as m_open:
+            emu_with_state.save_state("game_saves/emulator_state.state")
+            args, _kwargs = m_open.call_args
+            assert args[0] == Path("game_saves/emulator_state.state")
+
+    def test_save_state_int_slot_still_works(self, emu_with_state) -> None:
+        """Integer slot still writes to checkpoints/<slot>.state."""
+        with patch("builtins.open", mock_open()) as m_open:
+            emu_with_state.save_state(7)
+            args, _kwargs = m_open.call_args
+            assert args[0] == Path("checkpoints/7.state")
+
 
 class TestRAMReading:
     """Memory read methods: read_u8, read_u16."""

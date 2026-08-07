@@ -207,8 +207,12 @@ class AIModelClient:
         if self._api_key is not None:
             return self._api_key
 
-        self._api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get(
-            "OPENROUTER_API_KEY"
+        # Prefer OPENROUTER_API_KEY since AIModelClient always wraps an
+        # OpenRouterClient.  OpenAI service-account keys (`sk-svcacct-…`)
+        # are rejected by OpenRouter with 401, so loading OPENAI_API_KEY
+        # first breaks the vision pipeline when both keys are present.
+        self._api_key = os.environ.get("OPENROUTER_API_KEY") or os.environ.get(
+            "OPENAI_API_KEY"
         )
 
         if not self._api_key:
@@ -497,7 +501,7 @@ class OpenRouterClient:
         self.base_url = "https://openrouter.ai/api/v1"
 
         self.models = {
-            "vision": "openai/gpt-4o",
+            "vision": "openai/gpt-5.6-luna",
             "thinking": "openai/gpt-4o-mini",
             "acting": "openai/gpt-4o-mini",
         }
@@ -1083,7 +1087,7 @@ class ModelRouter:
             (provider, model) tuple
         """
         available_models = available_models or {
-            "openrouter_vision": "openai/gpt-4o",
+            "openrouter_vision": "openai/gpt-5.6-luna",
             "openrouter_thinking": "openai/gpt-4o-mini",
             "openrouter_acting": "openai/gpt-4o-mini",
             "anthropic_vision": "claude-3-sonnet-20240307",
@@ -1107,7 +1111,7 @@ class ModelRouter:
         if task_type == "vision":
             return (
                 "openrouter",
-                available_models.get("openrouter_vision", "openai/gpt-4o-mini"),
+                available_models.get("openrouter_vision", "openai/gpt-5.6-luna"),
             )
         elif task_type == "thinking":
             return (
@@ -1153,7 +1157,7 @@ class ModelRouter:
         if task_type == "vision":
             return (
                 "openrouter",
-                available_models.get("openrouter_vision", "openai/gpt-4o"),
+                available_models.get("openrouter_vision", "openai/gpt-5.6-luna"),
             )
         elif task_type == "thinking":
             return (
@@ -1232,7 +1236,7 @@ class GameAIManager:
                 self.claude_client = None  # type: ignore
         else:
             self.claude_client = None  # type: ignore
-        self.vision_model = "openai/gpt-4o"
+        self.vision_model = "openai/gpt-5.6-luna"
         self.thinking_model = "openai/gpt-4o-mini"
         self.acting_model = "openai/gpt-4o-mini"
 
@@ -1388,6 +1392,14 @@ Format: REASONING: [explanation] ACTION: [button]
             print(f"📝 Vision response ({len(response)} chars): {response[:200]}...")
 
             result = self.json_parser.parse(response)
+            player_hp = result.get("player_hp", 100)
+            enemy_hp = result.get("enemy_hp", 100)
+            if player_hp is None:
+                player_hp = 100
+            if enemy_hp is None:
+                enemy_hp = 100
+            result["player_hp"] = player_hp
+            result["enemy_hp"] = enemy_hp
             self.token_tracker.record_request(
                 model=model,
                 input_tokens=len(response) // 4,
@@ -1399,18 +1411,21 @@ Format: REASONING: [explanation] ACTION: [button]
             log_vision_analysis(
                 result.get("screen_type", "Unknown"),
                 result.get("enemy_pokemon", "None"),
-                result.get("player_hp", 100),
-                result.get("enemy_hp", 100),
+                player_hp,
+                enemy_hp,
             )
 
             print(
                 f"✅ Vision analysis: screen={result.get('screen_type', 'Unknown')}, "
                 f"enemy={result.get('enemy_pokemon', 'None')}, "
-                f"HP={result.get('player_hp', 100)}%/{result.get('enemy_hp', 100)}%"
+                f"HP={player_hp}%/{enemy_hp}%"
             )
 
             return result
         except Exception as e:
+            import traceback
+
+            traceback.print_exc()
             print(f"❌ Vision analysis failed: {e}")
             return {
                 "screen_type": "overworld",

@@ -1237,7 +1237,10 @@ class TestAIModelClientInit:
             assert not client._stub_mode
 
     def test_init_with_openai_env(self) -> None:
-        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-oai-key"}):
+        with patch.dict(
+            os.environ,
+            {"OPENAI_API_KEY": "sk-oai-key", "OPENROUTER_API_KEY": ""},
+        ):
             from src.core.ai_client import AIModelClient
 
             client = AIModelClient()
@@ -1986,3 +1989,115 @@ class TestOpenRouterClientSendToolRequest:
             client = OpenRouterClient(api_key="sk-or-test")
             result = client.send_tool_request("Do something", [], "test-model")
             assert result is not None
+
+
+# ── Regression: AP-GAP-001 ───────────────────────────────────────────────
+
+
+class TestOpenRouterAuthHeader:
+    """The vision pipeline must send ``Authorization: Bearer <key>``."""
+
+    def test_chat_completion_sends_auth_header(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+
+        with requests_mock.Mocker() as m:
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [{"message": {"content": "ok"}}],
+                    "model": "test-model",
+                    "id": "r1",
+                    "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+                },
+            )
+            client = OpenRouterClient(api_key="sk-or-v1-testkey123")
+            client.chat_completion("test-model", [{"role": "user", "content": "hi"}])
+
+            req = m.request_history[0]
+            assert req.headers["Authorization"] == "Bearer sk-or-v1-testkey123"
+            assert req.headers["Content-Type"] == "application/json"
+
+    def test_send_vision_request_sends_auth_header(self) -> None:
+        from src.core.ai_client import OpenRouterClient
+
+        with requests_mock.Mocker() as m:
+            m.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                status_code=200,
+                json={
+                    "choices": [{"message": {"content": '{"screen_type":"battle"}'}}],
+                    "model": "google/gemma-3-12b-it",
+                    "id": "v2",
+                    "usage": {"prompt_tokens": 50, "completion_tokens": 10},
+                },
+            )
+            client = OpenRouterClient(api_key="sk-or-v1-testkey123")
+            client.send_vision_request(
+                prompt="Analyze", image_b64="AAAA", model="google/gemma-3-12b-it"
+            )
+
+            req = m.request_history[0]
+            assert req.headers["Authorization"] == "Bearer sk-or-v1-testkey123"
+
+    def test_aimodelclient_prefers_openrouter_key(self) -> None:
+        """AIModelClient._load_api_key must prefer OPENROUTER_API_KEY."""
+        from src.core.ai_client import AIModelClient
+
+        with patch.dict(
+            os.environ,
+            {
+                "OPENROUTER_API_KEY": "sk-or-v1-openrouter",
+                "OPENAI_API_KEY": "sk-svcacct-openai",
+            },
+        ):
+            client = AIModelClient()
+            assert client._api_key == "sk-or-v1-openrouter"
+
+
+class TestGameAIManagerAnalyzeScreenshotNoneHP:
+    """analyze_screenshot must not crash or leak None HP into log_vision_analysis
+    (regression: 'unsupported format string passed to NoneType.__format__' —
+    the raw result dict carries player_hp=None when the vision model returns
+    JSON null; the sanitized locals must be passed to log_vision_analysis)."""
+
+    def test_null_hp_uses_sanitized_values(self) -> None:
+        from unittest.mock import MagicMock
+
+        from src.core.ai_client import GameAIManager
+        import src.core.ai_client as ai_client_module
+
+        mgr = GameAIManager.__new__(GameAIManager)
+        mgr.vision_model = "openai/gpt-5.6-luna"
+        mgr.model_priority = "balanced"
+        mgr.prompts = {"vision_analysis": "Analyze this game screenshot."}
+        mgr.prompt_manager = None
+        mgr.model_router = MagicMock()
+        mgr.model_router.select_model.return_value = ("openrouter", "openai/gpt-5.6-luna")
+        fake_client = MagicMock()
+        fake_client.get_vision_response.return_value = (
+            '{"screen_type":"overworld","enemy_pokemon":null,'
+            '"player_hp":null,"enemy_hp":null,'
+            '"available_actions":[],"recommended_action":"walk"}'
+        )
+        mgr._get_client_for_model = MagicMock(return_value=fake_client)
+        mgr.json_parser = MagicMock()
+        mgr.json_parser.parse.return_value = {
+            "screen_type": "overworld",
+            "enemy_pokemon": None,
+            "player_hp": None,
+            "enemy_hp": None,
+            "available_actions": [],
+            "recommended_action": "walk",
+        }
+        mgr.token_tracker = MagicMock()
+
+        screenshot = np.zeros((144, 160, 3), dtype=np.uint8)
+        with patch.object(ai_client_module, "log_vision_analysis") as mock_log:
+            result = mgr.analyze_screenshot(screenshot)
+
+        # Sanitized values (100.0, not None) must reach the logger — the real
+        # log_vision_analysis formats with :.0f and crashes on None.
+        mock_log.assert_called_once_with("overworld", None, 100, 100)
+        assert result["player_hp"] == 100
+        assert result["enemy_hp"] == 100
