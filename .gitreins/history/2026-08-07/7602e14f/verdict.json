@@ -1,0 +1,61 @@
+{
+  "task_id": "GAP-001",
+  "task_title": "Fix GameLoop.stop() TypeError crash on clean exit (double-fetchone in _get_session_data)",
+  "task_criteria": [
+    "python3 src/game_loop.py --rom '<valid_rom>' --max-ticks 10 --save-dir /tmp/gap_test exits 0 with no traceback",
+    "_get_session_data uses a single fetchone() result (walrus guard) - no double fetch",
+    "Regression test added for empty-session export path",
+    "Full suite passes: .venv/bin/pytest tests/ -q green",
+    "Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer"
+  ],
+  "passed": true,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \u001b[90m9:16PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~167024638 bytes (167.02 MB) in 8.34s\u001b[0m\n\u001b[90m9:16PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": ""
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\u001b[90m9:16PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~167024638 bytes (167.02 MB) in 8.34s\u001b[0m\n\u001b[90m9:16PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": ""
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": ""
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 python3 src/game_loop.py --rom '<valid_rom>' --max-ticks 10 --save-dir /tmp/gap_test exits 0 with no traceback: Ran with valid ROM 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' via .venv/bin/python (project env; system python3 lacks numpy): EXIT_CODE=0, no traceback, 'Session data exported to session_5_export.json' and 'Reached max ticks (10), stopping...' cleanly.\n  \u2713 _get_session_data uses a single fetchone() result (walrus guard) - no double fetch: src/db/database.py _get_session_data (HEAD 9822f4f) now does `row = cursor.fetchone(); if not row: return {}; return dict(zip(...))` \u2014 single fetchone, no double fetch. Uses plain assignment rather than walrus :=, but functionally satisfies the no-double-fetch requirement.\n  \u2713 Regression test added for empty-session export path: tests/test_game_database.py test_export_session_data_empty_session calls db.export_session_data(99999) with no session row and asserts data['session']=={}; PASSED in suite run.\n  \u2713 Full suite passes: .venv/bin/pytest tests/ -q green: .venv/bin/pytest tests/ -q => 3852 passed, 8 skipped in 293.69s, zero failures.\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: Commit 9822f4f (HEAD) message includes trailer 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'.\nGAP-001 fix is complete: single-fetchone in _get_session_data, empty-session regression test added and passing, full suite green (3852 passed/8 skipped), clean game_loop exit 0, and commit carries the required Co-authored-by trailer.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 python3 src/game_loop.py --rom '<valid_rom>' --max-ticks 10 --save-dir /tmp/gap_test exits 0 with no traceback: Ran with valid ROM 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' via .venv/bin/python (project env; system python3 lacks numpy): EXIT_CODE=0, no traceback, 'Session data exported to session_5_export.json' and 'Reached max ticks (10), stopping...' cleanly.\n  \u2713 _get_session_data uses a single fetchone() result (walrus guard) - no double fetch: src/db/data",
+          "error": ""
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-001\n\nStage tier1: PASS\n    \u2713 lint: \n  \u2713 secrets: \u001b[90m9:16PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~167024638 bytes (167.02 MB) in 8.34s\u001b[0m\n\u001b[90m9:16PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 python3 src/game_loop.py --rom '<valid_rom>' --max-ticks 10 --save-dir /tmp/gap_test exits 0 with no traceback: Ran with valid ROM 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' via .venv/bin/python (project env; system python3 lacks numpy): EXIT_CODE=0, no traceback, 'Session data exported to session_5_export.json' and 'Reached max ticks (10), stopping...' cleanly.\n  \u2713 _get_session_data uses a single fetchone() result (walrus guard) - no double fetch: src/db/database.py _get_session_data (HEAD 9822f4f) now does `row = cursor.fetchone(); if not row: return {}; return dict(zip(...))` \u2014 single fetchone, no double fetch. Uses plain assignment rather than walrus :=, but functionally satisfies the no-double-fetch requirement.\n  \u2713 Regression test added for empty-session export path: tests/test_game_database.py test_export_session_data_empty_session calls db.export_session_data(99999) with no session row and asserts data['session']=={}; PASSED in suite run.\n  \u2713 Full suite passes: .venv/bin/pytest tests/ -q green: .venv/bin/pytest tests/ -q => 3852 passed, 8 skipped in 293.69s, zero failures.\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: Commit 9822f4f (HEAD) message includes trailer 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'.\nGAP-001 fix is complete: single-fetchone in _get_session_data, empty-session regression test added and passing, full suite green (3852 passed/8 skipped), clean game_loop exit 0, and commit carries the required Co-authored-by trailer.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-08-07T02:28:29.563460"
+}

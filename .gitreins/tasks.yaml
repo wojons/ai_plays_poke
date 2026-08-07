@@ -112,3 +112,45 @@ tasks:
   status: complete
   created_at: '2026-08-03T22:04:50.010865+00:00'
   completed_at: '2026-08-03T23:49:06.876831+00:00'
+- id: GAP-001
+  title: Fix GameLoop.stop() TypeError crash on clean exit (double-fetchone in _get_session_data)
+  criteria:
+  - python3 src/game_loop.py --rom '<valid_rom>' --max-ticks 10 --save-dir /tmp/gap_test
+    exits 0 with no traceback
+  - _get_session_data uses a single fetchone() result (walrus guard) - no double fetch
+  - Regression test added for empty-session export path
+  - 'Full suite passes: .venv/bin/pytest tests/ -q green'
+  - 'Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer'
+  status: complete
+  created_at: '2026-08-07T00:34:00.546552+00:00'
+  completed_at: '2026-08-07T02:16:09.599916+00:00'
+- id: GAP-002
+  title: Fix AGENTS.md phantom src.cli module references
+  criteria:
+  - AGENTS.md no longer references src.cli anywhere (grep -c 'src.cli' AGENTS.md =
+    0)
+  - AGENTS.md entry-point examples point at the real entry point (src/game_loop.py)
+  - 'Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer'
+  status: complete
+  created_at: '2026-08-07T00:34:05.219088+00:00'
+  completed_at: '2026-08-07T02:28:29.756162+00:00'
+- id: GAP-003
+  title: Fix API docs referencing non-existent src.core.emulator_interface module
+  criteria:
+  - grep -c 'src.core.emulator_interface' docs/api/ = 0 (all files)
+  - docs/api examples use the real module path src.core.emulator with class Emulator
+  - 'Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer'
+  status: complete
+  created_at: '2026-08-07T00:34:05.315001+00:00'
+  completed_at: '2026-08-07T02:33:33.846355+00:00'
+- id: GAP-004
+  title: Fix ROM filename mismatch in config and README
+  criteria:
+  - config/settings.yaml rom.path points at the real on-disk ROM filename
+  - README Quick Start and troubleshooting sections match the real ROM filename
+  - python3 src/game_loop.py --rom '<real_rom>' --max-ticks 5 runs without ROM-not-found
+    error
+  - 'Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer'
+  status: complete
+  created_at: '2026-08-07T00:34:05.421704+00:00'
+  completed_at: '2026-08-07T02:38:37.063035+00:00'

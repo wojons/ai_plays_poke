@@ -1,0 +1,59 @@
+{
+  "task_id": "GAP-002",
+  "task_title": "Fix AGENTS.md phantom src.cli module references",
+  "task_criteria": [
+    "AGENTS.md no longer references src.cli anywhere (grep -c 'src.cli' AGENTS.md = 0)",
+    "AGENTS.md entry-point examples point at the real entry point (src/game_loop.py)",
+    "Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer"
+  ],
+  "passed": true,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \u001b[90m8:59PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~166927347 bytes (166.93 MB) in 12.2s\u001b[0m\n\u001b[90m8:59PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": ""
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\u001b[90m8:59PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~166927347 bytes (166.93 MB) in 12.2s\u001b[0m\n\u001b[90m8:59PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": ""
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": ""
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 AGENTS.md no longer references src.cli anywhere (grep -c 'src.cli' AGENTS.md = 0): grep -c 'src.cli' AGENTS.md returns 0 (exit 1, no matches)\n  \u2713 AGENTS.md entry-point examples point at the real entry point (src/game_loop.py): AGENTS.md lines 66,69,72,75,345,348,354,357 use 'python -m src.game_loop' and line 150 uses 'from src.core.game_loop import GameLoop' \u2014 real entry point src/game_loop.py\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: Commit ef5a80a (Addresses GAP-002) body contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'\nAll three GAP-002 criteria pass: AGENTS.md has zero src.cli references, entry-point examples point at src/game_loop.py, and the commit carries the required Co-authored-by trailer.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 AGENTS.md no longer references src.cli anywhere (grep -c 'src.cli' AGENTS.md = 0): grep -c 'src.cli' AGENTS.md returns 0 (exit 1, no matches)\n  \u2713 AGENTS.md entry-point examples point at the real entry point (src/game_loop.py): AGENTS.md lines 66,69,72,75,345,348,354,357 use 'python -m src.game_loop' and line 150 uses 'from src.core.game_loop import GameLoop' \u2014 real entry point src/game_loop.py\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: Commit ef5a80a",
+          "error": ""
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-002\n\nStage tier1: PASS\n    \u2713 lint: \n  \u2713 secrets: \u001b[90m8:59PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~166927347 bytes (166.93 MB) in 12.2s\u001b[0m\n\u001b[90m8:59PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 AGENTS.md no longer references src.cli anywhere (grep -c 'src.cli' AGENTS.md = 0): grep -c 'src.cli' AGENTS.md returns 0 (exit 1, no matches)\n  \u2713 AGENTS.md entry-point examples point at the real entry point (src/game_loop.py): AGENTS.md lines 66,69,72,75,345,348,354,357 use 'python -m src.game_loop' and line 150 uses 'from src.core.game_loop import GameLoop' \u2014 real entry point src/game_loop.py\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: Commit ef5a80a (Addresses GAP-002) body contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'\nAll three GAP-002 criteria pass: AGENTS.md has zero src.cli references, entry-point examples point at src/game_loop.py, and the commit carries the required Co-authored-by trailer.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-08-07T02:04:48.023206"
+}

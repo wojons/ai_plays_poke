@@ -1,0 +1,59 @@
+{
+  "task_id": "GAP-003",
+  "task_title": "Fix API docs referencing non-existent src.core.emulator_interface module",
+  "task_criteria": [
+    "grep -c 'src.core.emulator_interface' docs/api/ = 0 (all files)",
+    "docs/api examples use the real module path src.core.emulator with class Emulator",
+    "Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer"
+  ],
+  "passed": true,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \u001b[90m9:33PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~167154573 bytes (167.15 MB) in 7s\u001b[0m\n\u001b[90m9:33PM\u001b[0m \u001b[32\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": ""
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\u001b[90m9:33PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~167154573 bytes (167.15 MB) in 7s\u001b[0m\n\u001b[90m9:33PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": ""
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": ""
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 grep -c 'src.core.emulator_interface' docs/api/ = 0 (all files): grep -rc 'src.core.emulator_interface' docs/api/ returns 0 for all 12 files (exit code 1 = no matches)\n  \u2713 docs/api examples use the real module path src.core.emulator with class Emulator: docs/api examples use 'from src.core.emulator import Emulator' (emulator_interface.md:38,162,300; game_ai_manager.md:221; index.md:61; examples/custom_ai.md:91); real module src/core/emulator.py exists with class Emulator at line 60\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: Commit 1204d1c message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>' trailer\nAll three GAP-003 criteria pass: no phantom emulator_interface references remain in docs/api, examples use the real src.core.emulator.Emulator path, and the commit carries the required Co-authored-by trailer.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 grep -c 'src.core.emulator_interface' docs/api/ = 0 (all files): grep -rc 'src.core.emulator_interface' docs/api/ returns 0 for all 12 files (exit code 1 = no matches)\n  \u2713 docs/api examples use the real module path src.core.emulator with class Emulator: docs/api examples use 'from src.core.emulator import Emulator' (emulator_interface.md:38,162,300; game_ai_manager.md:221; index.md:61; examples/custom_ai.md:91); real module src/core/emulator.py exists with class Emulator at line 60\n",
+          "error": ""
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-003\n\nStage tier1: PASS\n    \u2713 lint: \n  \u2713 secrets: \u001b[90m9:33PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~167154573 bytes (167.15 MB) in 7s\u001b[0m\n\u001b[90m9:33PM\u001b[0m \u001b[32\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 grep -c 'src.core.emulator_interface' docs/api/ = 0 (all files): grep -rc 'src.core.emulator_interface' docs/api/ returns 0 for all 12 files (exit code 1 = no matches)\n  \u2713 docs/api examples use the real module path src.core.emulator with class Emulator: docs/api examples use 'from src.core.emulator import Emulator' (emulator_interface.md:38,162,300; game_ai_manager.md:221; index.md:61; examples/custom_ai.md:91); real module src/core/emulator.py exists with class Emulator at line 60\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: Commit 1204d1c message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>' trailer\nAll three GAP-003 criteria pass: no phantom emulator_interface references remain in docs/api, examples use the real src.core.emulator.Emulator path, and the commit carries the required Co-authored-by trailer.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-08-07T02:38:36.885382"
+}

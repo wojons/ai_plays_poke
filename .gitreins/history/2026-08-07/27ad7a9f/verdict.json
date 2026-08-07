@@ -1,0 +1,60 @@
+{
+  "task_id": "GAP-004",
+  "task_title": "Fix ROM filename mismatch in config and README",
+  "task_criteria": [
+    "config/settings.yaml rom.path points at the real on-disk ROM filename",
+    "README Quick Start and troubleshooting sections match the real ROM filename",
+    "python3 src/game_loop.py --rom '<real_rom>' --max-ticks 5 runs without ROM-not-found error",
+    "Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer"
+  ],
+  "passed": true,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \u001b[90m9:38PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~167187165 bytes (167.19 MB) in 7.46s\u001b[0m\n\u001b[90m9:38PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": ""
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\u001b[90m9:38PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~167187165 bytes (167.19 MB) in 7.46s\u001b[0m\n\u001b[90m9:38PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": ""
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": ""
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 config/settings.yaml rom.path points at the real on-disk ROM filename: config/settings.yaml at HEAD has rom.path: \"data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb\" (git show HEAD:config/settings.yaml); real file confirmed on disk via ls -la (1048576 bytes).\n  \u2713 README Quick Start and troubleshooting sections match the real ROM filename: README.md at HEAD uses the real filename in Quick Start (lines 156,159,185,190,195,201,214) and troubleshooting (lines 285,290,320); no stale pokemon_blue.gb references remain.\n  \u2713 python3 src/game_loop.py --rom '<real_rom>' --max-ticks 5 runs without ROM-not-found error: Ran .venv/bin/python src/game_loop.py --rom \"data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb\" --max-ticks 5 --save-dir /tmp/gap004_test2: EXIT 0, grep for ROM-not-found returned NO ROM-NOT-FOUND ERROR, reached max ticks 5 and stopped gracefully.\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: Commit 1f54c16 (fix: ROM filename mismatch ... Addresses GAP-004) full message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>' trailer.\nAll 4 GAP-004 criteria verified: config/settings.yaml and README point at the real on-disk SGB ROM filename, the game_loop run exits 0 with no ROM-not-found error, and commit 1f54c16 carries the Co-authored-by trailer.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 config/settings.yaml rom.path points at the real on-disk ROM filename: config/settings.yaml at HEAD has rom.path: \"data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb\" (git show HEAD:config/settings.yaml); real file confirmed on disk via ls -la (1048576 bytes).\n  \u2713 README Quick Start and troubleshooting sections match the real ROM filename: README.md at HEAD uses the real filename in Quick Start (lines 156,159,185,190,195,201,214) and troubleshooting (lines 285,290,320);",
+          "error": ""
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-004\n\nStage tier1: PASS\n    \u2713 lint: \n  \u2713 secrets: \u001b[90m9:38PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~167187165 bytes (167.19 MB) in 7.46s\u001b[0m\n\u001b[90m9:38PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 config/settings.yaml rom.path points at the real on-disk ROM filename: config/settings.yaml at HEAD has rom.path: \"data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb\" (git show HEAD:config/settings.yaml); real file confirmed on disk via ls -la (1048576 bytes).\n  \u2713 README Quick Start and troubleshooting sections match the real ROM filename: README.md at HEAD uses the real filename in Quick Start (lines 156,159,185,190,195,201,214) and troubleshooting (lines 285,290,320); no stale pokemon_blue.gb references remain.\n  \u2713 python3 src/game_loop.py --rom '<real_rom>' --max-ticks 5 runs without ROM-not-found error: Ran .venv/bin/python src/game_loop.py --rom \"data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb\" --max-ticks 5 --save-dir /tmp/gap004_test2: EXIT 0, grep for ROM-not-found returned NO ROM-NOT-FOUND ERROR, reached max ticks 5 and stopped gracefully.\n  \u2713 Commit has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer: Commit 1f54c16 (fix: ROM filename mismatch ... Addresses GAP-004) full message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>' trailer.\nAll 4 GAP-004 criteria verified: config/settings.yaml and README point at the real on-disk SGB ROM filename, the game_loop run exits 0 with no ROM-not-found error, and commit 1f54c16 carries the Co-authored-by trailer.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-08-07T02:44:35.302250"
+}
