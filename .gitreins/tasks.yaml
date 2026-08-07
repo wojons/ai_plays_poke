@@ -154,3 +154,36 @@ tasks:
   status: complete
   created_at: '2026-08-07T00:34:05.421704+00:00'
   completed_at: '2026-08-07T02:38:37.063035+00:00'
+- id: AP-GAP-002
+  title: Document cron_runner.py as the primary working autonomous-gameplay entry
+    point in README (with example invocation)
+  criteria:
+  - grep -c 'cron_runner' README.md >= 1
+  - README.md contains a concrete cron_runner.py run example (--run-id + --cycles
+    flags) and notes game_loop.py status
+  status: complete
+  created_at: '2026-08-07T13:22:54.813728+00:00'
+  completed_at: '2026-08-07T14:02:50.354686+00:00'
+- id: AP-GAP-003
+  title: 'SPEC_INDEX.md rejected as binary: verify/re-encode specs/SPEC_INDEX.md to
+    clean UTF-8'
+  criteria:
+  - file specs/SPEC_INDEX.md reports 'UTF-8 text' or 'Unicode text'
+  - specs/SPEC_INDEX.md contains zero NUL bytes and zero control characters
+  status: complete
+  created_at: '2026-08-07T13:22:54.832568+00:00'
+  completed_at: '2026-08-07T13:38:33.167982+00:00'
+- id: AP-GAP-001
+  title: 'Fix game_loop.py vision pipeline: OpenRouter 401 Missing Authentication
+    header every tick (zero AI decisions) + save-state FileNotFoundError on exit'
+  criteria:
+  - "timeout 600 .venv/bin/python3 src/game_loop.py --rom \"data/rom/Pokemon - Blue\
+    \ Version (USA, Europe) (SGB Enhanced).gb\" --max-ticks 40 --screenshot-interval\
+    \ 5 produces >= 1 '\u2705 AI decision' line, >= 1 screenshot file, ZERO 'Vision\
+    \ analysis failed' lines, and exits 0 (40 ticks with real vision calls take ~8-10\
+    \ min; the PM's original 'timeout 60' was written for the broken fast-failing\
+    \ state and is impossible for a working pipeline)"
+  - root cause of the 401 documented in the commit message
+  - regression tests added for the fixed bugs and full test suite passes
+  status: in_progress
+  created_at: '2026-08-07T14:18:10.807567+00:00'
