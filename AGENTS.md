@@ -62,17 +62,17 @@ pre-commit run --all-files
 
 ### Running the AI
 ```bash
-# Basic run (when implemented)
-python -m src.cli.main --experiment-name "test-run-001" --max-time 3600
+# Basic run
+python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir ./battle_session --max-ticks 1800
 
-# Debug mode with verbose logging
-python -m src.cli.main --verbose --log-file debug.log
+# Fast screenshots (every 30 ticks = 0.5 seconds) for more frequent AI analysis
+python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --screenshot-interval 30
 
-# Run with specific configuration
-python -m src.cli.main --config-file config/experiment.yaml
+# Load from an existing emulator state
+python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --load-state checkpoint.state
 
-# Run with parallel workers
-python -m src.cli.experiment --parallel-workers 4 --experiment-name "bench-001"
+# Run multiple AI instances in parallel
+python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --multi-instance --instances 4
 ```
 
 ## Testing Strategy
@@ -148,7 +148,7 @@ from PIL import Image
 # Local imports last (absolute imports)
 from src.core.vision import VisionProcessor
 from src.core.game_loop import GameLoop
-from src.cli.config import CLIConfig
+from src.core.emulator import Emulator
 ```
 
 ### Type Hints
@@ -342,19 +342,19 @@ async def make_decision_with_llm(game_state: GameState, active_goals: list) -> D
 ```bash
 # Enable debug logging
 export LOG_LEVEL=DEBUG
-python -m src.cli.main --verbose
+python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --max-ticks 1800
 
-# Log to file
-python -m src.cli.main --log-file session.log
+# Log to file (shell redirection)
+python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --max-ticks 1800 > session.log 2>&1
 ```
 
 ### Performance Profiling
 ```bash
 # Profile CPU usage
-py-spy record -o profile.svg -- python -m src.cli.main
+py-spy record -o profile.svg -- python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --max-ticks 1800
 
 # Monitor memory
-mprof run python -m src.cli.main
+mprof run python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --max-ticks 1800
 mprof plot
 ```
 
