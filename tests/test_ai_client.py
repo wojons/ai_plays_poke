@@ -705,7 +705,7 @@ class TestModelRouter:
     def test_select_balanced_vision(self, router) -> None:
         provider, model = router.select_model("vision", "balanced")
         assert provider == "openrouter"
-        assert "gpt-4o" in model
+        assert "gpt-5.6-luna" in model
 
     def test_select_balanced_thinking(self, router) -> None:
         provider, model = router.select_model("thinking", "balanced")
@@ -2071,7 +2071,7 @@ class TestGameAIManagerAnalyzeScreenshotNoneHP:
         mgr.vision_model = "openai/gpt-5.6-luna"
         mgr.model_priority = "balanced"
         mgr.prompts = {"vision_analysis": "Analyze this game screenshot."}
-        mgr.prompt_manager = None
+        setattr(mgr, "prompt_manager", None)
         mgr.model_router = MagicMock()
         mgr.model_router.select_model.return_value = ("openrouter", "openai/gpt-5.6-luna")
         fake_client = MagicMock()
@@ -2080,7 +2080,7 @@ class TestGameAIManagerAnalyzeScreenshotNoneHP:
             '"player_hp":null,"enemy_hp":null,'
             '"available_actions":[],"recommended_action":"walk"}'
         )
-        mgr._get_client_for_model = MagicMock(return_value=fake_client)
+        setattr(mgr, "_get_client_for_model", MagicMock(return_value=fake_client))
         mgr.json_parser = MagicMock()
         mgr.json_parser.parse.return_value = {
             "screen_type": "overworld",

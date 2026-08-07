@@ -533,13 +533,13 @@ class TestRunSingleTick:
         assert gl.emulator.tick.call_count == 5
 
     def test_no_screenshot_when_not_interval(self, gl: GameLoop) -> None:
-        """When interval hasn't elapsed, screenshot is NOT captured."""
+        """When interval hasn't elapsed, screenshot is NOT captured (tick 1 always captures)."""
         gl.config["screenshot_interval"] = 10
-        gl.current_tick = 0
-        gl.last_screenshot_tick = 0
+        gl.current_tick = 1
+        gl.last_screenshot_tick = 1  # tick 1 already captured
         gl.run_single_tick()
-        # current_tick(1) - last_screenshot_tick(0) = 1 < 10 → no screenshot
-        assert gl.last_screenshot_tick == 0  # unchanged
+        # current_tick(2) - last_screenshot_tick(1) = 1 < 10 → no screenshot
+        assert gl.last_screenshot_tick == 1  # unchanged
 
     def test_executes_pending_commands_when_present(self, gl: GameLoop) -> None:
         gl.config["screenshot_interval"] = 999  # suppress screenshots
@@ -851,8 +851,10 @@ class TestAnalyzeGameStateNoneHP:
             gl.ai_manager = MagicMock()
             gl.emulator = MagicMock()
             gl.emulator.capture_screen.return_value = None
-            gl._analyze_game_state_stub = MagicMock(
-                return_value=_basic_game_state()
+            setattr(
+                gl,
+                "_analyze_game_state_stub",
+                MagicMock(return_value=_basic_game_state()),
             )
             return gl
 

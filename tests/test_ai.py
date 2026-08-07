@@ -1096,7 +1096,7 @@ class TestModelRouter:
         provider, model = model_router.select_model("vision", "speed")
 
         assert provider == "openrouter"
-        assert "gpt-4o" in model or "mini" in model
+        assert "gpt-5.6-luna" in model
 
     def test_select_model_for_cost(self, model_router) -> None:  # type: ignore[no-untyped-def]
         """Test model selection prioritizes cost"""

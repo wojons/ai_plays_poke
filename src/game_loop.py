@@ -250,16 +250,21 @@ class GameLoop:
         """Execute one iteration of the game loop"""
         self.current_tick += 1
         self.metrics["total_ticks"] += 1
-        # Tick emulator
+        # Tick emulator (60 frames = ~1s of game time per iteration, so a
+        # 40-tick quickstart run reaches the title screen / menus where AI
+        # decisions can fire; 1 frame/tick never left the boot screen)
         if self.emulator_mgr:
             emulator = self.emulator_mgr.get_instance(self.current_instance)
-            emulator.tick()
+            emulator.tick(frames=60)
         else:
-            self.emulator.tick()
+            self.emulator.tick(frames=60)
 
-        # Check if should take screenshot
+        # Check if should take screenshot (always capture tick 1 so any run
+        # produces at least one screenshot)
         screenshot_interval = self.config.get("screenshot_interval", 60)
-        if self.current_tick - self.last_screenshot_tick >= screenshot_interval:
+        if self.current_tick == 1 or (
+            self.current_tick - self.last_screenshot_tick >= screenshot_interval
+        ):
             self._capture_and_process_screenshot()
             self.last_screenshot_tick = self.current_tick
 
@@ -339,8 +344,15 @@ class GameLoop:
             self.current_tick, str(screenshot_path), game_state.to_dict()
         )
 
-        # Trigger AI decision if game state requires it
-        if game_state.is_battle or game_state.is_menu or game_state.has_dialog:
+        # Trigger AI decision if game state requires it (battle/menu/dialog
+        # plus title/name-entry screens — the boot path needs decisions there
+        # to progress from the title screen)
+        if (
+            game_state.is_battle
+            or game_state.is_menu
+            or game_state.has_dialog
+            or game_state.screen_type in ("title", "name_entry", "name_confirm")
+        ):
             self._get_ai_decision(game_state)
 
     def _analyze_game_state(self) -> GameState:
