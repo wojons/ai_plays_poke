@@ -2,14 +2,14 @@
 
 # ROM Settings
 rom:
-  path: "data/rom/pokemon_blue.gb"  # CHANGE THIS to select your game
+  path: "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"  # CHANGE THIS to select your game
   version: "pokemon_blue"            # Game version for memory/analytics
   
 # Available ROMs (uncomment the path above to use):
 # ──────────────────────────────────────────────────────────────
 # Gen 1 (Game Boy):
 #   pokemon_red.gb      - Pokemon Red (English)
-#   pokemon_blue.gb     - Pokemon Blue (English) ✅ CURRENT
+#   Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb - Pokemon Blue (English) ✅ CURRENT
 #   pokemon_green.gb    - Pokemon Green (Japanese)
 #   pokemon_yellow.gb   - Pokemon Yellow (Gen 1.5)
 #

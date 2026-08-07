@@ -117,7 +117,7 @@ def main() -> None:
     print("=" * 50)
 
     # ROM configuration
-    rom_path = "data/rom/pokemon_blue.gb"
+    rom_path = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 
     # Create AI agent
     agent = PokemonAIAgent(rom_path)

@@ -79,7 +79,7 @@ class GameLoop:
 
 ```python
 GAME_CONFIG = {
-    "rom_path": "data/rom/pokemon_blue.gb",  # Pokemon ROM
+    "rom_path": "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb",  # Pokemon ROM
     "save_dir": "./game_saves",              # Output directory
     "screenshot_interval": 60,              # Ticks between screenshots
     "max_ticks": None,                       # Optional limit

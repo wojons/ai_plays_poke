@@ -153,10 +153,10 @@ cp .env.example .env
 # Edit .env and add your OPENAI_API_KEY
 
 # 4. Select your game
-# Edit config/settings.yaml -> rom.path (default: data/rom/pokemon_blue.gb)
+# Edit config/settings.yaml -> rom.path (default: "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
 
 # 5. Run the AI (basic)
-python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --save-dir runs/test_001
+python3 src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir runs/test_001
 ```
 
 ## How to Run
@@ -182,23 +182,23 @@ The main entry point is `src/game_loop.py` which accepts the following arguments
 
 **Basic run:**
 ```bash
-python3 src/game_loop.py --rom data/rom/pokemon_blue.gb
+python3 src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 ```
 
 **With screenshots every 30 ticks:**
 ```bash
-python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --screenshot-interval 30 --save-dir runs/screenshots_test
+python3 src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --screenshot-interval 30 --save-dir runs/screenshots_test
 ```
 
 **With max ticks limit (10000 ticks ~ 3 minutes at max speed):**
 ```bash
-python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --max-ticks 10000 --save-dir runs/test_001
+python3 src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --max-ticks 10000 --save-dir runs/test_001
 ```
 
 **Complete example with all options:**
 ```bash
 python3 src/game_loop.py \
-    --rom data/rom/pokemon_blue.gb \
+    --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" \
     --save-dir runs/test_001 \
     --screenshot-interval 60 \
     --max-ticks 10000
@@ -211,7 +211,7 @@ python3 src/game_loop.py --rom data/rom/pokemon_red.gb --save-dir runs/red_run
 
 **Load from saved state:**
 ```bash
-python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --load-state runs/test_001/emulator_state.state
+python3 src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --load-state runs/test_001/emulator_state.state
 ```
 
 ### Output Structure
@@ -282,12 +282,12 @@ start htmlcov/index.html  # Windows
 
 #### `ROM file not found`
 ```
-ERROR: ROM file not found: data/rom/pokemon_blue.gb
+ERROR: ROM file not found: data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb
 ```
 **Solution:** Verify the ROM path is correct. ROMs should be in `data/rom/`:
 ```bash
 ls data/rom/
-# Should show: pokemon_red.gb, pokemon_blue.gb, etc.
+# Should show: Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb, pokemon_red.gb, etc.
 ```
 
 #### `No module named 'pyboy'`
@@ -317,7 +317,7 @@ sqlite3.OperationalError: unable to open database file
 **Solution:** Ensure the save directory exists and is writable:
 ```bash
 mkdir -p runs/test_001
-python3 src/game_loop.py --rom data/rom/pokemon_blue.gb --save-dir runs/test_001
+python3 src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir runs/test_001
 ```
 
 #### Emulator crashes or hangs

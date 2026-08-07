@@ -4,7 +4,7 @@
 
 **Gen 1 (Game Boy):**
 - pokemon_red.gb
-- pokemon_blue.gb ⭐ DEFAULT
+- Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb ⭐ DEFAULT
 - pokemon_green.gb
 - pokemon_yellow.gb
 
@@ -17,7 +17,7 @@
 Edit `config/settings.yaml` and change:
 ```yaml
 rom:
-  path: "data/rom/pokemon_blue.gb"  # Change this line
+  path: "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"  # Change this line
 ```
 
 ## Notes:
