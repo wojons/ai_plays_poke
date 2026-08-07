@@ -181,3 +181,6 @@ uv.lock
 .coding-hermes/board/board.db.wal
 .coding-hermes/board/board.duckdb
 data/frame_cache.json
+
+.coding-hermes/board/*.parquet
+.coding-hermes/board/*.duckdb
