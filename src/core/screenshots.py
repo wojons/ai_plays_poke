@@ -83,6 +83,11 @@ class ScreenshotManager:
 
         # Convert numpy array to PIL Image and save
         image = Image.fromarray(screenshot)
+        # Defensive: ensure the target dirs exist (a concurrent cleanup or a
+        # fresh checkout can remove them mid-run; observed live: FileNotFoundError
+        # at tick 31 crashed the whole loop).
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        self.latest_dir.mkdir(parents=True, exist_ok=True)
         image.save(filepath)
         image.save(latest_file)
 

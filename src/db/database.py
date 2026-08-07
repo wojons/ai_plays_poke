@@ -253,22 +253,28 @@ class GameDatabase:
         """
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                """
-                UPDATE sessions 
-                SET end_time = ?, total_ticks = ?, total_commands = ?, 
-                    total_battles = ?, badges_earned = ?, final_state = ?
-                WHERE session_id = (SELECT MAX(session_id) FROM sessions)
-            """,
-                (
-                    datetime.now().isoformat(),
-                    final_metrics.get("total_ticks", 0),
-                    final_metrics.get("total_commands", 0),
-                    final_metrics.get("total_battles", 0),
-                    final_metrics.get("badges_earned", 0),
-                    json.dumps(final_metrics.get("final_state", {})),
-                ),
-            )
+            try:
+                cursor.execute(
+                    """
+                    UPDATE sessions 
+                    SET end_time = ?, total_ticks = ?, total_commands = ?, 
+                        total_battles = ?, badges_earned = ?, final_state = ?
+                    WHERE session_id = (SELECT MAX(session_id) FROM sessions)
+                """,
+                    (
+                        datetime.now().isoformat(),
+                        final_metrics.get("total_ticks", 0),
+                        final_metrics.get("total_commands", 0),
+                        final_metrics.get("total_battles", 0),
+                        final_metrics.get("badges_earned", 0),
+                        json.dumps(final_metrics.get("final_state", {})),
+                    ),
+                )
+            except sqlite3.Error as e:
+                # Exit path must never crash (observed live: concurrent
+                # writers left the DB without a sessions table ->
+                # sqlite3.OperationalError aborted the graceful stop).
+                print(f"⚠️  Database: end_session failed (non-fatal): {e}")
             conn.commit()
             print("✅ Database: Session ended and metrics saved")
 
