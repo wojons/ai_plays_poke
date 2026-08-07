@@ -88,7 +88,7 @@ Modify the game loop to use your custom AI:
 ```python
 from pathlib import Path
 from src.core.game_loop import GameLoop
-from src.core.emulator_interface import EmulatorInterface
+from src.core.emulator import Emulator
 from src.core.screenshot_manager import ScreenshotManager
 from custom_ai import CustomAIManager
 from src.schemas.commands import GameState
@@ -108,7 +108,7 @@ class CustomGameLoop:
         self.ai_manager = ai_manager
 
         # Initialize components
-        self.emulator = EmulatorInterface(str(rom_path))
+        self.emulator = Emulator(str(rom_path))
         self.screenshot_manager = ScreenshotManager(str(save_dir / "screenshots"))
 
         # State

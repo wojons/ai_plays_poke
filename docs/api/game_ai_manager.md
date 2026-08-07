@@ -218,11 +218,11 @@ The `CircuitBreaker` pattern prevents cascade failures:
 ```python
 import numpy as np
 from src.core.ai_client import GameAIManager
-from src.core.emulator_interface import EmulatorInterface
+from src.core.emulator import Emulator
 
 # Initialize
 ai_manager = GameAIManager(model_priority="balanced")
-emulator = EmulatorInterface("pokemon_red.gb")
+emulator = Emulator("pokemon_red.gb")
 emulator.start()
 
 # Analyze screenshot

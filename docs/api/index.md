@@ -18,7 +18,7 @@ This section documents all public APIs and interfaces for PTP-01X - an orchestra
 | [GameAIManager](game_ai_manager.md) | AI decision making and model coordination |
 | [ScreenshotManager](screenshot_manager.md) | Screenshot capture and organization |
 | [Database](database.md) | SQLite data persistence |
-| [EmulatorInterface](emulator_interface.md) | PyBoy emulator control |
+| [Emulator](emulator_interface.md) | PyBoy emulator control |
 
 ### Data Structures
 
@@ -57,9 +57,9 @@ from src.schemas.commands import AICommand, Button
 db = GameDatabase("game_data.db")
 ai_manager = GameAIManager()
 
-# Create game loop with emulator interface
-from src.core.emulator_interface import EmulatorInterface
-emulator = EmulatorInterface("pokemon_red.gb")
+# Create game loop with emulator
+from src.core.emulator import Emulator
+emulator = Emulator("pokemon_red.gb")
 
 # Run session
 loop = GameLoop(

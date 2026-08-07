@@ -198,5 +198,5 @@ print(f"Completed {loop.metrics['total_ticks']} ticks")
 ## See Also
 
 - [GameAIManager](game_ai_manager.md) - AI decision making
-- [EmulatorInterface](emulator_interface.md) - Emulator control
+- [Emulator](emulator_interface.md) - Emulator control
 - [Database](database.md) - Data logging
