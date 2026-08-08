@@ -46,12 +46,23 @@ def _has_api_key() -> bool:
     return bool(os.environ.get("OPENROUTER_API_KEY", "").strip())
 
 
+def _live_enabled() -> bool:
+    """Live tests are opt-in: set PTP_LIVE=1 (env) or pass --live-api (flag).
+
+    Without an explicit opt-in these tests MUST skip so a default
+    ``pytest tests/`` run makes zero paid LLM calls.
+    """
+    return os.environ.get("PTP_LIVE", "").strip() == "1"
+
+
 # ── prerequisite check fixture ─────────────────────────────────────────────
 
 
 @pytest.fixture(scope="session")
-def _require_live() -> Path:
-    """Skip all live-demo tests if ROM or API key missing."""
+def _require_live(request: pytest.FixtureRequest) -> Path:
+    """Skip all live-demo tests unless opted in AND ROM + API key present."""
+    if not (request.config.getoption("--live-api") or _live_enabled()):
+        pytest.skip("live-API tests are opt-in: set PTP_LIVE=1 or run with --live-api")
     if not _has_api_key():
         pytest.skip("OPENROUTER_API_KEY not set")
     rom = _find_rom()

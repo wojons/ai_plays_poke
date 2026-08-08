@@ -23,6 +23,24 @@ from src.schemas.commands import (
 )
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """Register the --live-api opt-in flag for live-API tests.
+
+    Live tests call real paid LLM endpoints (OPENROUTER_API_KEY) and must
+    NEVER run on a default ``pytest tests/`` invocation.  They are gated
+    behind this flag (or the PTP_LIVE=1 env var).
+    """
+    parser.addoption(
+        "--live-api",
+        action="store_true",
+        default=False,
+        help=(
+            "Run live-API tests (requires OPENROUTER_API_KEY and a ROM in "
+            "data/rom/).  Default: skip — avoids paid LLM calls."
+        ),
+    )
+
+
 @pytest.fixture
 def mock_emulator() -> MagicMock:
     """Mock PyBoy emulator state"""

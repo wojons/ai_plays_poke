@@ -40,6 +40,11 @@ def _has_api_key() -> bool:
     return bool(os.environ.get("OPENROUTER_API_KEY", "").strip())
 
 
+def _live_enabled() -> bool:
+    """Live tests are opt-in: set PTP_LIVE=1 (env) or pass --live-api (flag)."""
+    return os.environ.get("PTP_LIVE", "").strip() == "1"
+
+
 # ── unit / smoke tests (no ROM, no API key) ────────────────────────────────
 
 
@@ -176,7 +181,9 @@ class TestLiveGameplay:
     """Full gameplay demo with vision + thinking LLM."""
 
     @pytest.fixture(autouse=True)
-    def _check_prereqs(self) -> None:
+    def _check_prereqs(self, request: pytest.FixtureRequest) -> None:
+        if not (request.config.getoption("--live-api") or _live_enabled()):
+            pytest.skip("live-API tests are opt-in: set PTP_LIVE=1 or run with --live-api")
         if not _has_api_key():
             pytest.skip("OPENROUTER_API_KEY not set")
         rom = _find_rom()
