@@ -66,6 +66,16 @@ pre-commit run --all-files
 > legacy path whose vision pipeline is under repair — see README's
 > [Quick Start (working path)](README.md#quick-start-working-path).
 
+> **⚠️ The legacy commands below crash with `ModuleNotFoundError: No module named 'db'`
+> if run as-is from the repo root** — `src/game_loop.py` imports `db.*`/`core.*`
+> packages that only resolve with `src/` on `PYTHONPATH`. Run them from the repo
+> root with the project venv activated and `PYTHONPATH=src`:
+>
+> ```bash
+> source .venv/bin/activate
+> export PYTHONPATH=src
+> ```
+
 ```bash
 # Basic run
 python -m src.game_loop --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir ./battle_session --max-ticks 1800
@@ -110,14 +120,14 @@ def mock_game_state():
 # Test naming: test_feature_behavior_expectedOutcome
 def test_vision_classifies_battle_screen(mock_screenshot):
     # Arrange
-    vision = VisionProcessor()
+    vision = VisionClient()
     
     # Act
-    result = vision.classify_screen(mock_screenshot)
+    result = vision.analyze(mock_screenshot)
     
     # Assert
-    assert result.screen_type == "battle"
-    assert result.confidence > 0.90
+    assert result["screen_type"] == "battle"
+    assert result.get("confidence", 0) > 0.90
 
 # Use pytest.mark for test categories
 @pytest.mark.integration
@@ -151,7 +161,7 @@ import numpy as np
 from PIL import Image
 
 # Local imports last (absolute imports)
-from src.core.vision import VisionProcessor
+from src.core.vision import VisionClient
 from src.core.game_loop import GameLoop
 from src.core.emulator import Emulator
 ```
@@ -212,7 +222,7 @@ with open(save_path, 'rb') as f:
 
 ### Naming Conventions
 - **Functions/Methods**: `snake_case`, descriptive verbs: `classify_screen()`, `calculate_move_damage()`
-- **Classes**: `PascalCase`, descriptive nouns: `VisionProcessor`, `BattleHeuristics`
+- **Classes**: `PascalCase`, descriptive nouns: `VisionClient`, `GameLoop`
 - **Variables**: `snake_case`: `current_hp`, `enemy_pokemon`
 - **Constants**: `UPPER_SNAKE_CASE`: `MAX_LEVEL = 100`, `SCREEN_WIDTH = 160`
 - **Private members**: Leading underscore: `_internal_cache`, `_private_method()`

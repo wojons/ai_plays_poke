@@ -18,10 +18,13 @@ rom:
 #   pokemon_silver.gbc  - Pokemon Silver
 # ──────────────────────────────────────────────────────────────
 
-# API Keys (set via environment variables)
+# API Keys (set via environment variables — see .env.example for the canonical set)
+# The working runtime reads OPENROUTER_API_KEY (primary) and DEEPSEEK_API_KEY
+# (fallback) directly from the environment; OPENAI_API_KEY/ANTHROPIC_API_KEY
+# are legacy names kept only for backward compatibility.
 api_keys:
-  openai: "${OPENAI_API_KEY}"
-  anthropic: "${ANTHROPIC_API_KEY}"
+  openrouter: "${OPENROUTER_API_KEY}"
+  deepseek: "${DEEPSEEK_API_KEY}"
 
 # Model Configuration
 models:

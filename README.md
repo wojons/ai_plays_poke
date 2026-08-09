@@ -198,7 +198,7 @@ pip install -r requirements.txt
 
 # 3. Set up API key
 cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
+# Edit .env and add your OPENROUTER_API_KEY (required) and DEEPSEEK_API_KEY (fallback)
 
 # 4. Select your game
 # Edit config/settings.yaml -> rom.path (default: "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
@@ -348,7 +348,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### `OPENAI_API_KEY not set`
+#### `OPENROUTER_API_KEY not set`
 ```
 WARNING: No OpenRouter API key found. Using stub AI mode
 ```
@@ -389,28 +389,21 @@ ERROR: Emulator crashed at tick 150
 
 ### API Key Setup
 
-#### OpenAI API Key
-1. Get an API key from https://platform.openai.com/api-keys
+#### OpenRouter API Key (primary — required for live AI decisions)
+1. Get an API key from https://openrouter.ai
 2. Add to `.env`:
    ```
-   OPENAI_API_KEY=sk-your-key-here
+   OPENROUTER_API_KEY=sk-or-your-key-here
    ```
-3. Verify in config/settings.yaml that `models.thinking_model.provider` is set to "openai"
-
-#### OpenRouter (Alternative Provider)
-OpenRouter provides access to multiple models including GPT-4 and Claude:
-1. Get API key from https://openrouter.ai
-2. Add to `.env`:
-   ```
-   OPENROUTER_API_KEY=your-key-here
-   ```
-3. Configure in settings.yaml with your preferred model
+3. (Optional fallback provider) Add `DEEPSEEK_API_KEY` to `.env` — used when the
+   OpenRouter call path falls back (ai_client.py:532, cron_runner.py:760).
+4. Verify in config/settings.yaml that `models.thinking_model.provider` is set to "openai"
 
 #### Verifying API Connection
 ```bash
 # Test API key is loaded
 source venv/bin/activate
-python3 -c "from dotenv import load_dotenv; from pathlib import Path; load_dotenv(Path('.env')); import os; print('API Key set:', bool(os.getenv('OPENAI_API_KEY')))"
+python3 -c "from dotenv import load_dotenv; from pathlib import Path; load_dotenv(Path('.env')); import os; print('API Key set:', bool(os.getenv('OPENROUTER_API_KEY')))"
 ```
 
 ### Emulator Issues
