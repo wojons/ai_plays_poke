@@ -188,3 +188,24 @@ tasks:
   status: complete
   created_at: '2026-08-07T14:18:10.807567+00:00'
   completed_at: '2026-08-07T15:04:37.485979+00:00'
+- id: DEPS-001
+  title: "Review 29 outdated Python deps (supervisor dep-scan 2026-08-10) \u2014 batch-upgrade\
+    \ non-major, verify tests before commit"
+  criteria:
+  - uv.lock is tracked and committed with non-major upgrades for the named set (anthropic
+    0.121.0, openai 2.53.0, fastapi 0.141.1, numpy 2.5.2, pandas 3.0.5, streamlit
+    1.61.1, uvicorn 0.52.1, tqdm 4.70.0, typing-inspection 0.4.3, annotated-types
+    0.8.0, ast-serialize 0.8.0, librt 0.15.0, certifi 2026.7.22, coverage 7.15.4,
+    filelock 3.32.2, packaging 26.3, platformdirs 4.11.1, python-discovery 1.5.1,
+    virtualenv 21.7.3, annotated-doc 0.0.5, cyclonedx-python-lib 11.11.1)
+  - 'Full test suite passes: pytest tests/ -> 3860 passed / 14 skipped (all documented
+    skips)'
+  - tests/test_dashboard.py passes 52/52
+  - mypy 0/61 errors, ruff check PASS, gitreins guard 5/5 full mode
+  - Commit 17e0048 pushed to origin/main with Co-authored-by trailer; resolver-blocked
+    upgrades documented in commit message (pyarrow<25, starlette<1.4, websockets<17
+    via streamlit pins; pydantic-core<2.47 via pydantic 2.13.4 pin; ruff pinned back
+    0.15.22)
+  status: complete
+  created_at: '2026-08-10T15:36:35.436670+00:00'
+  completed_at: '2026-08-10T15:44:25.365927+00:00'

@@ -1,0 +1,101 @@
+{
+  "task_id": "DEPS-001",
+  "task_title": "Review 29 outdated Python deps (supervisor dep-scan 2026-08-10) \u2014 batch-upgrade non-major, verify tests before commit",
+  "task_criteria": [
+    "uv.lock is tracked and committed with non-major upgrades for the named set (anthropic 0.121.0, openai 2.53.0, fastapi 0.141.1, numpy 2.5.2, pandas 3.0.5, streamlit 1.61.1, uvicorn 0.52.1, tqdm 4.70.0, typing-inspection 0.4.3, annotated-types 0.8.0, ast-serialize 0.8.0, librt 0.15.0, certifi 2026.7.22, coverage 7.15.4, filelock 3.32.2, packaging 26.3, platformdirs 4.11.1, python-discovery 1.5.1, virtualenv 21.7.3, annotated-doc 0.0.5, cyclonedx-python-lib 11.11.1)",
+    "Full test suite passes: pytest tests/ -> 3860 passed / 14 skipped (all documented skips)",
+    "tests/test_dashboard.py passes 52/52",
+    "mypy 0/61 errors, ruff check PASS, gitreins guard 5/5 full mode",
+    "Commit 17e0048 pushed to origin/main with Co-authored-by trailer; resolver-blocked upgrades documented in commit message (pyarrow<25, starlette<1.4, websockets<17 via streamlit pins; pydantic-core<2.47 via pydantic 2.13.4 pin; ruff pinned back 0.15.22)"
+  ],
+  "passed": true,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \u001b[90m10:36AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~171574356 bytes (171.57 MB) in 12.4s\u001b[0m\n\u001b[90m10:36AM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\u001b[90m10:36AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~171574356 bytes (171.57 MB) in 12.4s\u001b[0m\n\u001b[90m10:36AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 uv.lock is tracked and committed with non-major upgrades for the named set (anthropic 0.121.0, openai 2.53.0, fastapi 0.141.1, numpy 2.5.2, pandas 3.0.5, streamlit 1.61.1, uvicorn 0.52.1, tqdm 4.70.0, typing-inspection 0.4.3, annotated-types 0.8.0, ast-serialize 0.8.0, librt 0.15.0, certifi 2026.7.22, coverage 7.15.4, filelock 3.32.2, packaging 26.3, platformdirs 4.11.1, python-discovery 1.5.1, virtualenv 21.7.3, annotated-doc 0.0.5, cyclonedx-python-lib 11.11.1): uv.lock tracked (git ls-files) and committed in 17e0048. Verified in uv.lock: anthropic 0.121.0, openai 2.53.0, numpy 2.5.2, pandas 3.0.5, streamlit 1.61.1, uvicorn 0.52.1, tqdm 4.70.0, typing-inspection 0.4.3, annotated-types 0.8.0, ast-serialize 0.8.0, librt 0.15.0, certifi 2026.7.22, coverage 7.15.4, filelock 3.32.2, packaging 26.3, platformdirs 4.11.1, python-discovery 1.5.1, virtualenv 21.7.3. fastapi 0.141.1, annotated-doc 0.0.5, cyclonedx-python-lib 11.11.1 confirmed in .venv (documented as pip-managed in commit message).\n  \u2713 Full test suite passes: pytest tests/ -> 3860 passed / 14 skipped (all documented skips): .venv/bin/pytest tests/ -q -> '3860 passed, 14 skipped in 171.14s'. Skips documented (live tests, vision integration, performance benchmarks, database locked).\n  \u2713 tests/test_dashboard.py passes 52/52: .venv/bin/pytest tests/test_dashboard.py -q -> '52 passed in 0.62s'.\n  \u2713 mypy 0/61 errors, ruff check PASS, gitreins guard 5/5 full mode: mypy src/ --ignore-missing-imports -> 'Success: no issues found in 61 source files' (0/61). ruff check src/ tests/ cron_runner.py -> 'All checks passed!'. gitreins guard -> 'Tier 1 Guards: PASS (test mode: full)' with all 5 gates (secrets, lint, tests, static_analysis, lsp) checked.\n  \u2713 Commit 17e0048 pushed to origin/main with Co-authored-by trailer; resolver-blocked upgrades documented in commit message (pyarrow<25, starlette<1.4, websockets<17 via streamlit pins; pydantic-core<2.47 via pydantic 2.13.4 pin; ruff pinned back 0.15.22): git rev-parse origin/main = 17e0048 (HEAD). Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer present. Commit message documents pyarrow<25, starlette<1.4, websockets<17 via streamlit pins; pydantic-core<2.47 via pydantic 2.13.4 pin; ruff pinned back 0.15.22.\nAll 5 criteria verified PASS: uv.lock tracked/committed with correct non-major versions, full suite 3860 passed/14 skipped, dashboard 52/52, mypy 0/61 + ruff PASS + gitreins guard 5/5 full mode, and commit 17e0048 pushed with Co-authored-by trailer and resolver-blocked upgrades documented.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 uv.lock is tracked and committed with non-major upgrades for the named set (anthropic 0.121.0, openai 2.53.0, fastapi 0.141.1, numpy 2.5.2, pandas 3.0.5, streamlit 1.61.1, uvicorn 0.52.1, tqdm 4.70.0, typing-inspection 0.4.3, annotated-types 0.8.0, ast-serialize 0.8.0, librt 0.15.0, certifi 2026.7.22, coverage 7.15.4, filelock 3.32.2, packaging 26.3, platformdirs 4.11.1, python-discovery 1.5.1, virtualenv 21.7.3, annotated-doc 0.0.5, cyclonedx-python-lib 11.11.1): uv.lock tracked (g",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "uv.lock is tracked and committed with non-major upgrades for the named set (anthropic 0.121.0, openai 2.53.0, fastapi 0.141.1, numpy 2.5.2, pandas 3.0.5, streamlit 1.61.1, uvicorn 0.52.1, tqdm 4.70.0, typing-inspection 0.4.3, annotated-types 0.8.0, ast-serialize 0.8.0, librt 0.15.0, certifi 2026.7.22, coverage 7.15.4, filelock 3.32.2, packaging 26.3, platformdirs 4.11.1, python-discovery 1.5.1, virtualenv 21.7.3, annotated-doc 0.0.5, cyclonedx-python-lib 11.11.1)",
+                "status": "PASS",
+                "detail": "uv.lock tracked (git ls-files) and committed in 17e0048. Verified in uv.lock: anthropic 0.121.0, openai 2.53.0, numpy 2.5.2, pandas 3.0.5, streamlit 1.61.1, uvicorn 0.52.1, tqdm 4.70.0, typing-inspection 0.4.3, annotated-types 0.8.0, ast-serialize 0.8.0, librt 0.15.0, certifi 2026.7.22, coverage 7.15.4, filelock 3.32.2, packaging 26.3, platformdirs 4.11.1, python-discovery 1.5.1, virtualenv 21.7.3. fastapi 0.141.1, annotated-doc 0.0.5, cyclonedx-python-lib 11.11.1 confirmed in .venv (documented as pip-managed in commit message)."
+              },
+              {
+                "criterion": "Full test suite passes: pytest tests/ -> 3860 passed / 14 skipped (all documented skips)",
+                "status": "PASS",
+                "detail": ".venv/bin/pytest tests/ -q -> '3860 passed, 14 skipped in 171.14s'. Skips documented (live tests, vision integration, performance benchmarks, database locked)."
+              },
+              {
+                "criterion": "tests/test_dashboard.py passes 52/52",
+                "status": "PASS",
+                "detail": ".venv/bin/pytest tests/test_dashboard.py -q -> '52 passed in 0.62s'."
+              },
+              {
+                "criterion": "mypy 0/61 errors, ruff check PASS, gitreins guard 5/5 full mode",
+                "status": "PASS",
+                "detail": "mypy src/ --ignore-missing-imports -> 'Success: no issues found in 61 source files' (0/61). ruff check src/ tests/ cron_runner.py -> 'All checks passed!'. gitreins guard -> 'Tier 1 Guards: PASS (test mode: full)' with all 5 gates (secrets, lint, tests, static_analysis, lsp) checked."
+              },
+              {
+                "criterion": "Commit 17e0048 pushed to origin/main with Co-authored-by trailer; resolver-blocked upgrades documented in commit message (pyarrow<25, starlette<1.4, websockets<17 via streamlit pins; pydantic-core<2.47 via pydantic 2.13.4 pin; ruff pinned back 0.15.22)",
+                "status": "PASS",
+                "detail": "git rev-parse origin/main = 17e0048 (HEAD). Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer present. Commit message documents pyarrow<25, starlette<1.4, websockets<17 via streamlit pins; pydantic-core<2.47 via pydantic 2.13.4 pin; ruff pinned back 0.15.22."
+              }
+            ],
+            "summary": "All 5 criteria verified PASS: uv.lock tracked/committed with correct non-major versions, full suite 3860 passed/14 skipped, dashboard 52/52, mypy 0/61 + ruff PASS + gitreins guard 5/5 full mode, and commit 17e0048 pushed with Co-authored-by trailer and resolver-blocked upgrades documented."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DEPS-001\n\nStage tier1: PASS\n    \u2713 lint: \n  \u2713 secrets: \u001b[90m10:36AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~171574356 bytes (171.57 MB) in 12.4s\u001b[0m\n\u001b[90m10:36AM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 uv.lock is tracked and committed with non-major upgrades for the named set (anthropic 0.121.0, openai 2.53.0, fastapi 0.141.1, numpy 2.5.2, pandas 3.0.5, streamlit 1.61.1, uvicorn 0.52.1, tqdm 4.70.0, typing-inspection 0.4.3, annotated-types 0.8.0, ast-serialize 0.8.0, librt 0.15.0, certifi 2026.7.22, coverage 7.15.4, filelock 3.32.2, packaging 26.3, platformdirs 4.11.1, python-discovery 1.5.1, virtualenv 21.7.3, annotated-doc 0.0.5, cyclonedx-python-lib 11.11.1): uv.lock tracked (git ls-files) and committed in 17e0048. Verified in uv.lock: anthropic 0.121.0, openai 2.53.0, numpy 2.5.2, pandas 3.0.5, streamlit 1.61.1, uvicorn 0.52.1, tqdm 4.70.0, typing-inspection 0.4.3, annotated-types 0.8.0, ast-serialize 0.8.0, librt 0.15.0, certifi 2026.7.22, coverage 7.15.4, filelock 3.32.2, packaging 26.3, platformdirs 4.11.1, python-discovery 1.5.1, virtualenv 21.7.3. fastapi 0.141.1, annotated-doc 0.0.5, cyclonedx-python-lib 11.11.1 confirmed in .venv (documented as pip-managed in commit message).\n  \u2713 Full test suite passes: pytest tests/ -> 3860 passed / 14 skipped (all documented skips): .venv/bin/pytest tests/ -q -> '3860 passed, 14 skipped in 171.14s'. Skips documented (live tests, vision integration, performance benchmarks, database locked).\n  \u2713 tests/test_dashboard.py passes 52/52: .venv/bin/pytest tests/test_dashboard.py -q -> '52 passed in 0.62s'.\n  \u2713 mypy 0/61 errors, ruff check PASS, gitreins guard 5/5 full mode: mypy src/ --ignore-missing-imports -> 'Success: no issues found in 61 source files' (0/61). ruff check src/ tests/ cron_runner.py -> 'All checks passed!'. gitreins guard -> 'Tier 1 Guards: PASS (test mode: full)' with all 5 gates (secrets, lint, tests, static_analysis, lsp) checked.\n  \u2713 Commit 17e0048 pushed to origin/main with Co-authored-by trailer; resolver-blocked upgrades documented in commit message (pyarrow<25, starlette<1.4, websockets<17 via streamlit pins; pydantic-core<2.47 via pydantic 2.13.4 pin; ruff pinned back 0.15.22): git rev-parse origin/main = 17e0048 (HEAD). Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer present. Commit message documents pyarrow<25, starlette<1.4, websockets<17 via streamlit pins; pydantic-core<2.47 via pydantic 2.13.4 pin; ruff pinned back 0.15.22.\nAll 5 criteria verified PASS: uv.lock tracked/committed with correct non-major versions, full suite 3860 passed/14 skipped, dashboard 52/52, mypy 0/61 + ruff PASS + gitreins guard 5/5 full mode, and commit 17e0048 pushed with Co-authored-by trailer and resolver-blocked upgrades documented.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-08-10T15:44:15.510370"
+}
