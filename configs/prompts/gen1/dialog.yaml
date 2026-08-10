@@ -24,6 +24,16 @@ tools: |
   - wait(frames): Do nothing for N frames (1 frame = 1/60 second)
   - combo(buttons, duration=5): Press multiple buttons simultaneously
 
+  Memory tools (use them to maintain your own knowledge):
+  - remember(key, fact): Store what you learn under a hierarchical key
+    (/maps/<area>, /npcs/<name>, /discoveries/<topic>, /goals/current).
+  - recall(prefix): Retrieve memories by key prefix (e.g. /guides/, /maps/).
+  - list_keys(prefix): Browse your memory tree to find what you know.
+  - get(key): Read a specific memory's full content.
+  - set_goal(goal): Set your active objective.
+  When dialog gives you objectives, instructions, or facts: set_goal and
+  remember them. Before acting on uncertain ground: recall or get first.
+
 observation: |
   Current game state from vision:
   Screen: {screen_type}

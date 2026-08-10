@@ -568,6 +568,10 @@ def controller_plan(
     max_actions: int = 6,
     screenshot: Any = None,
     frame_ref: str | None = None,
+    goal: str = "",
+    notes: str = "",
+    last_dialog: str = "",
+    study_result: str = "",
 ) -> dict[str, Any]:
     """Controller model (Luna via OpenRouter) outputs a movement PLAN.
 
@@ -631,7 +635,15 @@ def controller_plan(
         "- When ALL directions are blocked (walls/objects all around): press A.\n"
         "- After interacting (A), next action should move away.\n"
         "- INDOOR rooms are small (3-6 tiles wide). Plan 2-3 tile moves.\n"
-        "- OUTDOOR areas (grass, paths visible): 4-6 tile moves OK.\n"
+        "- OUTDOOR areas (grass, paths visible): 4-6 tile moves OK.\n\n"
+        "MEMORY — you maintain your own knowledge in DuckBrain (persists across runs):\n"
+        "- ACTIVE GOAL / RECENT NOTES / LAST DIALOG are injected each cycle.\n"
+        "- Optional output fields (JSON only):\n"
+        '  "note": a fact you just learned (NPC info, map info, objective, mechanic).\n'
+        '  "goal": your current objective — include it when it changes or is new.\n'
+        '  "study": a memory key to read next cycle, e.g. "/maps/oaks-lab" or "/guides/how-battles-work".\n'
+        "- Use note/goal/study when you learn something — memory is how you win.\n"
+        "- NEVER guess: read text, note what it says, act on it.\n"
     )
 
     blocked_msg = ""
@@ -647,8 +659,16 @@ def controller_plan(
         f"LAST BUTTON: {last_button or 'none'}\n"
         f"LAST RESULT: {last_result or 'unknown'}\n"
         f"{blocked_msg}\n"
-        f"Output a movement plan (max {max_actions} actions). JSON only."
     )
+
+    memory_ctx = (
+        "MEMORY CONTEXT:\n"
+        f"ACTIVE GOAL: {goal or '(not set yet — set one when you learn an objective from text)'}\n"
+        f"RECENT NOTES: {notes or 'none yet'}\n"
+        f"LAST DIALOG: {last_dialog or 'none'}\n"
+        f"STUDY RESULT: {study_result or '(none)'}\n"
+    )
+    msg += memory_ctx + "\nOutput a movement plan (max {max_actions} actions). JSON only.\n".format(max_actions=max_actions)
 
     # Build user message — include live screenshot for Luna's own vision.
     # On a FrameCache hit (frame_ref set), attach a text marker instead of
@@ -983,6 +1003,26 @@ def main() -> None:
     _last_party_count = ram_reader.party_count() if USE_RAM_READER else 0
     _failed_flee_attempts = 0
 
+    # ── Agent memory state (self-maintained, DuckBrain-backed) ──
+    # The agent tracks its own goal, notes, and world map across cycles
+    # AND across runs. goal/notes/last_dialog/study are injected into the
+    # controller prompt each cycle; note/goal/study outputs are executed
+    # here and persisted to DuckBrain (namespace pokemon-global).
+    _mem_goal = ""
+    _mem_notes: list[str] = []   # most recent first, capped at 6
+    _last_dialog_text = ""
+    _pending_study_key = ""      # controller asked to study a key
+    _pending_study_result = ""   # fetched content, injected once
+    if USE_RAM_READER:
+        try:
+            from src.core import duckbrain_client as _dbc
+            _goal_rec = _dbc.get(key="/goals/current")
+            if _goal_rec:
+                attrs = _goal_rec.get("attributes", {})
+                _mem_goal = str(attrs.get("goal") or _goal_rec.get("embedding_text", ""))[:200]
+        except Exception as _e:
+            safe_print(f"  [MEM] goal load failed: {_e}")
+
     for cycle in range(CYCLES):
         try:
             screenshot = emu.capture()
@@ -1023,6 +1063,13 @@ def main() -> None:
             st = patch_data.get("result", "unknown")
             if st != "battle":
                 _failed_flee_attempts = 0
+
+            # ── Dialog text carry-over ──
+            # When a dialog box is on screen, capture its text so the NEXT
+            # overworld decision can see what was said (Oak's instructions,
+            # NPC hints). This is the agent's information channel.
+            if st == "dialog" and patch_data.get("text_content"):
+                _last_dialog_text = str(patch_data["text_content"][0])[:200]
 
             raw_map_id = patch_data.get("map_id")
             raw_tile_x = patch_data.get("player_tile_x")
@@ -1281,9 +1328,79 @@ def main() -> None:
                     max_actions=CART_STEPS,
                     screenshot=_vision_frame,   # None on cache hit → no image cost
                     frame_ref=_frame_ref,        # UUID text ref on cache hit
+                    goal=_mem_goal,
+                    notes=" | ".join(_mem_notes[:6])[:300],
+                    last_dialog=_last_dialog_text,
+                    study_result=_pending_study_result,
                 )
+                # Study result is injected once, then cleared
+                _pending_study_result = ""
                 plan = decision.get("plan", ["A"])
                 intent = decision.get("intent", "")
+
+                # ── Agent memory outputs: note / goal / study ──────
+                # The controller maintains its own knowledge. These fields
+                # are optional; when present they are executed here and
+                # persisted to DuckBrain (namespace pokemon-global).
+                if USE_RAM_READER:
+                    from src.core import duckbrain_client as _dbc
+                    _mem_note = (decision.get("note") or "").strip()
+                    _mem_new_goal = (decision.get("goal") or "").strip()
+                    _mem_study_key = (decision.get("study") or "").strip()
+                    _mapn = patch_data.get("map_name", "unknown")
+                    if _mem_note:
+                        try:
+                            _dbc.remember(
+                                key=f"/notes/overworld-{cycle}",
+                                domain="concept",
+                                attributes={"fact": _mem_note[:300], "source": "agent",
+                                            "map": _mapn, "cycle": cycle},
+                                embedding_text=_mem_note[:300],
+                            )
+                            _mem_notes.insert(0, f"[{_mapn}] {_mem_note[:120]}")
+                            _mem_notes = _mem_notes[:6]
+                            safe_print(f"  [MEM] note: {_mem_note[:80]}")
+                            log_file.write(json.dumps(
+                                {"cycle": cycle, "event": "memory_note", "map": _mapn,
+                                 "note": _mem_note[:300]}, default=str) + "\n")
+                            log_file.flush()
+                        except Exception as _e:
+                            safe_print(f"  [MEM] note failed: {_e}")
+                    if _mem_new_goal:
+                        _mem_goal = _mem_new_goal[:200]
+                        try:
+                            _dbc.remember(
+                                key="/goals/current",
+                                domain="goal",
+                                attributes={"goal": _mem_goal, "source": "agent"},
+                                embedding_text=f"Current goal: {_mem_goal}",
+                            )
+                            safe_print(f"  [MEM] goal: {_mem_goal[:80]}")
+                            log_file.write(json.dumps(
+                                {"cycle": cycle, "event": "memory_goal",
+                                 "goal": _mem_goal}, default=str) + "\n")
+                            log_file.flush()
+                        except Exception as _e:
+                            safe_print(f"  [MEM] goal failed: {_e}")
+                    if _mem_study_key:
+                        try:
+                            _rec = _dbc.get(key=_mem_study_key)
+                            if _rec:
+                                _attrs = _rec.get("attributes", {})
+                                _body = _attrs.get("fact") or _attrs.get("goal") or _rec.get("embedding_text", "")
+                                _pending_study_result = f"{_rec.get('key')}: {str(_body)[:250]}"
+                            else:
+                                _pending_study_result = (
+                                    f"(nothing at {_mem_study_key} — you haven't "
+                                    f"learned it yet; explore and remember it)")
+                            safe_print(f"  [MEM] study {_mem_study_key} -> {_pending_study_result[:60]}")
+                            log_file.write(json.dumps(
+                                {"cycle": cycle, "event": "memory_study",
+                                 "key": _mem_study_key, "result": _pending_study_result[:250]},
+                                default=str) + "\n")
+                            log_file.flush()
+                        except Exception as _e:
+                            _pending_study_result = f"(study failed: {_e})"
 
                 # ── Programmatic direction override ───────────────
                 # Chain-rotate through blacklist. If ALL 4 directions

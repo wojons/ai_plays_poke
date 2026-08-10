@@ -151,6 +151,50 @@ _DUCKBRAIN_TOOLS = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_keys",
+            "description": (
+                "Browse your memory tree. list_keys('/') shows everything "
+                "you know; list_keys('/maps') shows map entries; "
+                "list_keys('/npcs') shows people you've met. Use this to "
+                "find what you have stored — including things nested deep "
+                "in the hierarchy."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "prefix": {
+                        "type": "string",
+                        "description": "Key prefix to browse, e.g. '/', '/maps', '/discoveries'.",
+                    },
+                },
+                "required": ["prefix"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get",
+            "description": (
+                "Read a specific memory's full content by exact key, e.g. "
+                "get('/maps/oaks-lab') or get('/guides/how-battles-work'). "
+                "Use after list_keys or recall to read the full entry."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "key": {
+                        "type": "string",
+                        "description": "Exact hierarchical key to read.",
+                    },
+                },
+                "required": ["key"],
+            },
+        },
+    },
 ]
 
 # ── Query global tool (added to every state window) ───────────────────────
@@ -486,7 +530,50 @@ class StateWindow:
             if tool_call["name"] == "set_goal":
                 goal = tool_call.get("arguments", {}).get("goal", "")
                 self.global_ctx.add_goal(goal)
+                # Persist across runs so /goals/current survives sessions
+                try:
+                    from src.core import duckbrain_client as _dbc
+
+                    _dbc.remember(
+                        key="/goals/current",
+                        domain="goal",
+                        attributes={"goal": goal, "source": "agent"},
+                        embedding_text=f"Current goal: {goal}",
+                    )
+                except Exception as _e:  # memory persistence is best-effort
+                    pass
                 self._history.append({"role": "set_goal", "goal": goal})
+                continue
+
+            if tool_call["name"] == "list_keys":
+                prefix = tool_call.get("arguments", {}).get("prefix", "/")
+                try:
+                    from src.core import duckbrain_client as _dbc
+
+                    keys = _dbc.list_keys(prefix=prefix, limit=50)
+                    answer = "\n".join(keys) if keys else "(nothing stored under this prefix)"
+                except Exception as _e:
+                    answer = f"(list_keys failed: {_e})"
+                self._history.append(
+                    {"role": "list_keys", "prefix": prefix, "keys": answer[:400]}
+                )
+                continue
+
+            if tool_call["name"] == "get":
+                key = tool_call.get("arguments", {}).get("key", "/")
+                try:
+                    from src.core import duckbrain_client as _dbc
+
+                    rec = _dbc.get(key=key)
+                    if rec:
+                        attrs = rec.get("attributes", {})
+                        body = attrs.get("fact") or attrs.get("goal") or rec.get("embedding_text", "")
+                        answer = f"{rec.get('key')}: {body}"[:400]
+                    else:
+                        answer = f"(no memory at {key})"
+                except Exception as _e:
+                    answer = f"(get failed: {_e})"
+                self._history.append({"role": "get", "key": key, "content": answer[:400]})
                 continue
 
             # Bound repeated flee requests. The counter is supplied by the

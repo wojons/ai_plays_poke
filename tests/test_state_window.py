@@ -916,8 +916,9 @@ class TestDuckbrainTools:
     def test_duckbrain_tools_is_list(self):
         assert isinstance(_DUCKBRAIN_TOOLS, list)
 
-    def test_three_duckbrain_tools(self):
-        assert len(_DUCKBRAIN_TOOLS) == 3
+    def test_duckbrain_tools_count(self):
+        # remember/recall/set_goal + list_keys/get (deep-find, added 2026-08-09)
+        assert len(_DUCKBRAIN_TOOLS) == 5
 
     def test_tools_have_required_fields(self):
         for tool in _DUCKBRAIN_TOOLS:
@@ -930,7 +931,7 @@ class TestDuckbrainTools:
 
     def test_tool_names(self):
         names = {t["function"]["name"] for t in _DUCKBRAIN_TOOLS}
-        assert names == {"remember", "recall", "set_goal"}
+        assert names == {"remember", "recall", "set_goal", "list_keys", "get"}
 
     def test_query_global_tool_is_dict(self):
         assert isinstance(_QUERY_GLOBAL_TOOL, dict)

@@ -144,3 +144,60 @@ def list_keys(
             continue
 
     return sorted(keys)
+
+
+def get(
+    key: str,
+    namespace: str = "pokemon-global",
+) -> dict[str, Any] | None:
+    """Read the most recent active memory with this exact key."""
+    if not key.startswith("/"):
+        key = "/" + key
+    results = recall(key=key, namespace=namespace, limit=1)
+    return results[0] if results else None
+
+
+def search(
+    text: str,
+    namespace: str = "pokemon-global",
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    """Content search across memory bodies (embedding_text + attributes).
+
+    Unlike recall() (which matches key prefixes), search() finds facts by
+    what they SAY — for deep, nested discovery.
+    """
+    data_dir = _ensure_namespace(namespace)
+    results: list[dict[str, Any]] = []
+    needle = text.lower()
+
+    if not data_dir.exists():
+        return results
+
+    jsonl_files = sorted(data_dir.glob("memories-*.jsonl"), reverse=True)
+    for jsonl_path in jsonl_files:
+        try:
+            with open(jsonl_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        record = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if record.get("status") == "deleted":
+                        continue
+                    haystack = (
+                        str(record.get("embedding_text", ""))
+                        + " "
+                        + str(record.get("attributes", {}))
+                    ).lower()
+                    if needle in haystack:
+                        results.append(record)
+                        if len(results) >= limit:
+                            return results
+        except Exception:
+            continue
+
+    return results
