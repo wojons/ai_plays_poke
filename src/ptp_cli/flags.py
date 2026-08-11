@@ -423,13 +423,13 @@ Examples:
   python src/game_loop.py --rom pokemon_red.gb --save-dir ./my_run
 
   # Fast exploration with adaptive tick rate
-  python src/game_loop.py --rom pokemon_blue.gb --tick-rate-base 15 --tick-rate-adaptive
+  python src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --tick-rate-base 15 --tick-rate-adaptive
 
   # Debug session with frequent screenshots
   python src/game_loop.py --rom pokemon_red.gb --screenshot-interval 10 --screenshot-on-change
 
   # Budget-constrained run ($5 max)
-  python src/game_loop.py --rom pokemon_blue.gb --max-cost 5.00 --on-limit save-and-exit
+  python src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --max-cost 5.00 --on-limit save-and-exit
 
   # Long-running experiment with snapshots
   python src/game_loop.py --rom pokemon_red.gb --snapshot-disk 5000 --snapshot-on-event catch,badge

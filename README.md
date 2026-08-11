@@ -190,8 +190,8 @@ recovery firing); 80/80 cycles in E2E (RSS flat ~110 MB, $0.60 for 43 LLM calls)
 
 ```bash
 # 1. Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # 2. Install dependencies
 pip install -r requirements.txt
@@ -344,7 +344,7 @@ ModuleNotFoundError: No module named 'pyboy'
 ```
 **Solution:** Install dependencies in your virtual environment:
 ```bash
-source venv/bin/activate
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -402,7 +402,7 @@ ERROR: Emulator crashed at tick 150
 #### Verifying API Connection
 ```bash
 # Test API key is loaded
-source venv/bin/activate
+source .venv/bin/activate
 python3 -c "from dotenv import load_dotenv; from pathlib import Path; load_dotenv(Path('.env')); import os; print('API Key set:', bool(os.getenv('OPENROUTER_API_KEY')))"
 ```
 

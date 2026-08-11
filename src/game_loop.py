@@ -820,7 +820,7 @@ Examples:
   python game_loop.py --rom pokemon_red.gb --screenshot-interval 30
   
   # High frequency AI analysis (every 10 ticks)
-  python game_loop.py --rom pokemon_blue.gb --screenshot-interval 10
+  python game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --screenshot-interval 10
   
   # Load from existing state
   python game_loop.py --rom pokemon_red.gb --load-state checkpoint.state
@@ -829,7 +829,7 @@ Examples:
   python game_loop.py --rom pokemon_red.gb --multi-instance --instances 3
   
   # Long gameplay session with analysis
-  python game_loop.py --rom pokemon_blue.gb --save-dir ./battle_session --max-ticks 1800
+  python game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir ./battle_session --max-ticks 1800
         """,
     )
 

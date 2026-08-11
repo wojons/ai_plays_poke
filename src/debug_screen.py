@@ -82,7 +82,7 @@ if __name__ == "__main__":
     print("=" * 50)
 
     # Run debug with Pokemon Blue ROM
-    success = debug_screen("data/rom/pokemon_blue.gb", num_ticks=1000)
+    success = debug_screen("data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb", num_ticks=1000)
     if success:
         print("\n🎉 Debug completed successfully!")
     else:

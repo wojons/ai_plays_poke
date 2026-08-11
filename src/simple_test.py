@@ -19,7 +19,7 @@ def simple_test() -> bool:
     print("🧪 Simple PyBoy Screenshot Test")
     print("=" * 50)
 
-    rom_path = "data/rom/pokemon_blue.gb"
+    rom_path = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
     print(f"📂 ROM: {rom_path}")
 
     # Check if ROM exists

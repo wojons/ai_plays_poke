@@ -82,7 +82,7 @@ def main() -> None:
     # ROM configurations
     roms = [
         ("data/rom/pokemon_red.gb", "pokemon_red"),
-        ("data/rom/pokemon_blue.gb", "pokemon_blue"),
+        ("data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb", "pokemon_blue"),
         ("data/rom/pokemon_green.gb", "pokemon_green"),
         ("data/rom/pokemon_yellow.gb", "pokemon_yellow"),
         ("data/rom/pokemon_gold.gbc", "pokemon_gold"),
