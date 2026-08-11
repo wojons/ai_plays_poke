@@ -14,8 +14,8 @@ Autonomous Pokémon AI benchmarking system using PyBoy 2.7.0 emulator with RAM-b
 
 ```bash
 # Setup
-python -m venv venv
-source venv/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
 # Run tests

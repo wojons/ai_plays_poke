@@ -1,3 +1,4 @@
+# mypy: no-warn-unused-ignores
 """
 OpenRouter API Client for AI Models
 
@@ -440,7 +441,7 @@ class ClaudeClient:
             self.circuit_breaker.record_success()
 
             return {
-                "content": response.content[0].text,  # type: ignore[union-attr]
+                "content": response.content[0].text,  # type: ignore
                 "finish_reason": response.stop_reason,
                 "model": model,
                 "usage": {

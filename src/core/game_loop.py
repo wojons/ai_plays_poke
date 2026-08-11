@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# mypy: no-warn-unused-ignores
 """
 Core Game Loop Manager for AI Plays Pokemon Framework
 

@@ -34,10 +34,9 @@ I've created the foundational CLI-based system with SQLite tracking, command pro
    - Cleanup utilities
 
 4. **`src/core/emulator.py`** - Emulator Interface
-   - `EmulatorInterface`: Interface for emulator control
-   - `EmulatorManager`: Manager for multiple instances
-   - Stub implementation (PyBoy integration placeholder)
-   - Supports: `start()`, `stop()`, `tick()`, `capture_screen()`, `press_button()`
+   - `Emulator`: PyBoy-backed emulator wrapper
+   - `EmulatorManager` (src/game_loop.py): Manager for multiple instances
+   - Real PyBoy 2.7.0 implementation (not a stub) — supports: `start()`, `stop()`, `tick()`, `capture_screen()`, `press_button()`, `save_state()`, `load_state()`, `skip_intro()`, `read_u8()`/`read_u16()`
 
 5. **`src/game_loop.py`** - Main CLI Entry Point
    - Full command-line interface with argparse
@@ -50,18 +49,18 @@ I've created the foundational CLI-based system with SQLite tracking, command pro
 
 ```bash
 # Basic usage
-python src/game_loop.py --rom pokemon_red.gb --save-dir ./my_run
+python src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir ./my_run
 
 # With custom settings
 python src/game_loop.py \
-  --rom pokemon_red.gb \
+  --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" \
   --save-dir ./my_run \
   --screenshot-interval 30 \
   --max-ticks 500
 
 # Multiple instances (for model comparison)
 python src/game_loop.py \
-  --rom pokemon_red.gb \
+  --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" \
   --multi-instance \
   --instances 3
 ```
@@ -107,7 +106,7 @@ game_saves/
 ✅ **SQLite database** for tracking stats, events, battles, Pokemon encountered  
 ✅ **Command pipelines** - AI thinking processes stored in database  
 ✅ **Screenshot path** - All screenshots saved to organized directory structure  
-✅ **Stub emulator** - Ready for PyBoy integration  
+✅ **PyBoy emulator** - Fully integrated (save/load-state, skip_intro, RAM reads)
 ✅ **Multi-instance support** - Run multiple AI instances simultaneously  
 ✅ **Graceful shutdown** - Ctrl+C saves all state and database  
 ✅ **Session export** - Export all data to JSON for model comparison  
@@ -118,7 +117,7 @@ game_saves/
 ```bash
 # Test the foundation (runs for ~8 seconds)
 python src/game_loop.py \
-  --rom pokemon_red.gb \
+  --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" \
   --save-dir ./test_run \
   --max-ticks 500
 ```
@@ -201,10 +200,10 @@ This will create:
 
 To make this a complete AI Pokemon system, we need:
 
-1. **Fix Python imports** - Update imports to work properly
-2. **Add PyBoy** - Integrate real Pokemon emulator
-3. **Add AI models** - Connect to LLMs (local models or API)
-4. **Add vision processing** - Detect game state from screenshots
+1. ~~**Fix Python imports**~~ ✅ done
+2. ~~**Add PyBoy** - Integrate real Pokemon emulator~~ ✅ done — PyBoy 2.7.0 integrated
+3. ~~**Add AI models** - Connect to LLMs (local models or API)~~ ✅ done — LLM-driven decisions via OpenRouter
+4. ~~**Add vision processing** - Detect game state from screenshots~~ ✅ done — vision pipeline in `src/core/vision/`
 5. **Add pypokedex** - Integrate for type matchups (already planned)
 6. **Add model comparison logic** - Track multiple AI models
 
@@ -215,7 +214,7 @@ We've built a ✅ **working foundation** with:
 - SQLite database tracking everything
 - Screenshot management (organized structure)
 - Command schemas for AI → emulator communication
-- Emulator interface (stub, ready for PyBoy)
+- Emulator class (PyBoy-backed: save/load-state, skip_intro, RAM reads)
 - Support for multiple AI instances
 - All data needed for comparing model runs later
 
