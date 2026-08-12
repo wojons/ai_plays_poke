@@ -2,15 +2,23 @@
 Debug script to check PyBoy screen data
 """
 
+import argparse
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pyboy import PyBoy
 import numpy as np
+
+# PyBoy is imported lazily inside debug_screen() so that `--help` exits without
+# importing the emulator. The module-level name is kept so tests can continue
+# patching debug_screen.PyBoy.
+PyBoy: Any = None
+
+ROM_PATH = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 
 
 def debug_screen(rom_path: str, num_ticks: int = 1000) -> bool:
@@ -27,6 +35,9 @@ def debug_screen(rom_path: str, num_ticks: int = 1000) -> bool:
         return False
     # Initialize emulator
     print("🚀 Loading ROM...")
+    global PyBoy
+    if PyBoy is None:
+        from pyboy import PyBoy
     pyboy = PyBoy(rom_path)
 
     # Create debug directory
@@ -78,11 +89,36 @@ def debug_screen(rom_path: str, num_ticks: int = 1000) -> bool:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Debug PyBoy screen data by ticking the emulator and inspecting frames."
+    )
+    parser.add_argument(
+        "--rom",
+        default=None,
+        help=f"Path to the ROM file (default: {ROM_PATH})",
+    )
+    parser.add_argument(
+        "--ticks",
+        type=int,
+        default=None,
+        help="Number of emulator ticks to run (default: 1000)",
+    )
+    args = parser.parse_args()
+
+    # Boot the emulator only when the run is explicitly requested (--rom and/or
+    # --ticks given). A bare invocation or --help prints usage and exits 0
+    # without importing PyBoy.
+    if args.rom is None and args.ticks is None:
+        parser.print_help()
+        sys.exit(0)
+
+    rom = args.rom if args.rom is not None else ROM_PATH
+    ticks = args.ticks if args.ticks is not None else 1000
+
     print("🧪 PyBoy Screen Debug Test")
     print("=" * 50)
 
-    # Run debug with Pokemon Blue ROM
-    success = debug_screen("data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb", num_ticks=1000)
+    success = debug_screen(rom, num_ticks=ticks)
     if success:
         print("\n🎉 Debug completed successfully!")
     else:
