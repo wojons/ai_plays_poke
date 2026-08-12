@@ -1,0 +1,83 @@
+{
+  "task_id": "AP-GAP-016",
+  "task_title": "AP-GAP-016: debug_screen.py argparse gate",
+  "task_criteria": [
+    "PYTHONPATH=src .venv/bin/python -m src.debug_screen --help exits 0 instantly with usage",
+    "emulator boots only when explicitly requested"
+  ],
+  "passed": true,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \u001b[90m6:51AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~171653076 bytes (171.65 MB) in 7.26s\u001b[0m\n\u001b[90m6:51AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\u001b[90m6:51AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~171653076 bytes (171.65 MB) in 7.26s\u001b[0m\n\u001b[90m6:51AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 PYTHONPATH=src .venv/bin/python -m src.debug_screen --help exits 0 instantly with usage: Ran command in /home/kara/ai_plays_poke: exits 0 in 0.10s wall clock (32MB RSS, no emulator boot) printing usage. Code: src/debug_screen.py argparse gate (commit 02cc876, current HEAD).\n  \u2713 emulator boots only when explicitly requested: src/debug_screen.py:111-113 'if args.rom is None and args.ticks is None: parser.print_help(); sys.exit(0)'. Bare invocation and --help exit 0 without booting (PyBoy stays None, lazy import at line 40). Explicit --ticks 2 boots emulator, runs 2 ticks, completes successfully.\nBoth criteria verified: --help exits 0 instantly with usage, and the emulator boots only when explicitly requested via the argparse gate.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 PYTHONPATH=src .venv/bin/python -m src.debug_screen --help exits 0 instantly with usage: Ran command in /home/kara/ai_plays_poke: exits 0 in 0.10s wall clock (32MB RSS, no emulator boot) printing usage. Code: src/debug_screen.py argparse gate (commit 02cc876, current HEAD).\n  \u2713 emulator boots only when explicitly requested: src/debug_screen.py:111-113 'if args.rom is None and args.ticks is None: parser.print_help(); sys.exit(0)'. Bare invocation and --help exit 0 without booting (Py",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "PYTHONPATH=src .venv/bin/python -m src.debug_screen --help exits 0 instantly with usage",
+                "status": "PASS",
+                "detail": "Ran command in /home/kara/ai_plays_poke: exits 0 in 0.10s wall clock (32MB RSS, no emulator boot) printing usage. Code: src/debug_screen.py argparse gate (commit 02cc876, current HEAD)."
+              },
+              {
+                "criterion": "emulator boots only when explicitly requested",
+                "status": "PASS",
+                "detail": "src/debug_screen.py:111-113 'if args.rom is None and args.ticks is None: parser.print_help(); sys.exit(0)'. Bare invocation and --help exit 0 without booting (PyBoy stays None, lazy import at line 40). Explicit --ticks 2 boots emulator, runs 2 ticks, completes successfully."
+              }
+            ],
+            "summary": "Both criteria verified: --help exits 0 instantly with usage, and the emulator boots only when explicitly requested via the argparse gate."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: AP-GAP-016\n\nStage tier1: PASS\n    \u2713 lint: \n  \u2713 secrets: \u001b[90m6:51AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~171653076 bytes (171.65 MB) in 7.26s\u001b[0m\n\u001b[90m6:51AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 PYTHONPATH=src .venv/bin/python -m src.debug_screen --help exits 0 instantly with usage: Ran command in /home/kara/ai_plays_poke: exits 0 in 0.10s wall clock (32MB RSS, no emulator boot) printing usage. Code: src/debug_screen.py argparse gate (commit 02cc876, current HEAD).\n  \u2713 emulator boots only when explicitly requested: src/debug_screen.py:111-113 'if args.rom is None and args.ticks is None: parser.print_help(); sys.exit(0)'. Bare invocation and --help exit 0 without booting (PyBoy stays None, lazy import at line 40). Explicit --ticks 2 boots emulator, runs 2 ticks, completes successfully.\nBoth criteria verified: --help exits 0 instantly with usage, and the emulator boots only when explicitly requested via the argparse gate.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-08-12T11:54:59.687837"
+}

@@ -209,3 +209,29 @@ tasks:
   status: complete
   created_at: '2026-08-10T15:36:35.436670+00:00'
   completed_at: '2026-08-10T15:44:25.365927+00:00'
+- id: AP-GAP-015
+  title: 'AP-GAP-015: make python -m src.ptp_cli executable'
+  criteria:
+  - PYTHONPATH=src .venv/bin/python -m src.ptp_cli --help exits 0 and prints usage
+  - src/ptp_cli/__init__.py and src/ptp_cli/__main__.py exist
+  status: complete
+  created_at: '2026-08-12T11:24:32.509217+00:00'
+  completed_at: '2026-08-12T11:47:54.541654+00:00'
+- id: AP-GAP-016
+  title: 'AP-GAP-016: debug_screen.py argparse gate'
+  criteria:
+  - PYTHONPATH=src .venv/bin/python -m src.debug_screen --help exits 0 instantly with
+    usage
+  - emulator boots only when explicitly requested
+  status: complete
+  created_at: '2026-08-12T11:24:32.614724+00:00'
+  completed_at: '2026-08-12T11:51:05.627512+00:00'
+- id: AP-GAP-017
+  title: 'AP-GAP-017: memory_reader.py argparse gate'
+  criteria:
+  - PYTHONPATH=src .venv/bin/python -m src.memory_reader --help exits 0 and prints
+    usage
+  - emulator boots only when explicitly requested
+  status: complete
+  created_at: '2026-08-12T11:24:32.722412+00:00'
+  completed_at: '2026-08-12T11:55:02.889371+00:00'
