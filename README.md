@@ -181,6 +181,15 @@ checkpoint rollback).
 **Proven results:** 10/10 cycles in dogfood runs (real LLM decisions, map movement,
 recovery firing); 80/80 cycles in E2E (RSS flat ~110 MB, $0.60 for 43 LLM calls).
 
+**Scheduled runs & QA tooling:**
+
+- `.coding-hermes/cron.sh` — scheduled decision-loop runner used by the Hermes cron
+  (wraps `cron_runner.py`, commit-tags checkpoint screenshots; `--cycles N` /
+  `--rom path` flags, defaults 20 cycles on the LeafGreen ROM).
+- `.coding-hermes/usability-tests.md` — QA checklist for the live map viewer
+  (`ram_map_server.py`, `http://localhost:8099`): HTTP endpoints, JSON schema,
+  boot/navigation probes with pass results.
+
 > **Note:** `src/game_loop.py` (documented below) is the legacy/simplified entry point
 > whose vision pipeline is currently under repair (AP-GAP-001). It performs paid
 > OpenRouter vision calls every tick that crash on null HP values, producing 0 AI
@@ -277,43 +286,48 @@ runs/test_001/
 
 ## How to Test
 
+> Commands below use `.venv/bin/python -m pytest` so they work from a **fresh shell**
+> (system `python3` has no pytest/numpy — the project venv is `.venv`; see
+> [Quick Start](#quick-start-working-path) to create it). If you have the venv
+> activated (`source .venv/bin/activate`), plain `pytest` works identically.
+
 ### Running All Tests
 ```bash
 # Run all tests with verbose output
-pytest tests/ -v
+.venv/bin/python -m pytest tests/ -v
 
 # Run with coverage report
-pytest --cov=src --cov-report=html
+.venv/bin/python -m pytest --cov=src --cov-report=html
 
 # Run with coverage and terminal summary
-pytest --cov=src --cov-report=term-missing
+.venv/bin/python -m pytest --cov=src --cov-report=term-missing
 ```
 
 ### Running Specific Tests
 ```bash
 # Run a specific test file
-pytest tests/test_schemas.py -v
+.venv/bin/python -m pytest tests/test_schemas.py -v
 
 # Run tests in a specific directory
-pytest tests/cli/ -v
+.venv/bin/python -m pytest tests/cli/ -v
 
 # Run a specific test function
-pytest tests/test_schemas.py::test_command_creation -v
+.venv/bin/python -m pytest tests/test_schemas.py::test_command_creation -v
 
 # Run tests matching a pattern
-pytest -k "battle" -v
+.venv/bin/python -m pytest -k "battle" -v
 ```
 
 ### Test Categories
 ```bash
 # Unit tests only (fast)
-pytest tests/ -v -m "not integration"
+.venv/bin/python -m pytest tests/ -v -m "not integration"
 
 # Integration tests (slower, may require emulator)
-pytest tests/ -v -m "integration"
+.venv/bin/python -m pytest tests/ -v -m "integration"
 
 # Run tests in parallel
-pytest tests/ -n auto -v
+.venv/bin/python -m pytest tests/ -n auto -v
 ```
 
 ### Viewing Coverage Report
@@ -527,7 +541,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for det
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/your-feature`
 3. Install development dependencies: `pip install -r requirements-dev.txt`
-4. Run tests: `pytest tests/ -v`
+4. Run tests: `.venv/bin/python -m pytest tests/ -v`
 5. Format code: `black src/ tests/`
 6. Submit a pull request
 
