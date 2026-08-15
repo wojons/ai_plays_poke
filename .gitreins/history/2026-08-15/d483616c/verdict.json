@@ -1,0 +1,101 @@
+{
+  "task_id": "DEPS-002",
+  "task_title": "DEPS-002 \u2014 Review 16 outdated Python deps (supervisor dep-scan 2026-08-15)",
+  "task_criteria": [
+    "uv.lock tracks openai 3.1.0 and anthropic 0.122.0 (upgraded from 2.53.0/0.121.0), with the full test suite green (3860 passed/14 skipped in .venv, 3874 collected baseline)",
+    "No 'from openai'/'import openai' anywhere in src/ or cron_runner.py (openai SDK unused; AI client uses anthropic SDK + OpenRouter HTTP) \u2014 openai 3.x breaking change has zero code impact",
+    "Resolver-blocked deps are documented with pin evidence in uv.lock: pyarrow stays 24.0.0 (streamlit 1.61.1 pins pyarrow<25,>=7.0), starlette stays 1.3.1 (streamlit pins starlette<1.4.0,>=0.46.0), websockets stays 16.1.1 (streamlit pins websockets<17,>=12.0.0), pydantic-core stays 2.46.4 (pydantic 2.13.4 pins pydantic-core==2.46.4 exact)",
+    ".venv/bin/pip list --outdated shows only the 4 documented blocker-blocked deps + ruff 0.15.22 (kept intentionally: 0.16.x churns 2000+ lint findings; ad-hoc install not in uv.lock) \u2014 no other outdated",
+    "Both venv suites pass: .venv pytest 3860p/14s EXIT 0 AND ./venv/bin/pytest -x --tb=short 3860p/14s EXIT 0 (gitreins guard path, py3.11 venv untouched); mypy 0 errors, ruff check PASS"
+  ],
+  "passed": true,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: \n  \u2713 secrets: \u001b[90m5:47AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~172204014 bytes (172.20 MB) in 8.65s\u001b[0m\n\u001b[90m5:47AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "\u001b[90m5:47AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~172204014 bytes (172.20 MB) in 8.65s\u001b[0m\n\u001b[90m5:47AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\nModuleNotFoundError: No module named 'engine'\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 uv.lock tracks openai 3.1.0 and anthropic 0.122.0 (upgraded from 2.53.0/0.121.0), with the full test suite green (3860 passed/14 skipped in .venv, 3874 collected baseline): uv.lock grep confirms openai version 3.1.0 and anthropic version 0.122.0. .venv/bin/pytest tests/ -q: '3860 passed, 14 skipped in 193.14s' (3874 collected = 3860+14).\n  \u2713 No 'from openai'/'import openai' anywhere in src/ or cron_runner.py (openai SDK unused; AI client uses anthropic SDK + OpenRouter HTTP) \u2014 openai 3.x breaking change has zero code impact: grep -rn 'from openai\\|import openai' src/ cron_runner.py returned no matches (exit 1).\n  \u2713 Resolver-blocked deps are documented with pin evidence in uv.lock: pyarrow stays 24.0.0 (streamlit 1.61.1 pins pyarrow<25,>=7.0), starlette stays 1.3.1 (streamlit pins starlette<1.4.0,>=0.46.0), websockets stays 16.1.1 (streamlit pins websockets<17,>=12.0.0), pydantic-core stays 2.46.4 (pydantic 2.13.4 pins pydantic-core==2.46.4 exact): uv.lock resolved versions match exactly: pyarrow 24.0.0, starlette 1.3.1, websockets 16.1.1, pydantic-core 2.46.4; pydantic 2.13.4 present in lock.\n  \u2713 .venv/bin/pip list --outdated shows only the 4 documented blocker-blocked deps + ruff 0.15.22 (kept intentionally: 0.16.x churns 2000+ lint findings; ad-hoc install not in uv.lock) \u2014 no other outdated: .venv/bin/pip list --outdated output shows exactly: pyarrow 24.0.0, pydantic_core 2.46.4, starlette 1.3.1, websockets 16.1.1, ruff 0.15.22. No other outdated packages.\n  \u2713 Both venv suites pass: .venv pytest 3860p/14s EXIT 0 AND ./venv/bin/pytest -x --tb=short 3860p/14s EXIT 0 (gitreins guard path, py3.11 venv untouched); mypy 0 errors, ruff check PASS: .venv pytest: '3860 passed, 14 skipped' no failures (exit 0). ./venv/bin/pytest -x --tb=short: '3860 passed, 14 skipped' no failures (exit 0). mypy: 'Success: no issues found in 63 source files'. ruff: 'All checks passed!'\nAll 5 DEPS-002 criteria verified: uv.lock tracks openai 3.1.0/anthropic 0.122.0, no openai imports in code, blocker-blocked deps pinned at documented versions, pip list --outdated shows only the 5 expected packages, and both venv suites pass (3860p/14s each) with mypy 0 errors and ruff PASS.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 uv.lock tracks openai 3.1.0 and anthropic 0.122.0 (upgraded from 2.53.0/0.121.0), with the full test suite green (3860 passed/14 skipped in .venv, 3874 collected baseline): uv.lock grep confirms openai version 3.1.0 and anthropic version 0.122.0. .venv/bin/pytest tests/ -q: '3860 passed, 14 skipped in 193.14s' (3874 collected = 3860+14).\n  \u2713 No 'from openai'/'import openai' anywhere in src/ or cron_runner.py (openai SDK unused; AI client uses anthropic SDK + OpenRouter HTTP) \u2014 opena",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "uv.lock tracks openai 3.1.0 and anthropic 0.122.0 (upgraded from 2.53.0/0.121.0), with the full test suite green (3860 passed/14 skipped in .venv, 3874 collected baseline)",
+                "status": "PASS",
+                "detail": "uv.lock grep confirms openai version 3.1.0 and anthropic version 0.122.0. .venv/bin/pytest tests/ -q: '3860 passed, 14 skipped in 193.14s' (3874 collected = 3860+14)."
+              },
+              {
+                "criterion": "No 'from openai'/'import openai' anywhere in src/ or cron_runner.py (openai SDK unused; AI client uses anthropic SDK + OpenRouter HTTP) \u2014 openai 3.x breaking change has zero code impact",
+                "status": "PASS",
+                "detail": "grep -rn 'from openai\\|import openai' src/ cron_runner.py returned no matches (exit 1)."
+              },
+              {
+                "criterion": "Resolver-blocked deps are documented with pin evidence in uv.lock: pyarrow stays 24.0.0 (streamlit 1.61.1 pins pyarrow<25,>=7.0), starlette stays 1.3.1 (streamlit pins starlette<1.4.0,>=0.46.0), websockets stays 16.1.1 (streamlit pins websockets<17,>=12.0.0), pydantic-core stays 2.46.4 (pydantic 2.13.4 pins pydantic-core==2.46.4 exact)",
+                "status": "PASS",
+                "detail": "uv.lock resolved versions match exactly: pyarrow 24.0.0, starlette 1.3.1, websockets 16.1.1, pydantic-core 2.46.4; pydantic 2.13.4 present in lock."
+              },
+              {
+                "criterion": ".venv/bin/pip list --outdated shows only the 4 documented blocker-blocked deps + ruff 0.15.22 (kept intentionally: 0.16.x churns 2000+ lint findings; ad-hoc install not in uv.lock) \u2014 no other outdated",
+                "status": "PASS",
+                "detail": ".venv/bin/pip list --outdated output shows exactly: pyarrow 24.0.0, pydantic_core 2.46.4, starlette 1.3.1, websockets 16.1.1, ruff 0.15.22. No other outdated packages."
+              },
+              {
+                "criterion": "Both venv suites pass: .venv pytest 3860p/14s EXIT 0 AND ./venv/bin/pytest -x --tb=short 3860p/14s EXIT 0 (gitreins guard path, py3.11 venv untouched); mypy 0 errors, ruff check PASS",
+                "status": "PASS",
+                "detail": ".venv pytest: '3860 passed, 14 skipped' no failures (exit 0). ./venv/bin/pytest -x --tb=short: '3860 passed, 14 skipped' no failures (exit 0). mypy: 'Success: no issues found in 63 source files'. ruff: 'All checks passed!'"
+              }
+            ],
+            "summary": "All 5 DEPS-002 criteria verified: uv.lock tracks openai 3.1.0/anthropic 0.122.0, no openai imports in code, blocker-blocked deps pinned at documented versions, pip list --outdated shows only the 5 expected packages, and both venv suites pass (3860p/14s each) with mypy 0 errors and ruff PASS."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DEPS-002\n\nStage tier1: PASS\n    \u2713 lint: \n  \u2713 secrets: \u001b[90m5:47AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~172204014 bytes (172.20 MB) in 8.65s\u001b[0m\n\u001b[90m5:47AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 uv.lock tracks openai 3.1.0 and anthropic 0.122.0 (upgraded from 2.53.0/0.121.0), with the full test suite green (3860 passed/14 skipped in .venv, 3874 collected baseline): uv.lock grep confirms openai version 3.1.0 and anthropic version 0.122.0. .venv/bin/pytest tests/ -q: '3860 passed, 14 skipped in 193.14s' (3874 collected = 3860+14).\n  \u2713 No 'from openai'/'import openai' anywhere in src/ or cron_runner.py (openai SDK unused; AI client uses anthropic SDK + OpenRouter HTTP) \u2014 openai 3.x breaking change has zero code impact: grep -rn 'from openai\\|import openai' src/ cron_runner.py returned no matches (exit 1).\n  \u2713 Resolver-blocked deps are documented with pin evidence in uv.lock: pyarrow stays 24.0.0 (streamlit 1.61.1 pins pyarrow<25,>=7.0), starlette stays 1.3.1 (streamlit pins starlette<1.4.0,>=0.46.0), websockets stays 16.1.1 (streamlit pins websockets<17,>=12.0.0), pydantic-core stays 2.46.4 (pydantic 2.13.4 pins pydantic-core==2.46.4 exact): uv.lock resolved versions match exactly: pyarrow 24.0.0, starlette 1.3.1, websockets 16.1.1, pydantic-core 2.46.4; pydantic 2.13.4 present in lock.\n  \u2713 .venv/bin/pip list --outdated shows only the 4 documented blocker-blocked deps + ruff 0.15.22 (kept intentionally: 0.16.x churns 2000+ lint findings; ad-hoc install not in uv.lock) \u2014 no other outdated: .venv/bin/pip list --outdated output shows exactly: pyarrow 24.0.0, pydantic_core 2.46.4, starlette 1.3.1, websockets 16.1.1, ruff 0.15.22. No other outdated packages.\n  \u2713 Both venv suites pass: .venv pytest 3860p/14s EXIT 0 AND ./venv/bin/pytest -x --tb=short 3860p/14s EXIT 0 (gitreins guard path, py3.11 venv untouched); mypy 0 errors, ruff check PASS: .venv pytest: '3860 passed, 14 skipped' no failures (exit 0). ./venv/bin/pytest -x --tb=short: '3860 passed, 14 skipped' no failures (exit 0). mypy: 'Success: no issues found in 63 source files'. ruff: 'All checks passed!'\nAll 5 DEPS-002 criteria verified: uv.lock tracks openai 3.1.0/anthropic 0.122.0, no openai imports in code, blocker-blocked deps pinned at documented versions, pip list --outdated shows only the 5 expected packages, and both venv suites pass (3860p/14s each) with mypy 0 errors and ruff PASS.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-08-15T10:54:59.767426"
+}
