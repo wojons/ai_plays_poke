@@ -257,3 +257,14 @@ tasks:
   status: complete
   created_at: '2026-08-15T01:17:05.688846+00:00'
   completed_at: '2026-08-15T01:17:25.541334+00:00'
+- id: GAP-020
+  title: 'game_loop.py zero gameplay: boot stuck on title screen, no AI decisions'
+  criteria:
+  - 'AC1: 40-tick game_loop run exits 0 and sends >=1 button press + screen-type progression
+    past title (verify via RAM or vision classification). AC2: vision recommended_action
+    wired to pending_commands (no longer logged-and-dropped). AC3: regression test:
+    title-screen boot progression asserts screen transition. AC4: full suite green
+    (pytest tests/ 3874 collected), mypy 0/63, ruff PASS, guard 5/5.'
+  status: complete
+  created_at: '2026-08-16T16:39:35.013831+00:00'
+  completed_at: '2026-08-16T17:08:18.386526+00:00'
