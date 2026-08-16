@@ -289,3 +289,13 @@ tasks:
   status: complete
   created_at: '2026-08-16T18:23:58.595604+00:00'
   completed_at: '2026-08-16T18:47:17.691059+00:00'
+- id: GAP-027
+  title: 'cron_runner.py API docs: docs/api/cron_runner.md covering flags, pipeline
+    stages, JSONL log schema, checkpoint/rollback; link from README quick start; optionally
+    --dry-run without API calls'
+  criteria:
+  - 'PASS: docs/api/cron_runner.md exists and documents all CLI flags + JSONL log
+    schema; cron_runner.py --help output matches it'
+  status: complete
+  created_at: '2026-08-16T19:01:03.599122+00:00'
+  completed_at: '2026-08-16T19:08:01.434186+00:00'
