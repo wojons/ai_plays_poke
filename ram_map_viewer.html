@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PTP-01X — RAM Map Viewer</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --yellow: #d2991d;
+    --purple: #bc8cff;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    padding: 20px; min-height: 100vh;
+  }
+  h1 { font-size: 1.2rem; color: var(--accent); margin-bottom: 4px; }
+  .subtitle { color: var(--dim); font-size: 0.75rem; margin-bottom: 20px; }
+
+  .layout { display: flex; gap: 20px; flex-wrap: wrap; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+  }
+
+  /* ── Info panel ── */
+  .info { min-width: 220px; }
+  .info table { width: 100%; border-collapse: collapse; }
+  .info td { padding: 3px 6px; font-size: 0.82rem; }
+  .info td:first-child { color: var(--dim); white-space: nowrap; }
+  .info td:last-child { text-align: right; font-weight: 600; }
+  .adjacent { margin-top: 12px; }
+  .adjacent h3 { font-size: 0.78rem; color: var(--dim); margin-bottom: 6px; }
+  .adj-block {
+    display: inline-block; padding: 4px 10px; margin: 2px;
+    border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+  }
+
+  /* ── Map grid ── */
+  .map-panel { flex: 1; min-width: 300px; }
+  .map-grid {
+    display: inline-grid; gap: 1px;
+    background: var(--border); padding: 1px;
+    border-radius: 4px;
+  }
+  .cell {
+    width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700;
+    cursor: default; position: relative;
+    transition: transform 0.1s;
+  }
+  .cell:hover { transform: scale(1.15); z-index: 2; }
+  .cell.player { 
+    box-shadow: 0 0 0 2px #fff, 0 0 12px rgba(255,255,255,0.5);
+    z-index: 1; animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 2px #fff, 0 0 8px rgba(255,255,255,0.3); }
+    50% { box-shadow: 0 0 0 3px #fff, 0 0 16px rgba(255,255,255,0.6); }
+  }
+  .cell .facing { 
+    position: absolute; font-size: 0.7rem; pointer-events: none;
+  }
+  .label { 
+    font-size: 0.68rem; color: var(--dim); 
+    margin: 8px 0 4px;
+  }
+
+  /* ── Legend ── */
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; }
+
+  /* ── Tile inspector ── */
+  .inspector { margin-top: 12px; font-size: 0.72rem; color: var(--dim); }
+  .inspector .coords { color: var(--accent); }
+  .inspector .block-id { color: var(--yellow); }
+  .inspector .block-class { color: var(--green); font-weight: 600; }
+
+  /* ── Block type colors ── */
+  .bt-floor { background: #1a3a1a; color: #6f6; }
+  .bt-wall { background: #2a2a2a; color: #999; }
+  .bt-stairs { background: #3a2a0a; color: #fa0; }
+  .bt-door { background: #1a2a3a; color: #6af; }
+  .bt-warp { background: #2a1a3a; color: #c6f; }
+  .bt-water { background: #0a2a3a; color: #6cf; }
+  .bt-grass { background: #1a3a0a; color: #8f8; }
+  .bt-ledge { background: #3a3a1a; color: #ff6; }
+  .bt-object { background: #3a1a1a; color: #f66; }
+  .bt-unknown { background: #1a1a1a; color: #555; }
+  .bt-void { background: #0a0a0a; color: #333; }
+  .bt-player { background: #fff; color: #000; }
+
+  /* ── Input controls (POST /input) ── */
+  .btn-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .btn-row button {
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 14px; font-family: inherit; font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .btn-row button:hover { border-color: var(--accent); color: var(--accent); }
+  .input-status { margin-top: 8px; font-size: 0.7rem; color: var(--dim); }
+</style>
+</head>
+<body>
+
+<h1>PTP-01X — RAM Map Viewer</h1>
+<div class="subtitle">Pokémon Red/Blue • reading block data from ROM + live RAM state</div>
+
+<div class="layout">
+  <!-- Info panel -->
+  <div class="panel info">
+    <table>
+      <tr><td>Map</td><td id="map-name">—</td></tr>
+      <tr><td>Map ID</td><td id="map-id">—</td></tr>
+      <tr><td>Tileset</td><td id="tileset">—</td></tr>
+      <tr><td>Dimensions</td><td id="dims">—</td></tr>
+      <tr><td>Player X</td><td id="px">—</td></tr>
+      <tr><td>Player Y</td><td id="py">—</td></tr>
+      <tr><td>Facing</td><td id="facing">—</td></tr>
+      <tr><td>Moving</td><td id="moving">—</td></tr>
+      <tr><td>Screen</td><td id="screen">—</td></tr>
+    </table>
+
+    <div class="adjacent">
+      <h3>Adjacent blocks</h3>
+      <div>
+        <span class="adj-block bt-wall" id="adj-up">↑ —</span>
+        <span class="adj-block bt-wall" id="adj-down">↓ —</span>
+        <span class="adj-block bt-wall" id="adj-left">← —</span>
+        <span class="adj-block bt-wall" id="adj-right">→ —</span>
+      </div>
+    </div>
+
+    <div class="inspector" id="inspector">
+      Hover a cell to inspect
+    </div>
+  </div>
+
+  <!-- Map grid -->
+  <div class="panel map-panel">
+    <div class="label">Map blocks <span style="color:var(--dim)">(each cell = 2×2 tiles = 16×16px)</span></div>
+    <div class="map-grid" id="map-grid"></div>
+
+    <div class="legend">
+      <div class="legend-item"><div class="legend-swatch bt-floor"></div> Floor</div>
+      <div class="legend-item"><div class="legend-swatch bt-wall"></div> Wall</div>
+      <div class="legend-item"><div class="legend-swatch bt-stairs"></div> Stairs</div>
+      <div class="legend-item"><div class="legend-swatch bt-door"></div> Door</div>
+      <div class="legend-item"><div class="legend-swatch bt-object"></div> Object</div>
+      <div class="legend-item"><div class="legend-swatch bt-water"></div> Water</div>
+      <div class="legend-item"><div class="legend-swatch bt-grass"></div> Grass</div>
+      <div class="legend-item"><div class="legend-swatch bt-void bt-player"></div> Player</div>
+    </div>
+  </div>
+</div>
+
+<!-- Input controls -->
+<div class="panel controls">
+  <div class="label">Input <span style="color:var(--dim)">(POST /input — drives the live emulator)</span></div>
+  <div class="btn-row">
+    <button data-btn="up">↑</button>
+    <button data-btn="left">←</button>
+    <button data-btn="a">A</button>
+    <button data-btn="right">→</button>
+    <button data-btn="b">B</button>
+    <button data-btn="down">↓</button>
+    <button data-btn="start">START</button>
+    <button data-btn="select">SELECT</button>
+  </div>
+  <div class="input-status" id="input-status">—</div>
+</div>
+
+<script>
+// ── Block type → CSS class ──
+const TYPE_CLASS = {
+  floor: 'bt-floor', wall: 'bt-wall', stairs: 'bt-stairs',
+  door: 'bt-door', warp: 'bt-warp', water: 'bt-water',
+  grass: 'bt-grass', ledge: 'bt-ledge', object: 'bt-object',
+  unknown: 'bt-unknown', void: 'bt-void'
+};
+
+const TYPE_ICON = {
+  floor: '··', wall: '██', stairs: '⇩⇩', door: 'DD',
+  warp: 'WW', water: '~~', grass: '░░', ledge: '^^',
+  object: '◈◈', unknown: '??', void: '  '
+};
+
+const FACING_ARROW = { up: '▲', down: '▼', left: '◀', right: '▶' };
+
+// ── Render the map ──
+function render(data) {
+  const { map_name, map_id, tileset, w, h, blocks, block_types,
+          player_x, player_y, facing, moving, screen_type, adjacent } = data;
+
+  // Info panel
+  document.getElementById('map-name').textContent = map_name || '—';
+  document.getElementById('map-id').textContent = map_id != null ? `0x${map_id.toString(16).toUpperCase()}` : '—';
+  document.getElementById('tileset').textContent = tileset != null ? tileset : '—';
+  document.getElementById('dims').textContent = `${w}×${h}`;
+  document.getElementById('px').textContent = player_x != null ? player_x : '—';
+  document.getElementById('py').textContent = player_y != null ? player_y : '—';
+  document.getElementById('facing').textContent = facing || '—';
+  document.getElementById('moving').textContent = moving ? 'yes' : 'no';
+  document.getElementById('screen').textContent = screen_type || '—';
+
+  // Adjacent
+  for (const dir of ['up','down','left','right']) {
+    const el = document.getElementById(`adj-${dir}`);
+    const arrow = {up:'↑',down:'↓',left:'←',right:'→'}[dir];
+    const type = adjacent?.[dir] || 'unknown';
+    el.textContent = `${arrow} ${type}`;
+    el.className = `adj-block ${TYPE_CLASS[type] || 'bt-unknown'}`;
+  }
+
+  // Map grid
+  const grid = document.getElementById('map-grid');
+  grid.style.gridTemplateColumns = `repeat(${w}, 42px)`;
+  grid.innerHTML = '';
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = y * w + x;
+      const blockId = blocks?.[idx] ?? '??';
+      const type = block_types?.[idx] || 'unknown';
+      const isPlayer = (x === player_x && y === player_y);
+
+      const cell = document.createElement('div');
+      cell.className = `cell ${isPlayer ? 'player bt-player' : (TYPE_CLASS[type] || 'bt-unknown')}`;
+      cell.title = `(${x},${y}) block 0x${(blockId??0).toString(16).toUpperCase()} — ${type}`;
+
+      if (isPlayer) {
+        cell.textContent = 'PP';
+        if (facing) {
+          const arrow = document.createElement('span');
+          arrow.className = 'facing';
+          arrow.textContent = FACING_ARROW[facing] || '';
+          cell.appendChild(arrow);
+        }
+      } else {
+        cell.textContent = TYPE_ICON[type] || '??';
+      }
+
+      // Click to inspect
+      cell.addEventListener('mouseenter', () => {
+        document.getElementById('inspector').innerHTML = 
+          `<span class="coords">(${x}, ${y})</span> ` +
+          `block <span class="block-id">0x${(blockId??0).toString(16).toUpperCase()}</span> ` +
+          `→ <span class="block-class">${type}</span>` +
+          (isPlayer ? ' <span style="color:#fff">← PLAYER</span>' : '');
+      });
+
+      grid.appendChild(cell);
+    }
+  }
+}
+
+// ── Load data ──
+// Embedded sample data (replaced by Python script on refresh)
+const SAMPLE = {
+  map_name: "Red's House 2F",
+  map_id: 38,
+  tileset: 4,
+  w: 4, h: 4,
+  blocks: [0x10,0x11,0x05,0x08, 0x0f,0x0f,0x0f,0x0f, 0x0f,0x0d,0x0f,0x0f, 0x0c,0x0f,0x0f,0x12],
+  block_types: ["wall","wall","wall","wall", "floor","floor","floor","floor", "floor","stairs","floor","floor", "wall","floor","floor","object"],
+  player_x: 1, player_y: 2,
+  facing: "down",
+  moving: false,
+  screen_type: "overworld",
+  adjacent: { up: "floor", down: "stairs", left: "floor", right: "floor" }
+};
+
+// Try to load live data from query param or localStorage, fall back to sample
+const urlParams = new URLSearchParams(window.location.search);
+const dataParam = urlParams.get('data');
+if (dataParam) {
+  try { render(JSON.parse(decodeURIComponent(dataParam))); }
+  catch(e) { render(SAMPLE); }
+} else {
+  render(SAMPLE);
+}
+
+// ── Input buttons (POST /input) ──
+const inputStatus = document.getElementById('input-status');
+document.querySelectorAll('.btn-row button').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    inputStatus.textContent = 'sending…';
+    try {
+      const res = await fetch('/input', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ button: btn.dataset.btn, frames: 5 })
+      });
+      const data = await res.json().catch(() => ({}));
+      inputStatus.textContent = res.ok
+        ? `${btn.dataset.btn} → ${data.screen_type || 'ok'}`
+        : `error: ${data.error || res.status}`;
+    } catch (e) {
+      inputStatus.textContent = `error: ${e}`;
+    }
+  });
+});
+</script>
+
+</body>
+</html>
