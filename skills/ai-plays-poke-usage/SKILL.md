@@ -3,8 +3,9 @@ name: ai-plays-poke-usage
 description: >-
   How to actually USE the ai-plays-poke (PTP-01X) autonomous Pokémon AI system:
   the working E2E runner (cron_runner.py — proven through starter pickup), the
-  legacy game_loop.py path (crash fixed 2026-08-16 but STILL zero gameplay,
-  GAP-020), setup, cost expectations, and the JSONL output schema.
+  legacy game_loop.py path (crash fixed; boot progression + command wiring
+  delivered 2026-08-16 — GAP-020/021/022, GAP-025 open), setup, cost
+  expectations, and the JSONL output schema.
 version: 1.1.0
 ---
 
@@ -19,15 +20,15 @@ that plays Pokémon Blue/Red. Maintained by a coding-hermes foreman (board in
 | Path | Status | Use for |
 |---|---|---|
 | `python3 cron_runner.py --run-id <id> --cycles N` | ✅ **WORKS — proven to pick a starter** | Real autonomous gameplay + benchmarking (fleet E2E fixture) |
-| `python3 src/game_loop.py --rom <ROM> --max-ticks N` | 🟠 Crash fixed, **still 0 commands / 0 AI decisions** (GAP-020); **fabricates battle wins** (GAP-021) | Nothing yet — wait for GAP-020 |
+| `python3 src/game_loop.py --rom <ROM> --max-ticks N` | 🟡 Works (legacy path): boot progression + command wiring (GAP-020), battle recording gated on verified evidence (GAP-021), `model_name` reflects real AI config (GAP-022); **`--save-dir` still ignored** (GAP-025) | Legacy/simplified runs — prefer `cron_runner.py` for real gameplay |
 | `PYTHONPATH=src .venv/bin/python -m src.ptp_cli --help` | ✅ works (AP-GAP-015) | Config CLI |
 | `PYTHONPATH=src .venv/bin/python -m src.debug_screen --help` | ✅ works (AP-GAP-016) | Screen debug |
 | `PYTHONPATH=src .venv/bin/python -m src.memory_reader --help` | ✅ works (AP-GAP-017) | RAM dump debug |
 | `.venv/bin/python ram_map_server.py` → :8099 | ✅ serves JSON, but boots to `name_entry` and is read-only (GAP-024) | RAM-state schema demo only |
 
 **Never judge this project by `src/game_loop.py`.** The working system is
-`cron_runner.py`. Board truth (2026-08-16): GAP-020 (P1), GAP-021 (P1),
-GAP-022–024 (P2) pending.
+`cron_runner.py`. Board truth (2026-08-16): GAP-020/021/022 complete (game_loop
+boot progression, battle gating, session model_name); GAP-024/025 still open.
 
 ## Quick start (working path — 2026-08-16 proven run)
 
@@ -72,16 +73,18 @@ intro→dialog→menu→party milestone loop works end-to-end.
 
 ## Pitfalls (verified 2026-08-16)
 
-1. `src/game_loop.py`: the 2026-08-07 crash (DF-001) is FIXED — 40/40 real
-   vision calls succeed, clean exit, `emulator_state.state` single extension.
-   But: 40/40 calls classify the **title screen**, `Commands Sent: 0`,
-   `AI Decisions: 0` (GAP-020), and the run records **2 fabricated
-   'victory' battles** from the title screen (GAP-021). README:193-196 and
-   older copies of this skill say "broken/under repair" — that claim is now
-   stale in the opposite direction (GAP-023).
-2. game_loop `game_data.db` session rows always log `model_name='stub_ai'`
-   even when real vision ran (GAP-022) — don't trust that column. The session
-   export also ignores `--save-dir` and lands in the CWD (GAP-025).
+1. `src/game_loop.py`: the 2026-08-07 crash (DF-001) is FIXED and the follow-up
+   gaps are closed — 40-tick runs exit 0 with commands actually sent and
+   RAM-verified title→dialog boot progression (GAP-020), battle recording is
+   gated on verified battle-screen evidence so no fake 'victory' battles are
+   recorded (GAP-021), and session DB `model_name` reflects the real AI config
+   instead of `stub_ai` (GAP-022). It remains the legacy/simplified entry
+   point — older copies of this skill say "broken/under repair", which is
+   stale (GAP-023).
+2. game_loop `game_data.db` session rows previously logged `model_name='stub_ai'`
+   even when real vision ran — fixed (GAP-022): the column now reflects the real
+   AI config. Still open: the session export ignores `--save-dir` and lands in
+   the CWD (GAP-025).
 3. `ram_map_server.py` boots its emulator to `name_entry` (not overworld as
    usability-tests.md claims) and has no input endpoint — read-only (GAP-024).
 4. `--multi-instance` on game_loop raises NotImplementedError (stub).

@@ -223,10 +223,11 @@ your own runs).
   (`ram_map_server.py`, `http://localhost:8099`): HTTP endpoints, JSON schema,
   boot/navigation probes with pass results.
 
-> **Note:** `src/game_loop.py` (documented below) is the legacy/simplified entry point
-> whose vision pipeline is currently under repair (AP-GAP-001). It performs paid
-> OpenRouter vision calls every tick that crash on null HP values, producing 0 AI
-> decisions. Use `cron_runner.py` for real autonomous gameplay.
+> **Note:** `src/game_loop.py` (documented below) is the legacy/simplified entry point.
+> The AP-GAP-001 vision crash is fixed: boot progression + command wiring landed
+> 2026-08-16 (GAP-020), battle recording is gated on verified battle-screen evidence
+> (GAP-021), and session DB `model_name` reflects the real AI config (GAP-022). It
+> remains the legacy path — use `cron_runner.py` for real autonomous gameplay.
 
 ## Quick Start (legacy game_loop.py)
 
