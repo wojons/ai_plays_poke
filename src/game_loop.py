@@ -24,7 +24,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 
-from db.database import GameDatabase  # noqa: E402
+from db.database import GameDatabase, is_identified_opponent  # noqa: E402
 from core.emulator import Emulator, Button  # noqa: E402
 from src.core.ram_reader import RAMReader  # noqa: E402
 
@@ -165,6 +165,7 @@ class GameLoop:
         # Current battle tracking
         self.current_battle_id: Optional[int] = None
         self.battle_turn_count = 0
+        self._current_battle_opponent_identified = False
 
         # Metrics
         self.metrics: dict[str, Any] = {
@@ -304,18 +305,18 @@ class GameLoop:
         # Check for save state snapshot
         self._check_save_snapshot()
 
-    def _read_screen_type(self, emulator: Any) -> str:
-        """Read the current screen type from emulator RAM (free, deterministic).
+    def _read_ram_screen_type(self, emulator: Any) -> str:
+        """Read screen type from RAM without applying a vision fallback."""
+        reader = getattr(self, "_ram_reader", None)
+        if reader is None:
+            reader = RAMReader(emulator, self.config["rom_path"])
+            self._ram_reader = reader
+        return str(reader.screen_type())
 
-        Falls back to the last vision-classified screen type when RAM
-        reading is unavailable (missing ROM, mocked emulator, non-Gen-1).
-        """
+    def _read_screen_type(self, emulator: Any) -> str:
+        """Read RAM screen type, falling back to the last vision result."""
         try:
-            reader = getattr(self, "_ram_reader", None)
-            if reader is None:
-                reader = RAMReader(emulator, self.config["rom_path"])
-                self._ram_reader = reader
-            return str(reader.screen_type())
+            return self._read_ram_screen_type(emulator)
         except Exception as e:
             print(
                 f"⚠️  RAM screen-type read failed ({e}); using last "
@@ -876,12 +877,15 @@ class GameLoop:
         return None
 
     def _detect_battle_transition(self) -> None:
-        """Detect when battle starts/ends and log accordingly"""
-        # Simple check: if in battle state
+        """Detect verified battle transitions and log trustworthy outcomes."""
         game_state = self._analyze_game_state()
+        is_verified_battle = self._is_verified_battle_screen(game_state)
 
-        if game_state.is_battle and self.current_battle_id is None:
+        if is_verified_battle and self.current_battle_id is None:
             # Battle started
+            self._current_battle_opponent_identified = is_identified_opponent(
+                game_state.enemy_pokemon
+            )
             self.current_battle_id = self.db.log_battle_start(
                 {
                     "tick": self.current_tick,
@@ -895,26 +899,53 @@ class GameLoop:
             self.battle_turn_count = 0
             print("⚔️ Battle started!")
 
-        elif game_state.is_battle and self.current_battle_id is not None:
+        elif is_verified_battle and self.current_battle_id is not None:
             # In battle, increment turn counter
             self.battle_turn_count += 1
 
-        elif not game_state.is_battle and self.current_battle_id is not None:
-            # Battle ended
-            # For now, assume victory if survived
-            outcome = "victory" if (game_state.player_hp_percent or 0) > 0 else "defeat"
+        elif not is_verified_battle and self.current_battle_id is not None:
+            # Battle ended. Surviving only proves victory if the opponent was
+            # actually identified; otherwise the result is not trustworthy.
+            if (game_state.player_hp_percent or 0) <= 0:
+                outcome = "defeat"
+            elif getattr(self, "_current_battle_opponent_identified", False):
+                outcome = "victory"
+            else:
+                outcome = "unknown"
             self.db.log_battle_end(
                 self.current_battle_id, outcome, self.battle_turn_count
             )
 
             if outcome == "victory":
                 self.metrics["battles_won"] += 1
-            else:
+            elif outcome == "defeat":
                 self.metrics["battles_lost"] += 1
             print(f"🏁 Battle ended! Result: {outcome}")
 
             self.current_battle_id = None
             self.battle_turn_count = 0
+            self._current_battle_opponent_identified = False
+
+    def _is_verified_battle_screen(self, game_state: GameState) -> bool:
+        """Resolve battle state from RAM, with vision as an unknown fallback.
+
+        A known RAM state is authoritative, so title/menu/dialog RAM evidence
+        cannot be overridden by a false-positive vision classification.
+        """
+        emulator = (
+            self.emulator_mgr.get_instance(self.current_instance)
+            if self.emulator_mgr
+            else self.emulator
+        )
+        try:
+            ram_screen_type = self._read_ram_screen_type(emulator).strip().lower()
+        except Exception:
+            ram_screen_type = "unknown"
+
+        if ram_screen_type != "unknown":
+            return ram_screen_type == "battle"
+        vision_screen_type = str(game_state.screen_type or "").strip().lower()
+        return vision_screen_type == "battle"
 
 
 def create_config(args: Any) -> Dict[str, Any]:

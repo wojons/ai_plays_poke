@@ -11,6 +11,7 @@ Tests cover:
 - Stub game state analysis (_analyze_game_state_stub)
 """
 
+import sqlite3  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 from typing import Any, Dict  # noqa: E402
@@ -631,6 +632,112 @@ class TestRunSingleTick:
         # Verify it was called at least once with the correct instance
         gl.emulator_mgr.get_instance.assert_any_call("instance_0")
         gl.emulator.tick.assert_called_once()
+
+
+class TestBattleRecordingIntegrity:
+    """Regression coverage for battle records produced by the legacy loop."""
+
+    @staticmethod
+    def _make_loop(tmp_path: Path) -> GameLoop:
+        from db.database import GameDatabase
+
+        gl = GameLoop.__new__(GameLoop)
+        gl.config = {
+            "rom_path": "/tmp/test.gb",
+            "save_dir": str(tmp_path),
+        }
+        gl.emulator = MagicMock()
+        gl.emulator_mgr = None
+        gl.db = GameDatabase(str(tmp_path / "game_data.db"))
+        gl.db.start_session(rom_path="/tmp/test.gb", model_name="test")
+        gl.current_tick = 0
+        gl.current_battle_id = None
+        gl.battle_turn_count = 0
+        gl._ram_reader = None
+        gl._last_screen_type = "unknown"
+        gl.metrics = {
+            "battles_encountered": 0,
+            "battles_won": 0,
+            "battles_lost": 0,
+        }
+        return gl
+
+    @staticmethod
+    def _battle_rows(gl: GameLoop) -> list[tuple[str | None, str | None]]:
+        with sqlite3.connect(gl.db.db_path) as conn:
+            return conn.execute(
+                "SELECT enemy_pokemon, outcome FROM battles ORDER BY battle_id"
+            ).fetchall()
+
+    def test_title_screen_only_run_records_zero_battles(self, tmp_path: Path) -> None:
+        """RAM-confirmed title screens override two false vision battle detections."""
+        gl = self._make_loop(tmp_path)
+        false_opponents = {
+            11: "unknown (dark silhouette)",
+            14: "unidentified (sprite unclear)",
+        }
+        states = [
+            _basic_game_state(
+                tick=tick,
+                screen_type="battle" if tick in false_opponents else "title",
+            )
+            for tick in range(1, 41)
+        ]
+        for state in states:
+            state.enemy_pokemon = false_opponents.get(state.tick)
+
+        with (
+            patch.object(gl, "_analyze_game_state", side_effect=states),
+            patch("src.game_loop.RAMReader") as ram_cls,
+        ):
+            ram_cls.return_value.screen_type.return_value = "title"
+            for tick in range(1, 41):
+                gl.current_tick = tick
+                gl._detect_battle_transition()
+
+        assert self._battle_rows(gl) == []
+        assert gl.metrics["battles_encountered"] == 0
+        assert gl.metrics["battles_won"] == 0
+
+    def test_ram_battle_evidence_starts_record_when_vision_is_unknown(
+        self, tmp_path: Path
+    ) -> None:
+        """The authoritative RAM battle flag is sufficient evidence to start."""
+        gl = self._make_loop(tmp_path)
+        state = _basic_game_state(tick=1, screen_type="unknown")
+        state.enemy_pokemon = "Pidgey"
+
+        with (
+            patch.object(gl, "_analyze_game_state", return_value=state),
+            patch("src.game_loop.RAMReader") as ram_cls,
+        ):
+            ram_cls.return_value.screen_type.return_value = "battle"
+            gl._detect_battle_transition()
+
+        assert self._battle_rows(gl) == [("Pidgey", "ongoing")]
+        assert gl.metrics["battles_encountered"] == 1
+
+    def test_unidentified_opponent_is_not_counted_as_win(self, tmp_path: Path) -> None:
+        """An ended verified battle with an unclear sprite has no win outcome."""
+        gl = self._make_loop(tmp_path)
+        battle = _basic_game_state(tick=1, screen_type="battle")
+        battle.enemy_pokemon = "unidentified (sprite unclear)"
+        ended = _basic_game_state(tick=2, screen_type="overworld")
+
+        with (
+            patch.object(gl, "_analyze_game_state", side_effect=[battle, ended]),
+            patch("src.game_loop.RAMReader") as ram_cls,
+        ):
+            ram_cls.return_value.screen_type.side_effect = ["battle", "overworld"]
+            gl._detect_battle_transition()
+            gl._detect_battle_transition()
+
+        assert self._battle_rows(gl) == [
+            ("unidentified (sprite unclear)", "unknown")
+        ]
+        assert gl.metrics["battles_encountered"] == 1
+        assert gl.metrics["battles_won"] == 0
+        assert gl.metrics["battles_lost"] == 0
 
 
 # ════════════════════════════════════════════════════════════════════════════

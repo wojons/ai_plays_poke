@@ -454,6 +454,7 @@ class TestBattleTransition:
                 is_menu=False,
                 has_dialog=False,
                 player_hp_percent=100.0,
+                enemy_pokemon="Pidgey",
             )
 
             overworld_game_state = GameState(

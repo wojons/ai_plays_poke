@@ -21,6 +21,24 @@ from typing import Dict, Any, List
 logger = logging.getLogger(__name__)
 
 
+_UNIDENTIFIED_OPPONENT_MARKERS = (
+    "unknown",
+    "unidentified",
+    "unclear",
+    "silhouette",
+)
+
+
+def is_identified_opponent(enemy_pokemon: Any) -> bool:
+    """Return whether a battle opponent has a usable species identity."""
+    if not isinstance(enemy_pokemon, str):
+        return False
+    normalized = enemy_pokemon.strip().lower()
+    if not normalized or normalized in {"none", "null", "n/a", "?"}:
+        return False
+    return not any(marker in normalized for marker in _UNIDENTIFIED_OPPONENT_MARKERS)
+
+
 class DatabaseError(Exception):
     """Base exception for database errors."""
 
@@ -399,9 +417,17 @@ class GameDatabase:
             return battle_id
 
     def log_battle_end(self, battle_id: int, outcome: str, turns_taken: int) -> None:
-        """End a battle with outcome"""
+        """End a battle, refusing victory for an unidentified opponent."""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
+            if outcome == "victory":
+                cursor.execute(
+                    "SELECT enemy_pokemon FROM battles WHERE battle_id = ?",
+                    (battle_id,),
+                )
+                battle = cursor.fetchone()
+                if battle is None or not is_identified_opponent(battle[0]):
+                    outcome = "unknown"
             cursor.execute(
                 """
                 UPDATE battles 

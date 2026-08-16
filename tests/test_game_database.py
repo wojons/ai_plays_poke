@@ -660,6 +660,28 @@ class TestBattleTracking:
         assert row[0] == "defeat"
         assert row[1] == 5
 
+    @pytest.mark.parametrize(
+        "enemy_pokemon",
+        ["Unknown", "unknown (dark silhouette)", "unidentified (sprite unclear)"],
+    )
+    def test_unidentified_opponent_cannot_be_recorded_as_victory(
+        self, db, enemy_pokemon: str
+    ) -> None:
+        """Database writes cannot turn an unidentified sprite into a win."""
+        db.start_session(rom_path="/tmp/test.gb", model_name="test")
+        battle_id = db.log_battle_start(
+            {"tick": 1, "enemy_pokemon": enemy_pokemon}
+        )
+
+        db.log_battle_end(battle_id, "victory", turns_taken=1)
+
+        with sqlite3.connect(db.db_path) as conn:
+            outcome = conn.execute(
+                "SELECT outcome FROM battles WHERE battle_id = ?", (battle_id,)
+            ).fetchone()[0]
+        assert outcome == "unknown"
+        assert db.get_session_summary(1)["wins"] == 0
+
 
 # ============================================================================
 # Test get_session_summary
