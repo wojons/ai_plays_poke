@@ -1,0 +1,95 @@
+{
+  "task_id": "GAP-024",
+  "task_title": "ram_map_server boots to name_entry, not overworld",
+  "task_criteria": [
+    "Boot is deterministic: after server start, /data.json screen_type is not name_entry (overworld / Red's House 2F reached via enter_name+submit_name or known-good boot.state)",
+    "POST /input endpoint accepts button presses and drives the emulator (viewer can actually play)",
+    "usability-tests.md BLOCK 2 claim updated to match real boot behavior",
+    "Full test suite passes (pytest tests/ -q), mypy clean, ruff clean"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m3:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173936285 bytes (173.94 MB) in 8.03s\u001b[0m\n\u001b[90m3:47PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m3:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173936285 bytes (173.94 MB) in 8.03s\u001b[0m\n\u001b[90m3:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 3 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Boot is deterministic: after server start, /data.json screen_type is not name_entry (overworld / Red's House 2F reached via enter_name+submit_name or known-good boot.state): ram_map_server.py boot_emulator() calls _advance_to_overworld() which drives through Gen 1 player+rival name-entry screens (enter_name('ASH')/submit_name()) to overworld, raising if not reached after max_cycles. Test test_boot_emulator_wires_advance (tests/test_ram_map_server.py) verifies wiring; commit 632458b msg confirms live boot landed Red's House 2F screen_type=overworld.\n  \u2713 POST /input endpoint accepts button presses and drives the emulator (viewer can actually play): handle_input() in ram_map_server.py accepts {\"button\":..}/{\"buttons\":..}/{\"combo\":..} with optional frames, drives emulator via press_button()/combo(), returns 200 ok:true or 400 on bad payloads; do_POST routes /input. ram_map_viewer.html button row wired to POST /input via fetch (lines 295-311). 19 unit tests pass covering all cases.\n  \u2713 usability-tests.md BLOCK 2 claim updated to match real boot behavior: .coding-hermes/usability-tests.md lines 26/30 updated: 'Emulator deterministically reaches overworld state after title bypass + intro skip + name-entry progression (player & rival name screens, GAP-024)' and result notes real boot 2026-08-16 lands Red's House 2F screen_type=overworld NOT the previous stuck name_entry.\n  \u2713 Full test suite passes (pytest tests/ -q), mypy clean, ruff clean: ./venv/bin/pytest tests/ -q => 3914 passed, 14 skipped in 166.75s (exit 0). ./venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 63 source files'. ./venv/bin/ruff check src/ tests/ cron_runner.py ram_map_server.py => 'All checks passed'. LSP diagnostics empty.\nGAP-024 complete: ram_map_server deterministically boots past name-entry to overworld via _advance_to_overworld, POST /input drives the emulator with viewer wiring, usability-tests.md BLOCK 2 updated, and full suite (3914 passed), mypy, and ruff are all clean.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Boot is deterministic: after server start, /data.json screen_type is not name_entry (overworld / Red's House 2F reached via enter_name+submit_name or known-good boot.state): ram_map_server.py boot_emulator() calls _advance_to_overworld() which drives through Gen 1 player+rival name-entry screens (enter_name('ASH')/submit_name()) to overworld, raising if not reached after max_cycles. Test test_boot_emulator_wires_advance (tests/test_ram_map_server.py) verifies wiring; commit 632458b ",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Boot is deterministic: after server start, /data.json screen_type is not name_entry (overworld / Red's House 2F reached via enter_name+submit_name or known-good boot.state)",
+                "status": "PASS",
+                "detail": "ram_map_server.py boot_emulator() calls _advance_to_overworld() which drives through Gen 1 player+rival name-entry screens (enter_name('ASH')/submit_name()) to overworld, raising if not reached after max_cycles. Test test_boot_emulator_wires_advance (tests/test_ram_map_server.py) verifies wiring; commit 632458b msg confirms live boot landed Red's House 2F screen_type=overworld."
+              },
+              {
+                "criterion": "POST /input endpoint accepts button presses and drives the emulator (viewer can actually play)",
+                "status": "PASS",
+                "detail": "handle_input() in ram_map_server.py accepts {\"button\":..}/{\"buttons\":..}/{\"combo\":..} with optional frames, drives emulator via press_button()/combo(), returns 200 ok:true or 400 on bad payloads; do_POST routes /input. ram_map_viewer.html button row wired to POST /input via fetch (lines 295-311). 19 unit tests pass covering all cases."
+              },
+              {
+                "criterion": "usability-tests.md BLOCK 2 claim updated to match real boot behavior",
+                "status": "PASS",
+                "detail": ".coding-hermes/usability-tests.md lines 26/30 updated: 'Emulator deterministically reaches overworld state after title bypass + intro skip + name-entry progression (player & rival name screens, GAP-024)' and result notes real boot 2026-08-16 lands Red's House 2F screen_type=overworld NOT the previous stuck name_entry."
+              },
+              {
+                "criterion": "Full test suite passes (pytest tests/ -q), mypy clean, ruff clean",
+                "status": "PASS",
+                "detail": "./venv/bin/pytest tests/ -q => 3914 passed, 14 skipped in 166.75s (exit 0). ./venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 63 source files'. ./venv/bin/ruff check src/ tests/ cron_runner.py ram_map_server.py => 'All checks passed'. LSP diagnostics empty."
+              }
+            ],
+            "summary": "GAP-024 complete: ram_map_server deterministically boots past name-entry to overworld via _advance_to_overworld, POST /input drives the emulator with viewer wiring, usability-tests.md BLOCK 2 updated, and full suite (3914 passed), mypy, and ruff are all clean."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-024\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m3:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173936285 bytes (173.94 MB) in 8.03s\u001b[0m\n\u001b[90m3:47PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Boot is deterministic: after server start, /data.json screen_type is not name_entry (overworld / Red's House 2F reached via enter_name+submit_name or known-good boot.state): ram_map_server.py boot_emulator() calls _advance_to_overworld() which drives through Gen 1 player+rival name-entry screens (enter_name('ASH')/submit_name()) to overworld, raising if not reached after max_cycles. Test test_boot_emulator_wires_advance (tests/test_ram_map_server.py) verifies wiring; commit 632458b msg confirms live boot landed Red's House 2F screen_type=overworld.\n  \u2713 POST /input endpoint accepts button presses and drives the emulator (viewer can actually play): handle_input() in ram_map_server.py accepts {\"button\":..}/{\"buttons\":..}/{\"combo\":..} with optional frames, drives emulator via press_button()/combo(), returns 200 ok:true or 400 on bad payloads; do_POST routes /input. ram_map_viewer.html button row wired to POST /input via fetch (lines 295-311). 19 unit tests pass covering all cases.\n  \u2713 usability-tests.md BLOCK 2 claim updated to match real boot behavior: .coding-hermes/usability-tests.md lines 26/30 updated: 'Emulator deterministically reaches overworld state after title bypass + intro skip + name-entry progression (player & rival name screens, GAP-024)' and result notes real boot 2026-08-16 lands Red's House 2F screen_type=overworld NOT the previous stuck name_entry.\n  \u2713 Full test suite passes (pytest tests/ -q), mypy clean, ruff clean: ./venv/bin/pytest tests/ -q => 3914 passed, 14 skipped in 166.75s (exit 0). ./venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 63 source files'. ./venv/bin/ruff check src/ tests/ cron_runner.py ram_map_server.py => 'All checks passed'. LSP diagnostics empty.\nGAP-024 complete: ram_map_server deterministically boots past name-entry to overworld via _advance_to_overworld, POST /input drives the emulator with viewer wiring, usability-tests.md BLOCK 2 updated, and full suite (3914 passed), mypy, and ruff are all clean.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-16T20:55:12.164737"
+}
