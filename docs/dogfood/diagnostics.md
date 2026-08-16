@@ -54,3 +54,101 @@ First measurement (`... | tail; echo $?`) reported exit 0 for a missing ROM. Re-
 3. **Never format LLM-JSON numerics with `:.0f`/`:.1f` unguarded.**
 4. **Check both stacks** when touching gameplay: a change to `src/core/emulator.py` affects cron_runner; a change to `ai_client.py` affects game_loop.
 5. Board is DuckDB parquet (`.coding-hermes/board/`) — tasks.parquet + events.parquet; append rows with pandas, keep dtypes (datetime64[us], int8 complexity, float64 attempts).
+
+---
+
+# 2026-08-16 follow-up — what changed, what didn't, and the mechanisms
+
+Second dogfood run, 9 days after the first. Re-verified every DF/AP-GAP claim
+with fresh real-use runs (20-cycle cron_runner E2E, 40-tick game_loop,
+ram_map_server boot, three CLI --help probes). Full evidence:
+`docs/dogfood/2026-08-16-integration.md`.
+
+## What got fixed (verified, all real runs)
+
+- **DF-001 crash → fixed.** 40 ticks of game_loop: zero `Vision analysis
+  failed`, 40/40 real OpenRouter vision calls succeed (~$0.005 each). The
+  None-HP format guard landed. Also GAP-001's exit crash and DF-002's
+  `.state.state` double extension are gone (`emulator_state.state` + clean
+  `session_1_export.json`).
+- **AP-GAP-015/016/017 → fixed.** ptp_cli, debug_screen, memory_reader all
+  answer `--help` with exit 0 instantly (no emulator boot).
+- **cron_runner is now genuinely excellent**: 20/20 cycles, 9 unique
+  coordinates, Pallet Town → Oak's Lab (map 0→40), 2 recovery events, and the
+  **starter milestone** (`[STARTER-PICKED] party_count=1
+  species_hint=Charmander` at cycle 18) — the GAMEPLAY-STARTER-001
+  RAM-verified party-count branch works live.
+
+## What the board claimed was fixed but L3 says otherwise (the point of this run)
+
+### 1. AP-GAP-001 "verified working" did not reproduce (→ GAP-020, P1)
+
+Mechanism, traced from source + run output:
+
+- game_loop boots the ROM and ticks 60 frames/iteration. The Gen-1 Pokémon
+  Blue title screen needs a START press to get to the copyright screen, then
+  another to the main menu.
+- The boot-progression hack (`game_loop.py:268-282`) presses START exactly
+  once, at tick 16, only `if ai_decisions == 0 and not pending_commands` —
+  and never verifies the screen changed. One START on the title screen is not
+  enough; the vision classifier then sees "title screen" for the remaining
+  ticks and its `recommended_action` ("press:A") is **logged but never queued
+  as a command** (Commands Sent: 0, AI Decisions: 0).
+- The foreman's T101 acceptance saw "4 AI decisions (menu navigation)" — so
+  the boot sometimes gets further (run variance), which is exactly why
+  exit-code/one-run acceptance is not enough. The correct pass criterion is
+  screen-type progression + ≥1 button press, not "AI decisions > 0".
+
+Lesson: a P0 task closed as "verified working" with a single criterion run is
+the premature-completion pattern again. The L3 check (does a user get
+gameplay?) was never performed.
+
+### 2. Fabricated battle records (→ GAP-021, P1)
+
+The 40-tick title-screen run wrote 2 `battles` rows with `status='victory'`
+("unknown (dark silhouette)", "unidentified (sprite unclear)") and final
+stats `Battles: 2, Wins: 2`. The battle detector fires on screen transitions
+without requiring battle evidence (RAM screen type or a real sprite), and the
+"victory" default is applied to unidentified opponents. Any benchmark built
+on game_loop metrics is polluted by these phantom wins.
+
+### 3. Telemetry lies about the AI mode (→ GAP-022, P2)
+
+`game_loop.py:802` hardcodes `"model_name": "stub_ai"` ("Will be replaced
+with real AI" — never replaced). Every session row says stub AI while real
+vision calls run. DB consumers get wrong model attribution.
+
+### 4. Docs/skill drift (→ GAP-023, P2)
+
+README:193-196 and the usage SKILL.md still say game_loop's vision pipeline
+is "under repair / broken (DF-001)". The crash IS fixed — the docs are now
+stale in the opposite direction. The only place with accurate status was the
+board; docs must track it.
+
+### 5. Map viewer boots to name_entry (→ GAP-024, P2)
+
+`ram_map_server.py` boots the emulator and serves a perfect JSON schema
+(200/200/404, all fields), but the boot sequence landed at
+`screen_type=name_entry` (Red's House 2F, map 38) — not overworld as
+usability-tests.md claims — and there is no input endpoint (`do_GET` only),
+so the viewer can never progress past pre-game. The name-entry screen is a
+state the intro-skip can't handle, and the viewer has no way to type a name.
+
+## The right way (updated)
+
+1. **To play/benchmark:** `python3 cron_runner.py --run-id X --cycles N`
+   (20 cycles ≈ 4 min, ~$0.16–0.30; JSONL events incl. starter milestone).
+2. **To verify game_loop fixes:** fresh save-dir, 40 ticks, require
+   `Commands Sent >= 1`, non-title vision responses, `Battles: 0, Wins: 0`
+   on non-battle runs, and real `model_name` in the session row. Exit 0 and
+   "no crash" prove nothing (see GAP-020/021/022).
+3. **Boot progression on Gen 1:** title screen needs START → copyright →
+   START → menu. Press once, verify via RAM/vision, press again. Never rely
+   on a single unconditional press.
+4. **Vision `recommended_action` must become a command** — logging the LLM's
+   suggested button without executing it produces "AI analyzed but never
+   played" runs.
+5. **Battle records need battle evidence** — no sprite identified, no battle.
+   A "victory" against "unknown (dark silhouette)" is data fabrication.
+6. **Cost note:** game_loop vision is ~$0.005/tick and burns it even stuck on
+   the title screen; cron_runner is ~$0.016/cycle with real progress.
