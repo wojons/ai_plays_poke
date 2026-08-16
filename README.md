@@ -178,6 +178,9 @@ checkpoint rollback).
 | `--run-id` | auto-generated timestamp | Label for this run's logs and screenshots |
 | `--cycles` | 200 | Number of AI decision cycles |
 
+**Full reference:** [docs/api/cron_runner.md](docs/api/cron_runner.md) — CLI flags,
+pipeline stages, JSONL log schema, checkpoint/rollback behavior, and cost notes.
+
 **Proven results:** 10/10 cycles in dogfood runs (real LLM decisions, map movement,
 recovery firing); 80/80 cycles in E2E (RSS flat ~110 MB, $0.60 for 43 LLM calls).
 

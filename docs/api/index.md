@@ -28,6 +28,12 @@ This section documents all public APIs and interfaces for PTP-01X - an orchestra
 | [GameState](game_state.md) | Game state snapshot for AI context |
 | [BattleState](battle_state.md) | Detailed battle information |
 
+### CLI Tools
+
+| Tool | Description |
+|------|-------------|
+| [cron_runner](cron_runner.md) | Cron-friendly autonomous gameplay runner — CLI flags, pipeline, JSONL log schema, checkpoints, costs |
+
 ### Examples
 
 | Example | Description |
