@@ -311,3 +311,11 @@ tasks:
   status: complete
   created_at: '2026-08-16T19:14:00.426061+00:00'
   completed_at: '2026-08-16T19:38:00.456346+00:00'
+- id: GAP-022
+  title: Fix session DB model_name stub_ai hardcode
+  criteria:
+  - session row model_name reflects the real model ('stub_ai' only when no API key
+    present)
+  status: complete
+  created_at: '2026-08-16T19:58:01.956916+00:00'
+  completed_at: '2026-08-16T20:07:38.875027+00:00'

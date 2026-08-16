@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-022",
+  "task_title": "Fix session DB model_name stub_ai hardcode",
+  "task_criteria": [
+    "session row model_name reflects the real model ('stub_ai' only when no API key present)"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m3:07PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173896647 bytes (173.90 MB) in 9.32s\u001b[0m\n\u001b[90m3:07PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m3:07PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173896647 bytes (173.90 MB) in 9.32s\u001b[0m\n\u001b[90m3:07PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 3 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 session row model_name reflects the real model ('stub_ai' only when no API key present): src/game_loop.py (HEAD commit 7db9328) lines 200-210: session_model_name derived from vision_client.model when use_real_ai, else ai_manager.vision_model, else 'stub_ai'. use_real_ai=True only when GameAIManager() init succeeds (API key present, lines 125-131); no key raises ValueError -> use_real_ai=False -> stub_ai. Tests test_real_ai_sets_session_model_name and test_no_api_key_sets_stub_ai in tests/test_game_loop.py PASS (2 passed in 0.84s); full test_game_loop.py 95 passed; LSP 0 diagnostics.\nSession row model_name now reflects the real AI model via vision_client.model/ai_manager.vision_model, falling back to stub_ai only when no API key is present, with passing regression tests.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 session row model_name reflects the real model ('stub_ai' only when no API key present): src/game_loop.py (HEAD commit 7db9328) lines 200-210: session_model_name derived from vision_client.model when use_real_ai, else ai_manager.vision_model, else 'stub_ai'. use_real_ai=True only when GameAIManager() init succeeds (API key present, lines 125-131); no key raises ValueError -> use_real_ai=False -> stub_ai. Tests test_real_ai_sets_session_model_name and test_no_api_key_sets_stub_ai in ",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "session row model_name reflects the real model ('stub_ai' only when no API key present)",
+                "status": "PASS",
+                "detail": "src/game_loop.py (HEAD commit 7db9328) lines 200-210: session_model_name derived from vision_client.model when use_real_ai, else ai_manager.vision_model, else 'stub_ai'. use_real_ai=True only when GameAIManager() init succeeds (API key present, lines 125-131); no key raises ValueError -> use_real_ai=False -> stub_ai. Tests test_real_ai_sets_session_model_name and test_no_api_key_sets_stub_ai in tests/test_game_loop.py PASS (2 passed in 0.84s); full test_game_loop.py 95 passed; LSP 0 diagnostics."
+              }
+            ],
+            "summary": "Session row model_name now reflects the real AI model via vision_client.model/ai_manager.vision_model, falling back to stub_ai only when no API key is present, with passing regression tests."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-022\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m3:07PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173896647 bytes (173.90 MB) in 9.32s\u001b[0m\n\u001b[90m3:07PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 session row model_name reflects the real model ('stub_ai' only when no API key present): src/game_loop.py (HEAD commit 7db9328) lines 200-210: session_model_name derived from vision_client.model when use_real_ai, else ai_manager.vision_model, else 'stub_ai'. use_real_ai=True only when GameAIManager() init succeeds (API key present, lines 125-131); no key raises ValueError -> use_real_ai=False -> stub_ai. Tests test_real_ai_sets_session_model_name and test_no_api_key_sets_stub_ai in tests/test_game_loop.py PASS (2 passed in 0.84s); full test_game_loop.py 95 passed; LSP 0 diagnostics.\nSession row model_name now reflects the real AI model via vision_client.model/ai_manager.vision_model, falling back to stub_ai only when no API key is present, with passing regression tests.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-16T20:11:13.286633"
+}
