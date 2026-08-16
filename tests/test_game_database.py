@@ -749,6 +749,9 @@ class TestExportSessionData:
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
         output_path = db.export_session_data(1)
         assert Path(output_path).exists()
+        # GAP-025 regression: export must land next to the DB (the configured
+        # save-dir), never the CWD.
+        assert Path(output_path).parent == Path(db.db_path).parent
         with open(output_path) as f:
             data = json.load(f)
         assert data["session"]["rom_path"] == "/tmp/test.gb"

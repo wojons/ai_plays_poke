@@ -527,7 +527,10 @@ class GameDatabase:
                 "screenshots": self._get_screenshots(cursor, session_id),
             }
 
-        output_path = f"session_{session_id}_export.json"
+        # Write the export next to the DB (which lives in the configured
+        # save-dir), NOT the CWD — a --save-dir run must not dirty the repo
+        # root (GAP-025).
+        output_path = str(Path(self.db_path).parent / f"session_{session_id}_export.json")
         with open(output_path, "w") as f:
             json.dump(data, f, indent=2, default=str)
 
