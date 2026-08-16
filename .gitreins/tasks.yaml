@@ -268,3 +268,12 @@ tasks:
   status: complete
   created_at: '2026-08-16T16:39:35.013831+00:00'
   completed_at: '2026-08-16T17:08:18.386526+00:00'
+- id: GAP-021
+  title: game_loop fabricates battle records on title-screen-only runs
+  criteria:
+  - Gate battle creation on verified battle-screen evidence (RAM screen type or vision
+    classification 'battle'); never record 'victory' for unidentified sprites; add
+    regression test that a title-screen run records 0 battles; full test suite green
+  status: complete
+  created_at: '2026-08-16T17:32:40.456141+00:00'
+  completed_at: '2026-08-16T18:03:32.669533+00:00'

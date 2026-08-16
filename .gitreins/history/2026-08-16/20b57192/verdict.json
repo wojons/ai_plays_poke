@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-021",
+  "task_title": "game_loop fabricates battle records on title-screen-only runs",
+  "task_criteria": [
+    "Gate battle creation on verified battle-screen evidence (RAM screen type or vision classification 'battle'); never record 'victory' for unidentified sprites; add regression test that a title-screen run records 0 battles; full test suite green"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m1:03PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173388997 bytes (173.39 MB) in 7.98s\u001b[0m\n\u001b[90m1:03PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m1:03PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173388997 bytes (173.39 MB) in 7.98s\u001b[0m\n\u001b[90m1:03PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 3 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Gate battle creation on verified battle-screen evidence (RAM screen type or vision classification 'battle'); never record 'victory' for unidentified sprites; add regression test that a title-screen run records 0 battles; full test suite green: Battle creation gated on verified evidence: _is_verified_battle_screen (src/game_loop.py:929) treats RAM screen type as authoritative and only falls back to vision classification 'battle' when RAM is unknown; _detect_battle_transition (game_loop.py:882) starts a battle only when is_verified_battle. Victory never recorded for unidentified sprites: game_loop.py:911 only records 'victory' when _current_battle_opponent_identified is True, and database.py:429 log_battle_end converts victory->unknown for unidentified opponents. Regression test test_title_screen_only_run_records_zero_battles (tests/test_game_loop.py:672) asserts 0 battle rows and 0 battles_encountered for a title-screen run (PASSED). Full suite green: `.venv/bin/python -m pytest tests/ -k 'not benchmark'` => 3876 passed, 14 skipped, 5 deselected in 168.44s; mypy 0 errors on changed files; ruff PASS; LSP diagnostics clean.\nGAP-021 fully implemented: battle records gated on verified RAM/vision battle evidence, victory blocked for unidentified opponents at both game_loop and database layers, title-screen regression test added and passing, and the full test suite is green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Gate battle creation on verified battle-screen evidence (RAM screen type or vision classification 'battle'); never record 'victory' for unidentified sprites; add regression test that a title-screen run records 0 battles; full test suite green: Battle creation gated on verified evidence: _is_verified_battle_screen (src/game_loop.py:929) treats RAM screen type as authoritative and only falls back to vision classification 'battle' when RAM is unknown; _detect_battle_transition (game_lo",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Gate battle creation on verified battle-screen evidence (RAM screen type or vision classification 'battle'); never record 'victory' for unidentified sprites; add regression test that a title-screen run records 0 battles; full test suite green",
+                "status": "PASS",
+                "detail": "Battle creation gated on verified evidence: _is_verified_battle_screen (src/game_loop.py:929) treats RAM screen type as authoritative and only falls back to vision classification 'battle' when RAM is unknown; _detect_battle_transition (game_loop.py:882) starts a battle only when is_verified_battle. Victory never recorded for unidentified sprites: game_loop.py:911 only records 'victory' when _current_battle_opponent_identified is True, and database.py:429 log_battle_end converts victory->unknown for unidentified opponents. Regression test test_title_screen_only_run_records_zero_battles (tests/test_game_loop.py:672) asserts 0 battle rows and 0 battles_encountered for a title-screen run (PASSED). Full suite green: `.venv/bin/python -m pytest tests/ -k 'not benchmark'` => 3876 passed, 14 skipped, 5 deselected in 168.44s; mypy 0 errors on changed files; ruff PASS; LSP diagnostics clean."
+              }
+            ],
+            "summary": "GAP-021 fully implemented: battle records gated on verified RAM/vision battle evidence, victory blocked for unidentified opponents at both game_loop and database layers, title-screen regression test added and passing, and the full test suite is green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-021\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m1:03PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173388997 bytes (173.39 MB) in 7.98s\u001b[0m\n\u001b[90m1:03PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Gate battle creation on verified battle-screen evidence (RAM screen type or vision classification 'battle'); never record 'victory' for unidentified sprites; add regression test that a title-screen run records 0 battles; full test suite green: Battle creation gated on verified evidence: _is_verified_battle_screen (src/game_loop.py:929) treats RAM screen type as authoritative and only falls back to vision classification 'battle' when RAM is unknown; _detect_battle_transition (game_loop.py:882) starts a battle only when is_verified_battle. Victory never recorded for unidentified sprites: game_loop.py:911 only records 'victory' when _current_battle_opponent_identified is True, and database.py:429 log_battle_end converts victory->unknown for unidentified opponents. Regression test test_title_screen_only_run_records_zero_battles (tests/test_game_loop.py:672) asserts 0 battle rows and 0 battles_encountered for a title-screen run (PASSED). Full suite green: `.venv/bin/python -m pytest tests/ -k 'not benchmark'` => 3876 passed, 14 skipped, 5 deselected in 168.44s; mypy 0 errors on changed files; ruff PASS; LSP diagnostics clean.\nGAP-021 fully implemented: battle records gated on verified RAM/vision battle evidence, victory blocked for unidentified opponents at both game_loop and database layers, title-screen regression test added and passing, and the full test suite is green.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-16T18:11:44.725160"
+}
