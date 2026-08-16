@@ -319,3 +319,13 @@ tasks:
   status: complete
   created_at: '2026-08-16T19:58:01.956916+00:00'
   completed_at: '2026-08-16T20:07:38.875027+00:00'
+- id: GAP-023
+  title: 'GAP-023: stale broken-claims about game_loop in README + usage skill'
+  criteria:
+  - README.md contains no 'under repair'/'producing 0 AI decisions'/'crash on null
+    HP' claims about game_loop (grep returns 0) AND skills/ai-plays-poke-usage/SKILL.md
+    pitfalls 1-2 reflect GAP-020/021/022 completion (boot progression + commands wired,
+    battles gated, model_name fixed)
+  status: complete
+  created_at: '2026-08-16T20:14:19.687074+00:00'
+  completed_at: '2026-08-16T20:20:08.593728+00:00'
