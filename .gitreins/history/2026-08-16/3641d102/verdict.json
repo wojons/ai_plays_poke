@@ -1,0 +1,89 @@
+{
+  "task_id": "GAP-026",
+  "task_title": "README 'How to Test' overpromises: add fast test subset + mark heavy integration classes",
+  "task_criteria": [
+    "README documents a fast test command (e.g. -k 'not integration and not gameplay' or a fast marker) that completes in under 90s on a fresh checkout",
+    "Heavy classes in tests/test_integration.py are marked @pytest.mark.integration so -m 'not integration' excludes them",
+    "README states realistic runtime for the full suite"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m1:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173439771 bytes (173.44 MB) in 9.12s\u001b[0m\n\u001b[90m1:47PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m1:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173439771 bytes (173.44 MB) in 9.12s\u001b[0m\n\u001b[90m1:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 3 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 README documents a fast test command (e.g. -k 'not integration and not gameplay' or a fast marker) that completes in under 90s on a fresh checkout: README.md (commit 0f35360) documents `.venv/bin/python -m pytest tests/ -q -m \"not integration and not slow\"` claiming 'Completes in ~70\u201385s on a fresh checkout (3825 passed / 8 skipped, 62 deselected)'. Actual run: 3825 passed, 8 skipped, 62 deselected in 66.91s (<90s) \u2014 /tmp/fast_test.log.\n  \u2713 Heavy classes in tests/test_integration.py are marked @pytest.mark.integration so -m 'not integration' excludes them: Commit 0f35360 added @pytest.mark.integration to TestFullTickCycle, TestBattleTransition, TestDialogFlow, TestCommandExecution, TestErrorRecovery in tests/test_integration.py. Verified: `-m \"integration\"` collects 29 tests; `-m \"not integration\"` deselects all 29 (0 selected).\n  \u2713 README states realistic runtime for the full suite: README.md states '~3 min: 3881 passed / 14 skipped on a fresh checkout'. Actual full suite run: 3881 passed, 14 skipped in 170.04s (2:50) \u2014 /tmp/full_test.log, exactly matching the README claim.\nAll three GAP-026 criteria verified: README documents a fast subset command that ran in 66.91s (<90s), integration classes are marked @pytest.mark.integration (29 tests deselected by -m 'not integration'), and the full-suite runtime claim (~3 min, 3881 passed/14 skipped) matches the actual 170.04s run.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 README documents a fast test command (e.g. -k 'not integration and not gameplay' or a fast marker) that completes in under 90s on a fresh checkout: README.md (commit 0f35360) documents `.venv/bin/python -m pytest tests/ -q -m \"not integration and not slow\"` claiming 'Completes in ~70\u201385s on a fresh checkout (3825 passed / 8 skipped, 62 deselected)'. Actual run: 3825 passed, 8 skipped, 62 deselected in 66.91s (<90s) \u2014 /tmp/fast_test.log.\n  \u2713 Heavy classes in tests/test_integration.py",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "README documents a fast test command (e.g. -k 'not integration and not gameplay' or a fast marker) that completes in under 90s on a fresh checkout",
+                "status": "PASS",
+                "detail": "README.md (commit 0f35360) documents `.venv/bin/python -m pytest tests/ -q -m \"not integration and not slow\"` claiming 'Completes in ~70\u201385s on a fresh checkout (3825 passed / 8 skipped, 62 deselected)'. Actual run: 3825 passed, 8 skipped, 62 deselected in 66.91s (<90s) \u2014 /tmp/fast_test.log."
+              },
+              {
+                "criterion": "Heavy classes in tests/test_integration.py are marked @pytest.mark.integration so -m 'not integration' excludes them",
+                "status": "PASS",
+                "detail": "Commit 0f35360 added @pytest.mark.integration to TestFullTickCycle, TestBattleTransition, TestDialogFlow, TestCommandExecution, TestErrorRecovery in tests/test_integration.py. Verified: `-m \"integration\"` collects 29 tests; `-m \"not integration\"` deselects all 29 (0 selected)."
+              },
+              {
+                "criterion": "README states realistic runtime for the full suite",
+                "status": "PASS",
+                "detail": "README.md states '~3 min: 3881 passed / 14 skipped on a fresh checkout'. Actual full suite run: 3881 passed, 14 skipped in 170.04s (2:50) \u2014 /tmp/full_test.log, exactly matching the README claim."
+              }
+            ],
+            "summary": "All three GAP-026 criteria verified: README documents a fast subset command that ran in 66.91s (<90s), integration classes are marked @pytest.mark.integration (29 tests deselected by -m 'not integration'), and the full-suite runtime claim (~3 min, 3881 passed/14 skipped) matches the actual 170.04s run."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-026\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m1:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~173439771 bytes (173.44 MB) in 9.12s\u001b[0m\n\u001b[90m1:47PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 README documents a fast test command (e.g. -k 'not integration and not gameplay' or a fast marker) that completes in under 90s on a fresh checkout: README.md (commit 0f35360) documents `.venv/bin/python -m pytest tests/ -q -m \"not integration and not slow\"` claiming 'Completes in ~70\u201385s on a fresh checkout (3825 passed / 8 skipped, 62 deselected)'. Actual run: 3825 passed, 8 skipped, 62 deselected in 66.91s (<90s) \u2014 /tmp/fast_test.log.\n  \u2713 Heavy classes in tests/test_integration.py are marked @pytest.mark.integration so -m 'not integration' excludes them: Commit 0f35360 added @pytest.mark.integration to TestFullTickCycle, TestBattleTransition, TestDialogFlow, TestCommandExecution, TestErrorRecovery in tests/test_integration.py. Verified: `-m \"integration\"` collects 29 tests; `-m \"not integration\"` deselects all 29 (0 selected).\n  \u2713 README states realistic runtime for the full suite: README.md states '~3 min: 3881 passed / 14 skipped on a fresh checkout'. Actual full suite run: 3881 passed, 14 skipped in 170.04s (2:50) \u2014 /tmp/full_test.log, exactly matching the README claim.\nAll three GAP-026 criteria verified: README documents a fast subset command that ran in 66.91s (<90s), integration classes are marked @pytest.mark.integration (29 tests deselected by -m 'not integration'), and the full-suite runtime claim (~3 min, 3881 passed/14 skipped) matches the actual 170.04s run.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-16T18:56:04.705737"
+}

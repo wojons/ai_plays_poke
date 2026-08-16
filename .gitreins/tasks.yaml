@@ -277,3 +277,15 @@ tasks:
   status: complete
   created_at: '2026-08-16T17:32:40.456141+00:00'
   completed_at: '2026-08-16T18:03:32.669533+00:00'
+- id: GAP-026
+  title: 'README ''How to Test'' overpromises: add fast test subset + mark heavy integration
+    classes'
+  criteria:
+  - README documents a fast test command (e.g. -k 'not integration and not gameplay'
+    or a fast marker) that completes in under 90s on a fresh checkout
+  - Heavy classes in tests/test_integration.py are marked @pytest.mark.integration
+    so -m 'not integration' excludes them
+  - README states realistic runtime for the full suite
+  status: complete
+  created_at: '2026-08-16T18:23:58.595604+00:00'
+  completed_at: '2026-08-16T18:47:17.691059+00:00'
