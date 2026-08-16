@@ -26,6 +26,7 @@ sys.path.insert(0, str(project_root))
 
 from db.database import GameDatabase  # noqa: E402
 from core.emulator import Emulator, Button  # noqa: E402
+from src.core.ram_reader import RAMReader  # noqa: E402
 
 
 class EmulatorManager:
@@ -54,6 +55,17 @@ from schemas.commands import (  # noqa: E402
     AIThought,
     GameState,
 )
+
+# Boot progression (GAP-020): Gen-1 boot order is title screen → START →
+# copyright screen → A → main menu. A single unverified START press just
+# blinks the title; presses are repeated and RAM-verified until the screen
+# leaves the title/boot state, bounded so a stuck boot fails loudly instead
+# of silently idling the whole run.
+MAX_BOOT_PROGRESSION_PRESSES = 10
+_BOOT_BUTTONS = ("start", "a")
+
+# Buttons a vision recommended_action may map to (GAP-020).
+_BUTTON_NAMES = frozenset({"a", "b", "start", "select", "up", "down", "left", "right"})
 
 
 class GameLoop:
@@ -139,6 +151,12 @@ class GameLoop:
         self.is_running = False
         self.paused = False
         self.session_id: Optional[int] = None
+
+        # Boot progression state (GAP-020): presses are verified via RAM
+        # screen-type reads so the run can't silently idle on the title.
+        self._boot_verified = False
+        self._ram_reader: Optional[RAMReader] = None
+        self._last_screen_type = "unknown"
 
         # Command pipeline
         self.pending_commands: list[Dict[str, Any]] = []
@@ -259,27 +277,13 @@ class GameLoop:
         else:
             self.emulator.tick(frames=60)
 
-        # Boot progression: the title screen needs a START press to reach the
-        # main menu, and the vision classifier rarely labels it "title"
-        # (mostly "transition"/"unknown" during boot). If no AI decision has
-        # fired by tick 16 (~16s of game time, title screen visible) and no
-        # command is queued, press START once so the quickstart run can
-        # actually reach a decision-worthy state.
-        if (
-            self.current_tick == 16
-            and self.metrics.get("ai_decisions", 0) == 0
-            and not self.pending_commands
-        ):
-            emulator = (
-                self.emulator_mgr.get_instance(self.current_instance)
-                if self.emulator_mgr
-                else self.emulator
-            )
-            emulator.press_button("start")
-            print(
-                "🎮 Boot progression: pressed START at title screen "
-                f"(tick {self.current_tick})"
-            )
+        # Boot progression (GAP-020): the Gen-1 title screen needs START →
+        # copyright → A → main menu, and a single unverified START press
+        # leaves the game stuck on the title. From tick 16, press START/A
+        # with a RAM screen-type verification after each press, bounded so
+        # a stuck boot fails loudly instead of silently idling the run.
+        if self.current_tick >= 16 and not self._boot_verified:
+            self._run_boot_progression()
 
         # Check if should take screenshot (always capture tick 1 so any run
         # produces at least one screenshot)
@@ -299,6 +303,64 @@ class GameLoop:
 
         # Check for save state snapshot
         self._check_save_snapshot()
+
+    def _read_screen_type(self, emulator: Any) -> str:
+        """Read the current screen type from emulator RAM (free, deterministic).
+
+        Falls back to the last vision-classified screen type when RAM
+        reading is unavailable (missing ROM, mocked emulator, non-Gen-1).
+        """
+        try:
+            reader = getattr(self, "_ram_reader", None)
+            if reader is None:
+                reader = RAMReader(emulator, self.config["rom_path"])
+                self._ram_reader = reader
+            return str(reader.screen_type())
+        except Exception as e:
+            print(
+                f"⚠️  RAM screen-type read failed ({e}); using last "
+                f"vision-classified screen type"
+            )
+            return getattr(self, "_last_screen_type", "unknown")
+
+    def _run_boot_progression(self) -> None:
+        """Press through the Gen-1 boot screens with verification (GAP-020).
+
+        Boot order is title → START → copyright → A → main menu; a single
+        unverified START press leaves the game on the title screen. Press
+        START/A alternately and verify the screen actually transitioned via
+        a RAM screen-type read after each press. Bounded by
+        ``MAX_BOOT_PROGRESSION_PRESSES`` so a stuck boot fails loudly
+        instead of silently idling the whole run.
+        """
+        emulator = (
+            self.emulator_mgr.get_instance(self.current_instance)
+            if self.emulator_mgr
+            else self.emulator
+        )
+        for attempt in range(1, MAX_BOOT_PROGRESSION_PRESSES + 1):
+            screen = self._read_screen_type(emulator)
+            if screen not in ("title", "unknown"):
+                self._boot_verified = True
+                print(
+                    f"🎮 Boot progression complete: screen {screen!r} "
+                    f"after {attempt - 1} press(es) (tick {self.current_tick})"
+                )
+                return
+            button = _BOOT_BUTTONS[(attempt - 1) % len(_BOOT_BUTTONS)]
+            emulator.press_button(button, frames=30)
+            emulator.wait(30)
+            print(
+                f"🎮 Boot progression: pressed {button!r} (attempt "
+                f"{attempt}/{MAX_BOOT_PROGRESSION_PRESSES}, tick "
+                f"{self.current_tick}) — screen still {screen!r}"
+            )
+        raise RuntimeError(
+            f"Boot progression failed: screen still "
+            f"{self._read_screen_type(emulator)!r} after "
+            f"{MAX_BOOT_PROGRESSION_PRESSES} START/A presses (tick "
+            f"{self.current_tick}) — game stuck before the main menu"
+        )
 
     def _check_save_snapshot(self) -> None:
         """Check if save state snapshot should be created"""
@@ -434,6 +496,11 @@ class GameLoop:
                 elif game_state.screen_type == "dialog":
                     game_state.has_dialog = True
 
+                # GAP-020: the vision recommended_action was previously
+                # logged and dropped; wire it into the command pipeline so
+                # vision suggestions become real button presses.
+                self._queue_vision_recommended_action(vision_result)
+
                 print(
                     f"✅ Vision analysis: {game_state.screen_type}, "
                     f"HP({game_state.player_hp_percent:.0f}%, {game_state.enemy_hp_percent:.0f}%)"
@@ -447,7 +514,66 @@ class GameLoop:
             print(f"⚠️  Vision analysis failed: {e}, using stub logic")
             game_state = self._analyze_game_state_stub(game_state)
 
+        # Track the last known screen type (boot-progression fallback).
+        self._last_screen_type = game_state.screen_type
         return game_state
+
+    def _queue_vision_recommended_action(self, vision_result: Dict[str, Any]) -> None:
+        """Wire the vision ``recommended_action`` into the command pipeline.
+
+        GAP-020: the vision classifier returns a recommended_action (e.g.
+        ``"press:START"``, ``"walk up"``) that was previously logged and
+        dropped. Convert it to a real button command and queue it so the
+        run actually produces button presses from vision suggestions.
+        """
+        recommended = vision_result.get("recommended_action")
+        if not recommended or not isinstance(recommended, str):
+            return
+        command = self._normalize_recommended_action(recommended)
+        if command is None:
+            print(f"⚠️  Unsupported vision recommended_action: {recommended!r}")
+            return
+        # One action at a time: don't stack vision presses behind other
+        # queued commands, and don't re-queue while one is already pending.
+        if self.pending_commands:
+            return
+        self.pending_commands.append(
+            {
+                "tick": self.current_tick,
+                "command": command,
+                "reasoning": f"Vision recommended_action: {recommended}",
+                "confidence": 0.7,
+                "button": None,
+            }
+        )
+        self.metrics["ai_decisions"] = (
+            cast(int, self.metrics.get("ai_decisions", 0)) + 1
+        )
+        print(
+            f"🎮 Vision recommended_action wired: {recommended!r} -> {command}"
+        )
+
+    @staticmethod
+    def _normalize_recommended_action(action: str) -> Optional[str]:
+        """Normalize a vision recommended_action into ``press:<BUTTON>``.
+
+        Accepts ``press:A``, ``press A``, ``PRESS START``, ``walk up``,
+        ``move left``… Returns ``None`` when the action is not mappable to
+        a single button press.
+        """
+        text = action.strip().lower()
+        if text.startswith("press"):
+            rest = text[len("press") :].strip().lstrip(":")
+            if rest in _BUTTON_NAMES:
+                return f"press:{rest.upper()}"
+            return None
+        for verb in ("walk", "move", "go", "step"):
+            if text.startswith(verb):
+                rest = text[len(verb) :].strip().lstrip(":")
+                if rest in ("up", "down", "left", "right"):
+                    return f"press:{rest.upper()}"
+                return None
+        return None
 
     def _analyze_game_state_stub(self, game_state: GameState) -> GameState:
         """

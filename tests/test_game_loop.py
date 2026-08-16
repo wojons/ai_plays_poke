@@ -14,7 +14,7 @@ Tests cover:
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 from typing import Any, Dict  # noqa: E402
-from unittest.mock import MagicMock, patch  # noqa: E402
+from unittest.mock import MagicMock, call, patch  # noqa: E402
 
 import pytest  # noqa: E402
 
@@ -504,6 +504,9 @@ class TestRunSingleTick:
             gl.command_history = []
             gl.current_battle_id = None
             gl.battle_turn_count = 0
+            gl._boot_verified = False
+            gl._ram_reader = None
+            gl._last_screen_type = "unknown"
             gl.metrics = {
                 "total_ticks": 0,
                 "screenshots_taken": 0,
@@ -541,22 +544,67 @@ class TestRunSingleTick:
         # current_tick(2) - last_screenshot_tick(1) = 1 < 10 → no screenshot
         assert gl.last_screenshot_tick == 1  # unchanged
 
-    def test_boot_progression_presses_start_at_tick_16_when_no_decisions(
+    def test_boot_progression_presses_start_until_screen_transitions(
         self, gl: GameLoop
     ) -> None:
-        """No AI decision by tick 16 (boot/title screen) → press START once."""
+        """Title screen → press START → RAM verifies menu → stop pressing."""
         gl.current_tick = 15
-        gl.run_single_tick()
-        gl.emulator.press_button.assert_called_once_with("start")
+        with patch("src.game_loop.RAMReader") as ram_cls:
+            ram = ram_cls.return_value
+            ram.screen_type.side_effect = ["title", "menu"]
+            gl.run_single_tick()
+        # One START press, then the transition is verified via RAM.
+        gl.emulator.press_button.assert_called_once_with("start", frames=30)
+        assert gl._boot_verified is True
 
-    def test_boot_progression_skips_start_after_first_decision(
+    def test_boot_progression_alternates_start_then_a_when_still_title(
         self, gl: GameLoop
     ) -> None:
-        """Once a decision has fired, tick 16 does not press START."""
+        """Copyright screen reads as title → second press is A, then verified."""
         gl.current_tick = 15
-        gl.metrics["ai_decisions"] = 1
-        gl.run_single_tick()
+        with patch("src.game_loop.RAMReader") as ram_cls:
+            ram = ram_cls.return_value
+            ram.screen_type.side_effect = ["title", "title", "menu"]
+            gl.run_single_tick()
+        assert gl.emulator.press_button.call_args_list == [
+            call("start", frames=30),
+            call("a", frames=30),
+        ]
+        assert gl._boot_verified is True
+
+    def test_boot_progression_fails_loudly_when_stuck_on_title(
+        self, gl: GameLoop
+    ) -> None:
+        """10 presses with no screen transition → loud RuntimeError."""
+        gl.current_tick = 15
+        with patch("src.game_loop.RAMReader") as ram_cls:
+            ram_cls.return_value.screen_type.return_value = "title"
+            with pytest.raises(RuntimeError, match="Boot progression failed"):
+                gl.run_single_tick()
+        assert gl.emulator.press_button.call_count == 10
+
+    def test_boot_progression_skips_when_screen_already_progressed(
+        self, gl: GameLoop
+    ) -> None:
+        """RAM already shows a non-title screen → no presses, verified."""
+        gl.current_tick = 15
+        with patch("src.game_loop.RAMReader") as ram_cls:
+            ram_cls.return_value.screen_type.return_value = "menu"
+            gl.run_single_tick()
         gl.emulator.press_button.assert_not_called()
+        assert gl._boot_verified is True
+
+    def test_boot_progression_ram_failure_falls_back_to_last_vision_state(
+        self, gl: GameLoop
+    ) -> None:
+        """RAMReader unavailable (e.g. non-Gen-1) → last vision state used."""
+        gl.current_tick = 15
+        gl._last_screen_type = "overworld"  # last vision classification
+        with patch("src.game_loop.RAMReader", side_effect=RuntimeError("no rom")):
+            gl.run_single_tick()
+        # Falls back to vision state (overworld) → no presses needed.
+        gl.emulator.press_button.assert_not_called()
+        assert gl._boot_verified is True
 
     def test_executes_pending_commands_when_present(self, gl: GameLoop) -> None:
         gl.config["screenshot_interval"] = 999  # suppress screenshots
@@ -918,3 +966,157 @@ class TestAnalyzeGameStateNoneHP:
         result = loop_with_vision._analyze_game_state()
         assert result.player_hp_percent == 100.0
         assert result.enemy_hp_percent == 100.0
+
+
+# ── Regression: GAP-020 ───────────────────────────────────────────────────
+
+
+class TestVisionRecommendedActionWiring:
+    """GAP-020: vision recommended_action must become queued commands."""
+
+    @pytest.fixture
+    def gl(self) -> GameLoop:
+        """A GameLoop stub with real AI enabled and a mocked vision result."""
+        with patch.object(GameLoop, "__init__", lambda self, config: None):
+            gl = GameLoop.__new__(GameLoop)
+            gl.current_tick = 1
+            gl.battle_turn_count = 0
+            gl.emulator_mgr = None
+            gl.use_real_ai = True
+            gl.ai_manager = MagicMock()
+            gl.emulator = MagicMock()
+            gl.emulator.capture_screen.return_value = object()
+            gl.pending_commands = []
+            gl.command_history = []
+            gl.db = MagicMock()
+            gl.metrics = {"ai_decisions": 0, "commands_sent": 0}
+            setattr(
+                gl,
+                "_analyze_game_state_stub",
+                MagicMock(return_value=_basic_game_state()),
+            )
+            return gl
+
+    def _vision(self, **overrides: Any) -> Dict[str, Any]:
+        result: Dict[str, Any] = {
+            "screen_type": "title",
+            "player_hp": 100,
+            "enemy_hp": 100,
+        }
+        result.update(overrides)
+        return result
+
+    def test_press_start_wired_to_pending_commands(self, gl: GameLoop) -> None:
+        """recommended_action 'press:START' becomes a queued press command."""
+        gl.ai_manager.analyze_screenshot.return_value = self._vision(
+            recommended_action="press:START"
+        )
+        gl._analyze_game_state()
+        assert len(gl.pending_commands) == 1
+        cmd = gl.pending_commands[0]
+        assert cmd["command"] == "press:START"
+        assert cmd["button"] is None
+        assert cmd["tick"] == 1
+        assert gl.metrics["ai_decisions"] == 1
+
+    def test_press_start_space_form_wired(self, gl: GameLoop) -> None:
+        """'press START' (space form) normalizes to press:START."""
+        gl.ai_manager.analyze_screenshot.return_value = self._vision(
+            recommended_action="press START"
+        )
+        gl._analyze_game_state()
+        assert gl.pending_commands[0]["command"] == "press:START"
+
+    def test_walk_up_maps_to_press_up(self, gl: GameLoop) -> None:
+        """'walk up' (overworld suggestion) maps to a directional press."""
+        gl.ai_manager.analyze_screenshot.return_value = self._vision(
+            screen_type="overworld", recommended_action="walk up"
+        )
+        gl._analyze_game_state()
+        assert gl.pending_commands[0]["command"] == "press:UP"
+
+    def test_unsupported_action_logged_and_dropped(self, gl: GameLoop) -> None:
+        """Non-button actions are NOT queued and do NOT count as decisions."""
+        gl.ai_manager.analyze_screenshot.return_value = self._vision(
+            recommended_action="do nothing"
+        )
+        gl._analyze_game_state()
+        assert gl.pending_commands == []
+        assert gl.metrics["ai_decisions"] == 0
+
+    def test_no_recommended_action_queues_nothing(self, gl: GameLoop) -> None:
+        """Vision result without recommended_action → no command queued."""
+        gl.ai_manager.analyze_screenshot.return_value = self._vision()
+        gl._analyze_game_state()
+        assert gl.pending_commands == []
+        assert gl.metrics["ai_decisions"] == 0
+
+    def test_no_double_queue_while_pending(self, gl: GameLoop) -> None:
+        """A second vision call must not stack a duplicate while one is pending."""
+        gl.ai_manager.analyze_screenshot.return_value = self._vision(
+            recommended_action="press:START"
+        )
+        gl._analyze_game_state()
+        assert len(gl.pending_commands) == 1
+        # Simulate the second per-tick vision call (battle detect + snapshot).
+        gl._analyze_game_state()
+        assert len(gl.pending_commands) == 1
+
+    def test_recommended_action_executes_as_button_press(self, gl: GameLoop) -> None:
+        """Queued recommendation flows through _execute_pending_commands."""
+        gl.ai_manager.analyze_screenshot.return_value = self._vision(
+            recommended_action="press:START"
+        )
+        gl._analyze_game_state()
+        gl._execute_pending_commands()
+        assert gl.emulator.press_button.called
+        assert gl.metrics["commands_sent"] == 1
+
+    def test_recommended_action_counts_as_ai_decision(self, gl: GameLoop) -> None:
+        """Wiring a recommendation is an AI decision (honest metrics)."""
+        gl.ai_manager.analyze_screenshot.return_value = self._vision(
+            recommended_action="press:A"
+        )
+        gl._analyze_game_state()
+        gl._analyze_game_state()
+        assert gl.metrics["ai_decisions"] == 1  # no double count
+
+
+class TestNormalizeRecommendedAction:
+    """GAP-020: recommended_action normalization edge cases."""
+
+    def test_press_colon_forms(self) -> None:
+        for raw, expected in (
+            ("press:A", "press:A"),
+            ("press:a", "press:A"),
+            ("press:B", "press:B"),
+            ("press:START", "press:START"),
+            ("press:start", "press:START"),
+            ("press:SELECT", "press:SELECT"),
+            ("press:UP", "press:UP"),
+            ("press:DOWN", "press:DOWN"),
+            ("press:LEFT", "press:LEFT"),
+            ("press:RIGHT", "press:RIGHT"),
+        ):
+            assert GameLoop._normalize_recommended_action(raw) == expected
+
+    def test_press_space_forms(self) -> None:
+        assert GameLoop._normalize_recommended_action("press START") == "press:START"
+        assert GameLoop._normalize_recommended_action("press A") == "press:A"
+        assert GameLoop._normalize_recommended_action("PRESS B") == "press:B"
+
+    def test_walk_move_forms(self) -> None:
+        assert GameLoop._normalize_recommended_action("walk up") == "press:UP"
+        assert GameLoop._normalize_recommended_action("walk down") == "press:DOWN"
+        assert GameLoop._normalize_recommended_action("move left") == "press:LEFT"
+        assert GameLoop._normalize_recommended_action("move right") == "press:RIGHT"
+        assert GameLoop._normalize_recommended_action("go up") == "press:UP"
+
+    def test_unmappable_returns_none(self) -> None:
+        assert GameLoop._normalize_recommended_action("") is None
+        assert GameLoop._normalize_recommended_action("do nothing") is None
+        assert GameLoop._normalize_recommended_action("press:X") is None
+        assert GameLoop._normalize_recommended_action("press:") is None
+        assert GameLoop._normalize_recommended_action("wait") is None
+        assert GameLoop._normalize_recommended_action("walk sideways") is None
+        assert GameLoop._normalize_recommended_action("walk") is None
