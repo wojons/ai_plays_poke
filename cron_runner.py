@@ -117,6 +117,7 @@ from src.core.tools import execute_tool_call
 
 # ── Config ──────────────────────────────────────────────────────────
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
+DEFAULT_BOOT_STATE = Path("data/boot.state")  # known-good overworld checkpoint
 CYCLES = 200
 STATE_STEPS = 12
 USE_VISION_CLIENT = False  # True = debug mode (cheap classifier), False = Gemma 12B cartographer
@@ -741,12 +742,53 @@ def controller_plan(
 
 # ── Main ────────────────────────────────────────────────────────────
 
+def _resolve_boot_state(arg: str | None) -> Path | None:
+    """Resolve the checkpoint to boot from, or None to intro-bypass.
+
+    - ``None`` (flag omitted): use ``DEFAULT_BOOT_STATE`` when it exists.
+    - ``"skip"``: never boot from a checkpoint (legacy intro bypass).
+    - otherwise: treat the argument as a literal path.
+    Returns ``None`` when no usable checkpoint file exists.
+    """
+    if arg is not None and arg.lower() == "skip":
+        return None
+    candidate = Path(arg) if arg else DEFAULT_BOOT_STATE
+    return candidate if candidate.is_file() else None
+
+
+def _format_summary(
+    run_id: str,
+    n_actions: int,
+    screens: set[str],
+    lock_warn_cycles: int,
+    total_cycles: int,
+    distinct_tiles: int,
+) -> str:
+    """Format the final summary line, including the per-run lock-rate."""
+    lock_rate = lock_warn_cycles / total_cycles
+    return (
+        f"[{run_id}] Done. {n_actions} actions. Screens: {screens} "
+        f"| lock-rate: {lock_warn_cycles}/{total_cycles} cycles with "
+        f"direction-lock warnings ({lock_rate:.0%}) "
+        f"| distinct tiles: {distinct_tiles}"
+    )
+
+
 def main() -> None:
     global CYCLES, run_id, log_path, SCREENSHOT_DIR
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--cycles", type=int, default=CYCLES)
+    parser.add_argument(
+        "--boot-state",
+        default=None,
+        help=(
+            "Path to a known-good .state checkpoint to boot from instead of "
+            "the intro bypass (default: data/boot.state when present; "
+            "'skip' forces the legacy intro bypass)."
+        ),
+    )
     args = parser.parse_args()
     CYCLES = max(1, args.cycles)
     run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -756,6 +798,21 @@ def main() -> None:
 
     results = []
     emu = Emulator(ROM)
+
+    # ── Boot state (GAP-028) ────────────────────────────────────────
+    # A fresh run that boots from the title screen and A-mashes through
+    # the intro can land in a degenerate overworld state (player facing
+    # a wall) that direction-locks on every cycle. When a known-good
+    # checkpoint is available, boot from it instead so the run starts
+    # from a verified overworld position with the starter already picked.
+    boot_path = _resolve_boot_state(args.boot_state)
+    boot_from_state = boot_path is not None
+    if boot_from_state:
+        emu.load_state(boot_path)
+        emu.wait(30)  # settle after state restore
+        safe_print(f"[{run_id}] Booting from checkpoint {boot_path} — skipping intro bypass")
+    elif args.boot_state and args.boot_state.lower() != "skip":
+        safe_print(f"[{run_id}] Boot checkpoint {args.boot_state} not found — falling back to intro bypass")
 
     # Init RAM reader (instant state reads) or fall back to vision cartographer
     pipeline_name: str
@@ -831,158 +888,170 @@ def main() -> None:
     assert _frame_cache is not None  # bound in pipeline-init block above
 
     # ── Deterministic intro bypass ──────────────────────────────────
-    # Decoupled: A-mash aggressively in large batches, sparse
-    # observation checks (RAM reader is instant, cartographer has 1-60s latency).
-    # RAM reader path: instant state reads, no LLM calls.
-    safe_print(f"[{run_id}] Bypassing intro via {pipeline_name}...")
-
-    # Step 1: Title screen → press START. PyBoy starts before the title is
-    # ready for input, so let it finish drawing before sending START.
-    emu.wait(180)
-    emu.bypass_title()
-    # Brief settle — intro loop detects state changes via RAM, no need for long waits.
-    emu.wait(30)
-    # Press A — if no save file, this selects NEW GAME directly.
-    # If save exists, cursor is on CONTINUE — we'll detect old save below.
-    emu.press_button("a", frames=15)
-    emu.fast_forward(60)  # let game load (or Oak appear)
-
-    _player_named = False
-    _rival_named = False
-    _intro_checks = 0
-    _MAX_INTRO_CHECKS = 15   # raised from 12 — programmatic name entry takes fewer cycles
+    # Only runs when no boot checkpoint was loaded (GAP-028): the intro
+    # A-mash can land in a degenerate wall-facing overworld state that
+    # direction-locks on the very first cycles. Booting from a known-good
+    # checkpoint skips all of this.
+    # A-mash batch constants — also used by the main-loop name_entry
+    # handler, so they live OUTSIDE the guarded intro block (booting from
+    # a checkpoint skips the intro but can still re-enter name_entry).
     _A_BURST = 10       # A-presses per batch — Gen 1 text advances in a few presses
     _A_FRAMES = 5       # hold A for 5 frames each press
     _FF_FRAMES = 30     # fast-forward between presses (~350 frames per burst total)
-    _save_detected = False  # set True if we loaded a save file by mistake
-    _name_entry_stuck = 0   # consecutive name_entry cycles without progress
     _NAME_ENTRY_STUCK_MAX = 3  # after 3 cycles → programmatic entry
-    _last_intro_phase = None   # track phase transitions for logging
+    if not boot_from_state:
+        # ── Deterministic intro bypass ──────────────────────────────────
+        # Decoupled: A-mash aggressively in large batches, sparse
+        # observation checks (RAM reader is instant, cartographer has 1-60s latency).
+        # RAM reader path: instant state reads, no LLM calls.
+        safe_print(f"[{run_id}] Bypassing intro via {pipeline_name}...")
 
-    while _intro_checks < _MAX_INTRO_CHECKS:
-        _intro_checks += 1
-        screenshot = emu.capture()
+        # Step 1: Title screen → press START. PyBoy starts before the title is
+        # ready for input, so let it finish drawing before sending START.
+        emu.wait(180)
+        emu.bypass_title()
+        # Brief settle — intro loop detects state changes via RAM, no need for long waits.
+        emu.wait(30)
+        # Press A — if no save file, this selects NEW GAME directly.
+        # If save exists, cursor is on CONTINUE — we'll detect old save below.
+        emu.press_button("a", frames=15)
+        emu.fast_forward(60)  # let game load (or Oak appear)
 
-        # Use RAM reader or cartographer for screen classification
-        if USE_RAM_READER:
-            patch_data = ram_reader.observe()
-            carto_raw = json.dumps({"source": "ram_reader", "result": patch_data.get("result")})
-        else:
-            patch_data, carto_raw = cartographer_analyze(
-                controller_client, screenshot
-            )
-        st = patch_data.get("result", "unknown")
+        _player_named = False
+        _rival_named = False
+        _intro_checks = 0
+        _MAX_INTRO_CHECKS = 15   # raised from 12 — programmatic name entry takes fewer cycles
+        _save_detected = False  # set True if we loaded a save file by mistake
+        _name_entry_stuck = 0   # consecutive name_entry cycles without progress
+        _last_intro_phase = None   # track phase transitions for logging
 
-        # ── Save file detection: if we're in overworld without naming ──
-        if st == "overworld" and not _player_named:
-            tc = patch_data.get("text_content", [])
-            if not tc and not USE_RAM_READER:  # RAM reader always returns empty text_content
-                if not _save_detected:
-                    _save_detected = True
-                    print("  [intro] SAVE DETECTED — restarting with NEW GAME")
-                    # Reset the emulator from scratch
-                    emu.stop()
-                    emu = Emulator(ROM)
-                    emu.bypass_title()
-                    emu.wait(120)
-                    # Move cursor from CONTINUE (default) to NEW GAME
-                    emu.press_button("down", frames=15)
-                    emu.wait(15)
-                    emu.press_button("a", frames=15)
-                    emu.wait(120)
-                    _intro_checks = 0  # reset counter
-                    continue
+        while _intro_checks < _MAX_INTRO_CHECKS:
+            _intro_checks += 1
+            screenshot = emu.capture()
 
-        if st == "overworld":
-            if _last_intro_phase != "overworld":
-                safe_print(f"  [intro] Phase: {_last_intro_phase} → overworld — intro complete ({_intro_checks} checks)")
-            print(f"  [intro] {pipeline_name} says overworld — intro complete ({_intro_checks} checks)")
-            break
-        elif st == "name_entry":
-            _name_entry_stuck += 1
-            if _name_entry_stuck >= _NAME_ENTRY_STUCK_MAX:
-                # A-mashing may already have filled the name. Navigate from
-                # the default A key directly to END and accept it.
-                if not _player_named:
-                    safe_print("  [intro] Name entry stuck — accepting player name")
-                    emu.submit_name()
-                    _player_named = True
-                elif not _rival_named:
-                    safe_print("  [intro] Rival name stuck — accepting rival name")
-                    emu.submit_name()
-                    _rival_named = True
-                _name_entry_stuck = 0
+            # Use RAM reader or cartographer for screen classification
+            if USE_RAM_READER:
+                patch_data = ram_reader.observe()
+                carto_raw = json.dumps({"source": "ram_reader", "result": patch_data.get("result")})
             else:
-                # Not stuck yet — A-mash to advance through any pending dialog
-                # that sits between cycles (e.g. "So, your name is X?" confirmation).
-                # NOTE: do NOT set _player_named/_rival_named here — only programmatic
-                # typing actually writes the name, so flags must wait until enter_name()
-                # has run. Setting them prematurely caused the second name_entry
-                # cycle to be skipped and the rival to be named "----" (default).
+                patch_data, carto_raw = cartographer_analyze(
+                    controller_client, screenshot
+                )
+            st = patch_data.get("result", "unknown")
+
+            # ── Save file detection: if we're in overworld without naming ──
+            if st == "overworld" and not _player_named:
+                tc = patch_data.get("text_content", [])
+                if not tc and not USE_RAM_READER:  # RAM reader always returns empty text_content
+                    if not _save_detected:
+                        _save_detected = True
+                        print("  [intro] SAVE DETECTED — restarting with NEW GAME")
+                        # Reset the emulator from scratch
+                        emu.stop()
+                        emu = Emulator(ROM)
+                        emu.bypass_title()
+                        emu.wait(120)
+                        # Move cursor from CONTINUE (default) to NEW GAME
+                        emu.press_button("down", frames=15)
+                        emu.wait(15)
+                        emu.press_button("a", frames=15)
+                        emu.wait(120)
+                        _intro_checks = 0  # reset counter
+                        continue
+
+            if st == "overworld":
+                if _last_intro_phase != "overworld":
+                    safe_print(f"  [intro] Phase: {_last_intro_phase} → overworld — intro complete ({_intro_checks} checks)")
+                print(f"  [intro] {pipeline_name} says overworld — intro complete ({_intro_checks} checks)")
+                break
+            elif st == "name_entry":
+                _name_entry_stuck += 1
+                if _name_entry_stuck >= _NAME_ENTRY_STUCK_MAX:
+                    # A-mashing may already have filled the name. Navigate from
+                    # the default A key directly to END and accept it.
+                    if not _player_named:
+                        safe_print("  [intro] Name entry stuck — accepting player name")
+                        emu.submit_name()
+                        _player_named = True
+                    elif not _rival_named:
+                        safe_print("  [intro] Rival name stuck — accepting rival name")
+                        emu.submit_name()
+                        _rival_named = True
+                    _name_entry_stuck = 0
+                else:
+                    # Not stuck yet — A-mash to advance through any pending dialog
+                    # that sits between cycles (e.g. "So, your name is X?" confirmation).
+                    # NOTE: do NOT set _player_named/_rival_named here — only programmatic
+                    # typing actually writes the name, so flags must wait until enter_name()
+                    # has run. Setting them prematurely caused the second name_entry
+                    # cycle to be skipped and the rival to be named "----" (default).
+                    for _ in range(_A_BURST):
+                        emu.press_button("a", frames=_A_FRAMES)
+                        emu.fast_forward(_FF_FRAMES)
+            elif st == "title":
+                _name_entry_stuck = 0  # reset — we're not in name entry
+                emu.press_button("start", frames=30)
+                emu.wait(90)
+            else:
+                # dialog / name_confirm / cutscene / unknown — A-mash aggressively
+                _name_entry_stuck = 0  # reset — out of name entry
                 for _ in range(_A_BURST):
                     emu.press_button("a", frames=_A_FRAMES)
                     emu.fast_forward(_FF_FRAMES)
-        elif st == "title":
-            _name_entry_stuck = 0  # reset — we're not in name entry
-            emu.press_button("start", frames=30)
-            emu.wait(90)
+
+            # ── Phase transition logging ───────────────────────────
+            if st != _last_intro_phase:
+                if _last_intro_phase is not None:
+                    safe_print(f"  [intro] Phase: {_last_intro_phase} → {st} (check {_intro_checks})")
+                _last_intro_phase = st
+
+        if _intro_checks >= _MAX_INTRO_CHECKS:
+            print(f"  [!] Intro bypass hit {_MAX_INTRO_CHECKS} check cap — proceeding anyway")
         else:
-            # dialog / name_confirm / cutscene / unknown — A-mash aggressively
-            _name_entry_stuck = 0  # reset — out of name entry
-            for _ in range(_A_BURST):
-                emu.press_button("a", frames=_A_FRAMES)
-                emu.fast_forward(_FF_FRAMES)
+            print(f"  Intro bypass complete in {_intro_checks} checks")
 
-        # ── Phase transition logging ───────────────────────────
-        if st != _last_intro_phase:
-            if _last_intro_phase is not None:
-                safe_print(f"  [intro] Phase: {_last_intro_phase} → {st} (check {_intro_checks})")
-            _last_intro_phase = st
+        # ── Save state at center of bedroom (before moving) ──────────
+        # The bedroom start position faces the TV; saving before we move
+        # gives the controller a clean starting position to navigate from.
+        try:
+            emu.save_state(0)
+            _last_saved_slot = 0
+            print("  [CKPT] Post-intro state saved to slot 0")
+        except Exception as exc:
+            print(f"  [CKPT] Failed to save post-intro state: {exc}")
 
-    if _intro_checks >= _MAX_INTRO_CHECKS:
-        print(f"  [!] Intro bypass hit {_MAX_INTRO_CHECKS} check cap — proceeding anyway")
-    else:
-        print(f"  Intro bypass complete in {_intro_checks} checks")
+        # ── Step away from what we're facing ─────────────────────────
+        # Walk LEFT (toward the bed/stairs area). The stairs down are on
+        # the left side of the bedroom; walking LEFT avoids the TV loop
+        # AND positions the character near the exit.
+        safe_print("  [intro] Stepping away from TV...")
+        emu.press_button("up", frames=15)   # face away from TV
+        emu.fast_forward(30)
+        # Clear any lingering dialog box
+        emu.press_button("b", frames=30)
+        emu.wait(30)
 
-    # ── Save state at center of bedroom (before moving) ──────────
-    # The bedroom start position faces the TV; saving before we move
-    # gives the controller a clean starting position to navigate from.
-    try:
-        emu.save_state(0)
-        _last_saved_slot = 0
-        print("  [CKPT] Post-intro state saved to slot 0")
-    except Exception as exc:
-        print(f"  [CKPT] Failed to save post-intro state: {exc}")
-
-    # ── Step away from what we're facing ─────────────────────────
-    # Walk LEFT (toward the bed/stairs area). The stairs down are on
-    # the left side of the bedroom; walking LEFT avoids the TV loop
-    # AND positions the character near the exit.
-    safe_print("  [intro] Stepping away from TV...")
-    emu.press_button("up", frames=15)   # face away from TV
-    emu.fast_forward(30)
-    # Clear any lingering dialog box
-    emu.press_button("b", frames=30)
-    emu.wait(30)
-
-    # ── Leave bedroom ────────────────────────────────────────────
-    # A 30-frame press advances roughly two tiles. The collision-verified path
-    # from spawn (3,6) to the bedroom warp (7,1) is R,U,U,U,R.
-    safe_print("  [intro] Walking to bedroom stairs (R,U,U,U,R)...")
-    for button in ("right", "up", "up", "up", "right"):
-        emu.press_button(button, frames=30)
-        emu.fast_forward(60)
-    emu.wait(90)
-
-    # Continue through the ground floor so the controller starts outdoors.
-    if emu.read_u8(0xD35E) == 0x25:  # wCurMap: Red's House 1F
-        safe_print("  [intro] Leaving ground floor for Pallet Town...")
-        for button in ("down", "down", "down", "left", "left", "down"):
+        # ── Leave bedroom ────────────────────────────────────────────
+        # A 30-frame press advances roughly two tiles. The collision-verified path
+        # from spawn (3,6) to the bedroom warp (7,1) is R,U,U,U,R.
+        safe_print("  [intro] Walking to bedroom stairs (R,U,U,U,R)...")
+        for button in ("right", "up", "up", "up", "right"):
             emu.press_button(button, frames=30)
             emu.fast_forward(60)
         emu.wait(90)
 
-    ctx = GlobalContext(generation="gen1", location="bedroom")
+        # Continue through the ground floor so the controller starts outdoors.
+        if emu.read_u8(0xD35E) == 0x25:  # wCurMap: Red's House 1F
+            safe_print("  [intro] Leaving ground floor for Pallet Town...")
+            for button in ("down", "down", "down", "left", "left", "down"):
+                emu.press_button(button, frames=30)
+                emu.fast_forward(60)
+            emu.wait(90)
+    else:
+        _player_named = False
+        _rival_named = False
+
+    ctx = GlobalContext(generation="gen1", location="pallet_town" if boot_from_state else "bedroom")
     # If we bypassed the intro, set player/rival names
     if _player_named:
         ctx.player_name = "ASH"
@@ -1002,6 +1071,10 @@ def main() -> None:
     _main_ne_stuck_box: list[int] = [0]
     _last_party_count = ram_reader.party_count() if USE_RAM_READER else 0
     _failed_flee_attempts = 0
+
+    # ── Per-run metrics (GAP-028) ──────────────────────────────────
+    _dir_lock_warn_cycles = 0   # cycles with >=1 direction-lock warning
+    _visited_tiles: set[tuple[int, int, int]] = set()  # (map_id, x, y) seen
 
     # ── Agent memory state (self-maintained, DuckBrain-backed) ──
     # The agent tracks its own goal, notes, and world map across cycles
@@ -1025,6 +1098,7 @@ def main() -> None:
 
     for cycle in range(CYCLES):
         try:
+            _cycle_dir_lock_warned = False  # per-cycle flag (GAP-028 metric)
             screenshot = emu.capture()
 
             # Save screenshot every cycle for progress tracking
@@ -1081,6 +1155,8 @@ def main() -> None:
                 and isinstance(raw_tile_y, int)
             ):
                 current_tile = (raw_map_id, raw_tile_x, raw_tile_y)
+            if current_tile is not None:
+                _visited_tiles.add(current_tile)
             _last_tile, _same_tile_count = _track_same_tile(
                 current_tile, _last_tile, _same_tile_count
             )
@@ -1515,6 +1591,7 @@ def main() -> None:
 
                     if _same_dir_count == 3:
                         safe_print(f"  [WARN] Direction-locking detected: {_same_dir} x3")
+                        _cycle_dir_lock_warned = True
                     # Recovery is now handled centrally in the stuck-detection block
                     # after cartographer analysis, using the escalating recovery ladder.
 
@@ -1823,6 +1900,8 @@ def main() -> None:
                 safe_print(f"  [{cycle+1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s")
 
             # Handle progression
+            if _cycle_dir_lock_warned:
+                _dir_lock_warn_cycles += 1  # GAP-028 per-run lock-rate metric
             if st == "name_confirm" and patch_data.get("name_field"):
                 if not ctx.player_name:
                     ctx.player_name = patch_data["name_field"]
@@ -1870,7 +1949,7 @@ def main() -> None:
 
     # Summary
     screens = set(r.get("screen", "?") for r in results)
-    safe_print(f"\n[{run_id}] Done. {len(results)} actions. Screens: {screens}")
+    safe_print(f"\n{_format_summary(run_id, len(results), screens, _dir_lock_warn_cycles, CYCLES, len(_visited_tiles))}")
     safe_print(f"Log: {log_path}")
     safe_print(f"Screenshots: {SCREENSHOT_DIR}")
 

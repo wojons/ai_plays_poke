@@ -357,9 +357,18 @@ class Emulator:
         with open(path, "wb") as fh:
             self._pyboy.save_state(fh)
 
-    def load_state(self, slot: int) -> None:
-        """Restore a full emulator checkpoint from a numbered slot."""
-        path = Path("checkpoints") / f"{slot}.state"
+    def load_state(self, slot: int | str | Path) -> None:
+        """Restore a full emulator checkpoint.
+
+        When *slot* is an ``int`` the checkpoint is read from
+        ``checkpoints/<slot>.state`` (numbered-slot API, backward
+        compatible).  When *slot* is a ``str`` or ``Path`` it is treated
+        as a literal file path — no ``.state`` suffix is appended.
+        """
+        if isinstance(slot, (str, Path)):
+            path = Path(slot)
+        else:
+            path = Path("checkpoints") / f"{slot}.state"
         if not path.is_file():
             raise FileNotFoundError(f"Checkpoint slot {slot} not found: {path}")
         with open(path, "rb") as fh:

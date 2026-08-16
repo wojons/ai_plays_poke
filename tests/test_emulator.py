@@ -394,6 +394,26 @@ class TestCheckpointing:
             with pytest.raises(FileNotFoundError, match="Checkpoint slot 7 not found"):
                 emu_with_state.load_state(7)
 
+    def test_load_state_path_reads_exact_path(self, emu_with_state) -> None:
+        """Path-based load reads the EXACT path given — no .state appended."""
+        with patch("builtins.open", mock_open()) as m_open:
+            emu_with_state.load_state("data/boot.state")
+            args, _kwargs = m_open.call_args
+            assert args[0] == Path("data/boot.state")
+            emu_with_state._pyboy.load_state.assert_called_once()
+
+    def test_load_state_path_missing_raises(self, emu_with_state) -> None:
+        with patch("pathlib.Path.is_file", return_value=False):
+            with pytest.raises(FileNotFoundError, match="data/boot.state"):
+                emu_with_state.load_state("data/boot.state")
+
+    def test_load_state_int_slot_still_works(self, emu_with_state) -> None:
+        """Integer slot still reads checkpoints/<slot>.state."""
+        with patch("builtins.open", mock_open()) as m_open:
+            emu_with_state.load_state(7)
+            args, _kwargs = m_open.call_args
+            assert args[0] == Path("checkpoints/7.state")
+
     def test_save_then_load_roundtrip(self, emu_with_state) -> None:
         handle = MagicMock()
         m_save = mock_open()

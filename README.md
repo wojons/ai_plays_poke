@@ -166,6 +166,30 @@ vision API calls per tick), sends the spatial data to the LLM controller
 executes the returned button plan with built-in recovery (direction-lock detection,
 checkpoint rollback).
 
+**Boot state (what a fresh run starts from):** `cron_runner.py` boots from the shipped
+known-good checkpoint `data/boot.state` when present — the player is standing in Oak's
+Lab in Pallet Town with the starter already picked (map 0x28, tile ~(4,4), party of 1),
+no dialog open. The run skips the title-screen intro bypass entirely. If the checkpoint
+is missing (or `--boot-state skip` is passed), the runner falls back to the legacy
+intro bypass: it A-mashes from the title screen through Oak's intro, names the player
+ASH and rival GARY, and walks out of the house into Pallet Town — this path can land in
+a degenerate wall-facing overworld state that direction-locks immediately, which is why
+the checkpoint boot is the default.
+
+**First cycles (what to expect):** cycle 1 observes the overworld via RAM and sends the
+spatial state to the controller; the first plan usually walks toward the lab exit.
+Because the same frames repeat while the character animates, you will see `[CACHE-HIT]`
+frame-reference lines and occasionally `[WARN] Direction-locking detected: <dir> x3` —
+that warning fires whenever a single plan contains 3+ consecutive presses of the same
+direction (a straight hallway walk triggers it even while moving). It is NOT a failure
+by itself: the runner only escalates to recovery when the stuck detector sees 4+
+consecutive same-direction presses *across* cycles without progress, and recovery
+resets the counter. The final summary line reports the **lock-rate** — the fraction of
+cycles that contained at least one direction-lock warning (`lock-rate: 5/20 cycles
+(25%)`) — plus the number of distinct map tiles visited. Healthy runs are well under
+50% lock-rate and visit multiple tiles; a run stuck at 100% lock-rate with 1 tile is
+direction-locked and the boot state should be refreshed.
+
 **Outputs:**
 - `cron_logs/run_<id>.jsonl` — one JSON line per cycle: screen type, button plan, LLM
   intent, player coordinates (x/y), map name, plus event rows (recovery, state saved).
@@ -177,12 +201,18 @@ checkpoint rollback).
 |------|---------|-------------|
 | `--run-id` | auto-generated timestamp | Label for this run's logs and screenshots |
 | `--cycles` | 200 | Number of AI decision cycles |
+| `--boot-state` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass; `skip` forces the legacy intro bypass |
 
 **Full reference:** [docs/api/cron_runner.md](docs/api/cron_runner.md) — CLI flags,
 pipeline stages, JSONL log schema, checkpoint/rollback behavior, and cost notes.
 
 **Proven results:** 10/10 cycles in dogfood runs (real LLM decisions, map movement,
 recovery firing); 80/80 cycles in E2E (RSS flat ~110 MB, $0.60 for 43 LLM calls).
+First-run behavior is deterministic thanks to the shipped boot checkpoint: every run
+starts in Oak's Lab (starter picked), so the first cycles are overworld navigation with
+real movement — GAP-028 acceptance measured 2/20 lock-rate cycles (10%) with 2+ distinct
+tiles on a fresh 20-cycle run (see the `lock-rate` field in the summary line above for
+your own runs).
 
 **Scheduled runs & QA tooling:**
 

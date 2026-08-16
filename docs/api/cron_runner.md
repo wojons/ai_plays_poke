@@ -22,6 +22,7 @@ python3 cron_runner.py --run-id demo1 --cycles 80
 
 ```text
 usage: cron_runner.py [-h] [--run-id RUN_ID] [--cycles CYCLES]
+                      [--boot-state BOOT_STATE]
 
 Cron-friendly Pokemon AI runner with RAM reader / cartographer → controller
 pipeline. Flow: 1. Observe game state (RAM reader OR Gemma 12B cartographer)
@@ -33,6 +34,7 @@ options:
   -h, --help       show this help message and exit
   --run-id RUN_ID
   --cycles CYCLES
+  --boot-state BOOT_STATE
 ```
 
 ## CLI Flags
@@ -42,14 +44,21 @@ options:
 | `-h, --help` | — | — | Show usage and exit |
 | `--run-id RUN_ID` | `str` | auto-generated `%Y%m%d_%H%M%S` timestamp | Label for this run. Sets the log path `cron_logs/run_<run-id>.jsonl` and the screenshot directory `screenshots/run_<run-id>/`. Reusing an id overwrites the previous log. |
 | `--cycles CYCLES` | `int` | `200` | Number of AI decision cycles to run. Clamped to a minimum of 1 (`CYCLES = max(1, args.cycles)`). |
+| `--boot-state BOOT_STATE` | `str` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass. `skip` forces the legacy intro bypass (title-screen A-mash). If the path does not exist, the runner falls back to the intro bypass with a warning. |
 
-Runtime behavior is configured by module-level constants (not flags): `ROM` (default `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`), `USE_RAM_READER` (True = RAM reader, False = Gemma 12B cartographer), `HINT_LEVEL` (prompt hint depth, default 4 = navigation), `CART_STEPS` (controller actions per overworld cycle, default 6), and the checkpoint/recovery thresholds listed below.
+Runtime behavior is configured by module-level constants (not flags): `ROM` (default `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`), `DEFAULT_BOOT_STATE` (default `data/boot.state`), `USE_RAM_READER` (True = RAM reader, False = Gemma 12B cartographer), `HINT_LEVEL` (prompt hint depth, default 4 = navigation), `CART_STEPS` (controller actions per overworld cycle, default 6), and the checkpoint/recovery thresholds listed below.
 
 ## Pipeline Stages
 
-### 0. Intro bypass
+### 0. Boot — known-good checkpoint (default) or intro bypass
 
-Deterministic boot sequence: wait for title, `START`, then A-mash through the intro with a phase state machine (title → dialog → name_entry → overworld). Name entry escalates to programmatic typing (`submit_name()`, ASH/GARY) after 3 stuck cycles; a detected old save file restarts with NEW GAME. A checkpoint is saved to slot 0 at the bedroom, then the runner walks to Pallet Town.
+**Checkpoint boot (default):** when `data/boot.state` exists, the emulator loads it and skips the intro entirely. The shipped checkpoint is a deterministic PyBoy state saved from a verified run: the player stands in Oak's Lab (map 0x28, tile ~(4,4)) with the starter already picked (party = 1) and no dialog open. Loading is deterministic for the pinned PyBoy version (verified: two loads produce byte-identical frames and RAM).
+
+**Intro bypass (fallback / `--boot-state skip`):** deterministic boot sequence — wait for title, `START`, then A-mash through the intro with a phase state machine (title → dialog → name_entry → overworld). Name entry escalates to programmatic typing (`submit_name()`, ASH/GARY) after 3 stuck cycles; a detected old save file restarts with NEW GAME. A checkpoint is saved to slot 0 at the bedroom, then the runner walks to Pallet Town. This path can land in a degenerate wall-facing overworld state that direction-locks on the first cycles — the checkpoint boot exists to avoid it.
+
+**First cycles:** cycle 1 observes the overworld via RAM and sends spatial state to the controller. `[CACHE-HIT]` frame references appear when the same frame repeats (standing still, walking animation loop) — normal. `[WARN] Direction-locking detected: <dir> x3` fires when a single plan contains 3+ consecutive same-direction presses (a straight walk triggers it even while moving); it is only a warning — recovery escalates at 4+ consecutive same-direction presses across cycles without progress.
+
+**Summary metrics:** the final line reports `lock-rate: N/CYCLES cycles with direction-lock warnings (P%)` — the fraction of cycles containing ≥1 direction-lock warning — plus `distinct tiles: N` — unique (map, x, y) RAM tiles observed. Healthy overworld runs stay well under 50% lock-rate and visit multiple tiles.
 
 ### 1. Observe — RAM reader (default) or cartographer
 
