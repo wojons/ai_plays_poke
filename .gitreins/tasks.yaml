@@ -299,3 +299,15 @@ tasks:
   status: complete
   created_at: '2026-08-16T19:01:03.599122+00:00'
   completed_at: '2026-08-16T19:08:01.434186+00:00'
+- id: GAP-028
+  title: 'Fix cron_runner direction-lock loop: known-good default boot state + lock-rate
+    metric + README first-run docs'
+  criteria:
+  - Fresh 20-cycle cron_runner run on clean checkout shows <50%% of cycles with direction-lock
+    warnings and >=2 distinct map tiles visited, OR README explicitly documents the
+    expected boot-state oscillation
+  - Per-run lock-rate metric appears in final summary line
+  - README documents expected first-cycle behavior and boot state
+  status: complete
+  created_at: '2026-08-16T19:14:00.426061+00:00'
+  completed_at: '2026-08-16T19:38:00.456346+00:00'
