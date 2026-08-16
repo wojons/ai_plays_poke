@@ -119,6 +119,7 @@ class TestAIDecisionTime:
         )
 
 
+@pytest.mark.slow
 class TestMemoryUsage:
     """Tests for memory efficiency (2 tests)"""
 
@@ -164,6 +165,7 @@ class TestMemoryUsage:
 # ═══════════════════════════════════════════════════════════════════════
 
 
+@pytest.mark.slow
 class TestBenchmarks:
     """Automated performance benchmarks for critical paths.
 

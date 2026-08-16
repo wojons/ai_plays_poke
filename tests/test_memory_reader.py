@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
@@ -148,6 +149,7 @@ class TestReadPokemonStats:
         assert read_pokemon_stats(pyboy) is None
 
 
+@pytest.mark.slow
 class TestMemoryScanningFunction:
     """test_memory_scanning() is a diagnostic driver — mock PyBoy and ROM existence."""
 

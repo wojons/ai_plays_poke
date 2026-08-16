@@ -20,6 +20,7 @@ from schemas.commands import GameState
 from core.emulator import Button as EmulatorButton
 
 
+@pytest.mark.integration
 class TestFullTickCycle:
     """Tests for the complete tick cycle flow"""
 
@@ -243,6 +244,7 @@ class TestFullTickCycle:
             mock_db_connection.log_command.assert_called_with(command_data)
 
 
+@pytest.mark.integration
 class TestBattleTransition:
     """Tests for battle state transitions"""
 
@@ -478,6 +480,7 @@ class TestBattleTransition:
                 assert game_loop.metrics["battles_won"] == 1
 
 
+@pytest.mark.integration
 class TestDialogFlow:
     """Tests for dialog handling flow"""
 
@@ -634,6 +637,7 @@ class TestDialogFlow:
             assert game_loop.pending_commands[0]["command"] == "press:A"
 
 
+@pytest.mark.integration
 class TestCommandExecution:
     """Tests for command execution system"""
 
@@ -822,6 +826,7 @@ class TestCommandExecution:
                 assert game_loop.command_history[i]["success"] is True
 
 
+@pytest.mark.integration
 class TestErrorRecovery:
     """Tests for error handling and recovery mechanisms"""
 

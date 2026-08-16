@@ -339,6 +339,7 @@ class TestAnomalyResponseSelector:
         assert response.escalation_tier == "MEDIUM"
 
 
+@pytest.mark.slow
 class TestBreakoutManager:
     def setup_method(self) -> None:
         self.manager = BreakoutManager()

@@ -1432,6 +1432,7 @@ class TestAIModelClientMakeRequest:
                 result = client._make_request_with_retry("test", {"prompt": "hi"})
                 assert result["model"] == "test-model"
 
+    @pytest.mark.slow
     def test_retry_then_succeed(self) -> None:
         from src.core.ai_client import AIModelClient
 
@@ -1516,6 +1517,7 @@ class TestAIModelClientGenerateDecision:
                 assert result["command"] == "press:A"
                 assert "go left" in result["reasoning"]
 
+    @pytest.mark.slow
     def test_api_error_returns_fallback(self) -> None:
         from src.core.ai_client import AIModelClient
 
@@ -1812,6 +1814,7 @@ class TestOpenRouterClientChatCompletion:
         with pytest.raises(Exception, match="Circuit breaker open"):
             client.chat_completion("test-model", [])
 
+    @pytest.mark.slow
     def test_status_429_retries(self) -> None:
         from src.core.ai_client import OpenRouterClient
 
@@ -1835,6 +1838,7 @@ class TestOpenRouterClientChatCompletion:
             result = client.chat_completion("test-model", [])
             assert result["content"] == "ok"
 
+    @pytest.mark.slow
     def test_status_500_retries(self) -> None:
         from src.core.ai_client import OpenRouterClient
 

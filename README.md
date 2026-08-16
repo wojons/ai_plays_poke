@@ -293,7 +293,7 @@ runs/test_001/
 
 ### Running All Tests
 ```bash
-# Run all tests with verbose output
+# Run all tests with verbose output (~3 min: 3881 passed / 14 skipped on a fresh checkout)
 .venv/bin/python -m pytest tests/ -v
 
 # Run with coverage report
@@ -320,11 +320,18 @@ runs/test_001/
 
 ### Test Categories
 ```bash
-# Unit tests only (fast)
-.venv/bin/python -m pytest tests/ -v -m "not integration"
+# Fast subset (recommended for day-to-day work) — unit tests only.
+# Completes in ~70–85s on a fresh checkout (3825 passed / 8 skipped,
+# 62 deselected). Excludes @pytest.mark.integration (game-loop component
+# flows) and @pytest.mark.slow (network retry/backoff, memory & performance
+# benchmarks).
+.venv/bin/python -m pytest tests/ -q -m "not integration and not slow"
 
 # Integration tests (slower, may require emulator)
 .venv/bin/python -m pytest tests/ -v -m "integration"
+
+# Slow tests only (network retry/backoff, memory & performance benchmarks)
+.venv/bin/python -m pytest tests/ -v -m "slow"
 
 # Run tests in parallel
 .venv/bin/python -m pytest tests/ -n auto -v
