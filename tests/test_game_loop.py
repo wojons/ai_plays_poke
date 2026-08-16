@@ -921,6 +921,79 @@ class TestGameLoopLifecycle:
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# Session row model_name (GAP-022)
+# ════════════════════════════════════════════════════════════════════════════
+
+
+class TestSessionModelName:
+    """Session row model_name must reflect the real AI config (GAP-022)."""
+
+    @pytest.fixture
+    def gl(self) -> GameLoop:
+        config = _make_config(save_dir="/tmp/test_session_model")
+        gl = GameLoop.__new__(GameLoop)
+        gl.config = config
+        gl.emulator = MagicMock()
+        gl.emulator_mgr = None
+        gl.db = MagicMock()
+        gl.db.start_session.return_value = "sess-001"
+        gl.screenshot_mgr = MagicMock()
+        gl.live_view = MagicMock()
+        gl.save_manager = MagicMock()
+        gl.ai_manager = None
+        gl.use_real_ai = False
+        gl.vision_client = None
+        gl.prompt_stack = None
+        gl.prompt_client = None
+        gl.current_tick = 0
+        gl.last_screenshot_tick = 0
+        gl.is_running = False
+        gl.paused = False
+        gl.session_id = None
+        gl.pending_commands = []
+        gl.command_history = []
+        gl.current_battle_id = None
+        gl.battle_turn_count = 0
+        gl.metrics = {
+            "total_ticks": 0,
+            "screenshots_taken": 0,
+            "commands_sent": 0,
+            "ai_decisions": 0,
+            "battles_encountered": 0,
+            "battles_won": 0,
+            "battles_lost": 0,
+            "start_time": None,
+        }
+        return gl
+
+    def test_real_ai_sets_session_model_name(self, gl: GameLoop) -> None:
+        """Session row records the vision model when real AI is active."""
+        gl.use_real_ai = True
+        gl.ai_manager = MagicMock()
+        gl.ai_manager.vision_model = "openai/gpt-5.6-luna"
+        gl.vision_client = MagicMock()
+        gl.vision_client.model = "openai/gpt-5.6-luna"
+        gl.prompt_stack = MagicMock()
+        gl.prompt_client = MagicMock()
+
+        gl.start()
+
+        gl.db.start_session.assert_called_once_with(
+            rom_path="/tmp/test.gb",
+            model_name="openai/gpt-5.6-luna",
+        )
+
+    def test_no_api_key_sets_stub_ai(self, gl: GameLoop) -> None:
+        """Session row falls back to stub_ai when no API key is present."""
+        gl.start()
+
+        gl.db.start_session.assert_called_once_with(
+            rom_path="/tmp/test.gb",
+            model_name="stub_ai",
+        )
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # create_config
 # ════════════════════════════════════════════════════════════════════════════
 

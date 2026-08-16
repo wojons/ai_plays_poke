@@ -197,10 +197,20 @@ class GameLoop:
         else:
             self.emulator.start()
 
-        # Start database session
+        # Start database session — the session row must reflect the real
+        # AI model (GAP-022). The config default is "stub_ai", so derive
+        # the name from the live vision/AI client instead; "stub_ai"
+        # appears only when no API key is present (stub mode).
+        if self.use_real_ai and self.vision_client is not None:
+            session_model_name = self.vision_client.model
+        elif self.ai_manager is not None:
+            session_model_name = self.ai_manager.vision_model
+        else:
+            session_model_name = "stub_ai"
+
         self.session_id = self.db.start_session(
             rom_path=str(self.config["rom_path"]),
-            model_name=self.config.get("model_name", "stub_ai"),
+            model_name=session_model_name,
         )
 
         self.is_running = True
