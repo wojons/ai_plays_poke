@@ -1,0 +1,77 @@
+{
+  "task_id": "GAMEPLAY-STARTER-002",
+  "task_title": "cron_runner starter-pick milestone never fires even when the pick happens",
+  "task_criteria": [
+    "Starter-pick milestone fires on real party-count 0->1 transition: either a 20-cycle cron_runner run that reaches the rival battle logs the starter_picked milestone, or a unit test proves the milestone fires on mocked RAM party-count 0->1 mid-dialog. Existing suite must stay green (targeted tests + full suite, mypy 0 errors, ruff PASS)."
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m11:10PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174315008 bytes (174.32 MB) in 8.89s\u001b[0m\n\u001b[90m11:10PM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m11:10PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174315008 bytes (174.32 MB) in 8.89s\u001b[0m\n\u001b[90m11:10PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 3 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Starter-pick milestone fires on real party-count 0->1 transition: either a 20-cycle cron_runner run that reaches the rival battle logs the starter_picked milestone, or a unit test proves the milestone fires on mocked RAM party-count 0->1 mid-dialog. Existing suite must stay green (targeted tests + full suite, mypy 0 errors, ruff PASS).: Unit test test_cycle_milestone_fires_on_mid_dialog_party_transition (tests/test_full_gameplay.py:160-178) proves the milestone fires on mocked RAM party-count 0->1 mid-dialog \u2014 PASSED in targeted run (14 passed, 0 failed). Milestone wired into main loop cron_runner.py:1227-1248 & 1279-1296 via _starter_milestone_for_cycle, emitting starter_picked event + [STARTER-PICKED] marker + log_file write; boot-baseline path (post-pick checkpoint) also covered by test_cycle_milestone_fires_on_post_pick_boot_baseline. Full suite: 3916 passed, 14 skipped, 5 deselected in 163.84s (exit 0). mypy: 'Success: no issues found in 63 source files'. ruff: 'All checks passed!'. LSP: 0 diagnostics.\nStarter-pick milestone fires on mocked RAM party-count 0->1 mid-dialog (unit test proves it), is wired into the cron_runner main loop, and the full suite (3916 passed), mypy (0 errors), and ruff all stay green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Starter-pick milestone fires on real party-count 0->1 transition: either a 20-cycle cron_runner run that reaches the rival battle logs the starter_picked milestone, or a unit test proves the milestone fires on mocked RAM party-count 0->1 mid-dialog. Existing suite must stay green (targeted tests + full suite, mypy 0 errors, ruff PASS).: Unit test test_cycle_milestone_fires_on_mid_dialog_party_transition (tests/test_full_gameplay.py:160-178) proves the milestone fires on mocked RAM p",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Starter-pick milestone fires on real party-count 0->1 transition: either a 20-cycle cron_runner run that reaches the rival battle logs the starter_picked milestone, or a unit test proves the milestone fires on mocked RAM party-count 0->1 mid-dialog. Existing suite must stay green (targeted tests + full suite, mypy 0 errors, ruff PASS).",
+                "status": "PASS",
+                "detail": "Unit test test_cycle_milestone_fires_on_mid_dialog_party_transition (tests/test_full_gameplay.py:160-178) proves the milestone fires on mocked RAM party-count 0->1 mid-dialog \u2014 PASSED in targeted run (14 passed, 0 failed). Milestone wired into main loop cron_runner.py:1227-1248 & 1279-1296 via _starter_milestone_for_cycle, emitting starter_picked event + [STARTER-PICKED] marker + log_file write; boot-baseline path (post-pick checkpoint) also covered by test_cycle_milestone_fires_on_post_pick_boot_baseline. Full suite: 3916 passed, 14 skipped, 5 deselected in 163.84s (exit 0). mypy: 'Success: no issues found in 63 source files'. ruff: 'All checks passed!'. LSP: 0 diagnostics."
+              }
+            ],
+            "summary": "Starter-pick milestone fires on mocked RAM party-count 0->1 mid-dialog (unit test proves it), is wired into the cron_runner main loop, and the full suite (3916 passed), mypy (0 errors), and ruff all stay green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAMEPLAY-STARTER-002\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m11:10PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174315008 bytes (174.32 MB) in 8.89s\u001b[0m\n\u001b[90m11:10PM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Starter-pick milestone fires on real party-count 0->1 transition: either a 20-cycle cron_runner run that reaches the rival battle logs the starter_picked milestone, or a unit test proves the milestone fires on mocked RAM party-count 0->1 mid-dialog. Existing suite must stay green (targeted tests + full suite, mypy 0 errors, ruff PASS).: Unit test test_cycle_milestone_fires_on_mid_dialog_party_transition (tests/test_full_gameplay.py:160-178) proves the milestone fires on mocked RAM party-count 0->1 mid-dialog \u2014 PASSED in targeted run (14 passed, 0 failed). Milestone wired into main loop cron_runner.py:1227-1248 & 1279-1296 via _starter_milestone_for_cycle, emitting starter_picked event + [STARTER-PICKED] marker + log_file write; boot-baseline path (post-pick checkpoint) also covered by test_cycle_milestone_fires_on_post_pick_boot_baseline. Full suite: 3916 passed, 14 skipped, 5 deselected in 163.84s (exit 0). mypy: 'Success: no issues found in 63 source files'. ruff: 'All checks passed!'. LSP: 0 diagnostics.\nStarter-pick milestone fires on mocked RAM party-count 0->1 mid-dialog (unit test proves it), is wired into the cron_runner main loop, and the full suite (3916 passed), mypy (0 errors), and ruff all stay green.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-17T04:18:40.918118"
+}

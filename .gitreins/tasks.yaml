@@ -351,3 +351,14 @@ tasks:
   status: complete
   created_at: '2026-08-16T20:27:20.931029+00:00'
   completed_at: '2026-08-16T20:35:48.838423+00:00'
+- id: GAMEPLAY-STARTER-002
+  title: cron_runner starter-pick milestone never fires even when the pick happens
+  criteria:
+  - 'Starter-pick milestone fires on real party-count 0->1 transition: either a 20-cycle
+    cron_runner run that reaches the rival battle logs the starter_picked milestone,
+    or a unit test proves the milestone fires on mocked RAM party-count 0->1 mid-dialog.
+    Existing suite must stay green (targeted tests + full suite, mypy 0 errors, ruff
+    PASS).'
+  status: complete
+  created_at: '2026-08-17T03:56:03.736444+00:00'
+  completed_at: '2026-08-17T04:10:42.654775+00:00'
