@@ -362,6 +362,51 @@ def _starter_picked_event(
     }
 
 
+def _starter_milestone_for_cycle(
+    *,
+    previous_party_count: int,
+    current_party_count: int,
+    species_hint: str | None,
+    baseline_starter_name: str | None,
+    milestone_emitted: bool,
+) -> tuple[dict[str, Any] | None, bool]:
+    """One-shot starter milestone for one decision-loop cycle.
+
+    Fires at most once per run, from either path:
+
+    1. In-run 0→1 party transition (fresh boot: deterministic starter branch
+       or LLM-driven dialog advance) — the classic ``starter_picked`` event.
+    2. Post-pick boot baseline: runs loading a known-good checkpoint
+       (``data/boot.state`` was saved after the starter was received) start
+       with ``party_count == 1``, so no 0→1 transition is ever observable and
+       the strict transition check would stay silent forever even though the
+       party visibly holds a starter (GAMEPLAY-STARTER-002). The milestone
+       then fires from the baseline party's starter species instead, tagged
+       with ``"source": "boot_baseline"``.
+
+    Returns ``(event, milestone_emitted)`` — pass the previous cycle's
+    ``milestone_emitted`` back in to keep the event one-shot across cycles.
+    """
+    if milestone_emitted:
+        return None, True
+    event = _starter_picked_event(
+        previous_party_count, current_party_count, species_hint
+    )
+    if event is not None:
+        return event, True
+    if baseline_starter_name is not None and previous_party_count > 0:
+        return (
+            {
+                "event": "starter_picked",
+                "party_count": 1,
+                "species_hint": baseline_starter_name,
+                "source": "boot_baseline",
+            },
+            True,
+        )
+    return None, False
+
+
 def _blocked_spatial_directions(spatial_desc: dict[str, Any]) -> set[str]:
     """Return blocked directions, preserving known map-edge exits."""
     adjacent = spatial_desc.get("adjacent", {})
@@ -1070,6 +1115,9 @@ def main() -> None:
     # cycles.
     _main_ne_stuck_box: list[int] = [0]
     _last_party_count = ram_reader.party_count() if USE_RAM_READER else 0
+    # One-shot starter-pick milestone flag: the milestone fires once per run,
+    # either on an in-run 0→1 transition or from a post-pick boot baseline.
+    _starter_milestone_emitted = False
     _failed_flee_attempts = 0
 
     # ── Per-run metrics (GAP-028) ──────────────────────────────────
@@ -1176,10 +1224,16 @@ def main() -> None:
                 raw_menu_state = patch_data.get("menu_state", {})
                 menu_state = raw_menu_state if isinstance(raw_menu_state, dict) else {}
 
-            starter_event = _starter_picked_event(
-                _last_party_count,
-                party_count,
-                ram_reader.first_party_species_hint() if USE_RAM_READER else None,
+            starter_event, _starter_milestone_emitted = _starter_milestone_for_cycle(
+                previous_party_count=_last_party_count,
+                current_party_count=party_count,
+                species_hint=(
+                    ram_reader.first_party_species_hint() if USE_RAM_READER else None
+                ),
+                baseline_starter_name=(
+                    ram_reader.first_party_starter_name() if USE_RAM_READER else None
+                ),
+                milestone_emitted=_starter_milestone_emitted,
             )
             if starter_event is not None:
                 milestone = {"cycle": cycle + 1, **starter_event}
@@ -1222,10 +1276,12 @@ def main() -> None:
                 log_file.write(json.dumps(selection_entry, default=str) + "\n")
                 log_file.flush()
 
-                starter_event = _starter_picked_event(
-                    party_count,
-                    selected_party_count,
-                    ram_reader.first_party_species_hint(),
+                starter_event, _starter_milestone_emitted = _starter_milestone_for_cycle(
+                    previous_party_count=party_count,
+                    current_party_count=selected_party_count,
+                    species_hint=ram_reader.first_party_species_hint(),
+                    baseline_starter_name=None,
+                    milestone_emitted=_starter_milestone_emitted,
                 )
                 if starter_event is not None:
                     milestone = {"cycle": cycle + 1, **starter_event}

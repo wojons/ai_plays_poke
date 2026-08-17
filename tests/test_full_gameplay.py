@@ -17,6 +17,7 @@ from cron_runner import (
     _approach_first_starter,
     _select_starter_from_menu,
     _should_select_starter,
+    _starter_milestone_for_cycle,
     _starter_picked_event,
 )
 
@@ -153,6 +154,71 @@ class TestStarterSelection:
         self, before: int, after: int
     ) -> None:
         assert _starter_picked_event(before, after, None) is None
+
+    # ── GAMEPLAY-STARTER-002 regression: the milestone must fire on real
+    # ── picks — both the in-run 0→1 transition and the post-pick boot
+    # ── baseline (data/boot.state already holds a starter, so no in-run
+    # ── 0→1 transition is ever observable).
+
+    def test_cycle_milestone_fires_on_mid_dialog_party_transition(self) -> None:
+        """Mocked RAM shows party-count 0→1 while advancing Oak's dialog:
+        the milestone must be emitted."""
+        event, emitted = _starter_milestone_for_cycle(
+            previous_party_count=0,
+            current_party_count=1,
+            species_hint="Squirtle",
+            baseline_starter_name=None,
+            milestone_emitted=False,
+        )
+        assert emitted is True
+        assert event == {
+            "event": "starter_picked",
+            "party_count": 1,
+            "species_hint": "Squirtle",
+        }
+
+    def test_cycle_milestone_fires_on_post_pick_boot_baseline(self) -> None:
+        """Run boots from a checkpoint whose party already holds a starter
+        (T192/T187 signature: rival battle reached, no 0→1 transition):
+        the milestone must fire from the baseline party."""
+        event, emitted = _starter_milestone_for_cycle(
+            previous_party_count=1,
+            current_party_count=1,
+            species_hint="Charmander",
+            baseline_starter_name="Charmander",
+            milestone_emitted=False,
+        )
+        assert emitted is True
+        assert event is not None
+        assert event["event"] == "starter_picked"
+        assert event["party_count"] == 1
+        assert event["species_hint"] == "Charmander"
+        assert event.get("source") == "boot_baseline"
+
+    def test_cycle_milestone_ignores_non_starter_baseline(self) -> None:
+        """A mid-game save with a non-starter species must not masquerade as
+        a starter pick."""
+        event, emitted = _starter_milestone_for_cycle(
+            previous_party_count=1,
+            current_party_count=1,
+            species_hint="Pikachu",
+            baseline_starter_name=None,
+            milestone_emitted=False,
+        )
+        assert emitted is False
+        assert event is None
+
+    def test_cycle_milestone_is_one_shot(self) -> None:
+        """Once emitted, the milestone never fires again on later cycles."""
+        event, emitted = _starter_milestone_for_cycle(
+            previous_party_count=0,
+            current_party_count=1,
+            species_hint="Charmander",
+            baseline_starter_name=None,
+            milestone_emitted=True,
+        )
+        assert emitted is True
+        assert event is None
 
 
 # ── Tests ──────────────────────────────────────────────────────────────────

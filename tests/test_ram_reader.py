@@ -444,6 +444,33 @@ class TestRAMReaderPlayerState:
             reader = RAMReader(mock_emu, "/fake/rom.gb")
             assert reader.first_party_species_hint() is None
 
+    def test_first_party_starter_name_for_starter(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD163] = 1
+        _MEMORY[0xD164] = 176  # Charmander's Gen 1 internal index
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.first_party_starter_name() == "Charmander"
+
+    def test_first_party_starter_name_non_starter(self, mock_emu: MagicMock) -> None:
+        # A mid-game save: party holds a non-starter species (index 25 = Pikachu).
+        _MEMORY[0xD163] = 1
+        _MEMORY[0xD164] = 25
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.first_party_starter_name() is None
+
+    def test_first_party_starter_name_empty_party(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD163] = 0
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.first_party_starter_name() is None
+
     def test_current_map_name_pallet(self, mock_emu: MagicMock) -> None:
         from src.core.ram_reader import RAMReader
 

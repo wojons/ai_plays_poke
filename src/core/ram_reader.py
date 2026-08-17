@@ -906,6 +906,19 @@ class RAMReader:
             species_id, POKEMON_NAMES.get(species_id, f"Species#{species_id}")
         )
 
+    def first_party_starter_name(self) -> str | None:
+        """Return the starter species name when the first party member is one
+        of Oak's starters (Bulbasaur/Charmander/Squirtle), else None.
+
+        Distinguishes a post-pick checkpoint boot (party holds a starter) from
+        a mid-game save (party holds any other species) for the starter-pick
+        milestone's boot-baseline path.
+        """
+        if self.party_count() == 0:
+            return None
+        species_id = self.read_u8(ADDR_PARTY_SPECIES)
+        return STARTER_SPECIES_NAMES.get(species_id)
+
     # ── Screen type ──────────────────────────────────────────────────
 
     def screen_type(self) -> str:
