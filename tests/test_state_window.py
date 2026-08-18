@@ -1162,3 +1162,79 @@ class TestBuildBattlePrompt:
         # Should still produce something (even if from fallback)
         assert isinstance(prompt, str)
         assert len(prompt) > 0
+
+
+class TestBattleQueryBound:
+    """query_global is bounded in battle; after 2 queries a deterministic
+    select_move(1) is forced (T192/T197 battle-stall fix)."""
+
+    def test_battle_query_loop_forces_select_move(self, ctx, mock_emu):
+        """Three query_global calls in a row → third becomes a forced
+        select_move(1) on the emulator (never re-loops forever)."""
+        vision = {
+            "screen_type": "battle",
+            "result": "battle",
+            "battle_state": {
+                "battle_type": "trainer",
+                "player": {"name": "Charmander", "level": 15, "hp": 30, "max_hp": 30,
+                           "hp_pct": 100, "type": "Fire",
+                           "moves": [{"name": "SCRATCH", "pp": 35, "slot": 1}]},
+                "enemy": {"name": "Squirtle", "level": 15, "hp": 20, "max_hp": 30,
+                          "hp_pct": 66, "type": "Water"},
+            },
+        }
+        window, mock_client = _make_window_with_client(
+            "battle", ctx, mock_emu, vision, max_steps=5
+        )
+        _calls = [0]
+
+        def _side_effect(*_a, **_kw):
+            _calls[0] += 1
+            return '{"name": "query_global", "arguments": {"question": "What is my party?"}}'
+
+        mock_client.send_tool_request.side_effect = _side_effect
+        _parse = [0]
+
+        def _parse_side_effect(*_a, **_kw):
+            _parse[0] += 1
+            return {"name": "query_global", "arguments": {"question": "What is my party?"}}
+
+        window._parse_tool_response = lambda text: _parse_side_effect(text)
+
+        window.run()
+
+        # The third query was forced into select_move(1) on the emulator
+        # execute_tool_call(select_move) presses FIGHT (a) then the move slot (a)
+        assert any(
+            "select_move" in str(call) or (
+                call[0] == "press_button" and "a" in str(call[1])
+            )
+            for call in mock_emu.method_calls
+        ) or mock_emu.press_button.call_count >= 1
+        # The query bound produced a forced action; run must not spin on
+        # queries alone — at least one emulator action happened.
+        assert mock_emu.press_button.call_count >= 1
+
+    def test_battle_query_answer_contains_live_state(self, ctx, mock_emu):
+        """query_global answers include LIVE battle state (kills party
+        hallucination — the Arcanine/Cubone failure mode)."""
+        vision = {
+            "screen_type": "battle",
+            "result": "battle",
+            "battle_state": {
+                "battle_type": "trainer",
+                "player": {"name": "Charmander", "level": 15, "hp": 30, "max_hp": 30,
+                           "hp_pct": 100, "type": "Fire",
+                           "moves": [{"name": "SCRATCH", "pp": 35, "slot": 1}]},
+                "enemy": {"name": "Squirtle", "level": 15, "hp": 20, "max_hp": 30,
+                          "hp_pct": 66, "type": "Water"},
+            },
+        }
+        window, mock_client = _make_window_with_client(
+            "battle", ctx, mock_emu, vision, max_steps=3
+        )
+        answer = window._answer_global_query("What is my party?")
+        assert "Charmander" in answer
+        assert "SCRATCH" in answer
+        assert "Squirtle" in answer
+        assert "select_move" in answer

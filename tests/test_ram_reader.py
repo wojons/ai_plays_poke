@@ -1313,7 +1313,7 @@ class TestReadBattleState:
 
     def test_player_species_lookups(self, mock_emu: MagicMock) -> None:
         # Pikachu = species 79
-        _MEMORY[0xD016] = 79  # ADDR_BATTLE_MON_SPECIES
+        _MEMORY[0xD014] = 79  # ADDR_BATTLE_MON_SPECIES
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1321,7 +1321,7 @@ class TestReadBattleState:
             assert reader.read_battle_state()["player"]["name"] == "Pikachu"
 
     def test_player_unknown_species(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD016] = 200  # missing index
+        _MEMORY[0xD014] = 200  # missing index
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1330,10 +1330,10 @@ class TestReadBattleState:
 
     def test_player_hp_full(self, mock_emu: MagicMock) -> None:
         # HP = 0x0028 (40), max HP = 0x0028 (40) → 100%
-        _MEMORY[0xD017] = 40  # ADDR_BATTLE_MON_HP low byte
-        _MEMORY[0xD018] = 0  # HP high byte
-        _MEMORY[0xD025] = 40  # ADDR_BATTLE_MON_MAX_HP low byte
-        _MEMORY[0xD026] = 0  # max HP high byte
+        _MEMORY[0xD016] = 40  # ADDR_BATTLE_MON_HP low byte (BE)
+        _MEMORY[0xD015] = 0  # HP high byte (BE)
+        _MEMORY[0xD024] = 40  # ADDR_BATTLE_MON_MAX_HP low byte (BE)
+        _MEMORY[0xD023] = 0  # max HP high byte (BE)
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1346,8 +1346,8 @@ class TestReadBattleState:
 
     def test_player_hp_partial(self, mock_emu: MagicMock) -> None:
         # HP = 14/40 = 35% (avoids banker's rounding edge case at .5)
-        _MEMORY[0xD017] = 14
-        _MEMORY[0xD025] = 40
+        _MEMORY[0xD016] = 14
+        _MEMORY[0xD024] = 40
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1368,10 +1368,12 @@ class TestReadBattleState:
 
         assert state["player"]["hp_pct"] == 0
 
-    def test_player_hp_u16_little_endian(self, mock_emu: MagicMock) -> None:
-        # HP = 0x0100 = 256 (verify u16 little-endian: low=0, high=1)
-        _MEMORY[0xD017] = 0x00
-        _MEMORY[0xD018] = 0x01
+    def test_player_hp_u16_big_endian(self, mock_emu: MagicMock) -> None:
+        # HP = 0x0100 = 256 (SGB ROM stores HP big-endian: high=1, low=0)
+        _MEMORY[0xD015] = 0x01
+        _MEMORY[0xD016] = 0x00
+        _MEMORY[0xD023] = 0x01  # max HP high (BE) = 0x0100 = 256
+        _MEMORY[0xD024] = 0x00
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1381,7 +1383,7 @@ class TestReadBattleState:
         assert state["player"]["hp"] == 0x0100
 
     def test_player_level(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD024] = 25  # ADDR_BATTLE_MON_LEVEL
+        _MEMORY[0xD022] = 25  # ADDR_BATTLE_MON_LEVEL
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1389,10 +1391,14 @@ class TestReadBattleState:
             assert reader.read_battle_state()["player"]["level"] == 25
 
     def test_player_stats(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD027] = 50  # attack low
-        _MEMORY[0xD029] = 60  # defense low
-        _MEMORY[0xD02B] = 70  # speed low
-        _MEMORY[0xD02D] = 80  # special low
+        _MEMORY[0xD025] = 0  # attack high (BE)
+        _MEMORY[0xD026] = 50  # attack low
+        _MEMORY[0xD027] = 0  # defense high (BE)
+        _MEMORY[0xD028] = 60  # defense low
+        _MEMORY[0xD029] = 0  # speed high (BE)
+        _MEMORY[0xD02A] = 70  # speed low
+        _MEMORY[0xD02B] = 0  # special high (BE)
+        _MEMORY[0xD02C] = 80  # special low
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1406,8 +1412,8 @@ class TestReadBattleState:
 
     def test_player_type_same(self, mock_emu: MagicMock) -> None:
         # Same primary/secondary type → single type reported
-        _MEMORY[0xD01B] = 20  # type1 = Fire
-        _MEMORY[0xD01C] = 20  # type2 = Fire
+        _MEMORY[0xD019] = 20  # type1 = Fire
+        _MEMORY[0xD01A] = 20  # type2 = Fire
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1415,8 +1421,8 @@ class TestReadBattleState:
             assert reader.read_battle_state()["player"]["type"] == "Fire"
 
     def test_player_type_dual(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD01B] = 20  # Fire
-        _MEMORY[0xD01C] = 2  # Flying
+        _MEMORY[0xD019] = 20  # Fire
+        _MEMORY[0xD01A] = 2  # Flying
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1424,7 +1430,7 @@ class TestReadBattleState:
             assert reader.read_battle_state()["player"]["type"] == "Fire/Flying"
 
     def test_player_status(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD01A] = 7  # status = 7 (freeze+poison+burn bits)
+        _MEMORY[0xD018] = 7  # status = 7 (freeze+poison+burn bits)
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1433,13 +1439,13 @@ class TestReadBattleState:
 
     def test_player_moves_with_pp(self, mock_emu: MagicMock) -> None:
         # Move slots at 0xD01E-0xD021
-        _MEMORY[0xD01E] = 85  # Thunderbolt (move ID 85)
-        _MEMORY[0xD01F] = 45  # Growl
-        _MEMORY[0xD020] = 0  # empty slot
-        _MEMORY[0xD021] = 0  # empty slot
+        _MEMORY[0xD01C] = 85  # Thunderbolt (move ID 85)
+        _MEMORY[0xD01D] = 45  # Growl
+        _MEMORY[0xD01E] = 0  # empty slot
+        _MEMORY[0xD01F] = 0  # empty slot
         # PP at 0xD02F-0xD032
-        _MEMORY[0xD02F] = 15  # PP for Thunderbolt
-        _MEMORY[0xD030] = 40  # PP for Growl
+        _MEMORY[0xD02D] = 15  # PP for Thunderbolt
+        _MEMORY[0xD02E] = 40  # PP for Growl
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1463,7 +1469,7 @@ class TestReadBattleState:
             assert reader.read_battle_state()["player"]["moves"] == []
 
     def test_player_unknown_move(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD01E] = 250  # not in MOVE_NAMES table
+        _MEMORY[0xD01C] = 250  # not in MOVE_NAMES table
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1474,12 +1480,12 @@ class TestReadBattleState:
 
     def test_enemy_full_read(self, mock_emu: MagicMock) -> None:
         # Enemy Pidgey (species 36), Lv3, half HP
-        _MEMORY[0xCFE7] = 36  # Pidgey
-        _MEMORY[0xCFE8] = 14  # HP
-        _MEMORY[0xCFE9] = 0  # HP high byte
-        _MEMORY[0xCFF6] = 28  # max HP low
-        _MEMORY[0xCFF7] = 0  # max HP high
-        _MEMORY[0xCFF5] = 3  # level
+        _MEMORY[0xD8A4] = 36  # Pidgey (enemy party struct)
+        _MEMORY[0xCEE9] = 14  # HP (live, LE)
+        _MEMORY[0xCEEA] = 0  # HP high byte
+        _MEMORY[0xD8C7] = 28  # max HP low (BE)
+        _MEMORY[0xD8C6] = 0  # max HP high (BE)
+        _MEMORY[0xD8C5] = 3  # level
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1493,8 +1499,8 @@ class TestReadBattleState:
         assert enemy["level"] == 3
 
     def test_enemy_type_dual(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xCFEC] = 3  # Poison
-        _MEMORY[0xCFED] = 4  # Ground
+        _MEMORY[0xD8A9] = 3  # Poison
+        _MEMORY[0xD8AA] = 4  # Ground
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1510,7 +1516,7 @@ class TestRenderBattle:
 
     def test_starts_with_battle_header(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xD057] = 1  # wild battle
-        _MEMORY[0xCFE7] = 79  # Pikachu (enemy)
+        _MEMORY[0xD8A4] = 79  # Pikachu (enemy party struct)
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1533,12 +1539,12 @@ class TestRenderBattle:
         assert "Trainer" in output
 
     def test_includes_player_info(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD016] = 1  # Rhydon (player)
-        _MEMORY[0xD024] = 42  # level
-        _MEMORY[0xD025] = 100  # max_hp
-        _MEMORY[0xD026] = 0
-        _MEMORY[0xD017] = 50  # hp
-        _MEMORY[0xD018] = 0
+        _MEMORY[0xD014] = 1  # Rhydon (player)
+        _MEMORY[0xD022] = 42  # level
+        _MEMORY[0xD024] = 100  # max_hp
+        _MEMORY[0xD023] = 0
+        _MEMORY[0xD016] = 50  # hp
+        _MEMORY[0xD015] = 0
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1550,12 +1556,12 @@ class TestRenderBattle:
         assert "50/100" in output
 
     def test_includes_enemy_info(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xCFE7] = 79  # Pikachu (enemy)
-        _MEMORY[0xCFF5] = 12  # enemy level
-        _MEMORY[0xCFF6] = 35  # enemy max_hp
-        _MEMORY[0xCFF7] = 0
-        _MEMORY[0xCFE8] = 17  # enemy hp
-        _MEMORY[0xCFE9] = 0
+        _MEMORY[0xD8A4] = 79  # Pikachu (enemy party struct)
+        _MEMORY[0xD8C5] = 12  # enemy level
+        _MEMORY[0xD8C7] = 35  # enemy max_hp
+        _MEMORY[0xD8C6] = 0
+        _MEMORY[0xCEE9] = 17  # enemy hp
+        _MEMORY[0xCEEA] = 0
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -1567,10 +1573,10 @@ class TestRenderBattle:
         assert "17/35" in output
 
     def test_includes_moves(self, mock_emu: MagicMock) -> None:
-        _MEMORY[0xD01E] = 33  # Tackle
-        _MEMORY[0xD01F] = 45  # Growl
-        _MEMORY[0xD02F] = 35  # Tackle PP (max 35)
-        _MEMORY[0xD030] = 40  # Growl PP (max 40)
+        _MEMORY[0xD01C] = 33  # Tackle
+        _MEMORY[0xD01D] = 45  # Growl
+        _MEMORY[0xD02D] = 35  # Tackle PP (max 35)
+        _MEMORY[0xD02E] = 40  # Growl PP (max 40)
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB"):
@@ -2161,8 +2167,8 @@ class TestObserveExtended:
 
     def test_battle_observe_includes_battle_state(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xD057] = 1  # wild battle
-        _MEMORY[0xD016] = 79  # Pikachu
-        _MEMORY[0xCFE7] = 36  # Pidgey (enemy, species 36)
+        _MEMORY[0xD014] = 79  # Pikachu
+        _MEMORY[0xD8A4] = 36  # Pidgey (enemy, species 36)
         from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:

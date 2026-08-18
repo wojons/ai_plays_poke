@@ -14,6 +14,15 @@ ram_battle: |
   Menu: [FIGHT] BAG PKMN RUN
   → Call select_move(N) for move N (1-4), run_from_battle() to flee, use_battle_item(name) to bag, or switch_pokemon(N) to swap.
 
+  RULES:
+  - Your Pokémon, HP, and moves are listed above. Do NOT ask about your
+    party via query_global — this is the live truth.
+  - If your Pokémon is alive, ATTACK: call select_move(1) (or the strongest
+    move). Repeat until the enemy faints.
+  - Trainer battles cannot be fled. Never call run_from_battle in a trainer
+    battle.
+  - If your HP is very low, switch_pokemon(2) or use a healing item instead.
+
 ram_battle_fight: |
   Pick move vs {enemy_name} HP:{enemy_hp_pct}%:
   {moves_list}

@@ -1912,7 +1912,12 @@ def main() -> None:
                     vis_dict,
                     generation="gen1",
                     max_steps=(
-                        1 if state_type in ("name_entry", "battle") else STATE_STEPS
+                        # Battle needs room to act: query → attack → verify
+                        # within one window. max_steps=1 meant a single
+                        # query_global consumed the whole budget each cycle
+                        # and the battle never progressed (T192/T197 stall).
+                        5 if state_type == "battle" else
+                        (1 if state_type == "name_entry" else STATE_STEPS)
                     ),
                     hint_level=HINT_LEVEL,
                     use_ram_prompts=True,

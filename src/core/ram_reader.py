@@ -44,38 +44,49 @@ ADDR_IS_IN_BATTLE = 0xD057  # wIsInBattle — 0=none, 1=wild, 2=trainer
 ADDR_BATTLE_TYPE = 0xD05A  # wBattleType — 0=normal, 1=old man, 2=Safari
 ADDR_CUR_OPPONENT = 0xD058  # wCurOpponent — species (wild) or trainer class+offset
 
-# Battle — Player mon (wBattleMon, 0xD016–0xD032)
-ADDR_BATTLE_MON_SPECIES = 0xD016
-ADDR_BATTLE_MON_HP = 0xD017  # u16
-ADDR_BATTLE_MON_STATUS = 0xD01A
-ADDR_BATTLE_MON_TYPE1 = 0xD01B
-ADDR_BATTLE_MON_TYPE2 = 0xD01C
-ADDR_BATTLE_MON_MOVES = 0xD01E  # 4 bytes
-ADDR_BATTLE_MON_DVS = 0xD022  # u16
-ADDR_BATTLE_MON_LEVEL = 0xD024
-ADDR_BATTLE_MON_MAX_HP = 0xD025  # u16
-ADDR_BATTLE_MON_ATTACK = 0xD027  # u16
-ADDR_BATTLE_MON_DEFENSE = 0xD029  # u16
-ADDR_BATTLE_MON_SPEED = 0xD02B  # u16
-ADDR_BATTLE_MON_SPECIAL = 0xD02D  # u16
-ADDR_BATTLE_MON_PP = 0xD02F  # 4 bytes
+# Battle — Player mon (wBattleMon, 0xD014–0xD030) — EMPIRICALLY VERIFIED
+# 2026-08-18 on the SGB Enhanced Blue ROM (the old 0xD016-based constants
+# read garbage — "Cubone L20 HP 0%" — the root cause of the T192/T197
+# battle stall). Verified via WRAM sweep + damage-diff experiment
+# (SCRATCH dropped the enemy HP 20→14 at 0xCEE9):
+#   player battle struct @ 0xD014 (battle_struct layout):
+#     +0 species (0xB0 = Charmander, hack index table),
+#     +1 HP u16, +4 status, +5/+6 types, +7 catch rate, +8 moves,
+#     +14 level, +15 max HP, +17 atk, +19 def, +21 spd, +23 spc, +25 PP
+#   enemy party struct @ 0xD8A4 (box_struct layout): +0 species
+#     (0xB1 = Squirtle), +1 HP u16 (BE), +5/+6 types (0x15 = WATER),
+#     +8 moves (0x21 TACKLE, 0x27 TAIL WHIP)
+#   live enemy HP u16 (LE) @ 0xCEE9 — damage-proven
+# NOTE: this ROM stores most u16s big-endian in mon structs;
+# read_battle_state validates byte order against max HP.
+ADDR_BATTLE_MON_SPECIES = 0xD014
+ADDR_BATTLE_MON_HP = 0xD015  # u16 (BE in struct copies)
+ADDR_BATTLE_MON_STATUS = 0xD018
+ADDR_BATTLE_MON_TYPE1 = 0xD019
+ADDR_BATTLE_MON_TYPE2 = 0xD01A
+ADDR_BATTLE_MON_MOVES = 0xD01C  # 4 bytes
+ADDR_BATTLE_MON_LEVEL = 0xD022
+ADDR_BATTLE_MON_MAX_HP = 0xD023  # u16 (BE)
+ADDR_BATTLE_MON_ATTACK = 0xD025  # u16 (BE)
+ADDR_BATTLE_MON_DEFENSE = 0xD027  # u16 (BE)
+ADDR_BATTLE_MON_SPEED = 0xD029  # u16 (BE)
+ADDR_BATTLE_MON_SPECIAL = 0xD02B  # u16 (BE)
+ADDR_BATTLE_MON_PP = 0xD02D  # 4 bytes
+ADDR_ENEMY_MON_SPECIES = 0xD8A4  # enemy party struct species (0xB1 Squirtle)
+ADDR_ENEMY_MON_HP = 0xCEE9  # live enemy HP u16 (LE) — damage-proven
 
-# Battle — Enemy mon (wEnemyMon, 0xCFE7–0xD003)
-ADDR_ENEMY_MON_SPECIES = 0xCFE7
-ADDR_ENEMY_MON_HP = 0xCFE8  # u16
-ADDR_ENEMY_MON_STATUS = 0xCFEB
-ADDR_ENEMY_MON_TYPE1 = 0xCFEC
-ADDR_ENEMY_MON_TYPE2 = 0xCFED
-ADDR_ENEMY_MON_MOVES = 0xCFEF  # 4 bytes
-ADDR_ENEMY_MON_CATCH = 0xCFEE
-ADDR_ENEMY_MON_DVS = 0xCFF3  # u16
-ADDR_ENEMY_MON_LEVEL = 0xCFF5
-ADDR_ENEMY_MON_MAX_HP = 0xCFF6  # u16
-ADDR_ENEMY_MON_ATTACK = 0xCFF8  # u16
-ADDR_ENEMY_MON_DEFENSE = 0xCFFA  # u16
-ADDR_ENEMY_MON_SPEED = 0xCFFC  # u16
-ADDR_ENEMY_MON_SPECIAL = 0xCFFE  # u16
-ADDR_ENEMY_MON_PP = 0xD000  # 4 bytes
+# Battle — Enemy mon (empirically verified; see player-block note):
+#   species from enemy party struct @ 0xD8A4 (0xB1 = Squirtle)
+#   live HP u16 (LE) @ 0xCEE9 — damage-proven
+# The old 0xCFE7-based constants read garbage on the SGB Enhanced ROM.
+ADDR_ENEMY_MON_SPECIES = 0xD8A4
+ADDR_ENEMY_MON_HP = 0xCEE9  # live enemy HP u16 (LE) — damage-proven
+ADDR_ENEMY_MON_LEVEL = 0xD8C5  # enemy party struct level (party_struct +33)
+ADDR_ENEMY_MON_MAX_HP = 0xD8C6  # enemy party struct max HP u16 (BE)
+ADDR_ENEMY_MON_TYPE1 = 0xD8A9  # enemy party struct type1 (0x15 = WATER)
+ADDR_ENEMY_MON_TYPE2 = 0xD8AA  # enemy party struct type2
+ADDR_ENEMY_MON_MOVES = 0xD8AC  # enemy party struct moves (0x21 TACKLE...)
+ADDR_ENEMY_MON_PP = 0xD8C1  # enemy party struct PP (box_struct +29)
 
 # Battle — Move selection
 ADDR_PLAYER_MOVE_NUM = 0xCF95  # wPlayerMoveNum
@@ -1178,8 +1189,18 @@ class RAMReader:
         return result
 
     def _pokemon_name(self, species_id: int) -> str:
-        """Look up a Pokémon species name by internal ID."""
-        return POKEMON_NAMES.get(species_id, f"#{species_id}")
+        """Look up a Pokémon species name by internal ID.
+
+        The SGB Enhanced Blue ROM uses a reordered index table (starters at
+        153/176/177, rivals' counter-starters and many others differ from
+        vanilla). STARTER_SPECIES_NAMES first, then the vanilla table, then
+        the raw ID.
+        """
+        return (
+            STARTER_SPECIES_NAMES.get(species_id)
+            or POKEMON_NAMES.get(species_id)
+            or f"#{species_id}"
+        )
 
     def _move_name(self, move_id: int) -> str:
         """Look up a move name by internal ID."""
@@ -1200,15 +1221,25 @@ class RAMReader:
         battle_code = self.read_u8(ADDR_IS_IN_BATTLE)
         is_trainer = battle_code == 2
 
-        # Player mon
+        # Player mon — SGB Enhanced ROM stores mon-struct u16s BIG-endian.
+        # Read raw bytes and pick the interpretation that passes sanity
+        # (hp ≤ maxhp, sane maxhp range), falling back to LE for vanilla.
         pspecies = self.read_u8(ADDR_BATTLE_MON_SPECIES)
-        php = self.read_u16(ADDR_BATTLE_MON_HP)
-        pmaxhp = self.read_u16(ADDR_BATTLE_MON_MAX_HP)
+        php_le = self.read_u16(ADDR_BATTLE_MON_HP)
+        pmax_le = self.read_u16(ADDR_BATTLE_MON_MAX_HP)
+        php_be = (php_le >> 8) | ((php_le & 0xFF) << 8)
+        pmax_be = (pmax_le >> 8) | ((pmax_le & 0xFF) << 8)
+        # Prefer BE when it yields sane values (this ROM's layout)
+        if pmax_be and 1 <= pmax_be <= 999 and (php_be == 0 or php_be <= pmax_be):
+            php, pmaxhp = php_be, pmax_be
+        else:
+            php, pmaxhp = php_le, pmax_le
         plevel = self.read_u8(ADDR_BATTLE_MON_LEVEL)
-        patk = self.read_u16(ADDR_BATTLE_MON_ATTACK)
-        pdef = self.read_u16(ADDR_BATTLE_MON_DEFENSE)
-        pspd = self.read_u16(ADDR_BATTLE_MON_SPEED)
-        pspc = self.read_u16(ADDR_BATTLE_MON_SPECIAL)
+        # Stats are BE u16 like maxHP — swap to LE-canonical for consumers
+        patk = (self.read_u16(ADDR_BATTLE_MON_ATTACK) >> 8) | ((self.read_u16(ADDR_BATTLE_MON_ATTACK) & 0xFF) << 8)
+        pdef = (self.read_u16(ADDR_BATTLE_MON_DEFENSE) >> 8) | ((self.read_u16(ADDR_BATTLE_MON_DEFENSE) & 0xFF) << 8)
+        pspd = (self.read_u16(ADDR_BATTLE_MON_SPEED) >> 8) | ((self.read_u16(ADDR_BATTLE_MON_SPEED) & 0xFF) << 8)
+        pspc = (self.read_u16(ADDR_BATTLE_MON_SPECIAL) >> 8) | ((self.read_u16(ADDR_BATTLE_MON_SPECIAL) & 0xFF) << 8)
         pstatus = self.read_u8(ADDR_BATTLE_MON_STATUS)
         ptype1 = self.read_u8(ADDR_BATTLE_MON_TYPE1)
         ptype2 = self.read_u8(ADDR_BATTLE_MON_TYPE2)
@@ -1220,17 +1251,26 @@ class RAMReader:
             if mid != 0:
                 pmoves.append({"name": self._move_name(mid), "pp": pp, "slot": i + 1})
 
-        # Enemy mon
+        # Enemy mon — SGB Enhanced ROM: species/type/moves from the enemy
+        # party struct (0xD8A4, stable); live HP from 0xCEE9 (LE u16,
+        # damage-proven). Byte order and sanity are validated below.
         espec = self.read_u8(ADDR_ENEMY_MON_SPECIES)
-        ehp = self.read_u16(ADDR_ENEMY_MON_HP)
-        emaxhp = self.read_u16(ADDR_ENEMY_MON_MAX_HP)
+        ehp = self.read_u16(ADDR_ENEMY_MON_HP)  # LE at 0xCEE9 (damage-proven)
+        emax_le = self.read_u16(ADDR_ENEMY_MON_MAX_HP)  # BE at party struct
+        emax_be = (emax_le >> 8) | ((emax_le & 0xFF) << 8)
+        emaxhp = emax_be if 1 <= emax_be <= 999 else emax_le
+        if not (1 <= emaxhp <= 999):
+            emaxhp = ehp  # unknown max → show current as 100%
         elevel = self.read_u8(ADDR_ENEMY_MON_LEVEL)
-        eatk = self.read_u16(ADDR_ENEMY_MON_ATTACK)
-        edef = self.read_u16(ADDR_ENEMY_MON_DEFENSE)
-        espd = self.read_u16(ADDR_ENEMY_MON_SPEED)
-        espc = self.read_u16(ADDR_ENEMY_MON_SPECIAL)
         etype1 = self.read_u8(ADDR_ENEMY_MON_TYPE1)
         etype2 = self.read_u8(ADDR_ENEMY_MON_TYPE2)
+
+        emoves: list[dict[str, Any]] = []
+        for i in range(4):
+            mid = self.read_u8(ADDR_ENEMY_MON_MOVES + i)
+            pp = self.read_u8(ADDR_ENEMY_MON_PP + i)
+            if mid != 0:
+                emoves.append({"name": self._move_name(mid), "pp": pp, "slot": i + 1})
 
         phpct = round(php / max(pmaxhp, 1) * 100)
         ehpct = round(ehp / max(emaxhp, 1) * 100)
@@ -1267,15 +1307,12 @@ class RAMReader:
                 "max_hp": emaxhp,
                 "hp_pct": ehpct,
                 "level": elevel,
-                "attack": eatk,
-                "defense": edef,
-                "speed": espd,
-                "special": espc,
                 "type": (
                     f"{self._type_name(etype1)}/{self._type_name(etype2)}"
                     if etype2 != etype1
                     else self._type_name(etype1)
                 ),
+                "moves": emoves,
             },
         }
 

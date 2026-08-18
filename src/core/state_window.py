@@ -285,6 +285,7 @@ class StateWindow:
 
         self.client = OpenRouterClient()
         self._step_count = 0
+        self._query_count = 0  # bound on query_global calls per window (anti-loop)
         self._history: list[dict[str, Any]] = []
         self._raw_responses: list[str] = []  # raw LLM text per step
         # Sliding window of last 5 actions with outcomes for controller context
@@ -505,6 +506,53 @@ class StateWindow:
             # Handle query_global calls
             if tool_call["name"] == "query_global":
                 question = tool_call.get("arguments", {}).get("question", "")
+                self._query_count += 1
+                if self._query_count > 2:
+                    # Query bound: the LLM would loop forever asking.
+                    # Force a deterministic battle action (or dialog A).
+                    if self.state_type == "battle":
+                        forced = execute_tool_call(
+                            self.emulator,
+                            tool_name="select_move",
+                            arguments={"move_number": 1},
+                        )
+                        self._history.append(
+                            {"step": self._step_count, "forced": True,
+                             "tool_call": {"name": "select_move", "arguments": {"move_number": 1}},
+                             "action": forced}
+                        )
+                        self._record_recent_action(
+                            {"name": "select_move", "arguments": {"move_number": 1}}, forced
+                        )
+                        self.emulator.wait(60)
+                        self.emulator.fast_forward(180)
+                    else:
+                        # Non-battle: plain A to keep the game advancing
+                        action_result = execute_tool_call(
+                            self.emulator, tool_name="press_button",
+                            arguments={"button": "a", "duration": 30},
+                        )
+                        self._history.append(
+                            {"step": self._step_count, "forced": True,
+                             "tool_call": {"name": "press_button", "arguments": {"button": "a"}},
+                             "action": action_result}
+                        )
+                        self._record_recent_action(
+                            {"name": "press_button", "arguments": {"button": "a"}}, action_result
+                        )
+                    self._step_count += 1
+                    # Check outcome (battle may have ended from the forced action)
+                    outcome = self._check_outcome()
+                    if outcome:
+                        if self._in_battle:
+                            self._battle_events.append(
+                                {"event": "battle_end", "outcome": outcome.get("outcome", "unknown"),
+                                 "to_type": outcome.get("to_type", "unknown")}
+                            )
+                        outcome["_battle_events"] = self._battle_events
+                        outcome["_failed_flee_attempts"] = self._failed_flee_attempts
+                        return outcome
+                    continue
                 answer = self._answer_global_query(question)
                 self._history.append(
                     {"role": "query_global", "question": question, "answer": answer}
@@ -1014,11 +1062,44 @@ class StateWindow:
     # ── Global query handler ─────────────────────────────────────────
 
     def _answer_global_query(self, question: str) -> str:
-        """Answer a query against global context."""
+        """Answer a query against global context.
+
+        In battle, the answer MUST include live RAM battle state (the
+        player's actual mon/HP/moves + enemy) — otherwise the LLM trusts
+        the stale "PARTY: none" static context and hallucinates its own
+        party (observed: "my active Arcanine", "Is Cubone fainted?").
+        """
+        parts: list[str] = []
         compacted = self.global_ctx.compact()
-        # For now, just return the full compacted context.
-        # Future: use an LLM to extract the specific answer.
-        return compacted
+        if compacted:
+            parts.append(compacted)
+
+        # Live battle state — the truth the LLM actually needs
+        bs = self.vision.get("battle_state") or {}
+        if bs:
+            p = bs.get("player", {})
+            e = bs.get("enemy", {})
+            moves = ", ".join(
+                f"{m.get('slot', i+1)}={m.get('name', '?')}(PP:{m.get('pp', '?')})"
+                for i, m in enumerate(p.get("moves", []))
+            )
+            parts.append(
+                f"LIVE BATTLE: {bs.get('battle_type', 'unknown')} battle | "
+                f"You: {p.get('name', '?')} Lv{p.get('level', '?')} "
+                f"HP:{p.get('hp', '?')}/{p.get('max_hp', '?')} "
+                f"({p.get('hp_pct', '?')}%) type {p.get('type', '?')} | "
+                f"Moves: {moves or 'none'} | "
+                f"Enemy: {e.get('name', '?')} Lv{e.get('level', '?')} "
+                f"HP:{e.get('hp', '?')}/{e.get('max_hp', '?')} "
+                f"({e.get('hp_pct', '?')}%) type {e.get('type', '?')}"
+            )
+            parts.append(
+                "ACTION: if your mon is alive, attack now — call "
+                "select_move(1) (or the move with the highest power). "
+                "Do NOT ask again; this is the live truth."
+            )
+
+        return "\n".join(parts) if parts else "(no context)"
 
     # ── Outcome detection ────────────────────────────────────────────
 
