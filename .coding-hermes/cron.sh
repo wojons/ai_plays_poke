@@ -8,7 +8,7 @@
 #
 # Usage:
 #   .coding-hermes/cron.sh                    # uses defaults (ROM, cycles)
-#   .coding-hermes/cron.sh --rom path/to.gba  # custom ROM
+#   .coding-hermes/cron.sh --rom path/to.gb   # custom ROM (Gen-1 Red/Blue only)
 #   .coding-hermes/cron.sh --cycles 50        # 50 decision cycles
 # ────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -19,7 +19,7 @@ PROJECT_ROOT="$(cd "$SCRIPTPATH/.." && pwd)"
 cd "$PROJECT_ROOT"
 
 # ── defaults ───────────────────────────────────────────────────────────────
-ROM="${ROM:-data/rom/PokemonLeafGreenVersion.gba}"
+ROM="${ROM:-data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb}"
 CYCLES="${CYCLES:-20}"
 SCREENSHOT_INTERVAL="${SCREENSHOT_INTERVAL:-60}"
 GENERATION="${GENERATION:-gen3}"
@@ -34,6 +34,14 @@ while [[ $# -gt 0 ]]; do
         *)          echo "Unknown arg: $1"; exit 1 ;;
     esac
 done
+
+# Reject GBA (Gen-3) ROMs — this pipeline is Gen-1 Red/Blue only; a LeafGreen
+# run would read Blue RAM offsets from a GBA game = garbage state. Fire BEFORE
+# the ROM-exists check and BEFORE any emulator boot.
+if [[ "${ROM,,}" == *.gba ]]; then
+    echo "ERROR: unsupported ROM: $ROM — this pipeline is Gen-1 Red/Blue only (SGB Blue ROM required); GBA (LeafGreen etc.) ROMs are not supported" >&2
+    exit 1
+fi
 
 # ── activate venv ──────────────────────────────────────────────────────────
 if [ -f venv/bin/activate ]; then
