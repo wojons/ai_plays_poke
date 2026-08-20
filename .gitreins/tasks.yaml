@@ -397,3 +397,14 @@ tasks:
   status: complete
   created_at: '2026-08-20T10:08:15.298603+00:00'
   completed_at: '2026-08-20T10:11:12.984948+00:00'
+- id: GAP-030
+  title: 'GAP-030: pytest/pytest-xdist/pytest-cov absent from requirements.txt'
+  criteria:
+  - A fresh clone following README and AGENTS setup, installing requirements.txt plus
+    the documented dev install, can run pytest tests with -q --co collecting 3937
+    tests with zero errors, including -n auto (xdist) and --cov=src support. requirements-dev.txt
+    gains pytest, pytest-xdist, pytest-cov; README and AGENTS instruct devs to install
+    requirements-dev.txt for testing.
+  status: complete
+  created_at: '2026-08-20T16:18:52.041293+00:00'
+  completed_at: '2026-08-20T16:25:55.388350+00:00'

@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-030",
+  "task_title": "GAP-030: pytest/pytest-xdist/pytest-cov absent from requirements.txt",
+  "task_criteria": [
+    "A fresh clone following README and AGENTS setup, installing requirements.txt plus the documented dev install, can run pytest tests with -q --co collecting 3937 tests with zero errors, including -n auto (xdist) and --cov=src support. requirements-dev.txt gains pytest, pytest-xdist, pytest-cov; README and AGENTS instruct devs to install requirements-dev.txt for testing."
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m11:26AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~175138875 bytes (175.14 MB) in 8.36s\u001b[0m\n\u001b[90m11:26AM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m11:26AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~175138875 bytes (175.14 MB) in 8.36s\u001b[0m\n\u001b[90m11:26AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 A fresh clone following README and AGENTS setup, installing requirements.txt plus the documented dev install, can run pytest tests with -q --co collecting 3937 tests with zero errors, including -n auto (xdist) and --cov=src support. requirements-dev.txt gains pytest, pytest-xdist, pytest-cov; README and AGENTS instruct devs to install requirements-dev.txt for testing.: requirements-dev.txt (commit 99bc907) contains pytest>=7.0, pytest-cov>=4.0, pytest-xdist>=3.0. README.md:330 fresh-clone note and README.md:588 instruct `pip install -r requirements-dev.txt`; AGENTS.md:16 instructs `pip install -r requirements-dev.txt` for dev. Verified `.venv/bin/pytest tests/ -q --co` = '3937 tests collected in 5.13s' with zero errors; `-n auto` = 3937 collected in 4.34s; `--cov=src` = coverage report + 3937 collected in 8.88s. End-to-end run `-n auto --cov=src` on subset = 311 passed; test_schemas.py = 45 passed. pytest 9.1.1, pytest-cov 7.1.0, pytest-xdist 3.8.0 installed in both .venv and venv.\nGAP-030 fully satisfied: requirements-dev.txt gains pytest/pytest-xdist/pytest-cov, README and AGENTS instruct devs to install requirements-dev.txt, and pytest -q --co collects 3937 tests with zero errors including -n auto and --cov=src support.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 A fresh clone following README and AGENTS setup, installing requirements.txt plus the documented dev install, can run pytest tests with -q --co collecting 3937 tests with zero errors, including -n auto (xdist) and --cov=src support. requirements-dev.txt gains pytest, pytest-xdist, pytest-cov; README and AGENTS instruct devs to install requirements-dev.txt for testing.: requirements-dev.txt (commit 99bc907) contains pytest>=7.0, pytest-cov>=4.0, pytest-xdist>=3.0. README.md:330 fresh",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "A fresh clone following README and AGENTS setup, installing requirements.txt plus the documented dev install, can run pytest tests with -q --co collecting 3937 tests with zero errors, including -n auto (xdist) and --cov=src support. requirements-dev.txt gains pytest, pytest-xdist, pytest-cov; README and AGENTS instruct devs to install requirements-dev.txt for testing.",
+                "status": "PASS",
+                "detail": "requirements-dev.txt (commit 99bc907) contains pytest>=7.0, pytest-cov>=4.0, pytest-xdist>=3.0. README.md:330 fresh-clone note and README.md:588 instruct `pip install -r requirements-dev.txt`; AGENTS.md:16 instructs `pip install -r requirements-dev.txt` for dev. Verified `.venv/bin/pytest tests/ -q --co` = '3937 tests collected in 5.13s' with zero errors; `-n auto` = 3937 collected in 4.34s; `--cov=src` = coverage report + 3937 collected in 8.88s. End-to-end run `-n auto --cov=src` on subset = 311 passed; test_schemas.py = 45 passed. pytest 9.1.1, pytest-cov 7.1.0, pytest-xdist 3.8.0 installed in both .venv and venv."
+              }
+            ],
+            "summary": "GAP-030 fully satisfied: requirements-dev.txt gains pytest/pytest-xdist/pytest-cov, README and AGENTS instruct devs to install requirements-dev.txt, and pytest -q --co collects 3937 tests with zero errors including -n auto and --cov=src support."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-030\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m11:26AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~175138875 bytes (175.14 MB) in 8.36s\u001b[0m\n\u001b[90m11:26AM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 A fresh clone following README and AGENTS setup, installing requirements.txt plus the documented dev install, can run pytest tests with -q --co collecting 3937 tests with zero errors, including -n auto (xdist) and --cov=src support. requirements-dev.txt gains pytest, pytest-xdist, pytest-cov; README and AGENTS instruct devs to install requirements-dev.txt for testing.: requirements-dev.txt (commit 99bc907) contains pytest>=7.0, pytest-cov>=4.0, pytest-xdist>=3.0. README.md:330 fresh-clone note and README.md:588 instruct `pip install -r requirements-dev.txt`; AGENTS.md:16 instructs `pip install -r requirements-dev.txt` for dev. Verified `.venv/bin/pytest tests/ -q --co` = '3937 tests collected in 5.13s' with zero errors; `-n auto` = 3937 collected in 4.34s; `--cov=src` = coverage report + 3937 collected in 8.88s. End-to-end run `-n auto --cov=src` on subset = 311 passed; test_schemas.py = 45 passed. pytest 9.1.1, pytest-cov 7.1.0, pytest-xdist 3.8.0 installed in both .venv and venv.\nGAP-030 fully satisfied: requirements-dev.txt gains pytest/pytest-xdist/pytest-cov, README and AGENTS instruct devs to install requirements-dev.txt, and pytest -q --co collects 3937 tests with zero errors including -n auto and --cov=src support.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-20T16:31:05.072016"
+}
