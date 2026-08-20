@@ -324,6 +324,10 @@ runs/test_001/
 > (system `python3` has no pytest/numpy — the project venv is `.venv`; see
 > [Quick Start](#quick-start-working-path) to create it). If you have the venv
 > activated (`source .venv/bin/activate`), plain `pytest` works identically.
+>
+> **Fresh clone:** after creating the venv, install the development dependencies so
+> the pytest commands below (including `--cov` and `-n auto`) are available:
+> `pip install -r requirements.txt && pip install -r requirements-dev.txt`
 
 ### Running All Tests
 ```bash

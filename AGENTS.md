@@ -9,11 +9,11 @@ PTP-01X is a comprehensive autonomous Pokémon AI benchmarking system with ~53,5
 python3 -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Install dependencies
+# Install runtime dependencies
 pip install -r requirements.txt
 
-# For development (includes linting/formatting tools)
-pip install -r requirements.txt  # Already includes pytest, black, mypy, flake8
+# For development (adds pytest, pytest-cov, pytest-xdist, black, mypy, flake8, etc.)
+pip install -r requirements-dev.txt
 ```
 
 ## Build & Development Commands
