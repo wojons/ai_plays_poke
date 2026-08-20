@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-031",
+  "task_title": "cron.sh defaults to LeafGreen GBA ROM \u2014 switch to Gen-1 Blue SGB ROM + reject GBA",
+  "task_criteria": [
+    "Default ROM in .coding-hermes/cron.sh resolves to the Blue SGB ROM (data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb); zero 'PokemonLeafGreenVersion' refs remain; any *.gba ROM is rejected with an explicit unsupported-ROM error before emulator boot; bash -n .coding-hermes/cron.sh exits 0; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m6:59PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~175120153 bytes (175.12 MB) in 8.02s\u001b[0m\n\u001b[90m6:59PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m6:59PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~175120153 bytes (175.12 MB) in 8.02s\u001b[0m\n\u001b[90m6:59PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Default ROM in .coding-hermes/cron.sh resolves to the Blue SGB ROM (data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb); zero 'PokemonLeafGreenVersion' refs remain; any *.gba ROM is rejected with an explicit unsupported-ROM error before emulator boot; bash -n .coding-hermes/cron.sh exits 0; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>: cron.sh:22 ROM default = 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (file exists on disk, 1048576 bytes). grep -c 'PokemonLeafGreenVersion' .coding-hermes/cron.sh = 0 (only remaining refs are in .coding-hermes/board/tasks.jsonl, a historical task log, not code). cron.sh:41-44 GBA guard `if [[ \"${ROM,,}\" == *.gba ]]` echoes 'ERROR: unsupported ROM: ...' and exits 1, placed right after arg parse and BEFORE venv activation, ROM-exists check, and emulator boot (guard logic verified: exit 1 with explicit error). bash -n .coding-hermes/cron.sh exits 0. Commit 3cd2fae message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'.\nGAP-031 fully satisfied: cron.sh defaults to the Blue SGB ROM, has zero LeafGreen refs, rejects *.gba with an explicit pre-boot error, passes bash -n, and the commit carries the required Co-authored-by trailer.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Default ROM in .coding-hermes/cron.sh resolves to the Blue SGB ROM (data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb); zero 'PokemonLeafGreenVersion' refs remain; any *.gba ROM is rejected with an explicit unsupported-ROM error before emulator boot; bash -n .coding-hermes/cron.sh exits 0; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>: cron.sh:22 ROM default = 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (file exists on disk, 1",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Default ROM in .coding-hermes/cron.sh resolves to the Blue SGB ROM (data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb); zero 'PokemonLeafGreenVersion' refs remain; any *.gba ROM is rejected with an explicit unsupported-ROM error before emulator boot; bash -n .coding-hermes/cron.sh exits 0; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>",
+                "status": "PASS",
+                "detail": "cron.sh:22 ROM default = 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (file exists on disk, 1048576 bytes). grep -c 'PokemonLeafGreenVersion' .coding-hermes/cron.sh = 0 (only remaining refs are in .coding-hermes/board/tasks.jsonl, a historical task log, not code). cron.sh:41-44 GBA guard `if [[ \"${ROM,,}\" == *.gba ]]` echoes 'ERROR: unsupported ROM: ...' and exits 1, placed right after arg parse and BEFORE venv activation, ROM-exists check, and emulator boot (guard logic verified: exit 1 with explicit error). bash -n .coding-hermes/cron.sh exits 0. Commit 3cd2fae message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'."
+              }
+            ],
+            "summary": "GAP-031 fully satisfied: cron.sh defaults to the Blue SGB ROM, has zero LeafGreen refs, rejects *.gba with an explicit pre-boot error, passes bash -n, and the commit carries the required Co-authored-by trailer."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-031\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m6:59PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~175120153 bytes (175.12 MB) in 8.02s\u001b[0m\n\u001b[90m6:59PM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Default ROM in .coding-hermes/cron.sh resolves to the Blue SGB ROM (data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb); zero 'PokemonLeafGreenVersion' refs remain; any *.gba ROM is rejected with an explicit unsupported-ROM error before emulator boot; bash -n .coding-hermes/cron.sh exits 0; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>: cron.sh:22 ROM default = 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (file exists on disk, 1048576 bytes). grep -c 'PokemonLeafGreenVersion' .coding-hermes/cron.sh = 0 (only remaining refs are in .coding-hermes/board/tasks.jsonl, a historical task log, not code). cron.sh:41-44 GBA guard `if [[ \"${ROM,,}\" == *.gba ]]` echoes 'ERROR: unsupported ROM: ...' and exits 1, placed right after arg parse and BEFORE venv activation, ROM-exists check, and emulator boot (guard logic verified: exit 1 with explicit error). bash -n .coding-hermes/cron.sh exits 0. Commit 3cd2fae message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'.\nGAP-031 fully satisfied: cron.sh defaults to the Blue SGB ROM, has zero LeafGreen refs, rejects *.gba with an explicit pre-boot error, passes bash -n, and the commit carries the required Co-authored-by trailer.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-20T00:03:20.511863"
+}
