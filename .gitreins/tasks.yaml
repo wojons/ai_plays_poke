@@ -387,3 +387,13 @@ tasks:
   status: complete
   created_at: '2026-08-19T23:56:59.928333+00:00'
   completed_at: '2026-08-19T23:59:41.062545+00:00'
+- id: GAP-029
+  title: 'cron.sh venv split-brain: hard-activates venv/ and aborts if absent while
+    README creates .venv'
+  criteria:
+  - '.coding-hermes/cron.sh activates the README-created .venv when venv/ is absent
+    (or honors $VENV); bash -n .coding-hermes/cron.sh exits 0; no ''venv not found''
+    abort on the README-only path; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'
+  status: complete
+  created_at: '2026-08-20T10:08:15.298603+00:00'
+  completed_at: '2026-08-20T10:11:12.984948+00:00'

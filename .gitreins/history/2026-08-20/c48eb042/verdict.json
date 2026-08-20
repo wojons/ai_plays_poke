@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-029",
+  "task_title": "cron.sh venv split-brain: hard-activates venv/ and aborts if absent while README creates .venv",
+  "task_criteria": [
+    ".coding-hermes/cron.sh activates the README-created .venv when venv/ is absent (or honors $VENV); bash -n .coding-hermes/cron.sh exits 0; no 'venv not found' abort on the README-only path; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m5:11AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~175128323 bytes (175.13 MB) in 9.03s\u001b[0m\n\u001b[90m5:11AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m5:11AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~175128323 bytes (175.13 MB) in 9.03s\u001b[0m\n\u001b[90m5:11AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 .coding-hermes/cron.sh activates the README-created .venv when venv/ is absent (or honors $VENV); bash -n .coding-hermes/cron.sh exits 0; no 'venv not found' abort on the README-only path; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>: cron.sh (HEAD 60e1b22, lines 47-61) implements priority $VENV > venv/ > .venv/. Live-tested all paths: with only .venv present (venv absent) it printed 'ACTIVATED .venv' with no 'venv not found' abort; $VENV override printed 'ACTIVATED CUSTOM VENV'; venv/ legacy printed 'ACTIVATED LEGACY venv'. bash -n .coding-hermes/cron.sh exits 0 (verified on working tree and HEAD copy). Commit 60e1b22 message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>' (grep count 1).\nGAP-029 complete: cron.sh now falls back to README-created .venv (or honors $VENV) when venv/ is absent, bash -n passes, no venv-not-found abort on the README-only path, and the commit carries the required Co-authored-by trailer.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 .coding-hermes/cron.sh activates the README-created .venv when venv/ is absent (or honors $VENV); bash -n .coding-hermes/cron.sh exits 0; no 'venv not found' abort on the README-only path; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>: cron.sh (HEAD 60e1b22, lines 47-61) implements priority $VENV > venv/ > .venv/. Live-tested all paths: with only .venv present (venv absent) it printed 'ACTIVATED .venv' with no 'venv not found' abort; $VENV override printed 'ACTI",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": ".coding-hermes/cron.sh activates the README-created .venv when venv/ is absent (or honors $VENV); bash -n .coding-hermes/cron.sh exits 0; no 'venv not found' abort on the README-only path; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>",
+                "status": "PASS",
+                "detail": "cron.sh (HEAD 60e1b22, lines 47-61) implements priority $VENV > venv/ > .venv/. Live-tested all paths: with only .venv present (venv absent) it printed 'ACTIVATED .venv' with no 'venv not found' abort; $VENV override printed 'ACTIVATED CUSTOM VENV'; venv/ legacy printed 'ACTIVATED LEGACY venv'. bash -n .coding-hermes/cron.sh exits 0 (verified on working tree and HEAD copy). Commit 60e1b22 message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>' (grep count 1)."
+              }
+            ],
+            "summary": "GAP-029 complete: cron.sh now falls back to README-created .venv (or honors $VENV) when venv/ is absent, bash -n passes, no venv-not-found abort on the README-only path, and the commit carries the required Co-authored-by trailer."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-029\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m5:11AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~175128323 bytes (175.13 MB) in 9.03s\u001b[0m\n\u001b[90m5:11AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 .coding-hermes/cron.sh activates the README-created .venv when venv/ is absent (or honors $VENV); bash -n .coding-hermes/cron.sh exits 0; no 'venv not found' abort on the README-only path; commit carries Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>: cron.sh (HEAD 60e1b22, lines 47-61) implements priority $VENV > venv/ > .venv/. Live-tested all paths: with only .venv present (venv absent) it printed 'ACTIVATED .venv' with no 'venv not found' abort; $VENV override printed 'ACTIVATED CUSTOM VENV'; venv/ legacy printed 'ACTIVATED LEGACY venv'. bash -n .coding-hermes/cron.sh exits 0 (verified on working tree and HEAD copy). Commit 60e1b22 message contains 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>' (grep count 1).\nGAP-029 complete: cron.sh now falls back to README-created .venv (or honors $VENV) when venv/ is absent, bash -n passes, no venv-not-found abort on the README-only path, and the commit carries the required Co-authored-by trailer.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-20T10:15:01.495885"
+}
