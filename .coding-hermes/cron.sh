@@ -44,10 +44,21 @@ if [[ "${ROM,,}" == *.gba ]]; then
 fi
 
 # ── activate venv ──────────────────────────────────────────────────────────
-if [ -f venv/bin/activate ]; then
+# Priority: $VENV (explicit override) > venv/ (legacy) > .venv/ (README Quick Start).
+if [ -n "${VENV:-}" ]; then
+    # Explicit override — $VENV must point at a venv directory
+    if [ -f "$VENV/bin/activate" ]; then
+        source "$VENV/bin/activate"
+    else
+        echo "ERROR: \$VENV is set to '$VENV' but no activate script found at $VENV/bin/activate" >&2
+        exit 1
+    fi
+elif [ -f venv/bin/activate ]; then
     source venv/bin/activate
+elif [ -f .venv/bin/activate ]; then
+    source .venv/bin/activate
 else
-    echo "ERROR: venv not found at $PROJECT_ROOT/venv" >&2
+    echo "ERROR: no Python venv found — checked $PROJECT_ROOT/venv and $PROJECT_ROOT/.venv (README Quick Start creates .venv; or set \$VENV to override)" >&2
     exit 1
 fi
 
