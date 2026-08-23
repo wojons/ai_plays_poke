@@ -68,6 +68,7 @@ def _dry_run_summary(
     run_id_arg: str | None,
     cycles: int,
     boot_state_arg: str | None,
+    rom_arg: str | None = None,
 ) -> int:
     """Validate ROM/boot-state paths and print the pipeline config summary.
 
@@ -78,7 +79,8 @@ def _dry_run_summary(
     LLM/API call.
     """
     _load_dotenv_stdlib()
-    rom_ok = Path(ROM).is_file()
+    rom = rom_arg if rom_arg is not None else ROM  # resolved ROM (GAP-033 --rom)
+    rom_ok = Path(rom).is_file()
     if boot_state_arg is None:
         boot_path = DEFAULT_BOOT_STATE
     elif boot_state_arg.lower() == "skip":
@@ -87,7 +89,7 @@ def _dry_run_summary(
         boot_path = Path(boot_state_arg)
     safe_print("[DRY-RUN] cron_runner.py — setup validation "
                "(no emulator boot, no LLM/API calls)")
-    safe_print(f"  ROM path:       {ROM}  [{'OK' if rom_ok else 'MISSING'}]")
+    safe_print(f"  ROM path:       {rom}  [{'OK' if rom_ok else 'MISSING'}]")
     if boot_path is None:
         safe_print("  Boot state:     skip (legacy intro bypass)")
     else:
@@ -110,7 +112,7 @@ def _dry_run_summary(
     )
     safe_print(f"  API keys:       {key_states}")
     if not rom_ok:
-        safe_print(f"[DRY-RUN] ERROR: ROM not found at {ROM} — a real run would crash at boot.")
+        safe_print(f"[DRY-RUN] ERROR: ROM not found at {rom} — a real run would crash at boot.")
         return 1
     safe_print("[DRY-RUN] Validation OK — exiting 0.")
     return 0
@@ -129,13 +131,14 @@ def _dry_run_precheck(argv: list[str] | None = None) -> None:
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--cycles", type=int, default=CYCLES)
     parser.add_argument("--boot-state", default=None)
+    parser.add_argument("--rom", default=None)
     try:
         args, _ = parser.parse_known_args(argv)
     except SystemExit:
         return
     if not args.dry_run:
         return
-    sys.exit(_dry_run_summary(args.run_id, args.cycles, args.boot_state))
+    sys.exit(_dry_run_summary(args.run_id, args.cycles, args.boot_state, args.rom))
 
 
 _dry_run_precheck()
@@ -935,6 +938,14 @@ def _main_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--cycles", type=int, default=CYCLES)
     parser.add_argument(
+        "--rom",
+        default=None,
+        help=(
+            "Path to the Gen-1 GB ROM to boot (default: "
+            "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb)."
+        ),
+    )
+    parser.add_argument(
         "--boot-state",
         default=None,
         help=(
@@ -955,14 +966,16 @@ def _main_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    global CYCLES, run_id, log_path, SCREENSHOT_DIR
+    global CYCLES, ROM, run_id, log_path, SCREENSHOT_DIR
 
     parser = _main_parser()
     args = parser.parse_args()
     if args.dry_run:
         # The import-time precheck normally exits first; this branch is a
         # defensive backstop for programmatic main() calls.
-        sys.exit(_dry_run_summary(args.run_id, max(1, args.cycles), args.boot_state))
+        sys.exit(_dry_run_summary(args.run_id, max(1, args.cycles), args.boot_state, args.rom))
+    if args.rom:
+        ROM = args.rom
     CYCLES = max(1, args.cycles)
     run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
     log_path = LOG_DIR / f"run_{run_id}.jsonl"

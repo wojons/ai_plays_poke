@@ -138,3 +138,59 @@ class TestDryRun:
         # parse on the real parser main() uses.
         args = cron_runner._main_parser().parse_args(["--dry-run"])
         assert args.dry_run is True
+
+
+class TestRomFlag:
+    """--rom flag flows into the dry-run summary (GAP-033).
+
+    cron.sh passes --rom <path> through to cron_runner.py; these tests prove
+    the flag is accepted by both the early precheck parser (bare-python3
+    path) and the real _main_parser, and that the resolved ROM is what the
+    dry-run summary validates/reports. Mock-free and fast — no emulator boot.
+    """
+
+    def test_dry_run_reports_explicit_rom_ok(self, monkeypatch, capsys, tmp_path) -> None:
+        rom = tmp_path / "custom.gb"
+        rom.write_bytes(b"x")
+        ckpt = tmp_path / "boot.state"
+        ckpt.write_bytes(b"x")
+        monkeypatch.setattr(cron_runner, "DEFAULT_BOOT_STATE", ckpt)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run", "--rom", str(rom)])
+        assert e.value.code == 0
+        out = capsys.readouterr().out
+        assert f"ROM path:       {rom}  [OK]" in out
+        assert "Validation OK" in out
+
+    def test_dry_run_missing_explicit_rom_exits_one(self, monkeypatch, capsys, tmp_path) -> None:
+        # A non-existent --rom path must be reported MISSING and exit 1,
+        # regardless of where the module-level ROM constant points.
+        monkeypatch.setattr(cron_runner, "ROM", "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
+        missing = tmp_path / "nope.gb"
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run", "--rom", str(missing)])
+        assert e.value.code == 1
+        out = capsys.readouterr().out
+        assert f"ROM path:       {missing}  [MISSING]" in out
+        assert "ERROR: ROM not found" in out
+
+    def test_dry_run_without_rom_uses_module_default(self, monkeypatch, capsys, tmp_path) -> None:
+        # No --rom → the precheck falls back to the module ROM constant,
+        # preserving pre-GAP-033 behavior for direct cron_runner runs.
+        rom = tmp_path / "rom.gb"
+        rom.write_bytes(b"x")
+        ckpt = tmp_path / "boot.state"
+        ckpt.write_bytes(b"x")
+        monkeypatch.setattr(cron_runner, "ROM", str(rom))
+        monkeypatch.setattr(cron_runner, "DEFAULT_BOOT_STATE", ckpt)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run"])
+        assert e.value.code == 0
+        assert f"ROM path:       {rom}  [OK]" in capsys.readouterr().out
+
+    def test_main_parser_exposes_rom_flag(self) -> None:
+        args = cron_runner._main_parser().parse_args(["--rom", "data/rom/foo.gb"])
+        assert args.rom == "data/rom/foo.gb"
+        # default is None → module constant used
+        assert cron_runner._main_parser().parse_args([]).rom is None
+

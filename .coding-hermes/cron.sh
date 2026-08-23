@@ -3,13 +3,17 @@
 # ai_plays_poke — Autonomous decision-loop runner for Hermes cron
 # ────────────────────────────────────────────────────────────────────────────
 #
-# Runs the DecisionLoop for N cycles, then commit-tags checkpoint screenshots
-# so progress is visible between cron ticks.
+# Wraps cron_runner.py (the maintained RAM-reader pipeline) for the Hermes cron.
+# Writes run logs to cron_logs/run_<id>.jsonl and screenshots to
+# screenshots/run_<id>/.
 #
 # Usage:
-#   .coding-hermes/cron.sh                    # uses defaults (ROM, cycles)
-#   .coding-hermes/cron.sh --rom path/to.gb   # custom ROM (Gen-1 Red/Blue only)
-#   .coding-hermes/cron.sh --cycles 50        # 50 decision cycles
+#   .coding-hermes/cron.sh                              # uses defaults (ROM, cycles)
+#   .coding-hermes/cron.sh --rom path/to.gb             # custom ROM (Gen-1 Red/Blue only)
+#   .coding-hermes/cron.sh --cycles 50                  # 50 decision cycles
+#   .coding-hermes/cron.sh --run-id tick_1234           # label this run's logs/screenshots
+#   .coding-hermes/cron.sh --boot-state path/to.state   # boot from a known-good checkpoint (or 'skip')
+#   .coding-hermes/cron.sh --dry-run                    # validate setup, no emulator boot / LLM calls
 # ────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -21,17 +25,19 @@ cd "$PROJECT_ROOT"
 # ── defaults ───────────────────────────────────────────────────────────────
 ROM="${ROM:-data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb}"
 CYCLES="${CYCLES:-20}"
-SCREENSHOT_INTERVAL="${SCREENSHOT_INTERVAL:-60}"
-GENERATION="${GENERATION:-gen3}"
+RUN_ID="${RUN_ID:-}"
+BOOT_STATE="${BOOT_STATE:-}"
+DRY_RUN="${DRY_RUN:-}"
 
 # ── parse args ─────────────────────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --rom)      ROM="$2";      shift 2 ;;
-        --cycles)   CYCLES="$2";   shift 2 ;;
-        --gen)      GENERATION="$2"; shift 2 ;;
-        --interval) SCREENSHOT_INTERVAL="$2"; shift 2 ;;
-        *)          echo "Unknown arg: $1"; exit 1 ;;
+        --rom)        ROM="$2";        shift 2 ;;
+        --cycles)     CYCLES="$2";     shift 2 ;;
+        --run-id)     RUN_ID="$2";     shift 2 ;;
+        --boot-state) BOOT_STATE="$2"; shift 2 ;;
+        --dry-run)    DRY_RUN=1;       shift ;;
+        *)            echo "Unknown arg: $1"; exit 1 ;;
     esac
 done
 
@@ -80,46 +86,29 @@ if [ -z "${OPENROUTER_API_KEY:-}" ]; then
 fi
 
 echo "=== ai_plays_poke cron tick ==="
-echo "  ROM:      $ROM"
-echo "  Cycles:   $CYCLES"
-echo "  Interval: $SCREENSHOT_INTERVAL"
-echo "  Gen:      $GENERATION"
+echo "  ROM:        $ROM"
+echo "  Cycles:     $CYCLES"
+echo "  Run ID:     ${RUN_ID:-<auto>}"
+echo "  Boot state: ${BOOT_STATE:-data/boot.state (cron_runner default)}"
 echo ""
 
-# ── run decision loop ──────────────────────────────────────────────────────
-python3 << PYEOF
-import sys
-sys.path.insert(0, "$PROJECT_ROOT")
-
-from src.core.emulator import Emulator
-from src.core.decision import DecisionLoop
-
-emu = Emulator("$ROM")
-print(f"[+] Emulator loaded: {emu.platform} ROM at {emu.rom_path}")
-
-# --- skip intro ---
-print("[+] Skipping intro sequence...")
-emu.skip_intro()
-print("[+] Intro skipped")
-
-loop = DecisionLoop(
-    emu,
-    generation="$GENERATION",
-    thinking_model="openrouter/owl-alpha",
-    vision_model="google/gemma-3-12b-it",
-)
-
-results = loop.run(max_steps=$CYCLES, screenshot_interval=$SCREENSHOT_INTERVAL)
-
-# summary
-successes = sum(1 for r in results if r.get("success"))
-print(f"\n=== Results: {successes}/{len(results)} steps successful ===")
-for i, r in enumerate(results):
-    status = "✓" if r.get("success") else "✗"
-    print(f"  {status} step {i:03d}: {r.get('screen_type', '?'):12s} → {r.get('action', '?')}")
-
-emu.stop()
-PYEOF
+# ── run decision loop (cron_runner.py — maintained entry point, GAP-033) ──
+# Replaces the legacy embedded DecisionLoop heredoc. The ROM always passes
+# through --rom (the default here is the same file as cron_runner's module
+# constant); --run-id/--boot-state pass through only when provided so
+# cron_runner's own defaults apply otherwise. --gen/--interval are NOT
+# cron_runner flags and were dropped from this script (GAP-033).
+_RUN_ARGS=(--rom "$ROM" --cycles "$CYCLES")
+if [ -n "$RUN_ID" ]; then
+    _RUN_ARGS+=(--run-id "$RUN_ID")
+fi
+if [ -n "$BOOT_STATE" ]; then
+    _RUN_ARGS+=(--boot-state "$BOOT_STATE")
+fi
+if [ -n "$DRY_RUN" ]; then
+    _RUN_ARGS+=(--dry-run)
+fi
+python "$PROJECT_ROOT/cron_runner.py" "${_RUN_ARGS[@]}"
 
 echo ""
 echo "=== Cron tick complete ==="

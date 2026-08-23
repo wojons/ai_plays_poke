@@ -201,6 +201,7 @@ direction-locked and the boot state should be refreshed.
 |------|---------|-------------|
 | `--run-id` | auto-generated timestamp | Label for this run's logs and screenshots |
 | `--cycles` | 200 | Number of AI decision cycles |
+| `--rom` | `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb` | Path to the Gen-1 GB ROM to boot (overrides the module default) |
 | `--boot-state` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass; `skip` forces the legacy intro bypass |
 
 **Full reference:** [docs/api/cron_runner.md](docs/api/cron_runner.md) — CLI flags,
@@ -217,8 +218,9 @@ your own runs).
 **Scheduled runs & QA tooling:**
 
 - `.coding-hermes/cron.sh` — scheduled decision-loop runner used by the Hermes cron
-  (wraps `cron_runner.py`, commit-tags checkpoint screenshots; `--cycles N` /
-  `--rom path` flags, defaults 20 cycles on the LeafGreen ROM).
+  (wraps `cron_runner.py`; flags `--cycles N` / `--rom path` / `--run-id` /
+  `--boot-state` / `--dry-run`; defaults 20 cycles on the Gen-1 SGB Blue ROM;
+  writes `cron_logs/run_<id>.jsonl` logs + `screenshots/run_<id>/` frames).
 - `.coding-hermes/usability-tests.md` — QA checklist for the live map viewer
   (`ram_map_server.py`, `http://localhost:8099`): HTTP endpoints, JSON schema,
   boot/navigation probes with pass results.
