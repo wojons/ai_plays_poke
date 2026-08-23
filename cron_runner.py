@@ -27,10 +27,121 @@ import traceback
 import base64
 import io
 import threading
-import yaml
-import numpy as np
 from pathlib import Path
 from datetime import datetime
+
+# ── Config constants (early) ─────────────────────────────────────────
+# Defined before the heavy third-party imports (yaml/numpy/PIL/src.*) so
+# the --dry-run precheck below can validate setup under bare python3 too.
+ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
+DEFAULT_BOOT_STATE = Path("data/boot.state")  # known-good overworld checkpoint
+CYCLES = 200
+USE_RAM_READER = True   # True = RAM-based state reader (instant, free), False = Gemma 12B cartographer
+
+# ── --dry-run precheck (GAP-032) ────────────────────────────────────
+# Lightweight argparse pass that runs BEFORE yaml/numpy/PIL/src.* are
+# imported, so `--dry-run` validates setup without booting the emulator
+# or spending LLM calls — even under bare python3 (stdlib only).
+
+
+def _load_dotenv_stdlib(env_path: Path | None = None) -> None:
+    """Minimal stdlib .env loader (mirrors src/core/ai_client.py's fallback).
+
+    Lets --dry-run report API-key presence from the real setup without
+    importing python-dotenv or any project package.
+    """
+    path = env_path if env_path is not None else Path(".env")
+    if not path.is_file():
+        return
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip("\"'")
+        if key and value and not os.environ.get(key):
+            os.environ[key] = value
+
+
+def _dry_run_summary(
+    run_id_arg: str | None,
+    cycles: int,
+    boot_state_arg: str | None,
+) -> int:
+    """Validate ROM/boot-state paths and print the pipeline config summary.
+
+    Shared by the early precheck (import time, before heavy imports) and
+    main() (defensive — the precheck normally exits first). Returns 0
+    when the setup validates; 1 when the ROM is missing (a real run
+    would crash at boot). Never boots the emulator and never makes an
+    LLM/API call.
+    """
+    _load_dotenv_stdlib()
+    rom_ok = Path(ROM).is_file()
+    if boot_state_arg is None:
+        boot_path = DEFAULT_BOOT_STATE
+    elif boot_state_arg.lower() == "skip":
+        boot_path = None
+    else:
+        boot_path = Path(boot_state_arg)
+    safe_print("[DRY-RUN] cron_runner.py — setup validation "
+               "(no emulator boot, no LLM/API calls)")
+    safe_print(f"  ROM path:       {ROM}  [{'OK' if rom_ok else 'MISSING'}]")
+    if boot_path is None:
+        safe_print("  Boot state:     skip (legacy intro bypass)")
+    else:
+        boot_ok = boot_path.is_file()
+        fallback = ("will boot from checkpoint" if boot_ok
+                    else "missing — will fall back to intro bypass")
+        safe_print(f"  Boot state:     {boot_path}  "
+                   f"[{'OK' if boot_ok else 'MISSING — fallback'}] ({fallback})")
+    safe_print(f"  Cycles:         {cycles}")
+    safe_print(f"  Run ID:         {run_id_arg or time.strftime('%Y%m%d_%H%M%S')}")
+    safe_print(f"  Pipeline:       {'RAM reader' if USE_RAM_READER else 'cartographer'} "
+               f"(USE_RAM_READER={USE_RAM_READER!r})")
+    safe_print("  Model/provider: controller=openai/gpt-5.6-luna (OpenRouter) · "
+               "state_window=deepseek-v4-flash (api.deepseek.com when DEEPSEEK_API_KEY "
+               "set, else OpenRouter) · cartographer=google/gemma-3-12b-it (only when "
+               "USE_RAM_READER=False)")
+    key_states = " · ".join(
+        f"{k}={'set' if os.environ.get(k) else 'not set'}"
+        for k in ("OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY")
+    )
+    safe_print(f"  API keys:       {key_states}")
+    if not rom_ok:
+        safe_print(f"[DRY-RUN] ERROR: ROM not found at {ROM} — a real run would crash at boot.")
+        return 1
+    safe_print("[DRY-RUN] Validation OK — exiting 0.")
+    return 0
+
+
+def _dry_run_precheck(argv: list[str] | None = None) -> None:
+    """Handle --dry-run at import time, before heavy third-party imports.
+
+    Lightweight argparse pass that only knows the flags --dry-run needs.
+    Exits 0 (or 1 on a missing ROM) when --dry-run is present; otherwise
+    returns and normal execution proceeds. Malformed values are left for
+    the real parser in main() to report.
+    """
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--run-id", default=None)
+    parser.add_argument("--cycles", type=int, default=CYCLES)
+    parser.add_argument("--boot-state", default=None)
+    try:
+        args, _ = parser.parse_known_args(argv)
+    except SystemExit:
+        return
+    if not args.dry_run:
+        return
+    sys.exit(_dry_run_summary(args.run_id, args.cycles, args.boot_state))
+
+
+_dry_run_precheck()
+
+import yaml
+import numpy as np
 from PIL import Image
 
 # ── Suppress emulator SGB warnings ──────────────────────────────────
@@ -116,12 +227,11 @@ from src.core.frame_cache import FrameCache
 from src.core.tools import execute_tool_call
 
 # ── Config ──────────────────────────────────────────────────────────
-ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
-DEFAULT_BOOT_STATE = Path("data/boot.state")  # known-good overworld checkpoint
-CYCLES = 200
+# ROM / DEFAULT_BOOT_STATE / CYCLES / USE_RAM_READER are defined at the
+# top of the file (before the heavy imports) so the --dry-run precheck
+# (GAP-032) can validate setup under bare python3.
 STATE_STEPS = 12
 USE_VISION_CLIENT = False  # True = debug mode (cheap classifier), False = Gemma 12B cartographer
-USE_RAM_READER = True   # True = RAM-based state reader (instant, free), False = Gemma 12B cartographer
 HINT_LEVEL = 4  # 0=benchmark, 1=mechanics, 2=genre, 3=starter, 4=navigation
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 6  # controller steps per overworld cycle (reduced from 12 — short moves, more cartographer feedback)
@@ -819,9 +929,8 @@ def _format_summary(
     )
 
 
-def main() -> None:
-    global CYCLES, run_id, log_path, SCREENSHOT_DIR
-
+def _main_parser() -> argparse.ArgumentParser:
+    """Build the real CLI parser main() uses (module-level so tests can parse)."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--cycles", type=int, default=CYCLES)
@@ -834,7 +943,26 @@ def main() -> None:
             "'skip' forces the legacy intro bypass)."
         ),
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Validate setup (ROM + boot-state paths, config summary) and exit "
+            "0 — no emulator boot, no LLM/API calls (GAP-032)."
+        ),
+    )
+    return parser
+
+
+def main() -> None:
+    global CYCLES, run_id, log_path, SCREENSHOT_DIR
+
+    parser = _main_parser()
     args = parser.parse_args()
+    if args.dry_run:
+        # The import-time precheck normally exits first; this branch is a
+        # defensive backstop for programmatic main() calls.
+        sys.exit(_dry_run_summary(args.run_id, max(1, args.cycles), args.boot_state))
     CYCLES = max(1, args.cycles)
     run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
     log_path = LOG_DIR / f"run_{run_id}.jsonl"

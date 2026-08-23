@@ -20,9 +20,16 @@ Unlike the legacy `src/game_loop.py` (whose vision pipeline is under repair — 
 python3 cron_runner.py --run-id demo1 --cycles 80
 ```
 
+```bash
+# Validate setup without booting the emulator or spending LLM calls
+python3 cron_runner.py --dry-run
+```
+
+`--dry-run` prints a pipeline config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence) and exits 0. It never boots the emulator and never makes an LLM/API call. Because the check runs before the heavy third-party imports, it also works under bare `python3` (no venv, no numpy/PIL). It exits 1 if the ROM is missing (a real run would crash at boot); a missing or explicitly bad boot-state path is reported as a warning with the intro-bypass fallback, matching runtime behavior.
+
 ```text
 usage: cron_runner.py [-h] [--run-id RUN_ID] [--cycles CYCLES]
-                      [--boot-state BOOT_STATE]
+                      [--boot-state BOOT_STATE] [--dry-run]
 
 Cron-friendly Pokemon AI runner with RAM reader / cartographer → controller
 pipeline. Flow: 1. Observe game state (RAM reader OR Gemma 12B cartographer)
@@ -31,10 +38,16 @@ plan 3. Execute plan with direction-locking detection, checkpoint rollback 4.
 Non-overworld: existing StateWindow flow
 
 options:
-  -h, --help       show this help message and exit
+  -h, --help            show this help message and exit
   --run-id RUN_ID
   --cycles CYCLES
   --boot-state BOOT_STATE
+                        Path to a known-good .state checkpoint to boot from
+                        instead of the intro bypass (default: data/boot.state
+                        when present; 'skip' forces the legacy intro bypass).
+  --dry-run             Validate setup (ROM + boot-state paths, config
+                        summary) and exit 0 — no emulator boot, no LLM/API
+                        calls (GAP-032).
 ```
 
 ## CLI Flags
@@ -45,6 +58,7 @@ options:
 | `--run-id RUN_ID` | `str` | auto-generated `%Y%m%d_%H%M%S` timestamp | Label for this run. Sets the log path `cron_logs/run_<run-id>.jsonl` and the screenshot directory `screenshots/run_<run-id>/`. Reusing an id overwrites the previous log. |
 | `--cycles CYCLES` | `int` | `200` | Number of AI decision cycles to run. Clamped to a minimum of 1 (`CYCLES = max(1, args.cycles)`). |
 | `--boot-state BOOT_STATE` | `str` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass. `skip` forces the legacy intro bypass (title-screen A-mash). If the path does not exist, the runner falls back to the intro bypass with a warning. |
+| `--dry-run` | `flag` | `false` | Validate setup and print a config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence), then exit 0 — no emulator boot, no LLM/API calls. Runs before the heavy third-party imports, so it also works under bare `python3`. Exits 1 if the ROM is missing; a missing boot-state path is a warning (intro-bypass fallback), not an error. |
 
 Runtime behavior is configured by module-level constants (not flags): `ROM` (default `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`), `DEFAULT_BOOT_STATE` (default `data/boot.state`), `USE_RAM_READER` (True = RAM reader, False = Gemma 12B cartographer), `HINT_LEVEL` (prompt hint depth, default 4 = navigation), `CART_STEPS` (controller actions per overworld cycle, default 6), and the checkpoint/recovery thresholds listed below.
 
