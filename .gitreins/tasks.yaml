@@ -427,3 +427,15 @@ tasks:
   status: complete
   created_at: '2026-08-23T23:28:44.713956+00:00'
   completed_at: '2026-08-23T23:50:23.805604+00:00'
+- id: GAP-034
+  title: Add heavy/fast test tier markers (or document tiers) so -m 'not heavy' matches
+    the documented fast tier
+  criteria:
+  - pytest tests/ -q -m 'not heavy' (via .venv/bin/python -m pytest) completes in
+    ~70-90s with ~3867 passed / ~8 skipped, matching the documented fast tier result
+    (-m 'not integration and not slow'); any new markers (heavy/fast) are registered
+    in pyproject.toml markers list so --strict-markers stays clean; README fast-tier
+    section documents the heavy/fast tier names
+  status: complete
+  created_at: '2026-08-24T10:01:44.127466+00:00'
+  completed_at: '2026-08-24T16:18:47.394833+00:00'
