@@ -417,3 +417,13 @@ tasks:
   status: complete
   created_at: '2026-08-23T16:41:17.922614+00:00'
   completed_at: '2026-08-23T16:55:03.979097+00:00'
+- id: GAP-033
+  title: Rewire .coding-hermes/cron.sh to run cron_runner.py (or correct README)
+  criteria:
+  - cron.sh invokes cron_runner.py (grep shows cron_runner.py in the python invocation,
+    not the legacy src.core.emulator/src.core.decision DecisionLoop), README L219-221
+    text matches actual cron.sh content, and `bash .coding-hermes/cron.sh --cycles
+    1` completes without ModuleNotFoundError.
+  status: complete
+  created_at: '2026-08-23T23:28:44.713956+00:00'
+  completed_at: '2026-08-23T23:50:23.805604+00:00'
