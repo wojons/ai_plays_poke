@@ -149,6 +149,7 @@ class TestReadPokemonStats:
         assert read_pokemon_stats(pyboy) is None
 
 
+@pytest.mark.heavy
 @pytest.mark.slow
 class TestMemoryScanningFunction:
     """test_memory_scanning() is a diagnostic driver — mock PyBoy and ROM existence."""

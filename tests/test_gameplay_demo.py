@@ -137,6 +137,7 @@ class TestCleanup:
 # ── headless smoke test (ROM needed, no API key) ───────────────────────────
 
 
+@pytest.mark.heavy
 @pytest.mark.integration
 class TestHeadlessRun:
     """Headless run validates ROM loading + intro skip + capture."""
@@ -175,6 +176,7 @@ class TestHeadlessRun:
 # ── full decision-loop test (ROM + API key) ────────────────────────────────
 
 
+@pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api
 class TestLiveGameplay:

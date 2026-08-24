@@ -360,17 +360,22 @@ runs/test_001/
 
 ### Test Categories
 ```bash
-# Fast subset (recommended for day-to-day work) — unit tests only.
-# Completes in ~70–85s on a fresh checkout (3825 passed / 8 skipped,
-# 62 deselected). Excludes @pytest.mark.integration (game-loop component
-# flows) and @pytest.mark.slow (network retry/backoff, memory & performance
-# benchmarks).
+# Fast tier (recommended for day-to-day work) — unit tests only.
+# Completes in ~65–90s on a fresh checkout (~3878 passed / 8 skipped,
+# ~62–66 deselected). Excludes @pytest.mark.heavy tests — the same set as
+# @pytest.mark.integration (game-loop component flows) and
+# @pytest.mark.slow (network retry/backoff, memory & performance
+# benchmarks), which all carry the heavy mark too.
+.venv/bin/python -m pytest tests/ -q -m "not heavy"
+
+# Equivalent fast-tier selection (kept for compatibility — heavy tests
+# retain their integration/slow marks, so this selects the same set)
 .venv/bin/python -m pytest tests/ -q -m "not integration and not slow"
 
-# Integration tests (slower, may require emulator)
+# Heavy tier — integration tests (slower, may require emulator)
 .venv/bin/python -m pytest tests/ -v -m "integration"
 
-# Slow tests only (network retry/backoff, memory & performance benchmarks)
+# Heavy tier — slow tests only (network retry/backoff, memory & performance benchmarks)
 .venv/bin/python -m pytest tests/ -v -m "slow"
 
 # Run tests in parallel

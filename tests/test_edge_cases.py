@@ -174,6 +174,7 @@ class TestAPIKeyHandling:
 
             assert exc_info.value is not None
 
+    @pytest.mark.heavy
     @pytest.mark.slow
     def test_api_key_rate_limit(self) -> None:
         """API key rate limited → retry with backoff"""
@@ -225,6 +226,7 @@ class TestAPIKeyHandling:
                 assert "sk-key" in client._api_key
 
 
+@pytest.mark.heavy
 @pytest.mark.slow
 class TestNetworkHandling:
     """Tests for network handling edge cases (7 tests)"""

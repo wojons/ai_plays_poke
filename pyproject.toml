@@ -50,6 +50,8 @@ filterwarnings = [
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
+    "heavy: marks tests as heavy (slow/integration; deselect with '-m \"not heavy\"' for the fast tier)",
+    "fast: marks tests as fast (default tier; selected by '-m \"not heavy\"')",
     "vision: marks tests as vision-related",
     "ai: marks tests as AI-related",
     "live_api: marks tests that require live API keys (OPENROUTER_API_KEY)",

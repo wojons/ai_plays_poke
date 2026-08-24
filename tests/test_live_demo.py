@@ -74,6 +74,7 @@ def _require_live(request: pytest.FixtureRequest) -> Path:
 # ── AC-010: DemoRunner.run() completes ≥1 cycle ────────────────────────────
 
 
+@pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api
 def test_live_completes_one_cycle(_require_live: Path) -> None:
@@ -100,6 +101,7 @@ def test_live_completes_one_cycle(_require_live: Path) -> None:
 # ── AC-011: Decision loop produces valid tool calls ─────────────────────────
 
 
+@pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api
 def test_tool_calls_are_valid(_require_live: Path) -> None:
@@ -150,6 +152,7 @@ def test_tool_calls_are_valid(_require_live: Path) -> None:
 # ── AC-012: Screenshots are valid numpy arrays ──────────────────────────────
 
 
+@pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api
 def test_screenshots_valid_numpy_arrays(_require_live: Path) -> None:
@@ -209,6 +212,7 @@ def test_screenshots_valid_numpy_arrays(_require_live: Path) -> None:
 # ── AC-013: Demo summary fields ──────────────────────────────────────────────
 
 
+@pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api
 def test_demo_summary_fields(_require_live: Path) -> None:
