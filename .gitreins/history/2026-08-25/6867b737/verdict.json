@@ -1,0 +1,77 @@
+{
+  "task_id": "e2e-t217",
+  "task_title": "E2E-001 window T217-T222 live run",
+  "task_criteria": [
+    "cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m11:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174463729 bytes (174.46 MB) in 7.82s\u001b[0m\n\u001b[90m11:47PM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m11:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174463729 bytes (174.46 MB) in 7.82s\u001b[0m\n\u001b[90m11:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl: All sub-requirements evidenced. (1) exits 0: .coding-hermes/board/tasks.jsonl E2E-001 worker_summary 'run_e2e_t217 20/20 RUN_EXIT 0' + commit 76e08d3. (2) real LLM decisions/API success: worker_summary '26 API calls 0 failures ~$0.40'; cron_logs/run_e2e_t217.jsonl shows varied per-cycle intents/plans, 6 frame_cache misses (real decisions), battle select_move actions. (3) starter-pick or battle milestone: run_e2e_t217.jsonl line1 'starter_picked' (cycle1, Charmander boot_baseline) AND line17 'battle_start' (cycle15 trainer) / line20 'battle_end' (cycle17). (4) RSS flat <300MB: worker_summary 'RSS measured peak 109.6MB flat over 7 samples min 19.2MB' (109.6MB<300MB), 'no leak regression', 'Both runs under ulimit 4GB'. (5) log written: cron_logs/run_e2e_t217.jsonl exists (11810 bytes), 25 valid JSONL lines, 20 distinct cycles (1-20) verified via python json parse.\nE2E-001 T217 live run fully evidenced: 20/20 cycles RUN_EXIT 0, 26 API calls 0 failures, starter_picked + trainer battle_start/battle_end milestones logged, RSS peak 109.6MB flat (<300MB, no leak regression), and log written to cron_logs/run_e2e_t217.jsonl.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl: All sub-requirements evidenced. (1) exits 0: .coding-hermes/board/tasks.jsonl E2E-001 worker_summary 'run_e2e_t217 20/20 RUN_EXIT 0' + commit 76e08d3. (2) real LLM decisions/API success: worker_summary '26 API calls 0 failures ~$0.40'; cron_logs/run_e2e_t217.jsonl",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl",
+                "status": "PASS",
+                "detail": "All sub-requirements evidenced. (1) exits 0: .coding-hermes/board/tasks.jsonl E2E-001 worker_summary 'run_e2e_t217 20/20 RUN_EXIT 0' + commit 76e08d3. (2) real LLM decisions/API success: worker_summary '26 API calls 0 failures ~$0.40'; cron_logs/run_e2e_t217.jsonl shows varied per-cycle intents/plans, 6 frame_cache misses (real decisions), battle select_move actions. (3) starter-pick or battle milestone: run_e2e_t217.jsonl line1 'starter_picked' (cycle1, Charmander boot_baseline) AND line17 'battle_start' (cycle15 trainer) / line20 'battle_end' (cycle17). (4) RSS flat <300MB: worker_summary 'RSS measured peak 109.6MB flat over 7 samples min 19.2MB' (109.6MB<300MB), 'no leak regression', 'Both runs under ulimit 4GB'. (5) log written: cron_logs/run_e2e_t217.jsonl exists (11810 bytes), 25 valid JSONL lines, 20 distinct cycles (1-20) verified via python json parse."
+              }
+            ],
+            "summary": "E2E-001 T217 live run fully evidenced: 20/20 cycles RUN_EXIT 0, 26 API calls 0 failures, starter_picked + trainer battle_start/battle_end milestones logged, RSS peak 109.6MB flat (<300MB, no leak regression), and log written to cron_logs/run_e2e_t217.jsonl."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: e2e-t217\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m11:47PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174463729 bytes (174.46 MB) in 7.82s\u001b[0m\n\u001b[90m11:47PM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl: All sub-requirements evidenced. (1) exits 0: .coding-hermes/board/tasks.jsonl E2E-001 worker_summary 'run_e2e_t217 20/20 RUN_EXIT 0' + commit 76e08d3. (2) real LLM decisions/API success: worker_summary '26 API calls 0 failures ~$0.40'; cron_logs/run_e2e_t217.jsonl shows varied per-cycle intents/plans, 6 frame_cache misses (real decisions), battle select_move actions. (3) starter-pick or battle milestone: run_e2e_t217.jsonl line1 'starter_picked' (cycle1, Charmander boot_baseline) AND line17 'battle_start' (cycle15 trainer) / line20 'battle_end' (cycle17). (4) RSS flat <300MB: worker_summary 'RSS measured peak 109.6MB flat over 7 samples min 19.2MB' (109.6MB<300MB), 'no leak regression', 'Both runs under ulimit 4GB'. (5) log written: cron_logs/run_e2e_t217.jsonl exists (11810 bytes), 25 valid JSONL lines, 20 distinct cycles (1-20) verified via python json parse.\nE2E-001 T217 live run fully evidenced: 20/20 cycles RUN_EXIT 0, 26 API calls 0 failures, starter_picked + trainer battle_start/battle_end milestones logged, RSS peak 109.6MB flat (<300MB, no leak regression), and log written to cron_logs/run_e2e_t217.jsonl.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-25T04:51:15.381895"
+}
