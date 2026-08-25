@@ -439,3 +439,12 @@ tasks:
   status: complete
   created_at: '2026-08-24T10:01:44.127466+00:00'
   completed_at: '2026-08-24T16:18:47.394833+00:00'
+- id: e2e-t217
+  title: E2E-001 window T217-T222 live run
+  criteria:
+  - cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API
+    success), starter-pick or battle milestone logged, no memory-leak regression (RSS
+    flat <300MB), log written to cron_logs/run_e2e_t217.jsonl
+  status: complete
+  created_at: '2026-08-25T04:39:08.939585+00:00'
+  completed_at: '2026-08-25T04:40:54.416447+00:00'

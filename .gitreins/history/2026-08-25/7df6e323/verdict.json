@@ -1,0 +1,77 @@
+{
+  "task_id": "e2e-t217",
+  "task_title": "E2E-001 window T217-T222 live run",
+  "task_criteria": [
+    "cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m11:41PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174927864 bytes (174.93 MB) in 7.87s\u001b[0m\n\u001b[90m11:41PM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m11:41PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174927864 bytes (174.93 MB) in 7.87s\u001b[0m\n\u001b[90m11:41PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl: Most elements pass: exits 0 (commit 76e08d3 + T217 board event: 'run_e2e_t217 20/20 RUN_EXIT 0'), real LLM decisions (T217 event: '26 API calls 0 failures (luna overworld + deepseek battle loop), ~$0.40 est'), starter-pick AND battle milestones logged (cron_logs/run_e2e_t217.jsonl has starter_picked c1 Charmander, battle_start c15 trainer, battle_end c17), log file exists (11810 bytes, 25 lines, cycles 1-20). BUT the 'RSS flat <300MB' requirement is NOT demonstrated: the only memory evidence is 'ulimit 4GB cap never tripped -> no leak regression' (T217 event + commit). No actual RSS measurement exists for this run \u2014 the JSONL log has no RSS/memory field, and no .mem.log/stdout log was produced. A process under a 4GB ulimit can still exceed 300MB RSS. Notably the prior T212 run documented 'peak RSS 109MB flat no leak', showing RSS measurement was the expected standard, but T217 did not record one.\nThe E2E run completed with exit 0, real LLM API calls, starter-pick and battle milestones logged, and the log file written, but the required 'RSS flat <300MB' memory-leak evidence is absent \u2014 only a 4GB ulimit cap is cited, not an actual RSS measurement.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl: Most elements pass: exits 0 (commit 76e08d3 + T217 board event: 'run_e2e_t217 20/20 RUN_EXIT 0'), real LLM decisions (T217 event: '26 API calls 0 failures (luna overworld + deepseek battle loop), ~$0.40 est'), starter-pick AND battle milestones logged (cron_logs",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl",
+                "status": "FAIL",
+                "detail": "Most elements pass: exits 0 (commit 76e08d3 + T217 board event: 'run_e2e_t217 20/20 RUN_EXIT 0'), real LLM decisions (T217 event: '26 API calls 0 failures (luna overworld + deepseek battle loop), ~$0.40 est'), starter-pick AND battle milestones logged (cron_logs/run_e2e_t217.jsonl has starter_picked c1 Charmander, battle_start c15 trainer, battle_end c17), log file exists (11810 bytes, 25 lines, cycles 1-20). BUT the 'RSS flat <300MB' requirement is NOT demonstrated: the only memory evidence is 'ulimit 4GB cap never tripped -> no leak regression' (T217 event + commit). No actual RSS measurement exists for this run \u2014 the JSONL log has no RSS/memory field, and no .mem.log/stdout log was produced. A process under a 4GB ulimit can still exceed 300MB RSS. Notably the prior T212 run documented 'peak RSS 109MB flat no leak', showing RSS measurement was the expected standard, but T217 did not record one."
+              }
+            ],
+            "summary": "The E2E run completed with exit 0, real LLM API calls, starter-pick and battle milestones logged, and the log file written, but the required 'RSS flat <300MB' memory-leak evidence is absent \u2014 only a 4GB ulimit cap is cited, not an actual RSS measurement."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: e2e-t217\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m11:41PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174927864 bytes (174.93 MB) in 7.87s\u001b[0m\n\u001b[90m11:41PM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 cron_runner.py --run-id e2e_t217 --cycles 20 exits 0 with real LLM decisions (API success), starter-pick or battle milestone logged, no memory-leak regression (RSS flat <300MB), log written to cron_logs/run_e2e_t217.jsonl: Most elements pass: exits 0 (commit 76e08d3 + T217 board event: 'run_e2e_t217 20/20 RUN_EXIT 0'), real LLM decisions (T217 event: '26 API calls 0 failures (luna overworld + deepseek battle loop), ~$0.40 est'), starter-pick AND battle milestones logged (cron_logs/run_e2e_t217.jsonl has starter_picked c1 Charmander, battle_start c15 trainer, battle_end c17), log file exists (11810 bytes, 25 lines, cycles 1-20). BUT the 'RSS flat <300MB' requirement is NOT demonstrated: the only memory evidence is 'ulimit 4GB cap never tripped -> no leak regression' (T217 event + commit). No actual RSS measurement exists for this run \u2014 the JSONL log has no RSS/memory field, and no .mem.log/stdout log was produced. A process under a 4GB ulimit can still exceed 300MB RSS. Notably the prior T212 run documented 'peak RSS 109MB flat no leak', showing RSS measurement was the expected standard, but T217 did not record one.\nThe E2E run completed with exit 0, real LLM API calls, starter-pick and battle milestones logged, and the log file written, but the required 'RSS flat <300MB' memory-leak evidence is absent \u2014 only a 4GB ulimit cap is cited, not an actual RSS measurement.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-25T04:45:09.821531"
+}
