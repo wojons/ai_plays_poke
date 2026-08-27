@@ -3,7 +3,7 @@
 
 Flow:
   1. Observe game state (RAM reader OR Gemma 12B cartographer)
-  2. If overworld: controller (DeepSeek V4 Flash) reads spatial data → button plan
+  2. If overworld: controller (openai/gpt-5.6-luna via OpenRouter) reads spatial data → button plan
   3. Execute plan with direction-locking detection, checkpoint rollback
   4. Non-overworld: existing StateWindow flow
 """
