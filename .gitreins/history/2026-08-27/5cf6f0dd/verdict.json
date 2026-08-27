@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-040",
+  "task_title": "Fix stale suite-duration claims in docs",
+  "task_criteria": [
+    "README and AGENTS.md clarify that '14s' is parallel-only (-n auto), or document the serial time (~210s). PASS: re-run pytest tests/ -q shows duration matches the documented claim, or AGENTS.md documents -n auto as default and qualifies 14s as parallel-only."
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m9:00AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174864879 bytes (174.86 MB) in 7.67s\u001b[0m\n\u001b[90m9:00AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m9:00AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174864879 bytes (174.86 MB) in 7.67s\u001b[0m\n\u001b[90m9:00AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 README and AGENTS.md clarify that '14s' is parallel-only (-n auto), or document the serial time (~210s). PASS: re-run pytest tests/ -q shows duration matches the documented claim, or AGENTS.md documents -n auto as default and qualifies 14s as parallel-only.: README.md (commit 9fb2a7d, lines 340-345) now states 'the ~14s figure is parallel-only, measured with pytest-xdist: 3940 passed / 14 skipped' and documents serial time 'same suite takes ~210s / ~3.5 min'. Serial re-run `pytest tests/ -q` completed: '3940 passed, 14 skipped in 177.85s (0:02:57)' \u2014 matches the documented ~210s serial claim and the 3940/14 count. PASS branch 1 satisfied.\nREADME.md now qualifies the 14s figure as parallel-only (-n auto) and documents the serial time (~210s); a fresh serial `pytest tests/ -q` run confirmed 3940 passed/14 skipped in 177.85s, matching the documented claim.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 README and AGENTS.md clarify that '14s' is parallel-only (-n auto), or document the serial time (~210s). PASS: re-run pytest tests/ -q shows duration matches the documented claim, or AGENTS.md documents -n auto as default and qualifies 14s as parallel-only.: README.md (commit 9fb2a7d, lines 340-345) now states 'the ~14s figure is parallel-only, measured with pytest-xdist: 3940 passed / 14 skipped' and documents serial time 'same suite takes ~210s / ~3.5 min'. Serial re-run `pytest t",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "README and AGENTS.md clarify that '14s' is parallel-only (-n auto), or document the serial time (~210s). PASS: re-run pytest tests/ -q shows duration matches the documented claim, or AGENTS.md documents -n auto as default and qualifies 14s as parallel-only.",
+                "status": "PASS",
+                "detail": "README.md (commit 9fb2a7d, lines 340-345) now states 'the ~14s figure is parallel-only, measured with pytest-xdist: 3940 passed / 14 skipped' and documents serial time 'same suite takes ~210s / ~3.5 min'. Serial re-run `pytest tests/ -q` completed: '3940 passed, 14 skipped in 177.85s (0:02:57)' \u2014 matches the documented ~210s serial claim and the 3940/14 count. PASS branch 1 satisfied."
+              }
+            ],
+            "summary": "README.md now qualifies the 14s figure as parallel-only (-n auto) and documents the serial time (~210s); a fresh serial `pytest tests/ -q` run confirmed 3940 passed/14 skipped in 177.85s, matching the documented claim."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-040\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m9:00AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174864879 bytes (174.86 MB) in 7.67s\u001b[0m\n\u001b[90m9:00AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 README and AGENTS.md clarify that '14s' is parallel-only (-n auto), or document the serial time (~210s). PASS: re-run pytest tests/ -q shows duration matches the documented claim, or AGENTS.md documents -n auto as default and qualifies 14s as parallel-only.: README.md (commit 9fb2a7d, lines 340-345) now states 'the ~14s figure is parallel-only, measured with pytest-xdist: 3940 passed / 14 skipped' and documents serial time 'same suite takes ~210s / ~3.5 min'. Serial re-run `pytest tests/ -q` completed: '3940 passed, 14 skipped in 177.85s (0:02:57)' \u2014 matches the documented ~210s serial claim and the 3940/14 count. PASS branch 1 satisfied.\nREADME.md now qualifies the 14s figure as parallel-only (-n auto) and documents the serial time (~210s); a fresh serial `pytest tests/ -q` run confirmed 3940 passed/14 skipped in 177.85s, matching the documented claim.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-27T14:08:53.635407"
+}
