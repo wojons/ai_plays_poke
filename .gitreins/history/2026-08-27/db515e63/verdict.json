@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-037",
+  "task_title": "--rom <other-gen1-rom> silently loads Blue-specific boot.state",
+  "task_criteria": [
+    "cron_runner.py _resolve_boot_state warns/fails when the --rom file's ROM header doesn't match the boot.state checkpoint's ROM, or the --rom flag row documents the Blue-SGB-specific constraint; running --rom data/rom/pokemon_red.gb with default boot.state prints a mismatch warning; full test suite passes"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m12:20AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174717264 bytes (174.72 MB) in 8.3s\u001b[0m\n\u001b[90m12:20AM\u001b[0m \n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m12:20AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174717264 bytes (174.72 MB) in 8.3s\u001b[0m\n\u001b[90m12:20AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 cron_runner.py _resolve_boot_state warns/fails when the --rom file's ROM header doesn't match the boot.state checkpoint's ROM, or the --rom flag row documents the Blue-SGB-specific constraint; running --rom data/rom/pokemon_red.gb with default boot.state prints a mismatch warning; full test suite passes: cron_runner.py:85 _warn_boot_state_rom_mismatch reads ROM header title at 0x134 via _read_rom_header_title (line 66), compares to BOOT_STATE_ROM_TITLE='POKEMON BLUE' (line 38), warns on mismatch; called from _dry_run_summary (line 148) and main() (line 1044) after _resolve_boot_state. Live verification: `python3 cron_runner.py --dry-run --rom data/rom/pokemon_red.gb` prints 'WARNING: data/boot.state was saved from the Blue ROM (POKEMON BLUE) but --rom is POKEMON RED \u2014 loading a mismatched checkpoint yields garbage state; use --boot-state skip for non-Blue ROMs'; Blue ROM produces no warning. Full suite: 3940 passed, 14 skipped in 183.65s. Dedicated TestBootStateRomMismatch tests all PASS (26 passed in tests/test_cron_runner_metrics.py).\nGAP-037 is complete: cron_runner.py warns on ROM/boot.state mismatch (verified live with pokemon_red.gb), and the full test suite passes (3940 passed, 14 skipped).",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 cron_runner.py _resolve_boot_state warns/fails when the --rom file's ROM header doesn't match the boot.state checkpoint's ROM, or the --rom flag row documents the Blue-SGB-specific constraint; running --rom data/rom/pokemon_red.gb with default boot.state prints a mismatch warning; full test suite passes: cron_runner.py:85 _warn_boot_state_rom_mismatch reads ROM header title at 0x134 via _read_rom_header_title (line 66), compares to BOOT_STATE_ROM_TITLE='POKEMON BLUE' (line 38), warn",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "cron_runner.py _resolve_boot_state warns/fails when the --rom file's ROM header doesn't match the boot.state checkpoint's ROM, or the --rom flag row documents the Blue-SGB-specific constraint; running --rom data/rom/pokemon_red.gb with default boot.state prints a mismatch warning; full test suite passes",
+                "status": "PASS",
+                "detail": "cron_runner.py:85 _warn_boot_state_rom_mismatch reads ROM header title at 0x134 via _read_rom_header_title (line 66), compares to BOOT_STATE_ROM_TITLE='POKEMON BLUE' (line 38), warns on mismatch; called from _dry_run_summary (line 148) and main() (line 1044) after _resolve_boot_state. Live verification: `python3 cron_runner.py --dry-run --rom data/rom/pokemon_red.gb` prints 'WARNING: data/boot.state was saved from the Blue ROM (POKEMON BLUE) but --rom is POKEMON RED \u2014 loading a mismatched checkpoint yields garbage state; use --boot-state skip for non-Blue ROMs'; Blue ROM produces no warning. Full suite: 3940 passed, 14 skipped in 183.65s. Dedicated TestBootStateRomMismatch tests all PASS (26 passed in tests/test_cron_runner_metrics.py)."
+              }
+            ],
+            "summary": "GAP-037 is complete: cron_runner.py warns on ROM/boot.state mismatch (verified live with pokemon_red.gb), and the full test suite passes (3940 passed, 14 skipped)."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-037\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m12:20AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174717264 bytes (174.72 MB) in 8.3s\u001b[0m\n\u001b[90m12:20AM\u001b[0m \n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 cron_runner.py _resolve_boot_state warns/fails when the --rom file's ROM header doesn't match the boot.state checkpoint's ROM, or the --rom flag row documents the Blue-SGB-specific constraint; running --rom data/rom/pokemon_red.gb with default boot.state prints a mismatch warning; full test suite passes: cron_runner.py:85 _warn_boot_state_rom_mismatch reads ROM header title at 0x134 via _read_rom_header_title (line 66), compares to BOOT_STATE_ROM_TITLE='POKEMON BLUE' (line 38), warns on mismatch; called from _dry_run_summary (line 148) and main() (line 1044) after _resolve_boot_state. Live verification: `python3 cron_runner.py --dry-run --rom data/rom/pokemon_red.gb` prints 'WARNING: data/boot.state was saved from the Blue ROM (POKEMON BLUE) but --rom is POKEMON RED \u2014 loading a mismatched checkpoint yields garbage state; use --boot-state skip for non-Blue ROMs'; Blue ROM produces no warning. Full suite: 3940 passed, 14 skipped in 183.65s. Dedicated TestBootStateRomMismatch tests all PASS (26 passed in tests/test_cron_runner_metrics.py).\nGAP-037 is complete: cron_runner.py warns on ROM/boot.state mismatch (verified live with pokemon_red.gb), and the full test suite passes (3940 passed, 14 skipped).\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-27T05:31:46.828038"
+}
