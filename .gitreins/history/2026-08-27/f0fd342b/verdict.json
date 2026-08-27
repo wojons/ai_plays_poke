@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-035",
+  "task_title": "Fix cron_runner.py module docstring controller model lie (says DeepSeek V4 Flash, real is openai/gpt-5.6-luna)",
+  "task_criteria": [
+    "cron_runner.py --help controller mention matches --dry-run summary model; guard 5/5; full pytest suite passes"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m11:33PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174933650 bytes (174.93 MB) in 8.32s\u001b[0m\n\u001b[90m11:33PM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m11:33PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174933650 bytes (174.93 MB) in 8.32s\u001b[0m\n\u001b[90m11:33PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 cron_runner.py --help controller mention matches --dry-run summary model; guard 5/5; full pytest suite passes: (1) --help controller mention (docstring line 6: 'controller (openai/gpt-5.6-luna via OpenRouter)') matches --dry-run summary model (line 105: 'controller=openai/gpt-5.6-luna (OpenRouter)') \u2014 both openai/gpt-5.6-luna; verified by running `.venv/bin/python3 cron_runner.py --help` and `--dry-run`. (2) guard 5/5: secrets=gitleaks 'no leaks found' (571 commits); lint=ruff 'All checks passed!'; lsp=0 diagnostics; tests=3934 passed; static_analysis=mypy only pre-existing error at line 997 (load_state Path|None) present in parent commit 9d51467^ too, unrelated to the docstring-only change. (3) full pytest suite: `./venv/bin/pytest -x --tb=short -q` \u2192 '3934 passed, 14 skipped in 178.33s' (0 failed). Commit 9d51467 changed cron_runner.py docstring line 6 and docs/api/cron_runner.md consistently.\nGAP-035 fix verified: --help controller mention (openai/gpt-5.6-luna) matches --dry-run summary model, guard 5/5 passes, and full pytest suite passes (3934 passed, 14 skipped).",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 cron_runner.py --help controller mention matches --dry-run summary model; guard 5/5; full pytest suite passes: (1) --help controller mention (docstring line 6: 'controller (openai/gpt-5.6-luna via OpenRouter)') matches --dry-run summary model (line 105: 'controller=openai/gpt-5.6-luna (OpenRouter)') \u2014 both openai/gpt-5.6-luna; verified by running `.venv/bin/python3 cron_runner.py --help` and `--dry-run`. (2) guard 5/5: secrets=gitleaks 'no leaks found' (571 commits); lint=ruff 'All ",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "cron_runner.py --help controller mention matches --dry-run summary model; guard 5/5; full pytest suite passes",
+                "status": "PASS",
+                "detail": "(1) --help controller mention (docstring line 6: 'controller (openai/gpt-5.6-luna via OpenRouter)') matches --dry-run summary model (line 105: 'controller=openai/gpt-5.6-luna (OpenRouter)') \u2014 both openai/gpt-5.6-luna; verified by running `.venv/bin/python3 cron_runner.py --help` and `--dry-run`. (2) guard 5/5: secrets=gitleaks 'no leaks found' (571 commits); lint=ruff 'All checks passed!'; lsp=0 diagnostics; tests=3934 passed; static_analysis=mypy only pre-existing error at line 997 (load_state Path|None) present in parent commit 9d51467^ too, unrelated to the docstring-only change. (3) full pytest suite: `./venv/bin/pytest -x --tb=short -q` \u2192 '3934 passed, 14 skipped in 178.33s' (0 failed). Commit 9d51467 changed cron_runner.py docstring line 6 and docs/api/cron_runner.md consistently."
+              }
+            ],
+            "summary": "GAP-035 fix verified: --help controller mention (openai/gpt-5.6-luna) matches --dry-run summary model, guard 5/5 passes, and full pytest suite passes (3934 passed, 14 skipped)."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-035\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m11:33PM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174933650 bytes (174.93 MB) in 8.32s\u001b[0m\n\u001b[90m11:33PM\u001b[0m\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 cron_runner.py --help controller mention matches --dry-run summary model; guard 5/5; full pytest suite passes: (1) --help controller mention (docstring line 6: 'controller (openai/gpt-5.6-luna via OpenRouter)') matches --dry-run summary model (line 105: 'controller=openai/gpt-5.6-luna (OpenRouter)') \u2014 both openai/gpt-5.6-luna; verified by running `.venv/bin/python3 cron_runner.py --help` and `--dry-run`. (2) guard 5/5: secrets=gitleaks 'no leaks found' (571 commits); lint=ruff 'All checks passed!'; lsp=0 diagnostics; tests=3934 passed; static_analysis=mypy only pre-existing error at line 997 (load_state Path|None) present in parent commit 9d51467^ too, unrelated to the docstring-only change. (3) full pytest suite: `./venv/bin/pytest -x --tb=short -q` \u2192 '3934 passed, 14 skipped in 178.33s' (0 failed). Commit 9d51467 changed cron_runner.py docstring line 6 and docs/api/cron_runner.md consistently.\nGAP-035 fix verified: --help controller mention (openai/gpt-5.6-luna) matches --dry-run summary model, guard 5/5 passes, and full pytest suite passes (3934 passed, 14 skipped).\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-27T04:41:08.543802"
+}
