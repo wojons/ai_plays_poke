@@ -337,7 +337,11 @@ runs/test_001/
 
 ### Running All Tests
 ```bash
-# Run all tests with verbose output (~3 min: 3881 passed / 14 skipped on a fresh checkout)
+# Run all tests in parallel (recommended — the ~14s figure is parallel-only,
+# measured with pytest-xdist: 3940 passed / 14 skipped on a fresh checkout)
+.venv/bin/python -m pytest tests/ -n auto -v
+
+# Run all tests serially (same suite takes ~210s / ~3.5 min — only if xdist is unavailable)
 .venv/bin/python -m pytest tests/ -v
 
 # Run with coverage report
@@ -381,9 +385,6 @@ runs/test_001/
 
 # Heavy tier — slow tests only (network retry/backoff, memory & performance benchmarks)
 .venv/bin/python -m pytest tests/ -v -m "slow"
-
-# Run tests in parallel
-.venv/bin/python -m pytest tests/ -n auto -v
 ```
 
 ### Viewing Coverage Report
