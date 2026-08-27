@@ -21,6 +21,7 @@
 **Artifacts left:** docs/dogfood/2026-08-07-integration.md, docs/dogfood/diagnostics.md, skills/ai-plays-poke-usage/SKILL.md.
 
 | 2026-08-16 | 🟡 PROMISING-BUT-ROUGH | dogfood cron | ~4 min (cron_runner 20-cycle E2E) | GAP-020 (P1) game_loop 0 commands/0 decisions, stuck on title 40/40 vision calls — AP-GAP-001 acceptance did NOT reproduce; GAP-021 (P1) 2 fabricated 'victory' battles from title-screen run; GAP-022/023/024 (P2) stub_ai telemetry lie, stale docs, viewer name_entry |
+| 2026-08-26 | ✅ SHIPPABLE (P2 debt) | dogfood cron | ~1 min (--dry-run) / ~3 min (20-cycle run) | GAP-035 (P2) --help says DeepSeek V4 Flash, real controller is gpt-5.6-luna; GAP-036 (P2) unexplained '?' screen in every run summary; GAP-037 (P2) --rom override + Blue boot.state = silent checkpoint mismatch; GAP-038 (P2) no exploration goal — default 20-cycle run wanders Oak's Lab |
 
 ## Run 2026-08-16 (dogfood cron)
 
@@ -64,3 +65,40 @@ stale docs, viewer name_entry lock).
 **Artifacts left:** docs/dogfood/2026-08-16-integration.md (new),
 docs/dogfood/diagnostics.md (2026-08-16 section appended),
 skills/ai-plays-poke-usage/SKILL.md (v1.1.0 refresh).
+
+## Run 2026-08-26 (dogfood cron)
+
+**Promise:** "A user can run `python3 cron_runner.py --run-id demo1 --cycles N` and
+watch an LLM-driven AI autonomously play Pokémon (RAM-reader state, real
+OpenRouter decisions, recovery, checkpoints, JSONL + screenshots), validate
+setup free with `--dry-run`, use the README-documented `cron.sh` wrapper, and
+watch live RAM state in the browser viewer."
+
+**What was actually done (real use, not tests):**
+1. `python3 cron_runner.py --dry-run` (bare python3) → exit 0, full config
+   summary (ROM/boot-state OK, models, API keys), no boot, no LLM calls.
+2. `cron_runner.py --run-id dogfood_20260826_001 --cycles 20` → **20/20 cycles,
+   EXIT 0**: 23 actions, 20/20 LLM calls Success (gpt-5.6-luna, ~$0.35 total),
+   lock-rate 4/20 (20%), 10 distinct tiles, 5 unique coords in Oak's Lab,
+   `state_saved` checkpoints at cycles 10/20, 20 screenshots, frame cache
+   376u/1046r, ~3 min wall.
+3. `bash .coding-hermes/cron.sh --cycles 5 --run-id dogfood_cronsh_20260826` →
+   **5/5 cycles, EXIT 0** (GAP-033 L3-verified): lock-rate 0%, 5 tiles, real
+   cron_runner output, `=== Cron tick complete ===`.
+4. `ram_map_server.py` → / 200, /data.json 200 with `screen_type=overworld`
+   (Red's House 2F — GAP-024 name-entry lock fixed), /nonexistent 404.
+
+**Verdict: ✅ SHIPPABLE (with P2 debt).** Both documented entry points deliver
+end-to-end with real LLM decisions, movement, checkpoints, and artifacts; docs
+(README, api doc, skill, integration reports) now match reality. Frictions
+found are all P2: stale `--help` docstring model name (GAP-035), unexplained
+`'?'` screen value in summaries (GAP-036), no ROM↔checkpoint mismatch guard
+(GAP-037), no exploration goal → default runs wander one room (GAP-038).
+Time-to-first-success: ~1 min (dry-run) / ~3 min (real run). Friction count: 4
+minor (all P2, none blocked use).
+
+**Board:** GAP-035..038 (P2) appended to tasks.jsonl, event 186 (actor=dogfood).
+
+**Artifacts left:** docs/dogfood/2026-08-26-integration.md (new),
+docs/dogfood/diagnostics.md (2026-08-26 section appended),
+skills/ai-plays-poke-usage/SKILL.md (v1.2.0 refresh).

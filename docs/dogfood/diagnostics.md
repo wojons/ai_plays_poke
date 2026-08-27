@@ -152,3 +152,90 @@ state the intro-skip can't handle, and the viewer has no way to type a name.
    A "victory" against "unknown (dark silhouette)" is data fabrication.
 6. **Cost note:** game_loop vision is ~$0.005/tick and burns it even stuck on
    the title screen; cron_runner is ~$0.016/cycle with real progress.
+
+---
+
+## 2026-08-26 — dogfood re-verification: the system as it stands
+
+**Verdict: ✅ SHIPPABLE (with P2 debt).** Third dogfood run (2026-08-07 🟡,
+2026-08-16 🟡, now ✅). The two previous verdicts were held back by the dead
+README entry point (`game_loop.py`) and undocumented working path; both are
+resolved. This section records how the system is built today, what was
+re-verified at L3, and the open P2 items.
+
+### How it's built (the working architecture)
+
+- **`cron_runner.py` (888+ lines) is the real system.** RAM-reader-first:
+  game state is read from PyBoy emulator memory (free, instant) and rendered to
+  spatial text; the overworld controller model (`openai/gpt-5.6-luna` via
+  OpenRouter, cron_runner.py:857) gets that text + map context and returns a
+  button plan. Non-overworld screens (dialog/menu/battle) use the StateWindow
+  flow with `deepseek-v4-flash`. Frame-cache dedupes repeated frames
+  (`[CACHE-HIT]`, refs capped at 1000) to cut API spend.
+- **Boot determinism via checkpoint:** `data/boot.state` (167 KB PyBoy state,
+  saved post-starter-pick) makes every run start in Oak's Lab with
+  party_count=1 — no title-screen A-mash, no name entry. `--boot-state skip`
+  forces the legacy intro bypass (can land direction-locked; hence default).
+- **Recovery ladder:** direction-lock detection (3+ same-direction presses in a
+  plan → WARN; 4+ across cycles without progress → escalate), checkpoint
+  rollback (slots saved at cycles 10/20), `[SPATIAL]` plan pruning when the
+  plan collides with walls. `lock-rate` is the summary health metric.
+- **`cron.sh`:** was a legacy DecisionLoop heredoc (GAP-033); now a thin
+  argument wrapper that execs `cron_runner.py` with a *.gba rejection guard and
+  venv/ROM/API-key preflights.
+- **`ram_map_server.py`:** standalone PyBoy boot + HTTP server (do_GET only,
+  read-only), serving map blocks/player/screen_type/adjacent as JSON. Boots to
+  overworld since GAP-024 (name-entry fix).
+- **`--dry-run` (GAP-032):** import-time argparse precheck — runs under bare
+  python3 before heavy third-party imports, validates ROM/boot-state paths,
+  prints model/provider config + key presence, exits 0/1. This fixed the
+  "can't validate setup without spending money" gap.
+
+### L3 evidence from today's run (all real, none from the test suite)
+
+- 20-cycle cron_runner: 20/20 EXIT 0, 20/20 LLM calls Success, lock-rate 4/20
+  (20%), 10 distinct tiles, 5 unique coords in Oak's Lab, `state_saved` at
+  cycles 10+20, 20 screenshots, frame cache 376u/1046r. $0.35, ~3 min.
+- cron.sh 5-cycle: 5/5 EXIT 0, lock-rate 0%, 5 tiles, `=== Cron tick complete`.
+- Viewer: / 200, /data.json 200 (overworld, Red's House 2F), /nonexistent 404.
+- dry-run: exit 0 under bare python3.
+
+### Errors hit today (all cosmetic — no P0/P1)
+
+1. **Stale help docstring** (GAP-035): cron_runner.py:6 says overworld
+   controller is "DeepSeek V4 Flash"; reality is `openai/gpt-5.6-luna`. The
+   module docstring predates the model swap; `--dry-run` and the live API lines
+   are truthful. Fix = docstring line 6.
+2. **Unexplained `'?'` screen value** (GAP-036): the RAM-reader classifier's
+   unknown bucket appears in every recent run summary
+   (`{'overworld','?','dialog'}`); no doc defines it. It's the "unknown"
+   branch at cron_runner.py:1182 (dialog/name_confirm/cutscene/unknown →
+   A-mash aggressively). Harmless but opaque.
+3. **ROM/checkpoint mismatch footgun** (GAP-037): `_resolve_boot_state`
+   (cron_runner.py:903) validates only path existence. Blue SGB checkpoint +
+   `--rom pokemon_red.gb` = silent garbage. cron.sh guards *.gba only.
+4. **No exploration goal** (GAP-038): boot.state runs wander Oak's Lab without
+   seeking the exit (intents: "Interact with the adjacent lab object, then step
+   away"); the intro→starter milestone that 2026-08-16 proved is no longer
+   reachable on the default path — it lives only in `--boot-state skip` runs
+   and old evidence. Movement metrics pass, demo value is modest.
+
+### The right way (2026-08-26 update)
+
+1. **Play/benchmark:** `cron_runner.py` or `cron.sh`, never `game_loop.py`
+   (legacy, unverified today).
+2. **Validate before spending:** `python3 cron_runner.py --dry-run` (bare
+   python3 OK).
+3. **Judge runs by:** exit 0 AND lock-rate < 50% AND ≥2 distinct tiles AND
+   coords that change AND screenshots present. Exit 0 alone proves nothing —
+   the same lesson as 2026-08-07/16, now with a documented acceptance bar
+   (GAP-028).
+4. **Checkpoint discipline:** boot.state is Blue-SGB-specific; changing ROMs
+   requires `--boot-state skip` (GAP-037).
+5. **Cost:** ~$0.016–0.019/overworld cycle, all on stdout API lines; the JSONL
+   log carries no cost fields. 20 cycles ≈ $0.35, 80 ≈ $1.40.
+6. **Board writes (dogfood):** append JSON rows to
+   `.coding-hermes/board/tasks.jsonl` (schema in `schema.sql`, shape in
+   GAP-032..034 rows) + one event row to `events.jsonl` (actor=dogfood, id =
+   max+1, e.g. 186). board.db/parquet are gitignored derived caches — the
+   foreman resyncs them.
