@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-036",
+  "task_title": "P2 \u2014 run summary 'Screens' set includes an unexplained '?' value",
+  "task_criteria": [
+    "README and/or docs/api/cron_runner.md document '?'/'unknown' as a possible screen value with its meaning (unknown/transition frame), or the summary prints a named value instead of '?'; full test suite passes; guard 5/5"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m2:54AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174971960 bytes (174.97 MB) in 7.85s\u001b[0m\n\u001b[90m2:54AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m2:54AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174971960 bytes (174.97 MB) in 7.85s\u001b[0m\n\u001b[90m2:54AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 README and/or docs/api/cron_runner.md document '?'/'unknown' as a possible screen value with its meaning (unknown/transition frame), or the summary prints a named value instead of '?'; full test suite passes; guard 5/5: cron_runner.py:2202 now uses r.get(\"screen\",\"unknown\") so the summary prints 'unknown' instead of '?'; README.md:191-195 and docs/api/cron_runner.md:75,128,149 document 'unknown' as a possible screen value (skipped/error frames or RAM reader's unknown bucket). Full suite: `./venv/bin/pytest -x --tb=short` \u2192 3940 passed, 14 skipped in 182.98s. Guard 5/5: gitleaks 'no leaks found' (579 commits), ruff 'All checks passed!', mypy 'Success: no issues found in 63 source files', LSP 0 diagnostics, tests pass.\nGAP-036 complete: the run summary now prints 'unknown' instead of '?' for unclassified screens, documented in README and API docs, with full test suite (3940 passed) and guard 5/5 green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 README and/or docs/api/cron_runner.md document '?'/'unknown' as a possible screen value with its meaning (unknown/transition frame), or the summary prints a named value instead of '?'; full test suite passes; guard 5/5: cron_runner.py:2202 now uses r.get(\"screen\",\"unknown\") so the summary prints 'unknown' instead of '?'; README.md:191-195 and docs/api/cron_runner.md:75,128,149 document 'unknown' as a possible screen value (skipped/error frames or RAM reader's unknown bucket). Full s",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "README and/or docs/api/cron_runner.md document '?'/'unknown' as a possible screen value with its meaning (unknown/transition frame), or the summary prints a named value instead of '?'; full test suite passes; guard 5/5",
+                "status": "PASS",
+                "detail": "cron_runner.py:2202 now uses r.get(\"screen\",\"unknown\") so the summary prints 'unknown' instead of '?'; README.md:191-195 and docs/api/cron_runner.md:75,128,149 document 'unknown' as a possible screen value (skipped/error frames or RAM reader's unknown bucket). Full suite: `./venv/bin/pytest -x --tb=short` \u2192 3940 passed, 14 skipped in 182.98s. Guard 5/5: gitleaks 'no leaks found' (579 commits), ruff 'All checks passed!', mypy 'Success: no issues found in 63 source files', LSP 0 diagnostics, tests pass."
+              }
+            ],
+            "summary": "GAP-036 complete: the run summary now prints 'unknown' instead of '?' for unclassified screens, documented in README and API docs, with full test suite (3940 passed) and guard 5/5 green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-036\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m2:54AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174971960 bytes (174.97 MB) in 7.85s\u001b[0m\n\u001b[90m2:54AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 README and/or docs/api/cron_runner.md document '?'/'unknown' as a possible screen value with its meaning (unknown/transition frame), or the summary prints a named value instead of '?'; full test suite passes; guard 5/5: cron_runner.py:2202 now uses r.get(\"screen\",\"unknown\") so the summary prints 'unknown' instead of '?'; README.md:191-195 and docs/api/cron_runner.md:75,128,149 document 'unknown' as a possible screen value (skipped/error frames or RAM reader's unknown bucket). Full suite: `./venv/bin/pytest -x --tb=short` \u2192 3940 passed, 14 skipped in 182.98s. Guard 5/5: gitleaks 'no leaks found' (579 commits), ruff 'All checks passed!', mypy 'Success: no issues found in 63 source files', LSP 0 diagnostics, tests pass.\nGAP-036 complete: the run summary now prints 'unknown' instead of '?' for unclassified screens, documented in README and API docs, with full test suite (3940 passed) and guard 5/5 green.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-27T08:02:06.178850"
+}

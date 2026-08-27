@@ -467,3 +467,12 @@ tasks:
   status: complete
   created_at: '2026-08-27T05:00:22.685307+00:00'
   completed_at: '2026-08-27T05:20:33.110147+00:00'
+- id: GAP-036
+  title: "P2 \u2014 run summary 'Screens' set includes an unexplained '?' value"
+  criteria:
+  - README and/or docs/api/cron_runner.md document '?'/'unknown' as a possible screen
+    value with its meaning (unknown/transition frame), or the summary prints a named
+    value instead of '?'; full test suite passes; guard 5/5
+  status: complete
+  created_at: '2026-08-27T07:54:20.461266+00:00'
+  completed_at: '2026-08-27T07:54:24.541448+00:00'
