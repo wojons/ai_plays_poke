@@ -1403,6 +1403,20 @@ def main() -> None:
             )
 
             map_id = int(raw_map_id) if isinstance(raw_map_id, int) else -1
+
+            # ── Default exploration goal (GAP-038) ──────────────
+            # Fresh boot states (no stored DuckBrain goal) leave the
+            # controller with an empty goal; seed a context-aware
+            # default so the agent doesn't wander aimlessly.
+            if not _mem_goal:
+                if map_id == OAKS_LAB_MAP_ID:
+                    _mem_goal = (
+                        "Leave Oaks Lab and head toward Route 1 to begin your "
+                        "Pokemon journey."
+                    )
+                else:
+                    _mem_goal = "Explore the current area and look for exits or points of interest."
+
             if USE_RAM_READER:
                 party_count = ram_reader.party_count()
                 menu_state = ram_reader.read_menu_state()
