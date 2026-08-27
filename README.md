@@ -188,7 +188,11 @@ resets the counter. The final summary line reports the **lock-rate** — the fra
 cycles that contained at least one direction-lock warning (`lock-rate: 5/20 cycles
 (25%)`) — plus the number of distinct map tiles visited. Healthy runs are well under
 50% lock-rate and visit multiple tiles; a run stuck at 100% lock-rate with 1 tile is
-direction-locked and the boot state should be refreshed.
+direction-locked and the boot state should be refreshed. The `Screens` set printed at
+the end of the summary line (e.g. `Screens: {'overworld', 'dialog'}`) lists every
+screen type observed during the run; it may include `"unknown"` for cycles that
+produced no screen classification (e.g. skipped/error frames, or the RAM reader's
+unknown bucket) rather than a specific screen type.
 
 **Outputs:**
 - `cron_logs/run_<id>.jsonl` — one JSON line per cycle: screen type, button plan, LLM

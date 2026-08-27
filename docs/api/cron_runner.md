@@ -72,7 +72,7 @@ Runtime behavior is configured by module-level constants (not flags): `ROM` (def
 
 **First cycles:** cycle 1 observes the overworld via RAM and sends spatial state to the controller. `[CACHE-HIT]` frame references appear when the same frame repeats (standing still, walking animation loop) — normal. `[WARN] Direction-locking detected: <dir> x3` fires when a single plan contains 3+ consecutive same-direction presses (a straight walk triggers it even while moving); it is only a warning — recovery escalates at 4+ consecutive same-direction presses across cycles without progress.
 
-**Summary metrics:** the final line reports `lock-rate: N/CYCLES cycles with direction-lock warnings (P%)` — the fraction of cycles containing ≥1 direction-lock warning — plus `distinct tiles: N` — unique (map, x, y) RAM tiles observed. Healthy overworld runs stay well under 50% lock-rate and visit multiple tiles.
+**Summary metrics:** the final line reports `lock-rate: N/CYCLES cycles with direction-lock warnings (P%)` — the fraction of cycles containing ≥1 direction-lock warning — plus `distinct tiles: N` — unique (map, x, y) RAM tiles observed. The `Screens` set in the same summary line lists every screen type observed during the run; it may include `"unknown"` for cycles that produced no screen classification (e.g. skipped/error frames, or the RAM reader's unknown bucket) rather than a specific screen type. Healthy overworld runs stay well under 50% lock-rate and visit multiple tiles.
 
 ### 1. Observe — RAM reader (default) or cartographer
 
@@ -125,7 +125,7 @@ One JSON object per line, written incrementally (the log doubles as a live feed 
 | Field | Type | Description |
 |-------|------|-------------|
 | `cycle` | `int` | 1-based cycle number |
-| `screen` | `str` | `"overworld"` |
+| `screen` | `str` | `"overworld"` on normal controller-path rows; `"unknown"` when the cycle produced no screen classification (skipped/error frame, or the RAM reader's unknown bucket) |
 | `pipeline` | `str` | `"RAM reader"` or `"cartographer"` |
 | `plan` | `list[str]` | Executed button plan (uppercase) |
 | `intent` | `str` | Controller's stated intent |
@@ -146,7 +146,7 @@ One JSON object per line, written incrementally (the log doubles as a live feed 
 | Field | Type | Description |
 |-------|------|-------------|
 | `cycle` | `int` | 1-based cycle number |
-| `screen` | `str` | Observed screen type (`battle`, `dialog`, `menu`, `title`, ...) |
+| `screen` | `str` | Observed screen type (`battle`, `dialog`, `menu`, `title`, ...) or `"unknown"` when no screen classification was produced for that cycle (e.g. a skipped/error frame, or the RAM reader's unknown bucket) |
 | `state` | `str` | StateWindow state type (e.g. `name_entry` for keyboard subtype) |
 | `action` | `str` | Last tool call, e.g. `press_button({'button': 'a', 'duration': 30})`, or `"?"` |
 | `elapsed_s` | `float` | Seconds spent on the cycle |

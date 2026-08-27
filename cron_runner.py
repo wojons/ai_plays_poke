@@ -2199,7 +2199,7 @@ def main() -> None:
     log_file.close()
 
     # Summary
-    screens = set(r.get("screen", "?") for r in results)
+    screens = set(r.get("screen", "unknown") for r in results)
     safe_print(f"\n{_format_summary(run_id, len(results), screens, _dir_lock_warn_cycles, CYCLES, len(_visited_tiles))}")
     safe_print(f"Log: {log_path}")
     safe_print(f"Screenshots: {SCREENSHOT_DIR}")
