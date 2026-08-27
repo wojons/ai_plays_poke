@@ -194,3 +194,87 @@ class TestRomFlag:
         # default is None → module constant used
         assert cron_runner._main_parser().parse_args([]).rom is None
 
+
+
+class TestBootStateRomMismatch:
+    """GAP-037: warn when a Blue-ROM checkpoint boots into a non-Blue ROM.
+
+    data/boot.state was captured from the Blue SGB ROM; PyBoy's
+    load_state never validates the savestate against the loaded
+    cartridge, so a Blue checkpoint loaded into e.g. pokemon_red.gb
+    yields garbage RAM with zero errors. The warning must fire only when
+    a checkpoint is actually going to be loaded (--boot-state skip
+    suppresses it) and the ROM header title (offset 0x134) is not Blue.
+    """
+
+    @staticmethod
+    def _fake_rom(tmp_path, title: str) -> str:
+        """Write a fake ROM whose header title (0x134, 16 bytes) is `title`."""
+        rom = tmp_path / "rom.gb"
+        data = bytearray(0x150)
+        data[0x134 : 0x134 + len(title)] = title.encode("ascii")
+        rom.write_bytes(bytes(data))
+        return str(rom)
+
+    def test_mismatch_warns_for_non_blue_rom(self, monkeypatch, capsys, tmp_path) -> None:
+        # A boot checkpoint (Blue) loaded into a Red ROM must print the
+        # actionable mismatch warning.
+        rom = self._fake_rom(tmp_path, "POKEMON RED")
+        ckpt = tmp_path / "boot.state"
+        ckpt.write_bytes(b"x")
+        monkeypatch.setattr(cron_runner, "BOOT_STATE_ROM_TITLE", "POKEMON BLUE")
+        cron_runner._warn_boot_state_rom_mismatch("run_gap037", ckpt, rom)
+        out = capsys.readouterr().out
+        assert "WARNING:" in out
+        assert "was saved from the Blue ROM (POKEMON BLUE)" in out
+        assert "--rom is POKEMON RED" in out
+        assert "--boot-state skip" in out
+
+    def test_no_warning_for_blue_rom(self, monkeypatch, capsys, tmp_path) -> None:
+        # Blue ROM + Blue checkpoint: the standard workflow must stay silent.
+        rom = self._fake_rom(tmp_path, "POKEMON BLUE")
+        ckpt = tmp_path / "boot.state"
+        ckpt.write_bytes(b"x")
+        monkeypatch.setattr(cron_runner, "BOOT_STATE_ROM_TITLE", "POKEMON BLUE")
+        cron_runner._warn_boot_state_rom_mismatch("run1", ckpt, rom)
+        assert capsys.readouterr().out == ""
+
+    def test_no_warning_when_boot_state_skipped(self, monkeypatch, capsys, tmp_path) -> None:
+        # --boot-state skip → boot_path is None → no checkpoint is loaded,
+        # so no warning even with a Red ROM.
+        rom = self._fake_rom(tmp_path, "POKEMON RED")
+        monkeypatch.setattr(cron_runner, "BOOT_STATE_ROM_TITLE", "POKEMON BLUE")
+        cron_runner._warn_boot_state_rom_mismatch("run2", None, rom)
+        assert capsys.readouterr().out == ""
+
+    def test_no_warning_when_checkpoint_missing(self, monkeypatch, capsys, tmp_path) -> None:
+        # _resolve_boot_state returns None for a missing checkpoint; a
+        # missing checkpoint falls back to the intro bypass and never
+        # loads Blue RAM, so it must not warn either.
+        rom = self._fake_rom(tmp_path, "POKEMON RED")
+        monkeypatch.setattr(cron_runner, "BOOT_STATE_ROM_TITLE", "POKEMON BLUE")
+        assert cron_runner._resolve_boot_state(str(tmp_path / "nope.state")) is None
+        cron_runner._warn_boot_state_rom_mismatch("run3", None, rom)
+        assert capsys.readouterr().out == ""
+
+    def test_no_warning_for_unreadable_rom(self, monkeypatch, capsys, tmp_path) -> None:
+        # Unreadable / too-short ROM → title unknown → never warn.
+        ckpt = tmp_path / "boot.state"
+        ckpt.write_bytes(b"x")
+        monkeypatch.setattr(cron_runner, "BOOT_STATE_ROM_TITLE", "POKEMON BLUE")
+        cron_runner._warn_boot_state_rom_mismatch("run4", ckpt, str(tmp_path / "missing.gb"))
+        assert capsys.readouterr().out == ""
+
+    def test_dry_run_summary_prints_mismatch_warning(self, monkeypatch, capsys, tmp_path) -> None:
+        # The --dry-run pre-flight (the cheap path a user runs first) must
+        # surface the same mismatch so the problem is visible before boot.
+        rom = self._fake_rom(tmp_path, "POKEMON RED")
+        ckpt = tmp_path / "boot.state"
+        ckpt.write_bytes(b"x")
+        monkeypatch.setattr(cron_runner, "DEFAULT_BOOT_STATE", ckpt)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run", "--rom", rom])
+        assert e.value.code == 0
+        out = capsys.readouterr().out
+        assert "WARNING:" in out and "POKEMON RED" in out
+        assert "use --boot-state skip for non-Blue ROMs" in out

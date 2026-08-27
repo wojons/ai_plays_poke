@@ -35,6 +35,7 @@ from datetime import datetime
 # the --dry-run precheck below can validate setup under bare python3 too.
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 DEFAULT_BOOT_STATE = Path("data/boot.state")  # known-good overworld checkpoint
+BOOT_STATE_ROM_TITLE = "POKEMON BLUE"  # data/boot.state was saved from the Blue SGB ROM (GAP-037)
 CYCLES = 200
 USE_RAM_READER = True   # True = RAM-based state reader (instant, free), False = Gemma 12B cartographer
 
@@ -62,6 +63,52 @@ def _load_dotenv_stdlib(env_path: Path | None = None) -> None:
         value = value.strip().strip("\"'")
         if key and value and not os.environ.get(key):
             os.environ[key] = value
+
+
+def _read_rom_header_title(rom_path: str) -> str | None:
+    """Return the Gen-1 ROM header title (offset 0x134, 16 bytes, null-stripped).
+
+    Returns ``None`` when the file is unreadable or too short to hold a
+    header — callers treat that as "unknown, don't warn".
+    """
+    try:
+        with open(rom_path, "rb") as f:
+            f.seek(0x134)
+            raw = f.read(16)
+    except OSError:
+        return None
+    if len(raw) < 16:
+        return None
+    return raw.split(b"\x00", 1)[0].decode("ascii", errors="replace")
+
+
+def _warn_boot_state_rom_mismatch(
+    run_id: str,
+    boot_path: Path | None,
+    rom_path: str | None = None,
+) -> None:
+    """Warn when a boot checkpoint saved from the Blue ROM is loaded into a non-Blue ROM.
+
+    data/boot.state is a PyBoy savestate captured from the Blue SGB ROM
+    (starter already picked). PyBoy's ``load_state`` restores memory
+    blindly — it never validates that the savestate matches the loaded
+    cartridge — so booting a Blue checkpoint into e.g. pokemon_red.gb
+    yields garbage RAM with zero errors. GAP-037: surface that here, in
+    both the real boot path and the --dry-run pre-flight. No-op when the
+    checkpoint is skipped (``boot_path is None``), the ROM title is
+    unreadable, or the ROM is Blue (matching ``BOOT_STATE_ROM_TITLE``).
+    """
+    if boot_path is None:
+        return
+    rom = rom_path if rom_path is not None else ROM
+    title = _read_rom_header_title(rom)
+    if title is None or title == BOOT_STATE_ROM_TITLE:
+        return
+    safe_print(
+        f"[{run_id}] WARNING: {boot_path} was saved from the Blue ROM "
+        f"({BOOT_STATE_ROM_TITLE}) but --rom is {title} — loading a mismatched "
+        f"checkpoint yields garbage state; use --boot-state skip for non-Blue ROMs"
+    )
 
 
 def _dry_run_summary(
@@ -98,6 +145,7 @@ def _dry_run_summary(
                     else "missing — will fall back to intro bypass")
         safe_print(f"  Boot state:     {boot_path}  "
                    f"[{'OK' if boot_ok else 'MISSING — fallback'}] ({fallback})")
+    _warn_boot_state_rom_mismatch(run_id_arg or time.strftime("%Y%m%d_%H%M%S"), boot_path, rom)
     safe_print(f"  Cycles:         {cycles}")
     safe_print(f"  Run ID:         {run_id_arg or time.strftime('%Y%m%d_%H%M%S')}")
     safe_print(f"  Pipeline:       {'RAM reader' if USE_RAM_READER else 'cartographer'} "
@@ -993,6 +1041,7 @@ def main() -> None:
     # from a verified overworld position with the starter already picked.
     boot_path = _resolve_boot_state(args.boot_state)
     boot_from_state = boot_path is not None
+    _warn_boot_state_rom_mismatch(run_id, boot_path, ROM)
     if boot_from_state:
         emu.load_state(boot_path)
         emu.wait(30)  # settle after state restore
