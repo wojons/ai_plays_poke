@@ -506,5 +506,6 @@ tasks:
   title: 'E2E-001: 20-cycle live gameplay run (T227)'
   criteria:
   - Run exits 0, API success >= 12/14, pipeline healthy
-  status: in_progress
+  status: complete
   created_at: '2026-08-27T16:53:02.574905+00:00'
+  completed_at: '2026-08-27T17:01:35.249277+00:00'
