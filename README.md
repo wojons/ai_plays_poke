@@ -219,6 +219,15 @@ real movement — GAP-028 acceptance measured 2/20 lock-rate cycles (10%) with 2
 tiles on a fresh 20-cycle run (see the `lock-rate` field in the summary line above for
 your own runs).
 
+**Default 20-cycle demo behavior:** A short 20-cycle run (`--cycles 20`) typically
+demonstrates overworld navigation and AI decision-making inside Oak's Lab — the agent
+interacts with objects, moves between tiles, and fires recovery logic. Whether the agent
+reaches the lab exit and transitions to Route 1 within 20 cycles is LLM-dependent and
+not guaranteed. For a run that reliably exits Oak's Lab, use `--cycles 80` or higher.
+The default exploration goal (`cron_runner.py` seeds "Leave Oaks Lab and head toward
+Route 1" when no stored goal exists) provides direction, but the controller's adherence
+varies by run.
+
 **Scheduled runs & QA tooling:**
 
 - `.coding-hermes/cron.sh` — scheduled decision-loop runner used by the Hermes cron
