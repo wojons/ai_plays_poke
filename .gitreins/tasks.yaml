@@ -476,3 +476,19 @@ tasks:
   status: complete
   created_at: '2026-08-27T07:54:20.461266+00:00'
   completed_at: '2026-08-27T07:54:24.541448+00:00'
+- id: GAP-038
+  title: 'GAP-038: Seed default exploration goal for Oak''s Lab boot state'
+  criteria:
+  - A fresh 20-cycle run from boot.state produces >=1 map change (map_id changes)
+    OR the README documents expected no-milestone demo behavior
+  status: complete
+  created_at: '2026-08-27T10:25:49.981082+00:00'
+  completed_at: '2026-08-27T10:46:22.624190+00:00'
+- id: GAP-039
+  title: 'GAP-039: make pytest collection deterministic'
+  criteria:
+  - pytest tests/ --co -q 3 consecutive runs produce identical collected-test count
+    (3954) with zero 'error during collection' lines
+  status: complete
+  created_at: '2026-08-27T12:02:20.013096+00:00'
+  completed_at: '2026-08-27T12:11:05.949713+00:00'

@@ -1,0 +1,77 @@
+{
+  "task_id": "GAP-038",
+  "task_title": "GAP-038: Seed default exploration goal for Oak's Lab boot state",
+  "task_criteria": [
+    "A fresh 20-cycle run from boot.state produces >=1 map change (map_id changes) OR the README documents expected no-milestone demo behavior"
+  ],
+  "passed": false,
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: \n  \u2717 secrets: \u001b[90m5:46AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174763832 bytes (174.76 MB) in 8.93s\u001b[0m\n\u001b[90m5:46AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "\u001b[90m5:46AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174763832 bytes (174.76 MB) in 8.93s\u001b[0m\n\u001b[90m5:46AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mno leaks found\u001b[0m\nSecrets scan: 4 potential findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ]
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 A fresh 20-cycle run from boot.state produces >=1 map change (map_id changes) OR the README documents expected no-milestone demo behavior: Neither OR branch is satisfied. (1) I ran a fresh 20-cycle run from boot.state (`.venv/bin/python cron_runner.py --run-id gap038_verify --cycles 20`, booted from data/boot.state per dry-run 'will boot from checkpoint' and boot_baseline starter_picked at cycle 1; completed all 20 cycles ending with state_saved at cycle 20): ALL 18 map_id entries = 40 (Oak's Lab) \u2014 ZERO map changes. (2) README (git show HEAD:README.md) does NOT document 'expected no-milestone demo behavior' \u2014 grep for milestone/no-milestone/exploration goal shows only strategic milestones (gyms/badges) and a demo run example. The GAP-038 fix (commit ee908b7, cron_runner.py:1407-1419) seeds a default exploration goal, but the actual 20-cycle run still stayed in Oak's Lab with no map change, and no README documentation covers the no-milestone case.\nThe GAP-038 criterion fails: a fresh 20-cycle run from boot.state produced zero map changes (all map_id=40), and the README does not document expected no-milestone demo behavior, so neither branch of the OR criterion is met.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 A fresh 20-cycle run from boot.state produces >=1 map change (map_id changes) OR the README documents expected no-milestone demo behavior: Neither OR branch is satisfied. (1) I ran a fresh 20-cycle run from boot.state (`.venv/bin/python cron_runner.py --run-id gap038_verify --cycles 20`, booted from data/boot.state per dry-run 'will boot from checkpoint' and boot_baseline starter_picked at cycle 1; completed all 20 cycles ending with state_saved at cycle 20): ALL 18 map_id entries",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "A fresh 20-cycle run from boot.state produces >=1 map change (map_id changes) OR the README documents expected no-milestone demo behavior",
+                "status": "FAIL",
+                "detail": "Neither OR branch is satisfied. (1) I ran a fresh 20-cycle run from boot.state (`.venv/bin/python cron_runner.py --run-id gap038_verify --cycles 20`, booted from data/boot.state per dry-run 'will boot from checkpoint' and boot_baseline starter_picked at cycle 1; completed all 20 cycles ending with state_saved at cycle 20): ALL 18 map_id entries = 40 (Oak's Lab) \u2014 ZERO map changes. (2) README (git show HEAD:README.md) does NOT document 'expected no-milestone demo behavior' \u2014 grep for milestone/no-milestone/exploration goal shows only strategic milestones (gyms/badges) and a demo run example. The GAP-038 fix (commit ee908b7, cron_runner.py:1407-1419) seeds a default exploration goal, but the actual 20-cycle run still stayed in Oak's Lab with no map change, and no README documentation covers the no-milestone case."
+              }
+            ],
+            "summary": "The GAP-038 criterion fails: a fresh 20-cycle run from boot.state produced zero map changes (all map_id=40), and the README does not document expected no-milestone demo behavior, so neither branch of the OR criterion is met."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-038\n\nStage tier1: FAIL\n    \u2713 lint: \n  \u2717 secrets: \u001b[90m5:46AM\u001b[0m \u001b[32mINF\u001b[0m \u001b[1mscanned ~174763832 bytes (174.76 MB) in 8.93s\u001b[0m\n\u001b[90m5:46AM\u001b[0m \u001b\n  \u2713 tests: ============================= test session starts ==============================\nplatform linux -- P\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 A fresh 20-cycle run from boot.state produces >=1 map change (map_id changes) OR the README documents expected no-milestone demo behavior: Neither OR branch is satisfied. (1) I ran a fresh 20-cycle run from boot.state (`.venv/bin/python cron_runner.py --run-id gap038_verify --cycles 20`, booted from data/boot.state per dry-run 'will boot from checkpoint' and boot_baseline starter_picked at cycle 1; completed all 20 cycles ending with state_saved at cycle 20): ALL 18 map_id entries = 40 (Oak's Lab) \u2014 ZERO map changes. (2) README (git show HEAD:README.md) does NOT document 'expected no-milestone demo behavior' \u2014 grep for milestone/no-milestone/exploration goal shows only strategic milestones (gyms/badges) and a demo run example. The GAP-038 fix (commit ee908b7, cron_runner.py:1407-1419) seeds a default exploration goal, but the actual 20-cycle run still stayed in Oak's Lab with no map change, and no README documentation covers the no-milestone case.\nThe GAP-038 criterion fails: a fresh 20-cycle run from boot.state produced zero map changes (all map_id=40), and the README does not document expected no-milestone demo behavior, so neither branch of the OR criterion is met.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-08-27T10:52:35.778653"
+}
