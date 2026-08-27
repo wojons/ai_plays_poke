@@ -691,5 +691,9 @@ class GameDatabase:
         self.log_command(command_data)
 
 
-# Create database instance with default path
-default_db = GameDatabase("./game_data.db")
+# NOTE: no module-level GameDatabase instance here. A module-level
+# `default_db = GameDatabase("./game_data.db")` opened a sqlite connection
+# (timeout=0.001) at import time — if ./game_data.db was momentarily locked
+# (concurrent test run, dashboard, live run), the import raised and pytest
+# collection dropped the whole test_core_game_loop.py module (73 tests),
+# making `pytest --co` counts flaky (3954 vs 3881). GAP-039.
