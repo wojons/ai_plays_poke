@@ -448,3 +448,22 @@ tasks:
   status: complete
   created_at: '2026-08-25T04:39:08.939585+00:00'
   completed_at: '2026-08-25T04:40:54.416447+00:00'
+- id: GAP-035
+  title: Fix cron_runner.py module docstring controller model lie (says DeepSeek V4
+    Flash, real is openai/gpt-5.6-luna)
+  criteria:
+  - cron_runner.py --help controller mention matches --dry-run summary model; guard
+    5/5; full pytest suite passes
+  status: complete
+  created_at: '2026-08-27T04:22:12.634612+00:00'
+  completed_at: '2026-08-27T04:33:31.600155+00:00'
+- id: GAP-037
+  title: --rom <other-gen1-rom> silently loads Blue-specific boot.state
+  criteria:
+  - cron_runner.py _resolve_boot_state warns/fails when the --rom file's ROM header
+    doesn't match the boot.state checkpoint's ROM, or the --rom flag row documents
+    the Blue-SGB-specific constraint; running --rom data/rom/pokemon_red.gb with default
+    boot.state prints a mismatch warning; full test suite passes
+  status: complete
+  created_at: '2026-08-27T05:00:22.685307+00:00'
+  completed_at: '2026-08-27T05:20:33.110147+00:00'
