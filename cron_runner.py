@@ -36,7 +36,7 @@ from datetime import datetime
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 DEFAULT_BOOT_STATE = Path("data/boot.state")  # known-good overworld checkpoint
 BOOT_STATE_ROM_TITLE = "POKEMON BLUE"  # data/boot.state was saved from the Blue SGB ROM (GAP-037)
-CYCLES = 200
+CYCLES = 20  # shared default with .coding-hermes/cron.sh (GAP-041); --cycles N overrides
 USE_RAM_READER = True   # True = RAM-based state reader (instant, free), False = Gemma 12B cartographer
 
 # ── --dry-run precheck (GAP-032) ────────────────────────────────────

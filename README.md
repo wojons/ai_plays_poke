@@ -204,7 +204,7 @@ unknown bucket) rather than a specific screen type.
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--run-id` | auto-generated timestamp | Label for this run's logs and screenshots |
-| `--cycles` | 200 | Number of AI decision cycles |
+| `--cycles` | 20 | Number of AI decision cycles |
 | `--rom` | `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb` | Path to the Gen-1 GB ROM to boot (overrides the module default) |
 | `--boot-state` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass; `skip` forces the legacy intro bypass |
 

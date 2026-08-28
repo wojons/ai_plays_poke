@@ -56,7 +56,7 @@ options:
 |------|------|---------|-------------|
 | `-h, --help` | — | — | Show usage and exit |
 | `--run-id RUN_ID` | `str` | auto-generated `%Y%m%d_%H%M%S` timestamp | Label for this run. Sets the log path `cron_logs/run_<run-id>.jsonl` and the screenshot directory `screenshots/run_<run-id>/`. Reusing an id overwrites the previous log. |
-| `--cycles CYCLES` | `int` | `200` | Number of AI decision cycles to run. Clamped to a minimum of 1 (`CYCLES = max(1, args.cycles)`). |
+| `--cycles CYCLES` | `int` | `20` | Number of AI decision cycles to run. Clamped to a minimum of 1 (`CYCLES = max(1, args.cycles)`). |
 | `--boot-state BOOT_STATE` | `str` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass. `skip` forces the legacy intro bypass (title-screen A-mash). If the path does not exist, the runner falls back to the intro bypass with a warning. |
 | `--dry-run` | `flag` | `false` | Validate setup and print a config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence), then exit 0 — no emulator boot, no LLM/API calls. Runs before the heavy third-party imports, so it also works under bare `python3`. Exits 1 if the ROM is missing; a missing boot-state path is a warning (intro-bypass fallback), not an error. |
 
