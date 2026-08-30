@@ -62,9 +62,32 @@ pre-commit run --all-files
 
 ### Running the AI
 
-> **⚠️ Use `cron_runner.py` for real gameplay.** `src/game_loop.py` (shown below) is the
-> legacy path whose vision pipeline is under repair — see README's
-> [Quick Start (working path)](README.md#quick-start-working-path).
+`cron_runner.py` is the recommended entry point for real autonomous gameplay. It boots the
+emulator, bypasses the intro, reads game state directly from emulator RAM (instant, free),
+and spends LLM calls only on game decisions. Run it from the repo root with the project
+venv activated:
+
+```bash
+source .venv/bin/activate
+
+# Basic run (real autonomous gameplay)
+python3 cron_runner.py --run-id demo1 --cycles 80
+
+# Dry-run: validate setup (ROM, boot state, API keys) — exits 0, zero LLM/API calls
+python3 cron_runner.py --dry-run
+
+# Boot from a known-good .state checkpoint (default: data/boot.state; 'skip' forces the legacy intro bypass)
+python3 cron_runner.py --run-id demo1 --cycles 80 --boot-state data/boot.state
+```
+
+See the README [Quick Start (working path)](README.md#quick-start-working-path) and
+[docs/api/cron_runner.md](docs/api/cron_runner.md) for the full flag reference.
+
+### Legacy game_loop.py (appendix)
+
+> **⚠️ Historical/superseded.** The commands below use the legacy `src/game_loop.py`
+> path, whose vision pipeline is under repair — use `cron_runner.py` above instead
+> (see README's [Quick Start (working path)](README.md#quick-start-working-path)).
 
 > **⚠️ The legacy commands below crash with `ModuleNotFoundError: No module named 'db'`
 > if run as-is from the repo root** — `src/game_loop.py` imports `db.*`/`core.*`
