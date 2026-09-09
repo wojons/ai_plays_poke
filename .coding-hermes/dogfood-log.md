@@ -66,6 +66,42 @@ stale docs, viewer name_entry lock).
 docs/dogfood/diagnostics.md (2026-08-16 section appended),
 skills/ai-plays-poke-usage/SKILL.md (v1.1.0 refresh).
 
+## Run 2026-09-09 (dogfood cron)
+
+**Promise:** "A user can run `python3 cron_runner.py --run-id <id> --cycles N`
+and watch an LLM-driven AI autonomously play Pokémon (RAM-reader state, real
+OpenRouter decisions, recovery, checkpoints, JSONL + screenshots), validate
+setup free with `--dry-run`, and watch live RAM state in the browser viewer."
+
+**What was actually done (real use, not tests):**
+1. Manual key liveness checks (no in-repo check does this): OpenRouter key
+   **EXPIRED** (401 "API key expired" on /key + /chat/completions); DeepSeek
+   key LIVE (real completion).
+2. `cron_runner.py --dry-run` → exit 0 <1s — passed on the expired key
+   (presence-only key validation).
+3. `cron_runner.py --run-id dogfood_20260909_001 --cycles 20` → EXIT 0, 19s:
+   **0/20 LLM calls succeeded** (401s → circuit breaker), `Screens:
+   {'unknown'}`, 1 tile — `Done.` + exit 0 = **phantom-green** (GAP-047).
+4. `ram_map_server.py` → `/` 200, `/data.json` 200 (Red's House 2F real map
+   data), 404 path OK. Works with NO API keys. Still ✅.
+5. Bunker install leg: las-bunker-03 (100.69.3.13) unreachable (ssh timeout
+   ×2, ping 100% loss; local bunker CLI 0.1.3 OK) → **SKIPPED-install-bunker**
+   filed as GAP-051.
+
+**Verdict: 🟡 PROMISING-BUT-ROUGH** (was ✅ SHIPPABLE 2026-08-26). Emulator,
+RAM reader, viewer, logging, dry-run machinery all healthy; the entire
+decision layer is dead on the expired key and every in-repo success signal
+(exit 0, `Done.`, dry-run OK) reports green while it is. Time-to-first-success:
+never for the LLM promise (deployment key, not code); ~20s for the viewer.
+Friction count: 5 (1×P0, 2×P1, 2×P2).
+
+**Board:** GAP-047..051 appended to tasks.jsonl, event 221 (actor=dogfood).
+Note: task id already ends with 6 (GAP-046) → new rows start at GAP-047.
+
+**Artifacts left:** docs/dogfood/2026-09-09-integration.md (new),
+docs/dogfood/diagnostics.md (2026-09-09 section prepended),
+skills/ai-plays-poke-usage/SKILL.md (v1.3.0 refresh — STEP ZERO key checks).
+
 ## Run 2026-08-26 (dogfood cron)
 
 **Promise:** "A user can run `python3 cron_runner.py --run-id demo1 --cycles N` and

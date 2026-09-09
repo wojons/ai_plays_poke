@@ -155,6 +155,71 @@ state the intro-skip can't handle, and the viewer has no way to type a name.
 
 ---
 
+## 2026-09-09 — dogfood: phantom-green via expired API key (how the success signals lie)
+
+### What happened
+
+A 20-cycle `cron_runner.py` run (`dogfood_20260909_001`) executed with an
+**expired** `OPENROUTER_API_KEY` and still reported success through every
+machine-readable channel. This is the same failure family as the 2026-08-07
+game_loop lesson ("exits 0 having done literally nothing"), now in the
+*working* stack, via a different mechanism.
+
+### How the failure chains (understand it before touching code)
+
+1. `OPENROUTER_API_KEY` expired provider-side (key lives in `.env`, never
+   committed; nobody rotates it because nothing checks it). Verified
+   independently: `curl openrouter.ai/api/v1/key` → `401 "API key expired"`.
+2. Per cycle: `controller_plan()` → `OpenRouterClient.chat_completion()` →
+   401 → internal retries (with backoff) → `raise ... All API retries
+   exhausted`. The exception is caught per-cycle; the cycle's error
+   (traceback + all) is appended to the JSONL as an event row, and the loop
+   moves on. No failure counter exists anywhere on this path.
+3. After several failures the client's **circuit breaker** opens (`Circuit
+   breaker open - too many failures`) — subsequent cycles short-circuit even
+   faster, so the run gets *quicker* (19 s total) as it does *less*.
+4. Summary builder counts actions/screens/lock-rate/tiles from data that is
+   simply absent on dead runs (`Screens: {'unknown'}`, `distinct tiles: 1`,
+   lock-rate 0/20) — and prints `Done.` Exit code: 0. Nothing in the chain
+   ever converts "zero successful LLM calls" into a non-zero exit or a
+   FAILED verdict. (GAP-047, P0)
+
+### Why every existing guard missed it
+
+- **Dry-run** validates ROM path, boot state, flag sanity, and that key
+  *strings are present* — presence ≠ liveness (GAP-048).
+- **cron.sh / scheduler wrappers / E2E-001 fixture** read the runner's exit
+  code (and the summary line) — both green here.
+- **Lock-rate/acceptance bar (GAP-028)** was designed to catch *direction-
+  locked* runs; a dead-key run trivially shows lock-rate 0% (no plans → no
+  locks) and 1 tile, which reads as "calm", not "dead". The amended bar adds:
+  **count `Success: True` API lines; zero = failed run.**
+- A **valid DeepSeek key** sat right next to the dead one, useless because
+  the controller model is hardcoded to OpenRouter's `openai/gpt-5.6-luna`
+  (cron_runner.py:905) — a single-provider hard dependency that turned one
+  expired key into a total decision outage (GAP-049).
+
+### The right way (for future agents)
+
+1. **Before ANY run:** curl both keys (snippets in
+   `skills/ai-plays-poke-usage/SKILL.md` STEP ZERO). Ten seconds saves a
+   wasted run and a false data point on the board.
+2. **Never accept exit 0 as success on this project.** Judge by: >0
+   `Success: True` API lines + coords that change + ≥2 tiles +
+   screenshots. The 2026-08-26 healthy baseline (20/20, 20% lock-rate, 10
+   tiles) is the reference picture.
+3. **Foreman/QA note:** T227 (2026-08-27) is the last run with real LLM
+   evidence. Any E2E "success" between 09-03 (foreman idle) and the key
+   rotation that lacks `📡 API ... Success: True` lines is unproven.
+4. **Fix direction (foreman's job, not dogfood's):** failure counter in the
+   cycle loop → non-zero exit + FAIL verdict when successes == 0; liveness
+   probe in dry-run; `CONTROLLER_MODEL` override; PyBoy native logger
+   silenced (SGB spam, GAP-050 — same emitter family as the old leak).
+5. **Install leg:** las-bunker-03 was down 09-09 (ssh timeout, ping 100%
+   loss; local bunker 0.1.3 fine) → SKIPPED-install-bunker filed (GAP-051).
+   Installability last proven pre-08-26; re-prove after the box returns,
+   and document PyBoy/SDL2 native prereqs for bare Debian agents.
+
 ## 2026-08-26 — dogfood re-verification: the system as it stands
 
 **Verdict: ✅ SHIPPABLE (with P2 debt).** Third dogfood run (2026-08-07 🟡,
