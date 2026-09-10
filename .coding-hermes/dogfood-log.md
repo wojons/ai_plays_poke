@@ -3,6 +3,7 @@
 | Date | Verdict | Runner | Time-to-first-success | Top findings |
 |---|---|---|---|---|
 | 2026-08-07 | 🟡 PROMISING-BUT-ROUGH | dogfood cron | ~6 min (cron_runner 10-cycle E2E) | DF-001 (P0) game_loop.py AI pipeline dead — vision None-HP crash 15/15 ticks, 0 AI decisions; DF-002 .state.state double ext; DF-003 working path (cron_runner) undocumented; DF-004 specs/AGENTS.md is DexDat content; DF-005 pass criteria too shallow |
+| 2026-09-09b | 🟡 PROMISING-BUT-ROUGH | dogfood cron | never for LLM promise (dead key); ~2 min bunker fresh-install→honest dry-run | GAP-047 P0 REPRODUCED 6h later (0/20 LLM, exit 0, 1 tile); GAP-052 (P1) hardcoded controller model + DeepSeek lane returns inline <|endoftext|> breaking JSON (probe: 707ms $0.000255 Success but unusable); GAP-053 (P2) parse_fallback A-presses counted as '23 actions'; GAP-054 (P2) fresh-install ROM wall; GAP-051 install leg PROVEN (98s clean install, zero system deps, bunker agent e7a34e37 destroyed) |
 
 ## Run 2026-08-07 (dogfood cron)
 
@@ -101,6 +102,52 @@ Note: task id already ends with 6 (GAP-046) → new rows start at GAP-047.
 **Artifacts left:** docs/dogfood/2026-09-09-integration.md (new),
 docs/dogfood/diagnostics.md (2026-09-09 section prepended),
 skills/ai-plays-poke-usage/SKILL.md (v1.3.0 refresh — STEP ZERO key checks).
+
+## Run 2026-09-09b (dogfood cron — same-day P0 retest + bunker retry)
+
+**Promise:** unchanged from 09-09. This run re-tested the open P0 (GAP-047)
+six hours later and retried the skipped install leg (GAP-051) on the recovered
+las-bunker-03 host.
+
+**What was actually done (real use, not tests):**
+1. Key liveness: OpenRouter **still 401 expired**; DeepSeek **LIVE**
+   (deepseek-flash served). Foreman committed twice since morning (5782cff,
+   918d21c) without touching GAP-047.
+2. `--dry-run` local: exit 0 on the dead key (GAP-048 reconfirmed, true rc
+   captured pipe-free).
+3. `cron_runner.py --run-id dogfood_20260909b_001 --cycles 20`: EXIT 0, 19s,
+   circuit-breaker open ×N, `Screens: {'unknown'}`, 1 tile, "Done. 23
+   actions." — phantom-green reproduced; JSONL shows ZERO llm_status fields;
+   the 23 actions are parse_fallback plan ["A"] blind presses (→GAP-053).
+4. Library-consumer probe (/tmp scratch + project venv):
+   `OpenRouterClient.chat_completion(model="deepseek-chat")` → Success 707ms
+   $0.000255 via the client's own deepseek routing (ai_client.py:533-536) —
+   but content `{"ok":<|endoftext|> true}`: inline `<|endoftext|>` breaks
+   json.loads → controller_plan would parse_fallback anyway (→GAP-052). The
+   only working provider is unreachable: model hardcoded (GAP-049) + content
+   corruption.
+5. Viewer: / 200, /data.json 200 (Red's House 2F, map 38), 404 OK — keyless,
+   healthy.
+6. Bunker leg (retry): ssh + bunkerd ACTIVE again; server not in local bunker
+   config → re-registered (skill doc port 19090 is WRONG; real API port
+   10001/10002 via `ss -tlnp`; token YAML-quoted — strip quotes). Agent
+   e7a34e37 spawned (2h TTL): clone from GitHub origin OK (918d21c),
+   venv+pip install rc=0 in **98s** (ZERO system deps), smoke --dry-run exit 1
+   "ROM not found" (honest) — installability PROVEN (GAP-051 evidence), ROM
+   docs gap →GAP-054. Agent destroyed, 0 left.
+
+**Verdict: 🟡 PROMISING-BUT-ROUGH.** Same shape as morning: emulator/RAM/
+viewer/logging/dry-run machinery healthy and now install-proven; decision
+layer dead on the expired key with every success signal lying (exit 0, Done.,
+dry-run OK), and even the escape lane booby-trapped. Time-to-first-success:
+never for the LLM promise; ~40s viewer; ~2min bunker install→honest dry-run.
+Friction count: 4 (P0 GAP-047 open, P1 GAP-052, P2 GAP-053/054).
+
+**Board:** GAP-052..054 appended, event 224 (actor=dogfood).
+
+**Artifacts left:** docs/dogfood/2026-09-09b-integration.md (new),
+docs/dogfood/diagnostics.md (09-09b key-failure-anatomy section prepended),
+skills/ai-plays-poke-usage/SKILL.md (v1.4.0 — escape-lane + install rows).
 
 ## Run 2026-08-26 (dogfood cron)
 

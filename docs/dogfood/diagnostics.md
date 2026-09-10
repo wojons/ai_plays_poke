@@ -2,6 +2,57 @@
 
 How the system is actually built, the errors hit during a real-use run, and the right way to do things. Written from a real use session, not from the test suite.
 
+## 2026-09-09b — the decision layer has one door, and it is locked (key failure anatomy)
+
+**How the LLM plumbing actually works (why one dead key kills everything).**
+`cron_runner.py:1072` builds ONE `OpenRouterClient` for the controller. The
+controller model is a hardcoded string `"openai/gpt-5.6-luna"` at
+`cron_runner.py:905` — there is no flag or env override. Inside
+`OpenRouterClient.chat_completion` (src/core/ai_client.py:533-536) there is a
+provider split: any model whose name contains `deepseek` is routed to
+`https://api.deepseek.com` with `DEEPSEEK_API_KEY`; everything else goes to
+`https://openrouter.ai/api/v1` with `OPENROUTER_API_KEY`. So the deployment has
+two doors, but the runner only ever walks the OpenRouter one. When the
+OpenRouter key expired (401 on every call), the circuit breaker
+(`src/core/circuit_breaker.py`) tripped after a few failures and every
+subsequent cycle raised `Circuit breaker open - too many failures` — which
+`controller_plan` catches and turns into `parse_fallback` plan `["A"]`
+(cron_runner.py:932/946). The run then "plays" by mashing A blindly, prints
+`Done. 23 actions.`, and exits 0. That is the full anatomy of the phantom-green:
+**hardcoded model → dead key → breaker → fallback presses → honest-looking
+summary.**
+
+**The escape hatch exists but is booby-trapped.** The DeepSeek door WORKS at
+the HTTP layer — a standalone consumer probe (project venv,
+`OpenRouterClient().chat_completion(model="deepseek-chat")`) returned Success in
+707 ms for $0.000255. But the response content came back as
+`{"ok":<|endoftext|> true}` — DeepSeek's tokenizer can emit `<|endoftext|>`
+inline inside JSON content, and `controller_plan` does a bare `json.loads` with
+no cleanup, so the request would land in `parse_fallback` anyway. The right way
+(GAP-052): add `--controller-model` / env override, strip stray
+`<|endoftext|>`/`<|end|>` tokens from content before parsing, and count
+fallback decisions separately in the summary (GAP-053).
+
+**Dry-run exit codes are honest about ROM, silent about keys.** On a fresh
+bunker clone the dry-run correctly printed `ERROR: ROM not found` and exited 1
+(the mechanism works); locally with a 401-dead OpenRouter key it printed
+`Validation OK — exiting 0` because validation only checks key PRESENCE
+(GAP-048). If you are debugging "why did my run do nothing": curl the key
+first (`GET openrouter.ai/api/v1/key`), read `cron_logs/run_<id>.jsonl` for
+`llm_status`, and never trust the summary line alone.
+
+**Fresh-install footprint (proven 2026-09-09b on las-bunker-03, agent
+e7a34e37, clone 918d21c).** `python3 -m venv .venv && pip install -r
+requirements.txt` = rc 0 in 98 s on bare Debian + Python 3.13.5 with ZERO
+system packages — PyBoy/SDL2 ship as wheels. First-run wall: `data/rom/`
+contains only a README; dry-run exits 1 with "ROM not found" until the user
+places their own Gen-1 Blue ROM at the exact expected filename (GAP-054).
+`data/boot.state` (167,677 bytes) ships in-repo, so the moment the ROM is
+present the runner boots straight into Oak's Lab. The bunker lesson for
+operators: the skill doc's bunkerd port (19090) was wrong — the real API port
+is 10001/10002 (`ss -tlnp` over root ssh is the source of truth), and the
+config token is YAML-quoted (strip the quotes before `bunker connect`).
+
 ## How it's built (two parallel worlds)
 
 The repo contains **two gameplay stacks** that evolved separately:

@@ -5,9 +5,12 @@ description: >-
   the working E2E runner (cron_runner.py), the cron.sh wrapper, --dry-run setup
   validation (presence-only — does NOT catch expired keys!), the RAM map viewer
   (boots to overworld), MANDATORY pre-run key verification (curl, 2026-09-09
-  lesson), cost expectations, JSONL output schema, and open gaps
-  (GAP-035..051 — incl. P0 GAP-047: dead-key runs still exit 0).
-version: 1.3.0
+  lesson), the fresh-install footprint (PROVEN on las-bunker-03 2026-09-09b:
+  98s clean venv+pip, zero system deps, but a ROM wall at first run), the
+  DeepSeek escape lane and its <|endoftext|> JSON corruption, cost
+  expectations, JSONL output schema, and open gaps (GAP-035..054 — incl. P0
+  GAP-047: dead-key runs still exit 0).
+version: 1.4.0
 ---
 
 # Using ai-plays-poke (PTP-01X)
@@ -48,6 +51,7 @@ the OpenRouter key was expired and every documented entry point still "passed".
 | `python3 cron_runner.py --dry-run` | ⚠️ WORKS but **presence-only key check** (GAP-048): passed on an expired key | Config/ROM/boot-state validation — never a key-liveness proof |
 | `bash .coding-hermes/cron.sh --cycles N --run-id <id>` | ⚠️ Same runner inside — inherits GAP-047 | Scheduled wrapper — add key check upstream before trusting it |
 | `.venv/bin/python ram_map_server.py` → :8099 | ✅ **WORKS — re-verified 2026-09-09** (`/` 200, `/data.json` 200 real map data Red's House 2F, bad path 404; needs NO API keys) | Live RAM-state viewer |
+| Fresh install (bunker-proven 2026-09-09b) | ✅ `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` = rc 0 in **98 s** on bare Debian/Python 3.13 — zero system packages (PyBoy/SDL2 ship as wheels). Then `--dry-run` exits 1 "ROM not found" until you supply a ROM (GAP-054) | New-machine setup |
 | `python3 src/game_loop.py --rom <ROM> --max-ticks N` | 🟡 Legacy path; NOT re-verified 2026-09-09 | Legacy/simplified runs — prefer `cron_runner.py` |
 | `PYTHONPATH=src .venv/bin/python -m src.ptp_cli \| src.debug_screen \| src.memory_reader --help` | ✅ works (AP-GAP-015/016/017) | Config / screen / RAM debug CLIs |
 
@@ -131,6 +135,20 @@ Outputs:
    `--boot-state skip` for other ROMs (GAP-037).
 10. Default 20-cycle runs wander Oak's Lab; reaching Route 1 needs ≥80 cycles
     and is LLM-dependent (GAP-038).
+11. **The DeepSeek escape lane is booby-trapped (GAP-052, 2026-09-09b):**
+    `OpenRouterClient.chat_completion(model="deepseek-chat")` DOES route to
+    api.deepseek.com with the live DEEPSEEK_API_KEY (707 ms, $0.000255 in the
+    probe) — but DeepSeek can emit `<|endoftext|>` INLINE inside the JSON
+    content (`{"ok":<|endoftext|> true}`), and `controller_plan` does a bare
+    `json.loads` → parse_fallback → blind A-presses. Combined with the
+    hardcoded controller model (GAP-049) there is currently NO clean route to
+    the working provider. Do not "fix" a dead-key run by hand-editing the
+    model string until GAP-052 lands.
+12. **First-run ROM wall (GAP-054):** `data/rom/` ships a README that lists
+    ROMs but no ROM files. A fresh clone + clean install dies at `--dry-run`
+    with `ROM not found` (exit 1 — honest). Place your own Gen-1 Blue ROM at
+    the exact filename in the dry-run error; `data/boot.state` already ships,
+    so play starts in Oak's Lab the moment the ROM is present.
 
 ## Verifying fixes (L3 standard)
 
@@ -144,6 +162,10 @@ Outputs:
   must show cron_runner output and exit 0 — no `ModuleNotFoundError`.
 - **--dry-run fix (GAP-048):** expired key → dry-run exits ≠ 0 quoting the
   provider error; add `--skip-key-check` escape hatch for offline use.
+- **Controller-model + JSON-strip fix (GAP-052):** with OPENROUTER_API_KEY
+  unset and `--controller-model deepseek-chat`, a 20-cycle run must record
+  ≥15/20 successful LLM calls in the JSONL; grep `run_<id>.jsonl` for
+  `<|endoftext|>` — zero occurrences in final content.
 - **viewer fixes:** boot server, `GET /data.json` must show
   `screen_type=overworld`, player coords, map blocks.
 
@@ -152,7 +174,10 @@ Outputs:
 - Foreman `ai-plays-poke` cooldown 21600s; QA crons flagged it idle since
   2026-09-03 (QA-AI-PLAYS-POKE-3). Open work 2026-09-09: E2E-001, NEVER-DONE,
   GAP-043/045/046, DEPS-003/004, DOC-1/2, CLN-1, QA-AI-PLAYS-POKE-1..5,
-  **GAP-047..051 (dogfood 2026-09-09 — GAP-047 is P0)**.
+  **GAP-047..054 (dogfood 2026-09-09 + 09-09b — GAP-047 is P0, still open and
+  reproduced live on 09-09b)**. GAP-051's install concern: RESOLVED by the
+  09-09b bunker battery (98 s clean install) — remaining ROM-docs work is
+  GAP-054.
 - Board: `.coding-hermes/board/tasks.jsonl` + `events.jsonl` (canonical, git
   tracked; board.db/parquet are gitignored derived caches — foreman resyncs).
   Append rows + an event with `actor=dogfood` (see events 186 and 221).
