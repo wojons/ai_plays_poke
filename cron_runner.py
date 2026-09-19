@@ -310,6 +310,9 @@ MAX_SAME_SCREEN_CYCLES = 5    # same screen for N cycles → stuck
 MAX_SAME_TILE_CYCLES = 8      # same RAM tile across any screen types → stuck
 MAX_VOID_CYCLES = 3           # >95% unknown-tile cycles → void
 MAX_STUCK_SAME_DIR = 4        # same direction N times → direction-locked
+MAX_SAME_FRAME_CYCLES = 8     # pixel-identical screen N cycles → frame-locked (catches dialog loops)
+# Post-exhaustion movement injection: never passively A-mash after giving up
+_GIVEUP_SEQUENCE = ("UP", "LEFT", "DOWN", "RIGHT", "START", "B")
 OAKS_LAB_MAP_ID = 40
 STARTER_ACTION_FRAMES = 20
 STARTER_ADVANCE_FRAMES = 120
@@ -1098,6 +1101,11 @@ def main() -> None:
     _recovery_attempts: int = 0    # total recovery escalations (capped at MAX)
     _last_state_key: str = ""      # composite key for state-change detection
     _gave_up: bool = False         # True once max recovery attempts exhausted
+    _same_frame_count: int = 0     # consecutive pixel-identical frames (dialog-loop detector)
+    _prev_frame_hash: str = ""     # previous cycle's frame hash for the counter above
+    _last_plan_sig: str = ""       # signature of last executed plan (no-op plan guard)
+    _same_plan_count: int = 0      # consecutive cycles with identical plan + unchanged position
+    _last_pos_key: str = ""        # last cycle's map:tile position key
 
     # ── Frame hashing for cartographer cache ───────────────────────
     _last_frame_hash: str = ""   # for frame hashing — skip cartographer on identical frames
@@ -1372,6 +1380,17 @@ def main() -> None:
                     patch_data = _cached_patch
                     carto_raw = _cached_carto_raw
                     safe_print(f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result','?')})")
+
+                # ── Frame-locked detection (pixel-identical, not just same screen TYPE) ──
+                # l2_accept_1 failure mode: "My POKéMON looks a..." dialog page
+                # recurred 50+ cycles — same screen_type ('dialog') so the
+                # same-screen tracker never fired, recovery exhausted, then
+                # passive A-mash. Identical pixels = nothing is changing.
+                if frame_hash == _prev_frame_hash:
+                    _same_frame_count += 1
+                else:
+                    _same_frame_count = 0
+                _prev_frame_hash = frame_hash
             st = patch_data.get("result", "unknown")
             if st != "battle":
                 _failed_flee_attempts = 0
@@ -1556,6 +1575,9 @@ def main() -> None:
                 elif _same_screen_count >= MAX_SAME_SCREEN_CYCLES and _last_screen_type != "overworld":
                     needs_recovery = True
                     recovery_reason = f"screen-locked ({_last_screen_type} x{_same_screen_count})"
+                elif _same_frame_count >= MAX_SAME_FRAME_CYCLES:
+                    needs_recovery = True
+                    recovery_reason = f"frame-locked (identical pixels x{_same_frame_count})"
                 elif _void_cycles >= MAX_VOID_CYCLES:
                     needs_recovery = True
                     recovery_reason = f"void-locked ({_void_cycles} cycles, {_void_tile_pct:.0%} unknown)"
@@ -1780,6 +1802,29 @@ def main() -> None:
                         safe_print(f"  [SPATIAL] Removed {_blocked_spatial} from "
                               f"plan {_before_filter[:3]}→{plan[:3]}...")
 
+                # ── No-op plan guard (Bane 09-11: 'repeated screens being the
+                # same → try something else') — identical plan + unchanged
+                # position = the last plan did nothing. Force variation
+                # instead of re-sending the same false presses.
+                _pos_key = f"{patch_data.get('map_id')}:{patch_data.get('player_tile_x')},{patch_data.get('player_tile_y')}"
+                _plan_sig = ",".join(b.upper() for b in plan[:6])
+                if _plan_sig == _last_plan_sig and _pos_key == _last_pos_key:
+                    _same_plan_count += 1
+                else:
+                    _same_plan_count = 0
+                _last_plan_sig = _plan_sig
+                _last_pos_key = _pos_key
+                if _same_plan_count >= 2:
+                    _alt = _GIVEUP_SEQUENCE[_same_plan_count % len(_GIVEUP_SEQUENCE)]
+                    plan = [_alt, "A"]
+                    safe_print(f"  [NOOP-GUARD] identical plan x{_same_plan_count} + no movement — forcing [{_alt}, A]")
+                    evt = {"cycle": cycle + 1, "event": "noop_plan_guard",
+                           "identical_plan": _plan_sig, "pos": _pos_key,
+                           "forced": [_alt, "A"]}
+                    results.append(evt)
+                    log_file.write(json.dumps(evt, default=str) + "\n")
+                    log_file.flush()
+
                 # ── Run-length cap: max 3 consecutive same direction ──
                 # The cartographer only sees the immediate adjacent tile.
                 # Long plans (6x RIGHT) walk into walls 2-3 tiles away.
@@ -1794,6 +1839,21 @@ def main() -> None:
                         plan[i] = "A"  # replace with interact
                         _rle = 1
                         safe_print(f"  [CAP] Truncated same-direction run at position {i}")
+
+                # ── Post-exhaustion movement injection ─────────────
+                # recovery_exhausted used to mean passive A-mash until the
+                # run ended (l2_accept_1: ~50 wasted cycles). Instead:
+                # rotate real inputs — walk, open menu, back out. The
+                # injected presses can also RESET a stuck state, which
+                # re-enables normal recovery on later cycles.
+                if _gave_up:
+                    plan = [_GIVEUP_SEQUENCE[cycle % len(_GIVEUP_SEQUENCE)]]
+                    safe_print(f"  [GIVEUP-WALK] injecting {plan} (post-exhaustion rotation)")
+                    evt = {"cycle": cycle + 1, "event": "giveup_walk",
+                           "injected": plan}
+                    results.append(evt)
+                    log_file.write(json.dumps(evt, default=str) + "\n")
+                    log_file.flush()
 
                 plan_entry = {
                     "cycle": cycle + 1,
