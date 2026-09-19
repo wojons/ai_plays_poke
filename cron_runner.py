@@ -902,7 +902,7 @@ def controller_plan(
         user_content = msg
 
     response = client.chat_completion(
-        model="openai/gpt-5.6-luna",  # Luna via OpenRouter (double-discount pricing)
+        model=os.environ.get("POKE_CONTROLLER_MODEL", "openai/gpt-5.6-luna"),  # GAP-049: env-overridable; deepseek* routes direct via DEEPSEEK_API_KEY
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user_content},
