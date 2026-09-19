@@ -1,0 +1,146 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PTP-01X — PRD v2 · Lifecycle Edition</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;
+  -webkit-text-size-adjust:100%;line-height:1.55;padding:12px}
+h1{font-size:clamp(24px,6vw,38px);background:linear-gradient(135deg,#f7971e,#ffd200);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.sub{color:#8b949e;font-size:14px;margin-bottom:20px}
+h2{font-size:20px;color:#58a6ff;margin:28px 0 12px;padding-bottom:6px;border-bottom:1px solid #21262d}
+h3{font-size:15px;color:#ffd200;margin:18px 0 8px}
+p{margin-bottom:10px;font-size:14px}
+.section{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:12px 0}
+@media(min-width:640px){.grid{grid-template-columns:repeat(4,1fr)}body{padding:24px}}
+@media(max-width:639px){.stat:last-child:nth-child(odd){grid-column:1/-1}}
+.stat{background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;text-align:center}
+.stat b{display:block;font-size:22px;color:#3fb950}
+.stat span{font-size:11px;color:#8b949e}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:10px 0}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:13px}
+th{background:#21262d;color:#8b949e;text-align:left;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+td{padding:8px 10px;border-top:1px solid #21262d;vertical-align:top}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-done{background:#166534;color:#4ade80}
+.b-target{background:#1e3a5f;color:#60a5fa}
+.b-block{background:#3b0820;color:#f472b6}
+.b-warn{background:#3b1e08;color:#f59e0b}
+.b-dead{background:#21262d;color:#8b949e}
+.lvl{font-weight:700;color:#ffd200}
+.shots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.shots figure{background:#0d1117;border:1px solid #30363d;border-radius:8px;overflow:hidden}
+.shots img{width:100%;display:block;image-rendering:pixelated}
+.shots figcaption{padding:6px 8px;font-size:10px;color:#8b949e}
+.quote{border-left:3px solid #f7971e;padding:8px 14px;margin:12px 0;color:#c9d1d9;font-style:italic;background:#161b22;border-radius:0 8px 8px 0}
+.r1{background:#0d2416;border-left:3px solid #3fb950}
+.r2{background:#241a0d;border-left:3px solid #f7971e}
+.r3{background:#241010;border-left:3px solid #f472b6}
+ul{margin:8px 0 8px 20px;font-size:14px}
+li{margin-bottom:5px}
+.why{font-size:12px;color:#8b949e;margin-top:4px}
+.kicker{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#f7971e;font-weight:700;margin-bottom:4px}
+footer{margin-top:24px;padding-top:12px;border-top:1px solid #21262d;font-size:11px;color:#8b949e}
+code{background:#21262d;padding:1px 6px;border-radius:4px;font-size:12px;color:#79c0ff}
+</style></head><body>
+
+<h1>PTP-01X — PRD v2</h1>
+<div class="sub">Lifecycle Edition · AI Plays Pokémon · rebuilt from the top · 2026-09-11</div>
+
+<div class="grid">
+  <div class="stat"><b>259</b><span>runs logged</span></div>
+  <div class="stat"><b>3,000+</b><span>screenshots</span></div>
+  <div class="stat"><b>3</b><span>structural gaps to L2</span></div>
+  <div class="stat"><b>2</b><span>chore tasks frozen (slop)</span></div>
+</div>
+
+<div class="section">
+<div class="kicker">The value we are looking for</div>
+<p>An autonomous agent that <b>plays Pokémon by understanding it</b> — reading the screen, deciding
+for itself, remembering what it learned — no story scripting, no human hand on the controller. The
+deliverable that proves the value is a <b>run, not a repo</b>.</p>
+<div class="quote">"Can an AI figure out a kids' game with minimal guidance — using only the tools it is given?"<br>— the benchmark question, unchanged since 2026-08-09</div>
+<p>Weeks of ticks polished scaffolding while the gameplay level didn't move. This PRD re-aims every
+tick at the ladder below: a board row serves the project only if it advances the target level —
+everything else is budgeted maintenance.</p>
+</div>
+
+<h2>The ladder</h2>
+<div class="section"><div class="table-wrap"><table>
+<tr><th>Lvl</th><th>Name</th><th>Definition</th><th>Evidence gate</th><th>Status</th></tr>
+<tr><td class='lvl'>L0</td><td>Pipeline</td><td>Emulator boots, RAM read, LLM decides, clean exit</td><td>run jsonl: exit 0, 0 API failures</td><td><span class='badge b-done'>DONE</span></td></tr><tr><td class='lvl'>L1</td><td>Scripted milestones</td><td>Starter + rival battle WON (checkpoint assists allowed)</td><td>battle_start → battle_end in one run</td><td><span class='badge b-done'>DONE</span></td></tr><tr><td class='lvl'>L2</td><td>Organic arc</td><td>intro → self-goal → starter → battle WON → lab exit → Route 1, memory firing</td><td>map 40→11 + organic battle_end + ≥1 agent memory event</td><td><span class='badge b-target'>TARGET</span></td></tr><tr><td class='lvl'>L3</td><td>Sustained progression</td><td>Multi-session: beat Brock organically, goals persist across runs</td><td>organic Brock win + cross-run goal continuity</td><td><span class='badge b-warn'>NEXT</span></td></tr><tr><td class='lvl'>L4</td><td>Full benchmark</td><td>Complete game at low HINT_LEVEL — the README promise</td><td>Hall of Fame, low-hint run</td><td><span class='badge b-dead'>VISION</span></td></tr>
+</table></div>
+<p class="why">L1 is real but narrow: the battle win exists only from a battle-start checkpoint.
+The level we are buying next is L2 — one fully organic arc.</p></div>
+
+<h2>What actually runs vs what the docs claim</h2>
+<div class="section"><div class="table-wrap"><table>
+<tr><th>Component</th><th>Reality (verified from code, 09-11)</th><th>Verdict</th></tr>
+<tr><td>cron_runner.py loop</td><td>boot → observe → decide → execute</td><td><span class='badge b-done'>LIVE</span></td></tr><tr><td>RAM reader + battle structs</td><td>hallucination-free state (re-pinned f31d620)</td><td><span class='badge b-done'>LIVE</span></td></tr><tr><td>StateWindow + HSM</td><td>per-state LLM windows</td><td><span class='badge b-done'>LIVE</span></td></tr><tr><td>DuckBrain memory channel</td><td>5 tools, note/goal/study in-loop</td><td><span class='badge b-warn'>BUILT · STARVING</span></td></tr><tr><td>Battle guardrails</td><td>menu normalize, flee bound, query bound</td><td><span class='badge b-done'>LIVE</span></td></tr><tr><td>Frame cache</td><td>cross-run dedup, 65% hit rate</td><td><span class='badge b-done'>LIVE</span></td></tr><tr><td>GOAP decision core</td><td>README centerpiece — zero imports in live path</td><td><span class='badge b-dead'>UNWIRED</span></td></tr><tr><td>3-tier memory (Obs/Strat/Tact)</td><td>README centerpiece — does not exist</td><td><span class='badge b-dead'>FICTION</span></td></tr><tr><td>Vision cartographer (Gemma)</td><td>superseded by RAM months ago</td><td><span class='badge b-dead'>LEGACY</span></td></tr><tr><td>game_loop.py legacy path</td><td>broken imports, superseded</td><td><span class='badge b-dead'>DEAD</span></td></tr><tr><td>specs/ tree (39 files, 163k words)</td><td>chapters describe unwired systems + foreign DexDat content</td><td><span class='badge b-block'>RE-SCOPE</span></td></tr>
+</table></div>
+<p class="why">Verified by import analysis of the live path: 8 live core imports; goap.py has zero.
+163,749 spec-words across 39 files include a foreign DexDat platform AGENTS.md (different project)
+sitting inside the tree. The docs fiction is the slop engine — workers inherit impossible scope from
+it. Rule going forward: <b>docs describe what runs, or say they don't.</b></p></div>
+
+<h2>The three gaps between us and L2</h2>
+
+<div class="section r1"><div class="kicker">Gap 1 · movement</div><h3>Oak's Lab wander (FM#23)</h3>
+<p>The agent moves but never targets the lab exit door (tileset-5 block <code>0x04</code>, bottom-center,
+map 40). The rival battle lives at that door — no exit targeting, no organic battle, ever. Door-aware
+steering exists for bedroom/house/Pallet; <b>map 40 was never added</b>.</p>
+<p class="why">→ R2: add map-40 door targeting to <code>_suggested_map_action()</code>. One tick. Unblocks everything.</p></div>
+
+<div class="section r2"><div class="kicker">Gap 2 · intelligence</div><h3>Memory starvation</h3>
+<p>The READ→NOTE→ACT channel is built and smoke-proven (the agent set its own goal from Oak's dialog
+in testing) — but every run since has logged <b>zero memory events</b>: 20-cycle checkpoint runs boot
+past the narrative that gives it something to note. The Alice research was blunt: memory across
+attempts was the single biggest lever in the video.</p>
+<p class="why">→ R3: exercise memory inside the 80-cycle narrative shape + persist /goals/current across runs.</p></div>
+
+<div class="section r3"><div class="kicker">Gap 3 · measurement</div><h3>The instrument measures L0</h3>
+<p>E2E-001 fires 20-cycle runs and gates on exit-0 / leak / lock-rate — pipeline proof, not progress.
+The same map distribution passed green for 5+ straight windows. We re-proved L0 for weeks and called
+it advancement.</p>
+<p class="why">→ R4: E2E-001 becomes an 80-cycle narrative run scored on the L2 gate; 20-cycle demoted to smoke.</p></div>
+
+
+<h2>Refactor &amp; redesign plan</h2>
+<div class="section"><div class="table-wrap"><table>
+<tr><th>#</th><th>Item</th><th>What</th><th>Cost</th><th>Kind</th></tr>
+<tr><td class='lvl'>R1</td><td>Architecture honesty sweep</td><td>README/AGENTS describe the LIVE loop; GOAP+cartography specs marked DESIGN-ONLY; foreign DexDat content purged; legacy modules quarantined</td><td>1 tick</td><td><span class='badge b-dead'>SCOPE</span></td></tr><tr><td class='lvl'>R2</td><td>FM#23 door-aware exit targeting</td><td>Add map-40 door steering to _suggested_map_action(); acceptance: battle fires organically from gameplay</td><td>1 tick</td><td><span class='badge b-target'>UNBLOCK</span></td></tr><tr><td class='lvl'>R3</td><td>Memory lifecycle</td><td>note/goal fire in the 80-cycle shape; /goals/current persists across runs; memory-delta metric in run analysis</td><td>1 tick</td><td><span class='badge b-warn'>BUILD</span></td></tr><tr><td class='lvl'>R4</td><td>E2E instrument redesign</td><td>80-cycle narrative run scored on the L2 gate becomes the instrument; 20-cycle demoted to smoke</td><td>1 tick</td><td><span class='badge b-target'>MEASURE</span></td></tr><tr><td class='lvl'>R5</td><td>Slop freeze</td><td>DEPS-004 (4 rejects) + GAP-045 (3 rejects) frozen — hand-fix or close; QA duplicate rows deduped; chores batched</td><td>minutes</td><td><span class='badge b-block'>TRIAGE</span></td></tr><tr><td class='lvl'>R6</td><td>Key rotation</td><td>ai-plays-poke-2 key expired 09-08 (401 confirmed 09-11); Bane rotates; fallback key meanwhile</td><td>Bane</td><td><span class='badge b-block'>BLOCKED</span></td></tr>
+</table></div></div>
+
+<h2>L2 acceptance gate</h2>
+<div class="section">
+<p>One run: <code>--boot-state data/boot.state --cycles 80</code> (NO battle checkpoint), fresh
+run-id, live key. The gate passes when ALL of:</p>
+<ul><li>Agent writes <b>≥1 note or goal itself</b> (memory_note / memory_goal in the jsonl, visible in DuckBrain)</li><li>Starter picked (deterministic branch allowed — an L1 assist)</li><li><b>battle_start → battle_end organically</b> — battle fires from gameplay, not a battle-start checkpoint</li><li>Map progression 40 → 11 (Route 1) at any point post-battle</li><li>Run survives the 4 GB cap, 0 API failures</li><li>Review page + replay video delivered for Bane's screenshot review</li></ul>
+<p class="why">Gate must pass twice (run-variance rule). Honest caveat carried: the deterministic
+starter branch and battle guardrails are assists — allowed at L2, tightened at L3. Key rotation (R6)
+is a Bane action; no run after 09-08 on the dead key counts as milestone evidence.</p></div>
+
+<h2>The first battle won — evidence, not vibes</h2>
+<div class="section">
+<div class="shots">
+<figure><img src="data:image/png;base64,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" alt="battle start"><figcaption>c1 — battle_start, FIGHT menu (Charmander vs Squirtle, L5 vs L5)</figcaption></figure>
+<figure><img src="data:image/png;base64,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" alt="battle mid"><figcaption>c2 — "CHARMANDER's DEFENSE fell!" — survived at 6/20 HP</figcaption></figure>
+<figure><img src="data:image/png;base64,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" alt="victory"><figcaption>c3 — rival's defeat speech → battle_end → overworld</figcaption></figure>
+</div>
+<p class="why">Run battlefix_win1 (commit f31d620): the L1 milestone. Built on the empirically
+re-pinned battle RAM structs — the old addresses told the model its Pokémon was a dead Cubone. That
+fix is the template for L2: find the truth in the machine, not in the docs.</p></div>
+
+<h2>Sequencing</h2>
+<div class="section"><ol style="margin-left:20px;font-size:14px">
+<li><b>Today:</b> R5 freeze list on the board + R6 key decision (Bane)</li>
+<li><b>Next tick:</b> R2 — the one gameplay row that unblocks organic battle</li>
+<li><b>Parallel-safe:</b> R1 docs sweep + R4 instrument redesign</li>
+<li><b>The run:</b> first L2 acceptance attempt (~$1–2, 80 cycles)</li>
+<li><b>Then:</b> R3 memory tuning from what the run shows → L3 planning (Brock, cross-run goals)</li>
+</ol></div>
+
+<footer>PTP-01X PRD v2 (Lifecycle Edition) · built 2026-09-11 from live repo evidence
+(259 runs · 3,000+ screenshots · 39 core modules · 8 live imports · 163,749 spec words audited) ·
+anchor skill: ai-plays-poke-lifecycle · companion doc: PRD_v2_lifecycle.md</footer>
+</body></html>
