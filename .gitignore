@@ -183,3 +183,7 @@ data/frame_cache.json
 .coding-hermes/board/*.parquet
 .coding-hermes/board/*.duckdb
 .gitreins/usage.jsonl
+.gitreins/tasks.yaml
+.gitreins/config.yaml.bak
+.gitreins/logs/
+.gitreins/qa-ledger.jsonl
