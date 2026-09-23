@@ -983,6 +983,42 @@ def _resolve_boot_state(arg: str | None) -> Path | None:
     return candidate if candidate.is_file() else None
 
 
+# Controller intents that mean the model never authored the plan: the
+# parser could not read a plan out of the response and the runner blind-
+# pressed A instead (GAP-053). Any other intent — including an empty or
+# absent one — comes from a real controller response.
+FALLBACK_INTENTS: frozenset[str] = frozenset(
+    {"parse_fallback", "parse_failure_fallback"}
+)
+
+
+def _classify_decision_intents(
+    results: list[dict[str, Any]],
+) -> tuple[int, int]:
+    """Split the run's controller decisions into (real, fallback) counts.
+
+    Only rows carrying an ``intent`` key are controller decisions: the
+    main loop stamps it on every plan entry, while event rows
+    (memory_note/goal/study, giveup_walk), error rows and per-button
+    execution rows never set it. A decision whose intent is one of
+    ``FALLBACK_INTENTS`` is a blind A-press the controller never authored;
+    every other decision is a real one.
+
+    Returns ``(real_decisions, fallback_decisions)``.
+    """
+    real = 0
+    fallback = 0
+    for row in results:
+        if "intent" not in row:
+            continue
+        intent = row.get("intent")
+        if isinstance(intent, str) and intent in FALLBACK_INTENTS:
+            fallback += 1
+        else:
+            real += 1
+    return real, fallback
+
+
 def _format_summary(
     run_id: str,
     n_actions: int,
@@ -990,14 +1026,24 @@ def _format_summary(
     lock_warn_cycles: int,
     total_cycles: int,
     distinct_tiles: int,
+    real_decisions: int = 0,
+    fallback_decisions: int = 0,
 ) -> str:
-    """Format the final summary line, including the per-run lock-rate."""
+    """Format the final summary line, including the per-run lock-rate.
+
+    ``real_decisions``/``fallback_decisions`` (GAP-053) split the run's
+    controller decisions by intent class. They are APPENDED to the line so
+    the historical ``Done. N actions.`` shape — and every log parser keyed
+    on it — stays intact.
+    """
     lock_rate = lock_warn_cycles / total_cycles
     return (
         f"[{run_id}] Done. {n_actions} actions. Screens: {screens} "
         f"| lock-rate: {lock_warn_cycles}/{total_cycles} cycles with "
         f"direction-lock warnings ({lock_rate:.0%}) "
-        f"| distinct tiles: {distinct_tiles}"
+        f"| distinct tiles: {distinct_tiles} "
+        f"| real_decisions={real_decisions} "
+        f"fallback_decisions={fallback_decisions}"
     )
 
 
@@ -1042,6 +1088,10 @@ def _record_run_memory(
             elif str(row.get("event", "")).startswith("battle_"):
                 battle_events += 1
 
+        # GAP-053: split controller decisions by intent class so a run that
+        # burned its budget on blind A-presses is visible as such.
+        real_decisions, fallback_decisions = _classify_decision_intents(results)
+
         ladder = {
             "memory_events": sum(
                 events[name]
@@ -1060,6 +1110,8 @@ def _record_run_memory(
                     sum(bool(row.get("action")) for row in results),
                 )
             ),
+            "real_decisions": real_decisions,
+            "fallback_decisions": fallback_decisions,
             "distinct_maps": distinct_maps,
             "battle_events": battle_events,
             "cycles": len(results),
@@ -2909,6 +2961,7 @@ def main() -> None:
 
     # Summary
     screens = set(r.get("screen", "unknown") for r in results)
+    real_decisions, fallback_decisions = _classify_decision_intents(results)
     final_summary = _format_summary(
         run_id,
         len(results),
@@ -2916,6 +2969,8 @@ def main() -> None:
         _dir_lock_warn_cycles,
         CYCLES,
         len(_visited_tiles),
+        real_decisions=real_decisions,
+        fallback_decisions=fallback_decisions,
     )
     safe_print(f"\n{final_summary}")
     safe_print(f"Log: {log_path}")
