@@ -119,25 +119,61 @@ organically (`battle_start` without `--boot-state battle`).
 
 ### R3 — Memory architecture: four layers, one namespace (Bane-designed 09-11)
 
-All layers live in DuckBrain ns `ai-plays-poke` under `/game/` prefixes (prefix = table):
+All layers live in DuckBrain ns `pokemon-global` under `/game/` prefixes (prefix = table).
+**Namespace, verified 2026-09-23 against the code:** `namespace: pokemon-global` —
+`cron_runner.py` hardcodes it at every writer call site (lines 1083, 1102, 1119, 1142,
+1166, 1173, 1194) and the boot reader pins the named constant
+`BOOT_MEMORY_NAMESPACE = "pokemon-global"` (cron_runner.py:1311). In
+`src/core/duckbrain_client.py` it is the per-function keyword default
+`namespace: str = "pokemon-global"` on `remember`/`recall`/`list_keys`/`get`/`search`
+(lines 33/66/112/151/162) — there is **no named `DEFAULT_NAMESPACE` constant**; the
+default is a literal on each signature. The legacy ns **`ai-plays-poke` is
+retired/pre-migration**: it holds the old DuckBrain store layout plus only two
+`/project/ai-plays-poke/*` status records and **no `/game/*` data** — nothing in the
+repo reads or writes it.
 
 | Layer | Keys | Scope | Written by | Read by |
 |---|---|---|---|---|
-| **MECHANICS** | `/game/mechanics/controls`, `/menus`, `/battle`, `/text` | The game itself — universal, survives save resets | `memory_study` tool + verified distillation | EVERY run at boot |
-| **SAVE-STATE** | `/game/save/party`, `/items`, `/quests`, `/acquired`, `/location` | This save file: what I have, what I'm doing | **RAM-truth at end-of-run** (party/items/map from ram_reader, not LLM) + `memory_note`/`memory_goal` | Every run on the same save lineage |
-| **RUNS** | `/game/runs/<run_id>/summary` + `/lessons` | One attempt, append-only evidence | end-of-run recorder (machine) + agent notes (human) | run analysis, distillation |
-| **LEARNING** | `/game/learning/battle`, `/navigation`, `/strategy`, `/self` | Distilled cross-run lessons — the Alice layer | distillation from runs (validated: seen 2+ runs or explicit) | Every run at boot |
+| **MECHANICS** | `/game/mechanics/controls`, `/menus`, `/battle`, `/text` | The game itself — universal, survives save resets | **design-only — no writer in the code today** (target: `memory_study` + verified distillation) | boot reader requests them (cron_runner.py:1312–1317) |
+| **SAVE-STATE** | `/game/save/party`, `/game/save/items`, `/game/save/location` — **these three only** | This save file: what I have, where I am | **RAM-truth at end-of-run** (`_record_run_memory()`, cron_runner.py:1105–1169): `party` + `location` land on every run; `items` lands **only when a public item reader exists** — none exists today, so every run logs `[MEM] save items skipped: no public item reader` (cron_runner.py:1146–1147) and **no `/game/save/items` record is written** | Boot reader requests exactly these three (`BOOT_SAVE_KEYS`, cron_runner.py:1318–1322) |
+| **RUNS** | `/game/runs/<run_id>/summary` + `/lessons`, rolling `/game/runs/index` | One attempt, append-only evidence | end-of-run recorder `_record_run_memory()` (machine) + agent notes/goals folded into `/lessons` | boot reader requests `/game/runs/index` only (cron_runner.py:1329) |
+| **LEARNING** | `/game/learning/battle`, `/navigation`, `/strategy`, `/self` | Distilled cross-run lessons — the Alice layer (target) | **design-only — no writer in the code today** (target: distillation validated by 2+ runs) | boot reader requests them (cron_runner.py:1323–1327) |
 
-**The 1:1 tool mapping (already shipped, now wired to the right homes):**
-`memory_note` → run lessons + save/quests (in-run observation) · `memory_goal` → save/quests (intent/task) · `memory_study` → mechanics/* (game understanding).
+**NOT implemented — keys the PRD must not claim (verified against the write path 2026-09-23):**
 
-**"Handle both" property (Bane):** a fresh save boots with MECHANICS + LEARNING intact
-(controls/menus knowledge is not buried in a dead run); a resumed save boots knowing
-its party/items/quests from SAVE-STATE. Neither depends on the other.
+- `/game/save/quests` and `/game/save/acquired` **are not implemented**. No code writes
+  them (no write site in `cron_runner.py` or `src/`), they are absent from the boot
+  reader's key list, and the live ns holds zero such records. The controller prompt
+  still tells the agent that notes/goals feed "the save-state quests"
+  (cron_runner.py:867 and :869) — **that prompt text is wrong**; the write path below is
+  what actually happens.
+- `/game/mechanics/*` and `/game/learning/*` are **read-only targets**: the boot reader
+  requests them (cron_runner.py:1312–1327) but **no writer exists** in the repo and the
+  live ns holds no such records. MECHANICS and LEARNING stay design-only until a writer
+  lands — today a boot read of them yields "no boot memory".
 
-**Boot injection:** prompt template gains compact MECHANICS + SAVE + runs/index
-(last-10 digest) + relevant LEARNING blocks. End-of-run recorder in cron_runner.py
-(~60 lines) writes /game/save/* from RAM truth + /game/runs/<id>/summary.
+**The 1:1 tool mapping — as the code actually routes it (verified 2026-09-23):**
+`memory_note` → `/notes/overworld-<cycle>` (domain `concept`, default ns;
+cron_runner.py:1230–1240), folded into `/game/runs/<id>/lessons` at end-of-run ·
+`memory_goal` → `/goals/current` (cron_runner.py:1258–1263), also folded into
+`/game/runs/<id>/lessons` · `memory_study` → **reads** the key the agent names
+(cron_runner.py:1271–1287) and writes nothing.
+
+**"Handle both" property (Bane):** in the target design a fresh save boots with MECHANICS
+and LEARNING intact (controls/menus knowledge is not buried in a dead run) and a resumed
+save boots knowing its party/location from SAVE-STATE — **today the save half is real
+(party/location) while the MECHANICS/LEARNING half is still empty**, because no writer
+populates those keys. Neither depends on the other.
+
+**Boot injection (MEM-2, shipped):** prompt template gains compact MECHANICS + SAVE +
+runs/index (last-10 digest) + relevant LEARNING blocks. End-of-run recorder in
+cron_runner.py (`_record_run_memory()`) writes `/game/save/party` + `/game/save/location`
+from RAM truth (+ `/game/save/items` once an item reader lands) and
+`/game/runs/<id>/summary` + `/game/runs/<id>/lessons` + the rolling `/game/runs/index`.
+
+*R3 namespace + SAVE-STATE claims in this section were reconciled against the
+implementation by board row DF-AIPP-4 (2026-09-23); this section now describes what the
+code writes, and marks the rest design-only.*
 
 **Sequencing update:** R3 (recorder + injection) can land before or parallel to R2 —
 they are independent; memory wiring is hot because the design is fresh.
