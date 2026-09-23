@@ -55,6 +55,11 @@ def test_record_run_memory_writes_summary_lessons_and_bounded_index(
                 {"event": "battle_end", "outcome": "won"},
             ],
         },
+        # The same battle's top-level transition rows (DF-AIPP-2): the recorder
+        # counts THESE and skips the nested list above, never both (which would
+        # make this fixture report battle_events 4 instead of 2).
+        {"cycle": 3, "event": "battle_start", "battle_type": "wild"},
+        {"cycle": 4, "event": "battle_end", "next_screen": "overworld"},
         {
             "event": "starter_picked",
             "screen": "overworld",
@@ -76,6 +81,8 @@ def test_record_run_memory_writes_summary_lessons_and_bounded_index(
         "memory_note": 1,
         "memory_goal": 1,
         "starter_picked": 1,
+        "battle_start": 1,
+        "battle_end": 1,
     }
     assert summary["attributes"]["screens"] == {
         "dialog": 1,

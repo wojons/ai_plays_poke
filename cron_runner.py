@@ -1454,13 +1454,19 @@ def _record_run_memory(
                 distinct_maps.append(map_name)
         distinct_maps = distinct_maps[-40:]
 
-        battle_events = 0
-        for row in results:
-            nested_events = row.get("battle_events")
-            if isinstance(nested_events, list):
-                battle_events += len(nested_events)
-            elif str(row.get("event", "")).startswith("battle_"):
-                battle_events += 1
+        # DF-AIPP-2: count the TOP-LEVEL battle event rows only. Every battle
+        # transition writes its own row straight into ``results`` — one
+        # ``battle_start`` when the battle screen is entered and one
+        # ``battle_end`` when it is left — while the cycle row of that same
+        # iteration ALSO carries the StateWindow transitions in its nested
+        # ``battle_events`` list. Counting both described the same battles
+        # twice (run dgf_0923b: 2 top-level rows + 4 nested events summed to a
+        # ladder of 6 for a single battle), so the nested lists are skipped
+        # entirely: the top-level rows cover the start+end transitions
+        # deterministically. The ladder key stays present (0 when no battle).
+        battle_events = sum(
+            1 for row in results if str(row.get("event", "")).startswith("battle_")
+        )
 
         # GAP-053: split controller decisions by intent class so a run that
         # burned its budget on blind A-presses is visible as such.
