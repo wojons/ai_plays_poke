@@ -5,8 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PTP-01X — PRD v3: Fast-Decisions + Teacher</title>
 <style>
-  :root { --ink:#14171a; --muted:#5c6672; --line:#e3e7ec; --bg:#fff; --soft:#f6f8fa;
+  :root { color-scheme: light dark;
+          --ink:#14171a; --muted:#5c6672; --line:#e3e7ec; --bg:#fff; --soft:#f6f8fa;
           --accent:#0b5fff; --code-bg:#11161d; --code-ink:#e6edf3; }
+  /* Dark mode is automatic: follows the reader's OS/browser theme.
+     No toggle and no JS — the artifact stays self-contained and opens offline. */
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e6edf3; --muted:#98a3b0; --line:#2b333d; --bg:#0e1216; --soft:#161c23;
+            --accent:#5b9bff; --code-bg:#090d11; --code-ink:#e6edf3; }
+  }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
          font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
@@ -39,7 +46,10 @@
   nav.toc a:hover { text-decoration:underline; }
   footer.doc { margin-top:64px; padding-top:18px; border-top:1px solid var(--line); font-size:.84rem; color:var(--muted); }
   @media (max-width:640px) { nav.toc ol { columns:1; } .wrap { padding:32px 18px 64px; } h1 { font-size:1.8rem; } }
-  @media print { nav.toc { break-inside:avoid; } h2 { break-after:avoid; } pre,table { break-inside:avoid; } }
+  @media print { :root { color-scheme: light;
+                  --ink:#000; --muted:#444; --line:#bbb; --bg:#fff; --soft:#fff;
+                  --accent:#000; --code-bg:#f4f4f4; --code-ink:#000; }
+                 nav.toc { break-inside:avoid; } h2 { break-after:avoid; } pre,table { break-inside:avoid; } }
 </style>
 </head>
 <body>
