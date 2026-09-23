@@ -1,0 +1,31 @@
+{
+  "scheduler_tick_id": "ai-plays-poke-2026-09-23-07-53-50",
+  "tick_number": 230,
+  "created_at": "2026-09-23T08:16:00Z",
+  "project": "ai-plays-poke",
+  "repo": "/home/kara/ai_plays_poke",
+  "base_sha": "42681e9",
+  "budget": 2,
+  "workers": [
+    {
+      "task_id": "GAP-055",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-fm23-door-targeting",
+      "branch": "wt/fm23-door-targeting",
+      "scope_files": ["src/core/ram_reader.py"],
+      "brief": "/tmp/ai-plays-poke-230_brief_GAP-055.md"
+    },
+    {
+      "task_id": "MEM-1",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-mem1-run-recorder",
+      "branch": "wt/mem1-run-recorder",
+      "scope_files": ["cron_runner.py", "src/core/duckbrain_client.py"],
+      "brief": "/tmp/ai-plays-poke-230_brief_MEM-1.md"
+    }
+  ],
+  "notes": [
+    "Both P1 rows from PRD v2 R2/R3, independent: ram_reader.py vs cron_runner.py+duckbrain_client.py.",
+    "FM#23 row carries duplicated id GAP-055 (load-hygiene row is the OTHER GAP-055); do not cross-reference.",
+    "Workers commit on their branches; foreman merges serially post-gate.",
+    "Repo tree was clean at dispatch (42681e9 pushed, origin parity verified)."
+  ]
+}
