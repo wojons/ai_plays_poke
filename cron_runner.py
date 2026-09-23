@@ -19,7 +19,7 @@ def safe_print(*args, **kwargs):
 import argparse
 from collections import Counter
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, TextIO, cast
 import sys
 import os
 import time
@@ -1197,6 +1197,108 @@ def _record_run_memory(
         safe_print(f"[MEM] recorder failed: {exc}")
 
 
+def _apply_agent_memory_outputs(
+    *,
+    decision: dict[str, Any],
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+    cycle: int,
+    map_name: str,
+    mem_goal: str,
+    mem_notes: list[str],
+    pending_study_result: str,
+) -> tuple[str, list[str], str]:
+    """Run one cycle's agent memory outputs: note / goal / study.
+
+    The controller maintains its own knowledge; these optional decision fields
+    are executed here and persisted to DuckBrain (namespace pokemon-global).
+
+    Each event is appended to ``results`` right next to its log line (DF-AIPP-1)
+    so ``_record_run_memory``'s ladder counts them and the run's
+    ``/game/runs/<id>/lessons`` record can extract notes/goals.
+
+    Returns the updated ``(mem_goal, mem_notes, pending_study_result)`` for the
+    caller to rebind.
+    """
+    from src.core import duckbrain_client as _dbc
+
+    _mem_note = (decision.get("note") or "").strip()
+    _mem_new_goal = (decision.get("goal") or "").strip()
+    _mem_study_key = (decision.get("study") or "").strip()
+    if _mem_note:
+        try:
+            _dbc.remember(
+                key=f"/notes/overworld-{cycle}",
+                domain="concept",
+                attributes={
+                    "fact": _mem_note[:300],
+                    "source": "agent",
+                    "map": map_name,
+                    "cycle": cycle,
+                },
+                embedding_text=_mem_note[:300],
+            )
+            mem_notes.insert(0, f"[{map_name}] {_mem_note[:120]}")
+            mem_notes = mem_notes[:6]
+            safe_print(f"  [MEM] note: {_mem_note[:80]}")
+            evt = {
+                "cycle": cycle,
+                "event": "memory_note",
+                "map": map_name,
+                "note": _mem_note[:300],
+            }
+            results.append(evt)
+            log_file.write(json.dumps(evt, default=str) + "\n")
+            log_file.flush()
+        except Exception as _e:
+            safe_print(f"  [MEM] note failed: {_e}")
+    if _mem_new_goal:
+        mem_goal = _mem_new_goal[:200]
+        try:
+            _dbc.remember(
+                key="/goals/current",
+                domain="goal",
+                attributes={"goal": mem_goal, "source": "agent"},
+                embedding_text=f"Current goal: {mem_goal}",
+            )
+            safe_print(f"  [MEM] goal: {mem_goal[:80]}")
+            evt = {"cycle": cycle, "event": "memory_goal", "goal": mem_goal}
+            results.append(evt)
+            log_file.write(json.dumps(evt, default=str) + "\n")
+            log_file.flush()
+        except Exception as _e:
+            safe_print(f"  [MEM] goal failed: {_e}")
+    if _mem_study_key:
+        try:
+            _rec = _dbc.get(key=_mem_study_key)
+            if _rec:
+                _attrs = _rec.get("attributes", {})
+                _body = (
+                    _attrs.get("fact")
+                    or _attrs.get("goal")
+                    or _rec.get("embedding_text", "")
+                )
+                pending_study_result = f"{_rec.get('key')}: {str(_body)[:250]}"
+            else:
+                pending_study_result = (
+                    f"(nothing at {_mem_study_key} — you haven't "
+                    f"learned it yet; explore and remember it)"
+                )
+            safe_print(f"  [MEM] study {_mem_study_key} -> {pending_study_result[:60]}")
+            evt = {
+                "cycle": cycle,
+                "event": "memory_study",
+                "key": _mem_study_key,
+                "result": pending_study_result[:250],
+            }
+            results.append(evt)
+            log_file.write(json.dumps(evt, default=str) + "\n")
+            log_file.flush()
+        except Exception as _e:
+            pending_study_result = f"(study failed: {_e})"
+    return mem_goal, mem_notes, pending_study_result
+
+
 # ── Boot memory injection (MEM-2, PRD_v2_lifecycle.md §R3) ──────────
 # `_record_run_memory()` above is the WRITER (layers 1+3 as they land in
 # DuckBrain ns `pokemon-global`); this half is the READER. At run boot it
@@ -2280,64 +2382,18 @@ def main() -> None:
                 # are optional; when present they are executed here and
                 # persisted to DuckBrain (namespace pokemon-global).
                 if USE_RAM_READER:
-                    from src.core import duckbrain_client as _dbc
-                    _mem_note = (decision.get("note") or "").strip()
-                    _mem_new_goal = (decision.get("goal") or "").strip()
-                    _mem_study_key = (decision.get("study") or "").strip()
-                    _mapn = patch_data.get("map_name", "unknown")
-                    if _mem_note:
-                        try:
-                            _dbc.remember(
-                                key=f"/notes/overworld-{cycle}",
-                                domain="concept",
-                                attributes={"fact": _mem_note[:300], "source": "agent",
-                                            "map": _mapn, "cycle": cycle},
-                                embedding_text=_mem_note[:300],
-                            )
-                            _mem_notes.insert(0, f"[{_mapn}] {_mem_note[:120]}")
-                            _mem_notes = _mem_notes[:6]
-                            safe_print(f"  [MEM] note: {_mem_note[:80]}")
-                            log_file.write(json.dumps(
-                                {"cycle": cycle, "event": "memory_note", "map": _mapn,
-                                 "note": _mem_note[:300]}, default=str) + "\n")
-                            log_file.flush()
-                        except Exception as _e:
-                            safe_print(f"  [MEM] note failed: {_e}")
-                    if _mem_new_goal:
-                        _mem_goal = _mem_new_goal[:200]
-                        try:
-                            _dbc.remember(
-                                key="/goals/current",
-                                domain="goal",
-                                attributes={"goal": _mem_goal, "source": "agent"},
-                                embedding_text=f"Current goal: {_mem_goal}",
-                            )
-                            safe_print(f"  [MEM] goal: {_mem_goal[:80]}")
-                            log_file.write(json.dumps(
-                                {"cycle": cycle, "event": "memory_goal",
-                                 "goal": _mem_goal}, default=str) + "\n")
-                            log_file.flush()
-                        except Exception as _e:
-                            safe_print(f"  [MEM] goal failed: {_e}")
-                    if _mem_study_key:
-                        try:
-                            _rec = _dbc.get(key=_mem_study_key)
-                            if _rec:
-                                _attrs = _rec.get("attributes", {})
-                                _body = _attrs.get("fact") or _attrs.get("goal") or _rec.get("embedding_text", "")
-                                _pending_study_result = f"{_rec.get('key')}: {str(_body)[:250]}"
-                            else:
-                                _pending_study_result = (
-                                    f"(nothing at {_mem_study_key} — you haven't "
-                                    f"learned it yet; explore and remember it)")
-                            safe_print(f"  [MEM] study {_mem_study_key} -> {_pending_study_result[:60]}")
-                            log_file.write(json.dumps(
-                                {"cycle": cycle, "event": "memory_study",
-                                 "key": _mem_study_key, "result": _pending_study_result[:250]},
-                                default=str) + "\n")
-                            log_file.flush()
-                        except Exception as _e:
-                            _pending_study_result = f"(study failed: {_e})"
+                    _mem_goal, _mem_notes, _pending_study_result = (
+                        _apply_agent_memory_outputs(
+                            decision=decision,
+                            results=results,
+                            log_file=log_file,
+                            cycle=cycle,
+                            map_name=patch_data.get("map_name", "unknown"),
+                            mem_goal=_mem_goal,
+                            mem_notes=_mem_notes,
+                            pending_study_result=_pending_study_result,
+                        )
+                    )
 
                 # ── Programmatic direction override ───────────────
                 # Chain-rotate through blacklist. If ALL 4 directions
