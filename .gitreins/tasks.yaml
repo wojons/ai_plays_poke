@@ -571,3 +571,21 @@ tasks:
   status: complete
   created_at: '2026-09-23T12:30:16.223739+00:00'
   completed_at: '2026-09-23T12:51:23.140793+00:00'
+- id: GAP-048
+  title: cron_runner --dry-run probes configured API keys for liveness (expired key
+    -> non-zero exit with verbatim provider error; --skip-key-check for offline presence-only)
+  criteria:
+  - expired key -> dry-run exits != 0 quoting the provider error; valid keys -> exit
+    0; --skip-key-check -> no network attempted; documented in docs/api/cron_runner.md
+  status: complete
+  created_at: '2026-09-23T14:13:52.075759+00:00'
+  completed_at: '2026-09-23T15:56:44.744318+00:00'
+- id: GAP-052
+  title: 'LLM escape hatch: --controller-model flag + CRON_CONTROLLER_MODEL env +
+    think-token strip + parse-failure retry'
+  criteria:
+  - with OPENROUTER_API_KEY unset/dead and --controller-model deepseek-chat, a 20-cycle
+    run records >=15/20 successful LLM decisions in cron_logs/run_<id>.jsonl
+  status: complete
+  created_at: '2026-09-23T16:01:12.555098+00:00'
+  completed_at: '2026-09-23T16:06:06.849253+00:00'
