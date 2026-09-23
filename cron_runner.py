@@ -17,6 +17,7 @@ def safe_print(*args, **kwargs):
         pass
 
 import argparse
+from collections import Counter
 from dataclasses import dataclass
 from typing import Any, cast
 import sys
@@ -28,7 +29,7 @@ import base64
 import io
 import threading
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 # ── Config constants (early) ─────────────────────────────────────────
 # Defined before the heavy third-party imports (yaml/numpy/PIL/src.*) so
@@ -983,6 +984,202 @@ def _format_summary(
     )
 
 
+def _record_run_memory(
+    run_id: str,
+    results: list[dict[str, Any]],
+    ram_reader: Any = None,
+    extra: dict[str, Any] | None = None,
+) -> None:
+    """Best-effort DuckBrain record of one completed run and readable RAM truth."""
+    from src.core import duckbrain_client
+
+    try:
+        extra = extra or {}
+        events = Counter(
+            event
+            for row in results
+            if isinstance((event := row.get("event")), str) and event
+        )
+        screens = Counter(
+            screen
+            for row in results
+            if isinstance((screen := row.get("screen")), str) and screen
+        )
+
+        distinct_maps: list[str] = []
+        for row in results:
+            map_name = row.get("map_name")
+            if (
+                isinstance(map_name, str)
+                and map_name
+                and map_name not in distinct_maps
+            ):
+                distinct_maps.append(map_name)
+        distinct_maps = distinct_maps[-40:]
+
+        battle_events = 0
+        for row in results:
+            nested_events = row.get("battle_events")
+            if isinstance(nested_events, list):
+                battle_events += len(nested_events)
+            elif str(row.get("event", "")).startswith("battle_"):
+                battle_events += 1
+
+        ladder = {
+            "memory_events": sum(
+                events[name]
+                for name in ("memory_note", "memory_goal", "memory_study")
+            ),
+            "battle_events": battle_events,
+            "map_progress": distinct_maps[-1] if distinct_maps else None,
+            "starter_picked": events["starter_picked"] > 0,
+        }
+        summary_attributes: dict[str, Any] = {
+            "events": dict(events),
+            "screens": dict(screens),
+            "n_actions": int(
+                extra.get(
+                    "n_actions",
+                    sum(bool(row.get("action")) for row in results),
+                )
+            ),
+            "distinct_maps": distinct_maps,
+            "battle_events": battle_events,
+            "cycles": len(results),
+            "log_path": str(extra.get("log_path", log_path)),
+            "ladder": ladder,
+        }
+        if "distinct_tiles" in extra:
+            summary_attributes["distinct_tiles"] = int(extra["distinct_tiles"])
+        if "summary" in extra:
+            summary_attributes["summary"] = str(extra["summary"])
+
+        duckbrain_client.remember(
+            key=f"/game/runs/{run_id}/summary",
+            domain="game/runs",
+            attributes=summary_attributes,
+            embedding_text=(
+                f"Run {run_id}: {len(results)} cycles, "
+                f"{summary_attributes['n_actions']} actions, "
+                f"progress {ladder['map_progress'] or 'unknown'}"
+            ),
+            namespace="pokemon-global",
+        )
+
+        notes = [
+            str(row["note"])
+            for row in results
+            if row.get("event") == "memory_note" and row.get("note")
+        ][-20:]
+        goals = [
+            str(row["goal"])
+            for row in results
+            if row.get("event") == "memory_goal" and row.get("goal")
+        ][-20:]
+        if notes or goals:
+            duckbrain_client.remember(
+                key=f"/game/runs/{run_id}/lessons",
+                domain="game/runs",
+                attributes={"notes": notes, "goals": goals},
+                embedding_text=" | ".join([*notes, *goals])[:2000],
+                namespace="pokemon-global",
+            )
+
+        if ram_reader is not None:
+            try:
+                party = {
+                    "party_count": ram_reader.party_count(),
+                    "species_hint": ram_reader.first_party_species_hint(),
+                }
+                duckbrain_client.remember(
+                    key="/game/save/party",
+                    domain="game/save",
+                    attributes=party,
+                    embedding_text=(
+                        f"Party count {party['party_count']}; "
+                        f"first species {party['species_hint'] or 'unknown'}"
+                    ),
+                    namespace="pokemon-global",
+                )
+            except Exception as exc:
+                safe_print(f"[MEM] save party skipped: {exc}")
+
+            item_reader = next(
+                (
+                    method
+                    for name in ("read_items", "read_inventory", "inventory")
+                    if callable((method := getattr(ram_reader, name, None)))
+                ),
+                None,
+            )
+            if item_reader is not None:
+                try:
+                    items = item_reader()
+                    if isinstance(items, list):
+                        items = items[-40:]
+                    duckbrain_client.remember(
+                        key="/game/save/items",
+                        domain="game/save",
+                        attributes={"items": items},
+                        embedding_text=f"Current items: {items}",
+                        namespace="pokemon-global",
+                    )
+                except Exception as exc:
+                    safe_print(f"[MEM] save items skipped: {exc}")
+            else:
+                safe_print("[MEM] save items skipped: no public item reader")
+
+            try:
+                location = {
+                    "map_id": ram_reader.current_map_id(),
+                    "map_name": ram_reader.current_map_name(),
+                    "pos": {
+                        "x": ram_reader.player_tile_x(),
+                        "y": ram_reader.player_tile_y(),
+                    },
+                }
+                duckbrain_client.remember(
+                    key="/game/save/location",
+                    domain="game/save",
+                    attributes=location,
+                    embedding_text=(
+                        f"At {location['map_name']} map {location['map_id']} "
+                        f"tile {location['pos']['x']},{location['pos']['y']}"
+                    ),
+                    namespace="pokemon-global",
+                )
+            except Exception as exc:
+                safe_print(f"[MEM] save location skipped: {exc}")
+
+        previous = duckbrain_client.get(
+            key="/game/runs/index",
+            namespace="pokemon-global",
+        )
+        previous_attributes = previous.get("attributes", {}) if previous else {}
+        previous_runs = previous_attributes.get("runs", [])
+        if not isinstance(previous_runs, list):
+            previous_runs = []
+        run_digest = {
+            "run_id": run_id,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "cycles": len(results),
+            "ladder": ladder,
+        }
+        runs = [run_digest, *previous_runs][:10]
+        duckbrain_client.remember(
+            key="/game/runs/index",
+            domain="game/runs",
+            attributes={"runs": runs},
+            embedding_text=(
+                "Recent Pokemon runs: "
+                + ", ".join(str(run.get("run_id", "unknown")) for run in runs)
+            ),
+            namespace="pokemon-global",
+        )
+    except Exception as exc:
+        safe_print(f"[MEM] recorder failed: {exc}")
+
+
 def _main_parser() -> argparse.ArgumentParser:
     """Build the real CLI parser main() uses (module-level so tests can parse)."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1046,7 +1243,7 @@ def main() -> None:
     boot_from_state = boot_path is not None
     _warn_boot_state_rom_mismatch(run_id, boot_path, ROM)
     if boot_from_state:
-        emu.load_state(boot_path)
+        emu.load_state(cast(Path, boot_path))
         emu.wait(30)  # settle after state restore
         safe_print(f"[{run_id}] Booting from checkpoint {boot_path} — skipping intro bypass")
     elif args.boot_state and args.boot_state.lower() != "skip":
@@ -2274,9 +2471,33 @@ def main() -> None:
 
     # Summary
     screens = set(r.get("screen", "unknown") for r in results)
-    safe_print(f"\n{_format_summary(run_id, len(results), screens, _dir_lock_warn_cycles, CYCLES, len(_visited_tiles))}")
+    final_summary = _format_summary(
+        run_id,
+        len(results),
+        screens,
+        _dir_lock_warn_cycles,
+        CYCLES,
+        len(_visited_tiles),
+    )
+    safe_print(f"\n{final_summary}")
     safe_print(f"Log: {log_path}")
     safe_print(f"Screenshots: {SCREENSHOT_DIR}")
+
+    # Persist machine-written evidence after the emulator and log are finalized.
+    try:
+        _record_run_memory(
+            run_id,
+            results,
+            ram_reader=locals().get("ram_reader"),
+            extra={
+                "n_actions": len(results),
+                "distinct_tiles": len(_visited_tiles),
+                "log_path": str(log_path),
+                "summary": final_summary,
+            },
+        )
+    except Exception as exc:
+        safe_print(f"[MEM] recorder failed: {exc}")
 
     # Persist frame cache for the next run (cross-run dedup)
     if _frame_cache is not None:
