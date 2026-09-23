@@ -1461,6 +1461,7 @@ class RAMReader:
     # informed decisions instead of walking into walls.
     _MAP_HINTS: dict[str, str] = {
         "Pallet Town": "North exit is centered near tile x=10. From the house door, move DOWN first (UP re-enters the house), align with x=10, then move UP to Route 1 and trigger Professor Oak.",
+        "Oak's Lab": "Exit through the bottom-center door near tile x=5, y=6. Move DOWN toward it and continue DOWN through the doorway; do not press UP inside the lab.",
         "Red's House 2F": "From the bedroom spawn, the collision-verified path to the stairs is RIGHT, UP, UP, UP, RIGHT.",
         "Red's House 1F": "From the upstairs warp, the collision-verified exit path is DOWN, DOWN, DOWN, LEFT, LEFT, DOWN.",
         "Viridian City": "Viridian City. Exit north to Route 2, south to Route 1.",
@@ -1488,6 +1489,16 @@ class RAMReader:
             if tile_x > 11:
                 return "Move LEFT only until aligned with Pallet Town's north exit near tile x=10."
             return "Move UP only toward Route 1. At the north map edge, keep moving UP to trigger Professor Oak."
+        if map_name == "Oak's Lab":
+            tile_x = self.player_tile_x()
+            tile_y = self.player_tile_y()
+            if tile_y < 5:
+                return "Move DOWN one or two tiles toward Oak's Lab exit door. Do not press UP inside the lab."
+            if tile_x < 5:
+                return "Move RIGHT one tile to align with Oak's Lab exit door near tile x=5. Do not press UP."
+            if tile_x > 5:
+                return "Move LEFT one tile to align with Oak's Lab exit door near tile x=5. Do not press UP."
+            return "Move DOWN through the door, then continue DOWN out of Oak's Lab to trigger the rival battle. Do not press UP."
         return self._MAP_HINTS.get(map_name, "")
 
     def observe(self) -> dict[str, Any]:

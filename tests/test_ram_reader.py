@@ -782,6 +782,25 @@ class TestRAMReaderObserve:
                 f"Move {expected_direction}"
             )
 
+    def test_oaks_lab_hint_targets_exit_door(self, mock_emu: MagicMock) -> None:
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB"):
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+
+            _MEMORY[0xD362] = 3
+            _MEMORY[0xD361] = 2
+            interior_hint = reader._suggested_map_action("Oak's Lab")
+            assert interior_hint.startswith("Move DOWN")
+            assert "door" in interior_hint.lower()
+
+            _MEMORY[0xD362] = 5
+            _MEMORY[0xD361] = 6
+            door_hint = reader._suggested_map_action("Oak's Lab")
+            assert door_hint != interior_hint
+            assert "through the door" in door_hint.lower()
+            assert "continue DOWN" in door_hint
+
     def test_returns_structured_dict(self, mock_emu: MagicMock) -> None:
         from src.core.ram_reader import RAMReader
 
