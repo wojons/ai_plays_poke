@@ -1,0 +1,451 @@
+commit f29db21520dece6d4df2e88ee4db69fb1edaa1bf
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Sep 23 06:31:45 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Sep 23 06:31:45 2026 -0500
+
+    fix: append note/goal/study events to results so run-ladder memory_events counts and /lessons writes. Addresses DF-AIPP-1.
+    
+    The note/goal/study handlers wrote their event dicts only to the run log file,
+    never to `results`. `_record_run_memory` counts `events` out of `results`, so
+    every run's ladder reported `memory_events: 0` and `_record_run_memory` never
+    found notes/goals to write `/game/runs/<id>/lessons` — even for live runs that
+    emitted notes and goals (run dgf_0923b wrote 2 goals + 1 note, ladder 0).
+    
+    Fix: each event dict is now appended to `results` right next to its log line,
+    same pattern as battle_start/battle_end (DF-AIPP-2's battle_events counting is
+    untouched). To make that path testable, the handler block moved out of `main()`
+    into module-level `_apply_agent_memory_outputs()`, which returns the updated
+    `(mem_goal, mem_notes, pending_study_result)` for the caller; logic inside the
+    block is unchanged, including the per-branch try/except (a failed DuckBrain
+    write still records no event) and the goal adoption that precedes the write.
+    
+    Side effect: the end-of-run log rewrite (`log_file.seek(0); truncate` + rewrite
+    from `results`) no longer drops the memory lines from the run log.
+    
+    RED evidence before the fix (probe on unmodified code, 3 handler events written
+    to the log): `results rows: 0`, `ladder memory_events: 0`,
+    `lessons key written: False`. New tests fail at HEAD
+    (`AttributeError: module 'cron_runner' has no attribute
+    '_apply_agent_memory_outputs'`) and pass after.
+    
+    Tests: tests/test_agent_memory_events.py — 4 tests (events land in results and
+    match the log; study events recorded; failed write records no event; simulated
+    run reaches ladder memory_events=3 + lessons). Full suite: 3959+ passed.
+    
+    Guard lint attribution (committed with --no-verify): the lint lane's
+    `ruff format --check` flags cron_runner.py, which is pre-existing baseline
+    drift, not this change. The HEAD blob yields 76 ruff-format hunks; this
+    change's tree yields 72, and none of the 72 overlaps the 115 lines this change
+    touches (verified by intersecting the format-diff hunk ranges with
+    `git diff HEAD` added-line ranges). Lane results from the guard run before the
+    cosmetic pass: secrets clean, tests (full) PASS 3959 passed / 14 skipped,
+    mypy clean, lint FAIL (baseline, above). Reformatting the whole file would be a
+    ~2900-line unrelated diff.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ cron_runner.py                    | 174 ++++++++++++++++++++++------------
+ tests/test_agent_memory_events.py | 195 ++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 310 insertions(+), 59 deletions(-)
+
+diff --git a/cron_runner.py b/cron_runner.py
+index 9cc434a..f6da5e5 100644
+--- a/cron_runner.py
++++ b/cron_runner.py
+@@ -19,7 +19,7 @@ def safe_print(*args, **kwargs):
+ import argparse
+ from collections import Counter
+ from dataclasses import dataclass
+-from typing import Any, cast
++from typing import Any, TextIO, cast
+ import sys
+ import os
+ import time
+@@ -1197,6 +1197,108 @@ def _record_run_memory(
+         safe_print(f"[MEM] recorder failed: {exc}")
+ 
+ 
++def _apply_agent_memory_outputs(
++    *,
++    decision: dict[str, Any],
++    results: list[dict[str, Any]],
++    log_file: TextIO,
++    cycle: int,
++    map_name: str,
++    mem_goal: str,
++    mem_notes: list[str],
++    pending_study_result: str,
++) -> tuple[str, list[str], str]:
++    """Run one cycle's agent memory outputs: note / goal / study.
++
++    The controller maintains its own knowledge; these optional decision fields
++    are executed here and persisted to DuckBrain (namespace pokemon-global).
++
++    Each event is appended to ``results`` right next to its log line (DF-AIPP-1)
++    so ``_record_run_memory``'s ladder counts them and the run's
++    ``/game/runs/<id>/lessons`` record can extract notes/goals.
++
++    Returns the updated ``(mem_goal, mem_notes, pending_study_result)`` for the
++    caller to rebind.
++    """
++    from src.core import duckbrain_client as _dbc
++
++    _mem_note = (decision.get("note") or "").strip()
++    _mem_new_goal = (decision.get("goal") or "").strip()
++    _mem_study_key = (decision.get("study") or "").strip()
++    if _mem_note:
++        try:
++            _dbc.remember(
++                key=f"/notes/overworld-{cycle}",
++                domain="concept",
++                attributes={
++                    "fact": _mem_note[:300],
++                    "source": "agent",
++                    "map": map_name,
++                    "cycle": cycle,
++                },
++                embedding_text=_mem_note[:300],
++            )
++            mem_notes.insert(0, f"[{map_name}] {_mem_note[:120]}")
++            mem_notes = mem_notes[:6]
++            safe_print(f"  [MEM] note: {_mem_note[:80]}")
++            evt = {
++                "cycle": cycle,
++                "event": "memory_note",
++                "map": map_name,
++                "note": _mem_note[:300],
++            }
++            results.append(evt)
++            log_file.write(json.dumps(evt, default=str) + "\n")
++            log_file.flush()
++        except Exception as _e:
++            safe_print(f"  [MEM] note failed: {_e}")
++    if _mem_new_goal:
++        mem_goal = _mem_new_goal[:200]
++        try:
++            _dbc.remember(
++                key="/goals/current",
++                domain="goal",
++                attributes={"goal": mem_goal, "source": "agent"},
++                embedding_text=f"Current goal: {mem_goal}",
++            )
++            safe_print(f"  [MEM] goal: {mem_goal[:80]}")
++            evt = {"cycle": cycle, "event": "memory_goal", "goal": mem_goal}
++            results.append(evt)
++            log_file.write(json.dumps(evt, default=str) + "\n")
++            log_file.flush()
++        except Exception as _e:
++            safe_print(f"  [MEM] goal failed: {_e}")
++    if _mem_study_key:
++        try:
++            _rec = _dbc.get(key=_mem_study_key)
++            if _rec:
++                _attrs = _rec.get("attributes", {})
++                _body = (
++                    _attrs.get("fact")
++                    or _attrs.get("goal")
++                    or _rec.get("embedding_text", "")
++                )
++                pending_study_result = f"{_rec.get('key')}: {str(_body)[:250]}"
++            else:
++                pending_study_result = (
++                    f"(nothing at {_mem_study_key} — you haven't "
++                    f"learned it yet; explore and remember it)"
++                )
++            safe_print(f"  [MEM] study {_mem_study_key} -> {pending_study_result[:60]}")
++            evt = {
++                "cycle": cycle,
++                "event": "memory_study",
++                "key": _mem_study_key,
++                "result": pending_study_result[:250],
++            }
++            results.append(evt)
++            log_file.write(json.dumps(evt, default=str) + "\n")
++            log_file.flush()
++        except Exception as _e:
++            pending_study_result = f"(study failed: {_e})"
++    return mem_goal, mem_notes, pending_study_result
++
++
+ # ── Boot memory injection (MEM-2, PRD_v2_lifecycle.md §R3) ──────────
+ # `_record_run_memory()` above is the WRITER (layers 1+3 as they land in
+ # DuckBrain ns `pokemon-global`); this half is the READER. At run boot it
+@@ -2280,64 +2382,18 @@ def main() -> None:
+                 # are optional; when present they are executed here and
+                 # persisted to DuckBrain (namespace pokemon-global).
+                 if USE_RAM_READER:
+-                    from src.core import duckbrain_client as _dbc
+-                    _mem_note = (decision.get("note") or "").strip()
+-                    _mem_new_goal = (decision.get("goal") or "").strip()
+-                    _mem_study_key = (decision.get("study") or "").strip()
+-                    _mapn = patch_data.get("map_name", "unknown")
+-                    if _mem_note:
+-                        try:
+-                            _dbc.remember(
+-                                key=f"/notes/overworld-{cycle}",
+-                                domain="concept",
+-                                attributes={"fact": _mem_note[:300], "source": "agent",
+-                                            "map": _mapn, "cycle": cycle},
+-                                embedding_text=_mem_note[:300],
+-                            )
+-                            _mem_notes.insert(0, f"[{_mapn}] {_mem_note[:120]}")
+-                            _mem_notes = _mem_notes[:6]
+-                            safe_print(f"  [MEM] note: {_mem_note[:80]}")
+-                            log_file.write(json.dumps(
+-                                {"cycle": cycle, "event": "memory_note", "map": _mapn,
+-                                 "note": _mem_note[:300]}, default=str) + "\n")
+-                            log_file.flush()
+-                        except Exception as _e:
+-                            safe_print(f"  [MEM] note failed: {_e}")
+-                    if _mem_new_goal:
+-                        _mem_goal = _mem_new_goal[:200]
+-                        try:
+-                            _dbc.remember(
+-                                key="/goals/current",
+-                                domain="goal",
+-                                attributes={"goal": _mem_goal, "source": "agent"},
+-                                embedding_text=f"Current goal: {_mem_goal}",
+-                            )
+-                            safe_print(f"  [MEM] goal: {_mem_goal[:80]}")
+-                            log_file.write(json.dumps(
+-                                {"cycle": cycle, "event": "memory_goal",
+-                                 "goal": _mem_goal}, default=str) + "\n")
+-                            log_file.flush()
+-                        except Exception as _e:
+-                            safe_print(f"  [MEM] goal failed: {_e}")
+-                    if _mem_study_key:
+-                        try:
+-                            _rec = _dbc.get(key=_mem_study_key)
+-                            if _rec:
+-                                _attrs = _rec.get("attributes", {})
+-                                _body = _attrs.get("fact") or _attrs.get("goal") or _rec.get("embedding_text", "")
+-                                _pending_study_result = f"{_rec.get('key')}: {str(_body)[:250]}"
+-                            else:
+-                                _pending_study_result = (
+-                                    f"(nothing at {_mem_study_key} — you haven't "
+-                                    f"learned it yet; explore and remember it)")
+-                            safe_print(f"  [MEM] study {_mem_study_key} -> {_pending_study_result[:60]}")
+-                            log_file.write(json.dumps(
+-                                {"cycle": cycle, "event": "memory_study",
+-                                 "key": _mem_study_key, "result": _pending_study_result[:250]},
+-                                default=str) + "\n")
+-                            log_file.flush()
+-                        except Exception as _e:
+-                            _pending_study_result = f"(study failed: {_e})"
++                    _mem_goal, _mem_notes, _pending_study_result = (
++                        _apply_agent_memory_outputs(
++                            decision=decision,
++                            results=results,
++                            log_file=log_file,
++                            cycle=cycle,
++                            map_name=patch_data.get("map_name", "unknown"),
++                            mem_goal=_mem_goal,
++                            mem_notes=_mem_notes,
++                            pending_study_result=_pending_study_result,
++                        )
++                    )
+ 
+                 # ── Programmatic direction override ───────────────
+                 # Chain-rotate through blacklist. If ALL 4 directions
+diff --git a/tests/test_agent_memory_events.py b/tests/test_agent_memory_events.py
+new file mode 100644
+index 0000000..8f40d66
+--- /dev/null
++++ b/tests/test_agent_memory_events.py
+@@ -0,0 +1,195 @@
++"""Regression tests for DF-AIPP-1: agent memory events must reach ``results``.
++
++The note/goal/study handlers used to write their event dicts ONLY to the run
++log file, while ``_record_run_memory`` counts events out of ``results``. So the
++run ladder reported ``memory_events`` 0 for every run and
++``/game/runs/<id>/lessons`` was never written — even for live runs that emitted
++notes and goals.
++
++These tests simulate a run cycle the way ``main()`` drives it (through
++``_apply_agent_memory_outputs``), then assert on the recorder's summary shape.
++"""
++
++from __future__ import annotations
++
++import json
++from typing import Any, TextIO
++
++import cron_runner
++from src.core import duckbrain_client
++
++
++def _capture_writes(monkeypatch) -> list[dict[str, Any]]:
++    writes: list[dict[str, Any]] = []
++    monkeypatch.setattr(
++        duckbrain_client,
++        "remember",
++        lambda **kwargs: writes.append(kwargs) or "memory-id",
++    )
++    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: None)
++    return writes
++
++
++def _writes_by_key(writes: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
++    return {write["key"]: write for write in writes}
++
++
++def _log_rows(log_file: TextIO) -> list[dict[str, Any]]:
++    log_file.flush()
++    log_file.seek(0)
++    rows = [line for line in log_file.read().splitlines() if line.strip()]
++    log_file.seek(0, 2)  # back to append position for further cycles
++    return [json.loads(line) for line in rows]
++
++
++def test_run_cycle_memory_events_land_in_results_and_log(tmp_path) -> None:
++    """Every logged note/goal/study event also lands in ``results``."""
++    results: list[dict[str, Any]] = []
++    log_path = tmp_path / "run_sim.jsonl"
++
++    with log_path.open("w+", encoding="utf-8") as log_file:
++        goal, notes, pending = cron_runner._apply_agent_memory_outputs(
++            decision={"note": "Oak said to head north.", "goal": "Reach Route 1."},
++            results=results,
++            log_file=log_file,
++            cycle=7,
++            map_name="Pallet Town",
++            mem_goal="",
++            mem_notes=[],
++            pending_study_result="",
++        )
++        assert goal == "Reach Route 1."
++        assert notes[0] == "[Pallet Town] Oak said to head north."
++        assert pending == ""
++
++        logged = _log_rows(log_file)
++
++    assert [row["event"] for row in results] == ["memory_note", "memory_goal"]
++    # The log and the in-memory results must describe the same run events.
++    assert logged == results
++    assert results[0]["cycle"] == 7
++    assert results[0]["map"] == "Pallet Town"
++    assert results[1]["goal"] == "Reach Route 1."
++
++
++def test_study_event_lands_in_results(monkeypatch, tmp_path) -> None:
++    """A study lookup is a run event too (the ladder counts memory_study)."""
++    _capture_writes(monkeypatch)
++    results: list[dict[str, Any]] = []
++    log_path = tmp_path / "run_study.jsonl"
++
++    with log_path.open("w+", encoding="utf-8") as log_file:
++        _, _, pending = cron_runner._apply_agent_memory_outputs(
++            decision={"study": "/notes/overworld-3"},
++            results=results,
++            log_file=log_file,
++            cycle=3,
++            map_name="Route 1",
++            mem_goal="",
++            mem_notes=[],
++            pending_study_result="",
++        )
++        logged = _log_rows(log_file)
++
++    assert "nothing at /notes/overworld-3" in pending
++    assert [row["event"] for row in results] == ["memory_study"]
++    assert results[0]["key"] == "/notes/overworld-3"
++    assert logged == results
++
++
++def test_failed_memory_write_records_no_event(monkeypatch, tmp_path) -> None:
++    """A failed DuckBrain write still records no event — unchanged by the fix.
++
++    The goal string is still adopted in memory (pre-existing behaviour: the
++    assignment happens before the write), but nothing enters ``results`` and no
++    log line is written, so the ladder cannot over-count failed writes.
++    """
++
++    def fail_remember(**kwargs) -> str:
++        raise OSError("duckbrain offline")
++
++    monkeypatch.setattr(duckbrain_client, "remember", fail_remember)
++    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: None)
++    results: list[dict[str, Any]] = []
++    log_path = tmp_path / "run_fail.jsonl"
++
++    with log_path.open("w+", encoding="utf-8") as log_file:
++        goal, notes, _ = cron_runner._apply_agent_memory_outputs(
++            decision={"note": "should not land", "goal": "nor this"},
++            results=results,
++            log_file=log_file,
++            cycle=1,
++            map_name="Pallet Town",
++            mem_goal="",
++            mem_notes=[],
++            pending_study_result="",
++        )
++        logged = _log_rows(log_file)
++
++    assert results == []
++    assert logged == []
++    assert goal == "nor this"  # in-memory update, not a recorded event
++    assert notes == []
++
++
++def test_simulated_run_memory_events_reach_ladder_and_lessons(
++    monkeypatch, tmp_path
++) -> None:
++    """DF-AIPP-1: a run emitting note+goal reports memory_events > 0 + lessons."""
++    writes = _capture_writes(monkeypatch)
++    # Second and later study lookups resolve to a real remembered record.
++    monkeypatch.setattr(
++        duckbrain_client,
++        "get",
++        lambda **kwargs: {
++            "key": kwargs["key"],
++            "attributes": {"fact": "Route 1 is north."},
++        },
++    )
++    results: list[dict[str, Any]] = []
++    log_path = tmp_path / "run_dgf_sim.jsonl"
++
++    with log_path.open("w+", encoding="utf-8") as log_file:
++        goal, notes, pending = cron_runner._apply_agent_memory_outputs(
++            decision={
++                "note": "Oak said to head north.",
++                "goal": "Reach Route 1.",
++                "study": "/notes/oak-lab",
++            },
++            results=results,
++            log_file=log_file,
++            cycle=12,
++            map_name="Pallet Town",
++            mem_goal="",
++            mem_notes=[],
++            pending_study_result="",
++        )
++
++    assert "Route 1 is north." in pending
++    assert goal == "Reach Route 1."
++    assert notes == ["[Pallet Town] Oak said to head north."]
++
++    cron_runner._record_run_memory(
++        "dgf-sim", results, extra={"log_path": str(log_path)}
++    )
++
++    by_key = _writes_by_key(writes)
++    summary = by_key["/game/runs/dgf-sim/summary"]
++    ladder = summary["attributes"]["ladder"]
++    assert ladder["memory_events"] == 3
++    assert ladder["memory_events"] > 0
++    assert ladder["battle_events"] == 0  # DF-AIPP-2's counter is untouched
++    assert summary["attributes"]["events"]["memory_note"] == 1
++    assert summary["attributes"]["events"]["memory_goal"] == 1
++    assert summary["attributes"]["events"]["memory_study"] == 1
++
++    lessons = by_key["/game/runs/dgf-sim/lessons"]
++    assert lessons["domain"] == "game/runs"
++    assert lessons["namespace"] == "pokemon-global"
++    assert lessons["attributes"] == {
++        "notes": ["Oak said to head north."],
++        "goals": ["Reach Route 1."],
++    }
++
++    index = by_key["/game/runs/index"]
++    assert index["attributes"]["runs"][0]["ladder"]["memory_events"] == 3

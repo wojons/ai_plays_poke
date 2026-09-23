@@ -1,0 +1,46 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 12fbe4f..dcf99a9 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -530,3 +530,12 @@ tasks:
+   status: complete
+   created_at: '2026-09-23T10:31:08.243796+00:00'
+   completed_at: '2026-09-23T10:40:33.683297+00:00'
++- id: DF-AIPP-1
++  title: "memory_events always 0 in run ladder \u2014 note/goal/study events never\
++    \ appended to results"
++  criteria:
++  - After a run that emits >=1 note/goal event, /game/runs/<id>/summary attributes.ladder.memory_events
++    > 0 AND a /lessons key exists in the summary
++  status: complete
++  created_at: '2026-09-23T11:16:54.989758+00:00'
++  completed_at: '2026-09-23T11:39:57.996175+00:00'
+diff --git a/data/duration_profiles.json b/data/duration_profiles.json
+index 608b538..3d3b539 100644
+--- a/data/duration_profiles.json
++++ b/data/duration_profiles.json
+@@ -2,16 +2,16 @@
+   "BATTLE/WILD": {
+     "mode": "BATTLE",
+     "sub_mode": "WILD",
+-    "sample_count": 529,
+-    "mean_duration": 0.10009226257602587,
+-    "std_duration": 6.150375899297354e-05,
++    "sample_count": 548,
++    "mean_duration": 0.10007974300732031,
++    "std_duration": 5.175591146381257e-06,
+     "min_duration": 0.10005712509155273,
+     "max_duration": 0.10204648971557617,
+-    "p50_duration": 0.10009226257602587,
+-    "p75_duration": 0.10076226257602587,
+-    "p95_duration": 0.10173726257602586,
+-    "p99_duration": 0.10241826257602586,
+-    "last_updated": 1790117309.0698755,
++    "p50_duration": 0.10007974300732031,
++    "p75_duration": 0.10074974300732031,
++    "p95_duration": 0.1017247430073203,
++    "p99_duration": 0.1024057430073203,
++    "last_updated": 1790163725.4689271,
+     "trend": "insufficient_data",
+     "trend_slope": 0
+   }

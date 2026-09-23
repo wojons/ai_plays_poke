@@ -1,0 +1,69 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index dcf99a9..727ebdc 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -539,3 +539,35 @@ tasks:
+   status: complete
+   created_at: '2026-09-23T11:16:54.989758+00:00'
+   completed_at: '2026-09-23T11:39:57.996175+00:00'
++- id: GAP-057
++  title: CI guard against root-level _*.py scratch re-accumulation
++  criteria:
++  - A new step/job in .github/workflows/ci.yml fails when a root-level _*.py file
++    appears that is NOT in the baselined allowlist; baseline derived from current
++    29 files; existing files do not fail.
++  - Adding a new scratch file _foo.py at root makes the CI job fail; removing it makes
++    CI green; baseline files do not trip it.
++  status: complete
++  created_at: '2026-09-23T12:30:06.405723+00:00'
++  completed_at: '2026-09-23T12:51:23.319483+00:00'
++- id: DF-AIPP-4
++  title: 'PRD R3 vs implementation drift: namespace and SAVE keys'
++  criteria:
++  - 'PRD_v2_lifecycle.md matches the code: namespace resolved to the live one and
++    the SAVE-STATE key list matches what duckbrain writes (party/items/location),
++    with quests/acquired either implemented or explicitly documented absent.'
++  - grep the PRD text no longer claims keys/namespace the code never writes; every
++    claimed key exists in the code.
++  status: complete
++  created_at: '2026-09-23T12:30:15.812980+00:00'
++  completed_at: '2026-09-23T12:51:23.209244+00:00'
++- id: GAP-053
++  title: Summary separates real AI decisions from parse_fallback presses
++  criteria:
++  - Final summary line prints real_decisions=N fallback_decisions=M where real = intent
++    not in {parse_fallback, parse_failure_fallback}; DONE line carries real_decisions.
++  - a run summary with known fallback presses shows real_decisions count distinct
++    from total; dead-key run prints real_decisions=0.
++  status: complete
++  created_at: '2026-09-23T12:30:16.223739+00:00'
++  completed_at: '2026-09-23T12:51:23.140793+00:00'
+diff --git a/data/duration_profiles.json b/data/duration_profiles.json
+index 985f0d0..c6088c4 100644
+--- a/data/duration_profiles.json
++++ b/data/duration_profiles.json
+@@ -2,16 +2,16 @@
+   "BATTLE/WILD": {
+     "mode": "BATTLE",
+     "sub_mode": "WILD",
+-    "sample_count": 552,
+-    "mean_duration": 0.10025273171094408,
+-    "std_duration": 0.0002479307869519471,
++    "sample_count": 559,
++    "mean_duration": 0.10052645172249727,
++    "std_duration": 0.0004766414601945319,
+     "min_duration": 0.10005712509155273,
+     "max_duration": 0.10204648971557617,
+-    "p50_duration": 0.10025273171094408,
+-    "p75_duration": 0.10092273171094408,
+-    "p95_duration": 0.10189773171094407,
+-    "p99_duration": 0.10257873171094407,
+-    "last_updated": 1790165607.1062489,
++    "p50_duration": 0.10052645172249727,
++    "p75_duration": 0.10119645172249728,
++    "p95_duration": 0.10217145172249727,
++    "p99_duration": 0.10285245172249727,
++    "last_updated": 1790168060.6831038,
+     "trend": "insufficient_data",
+     "trend_slope": 0
+   }

@@ -1,0 +1,118 @@
+{
+  "task_id": "GAP-057",
+  "task_title": "CI guard against root-level _*.py scratch re-accumulation",
+  "task_criteria": [
+    "A new step/job in .github/workflows/ci.yml fails when a root-level _*.py file appears that is NOT in the baselined allowlist; baseline derived from current 29 files; existing files do not fail.",
+    "Adding a new scratch file _foo.py at root makes the CI job fail; removing it makes CI green; baseline files do not trip it."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "e75ebd456d23bc480c6f80ec0ee5e33a360cf63f",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T124141.962174Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 3982 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [423917 chars omitted \u2014 4740 line(s)] \u2026\ntest_bench_vision_pipeline_validate           8,995.9940 (14.72)     10,591,111.9899 (>1000.0)       17,663.9342 (21.90)       116,309.9683 (370.03)        13,145.0070 (16.83)         1,267.5009 (9.68)      76;1363     56,612.5297 (0.05)      19576           1\ntest_bench_ram_reader_observe             1,498,141.9954 (>1000.0)  348,047,460.0219 (>1000.0)    4,597,947.7932 (>1000.0)  22,383,504.1186 (>1000.0)    2,099,931.9968 (>1000.0)     511,712.0018 (>1000.0)      4;79        217.4883 (0.00)        488           1\ntest_bench_vision_pipeline_process      123,238,163.0107 (>1000.0)  200,174,069.0030 (>1000.0)  153,136,451.8575 (>1000.0)  28,158,788.9901 (>1000.0)  142,494,845.0003 (>1000.0)  39,909,228.5297 (>1000.0)       3;0          6.5301 (0.00)          7           1\n--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 3968 passed, 14 skipped in 351.47s (0:05:51) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T124141.962174Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 A new step/job in .github/workflows/ci.yml fails when a root-level _*.py file appears that is NOT in the baselined allowlist; baseline derived from current 29 files; existing files do not fail.: .github/workflows/ci.yml (commit 85d669d) adds step 'Repo hygiene (no unbaselined root scratch files)' that greps each root _*.py against tools/scratch-baseline.txt and exits 1 on any miss. Baseline has exactly 29 entries; `diff <(ls _*.py|sort) <(sort tools/scratch-baseline.txt)` = IDENTICAL. Running the guard on the baseline state: exit_code=0, output 'OK: no unbaselined root-level _*.py files.' YAML parses valid; step order confirmed.\n  \u2713 Adding a new scratch file _foo.py at root makes the CI job fail; removing it makes CI green; baseline files do not trip it.: Empirical run of the exact CI step logic: `touch _foo.py` -> exit_code=1 with '::error file=_foo.py::unbaselined root scratch file: _foo.py' + 'Root-level _*.py scratch files must not accumulate.'; `rm _foo.py` -> exit_code=0 'OK: no unbaselined root-level _*.py files.'; force-added tracked _bar.py -> exit_code=1 (tracked-file path also covered). Baseline 29 files produce exit 0, so they do not trip it.\nThe CI hygiene step and 29-file baseline are committed and empirically verified: baseline passes (exit 0), a new root _foo.py fails (exit 1), and removal restores green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 A new step/job in .github/workflows/ci.yml fails when a root-level _*.py file appears that is NOT in the baselined allowlist; baseline derived from current 29 files; existing files do not fail.: .github/workflows/ci.yml (commit 85d669d) adds step 'Repo hygiene (no unbaselined root scratch files)' that greps each root _*.py against tools/scratch-baseline.txt and exits 1 on any miss. Baseline has exactly 29 entries; `diff <(ls _*.py|sort) <(sort tools/scratch-baseline.txt)` = IDENTICAL. Running the guard on the baseline state: exit_code=0, output 'OK: no unbaselined root-level _*.py files.' YAML parses valid; step order confirmed.\n  \u2713 Adding a new scratch file _foo.py at root makes the CI job fail; removing it makes CI green; baseline files do not trip it.: Empirical run of the exact CI step logic: `touch _foo.py` -> exit_code=1 with '::error file=_foo.py::unbaselined root scratch file: _foo.py' + 'Root-level _*.py scratch files must not accumulate.'; `rm _foo.py` -> exit_code=0 'OK: no unbaselined root-level _*.py files.'; force-added tracked _bar.py -> exit_code=1 (tracked-file path also covered). Baseline 29 files produce exit 0, so they do not trip it.\nThe CI hygiene step and 29-file baseline are committed and empirically verified: baseline passes (exit 0), a new root _foo.py fails (exit 1), and removal restores green.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "A new step/job in .github/workflows/ci.yml fails when a root-level _*.py file appears that is NOT in the baselined allowlist; baseline derived from current 29 files; existing files do not fail.",
+                "status": "PASS",
+                "detail": ".github/workflows/ci.yml (commit 85d669d) adds step 'Repo hygiene (no unbaselined root scratch files)' that greps each root _*.py against tools/scratch-baseline.txt and exits 1 on any miss. Baseline has exactly 29 entries; `diff <(ls _*.py|sort) <(sort tools/scratch-baseline.txt)` = IDENTICAL. Running the guard on the baseline state: exit_code=0, output 'OK: no unbaselined root-level _*.py files.' YAML parses valid; step order confirmed."
+              },
+              {
+                "criterion": "Adding a new scratch file _foo.py at root makes the CI job fail; removing it makes CI green; baseline files do not trip it.",
+                "status": "PASS",
+                "detail": "Empirical run of the exact CI step logic: `touch _foo.py` -> exit_code=1 with '::error file=_foo.py::unbaselined root scratch file: _foo.py' + 'Root-level _*.py scratch files must not accumulate.'; `rm _foo.py` -> exit_code=0 'OK: no unbaselined root-level _*.py files.'; force-added tracked _bar.py -> exit_code=1 (tracked-file path also covered). Baseline 29 files produce exit 0, so they do not trip it."
+              }
+            ],
+            "summary": "The CI hygiene step and 29-file baseline are committed and empirically verified: baseline passes (exit 0), a new root _foo.py fails (exit 1), and removal restores green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-057\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 A new step/job in .github/workflows/ci.yml fails when a root-level _*.py file appears that is NOT in the baselined allowlist; baseline derived from current 29 files; existing files do not fail.: .github/workflows/ci.yml (commit 85d669d) adds step 'Repo hygiene (no unbaselined root scratch files)' that greps each root _*.py against tools/scratch-baseline.txt and exits 1 on any miss. Baseline has exactly 29 entries; `diff <(ls _*.py|sort) <(sort tools/scratch-baseline.txt)` = IDENTICAL. Running the guard on the baseline state: exit_code=0, output 'OK: no unbaselined root-level _*.py files.' YAML parses valid; step order confirmed.\n  \u2713 Adding a new scratch file _foo.py at root makes the CI job fail; removing it makes CI green; baseline files do not trip it.: Empirical run of the exact CI step logic: `touch _foo.py` -> exit_code=1 with '::error file=_foo.py::unbaselined root scratch file: _foo.py' + 'Root-level _*.py scratch files must not accumulate.'; `rm _foo.py` -> exit_code=0 'OK: no unbaselined root-level _*.py files.'; force-added tracked _bar.py -> exit_code=1 (tracked-file path also covered). Baseline 29 files produce exit 0, so they do not trip it.\nThe CI hygiene step and 29-file baseline are committed and empirically verified: baseline passes (exit 0), a new root _foo.py fails (exit 1), and removal restores green.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-23T12:58:56.382620",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-23T12:58:56.399893+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 591,
+        "truncated": false,
+        "source": "git show e75ebd456d23"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 3022,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "GAP-057"
+  }
+}
