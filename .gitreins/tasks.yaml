@@ -522,3 +522,11 @@ tasks:
   status: complete
   created_at: '2026-09-23T08:54:34.196543+00:00'
   completed_at: '2026-09-23T09:24:47.851105+00:00'
+- id: GAP-055
+  title: FM#23 door-aware exit targeting for Oak's Lab map 40
+  criteria:
+  - 80-cycle run from data/boot.state fires battle_start WITHOUT the battle checkpoint;
+    map-40 targeting verified in decisions; gate twice (run-variance rule)
+  status: complete
+  created_at: '2026-09-23T10:31:08.243796+00:00'
+  completed_at: '2026-09-23T10:40:33.683297+00:00'
