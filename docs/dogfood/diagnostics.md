@@ -355,3 +355,50 @@ re-verified at L3, and the open P2 items.
    GAP-032..034 rows) + one event row to `events.jsonl` (actor=dogfood, id =
    max+1, e.g. 186). board.db/parquet are gitignored derived caches — the
    foreman resyncs them.
+
+## 2026-09-23 — the memory circuit, used for real (first use of MEM-1/MEM-2)
+
+**How the circuit actually works** (learned by running it, then reading the code):
+cron_runner.py builds a `BOOT MEMORY` system-prompt block ONCE per run
+(`_build_boot_memory_blocks`, cron_runner.py:1506) by reading four DuckBrain layers
+from `~/duckbrain/namespaces/pokemon-global/data/memories-*.jsonl`: MECHANICS
+(`/game/mechanics/*`), SAVE (`/game/save/party|items|location`), RUN HISTORY
+(`/game/runs/index` last-10), LEARNING (`/game/learning/*`). At end-of-run
+(`_record_run_memory`, cron_runner.py:1004) it appends the run summary + RAM truth
+back into the same JSONL store. The storage layer is a ~200-line JSONL client
+(src/core/duckbrain_client.py) — file-per-day, newest-file-first reads, tombstones
+honored.
+
+**Why it was built this way:** the agent's per-cycle prompt carries only live RAM
+state; anything learned in run N (party, position, run outcomes) was lost by run N+1.
+MEM-1/MEM-2 close that loop cheaply: no vector DB, no server — just JSONL appends the
+runner can read back in milliseconds at boot, with a 5000-char total budget so the
+injection can't inflate per-decision latency.
+
+**Errors hit in this run, and the right way:**
+1. `[MEM] save items skipped: no public item reader` on EVERY run — the recorder
+   probes ram_reader for read_items/read_inventory/inventory and none exists. The
+   MEM-2 SAVE block then boots with party+location only. Right way: this is an
+   honest degradation, but DF-AIPP-4 tracks implementing the reader or trimming the
+   promise.
+2. The run ladder is not trustworthy yet: `memory_events` is ALWAYS 0 because the
+   note/goal/study event dicts are written to the log file but never into `results`
+   (the in-memory list the recorder counts). `battle_events` is inflated because the
+   same battle is counted twice (nested state-window lists AND top-level transition
+   rows). Until DF-AIPP-1/2 land, judge the memory circuit by reading the JSONL —
+   the ladder numbers are decorative.
+3. `[MEM] boot injection: N chars` at run start is the only visible MEM-2 signal.
+   Absent = empty store (all four BOOT keys missing) — for run A that was correct
+   fresh-store behavior, NOT a bug. The 330 legacy `/game/save/current` records are
+   from the lost marathon driver and are unread by MEM-2 (DF-AIPP-5).
+4. The prompt's TOOL FILING map promises study→mechanics WRITES the code never does
+   (DF-AIPP-3). Two of the four PRD R3 layers can never fill from agent behavior
+   alone — the distillation writer simply doesn't exist yet.
+
+**Numbers:** cold boot ~107s, warm boot ~32s, ~6s/cycle warm, $0.42-0.45 per
+20-cycle run (27 LLM calls), install 54s on a fresh bunker box. Nothing slow enough
+to feel beyond one-time cold start.
+
+**Right way recap:** verify keys live first; judge runs by exit 0 + lock-rate < 50%
++ tiles + coords changing; judge the memory circuit by reading the JSONL store,
+never by the ladder; expect `[MEM] boot injection` only when the store has content.

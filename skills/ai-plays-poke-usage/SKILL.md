@@ -185,3 +185,38 @@ Outputs:
   (2026-08-27) 20/20, 24/24 API success, lock-rate 30%, 13 tiles; dogfood
   2026-08-26 20/20 ($0.35). 2026-09-09: 0/20 API success (expired key) —
   first post-T227 live-LLM evidence.
+
+
+## Memory circuit (MEM-1/MEM-2 - verified live 2026-09-23, first real use)
+
+The controller boots with a `BOOT MEMORY` block (four DuckBrain layers) and the
+end-of-run recorder appends run truth back into the store. Verified working
+end-to-end by two real runs (dgf_0923a/b):
+
+- **Store location:** `~/duckbrain/namespaces/pokemon-global/data/memories-<date>.jsonl`
+  (ns `pokemon-global`, hardcoded cron_runner.py:1209 - PRD R3 says `ai-plays-poke`;
+  trust the code, DF-AIPP-4). Plain JSONL appends - inspect with jq, no server.
+- **MEM-2 signal:** run start prints `[MEM] boot injection: N chars across M block
+  markers`. Absent = empty store (all four BOOT keys missing) - correct for a fresh
+  store, not a bug. Check the store before filing a bug.
+- **MEM-1 writes per run:** `/game/runs/<id>/summary`, `/game/save/party`,
+  `/game/save/location`, rolling `/game/runs/index` (last-10). `/game/save/items`
+  is skipped every run (`no public item reader` - the RAM reader has no inventory
+  method yet).
+- **Ladder numbers are decorative until DF-AIPP-1/2 land:** `memory_events` is
+  ALWAYS 0 (note/goal/study events never appended to `results`) and
+  `battle_events` is double-counted (nested lists + top-level rows). Judge the
+  memory circuit by READING the JSONL, never by the summary ladder.
+- **MECHANICS + LEARNING layers have no writer** (DF-AIPP-3): the prompt promises
+  `study -> /game/mechanics/*` but the study handler only reads; notes go to
+  `/notes/overworld-<cycle>` and are never distilled into `/game/learning/*`.
+- **`scripts/marathon_driver.py` does not exist in the repo** (DF-AIPP-5) - the
+  330 legacy `/game/save/current` records in the ns came from it (last: 09-19)
+  and MEM-2 does not read that key.
+
+**Perf numbers (2026-09-23, real use):** cold boot ~107s (venv+PyBoy+state load ->
+first decision), warm boot ~32s, ~6s/cycle warm (~3-6s of it LLM latency),
+$0.42-0.45 per 20-cycle run (27 LLM calls: ~$0.016-0.020 overworld, ~$0.012-0.017
+battle each), fresh bunker install 54s. Bunker leg 09-23: agent 19854d15,
+clone+venv+pip=54s, dry-run smoke honest-fails at the ROM wall (GAP-054) - correct
+behavior, no silent pass.
