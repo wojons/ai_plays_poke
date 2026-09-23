@@ -44,6 +44,13 @@ USE_RAM_READER = True   # True = RAM-based state reader (instant, free), False =
 # Lightweight argparse pass that runs BEFORE yaml/numpy/PIL/src.* are
 # imported, so `--dry-run` validates setup without booting the emulator
 # or spending LLM calls — even under bare python3 (stdlib only).
+#
+# GAP-048: presence is not liveness. An expired OPENROUTER_API_KEY used
+# to print "OPENROUTER_API_KEY=set" and exit 0, then 401 on every real
+# call. The precheck now probes each CONFIGURED key over stdlib urllib
+# (still no third-party import) and exits non-zero with the provider's
+# verbatim error when a key is dead; --skip-key-check restores the old
+# presence-only, offline behavior.
 
 
 def _load_dotenv_stdlib(env_path: Path | None = None) -> None:
@@ -112,19 +119,129 @@ def _warn_boot_state_rom_mismatch(
     )
 
 
+# ── API-key liveness probes (GAP-048) ───────────────────────────────
+# Pre-GAP-048 the dry-run reported key PRESENCE only, so an expired key
+# still printed "OPENROUTER_API_KEY=set" and exited 0 — the user then
+# burned a dead 20-cycle run on 401s. These probes stay in the
+# import-light path (stdlib urllib, imported lazily inside the probe):
+# HTTP 200 = live, anything else = dead, surfacing the provider's own
+# error text verbatim (e.g. "API key expired").
+
+_PROBE_TIMEOUT_SECONDS = 10.0
+
+# Only keys with a cheap, read-only status endpoint are probed. Keys that
+# are unset are never probed, so a key-less setup behaves as before.
+_KEY_PROBE_URLS: dict[str, str] = {
+    "OPENROUTER_API_KEY": "https://openrouter.ai/api/v1/key",
+    "DEEPSEEK_API_KEY": "https://api.deepseek.com/models",
+}
+
+
+def _extract_provider_error(body: str, status: int) -> str:
+    """Return the provider's verbatim error message from a non-200 response.
+
+    OpenRouter answers 401 with ``{"error": {"message": "API key expired"}}``.
+    Falls back to a bare ``message`` field, then the raw body, then the status
+    code — never invents text, so the user sees exactly what the provider said.
+    """
+    try:
+        payload: Any = json.loads(body)
+    except (ValueError, TypeError):
+        payload = None
+    if isinstance(payload, dict):
+        error = payload.get("error")
+        if isinstance(error, dict):
+            message = error.get("message")
+            if isinstance(message, str) and message.strip():
+                return message.strip()
+        if isinstance(error, str) and error.strip():
+            return error.strip()
+        message = payload.get("message")
+        if isinstance(message, str) and message.strip():
+            return message.strip()
+    text = body.strip()
+    if text:
+        return text[:300]
+    return f"HTTP {status}"
+
+
+def _probe_api_key(
+    name: str,
+    url: str,
+    key: str,
+    timeout: float = _PROBE_TIMEOUT_SECONDS,
+) -> tuple[bool, str]:
+    """Probe one configured provider key; return ``(live, message)`` (GAP-048).
+
+    GETs ``url`` with ``Bearer <key>`` and treats HTTP 200 as live. A non-200
+    response returns the provider's verbatim error; a network failure (DNS, no
+    route, timeout) returns the urllib error text. Either way the key value
+    itself is never printed. Stdlib ``urllib`` only — no new dependency.
+    """
+    import urllib.error
+    import urllib.request
+
+    request = urllib.request.Request(
+        url, headers={"Authorization": f"Bearer {key}"}, method="GET"
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            status = int(getattr(response, "status", 200))
+            body = response.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        try:
+            raw = exc.read().decode("utf-8", errors="replace")
+        except Exception:  # pragma: no cover - unreadable error body
+            raw = ""
+        return False, _extract_provider_error(raw, exc.code)
+    except Exception as exc:  # URLError (DNS/route/TLS) or a socket timeout
+        return False, str(exc) or exc.__class__.__name__
+    if status == 200:
+        return True, ""
+    return False, _extract_provider_error(body, status)
+
+
+def _check_configured_keys(skip: bool) -> list[tuple[str, str]]:
+    """Probe every CONFIGURED key and report the dead ones (GAP-048).
+
+    Returns ``[(key_name, verbatim_error), ...]`` for dead keys — empty when
+    every configured key is live, none is configured (no probes at all), or
+    the probes were skipped for offline validation.
+    """
+    if skip:
+        safe_print("  Key liveness:   skipped (--skip-key-check)")
+        return []
+    configured = [name for name in _KEY_PROBE_URLS if os.environ.get(name)]
+    if not configured:
+        safe_print("  Key liveness:   no configured keys to probe")
+        return []
+    dead: list[tuple[str, str]] = []
+    for name in configured:
+        live, message = _probe_api_key(name, _KEY_PROBE_URLS[name], os.environ[name])
+        if live:
+            safe_print(f"  Key liveness:   {name} live")
+        else:
+            safe_print(f"  Key liveness:   {name} DEAD — {message}")
+            dead.append((name, message))
+    return dead
+
+
 def _dry_run_summary(
     run_id_arg: str | None,
     cycles: int,
     boot_state_arg: str | None,
     rom_arg: str | None = None,
+    *,
+    skip_key_check: bool = False,
 ) -> int:
     """Validate ROM/boot-state paths and print the pipeline config summary.
 
     Shared by the early precheck (import time, before heavy imports) and
-    main() (defensive — the precheck normally exits first). Returns 0
-    when the setup validates; 1 when the ROM is missing (a real run
-    would crash at boot). Never boots the emulator and never makes an
-    LLM/API call.
+    main() (defensive — the precheck normally exits first). Returns 0 when the
+    setup validates; 1 when the ROM is missing (a real run would crash at boot)
+    or any CONFIGURED API key fails its liveness probe (GAP-048). Never boots
+    the emulator and never spends an LLM completion; the only network I/O is
+    the key-liveness GET, which ``skip_key_check`` turns off entirely.
     """
     _load_dotenv_stdlib()
     rom = rom_arg if rom_arg is not None else ROM  # resolved ROM (GAP-033 --rom)
@@ -136,7 +253,7 @@ def _dry_run_summary(
     else:
         boot_path = Path(boot_state_arg)
     safe_print("[DRY-RUN] cron_runner.py — setup validation "
-               "(no emulator boot, no LLM/API calls)")
+               "(no emulator boot, no LLM completions)")
     safe_print(f"  ROM path:       {rom}  [{'OK' if rom_ok else 'MISSING'}]")
     if boot_path is None:
         safe_print("  Boot state:     skip (legacy intro bypass)")
@@ -160,8 +277,14 @@ def _dry_run_summary(
         for k in ("OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY")
     )
     safe_print(f"  API keys:       {key_states}")
+    dead_keys = _check_configured_keys(skip_key_check)
+    errors: list[str] = []
     if not rom_ok:
-        safe_print(f"[DRY-RUN] ERROR: ROM not found at {rom} — a real run would crash at boot.")
+        errors.append(f"ROM not found at {rom} — a real run would crash at boot.")
+    errors.extend(f"{name} is dead — {message}" for name, message in dead_keys)
+    for message in errors:
+        safe_print(f"[DRY-RUN] ERROR: {message}")
+    if errors:
         return 1
     safe_print("[DRY-RUN] Validation OK — exiting 0.")
     return 0
@@ -171,12 +294,13 @@ def _dry_run_precheck(argv: list[str] | None = None) -> None:
     """Handle --dry-run at import time, before heavy third-party imports.
 
     Lightweight argparse pass that only knows the flags --dry-run needs.
-    Exits 0 (or 1 on a missing ROM) when --dry-run is present; otherwise
-    returns and normal execution proceeds. Malformed values are left for
-    the real parser in main() to report.
+    Exits 0 (or 1 on a missing ROM / dead configured API key) when
+    --dry-run is present; otherwise returns and normal execution proceeds.
+    Malformed values are left for the real parser in main() to report.
     """
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--skip-key-check", action="store_true")
     parser.add_argument("--run-id", default=None)
     parser.add_argument("--cycles", type=int, default=CYCLES)
     parser.add_argument("--boot-state", default=None)
@@ -187,7 +311,15 @@ def _dry_run_precheck(argv: list[str] | None = None) -> None:
         return
     if not args.dry_run:
         return
-    sys.exit(_dry_run_summary(args.run_id, args.cycles, args.boot_state, args.rom))
+    sys.exit(
+        _dry_run_summary(
+            args.run_id,
+            args.cycles,
+            args.boot_state,
+            args.rom,
+            skip_key_check=args.skip_key_check,
+        )
+    )
 
 
 _dry_run_precheck()
@@ -1728,8 +1860,17 @@ def _main_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help=(
-            "Validate setup (ROM + boot-state paths, config summary) and exit "
-            "0 — no emulator boot, no LLM/API calls (GAP-032)."
+            "Validate setup (ROM + boot-state paths, config summary, "
+            "API-key liveness) and exit 0 — no emulator boot, no LLM "
+            "completions (GAP-032, GAP-048)."
+        ),
+    )
+    parser.add_argument(
+        "--skip-key-check",
+        action="store_true",
+        help=(
+            "With --dry-run: skip the API-key liveness probes and report "
+            "key presence only (offline validation, pre-GAP-048 behavior)."
         ),
     )
     return parser
@@ -1743,7 +1884,15 @@ def main() -> None:
     if args.dry_run:
         # The import-time precheck normally exits first; this branch is a
         # defensive backstop for programmatic main() calls.
-        sys.exit(_dry_run_summary(args.run_id, max(1, args.cycles), args.boot_state, args.rom))
+        sys.exit(
+            _dry_run_summary(
+                args.run_id,
+                max(1, args.cycles),
+                args.boot_state,
+                args.rom,
+                skip_key_check=args.skip_key_check,
+            )
+        )
     if args.rom:
         ROM = args.rom
     CYCLES = max(1, args.cycles)

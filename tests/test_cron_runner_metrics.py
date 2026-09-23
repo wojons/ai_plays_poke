@@ -6,9 +6,28 @@ and _format_summary (per-run lock-rate fraction + distinct-tile count).
 
 from __future__ import annotations
 
+import io
+import json
+import urllib.error
+
 import pytest
 
 import cron_runner
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_api_keys(monkeypatch):
+    """Keep this module's tests off the network (GAP-048).
+
+    ``--dry-run`` probes each CONFIGURED API key over HTTP, and the repo-root
+    ``.env`` holds real keys that ``_load_dotenv_stdlib()`` copies into
+    ``os.environ`` — so a test that reaches ``_dry_run_summary`` would make a
+    real request. Neutralize the dotenv load and strip ambient keys; tests that
+    exercise the probes set their own keys and mock ``urllib.request.urlopen``.
+    """
+    monkeypatch.setattr(cron_runner, "_load_dotenv_stdlib", lambda: None)
+    for name in ("OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
 
 
 class TestResolveBootState:
@@ -86,7 +105,7 @@ class TestDryRun:
         assert "Cycles:" in out
         assert "Run ID:" in out
         assert "Model/provider:" in out
-        assert "no emulator boot, no LLM/API calls" in out
+        assert "no emulator boot, no LLM completions" in out
         assert "📡" not in out  # no API call lines
 
     def test_dry_run_reflects_cycles_run_id_and_boot_state(self, monkeypatch, capsys, tmp_path) -> None:
@@ -278,3 +297,206 @@ class TestBootStateRomMismatch:
         out = capsys.readouterr().out
         assert "WARNING:" in out and "POKEMON RED" in out
         assert "use --boot-state skip for non-Blue ROMs" in out
+
+
+class _FakeProbeResponse:
+    """Minimal urlopen() response stub: context manager + status/read."""
+
+    def __init__(self, status: int = 200, body: bytes = b"{}") -> None:
+        self.status = status
+        self._body = body
+
+    def read(self) -> bytes:
+        return self._body
+
+    def __enter__(self) -> "_FakeProbeResponse":
+        return self
+
+    def __exit__(self, *exc: object) -> bool:
+        return False
+
+
+class TestDryRunKeyLiveness:
+    """GAP-048: --dry-run probes CONFIGURED keys instead of trusting presence.
+
+    Pre-GAP-048 an expired OPENROUTER_API_KEY printed "OPENROUTER_API_KEY=set"
+    and exited 0, then 401'd on every real call — the user got "Validation OK"
+    followed by a dead 20-cycle run. Every test here mocks
+    ``urllib.request.urlopen``: the suite must never make a real HTTP request.
+    """
+
+    @pytest.fixture
+    def rom(self, monkeypatch, tmp_path) -> str:
+        """An existing ROM + boot state, so the ROM check can't mask the key result."""
+        path = tmp_path / "rom.gb"
+        path.write_bytes(b"x")
+        monkeypatch.setattr(cron_runner, "ROM", str(path))
+        monkeypatch.setattr(cron_runner, "DEFAULT_BOOT_STATE", tmp_path / "boot.state")
+        (tmp_path / "boot.state").write_bytes(b"x")
+        return str(path)
+
+    @staticmethod
+    def _http_error(request, status: int, body: dict | bytes):
+        """Build the HTTPError urlopen raises for a non-200 response."""
+        raw = body if isinstance(body, bytes) else json.dumps(body).encode()
+        return urllib.error.HTTPError(
+            request.full_url, status, "Unauthorized", None, io.BytesIO(raw)
+        )
+
+    def test_dead_openrouter_key_exits_nonzero_with_verbatim_provider_error(
+        self, rom, monkeypatch, capsys
+    ) -> None:
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-expired")
+
+        def fake_urlopen(request, timeout=None):
+            raise self._http_error(
+                request, 401, {"error": {"message": "API key expired"}}
+            )
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run"])
+        assert e.value.code == 1
+        out = capsys.readouterr().out
+        assert "OPENROUTER_API_KEY=set" in out  # presence still reported
+        assert "OPENROUTER_API_KEY DEAD — API key expired" in out
+        assert "[DRY-RUN] ERROR: OPENROUTER_API_KEY is dead — API key expired" in out
+        assert "Validation OK" not in out
+
+    def test_live_keys_exit_zero_and_send_bearer_auth(
+        self, rom, monkeypatch, capsys
+    ) -> None:
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-live")
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek-live")
+        seen: list[tuple[str, str | None]] = []
+
+        def fake_urlopen(request, timeout=None):
+            seen.append((request.full_url, request.get_header("Authorization")))
+            return _FakeProbeResponse()
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run"])
+        assert e.value.code == 0
+        out = capsys.readouterr().out
+        assert "OPENROUTER_API_KEY live" in out
+        assert "DEEPSEEK_API_KEY live" in out
+        assert "Validation OK — exiting 0." in out
+        assert {url for url, _ in seen} == set(cron_runner._KEY_PROBE_URLS.values())
+        assert {auth for _, auth in seen} == {
+            "Bearer sk-or-v1-live",
+            "Bearer sk-deepseek-live",
+        }
+
+    def test_skip_key_check_makes_no_network_call(
+        self, rom, monkeypatch, capsys
+    ) -> None:
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-expired")
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek-expired")
+
+        def boom(*args, **kwargs):
+            raise AssertionError("network call attempted despite --skip-key-check")
+
+        monkeypatch.setattr("urllib.request.urlopen", boom)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run", "--skip-key-check"])
+        assert e.value.code == 0
+        out = capsys.readouterr().out
+        assert "skipped (--skip-key-check)" in out
+        assert "Validation OK — exiting 0." in out
+
+    def test_dead_deepseek_key_probes_models_endpoint(
+        self, rom, monkeypatch, capsys
+    ) -> None:
+        monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek-expired")
+        urls: list[str] = []
+
+        def fake_urlopen(request, timeout=None):
+            urls.append(request.full_url)
+            raise self._http_error(
+                request,
+                401,
+                b'{"message": "Authentication Fails, Your api key is invalid"}',
+            )
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run"])
+        assert e.value.code == 1
+        out = capsys.readouterr().out
+        assert urls == [cron_runner._KEY_PROBE_URLS["DEEPSEEK_API_KEY"]]
+        assert "Authentication Fails, Your api key is invalid" in out
+        assert "DEEPSEEK_API_KEY is dead" in out
+
+    def test_network_error_is_dead_with_verbatim_error(
+        self, rom, monkeypatch, capsys
+    ) -> None:
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-whatever")
+
+        def fake_urlopen(request, timeout=None):
+            raise urllib.error.URLError(
+                "[Errno -3] Temporary failure in name resolution"
+            )
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run"])
+        assert e.value.code == 1
+        out = capsys.readouterr().out
+        assert "Temporary failure in name resolution" in out
+        assert "OPENROUTER_API_KEY is dead" in out
+
+    def test_no_configured_keys_never_probes(self, rom, monkeypatch, capsys) -> None:
+        def boom(*args, **kwargs):
+            raise AssertionError("network call attempted with no configured keys")
+
+        monkeypatch.setattr("urllib.request.urlopen", boom)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run"])
+        assert e.value.code == 0
+        out = capsys.readouterr().out
+        assert "no configured keys to probe" in out
+        assert "Validation OK — exiting 0." in out
+
+    def test_dead_key_and_missing_rom_report_both(
+        self, monkeypatch, capsys, tmp_path
+    ) -> None:
+        monkeypatch.setattr(cron_runner, "ROM", str(tmp_path / "nope.gb"))
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-expired")
+
+        def fake_urlopen(request, timeout=None):
+            raise self._http_error(
+                request, 401, {"error": {"message": "API key expired"}}
+            )
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+        with pytest.raises(SystemExit) as e:
+            cron_runner._dry_run_precheck(["--dry-run"])
+        assert e.value.code == 1
+        out = capsys.readouterr().out
+        assert "ERROR: ROM not found" in out
+        assert "ERROR: OPENROUTER_API_KEY is dead — API key expired" in out
+
+    def test_skip_key_check_flag_exposed_on_both_parsers(self) -> None:
+        assert (
+            cron_runner._main_parser().parse_args(["--dry-run"]).skip_key_check is False
+        )
+        parsed = cron_runner._main_parser().parse_args(
+            ["--dry-run", "--skip-key-check"]
+        )
+        assert parsed.skip_key_check is True
+        # The early (bare-python3) parser accepts it too, and without
+        # --dry-run the precheck still returns instead of exiting.
+        assert cron_runner._dry_run_precheck(["--skip-key-check"]) is None
+
+    def test_extract_provider_error_fallbacks(self) -> None:
+        extract = cron_runner._extract_provider_error
+        assert (
+            extract('{"error": {"message": "API key expired"}}', 401)
+            == "API key expired"
+        )
+        assert extract('{"error": "quota exceeded"}', 402) == "quota exceeded"
+        assert extract('{"message": "Bad request"}', 400) == "Bad request"
+        assert extract("plain text error", 500) == "plain text error"
+        assert extract("", 503) == "HTTP 503"
+

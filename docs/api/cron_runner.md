@@ -23,31 +23,47 @@ python3 cron_runner.py --run-id demo1 --cycles 80
 ```bash
 # Validate setup without booting the emulator or spending LLM calls
 python3 cron_runner.py --dry-run
+
+# Offline validation: report API-key presence only, no network probe
+python3 cron_runner.py --dry-run --skip-key-check
 ```
 
-`--dry-run` prints a pipeline config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence) and exits 0. It never boots the emulator and never makes an LLM/API call. Because the check runs before the heavy third-party imports, it also works under bare `python3` (no venv, no numpy/PIL). It exits 1 if the ROM is missing (a real run would crash at boot); a missing or explicitly bad boot-state path is reported as a warning with the intro-bypass fallback, matching runtime behavior.
+`--dry-run` prints a pipeline config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence) and exits 0 when the setup validates. It never boots the emulator and never spends an LLM completion. Because the check runs before the heavy third-party imports, it also works under bare `python3` (no venv, no numpy/PIL).
+
+It exits 1 when the setup cannot play:
+
+- the ROM is missing (a real run would crash at boot);
+- any **configured** API key fails its liveness probe (GAP-048) — the provider's own error text is printed verbatim, e.g. `ERROR: OPENROUTER_API_KEY is dead — API key expired`. Presence alone used to be reported as healthy, so an expired key passed validation and then 401'd on every call.
+
+A missing or explicitly bad boot-state path is reported as a warning with the intro-bypass fallback, matching runtime behavior. Pass `--skip-key-check` for offline validation: no probe is made and key presence is reported exactly as before GAP-048.
 
 ```text
-usage: cron_runner.py [-h] [--run-id RUN_ID] [--cycles CYCLES]
-                      [--boot-state BOOT_STATE] [--dry-run]
+usage: cron_runner.py [-h] [--run-id RUN_ID] [--cycles CYCLES] [--rom ROM]
+                      [--boot-state BOOT_STATE] [--dry-run] [--skip-key-check]
 
 Cron-friendly Pokemon AI runner with RAM reader / cartographer → controller
 pipeline. Flow: 1. Observe game state (RAM reader OR Gemma 12B cartographer)
-2. If overworld: controller (openai/gpt-5.6-luna via OpenRouter) reads spatial data → button
-plan 3. Execute plan with direction-locking detection, checkpoint rollback 4.
-Non-overworld: existing StateWindow flow
+2. If overworld: controller (openai/gpt-5.6-luna via OpenRouter) reads spatial
+data → button plan 3. Execute plan with direction-locking detection,
+checkpoint rollback 4. Non-overworld: existing StateWindow flow
 
 options:
   -h, --help            show this help message and exit
   --run-id RUN_ID
   --cycles CYCLES
+  --rom ROM             Path to the Gen-1 GB ROM to boot (default:
+                        data/rom/Pokemon - Blue Version (USA, Europe) (SGB
+                        Enhanced).gb).
   --boot-state BOOT_STATE
                         Path to a known-good .state checkpoint to boot from
                         instead of the intro bypass (default: data/boot.state
                         when present; 'skip' forces the legacy intro bypass).
   --dry-run             Validate setup (ROM + boot-state paths, config
-                        summary) and exit 0 — no emulator boot, no LLM/API
-                        calls (GAP-032).
+                        summary, API-key liveness) and exit 0 — no emulator
+                        boot, no LLM completions (GAP-032, GAP-048).
+  --skip-key-check      With --dry-run: skip the API-key liveness probes and
+                        report key presence only (offline validation, pre-
+                        GAP-048 behavior).
 ```
 
 ## CLI Flags
@@ -58,7 +74,8 @@ options:
 | `--run-id RUN_ID` | `str` | auto-generated `%Y%m%d_%H%M%S` timestamp | Label for this run. Sets the log path `cron_logs/run_<run-id>.jsonl` and the screenshot directory `screenshots/run_<run-id>/`. Reusing an id overwrites the previous log. |
 | `--cycles CYCLES` | `int` | `20` | Number of AI decision cycles to run. Clamped to a minimum of 1 (`CYCLES = max(1, args.cycles)`). |
 | `--boot-state BOOT_STATE` | `str` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass. `skip` forces the legacy intro bypass (title-screen A-mash). If the path does not exist, the runner falls back to the intro bypass with a warning. |
-| `--dry-run` | `flag` | `false` | Validate setup and print a config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence), then exit 0 — no emulator boot, no LLM/API calls. Runs before the heavy third-party imports, so it also works under bare `python3`. Exits 1 if the ROM is missing; a missing boot-state path is a warning (intro-bypass fallback), not an error. |
+| `--dry-run` | `flag` | `false` | Validate setup and print a config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence **and liveness** — GAP-048), then exit 0 — no emulator boot, no LLM completions. Runs before the heavy third-party imports, so it also works under bare `python3`. Exits 1 if the ROM is missing **or any configured API key fails its liveness probe** (the provider's error is printed verbatim); a missing boot-state path is a warning (intro-bypass fallback), not an error. |
+| `--skip-key-check` | `flag` | `false` | Offline validation: with `--dry-run`, skip the API-key liveness probes and report key presence only (pre-GAP-048 behavior). No network request is made. Ignored without `--dry-run`. |
 
 Runtime behavior is configured by module-level constants (not flags): `ROM` (default `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`), `DEFAULT_BOOT_STATE` (default `data/boot.state`), `USE_RAM_READER` (True = RAM reader, False = Gemma 12B cartographer), `HINT_LEVEL` (prompt hint depth, default 4 = navigation), `CART_STEPS` (controller actions per overworld cycle, default 6), and the checkpoint/recovery thresholds listed below.
 
@@ -225,6 +242,25 @@ Special cases:
 | `OPENAI_API_KEY` | Fallback | Used only if `OPENROUTER_API_KEY` is unset (OpenRouter rejects `sk-` OpenAI keys — `OPENROUTER_API_KEY` is preferred) |
 
 Copy `.env.example` to `.env` and fill in the key; the runner loads it at startup.
+
+### API-key liveness probe (`--dry-run`, GAP-048)
+
+`--dry-run` reports presence **and** liveness for each key that is set, using stdlib `urllib` (no extra dependency) and a 10-second timeout:
+
+| Key | Probe |
+|-----|-------|
+| `OPENROUTER_API_KEY` | `GET https://openrouter.ai/api/v1/key` |
+| `DEEPSEEK_API_KEY` | `GET https://api.deepseek.com/models` |
+
+Both are sent with `Authorization: Bearer <key>`. HTTP 200 means live; any other status (or a network error — no route, DNS failure, timeout) means dead, and the provider's own message is printed verbatim and the process exits 1:
+
+```text
+  API keys:       OPENROUTER_API_KEY=set · DEEPSEEK_API_KEY=not set · OPENAI_API_KEY=not set
+  Key liveness:   OPENROUTER_API_KEY DEAD — API key expired
+[DRY-RUN] ERROR: OPENROUTER_API_KEY is dead — API key expired
+```
+
+Keys that are unset are never probed, and `OPENAI_API_KEY` (the fallback key) is reported by presence only. The key value itself is never printed. Pass `--skip-key-check` to disable the probes entirely for offline validation.
 
 ## See Also
 
