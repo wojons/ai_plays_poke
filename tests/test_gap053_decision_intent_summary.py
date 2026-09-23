@@ -40,7 +40,10 @@ def _decision(raw: str) -> dict[str, Any]:
         "",
         "",
     )
-    assert client.calls == 1, "controller_plan made no LLM call"
+    # GAP-052 retries an answer that produced no plan exactly once, so an
+    # unreadable/unparseable body is 2 calls (same content here, so the
+    # intent classification below is unchanged); a clean plan is 1 call.
+    assert client.calls in (1, 2), f"controller_plan made {client.calls} LLM calls"
     return decision
 
 

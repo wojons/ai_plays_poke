@@ -7,7 +7,7 @@ Cron-friendly Pokémon AI runner — the README's sole recommended entry point f
 `cron_runner.py` is an end-to-end runner that boots the emulator, bypasses the intro, and plays Pokémon Blue autonomously. It reads game state directly from emulator RAM (instant, free) and spends LLM calls only on game decisions:
 
 1. **Observe** game state — RAM reader (default) OR Gemma 12B vision cartographer.
-2. **Overworld** — the controller model (`openai/gpt-5.6-luna` via OpenRouter) reads spatial data and outputs a button plan.
+2. **Overworld** — the controller model (`openai/gpt-5.6-luna` via OpenRouter by default; overridable with `--controller-model` / `CRON_CONTROLLER_MODEL`) reads spatial data and outputs a button plan.
 3. **Execute** the plan with direction-locking detection and checkpoint rollback.
 4. **Non-overworld** (battle, dialog, menu, name entry) — the existing StateWindow flow with `deepseek-v4-flash`.
 
@@ -40,6 +40,7 @@ A missing or explicitly bad boot-state path is reported as a warning with the in
 ```text
 usage: cron_runner.py [-h] [--run-id RUN_ID] [--cycles CYCLES] [--rom ROM]
                       [--boot-state BOOT_STATE] [--dry-run] [--skip-key-check]
+                      [--controller-model CONTROLLER_MODEL]
 
 Cron-friendly Pokemon AI runner with RAM reader / cartographer → controller
 pipeline. Flow: 1. Observe game state (RAM reader OR Gemma 12B cartographer)
@@ -64,6 +65,13 @@ options:
   --skip-key-check      With --dry-run: skip the API-key liveness probes and
                         report key presence only (offline validation, pre-
                         GAP-048 behavior).
+  --controller-model CONTROLLER_MODEL
+                        Model id for the overworld controller (default:
+                        openai/gpt-5.6-luna). Overrides the
+                        CRON_CONTROLLER_MODEL / POKE_CONTROLLER_MODEL env vars
+                        — e.g. '--controller-model deepseek-chat' sends the
+                        controller to api.deepseek.com via DEEPSEEK_API_KEY
+                        (GAP-052).
 ```
 
 ## CLI Flags
@@ -76,6 +84,7 @@ options:
 | `--boot-state BOOT_STATE` | `str` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass. `skip` forces the legacy intro bypass (title-screen A-mash). If the path does not exist, the runner falls back to the intro bypass with a warning. |
 | `--dry-run` | `flag` | `false` | Validate setup and print a config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence **and liveness** — GAP-048), then exit 0 — no emulator boot, no LLM completions. Runs before the heavy third-party imports, so it also works under bare `python3`. Exits 1 if the ROM is missing **or any configured API key fails its liveness probe** (the provider's error is printed verbatim); a missing boot-state path is a warning (intro-bypass fallback), not an error. |
 | `--skip-key-check` | `flag` | `false` | Offline validation: with `--dry-run`, skip the API-key liveness probes and report key presence only (pre-GAP-048 behavior). No network request is made. Ignored without `--dry-run`. |
+| `--controller-model CONTROLLER_MODEL` | `str` | `openai/gpt-5.6-luna` | Model id used by the overworld controller (GAP-052). Precedence: flag > `CRON_CONTROLLER_MODEL` > `POKE_CONTROLLER_MODEL` > default, so `--controller-model deepseek-chat` (or `CRON_CONTROLLER_MODEL=deepseek-chat`) points the controller at a provider that still works — any `*deepseek*` id routes direct to `api.deepseek.com` with `DEEPSEEK_API_KEY` instead of OpenRouter. The resolved model is printed at run start and in the `--dry-run` summary; leaving it unset is byte-identical to pre-GAP-052 behavior. |
 
 Runtime behavior is configured by module-level constants (not flags): `ROM` (default `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`), `DEFAULT_BOOT_STATE` (default `data/boot.state`), `USE_RAM_READER` (True = RAM reader, False = Gemma 12B cartographer), `HINT_LEVEL` (prompt hint depth, default 4 = navigation), `CART_STEPS` (controller actions per overworld cycle, default 6), and the checkpoint/recovery thresholds listed below.
 
@@ -98,7 +107,9 @@ Runtime behavior is configured by module-level constants (not flags): `ROM` (def
 
 ### 2. Overworld — controller plan
 
-The controller (`openai/gpt-5.6-luna` via OpenRouter, temperature 0.3, max_tokens 300, thinking disabled) receives a compact spatial summary (map name, player tile, facing, adjacent tiles, visible exits, screen text, suggested action) plus memory context (goal, notes, last dialog, study result) and outputs a JSON movement plan: `{"plan": ["UP","DOWN","A",...], "intent": "..."}` — max `CART_STEPS` (6) actions.
+The controller (`openai/gpt-5.6-luna` via OpenRouter, temperature 0.3, max_tokens 300, thinking disabled) receives a compact spatial summary (map name, player tile, facing, adjacent tiles, visible exits, screen text, suggested action) plus memory context (goal, notes, last dialog, study result) and outputs a JSON movement plan: `{"plan": ["UP","DOWN","A",...], "intent": "..."}` — max `CART_STEPS` (6) actions. The model is selectable (GAP-052): `--controller-model` / `CRON_CONTROLLER_MODEL` override the default, so a run can be pointed at `deepseek-chat` (which routes to `api.deepseek.com` on `DEEPSEEK_API_KEY`) when OpenRouter is out of credit.
+
+Response parsing is tolerant of provider noise (GAP-052): inline `<think>...</think>` blocks, bare `</think>`, `|end_of_thought|` end-of-turn markers and stray fragments after the closing brace are stripped, and the first *balanced* JSON object is parsed out of the remaining text. A DeepSeek-style answer therefore produces a real plan instead of the blind `["A"]` fallback; an answer that still yields no plan is retried **once** with a 100-token larger budget before falling back to `["A"]`.
 
 Before execution the plan passes through three deterministic filters:
 

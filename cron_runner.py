@@ -24,6 +24,7 @@ import sys
 import os
 import time
 import json
+import re
 import traceback
 import base64
 import io
@@ -39,6 +40,49 @@ DEFAULT_BOOT_STATE = Path("data/boot.state")  # known-good overworld checkpoint
 BOOT_STATE_ROM_TITLE = "POKEMON BLUE"  # data/boot.state was saved from the Blue SGB ROM (GAP-037)
 CYCLES = 20  # shared default with .coding-hermes/cron.sh (GAP-041); --cycles N overrides
 USE_RAM_READER = True   # True = RAM-based state reader (instant, free), False = Gemma 12B cartographer
+
+# ── Controller model (GAP-052) ──────────────────────────────────────
+# The controller model is selectable: --controller-model beats
+# CRON_CONTROLLER_MODEL beats POKE_CONTROLLER_MODEL (the GAP-049
+# minimal env hook) beats DEFAULT_CONTROLLER_MODEL. The default is the
+# original hardcoded string, so an invocation that passes neither flag
+# nor env sends a byte-identical request to the client. Any '*deepseek*'
+# model routes direct to api.deepseek.com via DEEPSEEK_API_KEY
+# (src/core/ai_client.py) — the working escape hatch when OpenRouter is
+# out of credit.
+DEFAULT_CONTROLLER_MODEL = "openai/gpt-5.6-luna"
+CONTROLLER_MODEL_ENV_VARS = ("CRON_CONTROLLER_MODEL", "POKE_CONTROLLER_MODEL")
+CONTROLLER_MAX_TOKENS = 300  # controller completion budget
+CONTROLLER_RETRY_TOKEN_BUMP = 100  # GAP-052(c): extra budget on the single parse retry
+
+
+def _controller_model_override(
+    flag_value: str | None = None,
+) -> tuple[str, str] | None:
+    """Return ``(model, source)`` for an explicit controller-model choice.
+
+    ``None`` when neither the flag nor an env var supplies one (blank
+    values count as unset, so ``--controller-model ""`` or an empty env
+    var falls through instead of sending an empty model name).
+    """
+    if flag_value is not None and flag_value.strip():
+        return flag_value.strip(), "flag --controller-model"
+    for name in CONTROLLER_MODEL_ENV_VARS:
+        value = os.environ.get(name)
+        if value is not None and value.strip():
+            return value.strip(), f"env {name}"
+    return None
+
+
+def resolve_controller_model(flag_value: str | None = None) -> str:
+    """Resolve the controller model: flag > env > ``DEFAULT_CONTROLLER_MODEL``.
+
+    Defined before the heavy imports so the --dry-run precheck can report
+    the model the run would actually use (GAP-052).
+    """
+    override = _controller_model_override(flag_value)
+    return override[0] if override is not None else DEFAULT_CONTROLLER_MODEL
+
 
 # ── --dry-run precheck (GAP-032) ────────────────────────────────────
 # Lightweight argparse pass that runs BEFORE yaml/numpy/PIL/src.* are
@@ -233,6 +277,7 @@ def _dry_run_summary(
     rom_arg: str | None = None,
     *,
     skip_key_check: bool = False,
+    controller_model: str | None = None,
 ) -> int:
     """Validate ROM/boot-state paths and print the pipeline config summary.
 
@@ -242,6 +287,10 @@ def _dry_run_summary(
     or any CONFIGURED API key fails its liveness probe (GAP-048). Never boots
     the emulator and never spends an LLM completion; the only network I/O is
     the key-liveness GET, which ``skip_key_check`` turns off entirely.
+
+    ``controller_model`` is the raw ``--controller-model`` value (GAP-052); the
+    reported model is the resolved one, and the line stays byte-identical to
+    the pre-GAP-052 text when neither flag nor env supplies an override.
     """
     _load_dotenv_stdlib()
     rom = rom_arg if rom_arg is not None else ROM  # resolved ROM (GAP-033 --rom)
@@ -268,7 +317,18 @@ def _dry_run_summary(
     safe_print(f"  Run ID:         {run_id_arg or time.strftime('%Y%m%d_%H%M%S')}")
     safe_print(f"  Pipeline:       {'RAM reader' if USE_RAM_READER else 'cartographer'} "
                f"(USE_RAM_READER={USE_RAM_READER!r})")
-    safe_print("  Model/provider: controller=openai/gpt-5.6-luna (OpenRouter) · "
+    # GAP-052: report the controller model the run would actually use. The
+    # no-override form is byte-identical to the pre-GAP-052 line.
+    _ctrl_override = _controller_model_override(controller_model)
+    _ctrl_model = resolve_controller_model(controller_model)
+    if _ctrl_override is None:
+        _ctrl_seg = f"controller={_ctrl_model} (OpenRouter)"
+    else:
+        _ctrl_seg = (
+            f"controller={_ctrl_override[0]} ({_ctrl_override[1]}; "
+            "*deepseek* models route direct to api.deepseek.com)"
+        )
+    safe_print(f"  Model/provider: {_ctrl_seg} · "
                "state_window=deepseek-v4-flash (api.deepseek.com when DEEPSEEK_API_KEY "
                "set, else OpenRouter) · cartographer=google/gemma-3-12b-it (only when "
                "USE_RAM_READER=False)")
@@ -305,6 +365,7 @@ def _dry_run_precheck(argv: list[str] | None = None) -> None:
     parser.add_argument("--cycles", type=int, default=CYCLES)
     parser.add_argument("--boot-state", default=None)
     parser.add_argument("--rom", default=None)
+    parser.add_argument("--controller-model", default=None)
     try:
         args, _ = parser.parse_known_args(argv)
     except SystemExit:
@@ -318,6 +379,7 @@ def _dry_run_precheck(argv: list[str] | None = None) -> None:
             args.boot_state,
             args.rom,
             skip_key_check=args.skip_key_check,
+            controller_model=args.controller_model,
         )
     )
 
@@ -901,6 +963,175 @@ def _extract_spatial_json(text: str) -> dict[str, Any]:
     return {"result": "unknown", "_parse_error": text[:500]}
 
 
+# ── Controller response parsing (GAP-052) ───────────────────────────
+# DeepSeek-family models emit their reasoning INLINE in the content string
+# ("<think>...</think>" blocks, bare "</think>", "|end_of_thought|" markers,
+# stray fragments after the closing brace), so json.loads() on the raw
+# content failed and every cycle degraded to a blind A-press. Strip the
+# noise, then take the first BALANCED JSON object — the old r"\{[^}]+\}"
+# regex truncated at the first "}" and missed nested objects entirely.
+_THINK_BLOCK_RE = re.compile(r"<think\b[^>]*>.*?</think\s*>", re.DOTALL | re.IGNORECASE)
+_THINK_TAG_RE = re.compile(r"</?think\b[^>]*>", re.IGNORECASE)
+_END_OF_TURN_RE = re.compile(r"\|\s*end[_a-z]*\s*\|", re.IGNORECASE)
+# Trailing fragment after the JSON object: only fires on a run that starts at
+# a marker character and contains no brace/quote-less JSON tail, so parsed
+# objects (always brace-terminated) are never truncated.
+_DIRTY_TAIL_RE = re.compile(
+    r"(?:<\|?|\|)\s*(?:end[_a-z]*|think)?[^<|{}]*$", re.IGNORECASE
+)
+
+
+def _mask_json_strings(text: str) -> str:
+    """Blank the bodies of double-quoted spans, keeping indexes and quotes.
+
+    Lets the marker passes below tell a JSON string *value* from the response
+    shell around it. An unbalanced quote (junk prose) simply leaves the rest of
+    the text unmasked, where markers are still stripped.
+    """
+    out = list(text)
+    in_string = False
+    escaped = False
+    for index, char in enumerate(out):
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+                continue
+            out[index] = "\x00"
+        elif char == '"':
+            in_string = True
+    return "".join(out)
+
+
+def _drop_marker_spans(text: str, pattern: re.Pattern[str]) -> str:
+    """Delete every ``pattern`` match that sits outside a JSON string literal.
+
+    A controller intent such as ``"intent": "walk to the |end| of the path"``
+    is data and must survive; a trailing ``|end_of_thought|`` after the closing
+    brace is transport noise and must not.
+    """
+    masked = _mask_json_strings(text)
+    spans = [(match.start(), match.end()) for match in pattern.finditer(masked)]
+    for start, end in reversed(spans):
+        text = text[:start] + text[end:]
+    return text
+
+
+def _strip_model_noise(text: str) -> str:
+    """Strip inline reasoning / end-of-turn tokens from a controller response.
+
+    DeepSeek-family models emit their thinking INLINE inside the content
+    string, which made ``json.loads`` fail and degraded every cycle to a
+    blind A-press (GAP-052). Removed here, in order:
+
+    - ``<think>...</think>`` blocks (inline or inside a ``` fence),
+    - bare ``</think>`` / ``<think>`` tags with no block,
+    - ``|end_of_thought|``-style end-of-turn markers,
+    - trailing stray/partial marker fragments left after the closing brace
+      (e.g. ``{"plan": ["UP"]} |end_of_th`` or a dangling ``<`` tail).
+
+    Only runs that start at a marker character and reach the end of the text
+    are dropped, and a JSON tail always ends with ``}`` — which the tail
+    pattern refuses — so brace-terminated JSON is never truncated.
+    """
+    if not text:
+        return ""
+    cleaned = _THINK_BLOCK_RE.sub("", text)
+    cleaned = _THINK_TAG_RE.sub("", cleaned)
+    # Marker passes are quote-aware: only markers in the shell around the JSON
+    # are removed, never a marker-shaped substring inside a JSON value.
+    cleaned = _drop_marker_spans(cleaned, _END_OF_TURN_RE)
+    cleaned = _drop_marker_spans(cleaned, _DIRTY_TAIL_RE)
+    return cleaned.strip()
+
+
+def _extract_first_json_object(text: str) -> str | None:
+    """Return the first *balanced* ``{...}`` object in ``text`` (else None).
+
+    Character scan with string/escape awareness: a ``}`` inside a JSON string
+    does not close the object, and nested objects are returned whole. The
+    previous ``\\{[^}]+\\}`` regex truncated at the first ``}`` and matched
+    nothing at all for a response whose plan object nests another object.
+    """
+    start = text.find("{")
+    while start != -1:
+        depth = 0
+        in_string = False
+        escaped = False
+        for index in range(start, len(text)):
+            char = text[index]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    return text[start:index + 1]
+        start = text.find("{", start + 1)
+    return None
+
+
+def _load_controller_payload(text: str) -> Any | None:
+    """Parse the JSON payload out of (noise-stripped) controller content.
+
+    Direct ``json.loads`` first, so a clean response parses exactly as it did
+    before; otherwise the first balanced object embedded in the content. The
+    parsed value is returned as-is (any JSON type, all fields intact — the
+    caller needs ``note`` / ``goal`` / ``study`` too), or ``None`` when
+    nothing parses.
+    """
+    candidate = text.strip()
+    if candidate:
+        try:
+            return json.loads(candidate)
+        except (json.JSONDecodeError, ValueError):
+            pass
+    obj = _extract_first_json_object(candidate)
+    if obj is None:
+        return None
+    try:
+        return json.loads(obj)
+    except (json.JSONDecodeError, ValueError):
+        return None
+
+
+def _interpret_controller_response(
+    text: str,
+) -> tuple[str, dict[str, Any] | None]:
+    """Classify a noise-stripped controller response body.
+
+    Kinds mirror the pre-GAP-052 branches one-for-one:
+
+    - ``plan`` — a ``{"plan": [...]}`` object (payload is the whole object);
+    - ``button`` — a legacy ``{"button": "UP"}`` object;
+    - ``unreadable`` — parseable JSON (or a non-object) carrying neither
+      field: a blind A-press labelled ``parse_fallback``;
+    - ``unparseable`` — no JSON value could be parsed at all: a blind
+      A-press labelled ``parse_failure_fallback``.
+    """
+    payload = _load_controller_payload(text)
+    if payload is None:
+        return "unparseable", None
+    if isinstance(payload, dict):
+        if "plan" in payload:
+            return "plan", payload
+        if "button" in payload:
+            return "button", payload
+    return "unreadable", None
+
+
 def controller_plan(
     client: OpenRouterClient,
     spatial_desc: dict[str, Any],
@@ -916,6 +1147,7 @@ def controller_plan(
     last_dialog: str = "",
     study_result: str = "",
     boot_memory: str = "",
+    model: str | None = None,
 ) -> dict[str, Any]:
     """Controller model (Luna via OpenRouter) outputs a movement PLAN.
 
@@ -936,7 +1168,20 @@ def controller_plan(
     prompt instead carries a text marker telling Luna this exact frame
     was already sent before, so it should rely on the spatial summary
     (identical visuals). Saves the image tokens on repeat sightings.
+
+    ``model`` (GAP-052) selects the controller model; ``None`` resolves
+    through ``resolve_controller_model()`` (env override, else the default
+    Luna string), so the request is unchanged when no override is set.
+    Response parsing strips inline reasoning tokens (``<think>`` blocks,
+    end-of-turn markers) and takes the first balanced JSON object before
+    falling back to a blind A-press; one retry with a larger completion
+    budget is made when the first answer yields no plan.
     """
+    # GAP-052: the model this call will use — explicit arg, else env override,
+    # else the default Luna string. A '*deepseek*' id routes to
+    # api.deepseek.com through the same client (src/core/ai_client.py).
+    resolved_model = resolve_controller_model(model)
+
     # Build a compact spatial summary string
     facing = spatial_desc.get("player_facing", "?")
     adj = spatial_desc.get("adjacent", {})
@@ -1055,48 +1300,45 @@ def controller_plan(
         user_content = msg
 
     response = client.chat_completion(
-        model=os.environ.get("POKE_CONTROLLER_MODEL", "openai/gpt-5.6-luna"),  # GAP-049: env-overridable; deepseek* routes direct via DEEPSEEK_API_KEY
+        model=resolved_model,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user_content},
         ],
         temperature=0.3,
-        max_tokens=300,
+        max_tokens=CONTROLLER_MAX_TOKENS,
         thinking={"type": "disabled"},
     )
 
-    text = response.get("content", "{}")
-    text = text.strip()
-    if text.startswith("```"):
-        lines = text.split("\n")
-        lines = lines[1:] if len(lines) > 1 else lines
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        text = "\n".join(lines)
+    text = _strip_model_noise(response.get("content") or "")
+    kind, payload = _interpret_controller_response(text)
+    if kind in ("unreadable", "unparseable"):
+        # GAP-052(c): ONE retry with a larger completion budget — a truncated
+        # or plan-less answer often completes on the second attempt. Exactly
+        # one retry, then the same blind A-press fallback as before.
+        retry = client.chat_completion(
+            model=resolved_model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_content},
+            ],
+            temperature=0.3,
+            max_tokens=CONTROLLER_MAX_TOKENS + CONTROLLER_RETRY_TOKEN_BUMP,
+            thinking={"type": "disabled"},
+        )
+        retry_text = _strip_model_noise(retry.get("content") or "")
+        if retry_text:
+            text = retry_text
+            kind, payload = _interpret_controller_response(text)
 
-    try:
-        result = json.loads(text)
-        # Accept both {"plan": [...]} and legacy {"button": "UP"} format
-        if "plan" in result:
-            result["raw_response"] = text
-            return result  # type: ignore[no-any-return]
-        if "button" in result:
-            return {"plan": [result["button"]], "intent": result.get("intent", ""), "raw_response": text}
+    if kind == "plan" and payload is not None:
+        payload["raw_response"] = text
+        return payload  # type: ignore[no-any-return]
+    if kind == "button" and payload is not None:
+        return {"plan": [payload["button"]], "intent": payload.get("intent", ""), "raw_response": text}
+    if kind == "unreadable":
         return {"plan": ["A"], "intent": "parse_fallback", "raw_response": text}
-    except json.JSONDecodeError:
-        import re
-        m = re.search(r'\{[^}]+\}', text)
-        if m:
-            try:
-                result = json.loads(m.group())
-                if "plan" in result:
-                    result["raw_response"] = text
-                    return result  # type: ignore[no-any-return]
-                if "button" in result:
-                    return {"plan": [result["button"]], "intent": result.get("intent", ""), "raw_response": text}
-            except json.JSONDecodeError:
-                pass
-        return {"plan": ["A"], "intent": "parse_failure_fallback", "raw_response": text}
+    return {"plan": ["A"], "intent": "parse_failure_fallback", "raw_response": text}
 
 
 # ── Main ────────────────────────────────────────────────────────────
@@ -1873,6 +2115,17 @@ def _main_parser() -> argparse.ArgumentParser:
             "key presence only (offline validation, pre-GAP-048 behavior)."
         ),
     )
+    parser.add_argument(
+        "--controller-model",
+        default=None,
+        help=(
+            "Model id for the overworld controller (default: "
+            "openai/gpt-5.6-luna). Overrides the CRON_CONTROLLER_MODEL / "
+            "POKE_CONTROLLER_MODEL env vars — e.g. "
+            "'--controller-model deepseek-chat' sends the controller to "
+            "api.deepseek.com via DEEPSEEK_API_KEY (GAP-052)."
+        ),
+    )
     return parser
 
 
@@ -1941,6 +2194,10 @@ def main() -> None:
     if USE_VISION_CLIENT:
         vision = VisionClient()  # noqa: F841 — conditionally enabled debug classifier
     controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
+    # GAP-052: flag > CRON_CONTROLLER_MODEL/POKE_CONTROLLER_MODEL > default
+    # Luna. Deepseek models reach their own API through this same client.
+    controller_model = resolve_controller_model(args.controller_model)
+    safe_print(f"[{run_id}] Controller model: {controller_model}")
 
     # ── Checkpoint / recovery state (STUCK-RECOVER) ─────────────────
     _checkpoint_slot: int = 0
@@ -2572,6 +2829,7 @@ def main() -> None:
                     last_dialog=_last_dialog_text,
                     study_result=_pending_study_result,
                     boot_memory=_boot_memory,  # MEM-2: built once at boot
+                    model=controller_model,  # GAP-052: flag/env-resolved
                 )
                 # Study result is injected once, then cleared
                 _pending_study_result = ""
