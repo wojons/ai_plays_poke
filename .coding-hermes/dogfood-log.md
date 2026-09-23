@@ -185,3 +185,52 @@ minor (all P2, none blocked use).
 **Artifacts left:** docs/dogfood/2026-08-26-integration.md (new),
 docs/dogfood/diagnostics.md (2026-08-26 section appended),
 skills/ai-plays-poke-usage/SKILL.md (v1.2.0 refresh).
+
+## Run 2026-09-23 (dogfood cron — MEM layer real-use surface)
+
+**Promise tested:** "A user can run autonomous Pokémon gameplay (cron_runner.py) whose
+controller boots with memory from previous runs (MEM-2) and records run truth to DuckBrain
+for future runs (MEM-1)."
+
+**Angle:** past runs (08-07/16/26, 09-09, 09-09b) swept CLI/cron/install surfaces. This run
+took the untouched surface: the memory layer (MEM-1/MEM-2, merged 09-23) — the first real
+USE of it, not tests.
+
+**What was done (real use, not tests):**
+1. Key liveness verified first (curl /models — the 09-09 lesson): LIVE (454 models).
+2. Run A `dgf_0923a --cycles 20`: exit 0, 25 actions, battle + win, 11 tiles, lock-rate
+   15%, $0.4236 (27 LLM calls), ~2min wall, boot 107s cold.
+3. Run B `dgf_0923b --cycles 20` (the MEM-2 decisive test): exit 0, 12 tiles, lock-rate
+   30%, $0.4462. **Boot injection fired: 322 chars — party (Charmander), location
+   (Oak's Lab 5,10), run-A digest** — cross-run memory PROVEN live.
+4. DuckBrain store verified after each run: /game/runs/<id>/summary, /game/save/party,
+   /game/save/location, /game/runs/index all written (JSONL, ns pokemon-global).
+5. Bunker fresh-install (las-bunker-03, agent 19854d15): clone + venv + pip = **54s**,
+   zero system deps; smoke (documented --dry-run) fails HONESTLY at the ROM wall
+   (exit 1) — the ROM wall (GAP-054) re-proven on a third independent fresh box.
+   Agent destroyed after test.
+
+**What the memory ladder gets WRONG (the value of this run):**
+- memory_events ALWAYS 0 (event rows never appended to `results`) — DF-AIPP-1 P1.
+- battle_events double-counted (nested + top-level) — DF-AIPP-2 P1.
+- MECHANICS/LEARNING layers have NO writer (prompt promises, code doesn't) — DF-AIPP-3 P2.
+- marathan_driver.py referenced by skills, absent from repo (330 stale records) — DF-AIPP-5 P2.
+
+**Verdict: 🟡 PROMISING-BUT-ROUGH.** The memory system's spine works end-to-end in real
+use (write → inject → run benefit), and runs are healthy; but every METRIC the recorder
+reports is wrong (memory_events=0 always, battle_events inflated), two of four boot
+layers can never fill from agent behavior, and docs/PRD promise shapes the code doesn't
+ship. Time-to-first-success: ~1min (dry-run) / ~2min (real run). Friction: 4 (2 P1
+metric bugs, 2 docs/PRD drift).
+
+**Board:** DF-AIPP-1..6 appended (6 rows), event 231, commit 6cd56d5 (board-only;
+. gitreins/duration_profiles dirt left to the running T231 tick).
+
+**Artifacts left:** docs/dogfood/2026-09-23-integration.md (new),
+docs/dogfood/diagnostics.md (2026-09-23 section), skills/ai-plays-poke-usage/SKILL.md
+(MEM layer section appended).
+
+**Install leg:** bunker proven (54s); smoke = honest fail (ROM wall), NOT silent.
+**Perf:** warm run ~2min/20 cycles (~6s/cycle incl. 3-6s LLM latency); cold boot 107s
+(venv+PyBoy+state load); install 54s; all numbers in DF rows. No user-noticeable
+slow path beyond the ROM wall → no PERF row beyond these headline numbers.
