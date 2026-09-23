@@ -422,7 +422,12 @@
     </main>
 
     <script>
-        const API_KEY = 'ptp-secret-key-12345';
+        // Dashboard API key: injected at serve time by the FastAPI app as
+        // window.ENV.PTP_API_KEY (see render_index_html in
+        // src/dashboard/main.py). No key is stored in this file — when the
+        // page is opened straight from disk the value is empty and the
+        // authenticated endpoints answer 401.
+        const API_KEY = (window.ENV && window.ENV.PTP_API_KEY) || '';
         let ws = null;
         let reconnectAttempts = 0;
         const maxReconnectAttempts = 5;

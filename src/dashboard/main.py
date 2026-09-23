@@ -11,6 +11,7 @@ Provides REST endpoints and WebSocket streaming for:
 
 import asyncio
 import base64
+import json
 import os
 import time
 from contextlib import asynccontextmanager
@@ -28,12 +29,33 @@ from fastapi import (
     Query,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 
 from src.db.database import GameDatabase
 from src.core.screenshot_manager import ScreenshotManager
 
 API_KEY = os.getenv("PTP_API_KEY", "ptp-secret-key-12345")
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+INDEX_HTML_PATH = STATIC_DIR / "index.html"
+
+
+def render_index_html(api_key: str) -> str:
+    """Return ``static/index.html`` with the runtime API key injected.
+
+    The dashboard authenticates every request with the ``X-API-Key`` header, so
+    the page needs the key — but a literal in a tracked asset is a credential in
+    source control (and a secrets-scanner finding). Resolve it at serve time
+    instead: ``window.ENV`` is injected into the ``<head>``, so the shipped file
+    carries no key and a deployment can rotate ``PTP_API_KEY`` without editing
+    HTML. ``static/index.html`` is written to degrade to an empty key when it is
+    opened straight from disk (uninjected), which leaves authenticated calls at
+    401 rather than falling back to a committed default.
+    """
+    html = INDEX_HTML_PATH.read_text(encoding="utf-8")
+    bootstrap = f"<script>window.ENV = {json.dumps({'PTP_API_KEY': api_key})};</script>"
+    return html.replace("</head>", f"    {bootstrap}\n</head>", 1)
+
 
 sessions: Dict[str, Dict[str, Any]] = {}
 connection_manager: Dict[str, WebSocket] = {}
@@ -211,8 +233,8 @@ def get_session(session_id: str = "default") -> DashboardSession:
 
 
 @app.get("/")
-async def root() -> FileResponse:
-    return FileResponse("src/dashboard/static/index.html")
+async def root() -> HTMLResponse:
+    return HTMLResponse(render_index_html(API_KEY))
 
 
 @app.get("/status")

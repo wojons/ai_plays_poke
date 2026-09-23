@@ -4,6 +4,8 @@ Uses FastAPI TestClient with mocked GameDatabase + ScreenshotManager.
 No ROM, no emulator, no real filesystem.
 """
 
+import json
+import re
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -441,3 +443,69 @@ class TestSessionsIntegration:
         client.post("/control/start?session_id=s2", headers=auth)
         sessions = client.get("/sessions", headers=auth).json()["sessions"]
         assert len(sessions) >= 2
+
+
+# ── Static asset + API key bootstrap (INT-GL-1) ─────────────────────────
+
+
+class TestStaticAssetHasNoApiKeyLiteral:
+    """The tracked dashboard asset must carry no credential literal.
+
+    ``src/dashboard/static/index.html`` shipped a default API key: a credential
+    in source control, and the exact shape the gitreins full-tree secrets scan
+    flags ("hardcoded API key"). The key is now injected at serve time as
+    ``window.ENV`` by ``render_index_html``.
+    """
+
+    # Mirrors the built-in scanner's "hardcoded API key" danger pattern.
+    LITERAL_KEY_PATTERN = (
+        r"""(?i)(api[_-]?key|apikey)\s*[:=]\s*["'][A-Za-z0-9_\-]{20,}["']"""
+    )
+
+    def test_pattern_still_matches_a_literal_key(self):
+        # Non-vacuity guard: the assertion below only means something while the
+        # pattern still matches the shape it exists to catch. The sample is
+        # assembled at runtime so no key-shaped literal lands in this file.
+        sample = "const API_KEY = '" + ("a1b2c3d4e5f6" * 2) + "';"
+        assert re.search(self.LITERAL_KEY_PATTERN, sample) is not None
+
+    def test_index_html_has_no_api_key_literal(self):
+        from src.dashboard.main import INDEX_HTML_PATH
+
+        html = INDEX_HTML_PATH.read_text(encoding="utf-8")
+        assert re.search(self.LITERAL_KEY_PATTERN, html) is None
+
+
+class TestApiKeyBootstrap:
+    """``GET /`` serves index.html with the runtime key injected."""
+
+    def test_render_injects_the_key_it_is_given(self):
+        from src.dashboard.main import render_index_html
+
+        body = render_index_html("unit-test-key")
+        assert json.dumps({"PTP_API_KEY": "unit-test-key"}) in body
+
+    def test_render_injects_into_head_before_the_app_script(self):
+        from src.dashboard.main import render_index_html
+
+        body = render_index_html("unit-test-key")
+        bootstrap_at = body.index("window.ENV = ")
+        assert bootstrap_at < body.index("</head>")
+        assert bootstrap_at < body.index("const API_KEY")
+
+    def test_render_preserves_the_page(self):
+        from src.dashboard.main import render_index_html
+
+        body = render_index_html("unit-test-key")
+        assert body.startswith("<!DOCTYPE html>")
+        assert body.rstrip().endswith("</html>")
+        assert body.count("</head>") == 1
+
+    def test_root_serves_the_injected_page(self, client):
+        from src.dashboard.main import API_KEY
+
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert resp.headers["content-type"].startswith("text/html")
+        assert json.dumps({"PTP_API_KEY": API_KEY}) in resp.text
+        assert resp.text.rstrip().endswith("</html>")
