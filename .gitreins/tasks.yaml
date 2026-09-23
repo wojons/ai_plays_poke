@@ -509,3 +509,16 @@ tasks:
   status: complete
   created_at: '2026-08-27T16:53:02.574905+00:00'
   completed_at: '2026-08-27T17:01:35.249277+00:00'
+- id: MEM-2
+  title: "Memory layers 2+4: boot injection \u2014 MECHANICS + SAVE-STATE + runs/index\
+    \ + LEARNING into controller prompt"
+  criteria:
+  - "Controller prompt at run boot includes bounded blocks for /game/mechanics/*,\
+    \ /game/save/*, /game/runs/index (last-10 digest), /game/learning/* from DuckBrain\
+    \ ns pokemon-global; missing keys degrade to '(none)' placeholders without failing\
+    \ the loop; prompt states the tool mapping (memory_study\u2192mechanics, memory_note\u2192\
+    run lessons+quests, memory_goal\u2192quests); unit test proves injection with\
+    \ a populated store and graceful no-op with an empty store"
+  status: complete
+  created_at: '2026-09-23T08:54:34.196543+00:00'
+  completed_at: '2026-09-23T09:24:47.851105+00:00'

@@ -1,0 +1,14 @@
+commit 549e577f7b80d5e578e358d6c66c6047e6cc9634
+Merge: 7bd1e30 1fe0d3c
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Sep 23 04:22:15 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Sep 23 04:22:15 2026 -0500
+
+    merge: MEM-2 boot injection (wt/mem2-boot-injection) into main
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ cron_runner.py                      | 382 ++++++++++++++++++++++++++++++++++++
+ tests/test_boot_memory_injection.py | 322 ++++++++++++++++++++++++++++++
+ 2 files changed, 704 insertions(+)

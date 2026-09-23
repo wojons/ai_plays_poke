@@ -1,0 +1,119 @@
+{
+  "task_id": "MEM-2",
+  "task_title": "Memory layers 2+4: boot injection \u2014 MECHANICS + SAVE-STATE + runs/index + LEARNING into controller prompt",
+  "task_criteria": [
+    "Controller prompt at run boot includes bounded blocks for /game/mechanics/*, /game/save/*, /game/runs/index (last-10 digest), /game/learning/* from DuckBrain ns pokemon-global; missing keys degrade to '(none)' placeholders without failing the loop; prompt states the tool mapping (memory_study\u2192mechanics, memory_note\u2192run lessons+quests, memory_goal\u2192quests); unit test proves injection with a populated store and graceful no-op with an empty store"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "549e577f7b80d5e578e358d6c66c6047e6cc9634",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T083748.393225Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:30AM INF scanned ~236359781 bytes (236.36 MB) in 10.3s\n4:30AM INF no leaks found\nsecrets: gitleaks: clean\nSecrets scan: 6 potential findings\nsecrets: builtin cross-check: Potential secrets found:\nreview_battlefix_win1.html:53: [AWS access key]           <img src=\"***\" alt=\"***\">\n.env.bak-20260923-021900:1: [OpenAI/OpenRouter API key] OPENROUTER_API_KEY=«redacted:OR-key»\n.env.bak-20260923-021900:2: [OpenAI/OpenRouter API key] DEEPSEEK_API_KEY=«redacted:api-key»\n.env:1: [OpenAI/OpenRouter API key] OPENROUTER_API_KEY=«redacted:OR-key»\n.env:2: [OpenAI/OpenRouter API key] DEEPSEEK_API_KEY=«redacted:api-key»\nsrc/dashboard/static/index.html:425: [hardcoded API key]         const API_KEY = \"***\";\nsecrets: builtin cross-check status: 6 findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T083748.393225Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 3969 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [422229 chars omitted \u2014 4726 line(s)] \u2026\ntest_bench_pathfinding_find_path               420.9869 (1.08)           3,707.0131 (1.0)             689.0607 (1.49)            759.4274 (4.03)            480.5042 (1.09)           129.9777 (3.33)          1;1  1,451,251.0134 (0.67)         18           1\ntest_bench_vision_pipeline_validate          7,483.9918 (19.19)         20,989.0131 (5.66)          8,185.3028 (17.72)           925.7187 (4.92)          7,955.0082 (18.04)          190.0189 (4.87)    1753;2450    122,170.1899 (0.06)      28245           1\ntest_bench_ram_reader_observe              919,330.9816 (>1000.0)  188,584,313.0003 (>1000.0)   1,898,765.9589 (>1000.0)  11,103,393.5085 (>1000.0)   1,081,246.0096 (>1000.0)    113,510.0028 (>1000.0)      5;38        526.6579 (0.00)        986           1\ntest_bench_vision_pipeline_process      37,003,381.9927 (>1000.0)   41,579,762.0080 (>1000.0)  38,661,828.5605 (>1000.0)   1,423,731.4824 (>1000.0)  38,249,799.0067 (>1000.0)  2,221,099.9741 (>1000.0)       7;0         25.8653 (0.00)         18           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 3955 passed, 14 skipped in 202.54s (0:03:22) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T083748.393225Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Controller prompt at run boot includes bounded blocks for /game/mechanics/*, /game/save/*, /game/runs/index (last-10 digest), /game/learning/* from DuckBrain ns pokemon-global; missing keys degrade to '(none)' placeholders without failing the loop; prompt states the tool mapping (memory_study\u2192mechanics, memory_note\u2192run lessons+quests, memory_goal\u2192quests); unit test proves injection with a populated store and graceful no-op with an empty store: All sub-requirements verified in cron_runner.py + tests/test_boot_memory_injection.py. (1) Namespace: cron_runner.py:1209 BOOT_MEMORY_NAMESPACE = \"pokemon-global\". (2) Keys: cron_runner.py:1210-1227 BOOT_MECHANICS_KEYS=(/game/mechanics/{controls,menus,battle,text}), BOOT_SAVE_KEYS=(/game/save/{party,items,location}), BOOT_LEARNING_KEYS=(/game/learning/{battle,navigation,strategy,self}), BOOT_RUNS_INDEX_KEY=\"/game/runs/index\". (3) Bounded: cron_runner.py:1229-1231 BOOT_VALUE_CHAR_CAP=240, BOOT_BLOCK_CHAR_CAP=1200, BOOT_TOTAL_CHAR_BUDGET=5000, enforced by _cap_boot_block (1485) / _cap_boot_payload (1492) / _format_memory_value (1269). (4) Last-10 digest: BOOT_RUNS_DIGEST_LIMIT=10 (1228) applied at _gather_runs_index cron_runner.py:1479 (runs[:BOOT_RUNS_DIGEST_LIMIT]). (5) Placeholders: cron_runner.py:1526-1531 sections render '(no mechanics recorded yet)' / '(no save-state recorded yet)' / '(no runs recorded yet)' / '(no learning recorded yet)' via _render_boot_block (1499). (6) No-fail degradation: cron_runner.py:1521-1523 try/except around the four gathers logs '[MEM] boot injection skipped: {exc}' and returns BootMemory(text=\"\", has_content=False); _boot_memory_prompt (1542) returns \"\" when has_content is False. (7) Tool mapping: cron_runner.py:864-870 'TOOL FILING' lines \u2014 '\"study\" \u2192 mechanics knowledge under /game/mechanics/*', '\"note\" \u2192 this run's lessons + the save-state quests', '\"goal\" \u2192 the save-state quests'. (8) Injection point: built once at boot cron_runner.py:1906 (_boot_memory = _boot_memory_prompt(_build_boot_memory_blocks())) and passed per cycle at cron_runner.py:2271 (boot_memory=_boot_memory); appended to system prompt at cron_runner.py:873-875 (system = f\"{system}\\n\\n{boot_memory}\"). (9) Tests: `./venv/bin/pytest tests/test_boot_memory_injection.py -v` \u2192 '10 passed in 1.26s' (exit 0), including test_boot_blocks_render_populated_store (populated store: mechanics/save/runs/learning lines asserted), test_boot_blocks_are_placeholders_on_empty_store (empty store \u2192 placeholders + _boot_memory_prompt == \"\"), test_runs_index_digest_is_capped_at_last_ten (15 runs \u2192 10 lines), test_boot_injection_failure_is_swallowed (OSError \u2192 text==\"\" + skip log), test_prompt_includes_blocks_only_when_nontrivial and test_prompt_assembly_matches_populated_store (prompt append-only equality, no leak into user message). Broader regression run `./venv/bin/pytest tests/test_boot_memory_injection.py tests/test_memory.py tests/test_memory_reader.py tests/test_cron_runner_metrics.py -q` \u2192 '140 passed in 10.52s' (exit 0). LSP diagnostics: 0 findings.\nMEM-2 boot injection is fully implemented and tested: the four DuckBrain pokemon-global layers are gathered once at run boot, bounded (240/1200/5000 chars, last-10 runs digest), rendered with '(none)'-style placeholders, failure-swallowed, injected into the controller system prompt with the study/note/goal tool-filing mapping, and proven by 10 passing unit tests (140 passing in the related regression subset).",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Controller prompt at run boot includes bounded blocks for /game/mechanics/*, /game/save/*, /game/runs/index (last-10 digest), /game/learning/* from DuckBrain ns pokemon-global; missing keys degrade to '(none)' placeholders without failing the loop; prompt states the tool mapping (memory_study\u2192mechanics, memory_note\u2192run lessons+quests, memory_goal\u2192quests); unit test proves injection with a populated store and graceful no-op with an empty store: All sub-requirements verified in cron_runner.py + tests/test_boot_memory_injection.py. (1) Namespace: cron_runner.py:1209 BOOT_MEMORY_NAMESPACE = \"pokemon-global\". (2) Keys: cron_runner.py:1210-1227 BOOT_MECHANICS_KEYS=(/game/mechanics/{controls,menus,battle,text}), BOOT_SAVE_KEYS=(/game/save/{party,items,location}), BOOT_LEARNING_KEYS=(/game/learning/{battle,navigation,strategy,self}), BOOT_RUNS_INDEX_KEY=\"/game/runs/index\". (3) Bounded: cron_runner.py:1229-1231 BOOT_VALUE_CHAR_CAP=240, BOOT_BLOCK_CHAR_CAP=1200, BOOT_TOTAL_CHAR_BUDGET=5000, enforced by _cap_boot_block (1485) / _cap_boot_payload (1492) / _format_memory_value (1269). (4) Last-10 digest: BOOT_RUNS_DIGEST_LIMIT=10 (1228) applied at _gather_runs_index cron_runner.py:1479 (runs[:BOOT_RUNS_DIGEST_LIMIT]). (5) Placeholders: cron_runner.py:1526-1531 sections render '(no mechanics recorded yet)' / '(no save-state recorded yet)' / '(no runs recorded yet)' / '(no learning recorded yet)' via _render_boot_block (1499). (6) No-fail degradation: cron_runner.py:1521-1523 try/except around the four gathers logs '[MEM] boot injection skipped: {exc}' and returns BootMemory(text=\"\", has_content=False); _boot_memory_prompt (1542) returns \"\" when has_content is False. (7) Tool mapping: cron_runner.py:864-870 'TOOL FILING' lines \u2014 '\"study\" \u2192 mechanics knowledge under /game/mechanics/*', '\"note\" \u2192 this run's lessons + the save-state quests', '\"goal\" \u2192 the save-state quests'. (8) Injection point: built once at boot cron_runner.py:1906 (_boot_memory = _boot_memory_prompt(_build_boot_memory_blocks())) and passed per cycle at cron_runner.py:2271 (boot_memory=_boot_memory); appended to system prompt at cron_runner.py:873-875 (system = f\"{system}\\n\\n{boot_memory}\"). (9) Tests: `./venv/bin/pytest tests/test_boot_memory_injection.py -v` \u2192 '10 passed in 1.26s' (exit 0), including test_boot_blocks_render_populated_store (populated store: mechanics/save/runs/learning lines asserted), test_boot_blocks_are_placeholders_on_empty_store (empty store \u2192 placeholders + _boot_memory_prompt == \"\"), test_runs_index_digest_is_capped_at_last_ten (15 runs \u2192 10 lines), test_boot_injection_failure_is_swallowed (OSError \u2192 text==\"\" + skip log), test_prompt_includes_blocks_only_when_nontrivial and test_prompt_assembly_matches_populated_store (prompt append-only equality, no leak into user message). Broader regression run `./venv/bin/pytest tests/test_boot_memory_injection.py tests/test_memory.py tests/test_memory_reader.py tests/test_cron_runner_metrics.py -q` \u2192 '140 passed in 10.52s' (exit 0). LSP diagnostics: 0 findings.\nMEM-2 boot injection is fully implemented and tested: the four DuckBrain pokemon-global layers are gathered once at run boot, bounded (240/1200/5000 chars, last-10 runs digest), rendered with '(none)'-style placeholders, failure-swallowed, injected into the controller system prompt with the study/note/goal tool-filing mapping, and proven by 10 passing unit tests (140 passing in the related regression subset).",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Controller prompt at run boot includes bounded blocks for /game/mechanics/*, /game/save/*, /game/runs/index (last-10 digest), /game/learning/* from DuckBrain ns pokemon-global; missing keys degrade to '(none)' placeholders without failing the loop; prompt states the tool mapping (memory_study\u2192mechanics, memory_note\u2192run lessons+quests, memory_goal\u2192quests); unit test proves injection with a populated store and graceful no-op with an empty store",
+                "status": "PASS",
+                "detail": "All sub-requirements verified in cron_runner.py + tests/test_boot_memory_injection.py. (1) Namespace: cron_runner.py:1209 BOOT_MEMORY_NAMESPACE = \"pokemon-global\". (2) Keys: cron_runner.py:1210-1227 BOOT_MECHANICS_KEYS=(/game/mechanics/{controls,menus,battle,text}), BOOT_SAVE_KEYS=(/game/save/{party,items,location}), BOOT_LEARNING_KEYS=(/game/learning/{battle,navigation,strategy,self}), BOOT_RUNS_INDEX_KEY=\"/game/runs/index\". (3) Bounded: cron_runner.py:1229-1231 BOOT_VALUE_CHAR_CAP=240, BOOT_BLOCK_CHAR_CAP=1200, BOOT_TOTAL_CHAR_BUDGET=5000, enforced by _cap_boot_block (1485) / _cap_boot_payload (1492) / _format_memory_value (1269). (4) Last-10 digest: BOOT_RUNS_DIGEST_LIMIT=10 (1228) applied at _gather_runs_index cron_runner.py:1479 (runs[:BOOT_RUNS_DIGEST_LIMIT]). (5) Placeholders: cron_runner.py:1526-1531 sections render '(no mechanics recorded yet)' / '(no save-state recorded yet)' / '(no runs recorded yet)' / '(no learning recorded yet)' via _render_boot_block (1499). (6) No-fail degradation: cron_runner.py:1521-1523 try/except around the four gathers logs '[MEM] boot injection skipped: {exc}' and returns BootMemory(text=\"\", has_content=False); _boot_memory_prompt (1542) returns \"\" when has_content is False. (7) Tool mapping: cron_runner.py:864-870 'TOOL FILING' lines \u2014 '\"study\" \u2192 mechanics knowledge under /game/mechanics/*', '\"note\" \u2192 this run's lessons + the save-state quests', '\"goal\" \u2192 the save-state quests'. (8) Injection point: built once at boot cron_runner.py:1906 (_boot_memory = _boot_memory_prompt(_build_boot_memory_blocks())) and passed per cycle at cron_runner.py:2271 (boot_memory=_boot_memory); appended to system prompt at cron_runner.py:873-875 (system = f\"{system}\\n\\n{boot_memory}\"). (9) Tests: `./venv/bin/pytest tests/test_boot_memory_injection.py -v` \u2192 '10 passed in 1.26s' (exit 0), including test_boot_blocks_render_populated_store (populated store: mechanics/save/runs/learning lines asserted), test_boot_blocks_are_placeholders_on_empty_store (empty store \u2192 placeholders + _boot_memory_prompt == \"\"), test_runs_index_digest_is_capped_at_last_ten (15 runs \u2192 10 lines), test_boot_injection_failure_is_swallowed (OSError \u2192 text==\"\" + skip log), test_prompt_includes_blocks_only_when_nontrivial and test_prompt_assembly_matches_populated_store (prompt append-only equality, no leak into user message). Broader regression run `./venv/bin/pytest tests/test_boot_memory_injection.py tests/test_memory.py tests/test_memory_reader.py tests/test_cron_runner_metrics.py -q` \u2192 '140 passed in 10.52s' (exit 0). LSP diagnostics: 0 findings."
+              }
+            ],
+            "summary": "MEM-2 boot injection is fully implemented and tested: the four DuckBrain pokemon-global layers are gathered once at run boot, bounded (240/1200/5000 chars, last-10 runs digest), rendered with '(none)'-style placeholders, failure-swallowed, injected into the controller system prompt with the study/note/goal tool-filing mapping, and proven by 10 passing unit tests (140 passing in the related regression subset)."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: MEM-2\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Controller prompt at run boot includes bounded blocks for /game/mechanics/*, /game/save/*, /game/runs/index (last-10 digest), /game/learning/* from DuckBrain ns pokemon-global; missing keys degrade to '(none)' placeholders without failing the loop; prompt states the tool mapping (memory_study\u2192mechanics, memory_note\u2192run lessons+quests, memory_goal\u2192quests); unit test proves injection with a populated store and graceful no-op with an empty store: All sub-requirements verified in cron_runner.py + tests/test_boot_memory_injection.py. (1) Namespace: cron_runner.py:1209 BOOT_MEMORY_NAMESPACE = \"pokemon-global\". (2) Keys: cron_runner.py:1210-1227 BOOT_MECHANICS_KEYS=(/game/mechanics/{controls,menus,battle,text}), BOOT_SAVE_KEYS=(/game/save/{party,items,location}), BOOT_LEARNING_KEYS=(/game/learning/{battle,navigation,strategy,self}), BOOT_RUNS_INDEX_KEY=\"/game/runs/index\". (3) Bounded: cron_runner.py:1229-1231 BOOT_VALUE_CHAR_CAP=240, BOOT_BLOCK_CHAR_CAP=1200, BOOT_TOTAL_CHAR_BUDGET=5000, enforced by _cap_boot_block (1485) / _cap_boot_payload (1492) / _format_memory_value (1269). (4) Last-10 digest: BOOT_RUNS_DIGEST_LIMIT=10 (1228) applied at _gather_runs_index cron_runner.py:1479 (runs[:BOOT_RUNS_DIGEST_LIMIT]). (5) Placeholders: cron_runner.py:1526-1531 sections render '(no mechanics recorded yet)' / '(no save-state recorded yet)' / '(no runs recorded yet)' / '(no learning recorded yet)' via _render_boot_block (1499). (6) No-fail degradation: cron_runner.py:1521-1523 try/except around the four gathers logs '[MEM] boot injection skipped: {exc}' and returns BootMemory(text=\"\", has_content=False); _boot_memory_prompt (1542) returns \"\" when has_content is False. (7) Tool mapping: cron_runner.py:864-870 'TOOL FILING' lines \u2014 '\"study\" \u2192 mechanics knowledge under /game/mechanics/*', '\"note\" \u2192 this run's lessons + the save-state quests', '\"goal\" \u2192 the save-state quests'. (8) Injection point: built once at boot cron_runner.py:1906 (_boot_memory = _boot_memory_prompt(_build_boot_memory_blocks())) and passed per cycle at cron_runner.py:2271 (boot_memory=_boot_memory); appended to system prompt at cron_runner.py:873-875 (system = f\"{system}\\n\\n{boot_memory}\"). (9) Tests: `./venv/bin/pytest tests/test_boot_memory_injection.py -v` \u2192 '10 passed in 1.26s' (exit 0), including test_boot_blocks_render_populated_store (populated store: mechanics/save/runs/learning lines asserted), test_boot_blocks_are_placeholders_on_empty_store (empty store \u2192 placeholders + _boot_memory_prompt == \"\"), test_runs_index_digest_is_capped_at_last_ten (15 runs \u2192 10 lines), test_boot_injection_failure_is_swallowed (OSError \u2192 text==\"\" + skip log), test_prompt_includes_blocks_only_when_nontrivial and test_prompt_assembly_matches_populated_store (prompt append-only equality, no leak into user message). Broader regression run `./venv/bin/pytest tests/test_boot_memory_injection.py tests/test_memory.py tests/test_memory_reader.py tests/test_cron_runner_metrics.py -q` \u2192 '140 passed in 10.52s' (exit 0). LSP diagnostics: 0 findings.\nMEM-2 boot injection is fully implemented and tested: the four DuckBrain pokemon-global layers are gathered once at run boot, bounded (240/1200/5000 chars, last-10 runs digest), rendered with '(none)'-style placeholders, failure-swallowed, injected into the controller system prompt with the study/note/goal tool-filing mapping, and proven by 10 passing unit tests (140 passing in the related regression subset).\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-23T09:41:33.961495",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-23T09:41:33.976189+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 625,
+        "truncated": false,
+        "source": "git show 549e577f7b80"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 2124,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "MEM-2"
+  }
+}
