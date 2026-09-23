@@ -783,12 +783,18 @@ def controller_plan(
     notes: str = "",
     last_dialog: str = "",
     study_result: str = "",
+    boot_memory: str = "",
 ) -> dict[str, Any]:
     """Controller model (Luna via OpenRouter) outputs a movement PLAN.
 
     Now takes the cartographer's spatial JSON directly (adjacent tiles,
     visible_exits, player_facing, suggested_action) instead of an ASCII
     tile map. The model gets richer, more accurate spatial info.
+
+    ``boot_memory`` (MEM-2) is the once-per-run BOOT MEMORY block built by
+    ``_build_boot_memory_blocks()`` and appended to the system prompt; it is
+    empty for a fresh store, in which case the prompt is byte-identical to
+    the pre-MEM-2 form apart from the tool-filing lines.
 
     When `screenshot` is provided, the live game frame is attached as an
     image so Luna can use its own vision to see the screen.
@@ -855,7 +861,18 @@ def controller_plan(
         '  "study": a memory key to read next cycle, e.g. "/maps/oaks-lab" or "/guides/how-battles-work".\n'
         "- Use note/goal/study when you learn something — memory is how you win.\n"
         "- NEVER guess: read text, note what it says, act on it.\n"
+        "TOOL FILING (where each output field is filed):\n"
+        '- "study" → mechanics knowledge under /game/mechanics/* '
+        "(the game itself; survives save resets).\n"
+        '- "note" → this run\'s lessons + the save-state quests '
+        "(an in-run observation).\n"
+        '- "goal" → the save-state quests (your current intent).\n'
     )
+
+    # MEM-2 boot injection: the run-start memory blocks ride in the system
+    # prompt (built once by the caller), never in the per-cycle user message.
+    if boot_memory:
+        system = f"{system}\n\n{boot_memory}"
 
     blocked_msg = ""
     if blocked_dir and blocked_count >= 2:
@@ -1178,6 +1195,357 @@ def _record_run_memory(
         )
     except Exception as exc:
         safe_print(f"[MEM] recorder failed: {exc}")
+
+
+# ── Boot memory injection (MEM-2, PRD_v2_lifecycle.md §R3) ──────────
+# `_record_run_memory()` above is the WRITER (layers 1+3 as they land in
+# DuckBrain ns `pokemon-global`); this half is the READER. At run boot it
+# gathers mechanics / save-state / runs-index / learning and renders the
+# compact "BOOT MEMORY" block that rides in the controller system prompt
+# for every cycle. Reads are read-only and offline-safe (the client
+# returns None/[] for missing keys), and any failure degrades to "no boot
+# memory" rather than failing the run.
+
+BOOT_MEMORY_NAMESPACE = "pokemon-global"  # matches MEM-1's writer namespace
+BOOT_MECHANICS_KEYS: tuple[str, ...] = (
+    "/game/mechanics/controls",
+    "/game/mechanics/menus",
+    "/game/mechanics/battle",
+    "/game/mechanics/text",
+)
+BOOT_SAVE_KEYS: tuple[str, ...] = (
+    "/game/save/party",
+    "/game/save/items",
+    "/game/save/location",
+)
+BOOT_LEARNING_KEYS: tuple[str, ...] = (
+    "/game/learning/battle",
+    "/game/learning/navigation",
+    "/game/learning/strategy",
+    "/game/learning/self",
+)
+BOOT_RUNS_INDEX_KEY = "/game/runs/index"
+BOOT_RUNS_DIGEST_LIMIT = 10  # last-10 digest (matches MEM-1's rolling cap)
+BOOT_VALUE_CHAR_CAP = 240  # per attribute value, before line assembly
+BOOT_BLOCK_CHAR_CAP = 1200  # per-block render cap
+BOOT_TOTAL_CHAR_BUDGET = 5000  # whole payload cap (per-decision latency guard)
+BOOT_BODY_FIRST_ATTR_KEYS: tuple[str, ...] = (
+    "fact",
+    "text",
+    "body",
+    "lesson",
+    "summary",
+    "content",
+    "value",
+    "description",
+    "detail",
+)
+BOOT_SKIP_ATTR_KEYS = frozenset(
+    {"id", "status", "created_at", "ts", "source", "cycle", "run_id", "probe"}
+)
+
+
+@dataclass
+class BootMemory:
+    """Rendered boot-memory payload (MEM-2) + whether it carries real data."""
+
+    text: str
+    has_content: bool
+
+
+def _as_int(value: Any, default: int = 0) -> int:
+    """Tolerant int coercion — DuckBrain records are free-form JSON."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _collapse_ws(text: str) -> str:
+    """Collapse any run of whitespace to one space (single-line rendering)."""
+    return " ".join(str(text).split())
+
+
+def _format_memory_value(value: Any, limit: int = BOOT_VALUE_CHAR_CAP) -> str:
+    """Render one attribute value as compact single-line text."""
+    if isinstance(value, bool):
+        text = "true" if value else "false"
+    elif isinstance(value, (int, float)):
+        text = str(value)
+    elif isinstance(value, str):
+        text = value
+    elif isinstance(value, (list, tuple)):
+        parts = [_format_memory_value(item, limit) for item in value]
+        text = "; ".join(part for part in parts if part)
+    else:
+        try:
+            text = json.dumps(value, default=str, sort_keys=True)
+        except (TypeError, ValueError):
+            text = str(value)
+    text = _collapse_ws(text)
+    if len(text) > limit:
+        text = text[: limit - 3].rstrip() + "..."
+    return text
+
+
+def _compact_memory_attributes(attributes: Any) -> str:
+    """Flatten one record's attributes into a compact single-line body.
+
+    Body-first keys (``fact``, ``text``, ...) render bare — they ARE the
+    fact; everything else renders as ``key=value`` so the model can tell a
+    party count from a map name.
+    """
+    if not isinstance(attributes, dict) or not attributes:
+        return ""
+    chunks: list[str] = []
+    for key in BOOT_BODY_FIRST_ATTR_KEYS:
+        if key in attributes:
+            rendered = _format_memory_value(attributes[key])
+            if rendered:
+                chunks.append(rendered)
+    for key in sorted(attributes):
+        if key in BOOT_BODY_FIRST_ATTR_KEYS or key in BOOT_SKIP_ATTR_KEYS:
+            continue
+        rendered = _format_memory_value(attributes[key])
+        if rendered:
+            chunks.append(f"{key}={rendered}")
+    return " | ".join(chunks)
+
+
+def _memory_record_body(record: dict[str, Any]) -> str:
+    """Generic record body: compact attributes, else the embedding text."""
+    body = _compact_memory_attributes(record.get("attributes"))
+    if not body:
+        body = _collapse_ws(str(record.get("embedding_text", "")))
+    return body
+
+
+def _get_boot_record(client: Any, key: str) -> dict[str, Any] | None:
+    """Read one DuckBrain key; None when absent (or empty)."""
+    record = client.get(key=key, namespace=BOOT_MEMORY_NAMESPACE)
+    return record if isinstance(record, dict) and record else None
+
+
+def _gather_memory_entries(client: Any, keys: tuple[str, ...]) -> list[str]:
+    """One rendered line per present mechanics / learning key."""
+    lines: list[str] = []
+    for key in keys:
+        record = _get_boot_record(client, key)
+        if record is None:
+            continue
+        body = _memory_record_body(record)
+        if body:
+            lines.append(f"- {key}: {body}")
+    return lines
+
+
+def _render_save_party(record: dict[str, Any]) -> str:
+    """Party line from MEM-1's RAM-truth ``{party_count, species_hint}``."""
+    attributes = record.get("attributes") or {}
+    count = attributes.get("party_count")
+    species = attributes.get("species_hint")
+    if count is None and not species:
+        return _memory_record_body(record)
+    text = f"{_as_int(count)} party member(s)"
+    if species:
+        text += f"; first species {_collapse_ws(str(species))}"
+    return text
+
+
+def _render_save_items(record: dict[str, Any]) -> str:
+    """Items line from MEM-1's ``{items: [...]}`` (dicts or plain names)."""
+    attributes = record.get("attributes") or {}
+    items = attributes.get("items")
+    if items is None:
+        return _memory_record_body(record)
+    if isinstance(items, list) and items:
+        if all(isinstance(item, str) for item in items):
+            return "; ".join(
+                f"{name} x{count}" for name, count in sorted(Counter(items).items())
+            )
+        rendered: list[str] = []
+        for item in items:
+            if isinstance(item, dict):
+                name = item.get("name") or item.get("item") or "?"
+                count = item.get("count", item.get("quantity"))
+                rendered.append(
+                    f"{name} x{_as_int(count)}" if count is not None else str(name)
+                )
+            else:
+                rendered.append(_format_memory_value(item))
+        return "; ".join(part for part in rendered if part)
+    if isinstance(items, dict) and items:
+        return "; ".join(f"{name} x{_as_int(count)}" for name, count in items.items())
+    if isinstance(items, list):
+        return "(none)"
+    return _format_memory_value(items)
+
+
+def _render_save_location(record: dict[str, Any]) -> str:
+    """Location line from MEM-1's ``{map_id, map_name, pos:{x, y}}``."""
+    attributes = record.get("attributes") or {}
+    name = attributes.get("map_name")
+    map_id = attributes.get("map_id")
+    pos = attributes.get("pos")
+    if name is None and map_id is None and pos is None:
+        return _memory_record_body(record)
+    text = _collapse_ws(str(name or "unknown map"))
+    if map_id is not None:
+        text += f" (map {map_id})"
+    if isinstance(pos, dict):
+        x, y = pos.get("x"), pos.get("y")
+        if x is not None and y is not None:
+            text += f" at {x},{y}"
+    elif isinstance(pos, (list, tuple)) and len(pos) == 2:
+        text += f" at {pos[0]},{pos[1]}"
+    return text
+
+
+def _gather_save_state(client: Any) -> list[str]:
+    """Rendered SAVE-STATE lines: party, items, location (whichever exist)."""
+    renderers = (_render_save_party, _render_save_items, _render_save_location)
+    lines: list[str] = []
+    for label, key, renderer in zip(
+        ("party", "items", "location"), BOOT_SAVE_KEYS, renderers, strict=True
+    ):
+        record = _get_boot_record(client, key)
+        if record is None:
+            continue
+        body = renderer(record)
+        if body:
+            lines.append(f"- {label}: {body}")
+    return lines
+
+
+def _format_run_digest(run: dict[str, Any]) -> str:
+    """One compact history line for a ``/game/runs/index`` entry."""
+    run_id = str(run.get("run_id") or run.get("id") or "unknown")
+    parts: list[str] = []
+    cycles = run.get("cycles")
+    if cycles is not None:
+        parts.append(f"{_as_int(cycles)} cycles")
+    ladder = run.get("ladder")
+    if isinstance(ladder, dict):
+        parts.append(
+            "memory_events={mem}, battle_events={battle}, map={map}, "
+            "starter={starter}".format(
+                mem=_as_int(ladder.get("memory_events")),
+                battle=_as_int(ladder.get("battle_events")),
+                map=ladder.get("map_progress") or "unknown",
+                starter="yes" if ladder.get("starter_picked") else "no",
+            )
+        )
+    else:
+        # Legacy / partial digests: derive the same one-liner from whatever
+        # fields the record does carry (older marathon harness wrote
+        # events/maps_sequence/final_map instead of a ladder block).
+        legacy_events = run.get("events")
+        events: dict[Any, Any] = (
+            legacy_events if isinstance(legacy_events, dict) else {}
+        )
+        memory_events = sum(
+            _as_int(events.get(name))
+            for name in ("memory_note", "memory_goal", "memory_study")
+        )
+        battle_events = run.get("battle_events")
+        if not isinstance(battle_events, int):
+            battle_events = sum(
+                _as_int(value)
+                for name, value in events.items()
+                if str(name).startswith("battle_")
+            )
+        progress = run.get("final_map")
+        maps_sequence = run.get("maps_sequence")
+        if not progress and isinstance(maps_sequence, list) and maps_sequence:
+            progress = maps_sequence[-1]
+        parts.append(
+            f"memory_events={memory_events}, battle_events={_as_int(battle_events)}, "
+            f"map={progress or 'unknown'}"
+        )
+    stamp = str(run.get("ts") or "")[:10]
+    label = f"{run_id} [{stamp}]" if stamp else run_id
+    return f"{label}: " + ", ".join(parts)
+
+
+def _gather_runs_index(client: Any) -> list[str]:
+    """Rendered last-10 digest lines from ``/game/runs/index``."""
+    record = _get_boot_record(client, BOOT_RUNS_INDEX_KEY)
+    if record is None:
+        return []
+    runs = (record.get("attributes") or {}).get("runs")
+    if not isinstance(runs, list):
+        return []
+    lines: list[str] = []
+    for run in runs[:BOOT_RUNS_DIGEST_LIMIT]:
+        if isinstance(run, dict):
+            lines.append(f"- {_format_run_digest(run)}")
+    return lines
+
+
+def _cap_boot_block(text: str, cap: int = BOOT_BLOCK_CHAR_CAP) -> str:
+    """Cap one block's text at ``cap`` chars, marking the cut with "..."."""
+    if len(text) <= cap:
+        return text
+    return text[: cap - 3].rstrip() + "..."
+
+
+def _cap_boot_payload(text: str, budget: int = BOOT_TOTAL_CHAR_BUDGET) -> str:
+    """Whole-payload cap — the last-resort latency guard after block caps."""
+    if len(text) <= budget:
+        return text
+    return text[: budget - 3].rstrip() + "..."
+
+
+def _render_boot_block(lines: list[str], placeholder: str) -> str:
+    """Join a block's lines, or fall back to its empty-store placeholder."""
+    if not lines:
+        return placeholder
+    return _cap_boot_block("\n".join(lines))
+
+
+def _build_boot_memory_blocks() -> BootMemory:
+    """Gather + render the run-start memory blocks from DuckBrain (MEM-2).
+
+    Called once per run, before the cycle loop. Never raises: any
+    DuckBrain/JSONL failure logs one line and returns an empty payload, so
+    the run continues with today's prompt.
+    """
+    try:
+        from src.core import duckbrain_client
+
+        mechanics = _gather_memory_entries(duckbrain_client, BOOT_MECHANICS_KEYS)
+        save_state = _gather_save_state(duckbrain_client)
+        runs = _gather_runs_index(duckbrain_client)
+        learning = _gather_memory_entries(duckbrain_client, BOOT_LEARNING_KEYS)
+    except Exception as exc:
+        safe_print(f"[MEM] boot injection skipped: {exc}")
+        return BootMemory(text="", has_content=False)
+
+    sections: tuple[tuple[str, list[str], str], ...] = (
+        ("MECHANICS", mechanics, "(no mechanics recorded yet)"),
+        ("SAVE", save_state, "(no save-state recorded yet)"),
+        ("RUN HISTORY", runs, "(no runs recorded yet)"),
+        ("LEARNING", learning, "(no learning recorded yet)"),
+    )
+    rendered = [
+        f"[{label}]\n{_render_boot_block(lines, placeholder)}"
+        for label, lines, placeholder in sections
+    ]
+    return BootMemory(
+        text=_cap_boot_payload(
+            "BOOT MEMORY (from previous runs):\n" + "\n".join(rendered)
+        ),
+        has_content=any(lines for _, lines, _ in sections),
+    )
+
+
+def _boot_memory_prompt(boot: BootMemory) -> str:
+    """The system-prompt section to inject, or "" when there is nothing real.
+
+    A fresh clone (no keys, or only placeholders) must keep today's prompt
+    byte-identical, so placeholders alone are never injected.
+    """
+    return boot.text if boot.has_content else ""
 
 
 def _main_parser() -> argparse.ArgumentParser:
@@ -1529,6 +1897,19 @@ def main() -> None:
     _last_dialog_text = ""
     _pending_study_key = ""      # controller asked to study a key
     _pending_study_result = ""   # fetched content, injected once
+
+    # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
+    # Built ONCE here (not per cycle) from the four DuckBrain layers
+    # MEM-1 writes: MECHANICS + SAVE + RUN HISTORY + LEARNING. The
+    # rendered string rides in the controller system prompt every cycle;
+    # a fresh/empty store yields "" so the prompt is unchanged.
+    _boot_memory = _boot_memory_prompt(_build_boot_memory_blocks())
+    if _boot_memory:
+        safe_print(
+            f"  [MEM] boot injection: {len(_boot_memory)} chars across "
+            f"{_boot_memory.count('[')} block markers"
+        )
+
     if USE_RAM_READER:
         try:
             from src.core import duckbrain_client as _dbc
@@ -1887,6 +2268,7 @@ def main() -> None:
                     notes=" | ".join(_mem_notes[:6])[:300],
                     last_dialog=_last_dialog_text,
                     study_result=_pending_study_result,
+                    boot_memory=_boot_memory,  # MEM-2: built once at boot
                 )
                 # Study result is injected once, then cleared
                 _pending_study_result = ""
