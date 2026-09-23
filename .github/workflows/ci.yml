@@ -15,6 +15,48 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Root-level _*.py scratch files are hidden from review by .gitignore:152,
+      # so they accumulate silently. Fail when one appears that is not in the
+      # committed baseline (tools/scratch-baseline.txt). Delete a scratch file
+      # instead of baselining it; baseline new entries only when intentional.
+      # SCRATCH_BASELINE is a local-probe override; CI uses the default.
+      - name: Repo hygiene (no unbaselined root scratch files)
+        run: |
+          set -uo pipefail
+          baseline="${SCRATCH_BASELINE:-tools/scratch-baseline.txt}"
+          if [ ! -f "$baseline" ]; then
+            echo "::error::missing scratch baseline file: $baseline"
+            exit 1
+          fi
+
+          status=0
+
+          # 1) Working tree: local runs and force-added leftovers.
+          shopt -s nullglob
+          for f in _*.py; do
+            if ! grep -qxF -- "$f" "$baseline"; then
+              echo "::error file=$f::unbaselined root scratch file: $f"
+              status=1
+            fi
+          done
+
+          # 2) Tracked root scratch files: a fresh checkout has no gitignored
+          #    files, so this is the case CI can actually see (git add -f).
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            if ! grep -qxF -- "$f" "$baseline"; then
+              echo "::error file=$f::tracked root scratch file: $f"
+              status=1
+            fi
+          done < <(git ls-files --full-name -- ':(top,glob)_*.py')
+
+          if [ "$status" -ne 0 ]; then
+            echo "Root-level _*.py scratch files must not accumulate."
+            echo "Delete them, or add intentional keepers to $baseline (one filename per line)."
+            exit 1
+          fi
+          echo "OK: no unbaselined root-level _*.py files."
+
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
