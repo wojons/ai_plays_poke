@@ -1,0 +1,37 @@
+{
+  "scheduler_tick_id": "ai-plays-poke-2026-09-23-12-01-42",
+  "tick_number": 234,
+  "created_at": "2026-09-23T12:30:00Z",
+  "project": "ai-plays-poke",
+  "repo": "/home/kara/ai_plays_poke",
+  "base_sha": "7702483",
+  "budget": 6,
+  "workers": [
+    {
+      "task_id": "GAP-057",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-GAP-057",
+      "branch": "wt/GAP-057",
+      "scope_files": [".github/workflows/ci.yml"],
+      "brief": "/tmp/ai-plays-poke-234_brief_GAP-057.md"
+    },
+    {
+      "task_id": "DF-AIPP-4",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-DF-AIPP-4",
+      "branch": "wt/DF-AIPP-4",
+      "scope_files": ["specs/PRD_v2_lifecycle.md", "src/core/duckbrain_client.py"],
+      "brief": "/tmp/ai-plays-poke-234_brief_DF-AIPP-4.md"
+    },
+    {
+      "task_id": "GAP-053",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-GAP-053",
+      "branch": "wt/GAP-053",
+      "scope_files": ["cron_runner.py", "tests/"],
+      "brief": "/tmp/ai-plays-poke-234_brief_GAP-053.md"
+    }
+  ],
+  "notes": [
+    "3 mutually independent rows verified: GAP-057 touches only .github/workflows/ci.yml; DF-AIPP-4 touches only specs/PRD_v2_lifecycle.md + src/core/duckbrain_client.py; GAP-053 touches cron_runner.py summary region (~932-1100) + tests. No depends_on edges on any row. No shared files across the three.",
+    "GAP-048/GAP-049/GAP-052 deferred: GAP-049 minimal env override already landed (4d82e05, POKE_CONTROLLER_MODEL) and GAP-052 conflicts with it in controller_plan; both stay pending for a later serial tick.",
+    "Workers commit on their branches; foreman merges serially post-gate. Repo tree was clean at dispatch (7702483, local only — 0894573/7702483 not yet pushed, push after merge)."
+  ]
+}
