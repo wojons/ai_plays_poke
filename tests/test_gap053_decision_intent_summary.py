@@ -132,6 +132,11 @@ def test_summary_line_appends_decision_counts_and_keeps_legacy_shape() -> None:
         3,
         real_decisions=14,
         fallback_decisions=6,
+        autonomy={
+            "decisions_total": 20,
+            "jev_answered": 14,
+            "escalated": 6,
+        },
     )
 
     # Legacy shape preserved byte-for-byte up to the appended fields.
@@ -140,7 +145,11 @@ def test_summary_line_appends_decision_counts_and_keeps_legacy_shape() -> None:
         "| lock-rate: 5/20 cycles with direction-lock warnings (25%) "
         "| distinct tiles: 3 "
     )
-    assert line.endswith("| real_decisions=14 fallback_decisions=6")
+    assert "| real_decisions=14 fallback_decisions=6" in line
+    # JEV-1 appends the autonomy tail after the GAP-053 counters.
+    assert line.endswith(
+        "| real_decisions=14 fallback_decisions=6 autonomy=14/20 (6 escalated)"
+    )
 
 
 def test_dead_key_run_summary_prints_zero_real_decisions() -> None:

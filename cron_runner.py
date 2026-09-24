@@ -1393,6 +1393,116 @@ def _classify_decision_intents(
     return real, fallback
 
 
+# JEV-1 (PRD v3 AC-1): the per-run autonomy counters live at the END of the
+# run log as their own row, so `grep -c '"autonomy_ratio"'` over
+# `cron_logs/run_<id>.jsonl` is the run's autonomy proof.
+AUTONOMY_LOG_EVENT = "run_autonomy"
+
+
+def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Derive the run's autonomy block from the per-decision rows (JEV-1).
+
+    PRD v3 AC-1: the counters are COUNTED from the rows the main loop
+    stamped, never incremented by the summary printer — a run that made no
+    decisions reports ``decisions_total == 0`` and ``autonomy_ratio is
+    None`` instead of a fabricated (or vacuously perfect) ratio.
+
+    The population is exactly ``_classify_decision_intents``'s: rows carrying
+    an ``intent`` key. Event rows (memory_note/goal/study, giveup_walk,
+    recovery, state_saved), error rows and per-button execution rows never
+    set ``intent`` and move no counter here.
+
+    Returns ``decisions_total``, ``jev_answered``, ``escalated``,
+    ``autonomy_ratio`` (rounded to 4 dp, ``None`` on an empty population) and
+    ``escalation_rate_by_missing_class`` (missing_class -> share of escalated
+    rows, empty when nothing escalated; insertion order follows the rows).
+    """
+    decisions_total = 0
+    jev_answered = 0
+    escalated = 0
+    escalated_by_class: Counter[str | None] = Counter()
+
+    for row in results:
+        if "intent" not in row:
+            continue
+        decisions_total += 1
+        if row.get("jev_answered"):
+            jev_answered += 1
+        if row.get("escalated"):
+            escalated += 1
+            missing_class = row.get("missing_class")
+            escalated_by_class[
+                missing_class if isinstance(missing_class, str) else None
+            ] += 1
+
+    ratio: float | None = (
+        round(jev_answered / decisions_total, 4) if decisions_total else None
+    )
+    rates: dict[str | None, float] = (
+        {
+            missing_class: round(count / escalated, 4)
+            for missing_class, count in escalated_by_class.items()
+        }
+        if escalated
+        else {}
+    )
+    return {
+        "decisions_total": decisions_total,
+        "jev_answered": jev_answered,
+        "escalated": escalated,
+        "autonomy_ratio": ratio,
+        "escalation_rate_by_missing_class": rates,
+    }
+
+
+def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
+    """Render the JEV-1 autonomy tail appended to the summary line.
+
+    Shape: ``autonomy=J/D (E escalated)``. With no decision rows — or an
+    older caller that supplies no block — the ratio prints as ``n/a``: AC-1
+    forbids inventing a number the run cannot back up.
+    """
+    if not autonomy:
+        return "autonomy=n/a (0 decisions, 0 escalated)"
+    decisions_total = _as_int(autonomy.get("decisions_total"))
+    jev_answered = _as_int(autonomy.get("jev_answered"))
+    escalated = _as_int(autonomy.get("escalated"))
+    if not decisions_total:
+        return f"autonomy=n/a (0 decisions, {escalated} escalated)"
+    return f"autonomy={jev_answered}/{decisions_total} ({escalated} escalated)"
+
+
+def _write_autonomy_row(
+    log_file: TextIO,
+    run_id: str,
+    autonomy: dict[str, Any],
+) -> dict[str, Any]:
+    """Append the JEV-1 autonomy block as one JSON line to the run log.
+
+    Written with the same ``json.dumps(row, default=str)`` idiom as every
+    other row in ``cron_logs/run_<id>.jsonl``. The row is deliberately NOT
+    appended to ``results``: that list's length is the legacy ``Done. N
+    actions.`` count and the DuckBrain ``cycles``/ladder input, so adding a
+    summary row to it would silently inflate both.
+
+    Returns the row that was written (for callers/tests to assert on).
+    """
+    row: dict[str, Any] = {
+        "run_id": run_id,
+        "event": AUTONOMY_LOG_EVENT,
+        "decisions_total": _as_int(autonomy.get("decisions_total")),
+        "jev_answered": _as_int(autonomy.get("jev_answered")),
+        "escalated": _as_int(autonomy.get("escalated")),
+        "autonomy_ratio": autonomy.get("autonomy_ratio"),
+        "escalation_rate_by_missing_class": autonomy.get(
+            "escalation_rate_by_missing_class", {}
+        ),
+    }
+    log_file.write(json.dumps(row, default=str) + "\n")
+    log_file.flush()
+    return row
+
+
 def _format_summary(
     run_id: str,
     n_actions: int,
@@ -1402,6 +1512,7 @@ def _format_summary(
     distinct_tiles: int,
     real_decisions: int = 0,
     fallback_decisions: int = 0,
+    autonomy: dict[str, Any] | None = None,
 ) -> str:
     """Format the final summary line, including the per-run lock-rate.
 
@@ -1409,6 +1520,10 @@ def _format_summary(
     controller decisions by intent class. They are APPENDED to the line so
     the historical ``Done. N actions.`` shape — and every log parser keyed
     on it — stays intact.
+
+    ``autonomy`` (JEV-1) is the block from ``_autonomy_counters`` and is
+    appended after the GAP-053 counters. The GAP-053 computation and wording
+    are unchanged.
     """
     lock_rate = lock_warn_cycles / total_cycles
     return (
@@ -1417,7 +1532,8 @@ def _format_summary(
         f"direction-lock warnings ({lock_rate:.0%}) "
         f"| distinct tiles: {distinct_tiles} "
         f"| real_decisions={real_decisions} "
-        f"fallback_decisions={fallback_decisions}"
+        f"fallback_decisions={fallback_decisions} "
+        f"{_format_autonomy_tail(autonomy)}"
     )
 
 
@@ -2955,12 +3071,29 @@ def main() -> None:
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
 
+                # JEV-1: JEV's missing-information taxonomy for this decision
+                # (only meaningful when the hand-back gate escalated it).
+                _missing_class = decision.get("missing_class")
+
                 plan_entry = {
                     "cycle": cycle + 1,
                     "screen": st,
                     "pipeline": pipeline_name,
                     "plan": plan,
                     "intent": intent,
+                    # JEV-1 (PRD v3 AC-1): every decision row carries the
+                    # autonomy fields. The values are read off the decision
+                    # payload, so wiring the JEV tier into this loop
+                    # (JEV-2/JEV-4) fills them without editing this row — the
+                    # closeout counters in `_autonomy_counters` then report
+                    # real `jev_answered`/`escalated`/`missing_class` numbers.
+                    # Until then the controller payload has no such keys and
+                    # the row reports the defaults.
+                    "jev_answered": bool(decision.get("jev_answered", False)),
+                    "escalated": bool(decision.get("escalated", False)),
+                    "missing_class": (
+                        _missing_class if isinstance(_missing_class, str) else None
+                    ),
                     "controller_raw": decision.get("raw_response", ""),
                     "frame_cache": "hit" if _frame_ref else "miss",
                     "frame_uuid": _frame_ref,
@@ -3365,11 +3498,20 @@ def main() -> None:
 
     emu.stop()
 
+    # JEV-1 (PRD v3 AC-1): per-run autonomy counters, counted from the
+    # per-decision rows only (never incremented by the summary printer).
+    autonomy = _autonomy_counters(results)
+
     # Write log
     log_file.seek(0)
     log_file.truncate()
     for entry in results:
         log_file.write(json.dumps(entry, default=str) + "\n")
+    # AC-1's proof row: one JSON line carrying decisions_total / jev_answered
+    # / escalated / autonomy_ratio, written with the same idiom as every
+    # other row. Kept out of `results` so the legacy "Done. N actions."
+    # count and the DuckBrain ladder/cycles stay byte-identical.
+    _write_autonomy_row(log_file, run_id, autonomy)
     log_file.close()
 
     # Summary
@@ -3384,6 +3526,7 @@ def main() -> None:
         len(_visited_tiles),
         real_decisions=real_decisions,
         fallback_decisions=fallback_decisions,
+        autonomy=autonomy,
     )
     safe_print(f"\n{final_summary}")
     safe_print(f"Log: {log_path}")
