@@ -617,5 +617,6 @@ tasks:
     escalated, autonomy_ratio; ratio equals jev_answered/decisions_total derived from
     per-decision rows (anti-gaming: zero decision rows => decisions_total=0 and autonomy_ratio
     null); unit tests cover the derivation'
-  status: in_progress
+  status: complete
   created_at: '2026-09-24T05:59:01.930142+00:00'
+  completed_at: '2026-09-24T06:37:03.480057+00:00'
