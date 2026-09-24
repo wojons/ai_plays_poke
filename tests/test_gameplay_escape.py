@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from cron_runner import _escalating_recovery
+from src.core import jev_client
 from src.core.global_context import GlobalContext
 from src.core.ram_reader import (
     ADDR_CURRENT_MENU_ITEM,
@@ -223,9 +224,7 @@ class TestStateWindowBattleLoop:
 
         assert result["outcome"] == "battle_ended"
         assert client.send_tool_request.call_count == 1
-        assert [h["tool_call"]["name"] for h in window._history] == [
-            "run_from_battle"
-        ]
+        assert [h["tool_call"]["name"] for h in window._history] == ["run_from_battle"]
 
     def test_fourth_failed_flee_is_replaced_by_move(
         self,
@@ -263,7 +262,28 @@ class TestStateWindowBattleLoop:
 
 class TestBattleAwareRecovery:
     @pytest.mark.parametrize("level", range(5))
-    def test_every_recovery_level_uses_battle_action(self, level: int) -> None:
+    def test_every_recovery_level_uses_jev_battle_action(
+        self,
+        level: int,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(
+            jev_client,
+            "decide",
+            lambda *_args, **_kwargs: {
+                "ok": True,
+                "next_action": "MOVE_2",
+                "phase": "BATTLE",
+                "raw": {
+                    "next_action": {
+                        "choice": "MOVE_2",
+                        "distribution": {"MOVE_1": 0.1, "MOVE_2": 0.9},
+                    }
+                },
+                "escalate": False,
+                "missing_class": "none",
+            },
+        )
         emu = BattleMenuStub(battle_code=2, mode="main")
         game_state = {
             "result": "battle",
@@ -278,8 +298,9 @@ class TestBattleAwareRecovery:
             game_state=game_state,
         )
 
-        assert strategy == "battle_select_move"
-        assert "select_move(1)" in description
+        assert strategy == "battle_jev_action"
+        assert "select_move(2)" in description
+        assert "select_move(1)" not in description
         assert "start" not in emu.pressed
         assert emu.pressed.count("a") == 2
         emu.load_state.assert_not_called()
