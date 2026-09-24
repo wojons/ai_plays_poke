@@ -2,6 +2,70 @@
 
 How the system is actually built, the errors hit during a real-use run, and the right way to do things. Written from a real use session, not from the test suite.
 
+## 2026-09-24 — the JEV tier is an engine on a test bench (not yet in the car)
+
+**How the decision layer is actually layered (and where the seam is).**
+The main loop has three decision paths, and only one of them is the product
+PRD v3 describes. Overworld goes to `controller_plan()`
+(cron_runner.py:3291 → :1362): Luna sees the spatial summary + frame cache
+reference and returns a JSON plan; the `jev_answered`/`escalated`/
+`missing_class` fields stamped onto the plan entry (cron_runner.py:3468-3471)
+read `decision.get("jev_answered")` — keys the controller payload **never
+sets**, which the adjacent comment admits ("Until then ... the row reports
+the defaults"). Battles go to `StateWindow` (cron_runner.py:3836), a
+deepseek tool-calling loop that still ends in `select_move(1)` (state_window.py:516 forces it after 2 queries; :1029's own POLICY line suggests it).
+The JEV client (`src/core/jev_client.py`, `decide()` at :511) is genuinely
+live — one batched typed-questions call to OpenRouter's decisions endpoint,
+~$0.00006, 0.3-0.8s, fail-closed gate `should_escalate()` with thresholds in
+code — but it is reachable from exactly two places: the starter-menu branch
+(unreachable in default runs because `data/boot.state` already has a party,
+so `_should_select_starter()` at cron_runner.py:631 requires party_count==0)
+and `_escalating_recovery()` (cron_runner.py:1017) which only fires on
+stuck-recovery. **So every real run reports `autonomy=0/16` while the
+components sitting "complete" on the board are real and working.** This is
+the L1/L2-vs-L3 gap: unit tests prove the engine runs on the bench; the car
+has no driveshaft to it.
+
+**The teacher's API failure mode: reasoning tokens are billed against your
+completion budget.** `teacher_client.request_patch()` calls
+`client.chat_completion(max_tokens=500, temperature=0.2)` with no
+`thinking` argument (src/core/teacher_client.py:249). gpt-5.6-luna on
+OpenRouter is a reasoning model: the budget is spent on
+`reasoning_tokens` first, and if it runs out you get
+`finish_reason: length` with `content: ""` and no error surfaced. Measured:
+5/6 live teacher calls failed this way (two empty, three truncated JSON);
+the identical request with `thinking={"type":"disabled"}` parsed 3/4, and
+with a larger budget 4/4. The controller path already learned this lesson —
+its retry passes `thinking={"type":"disabled"}` (cron_runner.py:1574).
+Two lessons fold into one: **any OpenRouter reasoning-model call that needs
+parseable content must disable thinking AND leave headroom (≥1200 tokens),
+and the caller must check `finish_reason`**. Also note `escalate_and_reask()`
+(jev_client.py:385) has exactly one caller — the probe script — so even a
+healthy teacher cannot fire during a run.
+
+**How to debug the teacher without touching the repo** (the 30-minute
+isolation that found this): bypass the project client and call OpenRouter
+directly with the same prompt shape; read `usage.completion_tokens_details`
+and `finish_reason` from the raw response. If `reasoning_tokens == max_tokens`
+and content is empty, it is the budget, not the prompt. Then re-run through
+the project's client with thinking disabled to confirm the fix shape.
+
+**What a fresh box costs now (third independent bunker measurement).**
+2026-09-09b: 98s. 2026-09-23: 54s. 2026-09-24 (agent 7a941edf, destroyed):
+**33s** — `git clone` + `python3 -m venv .venv` +
+`pip install -r requirements.txt`, zero system packages, Debian. The
+trend is upstream wheels getting better, not our install changing. The
+documented `--dry-run` smoke then fails honestly at the ROM wall (rc=1,
+exact path named) — that is correct behavior; ROM files can't ship in the
+repo (GAP-054). Fresh-tree `pytest --collect-only` exits 0 — the
+QA-AI-PLAYS-POKE-7 conftest fix holds on a third independent box.
+
+**Perf anchors (real workload, warm + cold).** Warm 20-cycle run: 62s wall
+(~3.1s/cycle, ~2.5s of it LLM latency; frame-cache hits drop cycles to
+~2.1s). Cold cycle 1 (checkpoint boot + first decision): 7.1s. Probe cycle
+(JEV only): 0.3-0.8s. Nothing felt slow → no PERF row; these are the
+reference numbers.
+
 ## 2026-09-09b — the decision layer has one door, and it is locked (key failure anatomy)
 
 **How the LLM plumbing actually works (why one dead key kills everything).**

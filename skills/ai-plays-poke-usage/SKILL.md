@@ -10,7 +10,7 @@ description: >-
   DeepSeek escape lane and its <|endoftext|> JSON corruption, cost
   expectations, JSONL output schema, and open gaps (GAP-035..054 — incl. P0
   GAP-047: dead-key runs still exit 0).
-version: 1.4.0
+version: 1.5.0
 ---
 
 # Using ai-plays-poke (PTP-01X)
@@ -18,6 +18,35 @@ version: 1.4.0
 Autonomous Pokémon AI benchmarking system: PyBoy emulator + LLM decision loop
 that plays Pokémon Blue/Red. Maintained by a coding-hermes foreman (board in
 `.coding-hermes/board/tasks.jsonl`, JSONL canonical; `events.jsonl` for events).
+
+## JEV / PRD-v3 reality check (verified by use 2026-09-24)
+
+The JEV tier (System One) and the teacher are REAL and working — but as of
+2026-09-24 they are NOT wired into the main game loop. Two fresh 20-cycle
+runs both reported `autonomy=0/16`: the overworld decision is still
+`controller_plan()` (Luna), battles are still the StateWindow deepseek loop,
+and the autonomy counters read payload keys the controller never sets
+(DF-JEV-1). The teacher escalation is unreachable in-game (its only caller
+is the probe script) and its API call dies 5/6 times because reasoning
+tokens consume the 500-token budget before any JSON is emitted (DF-JEV-2 —
+`request_patch` does not disable thinking; finish_reason=length, content="").
+
+**What works today, verified live:**
+
+- `scripts/jev_projection_probe.py data/boot.state` — real checkpoint →
+  projection → JEV typed decision (~$0.00006, 0.3-0.8s). Add `--escalate`
+  to exercise the teacher pipeline (retry it; ~1/6 success today).
+- Autonomy truth of ANY run: `jq -c 'select(.event=="run_autonomy")'
+  cron_logs/run_<id>.jsonl` — if `jev_answered` is 0, the run never used JEV
+  regardless of what the board says.
+- Battles: judge by the JSONL (`battle_events`, `state_window_raw`), not the
+  summary — battle turns carry NO battle_action/distribution row, so AC-3's
+  observable cannot be checked from run logs yet (DF-JEV-3).
+
+**Any dogfood/QA run that verifies "JEV complete" MUST include a real
+`cron_runner.py` run and count `jev_answered` from the run_autonomy row —
+green unit tests + a passing probe prove the engine, not the wiring.**
+
 
 ## ⚠️ STEP ZERO — verify API keys before ANY run (2026-09-09 lesson)
 
@@ -51,7 +80,7 @@ the OpenRouter key was expired and every documented entry point still "passed".
 | `python3 cron_runner.py --dry-run` | ⚠️ WORKS but **presence-only key check** (GAP-048): passed on an expired key | Config/ROM/boot-state validation — never a key-liveness proof |
 | `bash .coding-hermes/cron.sh --cycles N --run-id <id>` | ⚠️ Same runner inside — inherits GAP-047 | Scheduled wrapper — add key check upstream before trusting it |
 | `.venv/bin/python ram_map_server.py` → :8099 | ✅ **WORKS — re-verified 2026-09-09** (`/` 200, `/data.json` 200 real map data Red's House 2F, bad path 404; needs NO API keys) | Live RAM-state viewer |
-| Fresh install (bunker-proven 2026-09-09b) | ✅ `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` = rc 0 in **98 s** on bare Debian/Python 3.13 — zero system packages (PyBoy/SDL2 ship as wheels). Then `--dry-run` exits 1 "ROM not found" until you supply a ROM (GAP-054) | New-machine setup |
+| Fresh install (bunker-proven 2026-09-24) | ✅ `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` = rc 0 in **33 s** on bare Debian (third independent box; 09-09b was 98s, 09-23 was 54s) — zero system packages (PyBoy/SDL2 ship as wheels). Then `--dry-run` exits 1 "ROM not found" until you supply a ROM (GAP-054) | New-machine setup |
 | `python3 src/game_loop.py --rom <ROM> --max-ticks N` | 🟡 Legacy path; NOT re-verified 2026-09-09 | Legacy/simplified runs — prefer `cron_runner.py` |
 | `PYTHONPATH=src .venv/bin/python -m src.ptp_cli \| src.debug_screen \| src.memory_reader --help` | ✅ works (AP-GAP-015/016/017) | Config / screen / RAM debug CLIs |
 
@@ -183,8 +212,13 @@ Outputs:
   Append rows + an event with `actor=dogfood` (see events 186 and 221).
 - Proven E2E evidence: T217 20/20 EXIT 0 (trainer battle, $0.40); T227
   (2026-08-27) 20/20, 24/24 API success, lock-rate 30%, 13 tiles; dogfood
-  2026-08-26 20/20 ($0.35). 2026-09-09: 0/20 API success (expired key) —
-  first post-T227 live-LLM evidence.
+  2026-08-26 20/20 ($0.35). 2026-09-24: dgf_0924_pm + dgf_0924_warm2, both
+  20/20, 25/25 + 26/26 API success, autonomy 0/16 both (DF-JEV-1).
+  2026-09-09: 0/20 API success (expired key).
+- Fresh-install evidence: 2026-09-24 bunker-las-03, agent 7a941edf (destroyed):
+  clone+venv+pip = 33s, zero system deps; documented smoke (--dry-run)
+  honestly fails at the ROM wall (rc=1); fresh-tree pytest --collect-only
+  exits 0 (QA-AI-PLAYS-POKE-7 fix holds).
 
 
 ## Memory circuit (MEM-1/MEM-2 - verified live 2026-09-23, first real use)
@@ -214,9 +248,9 @@ end-to-end by two real runs (dgf_0923a/b):
   330 legacy `/game/save/current` records in the ns came from it (last: 09-19)
   and MEM-2 does not read that key.
 
-**Perf numbers (2026-09-23, real use):** cold boot ~107s (venv+PyBoy+state load ->
-first decision), warm boot ~32s, ~6s/cycle warm (~3-6s of it LLM latency),
-$0.42-0.45 per 20-cycle run (27 LLM calls: ~$0.016-0.020 overworld, ~$0.012-0.017
-battle each), fresh bunker install 54s. Bunker leg 09-23: agent 19854d15,
-clone+venv+pip=54s, dry-run smoke honest-fails at the ROM wall (GAP-054) - correct
-behavior, no silent pass.
+**Perf numbers (2026-09-24 refresh, real use):** warm 20-cycle run 62s wall
+(~3.1s/cycle, ~2.5s of it LLM latency), cold cycle 1 (checkpoint boot +
+first decision) 7.1s, fresh bunker install 33s (third independent box;
+2026-09-09b was 98s, 09-23 was 54s — upstream wheels keep improving).
+Sticker cost ~$0.42/20 cycles — but see DF-JEV-4: printed $ values come
+from a gpt-4-era default pricing table, so treat them as relative only.

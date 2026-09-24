@@ -234,3 +234,65 @@ docs/dogfood/diagnostics.md (2026-09-23 section), skills/ai-plays-poke-usage/SKI
 **Perf:** warm run ~2min/20 cycles (~6s/cycle incl. 3-6s LLM latency); cold boot 107s
 (venv+PyBoy+state load); install 54s; all numbers in DF rows. No user-noticeable
 slow path beyond the ROM wall → no PERF row beyond these headline numbers.
+| 2026-09-24 | 🟡 PROMISING-BUT-ROUGH | dogfood cron (pm lane) | ~2 min (dry-run + warm 20-cycle run) / ~40 s JEV probe | DF-JEV-1 (P1) JEV tier not wired into the main loop — autonomy 0/16 on two fresh runs while JEV-1/2/4 sit complete; DF-JEV-2 (P1) teacher dead at API (reasoning tokens eat 500-token budget, 5/6 fail) AND unreachable in-game (only caller = probe script); DF-JEV-3 (P1) AC-3 battle observable absent (StateWindow select_move(1) still decides battles); DF-JEV-4 (P2) cost telemetry = default pricing table; DF-JEV-5 (P3) bare python3 --help dies on numpy |
+
+## Run 2026-09-24 (dogfood cron — JEV/PRD-v3 real-use surface)
+
+**Promise tested:** "JEV (System One, ~$0.00006/decision) makes the run's
+decisions with a hand-back gate + teacher escalation, and every run reports
+honest autonomy counters (AC-1); the de-hardcoded starter (AC-2) and battle
+decisions (AC-3) are live." This angle was untouched by earlier runs (they
+swept CLI/cron, install, MEM).
+
+**What was done (real use, not tests):**
+1. Key liveness first (curl): OpenRouter + DeepSeek both LIVE.
+   --dry-run rc=0 (its own liveness precheck probes both keys — GAP-048 fix
+   verified).
+2. Run A dgf_0924_pm --cycles 20: exit 0, 25/25 API Success, 10 tiles,
+   lock-rate 30%, ~$0.42 sticker, [MEM] boot injection 423 chars.
+   run_autonomy: jev_answered=0, decisions_total=16, teacher=0.
+3. Run B dgf_0924_warm2 --cycles 20 (warm): 62 s wall, 26/26 Success,
+   8 tiles, lock-rate 5%. Same autonomy row: 0/16.
+4. jev_projection_probe.py data/boot.state → ok=True, typed decision,
+   0.41 s, $0.00006443, gate escalates on no-change failure. The JEV client
+   and gate genuinely work — from the harness.
+5. Teacher probe --escalate ×6 live: 5/6 FAILED "teacher response contained
+   no JSON object". Direct OpenRouter repro (same prompt shape): reasoning
+   tokens consume the whole 500-token budget → finish_reason=length,
+   content="". With thinking disabled + same budget: 3/4 parse. Root cause
+   isolated OUTSIDE the repo: teacher_client.request_patch():249 passes no
+   thinking arg (controller retry path already does). escalate_and_reask()
+   has exactly one caller: the probe script — the game loop never escalates.
+6. Battles (both runs): cycles 5-6 logged select_move({'move_number': 1})
+   via the deepseek StateWindow loop (4-5 forced calls/cycle) — the JEV
+   battle vocabulary never engaged; AC-3's observable is absent from run
+   logs. JEV-4's "select_move(1) signature gone" holds only for the
+   stuck-recovery path.
+7. Bunker fresh-install (bunker-las-03, agent 7a941edf, destroyed): clone
+   (public GitHub origin) + venv + pip = 33 s, zero system deps; documented
+   --dry-run smoke fails honestly at the ROM wall (rc=1, path named);
+   fresh-tree pytest --collect-only exits 0 (QA-AI-PLAYS-POKE-7 fix holds
+   on a third box).
+8. Perf: warm 20 cycles = 62 s (~3.1 s/cycle, ~2.5 s LLM latency); cold
+   cycle 1 = 7.1 s; JEV probe cycle = 0.3-0.8 s; install 33 s. Nothing
+   user-noticeable is slow → no PERF row beyond headline numbers.
+
+**Verdict: 🟡 PROMISING-BUT-ROUGH.** The legacy gameplay path is healthy and
+the JEV/teacher components are real, but the PRD-v3 story the board reports
+complete (JEV-1/2/4) is not consumed by the actual game loop — the honesty
+instrument measures zero because nothing feeds it. Time-to-first-success:
+~2 min (gameplay), never (JEV-in-gameplay). Friction count: 5 (3×P1, 1×P2,
+1×P3).
+
+**Board:** DF-JEV-1..5 appended (113 rows total, no dupes), event 264
+(actor=dogfood). Foreman NOT woken, cooldowns untouched (2026-09-09 fleet
+law; injected rows picked up at normal cadence).
+
+**Artifacts left:** docs/dogfood/2026-09-24-integration.md (new),
+docs/dogfood/diagnostics.md (2026-09-24 section prepended — the seam, the
+teacher failure anatomy, the debug recipe), skills/ai-plays-poke-usage
+v1.5.0 (JEV reality-check section + fresh install/E2E evidence refresh).
+
+**Install leg:** bunker proven (33 s); smoke = honest fail (ROM wall), NOT
+silent. **Costs on sticker prices only** (DF-JEV-4: printed $ values use
+the default table) — real spend well under $0.03 for the whole run.
