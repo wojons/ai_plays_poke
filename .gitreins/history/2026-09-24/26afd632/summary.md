@@ -1,0 +1,32 @@
+# Verdict: JEV-1
+
+**Task:** Autonomy counters per run (PRD v3 AC-1)
+**Evaluated:** 2026-09-24T06:45:23.190705
+**Result:** ✓ PASS
+
+## Pipeline Stages
+
+- ✓ **tier1**
+  -   ✓ lint: ok (no output)
+  ✓ secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)
+  ✓ tests: ============================= test session starts ==============================
+- ✓ **tier2**
+  - COMPLETE
+  ✓ Run log cron_logs/run_<id>.jsonl contains a JSON line with decisions_total, jev_answered, escalated, autonomy_ratio; ratio equals jev_answered/decisions_total derived from per-decision rows (anti-gaming: zero decision rows => decisions_total=0 and autonomy_ratio null); unit tests cover the derivation: Implementation: cron_runner.py:1523 `_write_autonomy_row()` emits one JSON line with decisions_total/jev_answered/escalated/autonomy_ratio into the run log (LOG_DIR/f"run_{run_id}.jsonl", cron_runner.py:512/2318), wired into the real closeout at cron_runner.py:3712 (`autonomy = _autonomy_counters(results)`) and cron_runner.py:3723. Derivation: cron_runner.py:1450 `_autonomy_counters()` skips rows lacking `intent` (`if "intent" not in row: continue`), counts decisions_total/jev_answered/escalated from per-decision rows stamped at cron_runner.py:3232-3245, and computes `round(jev_answered / decisions_total, 4) if decisions_total else None` (cron_runner.py:1486-1488). Anti-gaming verified by live execution: `_autonomy_counters([{'cycle':1,'event':'x'},{'cycle':2,'error':'y'}])` -> {'decisions_total': 0, 'jev_answered': 0, 'escalated': 0, 'autonomy_ratio': None}; emitted line `{"run_id": "demo0", "event": "run_autonomy", "decisions_total": 0, "jev_answered": 0, "escalated": 0, "autonomy_ratio": null, ...}`. Non-zero case: 4 decision rows (2 jev_answered, 1 escalated) + 2 non-decision rows -> decisions_total=4, jev_answered=2, escalated=1, autonomy_ratio=0.5 == 2/4, with non-decision rows moving no counter. Tests: `./venv/bin/pytest tests/test_autonomy_counters.py -v --tb=short` -> exit_code 0, "12 passed in 0.71s", including test_autonomy_ratio_equals_jev_answered_over_decisions_total (asserts ratio == round(3/7,4) == jev_answered/decisions_total), test_non_decision_rows_alone_yield_zero_decisions (decisions_total==0, autonomy_ratio is None), test_empty_results_yield_zero_decisions_and_no_ratio, test_write_autonomy_row_emits_one_json_line_with_the_ratio (text.count('"autonomy_ratio"')==1), test_written_autonomy_row_is_not_itself_a_decision_row, test_autonomy_row_is_appended_after_the_run_rows, test_decision_row_carries_the_autonomy_fields. Regression: `./venv/bin/pytest tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_cron_runner_metrics.py tests/test_logger.py -q` -> "166 passed in 0.96s"; `mypy cron_runner.py` -> "Success: no issues found in 1 source file". (No pre-existing cron_logs/run_*.jsonl carries the row — 0 of 595 — because all predate this change; the write path is proven by the tests and the live simulation above.)
+JEV-1 AC-1 is fully implemented: the run closeout writes a run_autonomy JSON line with decisions_total/jev_answered/escalated/autonomy_ratio derived from per-decision rows, correctly reports 0/null on an empty population, and is covered by 12 passing unit tests with no regressions.
+
+## Summary
+
+Judge Result: JEV-1
+
+Stage tier1: PASS
+    ✓ lint: ok (no output)
+  ✓ secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)
+  ✓ tests: ============================= test session starts ==============================
+
+Stage tier2: PASS
+  COMPLETE
+  ✓ Run log cron_logs/run_<id>.jsonl contains a JSON line with decisions_total, jev_answered, escalated, autonomy_ratio; ratio equals jev_answered/decisions_total derived from per-decision rows (anti-gaming: zero decision rows => decisions_total=0 and autonomy_ratio null); unit tests cover the derivation: Implementation: cron_runner.py:1523 `_write_autonomy_row()` emits one JSON line with decisions_total/jev_answered/escalated/autonomy_ratio into the run log (LOG_DIR/f"run_{run_id}.jsonl", cron_runner.py:512/2318), wired into the real closeout at cron_runner.py:3712 (`autonomy = _autonomy_counters(results)`) and cron_runner.py:3723. Derivation: cron_runner.py:1450 `_autonomy_counters()` skips rows lacking `intent` (`if "intent" not in row: continue`), counts decisions_total/jev_answered/escalated from per-decision rows stamped at cron_runner.py:3232-3245, and computes `round(jev_answered / decisions_total, 4) if decisions_total else None` (cron_runner.py:1486-1488). Anti-gaming verified by live execution: `_autonomy_counters([{'cycle':1,'event':'x'},{'cycle':2,'error':'y'}])` -> {'decisions_total': 0, 'jev_answered': 0, 'escalated': 0, 'autonomy_ratio': None}; emitted line `{"run_id": "demo0", "event": "run_autonomy", "decisions_total": 0, "jev_answered": 0, "escalated": 0, "autonomy_ratio": null, ...}`. Non-zero case: 4 decision rows (2 jev_answered, 1 escalated) + 2 non-decision rows -> decisions_total=4, jev_answered=2, escalated=1, autonomy_ratio=0.5 == 2/4, with non-decision rows moving no counter. Tests: `./venv/bin/pytest tests/test_autonomy_counters.py -v --tb=short` -> exit_code 0, "12 passed in 0.71s", including test_autonomy_ratio_equals_jev_answered_over_decisions_total (asserts ratio == round(3/7,4) == jev_answered/decisions_total), test_non_decision_rows_alone_yield_zero_decisions (decisions_total==0, autonomy_ratio is None), test_empty_results_yield_zero_decisions_and_no_ratio, test_write_autonomy_row_emits_one_json_line_with_the_ratio (text.count('"autonomy_ratio"')==1), test_written_autonomy_row_is_not_itself_a_decision_row, test_autonomy_row_is_appended_after_the_run_rows, test_decision_row_carries_the_autonomy_fields. Regression: `./venv/bin/pytest tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_cron_runner_metrics.py tests/test_logger.py -q` -> "166 passed in 0.96s"; `mypy cron_runner.py` -> "Success: no issues found in 1 source file". (No pre-existing cron_logs/run_*.jsonl carries the row — 0 of 595 — because all predate this change; the write path is proven by the tests and the live simulation above.)
+JEV-1 AC-1 is fully implemented: the run closeout writes a run_autonomy JSON line with decisions_total/jev_answered/escalated/autonomy_ratio derived from per-decision rows, correctly reports 0/null on an empty population, and is covered by 12 passing unit tests with no regressions.
+
+Overall: PASS ✓

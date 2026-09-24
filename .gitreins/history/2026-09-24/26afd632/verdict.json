@@ -1,0 +1,120 @@
+{
+  "task_id": "JEV-1",
+  "task_title": "Autonomy counters per run (PRD v3 AC-1)",
+  "task_criteria": [
+    "Run log cron_logs/run_<id>.jsonl contains a JSON line with decisions_total, jev_answered, escalated, autonomy_ratio; ratio equals jev_answered/decisions_total derived from per-decision rows (anti-gaming: zero decision rows => decisions_total=0 and autonomy_ratio null); unit tests cover the derivation"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "3a14d104369c462bac5b0dc39dc8c0b4aef243ca",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T062913.328832Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n1:40AM INF scanned ~236833766 bytes (236.83 MB) in 10.2s\n1:40AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72286 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T062913.328832Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4059 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [432640 chars omitted \u2014 4819 line(s)] \u2026\ntest_bench_pathfinding_find_path               811.0001 (1.65)           5,761.0014 (1.0)           1,404.7000 (1.92)          1,536.8228 (4.53)            861.4988 (1.13)           309.9922 (1.29)          1;1    711,895.7709 (0.52)         10           1\ntest_bench_vision_pipeline_validate          6,691.9965 (13.63)        585,103.0000 (101.56)        7,934.0235 (10.85)         3,236.7347 (9.54)          7,795.0026 (10.23)          250.0019 (1.04)     577;3221    126,039.4556 (0.09)      35185           1\ntest_bench_ram_reader_observe              906,306.9956 (>1000.0)  280,472,808.0009 (>1000.0)   2,133,760.1035 (>1000.0)  13,141,954.2863 (>1000.0)   1,154,436.5007 (>1000.0)    172,167.9982 (714.39)      5;101        468.6562 (0.00)        964           1\ntest_bench_vision_pipeline_process      37,074,786.9965 (>1000.0)   47,429,357.9973 (>1000.0)  40,045,402.0005 (>1000.0)   2,997,909.9663 (>1000.0)  38,872,975.0011 (>1000.0)  1,324,029.9886 (>1000.0)       6;6         24.9717 (0.00)         26           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4045 passed, 14 skipped in 205.97s (0:03:25) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T062913.328832Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Run log cron_logs/run_<id>.jsonl contains a JSON line with decisions_total, jev_answered, escalated, autonomy_ratio; ratio equals jev_answered/decisions_total derived from per-decision rows (anti-gaming: zero decision rows => decisions_total=0 and autonomy_ratio null); unit tests cover the derivation: Implementation: cron_runner.py:1523 `_write_autonomy_row()` emits one JSON line with decisions_total/jev_answered/escalated/autonomy_ratio into the run log (LOG_DIR/f\"run_{run_id}.jsonl\", cron_runner.py:512/2318), wired into the real closeout at cron_runner.py:3712 (`autonomy = _autonomy_counters(results)`) and cron_runner.py:3723. Derivation: cron_runner.py:1450 `_autonomy_counters()` skips rows lacking `intent` (`if \"intent\" not in row: continue`), counts decisions_total/jev_answered/escalated from per-decision rows stamped at cron_runner.py:3232-3245, and computes `round(jev_answered / decisions_total, 4) if decisions_total else None` (cron_runner.py:1486-1488). Anti-gaming verified by live execution: `_autonomy_counters([{'cycle':1,'event':'x'},{'cycle':2,'error':'y'}])` -> {'decisions_total': 0, 'jev_answered': 0, 'escalated': 0, 'autonomy_ratio': None}; emitted line `{\"run_id\": \"demo0\", \"event\": \"run_autonomy\", \"decisions_total\": 0, \"jev_answered\": 0, \"escalated\": 0, \"autonomy_ratio\": null, ...}`. Non-zero case: 4 decision rows (2 jev_answered, 1 escalated) + 2 non-decision rows -> decisions_total=4, jev_answered=2, escalated=1, autonomy_ratio=0.5 == 2/4, with non-decision rows moving no counter. Tests: `./venv/bin/pytest tests/test_autonomy_counters.py -v --tb=short` -> exit_code 0, \"12 passed in 0.71s\", including test_autonomy_ratio_equals_jev_answered_over_decisions_total (asserts ratio == round(3/7,4) == jev_answered/decisions_total), test_non_decision_rows_alone_yield_zero_decisions (decisions_total==0, autonomy_ratio is None), test_empty_results_yield_zero_decisions_and_no_ratio, test_write_autonomy_row_emits_one_json_line_with_the_ratio (text.count('\"autonomy_ratio\"')==1), test_written_autonomy_row_is_not_itself_a_decision_row, test_autonomy_row_is_appended_after_the_run_rows, test_decision_row_carries_the_autonomy_fields. Regression: `./venv/bin/pytest tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_cron_runner_metrics.py tests/test_logger.py -q` -> \"166 passed in 0.96s\"; `mypy cron_runner.py` -> \"Success: no issues found in 1 source file\". (No pre-existing cron_logs/run_*.jsonl carries the row \u2014 0 of 595 \u2014 because all predate this change; the write path is proven by the tests and the live simulation above.)\nJEV-1 AC-1 is fully implemented: the run closeout writes a run_autonomy JSON line with decisions_total/jev_answered/escalated/autonomy_ratio derived from per-decision rows, correctly reports 0/null on an empty population, and is covered by 12 passing unit tests with no regressions.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Run log cron_logs/run_<id>.jsonl contains a JSON line with decisions_total, jev_answered, escalated, autonomy_ratio; ratio equals jev_answered/decisions_total derived from per-decision rows (anti-gaming: zero decision rows => decisions_total=0 and autonomy_ratio null); unit tests cover the derivation: Implementation: cron_runner.py:1523 `_write_autonomy_row()` emits one JSON line with decisions_total/jev_answered/escalated/autonomy_ratio into the run log (LOG_DIR/f\"run_{run_id}.jsonl\", cron_runner.py:512/2318), wired into the real closeout at cron_runner.py:3712 (`autonomy = _autonomy_counters(results)`) and cron_runner.py:3723. Derivation: cron_runner.py:1450 `_autonomy_counters()` skips rows lacking `intent` (`if \"intent\" not in row: continue`), counts decisions_total/jev_answered/escalated from per-decision rows stamped at cron_runner.py:3232-3245, and computes `round(jev_answered / decisions_total, 4) if decisions_total else None` (cron_runner.py:1486-1488). Anti-gaming verified by live execution: `_autonomy_counters([{'cycle':1,'event':'x'},{'cycle':2,'error':'y'}])` -> {'decisions_total': 0, 'jev_answered': 0, 'escalated': 0, 'autonomy_ratio': None}; emitted line `{\"run_id\": \"demo0\", \"event\": \"run_autonomy\", \"decisions_total\": 0, \"jev_answered\": 0, \"escalated\": 0, \"autonomy_ratio\": null, ...}`. Non-zero case: 4 decision rows (2 jev_answered, 1 escalated) + 2 non-decision rows -> decisions_total=4, jev_answered=2, escalated=1, autonomy_ratio=0.5 == 2/4, with non-decision rows moving no counter. Tests: `./venv/bin/pytest tests/test_autonomy_counters.py -v --tb=short` -> exit_code 0, \"12 passed in 0.71s\", including test_autonomy_ratio_equals_jev_answered_over_decisions_total (asserts ratio == round(3/7,4) == jev_answered/decisions_total), test_non_decision_rows_alone_yield_zero_decisions (decisions_total==0, autonomy_ratio is None), test_empty_results_yield_zero_decisions_and_no_ratio, test_write_autonomy_row_emits_one_json_line_with_the_ratio (text.count('\"autonomy_ratio\"')==1), test_written_autonomy_row_is_not_itself_a_decision_row, test_autonomy_row_is_appended_after_the_run_rows, test_decision_row_carries_the_autonomy_fields. Regression: `./venv/bin/pytest tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_cron_runner_metrics.py tests/test_logger.py -q` -> \"166 passed in 0.96s\"; `mypy cron_runner.py` -> \"Success: no issues found in 1 source file\". (No pre-existing cron_logs/run_*.jsonl carries the row \u2014 0 of 595 \u2014 because all predate this change; the write path is proven by the tests and the live simulation above.)\nJEV-1 AC-1 is fully implemented: the run closeout writes a run_autonomy JSON line with decisions_total/jev_answered/escalated/autonomy_ratio derived from per-decision rows, correctly reports 0/null on an empty population, and is covered by 12 passing unit tests with no regressions.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Run log cron_logs/run_<id>.jsonl contains a JSON line with decisions_total, jev_answered, escalated, autonomy_ratio; ratio equals jev_answered/decisions_total derived from per-decision rows (anti-gaming: zero decision rows => decisions_total=0 and autonomy_ratio null); unit tests cover the derivation",
+                "status": "PASS",
+                "detail": "Implementation: cron_runner.py:1523 `_write_autonomy_row()` emits one JSON line with decisions_total/jev_answered/escalated/autonomy_ratio into the run log (LOG_DIR/f\"run_{run_id}.jsonl\", cron_runner.py:512/2318), wired into the real closeout at cron_runner.py:3712 (`autonomy = _autonomy_counters(results)`) and cron_runner.py:3723. Derivation: cron_runner.py:1450 `_autonomy_counters()` skips rows lacking `intent` (`if \"intent\" not in row: continue`), counts decisions_total/jev_answered/escalated from per-decision rows stamped at cron_runner.py:3232-3245, and computes `round(jev_answered / decisions_total, 4) if decisions_total else None` (cron_runner.py:1486-1488). Anti-gaming verified by live execution: `_autonomy_counters([{'cycle':1,'event':'x'},{'cycle':2,'error':'y'}])` -> {'decisions_total': 0, 'jev_answered': 0, 'escalated': 0, 'autonomy_ratio': None}; emitted line `{\"run_id\": \"demo0\", \"event\": \"run_autonomy\", \"decisions_total\": 0, \"jev_answered\": 0, \"escalated\": 0, \"autonomy_ratio\": null, ...}`. Non-zero case: 4 decision rows (2 jev_answered, 1 escalated) + 2 non-decision rows -> decisions_total=4, jev_answered=2, escalated=1, autonomy_ratio=0.5 == 2/4, with non-decision rows moving no counter. Tests: `./venv/bin/pytest tests/test_autonomy_counters.py -v --tb=short` -> exit_code 0, \"12 passed in 0.71s\", including test_autonomy_ratio_equals_jev_answered_over_decisions_total (asserts ratio == round(3/7,4) == jev_answered/decisions_total), test_non_decision_rows_alone_yield_zero_decisions (decisions_total==0, autonomy_ratio is None), test_empty_results_yield_zero_decisions_and_no_ratio, test_write_autonomy_row_emits_one_json_line_with_the_ratio (text.count('\"autonomy_ratio\"')==1), test_written_autonomy_row_is_not_itself_a_decision_row, test_autonomy_row_is_appended_after_the_run_rows, test_decision_row_carries_the_autonomy_fields. Regression: `./venv/bin/pytest tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_cron_runner_metrics.py tests/test_logger.py -q` -> \"166 passed in 0.96s\"; `mypy cron_runner.py` -> \"Success: no issues found in 1 source file\". (No pre-existing cron_logs/run_*.jsonl carries the row \u2014 0 of 595 \u2014 because all predate this change; the write path is proven by the tests and the live simulation above.)",
+                "resolution_probability": 0.6
+              }
+            ],
+            "summary": "JEV-1 AC-1 is fully implemented: the run closeout writes a run_autonomy JSON line with decisions_total/jev_answered/escalated/autonomy_ratio derived from per-decision rows, correctly reports 0/null on an empty population, and is covered by 12 passing unit tests with no regressions."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: JEV-1\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Run log cron_logs/run_<id>.jsonl contains a JSON line with decisions_total, jev_answered, escalated, autonomy_ratio; ratio equals jev_answered/decisions_total derived from per-decision rows (anti-gaming: zero decision rows => decisions_total=0 and autonomy_ratio null); unit tests cover the derivation: Implementation: cron_runner.py:1523 `_write_autonomy_row()` emits one JSON line with decisions_total/jev_answered/escalated/autonomy_ratio into the run log (LOG_DIR/f\"run_{run_id}.jsonl\", cron_runner.py:512/2318), wired into the real closeout at cron_runner.py:3712 (`autonomy = _autonomy_counters(results)`) and cron_runner.py:3723. Derivation: cron_runner.py:1450 `_autonomy_counters()` skips rows lacking `intent` (`if \"intent\" not in row: continue`), counts decisions_total/jev_answered/escalated from per-decision rows stamped at cron_runner.py:3232-3245, and computes `round(jev_answered / decisions_total, 4) if decisions_total else None` (cron_runner.py:1486-1488). Anti-gaming verified by live execution: `_autonomy_counters([{'cycle':1,'event':'x'},{'cycle':2,'error':'y'}])` -> {'decisions_total': 0, 'jev_answered': 0, 'escalated': 0, 'autonomy_ratio': None}; emitted line `{\"run_id\": \"demo0\", \"event\": \"run_autonomy\", \"decisions_total\": 0, \"jev_answered\": 0, \"escalated\": 0, \"autonomy_ratio\": null, ...}`. Non-zero case: 4 decision rows (2 jev_answered, 1 escalated) + 2 non-decision rows -> decisions_total=4, jev_answered=2, escalated=1, autonomy_ratio=0.5 == 2/4, with non-decision rows moving no counter. Tests: `./venv/bin/pytest tests/test_autonomy_counters.py -v --tb=short` -> exit_code 0, \"12 passed in 0.71s\", including test_autonomy_ratio_equals_jev_answered_over_decisions_total (asserts ratio == round(3/7,4) == jev_answered/decisions_total), test_non_decision_rows_alone_yield_zero_decisions (decisions_total==0, autonomy_ratio is None), test_empty_results_yield_zero_decisions_and_no_ratio, test_write_autonomy_row_emits_one_json_line_with_the_ratio (text.count('\"autonomy_ratio\"')==1), test_written_autonomy_row_is_not_itself_a_decision_row, test_autonomy_row_is_appended_after_the_run_rows, test_decision_row_carries_the_autonomy_fields. Regression: `./venv/bin/pytest tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_cron_runner_metrics.py tests/test_logger.py -q` -> \"166 passed in 0.96s\"; `mypy cron_runner.py` -> \"Success: no issues found in 1 source file\". (No pre-existing cron_logs/run_*.jsonl carries the row \u2014 0 of 595 \u2014 because all predate this change; the write path is proven by the tests and the live simulation above.)\nJEV-1 AC-1 is fully implemented: the run closeout writes a run_autonomy JSON line with decisions_total/jev_answered/escalated/autonomy_ratio derived from per-decision rows, correctly reports 0/null on an empty population, and is covered by 12 passing unit tests with no regressions.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-24T06:45:23.190705",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-24T06:45:23.202463+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 1230,
+        "truncated": false,
+        "source": "git show 3a14d104369c"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1040,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "JEV-1"
+  }
+}

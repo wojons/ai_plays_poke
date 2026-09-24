@@ -1,0 +1,28 @@
+commit 3a14d104369c462bac5b0dc39dc8c0b4aef243ca
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Thu Sep 24 01:42:47 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Thu Sep 24 01:42:47 2026 -0500
+
+    chore(gitreins): JEV-1 task flip — tier2 judge running async (job-f2e79c0ee95547c0a23ac644c58b34e4)
+    
+    Verdict artifact folds with the job result on a later tick. No gate result
+    claimed beyond the recorded tier1/feature gates in the T237 events.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ .gitreins/tasks.yaml | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index cb6bec6..272c58c 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -617,5 +617,6 @@ tasks:
+     escalated, autonomy_ratio; ratio equals jev_answered/decisions_total derived from
+     per-decision rows (anti-gaming: zero decision rows => decisions_total=0 and autonomy_ratio
+     null); unit tests cover the derivation'
+-  status: in_progress
++  status: complete
+   created_at: '2026-09-24T05:59:01.930142+00:00'
++  completed_at: '2026-09-24T06:37:03.480057+00:00'
