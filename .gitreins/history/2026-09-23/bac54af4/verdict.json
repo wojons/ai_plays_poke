@@ -1,0 +1,120 @@
+{
+  "task_id": "INT-GL-1",
+  "task_title": "merge: QA-AI-PLAYS-POKE-6 pyproject dev extras (4fbbc50)",
+  "task_criteria": [
+    "see board row INT-GL-1 acceptance"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "8cad828eb79dbf8345a0fdd498a8e8ba770ce0fd",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T162455.628274Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n11:48AM INF scanned ~236623352 bytes (236.62 MB) in 9.58s\n11:48AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72091 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T162455.628274Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4047 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [431428 chars omitted \u2014 4807 line(s)] \u2026\ntest_bench_pathfinding_find_path               430.9986 (1.13)           4,569.0103 (3.21)            759.2785 (1.71)           954.9603 (17.28)           506.0137 (1.15)            70.9842 (1.82)          1;4  1,317,039.7696 (0.59)         18           1\ntest_bench_vision_pipeline_validate          7,344.0024 (19.33)        125,102.0003 (87.91)         8,236.4551 (18.52)        1,971.6147 (35.67)         7,825.0014 (17.74)          290.0124 (7.44)    2640;3962    121,411.4554 (0.05)      35611           1\ntest_bench_ram_reader_observe              923,418.0034 (>1000.0)  158,824,950.9805 (>1000.0)   1,791,707.1215 (>1000.0)  9,424,940.1038 (>1000.0)   1,099,112.9966 (>1000.0)    129,009.7644 (>1000.0)      4;52        558.1269 (0.00)        853           1\ntest_bench_vision_pipeline_process      37,393,053.0041 (>1000.0)   42,619,784.0134 (>1000.0)  39,252,913.9253 (>1000.0)  1,107,633.3142 (>1000.0)  39,241,168.0077 (>1000.0)  1,393,398.0081 (>1000.0)       5;1         25.4758 (0.00)         26           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4033 passed, 14 skipped in 271.46s (0:04:31) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T162455.628274Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 see board row INT-GL-1 acceptance: Board row INT-GL-1 (.coding-hermes/board/tasks.jsonl) acceptance = '_builtin_secrets_scan(staged_only=False).passed == True, then a subsequent gitreins task complete records tier1 PASS'. Directly executed the check via engine.guard_manager.GuardManager(workdir='/home/kara/ai_plays_poke')._builtin_secrets_scan(staged_only=False) -> 'PASSED: True' / 'Scanned 72112 files \u2014 clean (excluded harness state: .gitreins/**)'. Second half: post-fix guard logs show overall PASS with '[PASS] secrets passed=true' (guard-20260923T155405.579743Z.log, 154715, 154454, 150832, 145556, 141149) and the latest full run guard-20260923T162455.628274Z.log records '[PASS] tests (full) 4021 passed, 14 skipped' + '[PASS] static_analysis mypy clean' (its lint FAIL is from DF-AIPP-2 files cron_runner.py/test_ladder_battle_events_dedup.py, not this change). Fix recipe implemented: .gitleaks.toml adds 4 allowlist regexes ((^|/)\\.env$, (^|/)\\.env\\.bak-.*$, (^|/)review_.*\\.html$, (^|/)src/dashboard/static/.*); src/dashboard/static/index.html:430 de-literalized to `const API_KEY = (window.ENV && window.ENV.PTP_API_KEY) || '';` with render_index_html() injection in src/dashboard/main.py. Tests: tests/test_secrets_allowlist.py 6 passed; tests/test_dashboard.py 58 passed. Merge aspect (task title): commit 4e632ef (parents d344e44 + 4fbbc50) is HEAD, pyproject.toml [dev] extras present (pytest-benchmark, pytest-timeout, requests-mock, opencv-python, psutil, fastapi), no conflict markers, and both 4fbbc50 and 295315f are ancestors of HEAD.\nINT-GL-1 acceptance is met: the built-in full-tree secrets scan passes (PASSED: True, 72112 files clean), subsequent guard runs record tier1 PASS, the gitleaks allowlist + dashboard key de-literalization are in place with passing tests, and the pyproject dev-extras merge (4fbbc50) is cleanly merged into HEAD.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 see board row INT-GL-1 acceptance: Board row INT-GL-1 (.coding-hermes/board/tasks.jsonl) acceptance = '_builtin_secrets_scan(staged_only=False).passed == True, then a subsequent gitreins task complete records tier1 PASS'. Directly executed the check via engine.guard_manager.GuardManager(workdir='/home/kara/ai_plays_poke')._builtin_secrets_scan(staged_only=False) -> 'PASSED: True' / 'Scanned 72112 files \u2014 clean (excluded harness state: .gitreins/**)'. Second half: post-fix guard logs show overall PASS with '[PASS] secrets passed=true' (guard-20260923T155405.579743Z.log, 154715, 154454, 150832, 145556, 141149) and the latest full run guard-20260923T162455.628274Z.log records '[PASS] tests (full) 4021 passed, 14 skipped' + '[PASS] static_analysis mypy clean' (its lint FAIL is from DF-AIPP-2 files cron_runner.py/test_ladder_battle_events_dedup.py, not this change). Fix recipe implemented: .gitleaks.toml adds 4 allowlist regexes ((^|/)\\.env$, (^|/)\\.env\\.bak-.*$, (^|/)review_.*\\.html$, (^|/)src/dashboard/static/.*); src/dashboard/static/index.html:430 de-literalized to `const API_KEY = (window.ENV && window.ENV.PTP_API_KEY) || '';` with render_index_html() injection in src/dashboard/main.py. Tests: tests/test_secrets_allowlist.py 6 passed; tests/test_dashboard.py 58 passed. Merge aspect (task title): commit 4e632ef (parents d344e44 + 4fbbc50) is HEAD, pyproject.toml [dev] extras present (pytest-benchmark, pytest-timeout, requests-mock, opencv-python, psutil, fastapi), no conflict markers, and both 4fbbc50 and 295315f are ancestors of HEAD.\nINT-GL-1 acceptance is met: the built-in full-tree secrets scan passes (PASSED: True, 72112 files clean), subsequent guard runs record tier1 PASS, the gitleaks allowlist + dashboard key de-literalization are in place with passing tests, and the pyproject dev-extras merge (4fbbc50) is cleanly merged into HEAD.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "see board row INT-GL-1 acceptance",
+                "status": "PASS",
+                "detail": "Board row INT-GL-1 (.coding-hermes/board/tasks.jsonl) acceptance = '_builtin_secrets_scan(staged_only=False).passed == True, then a subsequent gitreins task complete records tier1 PASS'. Directly executed the check via engine.guard_manager.GuardManager(workdir='/home/kara/ai_plays_poke')._builtin_secrets_scan(staged_only=False) -> 'PASSED: True' / 'Scanned 72112 files \u2014 clean (excluded harness state: .gitreins/**)'. Second half: post-fix guard logs show overall PASS with '[PASS] secrets passed=true' (guard-20260923T155405.579743Z.log, 154715, 154454, 150832, 145556, 141149) and the latest full run guard-20260923T162455.628274Z.log records '[PASS] tests (full) 4021 passed, 14 skipped' + '[PASS] static_analysis mypy clean' (its lint FAIL is from DF-AIPP-2 files cron_runner.py/test_ladder_battle_events_dedup.py, not this change). Fix recipe implemented: .gitleaks.toml adds 4 allowlist regexes ((^|/)\\.env$, (^|/)\\.env\\.bak-.*$, (^|/)review_.*\\.html$, (^|/)src/dashboard/static/.*); src/dashboard/static/index.html:430 de-literalized to `const API_KEY = (window.ENV && window.ENV.PTP_API_KEY) || '';` with render_index_html() injection in src/dashboard/main.py. Tests: tests/test_secrets_allowlist.py 6 passed; tests/test_dashboard.py 58 passed. Merge aspect (task title): commit 4e632ef (parents d344e44 + 4fbbc50) is HEAD, pyproject.toml [dev] extras present (pytest-benchmark, pytest-timeout, requests-mock, opencv-python, psutil, fastapi), no conflict markers, and both 4fbbc50 and 295315f are ancestors of HEAD.",
+                "resolution_probability": 0.55
+              }
+            ],
+            "summary": "INT-GL-1 acceptance is met: the built-in full-tree secrets scan passes (PASSED: True, 72112 files clean), subsequent guard runs record tier1 PASS, the gitleaks allowlist + dashboard key de-literalization are in place with passing tests, and the pyproject dev-extras merge (4fbbc50) is cleanly merged into HEAD."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: INT-GL-1\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 see board row INT-GL-1 acceptance: Board row INT-GL-1 (.coding-hermes/board/tasks.jsonl) acceptance = '_builtin_secrets_scan(staged_only=False).passed == True, then a subsequent gitreins task complete records tier1 PASS'. Directly executed the check via engine.guard_manager.GuardManager(workdir='/home/kara/ai_plays_poke')._builtin_secrets_scan(staged_only=False) -> 'PASSED: True' / 'Scanned 72112 files \u2014 clean (excluded harness state: .gitreins/**)'. Second half: post-fix guard logs show overall PASS with '[PASS] secrets passed=true' (guard-20260923T155405.579743Z.log, 154715, 154454, 150832, 145556, 141149) and the latest full run guard-20260923T162455.628274Z.log records '[PASS] tests (full) 4021 passed, 14 skipped' + '[PASS] static_analysis mypy clean' (its lint FAIL is from DF-AIPP-2 files cron_runner.py/test_ladder_battle_events_dedup.py, not this change). Fix recipe implemented: .gitleaks.toml adds 4 allowlist regexes ((^|/)\\.env$, (^|/)\\.env\\.bak-.*$, (^|/)review_.*\\.html$, (^|/)src/dashboard/static/.*); src/dashboard/static/index.html:430 de-literalized to `const API_KEY = (window.ENV && window.ENV.PTP_API_KEY) || '';` with render_index_html() injection in src/dashboard/main.py. Tests: tests/test_secrets_allowlist.py 6 passed; tests/test_dashboard.py 58 passed. Merge aspect (task title): commit 4e632ef (parents d344e44 + 4fbbc50) is HEAD, pyproject.toml [dev] extras present (pytest-benchmark, pytest-timeout, requests-mock, opencv-python, psutil, fastapi), no conflict markers, and both 4fbbc50 and 295315f are ancestors of HEAD.\nINT-GL-1 acceptance is met: the built-in full-tree secrets scan passes (PASSED: True, 72112 files clean), subsequent guard runs record tier1 PASS, the gitleaks allowlist + dashboard key de-literalization are in place with passing tests, and the pyproject dev-extras merge (4fbbc50) is cleanly merged into HEAD.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-23T17:06:48.221973",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-23T17:06:48.267622+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 2941,
+        "truncated": false,
+        "source": "git show 8cad828eb79d"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1596,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "INT-GL-1"
+  }
+}

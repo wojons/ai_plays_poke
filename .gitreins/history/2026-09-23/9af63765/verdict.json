@@ -1,0 +1,120 @@
+{
+  "task_id": "DF-AIPP-2",
+  "task_title": "docs(prd): auto light/dark mode on the PRD v3 artifact",
+  "task_criteria": [
+    "see board row DF-AIPP-2 acceptance"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "8cad828eb79dbf8345a0fdd498a8e8ba770ce0fd",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T162455.628274Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n12:19PM INF scanned ~236730125 bytes (236.73 MB) in 10.2s\n12:19PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72185 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T162455.628274Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4047 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [431432 chars omitted \u2014 4807 line(s)] \u2026\ntest_bench_pathfinding_find_path               420.0265 (1.11)           3,527.0059 (1.0)             684.1130 (1.50)            716.6852 (5.22)            480.9990 (1.09)            80.0064 (2.00)          1;3  1,461,746.7700 (0.67)         18           1\ntest_bench_vision_pipeline_validate          7,022.9871 (18.48)        111,756.9918 (31.69)         8,113.4430 (17.81)         1,363.6534 (9.94)          7,775.0010 (17.63)          191.0084 (4.78)    2975;4837    123,252.2378 (0.06)      38039           1\ntest_bench_ram_reader_observe              924,170.0172 (>1000.0)  184,185,760.0084 (>1000.0)   1,962,408.0392 (>1000.0)  11,315,509.7996 (>1000.0)   1,108,636.9923 (>1000.0)    137,614.5083 (>1000.0)      5;61        509.5780 (0.00)        976           1\ntest_bench_vision_pipeline_process      36,960,775.0035 (>1000.0)   53,414,216.0031 (>1000.0)  40,704,997.4008 (>1000.0)   3,741,785.9807 (>1000.0)  39,335,609.0062 (>1000.0)  3,968,023.7387 (>1000.0)       5;1         24.5670 (0.00)         25           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4033 passed, 14 skipped in 590.06s (0:09:50) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T162455.628274Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 see board row DF-AIPP-2 acceptance: Board row DF-AIPP-2 (.gitreins/history/2026-09-23/dc581527/commit.patch:139) acceptance = 'ladder.battle_events == number of top-level battle_start rows in the same log' (P1 battle_events double-count bug). Implemented at cron_runner.py:1462-1469: battle_events = sum(1 for row in results if str(row.get('event','')).startswith('battle_')) \u2014 counts top-level battle_* rows only, skips nested state-window lists; comment explicitly cites DF-AIPP-2. Fix commit 39ec6f4 'fix(metrics): ladder battle_events counts top-level event rows only, dedups nested state-window lists (DF-AIPP-2)'. Tests: .venv/bin/python -m pytest tests/test_ladder_battle_events_dedup.py -v -> '3 passed in 1.41s' (test_ladder_counts_top_level_rows_and_ignores_nested_lists, test_live_incident_shape_no_longer_reports_six, test_nested_lists_alone_contribute_nothing all PASSED); broader run with test_run_recorder.py + test_boot_memory_injection.py -> '17 passed in 0.57s'. Invariant holds: dgf_0923b incident shape now reports 2 (was 6). NOTE: task title ('docs(prd): auto light/dark mode on the PRD v3 artifact') mismatches the DF-AIPP-2 board row \u2014 that title belongs to QA-AI-PLAYS-POKE-6 (commit 5c5f1464); the DF-AIPP-2 row is the battle_events dedup bug, which is what the criterion references and what is implemented.\nThe DF-AIPP-2 board-row acceptance (ladder.battle_events counts top-level battle_* rows only, deduping nested state-window lists) is implemented in cron_runner.py:1462-1469 and verified by 3 passing tests.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 see board row DF-AIPP-2 acceptance: Board row DF-AIPP-2 (.gitreins/history/2026-09-23/dc581527/commit.patch:139) acceptance = 'ladder.battle_events == number of top-level battle_start rows in the same log' (P1 battle_events double-count bug). Implemented at cron_runner.py:1462-1469: battle_events = sum(1 for row in results if str(row.get('event','')).startswith('battle_')) \u2014 counts top-level battle_* rows only, skips nested state-window lists; comment explicitly cites DF-AIPP-2. Fix commit 39ec6f4 'fix(metrics): ladder battle_events counts top-level event rows only, dedups nested state-window lists (DF-AIPP-2)'. Tests: .venv/bin/python -m pytest tests/test_ladder_battle_events_dedup.py -v -> '3 passed in 1.41s' (test_ladder_counts_top_level_rows_and_ignores_nested_lists, test_live_incident_shape_no_longer_reports_six, test_nested_lists_alone_contribute_nothing all PASSED); broader run with test_run_recorder.py + test_boot_memory_injection.py -> '17 passed in 0.57s'. Invariant holds: dgf_0923b incident shape now reports 2 (was 6). NOTE: task title ('docs(prd): auto light/dark mode on the PRD v3 artifact') mismatches the DF-AIPP-2 board row \u2014 that title belongs to QA-AI-PLAYS-POKE-6 (commit 5c5f1464); the DF-AIPP-2 row is the battle_events dedup bug, which is what the criterion references and what is implemented.\nThe DF-AIPP-2 board-row acceptance (ladder.battle_events counts top-level battle_* rows only, deduping nested state-window lists) is implemented in cron_runner.py:1462-1469 and verified by 3 passing tests.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "see board row DF-AIPP-2 acceptance",
+                "status": "PASS",
+                "detail": "Board row DF-AIPP-2 (.gitreins/history/2026-09-23/dc581527/commit.patch:139) acceptance = 'ladder.battle_events == number of top-level battle_start rows in the same log' (P1 battle_events double-count bug). Implemented at cron_runner.py:1462-1469: battle_events = sum(1 for row in results if str(row.get('event','')).startswith('battle_')) \u2014 counts top-level battle_* rows only, skips nested state-window lists; comment explicitly cites DF-AIPP-2. Fix commit 39ec6f4 'fix(metrics): ladder battle_events counts top-level event rows only, dedups nested state-window lists (DF-AIPP-2)'. Tests: .venv/bin/python -m pytest tests/test_ladder_battle_events_dedup.py -v -> '3 passed in 1.41s' (test_ladder_counts_top_level_rows_and_ignores_nested_lists, test_live_incident_shape_no_longer_reports_six, test_nested_lists_alone_contribute_nothing all PASSED); broader run with test_run_recorder.py + test_boot_memory_injection.py -> '17 passed in 0.57s'. Invariant holds: dgf_0923b incident shape now reports 2 (was 6). NOTE: task title ('docs(prd): auto light/dark mode on the PRD v3 artifact') mismatches the DF-AIPP-2 board row \u2014 that title belongs to QA-AI-PLAYS-POKE-6 (commit 5c5f1464); the DF-AIPP-2 row is the battle_events dedup bug, which is what the criterion references and what is implemented.",
+                "resolution_probability": 0.58
+              }
+            ],
+            "summary": "The DF-AIPP-2 board-row acceptance (ladder.battle_events counts top-level battle_* rows only, deduping nested state-window lists) is implemented in cron_runner.py:1462-1469 and verified by 3 passing tests."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-AIPP-2\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 see board row DF-AIPP-2 acceptance: Board row DF-AIPP-2 (.gitreins/history/2026-09-23/dc581527/commit.patch:139) acceptance = 'ladder.battle_events == number of top-level battle_start rows in the same log' (P1 battle_events double-count bug). Implemented at cron_runner.py:1462-1469: battle_events = sum(1 for row in results if str(row.get('event','')).startswith('battle_')) \u2014 counts top-level battle_* rows only, skips nested state-window lists; comment explicitly cites DF-AIPP-2. Fix commit 39ec6f4 'fix(metrics): ladder battle_events counts top-level event rows only, dedups nested state-window lists (DF-AIPP-2)'. Tests: .venv/bin/python -m pytest tests/test_ladder_battle_events_dedup.py -v -> '3 passed in 1.41s' (test_ladder_counts_top_level_rows_and_ignores_nested_lists, test_live_incident_shape_no_longer_reports_six, test_nested_lists_alone_contribute_nothing all PASSED); broader run with test_run_recorder.py + test_boot_memory_injection.py -> '17 passed in 0.57s'. Invariant holds: dgf_0923b incident shape now reports 2 (was 6). NOTE: task title ('docs(prd): auto light/dark mode on the PRD v3 artifact') mismatches the DF-AIPP-2 board row \u2014 that title belongs to QA-AI-PLAYS-POKE-6 (commit 5c5f1464); the DF-AIPP-2 row is the battle_events dedup bug, which is what the criterion references and what is implemented.\nThe DF-AIPP-2 board-row acceptance (ladder.battle_events counts top-level battle_* rows only, deduping nested state-window lists) is implemented in cron_runner.py:1462-1469 and verified by 3 passing tests.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-23T17:30:56.693151",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-23T17:30:56.705540+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 2941,
+        "truncated": false,
+        "source": "git show 8cad828eb79d"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 2127,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-AIPP-2"
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "task_id": "QA-AI-PLAYS-POKE-6",
+  "task_title": "docs(prd): auto light/dark mode on the PRD v3 artifact",
+  "task_criteria": [
+    "see board row QA-AI-PLAYS-POKE-6 acceptance"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "8cad828eb79dbf8345a0fdd498a8e8ba770ce0fd",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T162455.628274Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n12:07PM INF scanned ~236721205 bytes (236.72 MB) in 11.8s\n12:07PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72147 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T162455.628274Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 see board row QA-AI-PLAYS-POKE-6 acceptance: Task title 'docs(prd): auto light/dark mode on the PRD v3 artifact' is delivered by commit 8cad828, which modifies docs/prd/PRD_v3_jev_duckbrain.html (the PRD v3 artifact). CSS at lines 8-17 adds `:root { color-scheme: light dark; ... }` plus `@media (prefers-color-scheme: dark) { :root { ... } }` \u2014 automatic theme following the OS/browser, no JS/toggle, artifact stays self-contained. All 8 CSS vars (--ink,--muted,--line,--bg,--soft,--accent,--code-bg,--code-ink) are defined in BOTH palettes (programmatic check: dark-missing-vs-light = empty set). Print rule forces light: `@media print { :root { color-scheme: light; ... } }`. CSS braces balanced 40/40; HTML parses with zero unclosed tags and zero errors. Commit-message WCAG claims verified exactly by contrast calc: dark body 15.9:1, muted 7.3:1, links 6.8:1 (all above AA 4.5:1); light body 18.0, muted 5.8, link 5.1. Commit carries the required trailer 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'. Docs-only change with no test covering the HTML artifact; ran ./venv/bin/pytest tests/test_diagnostic_scripts.py -q => '14 passed in 0.27s' (exit 0); full suite exceeds the 30s tool timeout. LSP diagnostics: 0 findings.\nCommit 8cad828 correctly implements automatic light/dark mode on the PRD v3 HTML artifact via prefers-color-scheme with complete dual palettes, color-scheme hints, a light-forcing print rule, and verified AA contrast.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 see board row QA-AI-PLAYS-POKE-6 acceptance: Task title 'docs(prd): auto light/dark mode on the PRD v3 artifact' is delivered by commit 8cad828, which modifies docs/prd/PRD_v3_jev_duckbrain.html (the PRD v3 artifact). CSS at lines 8-17 adds `:root { color-scheme: light dark; ... }` plus `@media (prefers-color-scheme: dark) { :root { ... } }` \u2014 automatic theme following the OS/browser, no JS/toggle, artifact stays self-contained. All 8 CSS vars (--ink,--muted,--line,--bg,--soft,--accent,--code-bg,--code-ink) are defined in BOTH palettes (programmatic check: dark-missing-vs-light = empty set). Print rule forces light: `@media print { :root { color-scheme: light; ... } }`. CSS braces balanced 40/40; HTML parses with zero unclosed tags and zero errors. Commit-message WCAG claims verified exactly by contrast calc: dark body 15.9:1, muted 7.3:1, links 6.8:1 (all above AA 4.5:1); light body 18.0, muted 5.8, link 5.1. Commit carries the required trailer 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'. Docs-only change with no test covering the HTML artifact; ran ./venv/bin/pytest tests/test_diagnostic_scripts.py -q => '14 passed in 0.27s' (exit 0); full suite exceeds the 30s tool timeout. LSP diagnostics: 0 findings.\nCommit 8cad828 correctly implements automatic light/dark mode on the PRD v3 HTML artifact via prefers-color-scheme with complete dual palettes, color-scheme hints, a light-forcing print rule, and verified AA contrast.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "see board row QA-AI-PLAYS-POKE-6 acceptance",
+                "status": "PASS",
+                "detail": "Task title 'docs(prd): auto light/dark mode on the PRD v3 artifact' is delivered by commit 8cad828, which modifies docs/prd/PRD_v3_jev_duckbrain.html (the PRD v3 artifact). CSS at lines 8-17 adds `:root { color-scheme: light dark; ... }` plus `@media (prefers-color-scheme: dark) { :root { ... } }` \u2014 automatic theme following the OS/browser, no JS/toggle, artifact stays self-contained. All 8 CSS vars (--ink,--muted,--line,--bg,--soft,--accent,--code-bg,--code-ink) are defined in BOTH palettes (programmatic check: dark-missing-vs-light = empty set). Print rule forces light: `@media print { :root { color-scheme: light; ... } }`. CSS braces balanced 40/40; HTML parses with zero unclosed tags and zero errors. Commit-message WCAG claims verified exactly by contrast calc: dark body 15.9:1, muted 7.3:1, links 6.8:1 (all above AA 4.5:1); light body 18.0, muted 5.8, link 5.1. Commit carries the required trailer 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'. Docs-only change with no test covering the HTML artifact; ran ./venv/bin/pytest tests/test_diagnostic_scripts.py -q => '14 passed in 0.27s' (exit 0); full suite exceeds the 30s tool timeout. LSP diagnostics: 0 findings.",
+                "resolution_probability": 0.61
+              }
+            ],
+            "summary": "Commit 8cad828 correctly implements automatic light/dark mode on the PRD v3 HTML artifact via prefers-color-scheme with complete dual palettes, color-scheme hints, a light-forcing print rule, and verified AA contrast."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: QA-AI-PLAYS-POKE-6\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 see board row QA-AI-PLAYS-POKE-6 acceptance: Task title 'docs(prd): auto light/dark mode on the PRD v3 artifact' is delivered by commit 8cad828, which modifies docs/prd/PRD_v3_jev_duckbrain.html (the PRD v3 artifact). CSS at lines 8-17 adds `:root { color-scheme: light dark; ... }` plus `@media (prefers-color-scheme: dark) { :root { ... } }` \u2014 automatic theme following the OS/browser, no JS/toggle, artifact stays self-contained. All 8 CSS vars (--ink,--muted,--line,--bg,--soft,--accent,--code-bg,--code-ink) are defined in BOTH palettes (programmatic check: dark-missing-vs-light = empty set). Print rule forces light: `@media print { :root { color-scheme: light; ... } }`. CSS braces balanced 40/40; HTML parses with zero unclosed tags and zero errors. Commit-message WCAG claims verified exactly by contrast calc: dark body 15.9:1, muted 7.3:1, links 6.8:1 (all above AA 4.5:1); light body 18.0, muted 5.8, link 5.1. Commit carries the required trailer 'Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>'. Docs-only change with no test covering the HTML artifact; ran ./venv/bin/pytest tests/test_diagnostic_scripts.py -q => '14 passed in 0.27s' (exit 0); full suite exceeds the 30s tool timeout. LSP diagnostics: 0 findings.\nCommit 8cad828 correctly implements automatic light/dark mode on the PRD v3 HTML artifact via prefers-color-scheme with complete dual palettes, color-scheme hints, a light-forcing print rule, and verified AA contrast.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-23T17:19:02.380530",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-23T17:19:02.396652+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 2941,
+        "truncated": false,
+        "source": "git show 8cad828eb79d"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1870,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "QA-AI-PLAYS-POKE-6"
+  }
+}

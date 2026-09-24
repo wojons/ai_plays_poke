@@ -1,0 +1,16 @@
+{
+  "wave_id": "ai-plays-poke-2026-09-24-05-42-59",
+  "tick": 237,
+  "budget": 5,
+  "workers": 1,
+  "tasks": ["JEV-1"],
+  "worktrees": {
+    "JEV-1": {"worktree": "/home/kara/worktrees/ai_plays_poke-JEV-1", "branch": "wt/JEV-1", "base": "8cad828"}
+  },
+  "briefs": {
+    "JEV-1": "/tmp/ai-plays-poke-237_brief_JEV-1.md"
+  },
+  "dispatched_at": "2026-09-24T05:55:00Z",
+  "status": "dispatched",
+  "note": "Single-worker wave: JEV-1 is the only independent implementable row (JEV-2..5 depend on it; DOC/CLN/DF rows lower value or non-code). E2E-001 executes in parallel in the main checkout per its due window T232-T237."
+}

@@ -1,0 +1,58 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 611bd20..8ca7d0f 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -589,3 +589,24 @@ tasks:
+   status: complete
+   created_at: '2026-09-23T16:01:12.555098+00:00'
+   completed_at: '2026-09-23T16:06:06.849253+00:00'
++- id: INT-GL-1
++  title: 'merge: QA-AI-PLAYS-POKE-6 pyproject dev extras (4fbbc50)'
++  criteria:
++  - see board row INT-GL-1 acceptance
++  status: complete
++  created_at: '2026-09-23T16:48:08.994346+00:00'
++  completed_at: '2026-09-23T16:48:09.311193+00:00'
++- id: QA-AI-PLAYS-POKE-6
++  title: 'docs(prd): auto light/dark mode on the PRD v3 artifact'
++  criteria:
++  - see board row QA-AI-PLAYS-POKE-6 acceptance
++  status: complete
++  created_at: '2026-09-23T17:06:48.992700+00:00'
++  completed_at: '2026-09-23T17:06:49.399285+00:00'
++- id: DF-AIPP-2
++  title: 'docs(prd): auto light/dark mode on the PRD v3 artifact'
++  criteria:
++  - see board row DF-AIPP-2 acceptance
++  status: complete
++  created_at: '2026-09-23T17:19:02.635974+00:00'
++  completed_at: '2026-09-23T17:19:02.971488+00:00'
+diff --git a/data/duration_profiles.json b/data/duration_profiles.json
+index 0c4eee6..6a58581 100644
+--- a/data/duration_profiles.json
++++ b/data/duration_profiles.json
+@@ -2,16 +2,16 @@
+   "BATTLE/WILD": {
+     "mode": "BATTLE",
+     "sub_mode": "WILD",
+-    "sample_count": 578,
+-    "mean_duration": 0.10007569085986945,
+-    "std_duration": 1.3080985317999966e-05,
++    "sample_count": 583,
++    "mean_duration": 0.1000796961548219,
++    "std_duration": 7.014481035329315e-06,
+     "min_duration": 0.10003995895385742,
+     "max_duration": 0.10204648971557617,
+-    "p50_duration": 0.10007569085986945,
+-    "p75_duration": 0.10074569085986945,
+-    "p95_duration": 0.10172069085986944,
+-    "p99_duration": 0.10240169085986944,
+-    "last_updated": 1790180941.3727157,
++    "p50_duration": 0.1000796961548219,
++    "p75_duration": 0.1007496961548219,
++    "p95_duration": 0.1017246961548219,
++    "p99_duration": 0.1024056961548219,
++    "last_updated": 1790184455.7161772,
+     "trend": "insufficient_data",
+     "trend_slope": 0
+   }

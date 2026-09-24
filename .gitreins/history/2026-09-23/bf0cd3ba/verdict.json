@@ -1,0 +1,121 @@
+{
+  "task_id": "GAP-048",
+  "task_title": "cron_runner --dry-run probes configured API keys for liveness (expired key -> non-zero exit with verbatim provider error; --skip-key-check for offline presence-only)",
+  "task_criteria": [
+    "expired key -> dry-run exits != 0 quoting the provider error; valid keys -> exit 0; --skip-key-check -> no network attempted; documented in docs/api/cron_runner.md"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "d5919fb83582217905d806d938784feadb0edfeb",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T155405.579743Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n10:56AM INF scanned ~236605803 bytes (236.61 MB) in 13.9s\n10:56AM INF no leaks found\nsecrets: gitleaks: clean\nSecrets scan: 6 potential findings\nsecrets: builtin cross-check: Potential secrets found:\nreview_battlefix_win1.html:53: [AWS access key]           <img src=\"***\" alt=\"***\">\n.env.bak-20260923-021900:1: [OpenAI/OpenRouter API key] OPENROUTER_API_KEY=REDACTED-FOR-PUSH-237\n.env.bak-20260923-021900:2: [OpenAI/OpenRouter API key] DEEPSEEK_API_KEY=REDACTED-FOR-PUSH-237\n.env:1: [OpenAI/OpenRouter API key] OPENROUTER_API_KEY=REDACTED-FOR-PUSH-237\n.env:2: [OpenAI/OpenRouter API key] DEEPSEEK_API_KEY=REDACTED-FOR-PUSH-237\nsrc/dashboard/static/index.html:425: [hardcoded API key]         const API_KEY = \"***\";\nsecrets: builtin cross-check status: 6 findings\n",
+          "error": "",
+          "data": {
+            "exit_code": 1,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T155405.579743Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4032 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [429601 chars omitted \u2014 4789 line(s)] \u2026\ntest_bench_pathfinding_find_path               490.9816 (1.02)           4,449.0153 (1.0)           1,102.2203 (1.94)          1,264.3362 (7.10)            650.9945 (1.18)           351.0067 (7.02)          1;1    907,259.6738 (0.52)          9           1\ntest_bench_vision_pipeline_validate          8,033.9960 (16.74)        454,830.9953 (102.23)        9,766.6026 (17.18)         6,241.0804 (35.06)         9,067.0073 (16.45)          972.0097 (19.44)    412;3786    102,389.7497 (0.06)      31261           1\ntest_bench_ram_reader_observe            1,021,239.0043 (>1000.0)  254,081,098.0136 (>1000.0)   2,268,679.6078 (>1000.0)  13,077,038.8769 (>1000.0)   1,255,487.9941 (>1000.0)    290,252.5011 (>1000.0)      5;80        440.7850 (0.00)        956           1\ntest_bench_vision_pipeline_process      40,913,591.0159 (>1000.0)   48,077,997.9844 (>1000.0)  42,972,706.1201 (>1000.0)   1,572,293.7376 (>1000.0)  42,464,164.9879 (>1000.0)  1,568,373.0308 (>1000.0)       5;1         23.2706 (0.00)         24           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4018 passed, 14 skipped in 330.51s (0:05:30) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260923T155405.579743Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 expired key -> dry-run exits != 0 quoting the provider error; valid keys -> exit 0; --skip-key-check -> no network attempted; documented in docs/api/cron_runner.md: All four sub-behaviors verified live. (1) Expired key: `OPENROUTER_API_KEY=sk-or-v1-junkbeef ./venv/bin/python3 cron_runner.py --dry-run` -> EXIT=1, output '[DRY-RUN] ERROR: OPENROUTER_API_KEY is dead \u2014 User not found.' (verbatim provider error). Implemented in cron_runner.py:212 _probe_api_key (HTTP 200=live, else _extract_provider_error verbatim), :264 _check_configured_keys, :340-349 errors->return 1. (2) Valid keys: real .env -> EXIT=0, 'OPENROUTER_API_KEY live', 'DEEPSEEK_API_KEY live', 'Validation OK \u2014 exiting 0.' (3) --skip-key-check: EXIT=0, 'Key liveness: skipped (--skip-key-check)', no network \u2014 test_skip_key_check_makes_no_network_call monkeypatches urlopen to raise AssertionError and passes. (4) Docs: docs/api/cron_runner.md lines 27-28, 36, 38, 42, 63-65, 85-86, 257-274 document --skip-key-check, probe endpoints (openrouter.ai/api/v1/key, api.deepseek.com/models), Bearer auth, exit-1 contract, and verbatim error. Tests: `./venv/bin/pytest tests/test_cron_runner_metrics.py -k 'KeyLiveness or key'` -> 9 passed, 26 deselected in 5.14s; full file `./venv/bin/pytest tests/test_cron_runner_metrics.py -q` -> 35 passed in 1.09s. [resolution 0.33; docs/api/cron_runner.md]\nGAP-048 fully implemented and verified: expired key exits 1 with verbatim provider error, valid keys exit 0, --skip-key-check makes no network call, and all behaviors are documented in docs/api/cron_runner.md with 9 passing key-liveness tests.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 expired key -> dry-run exits != 0 quoting the provider error; valid keys -> exit 0; --skip-key-check -> no network attempted; documented in docs/api/cron_runner.md: All four sub-behaviors verified live. (1) Expired key: `OPENROUTER_API_KEY=sk-or-v1-junkbeef ./venv/bin/python3 cron_runner.py --dry-run` -> EXIT=1, output '[DRY-RUN] ERROR: OPENROUTER_API_KEY is dead \u2014 User not found.' (verbatim provider error). Implemented in cron_runner.py:212 _probe_api_key (HTTP 200=live, else _extract_provider_error verbatim), :264 _check_configured_keys, :340-349 errors->return 1. (2) Valid keys: real .env -> EXIT=0, 'OPENROUTER_API_KEY live', 'DEEPSEEK_API_KEY live', 'Validation OK \u2014 exiting 0.' (3) --skip-key-check: EXIT=0, 'Key liveness: skipped (--skip-key-check)', no network \u2014 test_skip_key_check_makes_no_network_call monkeypatches urlopen to raise AssertionError and passes. (4) Docs: docs/api/cron_runner.md lines 27-28, 36, 38, 42, 63-65, 85-86, 257-274 document --skip-key-check, probe endpoints (openrouter.ai/api/v1/key, api.deepseek.com/models), Bearer auth, exit-1 contract, and verbatim error. Tests: `./venv/bin/pytest tests/test_cron_runner_metrics.py -k 'KeyLiveness or key'` -> 9 passed, 26 deselected in 5.14s; full file `./venv/bin/pytest tests/test_cron_runner_metrics.py -q` -> 35 passed in 1.09s. [resolution 0.33; docs/api/cron_runner.md]\nGAP-048 fully implemented and verified: expired key exits 1 with verbatim provider error, valid keys exit 0, --skip-key-check makes no network call, and all behaviors are documented in docs/api/cron_runner.md with 9 passing key-liveness tests.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "expired key -> dry-run exits != 0 quoting the provider error; valid keys -> exit 0; --skip-key-check -> no network attempted; documented in docs/api/cron_runner.md",
+                "status": "PASS",
+                "detail": "All four sub-behaviors verified live. (1) Expired key: `OPENROUTER_API_KEY=sk-or-v1-junkbeef ./venv/bin/python3 cron_runner.py --dry-run` -> EXIT=1, output '[DRY-RUN] ERROR: OPENROUTER_API_KEY is dead \u2014 User not found.' (verbatim provider error). Implemented in cron_runner.py:212 _probe_api_key (HTTP 200=live, else _extract_provider_error verbatim), :264 _check_configured_keys, :340-349 errors->return 1. (2) Valid keys: real .env -> EXIT=0, 'OPENROUTER_API_KEY live', 'DEEPSEEK_API_KEY live', 'Validation OK \u2014 exiting 0.' (3) --skip-key-check: EXIT=0, 'Key liveness: skipped (--skip-key-check)', no network \u2014 test_skip_key_check_makes_no_network_call monkeypatches urlopen to raise AssertionError and passes. (4) Docs: docs/api/cron_runner.md lines 27-28, 36, 38, 42, 63-65, 85-86, 257-274 document --skip-key-check, probe endpoints (openrouter.ai/api/v1/key, api.deepseek.com/models), Bearer auth, exit-1 contract, and verbatim error. Tests: `./venv/bin/pytest tests/test_cron_runner_metrics.py -k 'KeyLiveness or key'` -> 9 passed, 26 deselected in 5.14s; full file `./venv/bin/pytest tests/test_cron_runner_metrics.py -q` -> 35 passed in 1.09s. [resolution 0.33; docs/api/cron_runner.md]",
+                "resolution_probability": 0.33,
+                "cited_path": "docs/api/cron_runner.md"
+              }
+            ],
+            "summary": "GAP-048 fully implemented and verified: expired key exits 1 with verbatim provider error, valid keys exit 0, --skip-key-check makes no network call, and all behaviors are documented in docs/api/cron_runner.md with 9 passing key-liveness tests."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-048\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 expired key -> dry-run exits != 0 quoting the provider error; valid keys -> exit 0; --skip-key-check -> no network attempted; documented in docs/api/cron_runner.md: All four sub-behaviors verified live. (1) Expired key: `OPENROUTER_API_KEY=sk-or-v1-junkbeef ./venv/bin/python3 cron_runner.py --dry-run` -> EXIT=1, output '[DRY-RUN] ERROR: OPENROUTER_API_KEY is dead \u2014 User not found.' (verbatim provider error). Implemented in cron_runner.py:212 _probe_api_key (HTTP 200=live, else _extract_provider_error verbatim), :264 _check_configured_keys, :340-349 errors->return 1. (2) Valid keys: real .env -> EXIT=0, 'OPENROUTER_API_KEY live', 'DEEPSEEK_API_KEY live', 'Validation OK \u2014 exiting 0.' (3) --skip-key-check: EXIT=0, 'Key liveness: skipped (--skip-key-check)', no network \u2014 test_skip_key_check_makes_no_network_call monkeypatches urlopen to raise AssertionError and passes. (4) Docs: docs/api/cron_runner.md lines 27-28, 36, 38, 42, 63-65, 85-86, 257-274 document --skip-key-check, probe endpoints (openrouter.ai/api/v1/key, api.deepseek.com/models), Bearer auth, exit-1 contract, and verbatim error. Tests: `./venv/bin/pytest tests/test_cron_runner_metrics.py -k 'KeyLiveness or key'` -> 9 passed, 26 deselected in 5.14s; full file `./venv/bin/pytest tests/test_cron_runner_metrics.py -q` -> 35 passed in 1.09s. [resolution 0.33; docs/api/cron_runner.md]\nGAP-048 fully implemented and verified: expired key exits 1 with verbatim provider error, valid keys exit 0, --skip-key-check makes no network call, and all behaviors are documented in docs/api/cron_runner.md with 9 passing key-liveness tests.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-23T16:04:18.693734",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-23T16:04:18.715631+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 51206,
+        "truncated": false,
+        "source": "git show d5919fb83582"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 262176,
+        "truncated": true,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "GAP-048"
+  }
+}
