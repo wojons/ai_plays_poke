@@ -13,6 +13,7 @@ Usage:
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -24,14 +25,14 @@ from src.core.jev_client import decide  # noqa: E402
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 
 
-def run(state_path: str, presses: list[str]) -> dict:
+def run(state_path: str, presses: list[str]) -> dict[str, Any]:
     emu = Emulator(ROM)
     emu.load_state(Path(state_path))
     emu.fast_forward(60)
     rr = RAMReader(emu, ROM)
 
     visited: dict[tuple[int, int], int] = {}
-    events: list[dict] = []
+    events: list[dict[str, Any]] = []
     last_action, last_changed = "", None
 
     obs = rr.observe()

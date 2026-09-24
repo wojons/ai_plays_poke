@@ -26,6 +26,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+from typing import Any
 
 ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
 MODEL = "typesafe/jev-1.13"
@@ -53,7 +54,7 @@ MISSING_CLASSES = {
 }
 
 
-def _questions(*, in_battle: bool = False) -> dict:
+def _questions(*, in_battle: bool = False) -> dict[str, Any]:
     """Build the batched question set.
 
     In battle the ACTION VOCABULARY changes: the choice is between the party's
@@ -196,7 +197,7 @@ def load_keys() -> list[tuple[str, str]]:
 # ── the ask ─────────────────────────────────────────────────────────────────
 
 
-def ask(state: str, *, in_battle: bool = False, timeout: int = 45) -> dict:
+def ask(state: str, *, in_battle: bool = False, timeout: int = 45) -> dict[str, Any]:
     """Send one batched decision request. Returns a normalized dict.
 
     On any failure returns {"ok": False, "error": ...} — callers must escalate.
@@ -263,7 +264,10 @@ def ask(state: str, *, in_battle: bool = False, timeout: int = 45) -> dict:
 
 
 def should_escalate(
-    decision: dict, *, last_action_failed: bool = False, act_phase: bool = False
+    decision: dict[str, Any],
+    *,
+    last_action_failed: bool = False,
+    act_phase: bool = False,
 ) -> tuple[bool, str]:
     """Decide whether to hand back to the reasoning LLM.
 
@@ -309,7 +313,7 @@ def decide(
     in_battle: bool = False,
     last_action_failed: bool = False,
     act_phase: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """Full cycle: ask Jev, then apply the gate. No LLM is called here."""
     d = ask(state, in_battle=in_battle)
     esc, why = should_escalate(
