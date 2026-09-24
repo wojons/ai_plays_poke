@@ -620,3 +620,14 @@ tasks:
   status: complete
   created_at: '2026-09-24T05:59:01.930142+00:00'
   completed_at: '2026-09-24T06:37:03.480057+00:00'
+- id: JEV-2
+  title: 'Teacher escalation layer: LLM repairs the STATE and control returns to JEV
+    (PRD v3 stage 7 / AC-6)'
+  criteria:
+  - "AC-6: given an escalation, the teacher returns a typed patch, the patch is applied,\
+    \ JEV is re-asked, and the re-ask's sufficient_state is >= pre-patch with missing_class\
+    \ cleared or narrowed \u2014 proof: a recorded (pre-ask, patch, post-ask) triple\
+    \ in the run log"
+  status: complete
+  created_at: '2026-09-24T08:57:32.310399+00:00'
+  completed_at: '2026-09-24T09:35:21.418708+00:00'
