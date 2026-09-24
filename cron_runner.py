@@ -7,14 +7,19 @@ Flow:
   3. Execute plan with direction-locking detection, checkpoint rollback
   4. Non-overworld: existing StateWindow flow
 """
+
 import builtins as _builtins
+
 _original_print = _builtins.print
+
+
 def safe_print(*args, **kwargs):
     """Print that survives broken stdout (piped background processes)."""
     try:
         _original_print(*args, **kwargs)
     except (BrokenPipeError, OSError):
         pass
+
 
 import argparse
 from collections import Counter
@@ -37,9 +42,13 @@ from datetime import datetime, timezone
 # the --dry-run precheck below can validate setup under bare python3 too.
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 DEFAULT_BOOT_STATE = Path("data/boot.state")  # known-good overworld checkpoint
-BOOT_STATE_ROM_TITLE = "POKEMON BLUE"  # data/boot.state was saved from the Blue SGB ROM (GAP-037)
-CYCLES = 20  # shared default with .coding-hermes/cron.sh (GAP-041); --cycles N overrides
-USE_RAM_READER = True   # True = RAM-based state reader (instant, free), False = Gemma 12B cartographer
+BOOT_STATE_ROM_TITLE = (
+    "POKEMON BLUE"  # data/boot.state was saved from the Blue SGB ROM (GAP-037)
+)
+CYCLES = (
+    20  # shared default with .coding-hermes/cron.sh (GAP-041); --cycles N overrides
+)
+USE_RAM_READER = True  # True = RAM-based state reader (instant, free), False = Gemma 12B cartographer
 
 # ── Controller model (GAP-052) ──────────────────────────────────────
 # The controller model is selectable: --controller-model beats
@@ -301,22 +310,33 @@ def _dry_run_summary(
         boot_path = None
     else:
         boot_path = Path(boot_state_arg)
-    safe_print("[DRY-RUN] cron_runner.py — setup validation "
-               "(no emulator boot, no LLM completions)")
+    safe_print(
+        "[DRY-RUN] cron_runner.py — setup validation "
+        "(no emulator boot, no LLM completions)"
+    )
     safe_print(f"  ROM path:       {rom}  [{'OK' if rom_ok else 'MISSING'}]")
     if boot_path is None:
         safe_print("  Boot state:     skip (legacy intro bypass)")
     else:
         boot_ok = boot_path.is_file()
-        fallback = ("will boot from checkpoint" if boot_ok
-                    else "missing — will fall back to intro bypass")
-        safe_print(f"  Boot state:     {boot_path}  "
-                   f"[{'OK' if boot_ok else 'MISSING — fallback'}] ({fallback})")
-    _warn_boot_state_rom_mismatch(run_id_arg or time.strftime("%Y%m%d_%H%M%S"), boot_path, rom)
+        fallback = (
+            "will boot from checkpoint"
+            if boot_ok
+            else "missing — will fall back to intro bypass"
+        )
+        safe_print(
+            f"  Boot state:     {boot_path}  "
+            f"[{'OK' if boot_ok else 'MISSING — fallback'}] ({fallback})"
+        )
+    _warn_boot_state_rom_mismatch(
+        run_id_arg or time.strftime("%Y%m%d_%H%M%S"), boot_path, rom
+    )
     safe_print(f"  Cycles:         {cycles}")
     safe_print(f"  Run ID:         {run_id_arg or time.strftime('%Y%m%d_%H%M%S')}")
-    safe_print(f"  Pipeline:       {'RAM reader' if USE_RAM_READER else 'cartographer'} "
-               f"(USE_RAM_READER={USE_RAM_READER!r})")
+    safe_print(
+        f"  Pipeline:       {'RAM reader' if USE_RAM_READER else 'cartographer'} "
+        f"(USE_RAM_READER={USE_RAM_READER!r})"
+    )
     # GAP-052: report the controller model the run would actually use. The
     # no-override form is byte-identical to the pre-GAP-052 line.
     _ctrl_override = _controller_model_override(controller_model)
@@ -328,10 +348,12 @@ def _dry_run_summary(
             f"controller={_ctrl_override[0]} ({_ctrl_override[1]}; "
             "*deepseek* models route direct to api.deepseek.com)"
         )
-    safe_print(f"  Model/provider: {_ctrl_seg} · "
-               "state_window=deepseek-v4-flash (api.deepseek.com when DEEPSEEK_API_KEY "
-               "set, else OpenRouter) · cartographer=google/gemma-3-12b-it (only when "
-               "USE_RAM_READER=False)")
+    safe_print(
+        f"  Model/provider: {_ctrl_seg} · "
+        "state_window=deepseek-v4-flash (api.deepseek.com when DEEPSEEK_API_KEY "
+        "set, else OpenRouter) · cartographer=google/gemma-3-12b-it (only when "
+        "USE_RAM_READER=False)"
+    )
     key_states = " · ".join(
         f"{k}={'set' if os.environ.get(k) else 'not set'}"
         for k in ("OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY")
@@ -390,6 +412,7 @@ import yaml
 import numpy as np
 from PIL import Image
 
+
 # ── Suppress emulator SGB warnings ──────────────────────────────────
 # mGBA core prints "GB: Unimplemented SGB command: 0F" to stderr when
 # running SGB-enhanced ROMs. These are harmless noise in cron runs.
@@ -418,7 +441,7 @@ class _SGBSuppress:
         self._thread: threading.Thread | None = None
         self._buf: list[str] = []
 
-    def __enter__(self) -> '_SGBSuppress':
+    def __enter__(self) -> "_SGBSuppress":
         self._pipe_r, self._pipe_w = os.pipe()
         self._real_stderr_fd = os.dup(2)
         os.dup2(self._pipe_w, 2)
@@ -461,6 +484,7 @@ class _SGBSuppress:
             os.close(self._pipe_r)
         # thread is daemon — will exit on its own
 
+
 sys.path.insert(0, str(Path(__file__).parent))
 # ruff: noqa: E402 — sys.path must be modified before project imports
 from src.core.emulator import Emulator
@@ -477,7 +501,9 @@ from src.core.tools import execute_tool_call
 # top of the file (before the heavy imports) so the --dry-run precheck
 # (GAP-032) can validate setup under bare python3.
 STATE_STEPS = 12
-USE_VISION_CLIENT = False  # True = debug mode (cheap classifier), False = Gemma 12B cartographer
+USE_VISION_CLIENT = (
+    False  # True = debug mode (cheap classifier), False = Gemma 12B cartographer
+)
 HINT_LEVEL = 4  # 0=benchmark, 1=mechanics, 2=genre, 3=starter, 4=navigation
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 6  # controller steps per overworld cycle (reduced from 12 — short moves, more cartographer feedback)
@@ -495,17 +521,19 @@ if USE_VISION_CLIENT:
     from src.core.vision import VisionClient  # noqa: E402
 
 # ── Checkpointing ───────────────────────────────────────────────────
-CHECKPOINT_INTERVAL = 10   # save state every N cycles
-CHECKPOINT_SLOTS = 5       # rotating slots 0-4
-MAX_SAME_DIRECTION = 5     # blocked-direction threshold before rollback (legacy)
+CHECKPOINT_INTERVAL = 10  # save state every N cycles
+CHECKPOINT_SLOTS = 5  # rotating slots 0-4
+MAX_SAME_DIRECTION = 5  # blocked-direction threshold before rollback (legacy)
 
 # ── Recovery (STUCK-RECOVER) ──────────────────────────────────────
-MAX_RECOVERY_ATTEMPTS = 5     # total recovery escalations before giving up
-MAX_SAME_SCREEN_CYCLES = 5    # same screen for N cycles → stuck
-MAX_SAME_TILE_CYCLES = 8      # same RAM tile across any screen types → stuck
-MAX_VOID_CYCLES = 3           # >95% unknown-tile cycles → void
-MAX_STUCK_SAME_DIR = 4        # same direction N times → direction-locked
-MAX_SAME_FRAME_CYCLES = 8     # pixel-identical screen N cycles → frame-locked (catches dialog loops)
+MAX_RECOVERY_ATTEMPTS = 5  # total recovery escalations before giving up
+MAX_SAME_SCREEN_CYCLES = 5  # same screen for N cycles → stuck
+MAX_SAME_TILE_CYCLES = 8  # same RAM tile across any screen types → stuck
+MAX_VOID_CYCLES = 3  # >95% unknown-tile cycles → void
+MAX_STUCK_SAME_DIR = 4  # same direction N times → direction-locked
+MAX_SAME_FRAME_CYCLES = (
+    8  # pixel-identical screen N cycles → frame-locked (catches dialog loops)
+)
 # Post-exhaustion movement injection: never passively A-mash after giving up
 _GIVEUP_SEQUENCE = ("UP", "LEFT", "DOWN", "RIGHT", "START", "B")
 OAKS_LAB_MAP_ID = 40
@@ -535,6 +563,7 @@ else:
     REFERENCE_IMAGE_B64 = ""
 
 # ── Helpers ─────────────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class _RecoveryTrackers:
@@ -590,17 +619,12 @@ def _track_same_tile(
     return current_tile, 1
 
 
-def _tile_lock_reason(
-    tile: tuple[int, int, int] | None, same_tile_count: int
-) -> str:
+def _tile_lock_reason(tile: tuple[int, int, int] | None, same_tile_count: int) -> str:
     """Return the recovery reason for a tile streak at the configured limit."""
     if tile is None or same_tile_count < MAX_SAME_TILE_CYCLES:
         return ""
     map_id, tile_x, tile_y = tile
-    return (
-        f"tile-locked (map {map_id} @ ({tile_x},{tile_y}) "
-        f"x{same_tile_count} cycles)"
-    )
+    return f"tile-locked (map {map_id} @ ({tile_x},{tile_y}) x{same_tile_count} cycles)"
 
 
 def _should_select_starter(
@@ -611,15 +635,11 @@ def _should_select_starter(
     menu_state: dict[str, Any],
 ) -> bool:
     """Return whether Oak's empty-party starter menu must bypass the LLM."""
-    menu_detected = (
-        int(menu_state.get("menu_id", 0)) > 0
-        or screen_type in ("menu", "list_menu")
+    menu_detected = int(menu_state.get("menu_id", 0)) > 0 or screen_type in (
+        "menu",
+        "list_menu",
     )
-    return (
-        map_id == OAKS_LAB_MAP_ID
-        and party_count == 0
-        and menu_detected
-    )
+    return map_id == OAKS_LAB_MAP_ID and party_count == 0 and menu_detected
 
 
 def _approach_first_starter(
@@ -908,8 +928,16 @@ def cartographer_analyze(
                 "role": "user",
                 "content": [
                     {"type": "text", "text": CARTOGRAPHER_TEMPLATE},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{REFERENCE_IMAGE_B64}"}},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{REFERENCE_IMAGE_B64}"
+                        },
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/png;base64,{img_b64}"},
+                    },
                 ],
             },
         ],
@@ -945,7 +973,8 @@ def _extract_spatial_json(text: str) -> dict[str, Any]:
 
     # Try finding JSON object with regex
     import re
-    m = re.search(r'\{[^{}]*\}', text, re.DOTALL)
+
+    m = re.search(r"\{[^{}]*\}", text, re.DOTALL)
     if m:
         try:
             return cast(dict[str, Any], json.loads(m.group()))
@@ -1078,7 +1107,7 @@ def _extract_first_json_object(text: str) -> str | None:
             elif char == "}":
                 depth -= 1
                 if depth == 0:
-                    return text[start:index + 1]
+                    return text[start : index + 1]
         start = text.find("{", start + 1)
     return None
 
@@ -1192,7 +1221,9 @@ def controller_plan(
     tile_x = spatial_desc.get("player_tile_x", "?")
     tile_y = spatial_desc.get("player_tile_y", "?")
 
-    adj_str = ", ".join(f"{d}={adj.get(d, '?')}" for d in ["up", "down", "left", "right"])
+    adj_str = ", ".join(
+        f"{d}={adj.get(d, '?')}" for d in ["up", "down", "left", "right"]
+    )
     exits_str = "; ".join(exits) if exits else "none visible"
     text_str = " | ".join(text) if text else "none"
 
@@ -1206,44 +1237,48 @@ def controller_plan(
         f"SUGGESTED ACTION: {suggested}"
     )
 
-    system = load_system_prompt(hint_level=HINT_LEVEL) + "\n\n" + (
-        "You are controlling a Game Boy game player character.\n\n"
-        "You receive a SPATIAL OBSERVATION describing what's around the player.\n"
-        "Output a MOVEMENT PLAN — a sequence of button presses to execute.\n\n"
-        "Respond with ONLY a JSON object:\n"
-        '{"plan": ["UP","DOWN","LEFT","RIGHT","A","B","START","SELECT",...], "intent": "reason"}\n\n'
-        "RULES:\n"
-        f"- Maximum {max_actions} actions in the plan.\n"
-        "- UP/DOWN/LEFT/RIGHT move one tile in that direction.\n"
-        "- A interacts with adjacent objects/NPCs/doors.\n"
-        "- B cancels, START opens menu.\n\n"
-        "EXPLORATION STRATEGY:\n"
-        "- Start with SHORT moves (2-3 tiles) in new areas.\n"
-        "- MAX 3 of the SAME direction in a plan. Never 4+ of any direction.\n"
-        "- If you hit a wall, switch directions immediately.\n"
-        "- Walk toward visible exits (doors, stairs, paths).\n"
-        "- If adjacent tile is 'wall' in one direction, do NOT try that direction.\n"
-        "- If adjacent tile is 'door', walk into it (or press A on it).\n"
-        "- If adjacent tile is 'npc', walk toward it and press A to talk.\n"
-        "- If adjacent tile is 'stair', walk onto it.\n"
-        "- When ALL directions are blocked (walls/objects all around): press A.\n"
-        "- After interacting (A), next action should move away.\n"
-        "- INDOOR rooms are small (3-6 tiles wide). Plan 2-3 tile moves.\n"
-        "- OUTDOOR areas (grass, paths visible): 4-6 tile moves OK.\n\n"
-        "MEMORY — you maintain your own knowledge in DuckBrain (persists across runs):\n"
-        "- ACTIVE GOAL / RECENT NOTES / LAST DIALOG are injected each cycle.\n"
-        "- Optional output fields (JSON only):\n"
-        '  "note": a fact you just learned (NPC info, map info, objective, mechanic).\n'
-        '  "goal": your current objective — include it when it changes or is new.\n'
-        '  "study": a memory key to read next cycle, e.g. "/maps/oaks-lab" or "/guides/how-battles-work".\n'
-        "- Use note/goal/study when you learn something — memory is how you win.\n"
-        "- NEVER guess: read text, note what it says, act on it.\n"
-        "TOOL FILING (where each output field is filed):\n"
-        '- "study" → mechanics knowledge under /game/mechanics/* '
-        "(the game itself; survives save resets).\n"
-        '- "note" → this run\'s lessons + the save-state quests '
-        "(an in-run observation).\n"
-        '- "goal" → the save-state quests (your current intent).\n'
+    system = (
+        load_system_prompt(hint_level=HINT_LEVEL)
+        + "\n\n"
+        + (
+            "You are controlling a Game Boy game player character.\n\n"
+            "You receive a SPATIAL OBSERVATION describing what's around the player.\n"
+            "Output a MOVEMENT PLAN — a sequence of button presses to execute.\n\n"
+            "Respond with ONLY a JSON object:\n"
+            '{"plan": ["UP","DOWN","LEFT","RIGHT","A","B","START","SELECT",...], "intent": "reason"}\n\n'
+            "RULES:\n"
+            f"- Maximum {max_actions} actions in the plan.\n"
+            "- UP/DOWN/LEFT/RIGHT move one tile in that direction.\n"
+            "- A interacts with adjacent objects/NPCs/doors.\n"
+            "- B cancels, START opens menu.\n\n"
+            "EXPLORATION STRATEGY:\n"
+            "- Start with SHORT moves (2-3 tiles) in new areas.\n"
+            "- MAX 3 of the SAME direction in a plan. Never 4+ of any direction.\n"
+            "- If you hit a wall, switch directions immediately.\n"
+            "- Walk toward visible exits (doors, stairs, paths).\n"
+            "- If adjacent tile is 'wall' in one direction, do NOT try that direction.\n"
+            "- If adjacent tile is 'door', walk into it (or press A on it).\n"
+            "- If adjacent tile is 'npc', walk toward it and press A to talk.\n"
+            "- If adjacent tile is 'stair', walk onto it.\n"
+            "- When ALL directions are blocked (walls/objects all around): press A.\n"
+            "- After interacting (A), next action should move away.\n"
+            "- INDOOR rooms are small (3-6 tiles wide). Plan 2-3 tile moves.\n"
+            "- OUTDOOR areas (grass, paths visible): 4-6 tile moves OK.\n\n"
+            "MEMORY — you maintain your own knowledge in DuckBrain (persists across runs):\n"
+            "- ACTIVE GOAL / RECENT NOTES / LAST DIALOG are injected each cycle.\n"
+            "- Optional output fields (JSON only):\n"
+            '  "note": a fact you just learned (NPC info, map info, objective, mechanic).\n'
+            '  "goal": your current objective — include it when it changes or is new.\n'
+            '  "study": a memory key to read next cycle, e.g. "/maps/oaks-lab" or "/guides/how-battles-work".\n'
+            "- Use note/goal/study when you learn something — memory is how you win.\n"
+            "- NEVER guess: read text, note what it says, act on it.\n"
+            "TOOL FILING (where each output field is filed):\n"
+            '- "study" → mechanics knowledge under /game/mechanics/* '
+            "(the game itself; survives save resets).\n"
+            '- "note" → this run\'s lessons + the save-state quests '
+            "(an in-run observation).\n"
+            '- "goal" → the save-state quests (your current intent).\n'
+        )
     )
 
     # MEM-2 boot injection: the run-start memory blocks ride in the system
@@ -1273,7 +1308,12 @@ def controller_plan(
         f"LAST DIALOG: {last_dialog or 'none'}\n"
         f"STUDY RESULT: {study_result or '(none)'}\n"
     )
-    msg += memory_ctx + "\nOutput a movement plan (max {max_actions} actions). JSON only.\n".format(max_actions=max_actions)
+    msg += (
+        memory_ctx
+        + "\nOutput a movement plan (max {max_actions} actions). JSON only.\n".format(
+            max_actions=max_actions
+        )
+    )
 
     # Build user message — include live screenshot for Luna's own vision.
     # On a FrameCache hit (frame_ref set), attach a text marker instead of
@@ -1292,7 +1332,10 @@ def controller_plan(
             img_b64 = screenshot_to_base64(screenshot)
             user_content = [
                 {"type": "text", "text": msg},
-                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_b64}"}},
+                {
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{img_b64}"},
+                },
             ]
         except Exception:
             user_content = msg
@@ -1335,13 +1378,18 @@ def controller_plan(
         payload["raw_response"] = text
         return payload  # type: ignore[no-any-return]
     if kind == "button" and payload is not None:
-        return {"plan": [payload["button"]], "intent": payload.get("intent", ""), "raw_response": text}
+        return {
+            "plan": [payload["button"]],
+            "intent": payload.get("intent", ""),
+            "raw_response": text,
+        }
     if kind == "unreadable":
         return {"plan": ["A"], "intent": "parse_fallback", "raw_response": text}
     return {"plan": ["A"], "intent": "parse_failure_fallback", "raw_response": text}
 
 
 # ── Main ────────────────────────────────────────────────────────────
+
 
 def _resolve_boot_state(arg: str | None) -> Path | None:
     """Resolve the checkpoint to boot from, or None to intro-bypass.
@@ -1562,11 +1610,7 @@ def _record_run_memory(
         distinct_maps: list[str] = []
         for row in results:
             map_name = row.get("map_name")
-            if (
-                isinstance(map_name, str)
-                and map_name
-                and map_name not in distinct_maps
-            ):
+            if isinstance(map_name, str) and map_name and map_name not in distinct_maps:
                 distinct_maps.append(map_name)
         distinct_maps = distinct_maps[-40:]
 
@@ -1590,8 +1634,7 @@ def _record_run_memory(
 
         ladder = {
             "memory_events": sum(
-                events[name]
-                for name in ("memory_note", "memory_goal", "memory_study")
+                events[name] for name in ("memory_note", "memory_goal", "memory_study")
             ),
             "battle_events": battle_events,
             "map_progress": distinct_maps[-1] if distinct_maps else None,
@@ -2291,9 +2334,13 @@ def main() -> None:
     if boot_from_state:
         emu.load_state(cast(Path, boot_path))
         emu.wait(30)  # settle after state restore
-        safe_print(f"[{run_id}] Booting from checkpoint {boot_path} — skipping intro bypass")
+        safe_print(
+            f"[{run_id}] Booting from checkpoint {boot_path} — skipping intro bypass"
+        )
     elif args.boot_state and args.boot_state.lower() != "skip":
-        safe_print(f"[{run_id}] Boot checkpoint {args.boot_state} not found — falling back to intro bypass")
+        safe_print(
+            f"[{run_id}] Boot checkpoint {args.boot_state} not found — falling back to intro bypass"
+        )
 
     # Init RAM reader (instant state reads) or fall back to vision cartographer
     pipeline_name: str
@@ -2303,14 +2350,18 @@ def main() -> None:
         safe_print(f"[{run_id}] Starting run with RAM reader pipeline...")
     else:
         pipeline_name = "cartographer"
-        safe_print(f"[{run_id}] Starting run with visual-reference cartographer pipeline...")
+        safe_print(
+            f"[{run_id}] Starting run with visual-reference cartographer pipeline..."
+        )
         safe_print("  Reference image: reference/bedroom_overworld.png")
 
     # Persistent frame cache — UUID references for repeated screenshots.
     # Survives runs, so revisiting a map in a later session also hits.
     _frame_cache = FrameCache("data/frame_cache.json")
-    safe_print(f"[{run_id}] Frame cache: {_frame_cache.unique_frames} known frames "
-               f"({_frame_cache.total_seen} total references) — {_frame_cache.MAX_ENTRIES} max")
+    safe_print(
+        f"[{run_id}] Frame cache: {_frame_cache.unique_frames} known frames "
+        f"({_frame_cache.total_seen} total references) — {_frame_cache.MAX_ENTRIES} max"
+    )
 
     # Init AI clients
     if USE_VISION_CLIENT:
@@ -2329,33 +2380,39 @@ def main() -> None:
     _last_result: str = "unknown"  # last movement result
 
     # ── Stuck detection (4 independent dimensions) ──────────────────
-    _same_dir: str | None = None   # last repeated direction
-    _same_dir_count: int = 0       # consecutive same-direction presses
-    _same_screen_count: int = 0    # consecutive cycles on same screen type
-    _last_screen_type: str = ""    # for same-screen detection
-    _same_tile_count: int = 0      # consecutive cycles on same RAM tile
+    _same_dir: str | None = None  # last repeated direction
+    _same_dir_count: int = 0  # consecutive same-direction presses
+    _same_screen_count: int = 0  # consecutive cycles on same screen type
+    _last_screen_type: str = ""  # for same-screen detection
+    _same_tile_count: int = 0  # consecutive cycles on same RAM tile
     _last_tile: tuple[int, int, int] | None = None
-    _void_tile_pct: float = 0.0    # % of tiles classified as unknown/void
-    _void_cycles: int = 0          # consecutive cycles with >95% void tiles
+    _void_tile_pct: float = 0.0  # % of tiles classified as unknown/void
+    _void_cycles: int = 0  # consecutive cycles with >95% void tiles
 
     # ── A-press loop detection (STUCK-A-LOOP) ──────────────────────
-    _a_press_count: int = 0        # consecutive A presses without direction change
-    _MAX_A_PRESS = 3               # after 3 consecutive A presses → trigger recovery
+    _a_press_count: int = 0  # consecutive A presses without direction change
+    _MAX_A_PRESS = 3  # after 3 consecutive A presses → trigger recovery
     _last_action_button: str = ""  # last non-direction button pressed
 
     # ── Escalating recovery ────────────────────────────────────────
-    _recovery_level: int = 0       # current rung of the escalation ladder
-    _recovery_attempts: int = 0    # total recovery escalations (capped at MAX)
-    _last_state_key: str = ""      # composite key for state-change detection
-    _gave_up: bool = False         # True once max recovery attempts exhausted
-    _same_frame_count: int = 0     # consecutive pixel-identical frames (dialog-loop detector)
-    _prev_frame_hash: str = ""     # previous cycle's frame hash for the counter above
-    _last_plan_sig: str = ""       # signature of last executed plan (no-op plan guard)
-    _same_plan_count: int = 0      # consecutive cycles with identical plan + unchanged position
-    _last_pos_key: str = ""        # last cycle's map:tile position key
+    _recovery_level: int = 0  # current rung of the escalation ladder
+    _recovery_attempts: int = 0  # total recovery escalations (capped at MAX)
+    _last_state_key: str = ""  # composite key for state-change detection
+    _gave_up: bool = False  # True once max recovery attempts exhausted
+    _same_frame_count: int = (
+        0  # consecutive pixel-identical frames (dialog-loop detector)
+    )
+    _prev_frame_hash: str = ""  # previous cycle's frame hash for the counter above
+    _last_plan_sig: str = ""  # signature of last executed plan (no-op plan guard)
+    _same_plan_count: int = (
+        0  # consecutive cycles with identical plan + unchanged position
+    )
+    _last_pos_key: str = ""  # last cycle's map:tile position key
 
     # ── Frame hashing for cartographer cache ───────────────────────
-    _last_frame_hash: str = ""   # for frame hashing — skip cartographer on identical frames
+    _last_frame_hash: str = (
+        ""  # for frame hashing — skip cartographer on identical frames
+    )
     _cached_patch: dict[str, Any] = {}  # cached cartographer output
     _cached_carto_raw: str = ""  # cached raw cartographer text
 
@@ -2385,9 +2442,9 @@ def main() -> None:
     # A-mash batch constants — also used by the main-loop name_entry
     # handler, so they live OUTSIDE the guarded intro block (booting from
     # a checkpoint skips the intro but can still re-enter name_entry).
-    _A_BURST = 10       # A-presses per batch — Gen 1 text advances in a few presses
-    _A_FRAMES = 5       # hold A for 5 frames each press
-    _FF_FRAMES = 30     # fast-forward between presses (~350 frames per burst total)
+    _A_BURST = 10  # A-presses per batch — Gen 1 text advances in a few presses
+    _A_FRAMES = 5  # hold A for 5 frames each press
+    _FF_FRAMES = 30  # fast-forward between presses (~350 frames per burst total)
     _NAME_ENTRY_STUCK_MAX = 3  # after 3 cycles → programmatic entry
     if not boot_from_state:
         # ── Deterministic intro bypass ──────────────────────────────────
@@ -2410,10 +2467,12 @@ def main() -> None:
         _player_named = False
         _rival_named = False
         _intro_checks = 0
-        _MAX_INTRO_CHECKS = 15   # raised from 12 — programmatic name entry takes fewer cycles
+        _MAX_INTRO_CHECKS = (
+            15  # raised from 12 — programmatic name entry takes fewer cycles
+        )
         _save_detected = False  # set True if we loaded a save file by mistake
-        _name_entry_stuck = 0   # consecutive name_entry cycles without progress
-        _last_intro_phase = None   # track phase transitions for logging
+        _name_entry_stuck = 0  # consecutive name_entry cycles without progress
+        _last_intro_phase = None  # track phase transitions for logging
 
         while _intro_checks < _MAX_INTRO_CHECKS:
             _intro_checks += 1
@@ -2422,7 +2481,9 @@ def main() -> None:
             # Use RAM reader or cartographer for screen classification
             if USE_RAM_READER:
                 patch_data = ram_reader.observe()
-                carto_raw = json.dumps({"source": "ram_reader", "result": patch_data.get("result")})
+                carto_raw = json.dumps(
+                    {"source": "ram_reader", "result": patch_data.get("result")}
+                )
             else:
                 patch_data, carto_raw = cartographer_analyze(
                     controller_client, screenshot
@@ -2432,7 +2493,9 @@ def main() -> None:
             # ── Save file detection: if we're in overworld without naming ──
             if st == "overworld" and not _player_named:
                 tc = patch_data.get("text_content", [])
-                if not tc and not USE_RAM_READER:  # RAM reader always returns empty text_content
+                if (
+                    not tc and not USE_RAM_READER
+                ):  # RAM reader always returns empty text_content
                     if not _save_detected:
                         _save_detected = True
                         print("  [intro] SAVE DETECTED — restarting with NEW GAME")
@@ -2451,8 +2514,12 @@ def main() -> None:
 
             if st == "overworld":
                 if _last_intro_phase != "overworld":
-                    safe_print(f"  [intro] Phase: {_last_intro_phase} → overworld — intro complete ({_intro_checks} checks)")
-                print(f"  [intro] {pipeline_name} says overworld — intro complete ({_intro_checks} checks)")
+                    safe_print(
+                        f"  [intro] Phase: {_last_intro_phase} → overworld — intro complete ({_intro_checks} checks)"
+                    )
+                print(
+                    f"  [intro] {pipeline_name} says overworld — intro complete ({_intro_checks} checks)"
+                )
                 break
             elif st == "name_entry":
                 _name_entry_stuck += 1
@@ -2492,11 +2559,15 @@ def main() -> None:
             # ── Phase transition logging ───────────────────────────
             if st != _last_intro_phase:
                 if _last_intro_phase is not None:
-                    safe_print(f"  [intro] Phase: {_last_intro_phase} → {st} (check {_intro_checks})")
+                    safe_print(
+                        f"  [intro] Phase: {_last_intro_phase} → {st} (check {_intro_checks})"
+                    )
                 _last_intro_phase = st
 
         if _intro_checks >= _MAX_INTRO_CHECKS:
-            print(f"  [!] Intro bypass hit {_MAX_INTRO_CHECKS} check cap — proceeding anyway")
+            print(
+                f"  [!] Intro bypass hit {_MAX_INTRO_CHECKS} check cap — proceeding anyway"
+            )
         else:
             print(f"  Intro bypass complete in {_intro_checks} checks")
 
@@ -2515,7 +2586,7 @@ def main() -> None:
         # the left side of the bedroom; walking LEFT avoids the TV loop
         # AND positions the character near the exit.
         safe_print("  [intro] Stepping away from TV...")
-        emu.press_button("up", frames=15)   # face away from TV
+        emu.press_button("up", frames=15)  # face away from TV
         emu.fast_forward(30)
         # Clear any lingering dialog box
         emu.press_button("b", frames=30)
@@ -2541,7 +2612,9 @@ def main() -> None:
         _player_named = False
         _rival_named = False
 
-    ctx = GlobalContext(generation="gen1", location="pallet_town" if boot_from_state else "bedroom")
+    ctx = GlobalContext(
+        generation="gen1", location="pallet_town" if boot_from_state else "bedroom"
+    )
     # If we bypassed the intro, set player/rival names
     if _player_named:
         ctx.player_name = "ASH"
@@ -2566,7 +2639,7 @@ def main() -> None:
     _failed_flee_attempts = 0
 
     # ── Per-run metrics (GAP-028) ──────────────────────────────────
-    _dir_lock_warn_cycles = 0   # cycles with >=1 direction-lock warning
+    _dir_lock_warn_cycles = 0  # cycles with >=1 direction-lock warning
     _visited_tiles: set[tuple[int, int, int]] = set()  # (map_id, x, y) seen
 
     # ── Agent memory state (self-maintained, DuckBrain-backed) ──
@@ -2575,10 +2648,10 @@ def main() -> None:
     # controller prompt each cycle; note/goal/study outputs are executed
     # here and persisted to DuckBrain (namespace pokemon-global).
     _mem_goal = ""
-    _mem_notes: list[str] = []   # most recent first, capped at 6
+    _mem_notes: list[str] = []  # most recent first, capped at 6
     _last_dialog_text = ""
-    _pending_study_key = ""      # controller asked to study a key
-    _pending_study_result = ""   # fetched content, injected once
+    _pending_study_key = ""  # controller asked to study a key
+    _pending_study_result = ""  # fetched content, injected once
 
     # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
     # Built ONCE here (not per cycle) from the four DuckBrain layers
@@ -2595,10 +2668,13 @@ def main() -> None:
     if USE_RAM_READER:
         try:
             from src.core import duckbrain_client as _dbc
+
             _goal_rec = _dbc.get(key="/goals/current")
             if _goal_rec:
                 attrs = _goal_rec.get("attributes", {})
-                _mem_goal = str(attrs.get("goal") or _goal_rec.get("embedding_text", ""))[:200]
+                _mem_goal = str(
+                    attrs.get("goal") or _goal_rec.get("embedding_text", "")
+                )[:200]
         except Exception as _e:
             safe_print(f"  [MEM] goal load failed: {_e}")
 
@@ -2609,7 +2685,7 @@ def main() -> None:
 
             # Save screenshot every cycle for progress tracking
             img = Image.fromarray(screenshot)
-            img.save(SCREENSHOT_DIR / f"step_{cycle+1:04d}.png")
+            img.save(SCREENSHOT_DIR / f"step_{cycle + 1:04d}.png")
 
             # Step 1: Classify screen + spatial analysis
             # RAM reader: instant reads, no frame hashing needed.
@@ -2617,7 +2693,9 @@ def main() -> None:
             if USE_RAM_READER:
                 # RAM reader is instant — always re-observe for accurate state
                 patch_data = ram_reader.observe()
-                carto_raw = json.dumps({"source": "ram_reader", "result": patch_data.get("result")})
+                carto_raw = json.dumps(
+                    {"source": "ram_reader", "result": patch_data.get("result")}
+                )
             else:
                 # ── Frame hashing: skip cartographer if nothing changed ──
                 # Hash the raw screenshot bytes. If identical to last frame,
@@ -2627,11 +2705,14 @@ def main() -> None:
                 # the cached observation is still valid. The Controller/StateWindow
                 # still runs and makes decisions — we just skip re-observing.
                 import hashlib
+
                 frame_bytes = screenshot.tobytes()
                 frame_hash = hashlib.md5(frame_bytes).hexdigest()
                 if _last_frame_hash != frame_hash or not _cached_patch:
                     # Frame changed (or first cycle) — call cartographer
-                    patch_data, carto_raw = cartographer_analyze(controller_client, screenshot)
+                    patch_data, carto_raw = cartographer_analyze(
+                        controller_client, screenshot
+                    )
                     _cached_patch = patch_data
                     _cached_carto_raw = carto_raw
                     _last_frame_hash = frame_hash
@@ -2639,7 +2720,9 @@ def main() -> None:
                     # Frame unchanged — reuse cached observation
                     patch_data = _cached_patch
                     carto_raw = _cached_carto_raw
-                    safe_print(f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result','?')})")
+                    safe_print(
+                        f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result', '?')})"
+                    )
 
                 # ── Frame-locked detection (pixel-identical, not just same screen TYPE) ──
                 # l2_accept_1 failure mode: "My POKéMON looks a..." dialog page
@@ -2677,9 +2760,7 @@ def main() -> None:
             _last_tile, _same_tile_count = _track_same_tile(
                 current_tile, _last_tile, _same_tile_count
             )
-            tile_recovery_reason = _tile_lock_reason(
-                _last_tile, _same_tile_count
-            )
+            tile_recovery_reason = _tile_lock_reason(_last_tile, _same_tile_count)
 
             map_id = int(raw_map_id) if isinstance(raw_map_id, int) else -1
 
@@ -2759,12 +2840,14 @@ def main() -> None:
                 log_file.write(json.dumps(selection_entry, default=str) + "\n")
                 log_file.flush()
 
-                starter_event, _starter_milestone_emitted = _starter_milestone_for_cycle(
-                    previous_party_count=party_count,
-                    current_party_count=selected_party_count,
-                    species_hint=ram_reader.first_party_species_hint(),
-                    baseline_starter_name=None,
-                    milestone_emitted=_starter_milestone_emitted,
+                starter_event, _starter_milestone_emitted = (
+                    _starter_milestone_for_cycle(
+                        previous_party_count=party_count,
+                        current_party_count=selected_party_count,
+                        species_hint=ram_reader.first_party_species_hint(),
+                        baseline_starter_name=None,
+                        milestone_emitted=_starter_milestone_emitted,
+                    )
                 )
                 if starter_event is not None:
                     milestone = {"cycle": cycle + 1, **starter_event}
@@ -2794,12 +2877,18 @@ def main() -> None:
                 # ── Stuck detection: track void tiles from cartographer output ──
                 adj = patch_data.get("adjacent", {})
                 if adj:
-                    unknown_tiles = sum(1 for v in adj.values() if v in ("unknown", "?", ""))
+                    unknown_tiles = sum(
+                        1 for v in adj.values() if v in ("unknown", "?", "")
+                    )
                     total_tiles = len(adj)
-                    _void_tile_pct = unknown_tiles / total_tiles if total_tiles > 0 else 0.0
+                    _void_tile_pct = (
+                        unknown_tiles / total_tiles if total_tiles > 0 else 0.0
+                    )
                     if _void_tile_pct > 0.95:
                         _void_cycles += 1
-                        safe_print(f"  [VOID] {unknown_tiles}/{total_tiles} tiles unknown ({_void_tile_pct:.0%}) — cycle {_void_cycles}/{MAX_VOID_CYCLES} | map_id={patch_data.get('map_id')} map={patch_data.get('map_name')} player=({patch_data.get('player_tile_x')},{patch_data.get('player_tile_y')})")
+                        safe_print(
+                            f"  [VOID] {unknown_tiles}/{total_tiles} tiles unknown ({_void_tile_pct:.0%}) — cycle {_void_cycles}/{MAX_VOID_CYCLES} | map_id={patch_data.get('map_id')} map={patch_data.get('map_name')} player=({patch_data.get('player_tile_x')},{patch_data.get('player_tile_y')})"
+                        )
                     else:
                         _void_cycles = 0
                 else:
@@ -2814,7 +2903,7 @@ def main() -> None:
                 _last_screen_type = st
 
                 # ── State-change detection (resets recovery counter) ──
-                state_key = f"{st}:{patch_data.get('screen_subtype','')}:{adj.get('up','')}{adj.get('down','')}{adj.get('left','')}{adj.get('right','')}"
+                state_key = f"{st}:{patch_data.get('screen_subtype', '')}:{adj.get('up', '')}{adj.get('down', '')}{adj.get('left', '')}{adj.get('right', '')}"
                 if state_key != _last_state_key and _last_state_key != "":
                     _recovery_attempts = 0
                     _recovery_level = 0
@@ -2831,13 +2920,22 @@ def main() -> None:
                     recovery_reason = tile_recovery_reason
                 elif _same_dir_count >= MAX_STUCK_SAME_DIR:
                     needs_recovery = True
-                    recovery_reason = f"direction-locked ({_same_dir} x{_same_dir_count})"
-                elif _same_screen_count >= MAX_SAME_SCREEN_CYCLES and _last_screen_type != "overworld":
+                    recovery_reason = (
+                        f"direction-locked ({_same_dir} x{_same_dir_count})"
+                    )
+                elif (
+                    _same_screen_count >= MAX_SAME_SCREEN_CYCLES
+                    and _last_screen_type != "overworld"
+                ):
                     needs_recovery = True
-                    recovery_reason = f"screen-locked ({_last_screen_type} x{_same_screen_count})"
+                    recovery_reason = (
+                        f"screen-locked ({_last_screen_type} x{_same_screen_count})"
+                    )
                 elif _same_frame_count >= MAX_SAME_FRAME_CYCLES:
                     needs_recovery = True
-                    recovery_reason = f"frame-locked (identical pixels x{_same_frame_count})"
+                    recovery_reason = (
+                        f"frame-locked (identical pixels x{_same_frame_count})"
+                    )
                 elif _void_cycles >= MAX_VOID_CYCLES:
                     needs_recovery = True
                     recovery_reason = f"void-locked ({_void_cycles} cycles, {_void_tile_pct:.0%} unknown)"
@@ -2850,9 +2948,15 @@ def main() -> None:
                     if _recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
                         if not _gave_up:
                             _gave_up = True
-                            safe_print(f"  [RECOVER] GIVING UP after {_recovery_attempts} recovery attempts ({recovery_reason})")
-                            evt = {"cycle": cycle + 1, "event": "recovery_exhausted",
-                                   "reason": recovery_reason, "attempts": _recovery_attempts}
+                            safe_print(
+                                f"  [RECOVER] GIVING UP after {_recovery_attempts} recovery attempts ({recovery_reason})"
+                            )
+                            evt = {
+                                "cycle": cycle + 1,
+                                "event": "recovery_exhausted",
+                                "reason": recovery_reason,
+                                "attempts": _recovery_attempts,
+                            }
                             results.append(evt)
                             log_file.write(json.dumps(evt, default=str) + "\n")
                             log_file.flush()
@@ -2882,14 +2986,27 @@ def main() -> None:
                             )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
-                        if strategy == "load_checkpoint" and _same_dir and _same_dir in _DIR_ROTATION:
+                        if (
+                            strategy == "load_checkpoint"
+                            and _same_dir
+                            and _same_dir in _DIR_ROTATION
+                        ):
                             _dir_blacklist.add(_same_dir)
-                            safe_print(f"  [BLACKLIST] {_same_dir} added to blacklist: {_dir_blacklist}")
-                        safe_print(f"  [RECOVER] Level {_recovery_level-1}: {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]")
-                        evt = {"cycle": cycle + 1, "event": "recovery",
-                               "level": _recovery_level - 1, "strategy": strategy,
-                               "reason": recovery_reason, "attempt": _recovery_attempts,
-                               "description": desc}
+                            safe_print(
+                                f"  [BLACKLIST] {_same_dir} added to blacklist: {_dir_blacklist}"
+                            )
+                        safe_print(
+                            f"  [RECOVER] Level {_recovery_level - 1}: {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]"
+                        )
+                        evt = {
+                            "cycle": cycle + 1,
+                            "event": "recovery",
+                            "level": _recovery_level - 1,
+                            "strategy": strategy,
+                            "reason": recovery_reason,
+                            "attempt": _recovery_attempts,
+                            "description": desc,
+                        }
                         results.append(evt)
                         log_file.write(json.dumps(evt, default=str) + "\n")
                         log_file.flush()
@@ -2917,35 +3034,42 @@ def main() -> None:
                 # idle, looping flow), pass a text UUID reference instead of
                 # re-sending the image bytes. First sighting → send image.
                 import hashlib as _hashlib
+
                 _ctrl_frame_hash = _hashlib.md5(screenshot.tobytes()).hexdigest()
                 _frame_ref = None
-                _cached_entry = _frame_cache.lookup(_ctrl_frame_hash) if _frame_cache else None
+                _cached_entry = (
+                    _frame_cache.lookup(_ctrl_frame_hash) if _frame_cache else None
+                )
                 if _cached_entry is not None:
                     # Repeat sighting — reference, don't re-send the image
                     _frame_cache.touch(_cached_entry, cycle + 1)
                     _vision_frame = None
                     _frame_ref = _cached_entry["uuid"]
                     _seen_n = _cached_entry.get("seen_count", 1)
-                    safe_print(f"  [CACHE-HIT] frame {_ctrl_frame_hash[:8]} → ref {_frame_ref} (seen {_seen_n}x)")
+                    safe_print(
+                        f"  [CACHE-HIT] frame {_ctrl_frame_hash[:8]} → ref {_frame_ref} (seen {_seen_n}x)"
+                    )
                 else:
                     # New frame — send the image, remember it
                     _vision_frame = screenshot
                     _frame_ref = None
                     if _frame_cache is not None:
                         _frame_cache.register(
-                            _ctrl_frame_hash, cycle + 1,
+                            _ctrl_frame_hash,
+                            cycle + 1,
                             map_name=patch_data.get("map_name", ""),
                             screen=st,
                         )
                 decision = controller_plan(
-                    controller_client, patch_data,
+                    controller_client,
+                    patch_data,
                     _last_direction or "",
                     _last_result,
                     blocked_dir=_same_dir or "",
                     blocked_count=_same_dir_count,
                     max_actions=CART_STEPS,
-                    screenshot=_vision_frame,   # None on cache hit → no image cost
-                    frame_ref=_frame_ref,        # UUID text ref on cache hit
+                    screenshot=_vision_frame,  # None on cache hit → no image cost
+                    frame_ref=_frame_ref,  # UUID text ref on cache hit
                     goal=_mem_goal,
                     notes=" | ".join(_mem_notes[:6])[:300],
                     last_dialog=_last_dialog_text,
@@ -2986,7 +3110,10 @@ def main() -> None:
                         direction = btn_upper
                         if direction in ("UP", "DOWN", "LEFT", "RIGHT"):
                             for _ in range(4):
-                                if direction in _dir_blacklist and direction in _DIR_ROTATION:
+                                if (
+                                    direction in _dir_blacklist
+                                    and direction in _DIR_ROTATION
+                                ):
                                     direction = _DIR_ROTATION[direction]
                                 else:
                                     break
@@ -2995,7 +3122,9 @@ def main() -> None:
                                 direction = "A"  # interact instead
                         filtered_plan.append(direction)
                     if filtered_plan != [b.upper() for b in plan]:
-                        safe_print(f"  [OVERRIDE] Blacklisted {_dir_blacklist}, plan {plan[:6]}→{filtered_plan[:6]}...")
+                        safe_print(
+                            f"  [OVERRIDE] Blacklisted {_dir_blacklist}, plan {plan[:6]}→{filtered_plan[:6]}..."
+                        )
                     plan = filtered_plan
 
                 # ── Spatial pre-filter: strip wall/object directions ──
@@ -3006,17 +3135,22 @@ def main() -> None:
                 if _blocked_spatial:
                     _before_filter = plan[:]
                     _blocked_upper = {d.upper() for d in _blocked_spatial}
-                    _filtered = [b for b in plan
-                            if b.upper() not in _blocked_upper
-                            or b.upper() not in ("UP", "DOWN", "LEFT", "RIGHT")]
+                    _filtered = [
+                        b
+                        for b in plan
+                        if b.upper() not in _blocked_upper
+                        or b.upper() not in ("UP", "DOWN", "LEFT", "RIGHT")
+                    ]
                     # If filtering removed everything, keep the original plan.
                     # The cartographer's adjacent data can be wrong (e.g. bed
                     # mislabeled as "wall"), and the LLM may know better.
                     if _filtered:
                         plan = _filtered
                     if len(plan) < len(_before_filter):
-                        safe_print(f"  [SPATIAL] Removed {_blocked_spatial} from "
-                              f"plan {_before_filter[:3]}→{plan[:3]}...")
+                        safe_print(
+                            f"  [SPATIAL] Removed {_blocked_spatial} from "
+                            f"plan {_before_filter[:3]}→{plan[:3]}..."
+                        )
 
                 # ── No-op plan guard (Bane 09-11: 'repeated screens being the
                 # same → try something else') — identical plan + unchanged
@@ -3033,10 +3167,16 @@ def main() -> None:
                 if _same_plan_count >= 2:
                     _alt = _GIVEUP_SEQUENCE[_same_plan_count % len(_GIVEUP_SEQUENCE)]
                     plan = [_alt, "A"]
-                    safe_print(f"  [NOOP-GUARD] identical plan x{_same_plan_count} + no movement — forcing [{_alt}, A]")
-                    evt = {"cycle": cycle + 1, "event": "noop_plan_guard",
-                           "identical_plan": _plan_sig, "pos": _pos_key,
-                           "forced": [_alt, "A"]}
+                    safe_print(
+                        f"  [NOOP-GUARD] identical plan x{_same_plan_count} + no movement — forcing [{_alt}, A]"
+                    )
+                    evt = {
+                        "cycle": cycle + 1,
+                        "event": "noop_plan_guard",
+                        "identical_plan": _plan_sig,
+                        "pos": _pos_key,
+                        "forced": [_alt, "A"],
+                    }
                     results.append(evt)
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
@@ -3047,14 +3187,21 @@ def main() -> None:
                 # Cap consecutive same-direction moves to 3 regardless of LLM.
                 _rle = 1
                 for i in range(1, len(plan)):
-                    if plan[i].upper() == plan[i-1].upper() and plan[i].upper() in ("UP","DOWN","LEFT","RIGHT"):
+                    if plan[i].upper() == plan[i - 1].upper() and plan[i].upper() in (
+                        "UP",
+                        "DOWN",
+                        "LEFT",
+                        "RIGHT",
+                    ):
                         _rle += 1
                     else:
                         _rle = 1
                     if _rle > 3:
                         plan[i] = "A"  # replace with interact
                         _rle = 1
-                        safe_print(f"  [CAP] Truncated same-direction run at position {i}")
+                        safe_print(
+                            f"  [CAP] Truncated same-direction run at position {i}"
+                        )
 
                 # ── Post-exhaustion movement injection ─────────────
                 # recovery_exhausted used to mean passive A-mash until the
@@ -3064,9 +3211,10 @@ def main() -> None:
                 # re-enables normal recovery on later cycles.
                 if _gave_up:
                     plan = [_GIVEUP_SEQUENCE[cycle % len(_GIVEUP_SEQUENCE)]]
-                    safe_print(f"  [GIVEUP-WALK] injecting {plan} (post-exhaustion rotation)")
-                    evt = {"cycle": cycle + 1, "event": "giveup_walk",
-                           "injected": plan}
+                    safe_print(
+                        f"  [GIVEUP-WALK] injecting {plan} (post-exhaustion rotation)"
+                    )
+                    evt = {"cycle": cycle + 1, "event": "giveup_walk", "injected": plan}
                     results.append(evt)
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
@@ -3111,8 +3259,14 @@ def main() -> None:
 
                 # ── Execute the plan ──────────────────────────────
                 btn_map = {
-                    "UP": "up", "DOWN": "down", "LEFT": "left", "RIGHT": "right",
-                    "A": "a", "B": "b", "START": "start", "SELECT": "select",
+                    "UP": "up",
+                    "DOWN": "down",
+                    "LEFT": "left",
+                    "RIGHT": "right",
+                    "A": "a",
+                    "B": "b",
+                    "START": "start",
+                    "SELECT": "select",
                 }
                 for button in plan:
                     button = button.upper()
@@ -3136,20 +3290,26 @@ def main() -> None:
                         _a_press_count += 1
                         _last_action_button = "A"
                         if _a_press_count == 3:
-                            safe_print("  [WARN] A-press lock detected: A x3 — triggering recovery")
+                            safe_print(
+                                "  [WARN] A-press lock detected: A x3 — triggering recovery"
+                            )
                     else:
                         _same_dir = None
                         _same_dir_count = 0
                         _a_press_count = 0
 
                     if _same_dir_count == 3:
-                        safe_print(f"  [WARN] Direction-locking detected: {_same_dir} x3")
+                        safe_print(
+                            f"  [WARN] Direction-locking detected: {_same_dir} x3"
+                        )
                         _cycle_dir_lock_warned = True
                     # Recovery is now handled centrally in the stuck-detection block
                     # after cartographer analysis, using the escalating recovery ladder.
 
                 elapsed = time.time() - t0
-                safe_print(f"  [{cycle+1}/{CYCLES}] {st} | {pipeline_name} x{CART_STEPS} | {elapsed:.1f}s")
+                safe_print(
+                    f"  [{cycle + 1}/{CYCLES}] {st} | {pipeline_name} x{CART_STEPS} | {elapsed:.1f}s"
+                )
 
             elif st == "name_entry":
                 # ── Name entry bypass (main loop) ──────────────────
@@ -3195,7 +3355,7 @@ def main() -> None:
                 log_file.write(json.dumps(entry, default=str) + "\n")
                 log_file.flush()
                 safe_print(
-                    f"  [{cycle+1}/{CYCLES}] {st} | name_bypass "
+                    f"  [{cycle + 1}/{CYCLES}] {st} | name_bypass "
                     f"(stuck={_main_ne_stuck}/{_NAME_ENTRY_STUCK_MAX}) | {elapsed:.1f}s"
                 )
 
@@ -3209,7 +3369,9 @@ def main() -> None:
                     "screen_subtype": patch_data.get("screen_subtype", ""),
                     "name_field": patch_data.get("name_field", ""),
                     "text_lines": patch_data.get("text_lines", []),
-                    "text_content": patch_data.get("text_content", patch_data.get("text_lines", [])),
+                    "text_content": patch_data.get(
+                        "text_content", patch_data.get("text_lines", [])
+                    ),
                     "menu_items": patch_data.get("menu_items", []),
                     "adjacent_tiles": patch_data.get("adjacent_tiles", {}),
                     "keyboard_grid": patch_data.get("keyboard_grid", {}),
@@ -3235,12 +3397,19 @@ def main() -> None:
 
                 # ── Battle start/end logging ──────────────────────
                 if st == "battle" and _last_screen_type != "battle":
-                    evt = {"cycle": cycle + 1, "event": "battle_start",
-                           "battle_type": vis_dict.get("battle_state", {}).get("battle_type", "unknown")}
+                    evt = {
+                        "cycle": cycle + 1,
+                        "event": "battle_start",
+                        "battle_type": vis_dict.get("battle_state", {}).get(
+                            "battle_type", "unknown"
+                        ),
+                    }
                     results.append(evt)
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
-                    safe_print(f"  [BATTLE-START] {vis_dict.get('battle_state', {}).get('battle_type', 'unknown')} battle began")
+                    safe_print(
+                        f"  [BATTLE-START] {vis_dict.get('battle_state', {}).get('battle_type', 'unknown')} battle began"
+                    )
                 elif st != "battle" and _last_screen_type == "battle":
                     evt = {"cycle": cycle + 1, "event": "battle_end", "next_screen": st}
                     results.append(evt)
@@ -3258,7 +3427,7 @@ def main() -> None:
                 _last_screen_type = st
 
                 # State-change detection resets recovery counter
-                state_key = f"{st}:{vis_dict.get('screen_subtype','')}"
+                state_key = f"{st}:{vis_dict.get('screen_subtype', '')}"
                 if state_key != _last_state_key and _last_state_key != "":
                     _recovery_attempts = 0
                     _recovery_level = 0
@@ -3278,16 +3447,24 @@ def main() -> None:
                     recovery_reason = f"screen-locked ({st} x{_same_screen_count})"
                 elif _same_dir_count >= MAX_STUCK_SAME_DIR:
                     needs_recovery = True
-                    recovery_reason = f"direction-locked ({_same_dir} x{_same_dir_count})"
+                    recovery_reason = (
+                        f"direction-locked ({_same_dir} x{_same_dir_count})"
+                    )
 
                 starter_approached = False
                 if needs_recovery:
                     if _recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
                         if not _gave_up:
                             _gave_up = True
-                            safe_print(f"  [RECOVER] GIVING UP after {_recovery_attempts} attempts ({recovery_reason})")
-                            evt = {"cycle": cycle + 1, "event": "recovery_exhausted",
-                                   "reason": recovery_reason, "attempts": _recovery_attempts}
+                            safe_print(
+                                f"  [RECOVER] GIVING UP after {_recovery_attempts} attempts ({recovery_reason})"
+                            )
+                            evt = {
+                                "cycle": cycle + 1,
+                                "event": "recovery_exhausted",
+                                "reason": recovery_reason,
+                                "attempts": _recovery_attempts,
+                            }
                             results.append(evt)
                             log_file.write(json.dumps(evt, default=str) + "\n")
                             log_file.flush()
@@ -3312,12 +3489,22 @@ def main() -> None:
                             for _ in range(12):
                                 emu.press_button("a", frames=_A_FRAMES)
                                 emu.fast_forward(_FF_FRAMES)
-                            strategy, desc = ("dialog_advance", "12× A — advancing dialog text")
-                            safe_print(f"  [RECOVER] {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]")
-                            evt = {"cycle": cycle + 1, "event": "recovery",
-                                   "level": _recovery_level, "strategy": strategy,
-                                   "reason": recovery_reason, "attempt": _recovery_attempts,
-                                   "description": desc}
+                            strategy, desc = (
+                                "dialog_advance",
+                                "12× A — advancing dialog text",
+                            )
+                            safe_print(
+                                f"  [RECOVER] {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]"
+                            )
+                            evt = {
+                                "cycle": cycle + 1,
+                                "event": "recovery",
+                                "level": _recovery_level,
+                                "strategy": strategy,
+                                "reason": recovery_reason,
+                                "attempt": _recovery_attempts,
+                                "description": desc,
+                            }
                             results.append(evt)
                             log_file.write(json.dumps(evt, default=str) + "\n")
                             log_file.flush()
@@ -3352,14 +3539,27 @@ def main() -> None:
                             )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
-                        if strategy == "load_checkpoint" and _same_dir and _same_dir in _DIR_ROTATION:
+                        if (
+                            strategy == "load_checkpoint"
+                            and _same_dir
+                            and _same_dir in _DIR_ROTATION
+                        ):
                             _dir_blacklist.add(_same_dir)
-                            safe_print(f"  [BLACKLIST] {_same_dir} added to blacklist: {_dir_blacklist}")
-                        safe_print(f"  [RECOVER] Level {_recovery_level-1}: {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]")
-                        evt = {"cycle": cycle + 1, "event": "recovery",
-                               "level": _recovery_level - 1, "strategy": strategy,
-                               "reason": recovery_reason, "attempt": _recovery_attempts,
-                               "description": desc}
+                            safe_print(
+                                f"  [BLACKLIST] {_same_dir} added to blacklist: {_dir_blacklist}"
+                            )
+                        safe_print(
+                            f"  [RECOVER] Level {_recovery_level - 1}: {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]"
+                        )
+                        evt = {
+                            "cycle": cycle + 1,
+                            "event": "recovery",
+                            "level": _recovery_level - 1,
+                            "strategy": strategy,
+                            "reason": recovery_reason,
+                            "attempt": _recovery_attempts,
+                            "description": desc,
+                        }
                         results.append(evt)
                         log_file.write(json.dumps(evt, default=str) + "\n")
                         log_file.flush()
@@ -3387,7 +3587,7 @@ def main() -> None:
                 # ── Rival battle detection ────────────────────────
                 if vis_dict.get("screen_subtype") == "rival_battle":
                     ctx.set_location("rival_battle")
-                    battle_png = SCREENSHOT_DIR / f"BATTLE_{cycle+1:04d}.png"
+                    battle_png = SCREENSHOT_DIR / f"BATTLE_{cycle + 1:04d}.png"
                     img.save(battle_png)
                     evt = {
                         "cycle": cycle + 1,
@@ -3396,7 +3596,7 @@ def main() -> None:
                     results.append(evt)
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
-                    safe_print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle+1}")
+                    safe_print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle + 1}")
 
                 # Battle windows execute one action against one fresh RAM read.
                 # The former 12-step loop reused a stale cycle-20 move-menu
@@ -3413,8 +3613,9 @@ def main() -> None:
                         # within one window. max_steps=1 meant a single
                         # query_global consumed the whole budget each cycle
                         # and the battle never progressed (T192/T197 stall).
-                        5 if state_type == "battle" else
-                        (1 if state_type == "name_entry" else STATE_STEPS)
+                        5
+                        if state_type == "battle"
+                        else (1 if state_type == "name_entry" else STATE_STEPS)
                     ),
                     hint_level=HINT_LEVEL,
                     use_ram_prompts=True,
@@ -3431,14 +3632,18 @@ def main() -> None:
                 # --- Battle event logging ---
                 battle_events = result.get("_battle_events", [])
                 for be in battle_events:
-                    safe_print(f"  [BATTLE] {be.get('event')}: {be.get('screen_type', be.get('outcome', '?'))}")
+                    safe_print(
+                        f"  [BATTLE] {be.get('event')}: {be.get('screen_type', be.get('outcome', '?'))}"
+                    )
 
                 # Extract last action
                 last_action = "?"
                 for h in reversed(win._history):
                     tc = h.get("tool_call", {})
                     if tc:
-                        last_action = f"{tc.get('name','?')}({tc.get('arguments',{})})"
+                        last_action = (
+                            f"{tc.get('name', '?')}({tc.get('arguments', {})})"
+                        )
                         break
 
                 entry = {
@@ -3448,14 +3653,18 @@ def main() -> None:
                     "action": last_action,
                     "elapsed_s": round(elapsed, 1),
                     "cartographer_raw": carto_raw,
-                    "state_window_raw": "\n\n---\n".join(win._raw_responses) if getattr(win, '_raw_responses', None) else "",
+                    "state_window_raw": "\n\n---\n".join(win._raw_responses)
+                    if getattr(win, "_raw_responses", None)
+                    else "",
                     "battle_events": battle_events,
                     "failed_flee_attempts": _failed_flee_attempts,
                 }
                 results.append(entry)
                 log_file.write(json.dumps(entry, default=str) + "\n")
                 log_file.flush()
-                safe_print(f"  [{cycle+1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s")
+                safe_print(
+                    f"  [{cycle + 1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s"
+                )
 
             # Handle progression
             if _cycle_dir_lock_warned:
@@ -3551,9 +3760,11 @@ def main() -> None:
     # Persist frame cache for the next run (cross-run dedup)
     if _frame_cache is not None:
         _frame_cache.save()
-        safe_print(f"[{run_id}] Frame cache saved: {_frame_cache.unique_frames} unique "
-                   f"frames / {_frame_cache.total_seen} total references "
-                   f"({_frame_cache.stats()['max_entries']} max)")
+        safe_print(
+            f"[{run_id}] Frame cache saved: {_frame_cache.unique_frames} unique "
+            f"frames / {_frame_cache.total_seen} total references "
+            f"({_frame_cache.stats()['max_entries']} max)"
+        )
 
 
 if __name__ == "__main__":
