@@ -26,6 +26,7 @@ import os
 import time
 import urllib.error
 import urllib.request
+from copy import deepcopy
 from typing import Any
 
 ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
@@ -197,10 +198,18 @@ def load_keys() -> list[tuple[str, str]]:
 # ── the ask ─────────────────────────────────────────────────────────────────
 
 
-def ask(state: str, *, in_battle: bool = False, timeout: int = 45) -> dict[str, Any]:
+def ask(
+    state: str,
+    *,
+    in_battle: bool = False,
+    timeout: int = 45,
+    questions: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Send one batched decision request. Returns a normalized dict.
 
     On any failure returns {"ok": False, "error": ...} — callers must escalate.
+    ``questions`` is additive for JEV-2: the normal path still uses the canonical
+    set, while a teacher re-ask can supply a copied set with one instruction patch.
     """
     keys = load_keys()
     if not keys:
@@ -210,7 +219,9 @@ def ask(state: str, *, in_battle: bool = False, timeout: int = 45) -> dict[str, 
         {
             "model": MODEL,
             "state": state,
-            "questions": _questions(in_battle=in_battle),
+            "questions": questions
+            if questions is not None
+            else _questions(in_battle=in_battle),
         }
     ).encode()
     last_err = "unknown"
@@ -305,6 +316,171 @@ def should_escalate(
             return True, f"low_confidence+ambiguous ({conf:.2f}/{amb})"
 
     return False, "jev_confident"
+
+
+def apply_patch(
+    base_questions: dict[str, Any], patch: dict[str, Any]
+) -> dict[str, Any]:
+    """Fold a teacher heuristic into only ``next_action.instructions``.
+
+    The input and all non-target questions remain unchanged. Escalation thresholds
+    stay in code and no new JEV question type is introduced.
+    """
+    questions = deepcopy(base_questions)
+    next_action = questions.get("next_action")
+    if not isinstance(next_action, dict):
+        return questions
+    instruction = patch.get("instruction_patch")
+    if not isinstance(instruction, str) or not instruction.strip():
+        return questions
+    applies_when = patch.get("applies_when")
+    if not isinstance(applies_when, str) or not applies_when.strip():
+        applies_when = "always"
+    current = next_action.get("instructions")
+    current_text = current if isinstance(current, str) else ""
+    addition = (
+        "Additional instruction (from a previous escalation, applies_when: "
+        f"{applies_when.strip()}): {instruction.strip()}"
+    )
+    next_action["instructions"] = f"{current_text}\n\n{addition}".strip()
+    return questions
+
+
+def _number(value: Any) -> float | None:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value)
+
+
+def _sum_optional(*values: Any) -> float | None:
+    numbers = [number for value in values if (number := _number(value)) is not None]
+    return round(sum(numbers), 8) if numbers else None
+
+
+def escalate_and_reask(
+    decision: dict[str, Any],
+    *,
+    projection: str,
+    memory: str | None = None,
+    recent_events: list[dict[str, Any]] | None = None,
+    milestones: list[dict[str, Any]] | None = None,
+    teacher_model: str | None = None,
+    client: Any = None,
+    in_battle: bool = False,
+    last_action_failed: bool = False,
+    act_phase: bool = False,
+    max_reasks: int = 1,
+    base_questions: dict[str, Any] | None = None,
+    log_file: Any = None,
+    cycle: int | None = None,
+    results: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Ask the teacher for one state patch, apply it, and return control to JEV.
+
+    The returned record is the exact AC-6 proof triple. Every failure is data:
+    ``ok=False`` and ``improved=False`` let the game loop survive and escalate on
+    a later cycle. This function never performs more than ``max_reasks`` calls.
+    """
+    from src.core import teacher_client
+
+    started = time.monotonic()
+    pre_reason = decision.get("escalate_reason")
+    if not isinstance(pre_reason, str):
+        _, pre_reason = should_escalate(
+            decision,
+            last_action_failed=last_action_failed,
+            act_phase=act_phase,
+        )
+    pre_ask = {
+        "sufficient_state": decision.get("sufficient_state"),
+        "missing_class": decision.get("missing_class"),
+        "escalate_reason": pre_reason,
+    }
+    record: dict[str, Any] = {
+        "ok": False,
+        "pre_ask": pre_ask,
+        "patch": None,
+        "post_ask": None,
+        "improved": False,
+        "latency_s": 0.0,
+        "cost_usd": None,
+    }
+
+    def finish() -> dict[str, Any]:
+        if log_file is not None:
+            row = teacher_client.write_escalation_row(
+                log_file,
+                cycle=cycle if cycle is not None else 0,
+                record=record,
+            )
+            if results is not None:
+                results.append(row)
+        return record
+
+    if max_reasks < 1:
+        record["error"] = "max_reasks must allow one re-ask"
+        return finish()
+
+    patch = teacher_client.request_patch(
+        distributions=decision,
+        missing_class=(
+            decision.get("missing_class")
+            if isinstance(decision.get("missing_class"), str)
+            else "unknown"
+        ),
+        projection=projection,
+        recent_events=recent_events,
+        milestones=milestones,
+        memory=memory,
+        teacher_model=teacher_model,
+        client=client,
+    )
+    record["patch"] = patch
+    if not patch.get("ok"):
+        record["error"] = patch.get("error", "teacher patch failed")
+        record["latency_s"] = round(time.monotonic() - started, 3)
+        record["cost_usd"] = patch.get("cost_usd")
+        return finish()
+
+    questions = apply_patch(
+        base_questions
+        if base_questions is not None
+        else _questions(in_battle=in_battle),
+        patch,
+    )
+    post_ask = ask(projection, in_battle=in_battle, questions=questions)
+    record["post_ask"] = post_ask
+    record["latency_s"] = round(time.monotonic() - started, 3)
+    record["cost_usd"] = _sum_optional(patch.get("cost_usd"), post_ask.get("cost_usd"))
+    if not post_ask.get("ok"):
+        record["error"] = post_ask.get("error", "JEV re-ask failed")
+        return finish()
+
+    escalates, reason = should_escalate(
+        post_ask,
+        last_action_failed=last_action_failed,
+        act_phase=act_phase,
+    )
+    post_ask["escalate"] = escalates
+    post_ask["escalate_reason"] = reason
+
+    pre_suff = _number(decision.get("sufficient_state"))
+    post_suff = _number(post_ask.get("sufficient_state"))
+    pre_missing = decision.get("missing_class")
+    post_missing = post_ask.get("missing_class")
+    missing_narrowed = post_missing == "none" or (
+        isinstance(post_missing, str)
+        and post_missing in MISSING_CLASSES
+        and post_missing != pre_missing
+    )
+    record["ok"] = True
+    record["improved"] = bool(
+        pre_suff is not None
+        and post_suff is not None
+        and post_suff >= pre_suff
+        and missing_narrowed
+    )
+    return finish()
 
 
 def decide(
