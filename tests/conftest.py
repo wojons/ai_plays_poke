@@ -22,6 +22,13 @@ from src.schemas.commands import (
     CommandExecutionResult,
 )
 
+# These are manually runnable integration scripts with module-level emulator/API
+# side effects, not pytest test modules.  Keep default collection side-effect free.
+collect_ignore = [
+    "test_phase4_integration.py",
+    "test_vision_integration.py",
+]
+
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register the --live-api opt-in flag for live-API tests.
