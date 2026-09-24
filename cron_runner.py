@@ -1503,6 +1503,15 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def teacher_escalation_records(results: list[dict[str, Any]]) -> dict[str, int]:
+    """Count JEV-2 teacher proof rows without changing decision semantics."""
+    rows = [row for row in results if row.get("event") == "teacher_escalation"]
+    return {
+        "count": len(rows),
+        "improved": sum(bool(row.get("improved")) for row in rows),
+    }
+
+
 def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
     """Render the JEV-1 autonomy tail appended to the summary line.
 
@@ -1524,6 +1533,7 @@ def _write_autonomy_row(
     log_file: TextIO,
     run_id: str,
     autonomy: dict[str, Any],
+    teacher: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """Append the JEV-1 autonomy block as one JSON line to the run log.
 
@@ -1545,6 +1555,7 @@ def _write_autonomy_row(
         "escalation_rate_by_missing_class": autonomy.get(
             "escalation_rate_by_missing_class", {}
         ),
+        "teacher_escalations": teacher or {"count": 0, "improved": 0},
     }
     log_file.write(json.dumps(row, default=str) + "\n")
     log_file.flush()
@@ -1561,6 +1572,7 @@ def _format_summary(
     real_decisions: int = 0,
     fallback_decisions: int = 0,
     autonomy: dict[str, Any] | None = None,
+    teacher: dict[str, int] | None = None,
 ) -> str:
     """Format the final summary line, including the per-run lock-rate.
 
@@ -1574,6 +1586,12 @@ def _format_summary(
     are unchanged.
     """
     lock_rate = lock_warn_cycles / total_cycles
+    teacher_tail = ""
+    if teacher and _as_int(teacher.get("count")):
+        teacher_tail = (
+            f" | teacher={_as_int(teacher.get('count'))} escalations "
+            f"({_as_int(teacher.get('improved'))} improved)"
+        )
     return (
         f"[{run_id}] Done. {n_actions} actions. Screens: {screens} "
         f"| lock-rate: {lock_warn_cycles}/{total_cycles} cycles with "
@@ -1582,6 +1600,7 @@ def _format_summary(
         f"| real_decisions={real_decisions} "
         f"fallback_decisions={fallback_decisions} "
         f"{_format_autonomy_tail(autonomy)}"
+        f"{teacher_tail}"
     )
 
 
@@ -3710,6 +3729,7 @@ def main() -> None:
     # JEV-1 (PRD v3 AC-1): per-run autonomy counters, counted from the
     # per-decision rows only (never incremented by the summary printer).
     autonomy = _autonomy_counters(results)
+    teacher_summary = teacher_escalation_records(results)
 
     # Write log
     log_file.seek(0)
@@ -3720,7 +3740,7 @@ def main() -> None:
     # / escalated / autonomy_ratio, written with the same idiom as every
     # other row. Kept out of `results` so the legacy "Done. N actions."
     # count and the DuckBrain ladder/cycles stay byte-identical.
-    _write_autonomy_row(log_file, run_id, autonomy)
+    _write_autonomy_row(log_file, run_id, autonomy, teacher_summary)
     log_file.close()
 
     # Summary
@@ -3736,6 +3756,7 @@ def main() -> None:
         real_decisions=real_decisions,
         fallback_decisions=fallback_decisions,
         autonomy=autonomy,
+        teacher=teacher_summary,
     )
     safe_print(f"\n{final_summary}")
     safe_print(f"Log: {log_path}")
