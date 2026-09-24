@@ -1,0 +1,24 @@
+{
+  "wave_id": "ai-plays-poke-2026-09-24-08-40-56",
+  "tick": 238,
+  "budget": 8,
+  "workers": 1,
+  "tasks": [
+    "JEV-2"
+  ],
+  "worktrees": {
+    "JEV-2": {
+      "worktree": "~/worktrees/ai-plays-poke-JEV-2",
+      "branch": "wt/JEV-2",
+      "base": "96f72be"
+    }
+  },
+  "briefs": {
+    "JEV-2": "/tmp/ai-plays-poke-238_brief_JEV-2.md"
+  },
+  "dispatched_at": "2026-09-24T08:55:00Z",
+  "status": "merged",
+  "note": "Single-worker wave: JEV-2 (teacher escalation layer, PRD v3 stage 7 / AC-6) is the only independent implementable row (JEV-3 depends on JEV-2; JEV-5 on JEV-4; E2E-001 window next due T242). Lane probe verified real: gpt-5.6-sol @ openai-codex (session 20260924_035623_39b551, no fallback).",
+  "merge_commit": "3aa879c",
+  "merged_at": "2026-09-24T09:45:00Z"
+}
