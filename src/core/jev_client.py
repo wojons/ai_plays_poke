@@ -162,6 +162,31 @@ def _questions(*, in_battle: bool = False) -> dict[str, Any]:
     }
 
 
+def starter_questions(*, visible_species: str | None) -> dict[str, Any]:
+    """Build the starter-specific choice vocabulary for Oak's three balls."""
+    questions = _questions(in_battle=False)
+    visible = visible_species or "unknown"
+    questions["next_action"] = {
+        "type": "choice",
+        "instructions": (
+            "Choose the starter species. The currently visible confirmation "
+            f"dialog names {visible}; movement to another ball is handled after "
+            "this species decision."
+        ),
+        "criteria": {
+            "CHARMANDER": "choose the left ball containing the Fire-type starter",
+            "SQUIRTLE": "choose the middle ball containing the Water-type starter",
+            "BULBASAUR": "choose the right ball containing the Grass-type starter",
+        },
+    }
+    questions["phase"] = {
+        "type": "choice",
+        "instructions": "Classify this irreversible Oak's Lab starter choice.",
+        "criteria": {"STARTER": "choose one of Oak's three starter Pokemon"},
+    }
+    return questions
+
+
 # ── key handling ────────────────────────────────────────────────────────────
 
 
@@ -489,9 +514,10 @@ def decide(
     in_battle: bool = False,
     last_action_failed: bool = False,
     act_phase: bool = False,
+    questions: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Full cycle: ask Jev, then apply the gate. No LLM is called here."""
-    d = ask(state, in_battle=in_battle)
+    d = ask(state, in_battle=in_battle, questions=questions)
     esc, why = should_escalate(
         d, last_action_failed=last_action_failed, act_phase=act_phase
     )

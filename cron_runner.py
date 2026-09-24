@@ -495,6 +495,7 @@ from src.core.prompt_loader import load_system_prompt
 from src.core.ram_reader import RAMReader
 from src.core.frame_cache import FrameCache
 from src.core.tools import execute_tool_call
+from src.core import jev_client
 
 # ── Config ──────────────────────────────────────────────────────────
 # ROM / DEFAULT_BOOT_STATE / CYCLES / USE_RAM_READER are defined at the
@@ -634,7 +635,7 @@ def _should_select_starter(
     screen_type: str,
     menu_state: dict[str, Any],
 ) -> bool:
-    """Return whether Oak's empty-party starter menu must bypass the LLM."""
+    """Return whether Oak's empty-party menu needs a JEV starter decision."""
     menu_detected = int(menu_state.get("menu_id", 0)) > 0 or screen_type in (
         "menu",
         "list_menu",
@@ -681,10 +682,10 @@ def _approach_first_starter(
     emu.press_button("a", frames=STARTER_ACTION_FRAMES)
     emu.fast_forward(STARTER_ADVANCE_FRAMES)
 
-    # Do not return control to the LLM during the transient overworld frames:
-    # an A-heavy generic plan can race straight through the YES/NO prompt.
-    # Advance only until the starter choice is visibly active, then let the
-    # deterministic menu branch confirm it on the next cycle.
+    # Do not return control to the generic controller during transient overworld
+    # frames: an A-heavy plan can race straight through the YES/NO prompt.
+    # Advance only until the starter choice is visibly active, then let the JEV
+    # species branch decide whether to confirm this ball or move to another.
     for _ in range(max_dialog_advances):
         current_screen = ram_reader.screen_type()
         current_menu = ram_reader.read_menu_state()
@@ -698,15 +699,114 @@ def _approach_first_starter(
     return False
 
 
+STARTER_BALL_X = {
+    "CHARMANDER": 6,
+    "SQUIRTLE": 8,
+    "BULBASAUR": 10,
+}
+
+
+def _starter_species_from_dialog(text: str) -> str | None:
+    """Return the starter named by Oak's live confirmation dialog."""
+    upper = text.upper()
+    return next((species for species in STARTER_BALL_X if species in upper), None)
+
+
 def _select_starter_from_menu(
     emu: Any,
     ram_reader: RAMReader,
     *,
     max_advances: int = 16,
     decline_presses: int = 8,
+    decision_out: dict[str, Any] | None = None,
 ) -> int:
-    """Confirm the first starter, then B through the nickname prompt as NO."""
+    """Choose Oak's starter through JEV, then decline the nickname prompt.
+
+    The active YES/NO dialog supplies the currently faced species from RAM. JEV
+    chooses among all three species; button presses only transport that choice.
+    On a missing/invalid JEV answer this fails closed without accepting a ball.
+    """
     party_count = ram_reader.party_count()
+    dialog_text = ram_reader.read_dialog_text()
+    visible_species = _starter_species_from_dialog(dialog_text)
+    questions = jev_client.starter_questions(visible_species=visible_species)
+    state = json.dumps(
+        {
+            "phase": "STARTER",
+            "visible_species": visible_species,
+            "dialog": dialog_text,
+            "choices": list(STARTER_BALL_X),
+        },
+        sort_keys=True,
+    )
+    decision = jev_client.decide(
+        state,
+        act_phase=True,
+        questions=questions,
+    )
+    raw_choice = decision.get("next_action")
+    choice = raw_choice.upper() if isinstance(raw_choice, str) else None
+    valid_choice = choice if choice in STARTER_BALL_X else None
+    if decision_out is not None:
+        decision_out.update(
+            {
+                "phase": "STARTER",
+                "starter_choice": valid_choice,
+                "visible_species": visible_species,
+                "raw_distribution": decision.get("raw"),
+                "jev_answered": bool(decision.get("ok") and valid_choice),
+                "escalated": bool(decision.get("escalate", False)),
+                "missing_class": decision.get("missing_class"),
+            }
+        )
+    if valid_choice is None or not decision.get("ok"):
+        return party_count
+
+    if valid_choice != visible_species:
+        # Decline the currently visible ball, return to the floor, then move to
+        # the selected ball. Oak's three balls sit at x=6/8/10 on the same row.
+        emu.press_button("b", frames=STARTER_ACTION_FRAMES)
+        emu.fast_forward(STARTER_ADVANCE_FRAMES)
+        for _ in range(max_advances):
+            if ram_reader.screen_type() == "overworld":
+                break
+            emu.press_button("b", frames=STARTER_ACTION_FRAMES)
+            emu.fast_forward(STARTER_ADVANCE_FRAMES)
+        else:
+            return party_count
+
+        current_x = ram_reader.player_tile_x()
+        target_x = STARTER_BALL_X[valid_choice]
+        direction = "right" if target_x > current_x else "left"
+        for _ in range(abs(target_x - current_x)):
+            emu.press_button(direction, frames=PRESS_FRAMES)
+            emu.fast_forward(STEP_FORWARD)
+        emu.press_button("up", frames=PRESS_FRAMES)
+        emu.fast_forward(STEP_FORWARD)
+        emu.press_button("a", frames=STARTER_ACTION_FRAMES)
+        emu.fast_forward(STARTER_ADVANCE_FRAMES)
+
+        for _ in range(max_advances):
+            current_screen = ram_reader.screen_type()
+            current_menu = ram_reader.read_menu_state()
+            if (
+                current_screen in ("menu", "list_menu")
+                or int(current_menu.get("menu_id", 0)) > 0
+            ):
+                break
+            emu.press_button("a", frames=STARTER_ACTION_FRAMES)
+            emu.fast_forward(STARTER_ADVANCE_FRAMES)
+        else:
+            return party_count
+
+        # The dialog is the ground truth: never confirm if movement landed on
+        # a different ball than the species JEV selected.
+        selected_species = _starter_species_from_dialog(ram_reader.read_dialog_text())
+        if selected_species is not None and selected_species != valid_choice:
+            emu.press_button("b", frames=STARTER_ACTION_FRAMES)
+            emu.fast_forward(STARTER_ADVANCE_FRAMES)
+            return party_count
+
     emu.press_button("a", frames=STARTER_ACTION_FRAMES)
     emu.fast_forward(STARTER_ADVANCE_FRAMES)
 
@@ -753,8 +853,8 @@ def _starter_milestone_for_cycle(
 
     Fires at most once per run, from either path:
 
-    1. In-run 0→1 party transition (fresh boot: deterministic starter branch
-       or LLM-driven dialog advance) — the classic ``starter_picked`` event.
+    1. In-run 0→1 party transition (fresh boot: JEV-routed starter branch
+       or controller-driven dialog advance) — the classic ``starter_picked`` event.
     2. Post-pick boot baseline: runs loading a known-good checkpoint
        (``data/boot.state`` was saved after the starter was received) start
        with ``party_count == 1``, so no 0→1 transition is ever observable and
@@ -827,12 +927,75 @@ def _is_battle_game_state(game_state: dict[str, Any] | None) -> bool:
     return screen == "battle" or bool(game_state.get("battle_state"))
 
 
+BATTLE_ACTIONS = {"MOVE_1", "MOVE_2", "MOVE_3", "MOVE_4", "SWITCH", "ITEM", "RUN"}
+
+
+def _battle_fallback_action(game_state: dict[str, Any]) -> str | None:
+    """Choose an observed usable move when JEV cannot return a valid action."""
+    battle = game_state.get("battle_state")
+    if not isinstance(battle, dict):
+        return None
+    player = battle.get("player")
+    if not isinstance(player, dict):
+        return None
+    moves = player.get("moves")
+    if not isinstance(moves, list):
+        return None
+    usable = [
+        move
+        for move in moves
+        if isinstance(move, dict)
+        and isinstance(move.get("slot"), int)
+        and 1 <= move["slot"] <= 4
+        and int(move.get("pp", 1)) > 0
+    ]
+    if not usable:
+        return None
+    # Prefer remaining PP; on a tie, preserve the later slot so recovery does
+    # not silently recreate the old always-move-1 behavior.
+    chosen = max(usable, key=lambda move: (int(move.get("pp", 1)), move["slot"]))
+    return f"MOVE_{chosen['slot']}"
+
+
+def _battle_tool_call(
+    action: str, game_state: dict[str, Any]
+) -> tuple[str, dict[str, Any]]:
+    """Translate one JEV battle vocabulary choice into emulator transport."""
+    if action.startswith("MOVE_"):
+        return "select_move", {"move_number": int(action.removeprefix("MOVE_"))}
+    if action == "RUN":
+        return "run_from_battle", {}
+    if action == "SWITCH":
+        return "switch_pokemon", {"slot": 2}
+
+    battle = game_state.get("battle_state")
+    inventory = battle.get("inventory") if isinstance(battle, dict) else None
+    item_name = "Potion"
+    if isinstance(inventory, list):
+        first_item = next((item for item in inventory if isinstance(item, str)), None)
+        if first_item is not None:
+            item_name = first_item
+    return "use_battle_item", {"item_name": item_name}
+
+
+def _battle_action_description(tool_name: str, arguments: dict[str, Any]) -> str:
+    """Render the executed transport without hiding the selected vocabulary."""
+    if tool_name == "select_move":
+        return f"select_move({arguments['move_number']})"
+    if tool_name == "switch_pokemon":
+        return f"switch_pokemon({arguments['slot']})"
+    if tool_name == "use_battle_item":
+        return f"use_battle_item({arguments['item_name']})"
+    return "run_from_battle()"
+
+
 def _escalating_recovery(
     emu,
     recovery_level: int,
     last_direction: str,
     last_saved_slot: int | None,
     game_state: dict[str, Any] | None = None,
+    decision_out: dict[str, Any] | None = None,
 ) -> tuple[str, str]:
     """Execute escalating recovery action. Returns (strategy_name, description).
 
@@ -848,13 +1011,48 @@ def _escalating_recovery(
 
     Battles bypass every generic rung. Loading a checkpoint can erase the
     encounter, START/B/direction recovery is not a legal turn, and blind A-mash
-    can choose an unintended move. Re-issue a normalized move action instead.
+    can choose an unintended move. Ask JEV against the live battle state and
+    translate its battle vocabulary choice into the corresponding tool call.
     """
     if _is_battle_game_state(game_state):
-        result = execute_tool_call(emu, "select_move", {"move_number": 1})
+        assert game_state is not None
+        decision = jev_client.decide(
+            json.dumps(game_state, default=str, sort_keys=True),
+            in_battle=True,
+            act_phase=True,
+        )
+        raw_action = decision.get("next_action")
+        action = raw_action.upper() if isinstance(raw_action, str) else None
+        jev_action = action if action in BATTLE_ACTIONS else None
+        battle_action = jev_action or _battle_fallback_action(game_state)
+        if decision_out is not None:
+            decision_out.update(
+                {
+                    "phase": "BATTLE",
+                    "battle_action": battle_action,
+                    "intent": (
+                        f"battle action {battle_action}"
+                        if battle_action is not None
+                        else None
+                    ),
+                    "raw_distribution": decision.get("raw"),
+                    "jev_answered": bool(decision.get("ok") and jev_action),
+                    "escalated": bool(decision.get("escalate", False)),
+                    "missing_class": decision.get("missing_class"),
+                }
+            )
+        if battle_action is None:
+            return (
+                "battle_jev_unavailable",
+                "JEV returned no valid battle action and RAM exposed no usable move",
+            )
+        tool_name, arguments = _battle_tool_call(battle_action, game_state)
+        result = execute_tool_call(emu, tool_name, arguments)
+        action_description = _battle_action_description(tool_name, arguments)
+        source = "JEV" if jev_action is not None else "RAM fallback"
         return (
-            "battle_select_move",
-            f"select_move(1) re-issued from live battle state — {result}",
+            "battle_jev_action",
+            f"{action_description} chosen by {source} — {result}",
         )
 
     # Clamp level
@@ -2832,7 +3030,7 @@ def main() -> None:
 
             t0 = time.time()
 
-            # Deterministic starter selection must pre-empt generic menu handling.
+            # Oak's empty-party menu routes to JEV's starter-species choice.
             if USE_RAM_READER and _should_select_starter(
                 map_id=map_id,
                 party_count=party_count,
@@ -2841,19 +3039,27 @@ def main() -> None:
             ):
                 safe_print(
                     f"  [STARTER] Oak's Lab menu detected at cycle {cycle + 1}; "
-                    "selecting first starter"
+                    "asking JEV to choose a species"
                 )
-                selected_party_count = _select_starter_from_menu(emu, ram_reader)
+                starter_decision: dict[str, Any] = {}
+                selected_party_count = _select_starter_from_menu(
+                    emu,
+                    ram_reader,
+                    decision_out=starter_decision,
+                )
+                starter_choice = starter_decision.get("starter_choice")
                 selection_entry = {
                     "cycle": cycle + 1,
                     "screen": st,
                     "event": "starter_selection",
-                    "action": "confirm_first_starter_then_decline_nickname",
+                    "action": "jev_starter_choice",
+                    "intent": f"select starter {starter_choice or 'unavailable'}",
                     "map_id": map_id,
                     "party_count_before": party_count,
                     "party_count_after": selected_party_count,
                     "player_tile_x": raw_tile_x,
                     "player_tile_y": raw_tile_y,
+                    **starter_decision,
                 }
                 results.append(selection_entry)
                 log_file.write(json.dumps(selection_entry, default=str) + "\n")
@@ -2990,10 +3196,11 @@ def main() -> None:
                             starter_approached = _approach_first_starter(
                                 emu, ram_reader
                             )
+                        recovery_decision: dict[str, Any] = {}
                         if starter_approached:
                             strategy, desc = (
                                 "starter_approach",
-                                "moved to the first Poké Ball and pressed A",
+                                "moved to the nearest Poké Ball and opened its dialog",
                             )
                         else:
                             strategy, desc = _escalating_recovery(
@@ -3002,6 +3209,7 @@ def main() -> None:
                                 _last_direction,
                                 _last_saved_slot,
                                 game_state=patch_data,
+                                decision_out=recovery_decision,
                             )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
@@ -3025,6 +3233,7 @@ def main() -> None:
                             "reason": recovery_reason,
                             "attempt": _recovery_attempts,
                             "description": desc,
+                            **recovery_decision,
                         }
                         results.append(evt)
                         log_file.write(json.dumps(evt, default=str) + "\n")
@@ -3543,10 +3752,11 @@ def main() -> None:
                             _void_cycles = trackers.void_cycles
                             _a_press_count = trackers.a_press_count
                             continue  # skip StateWindow, let next cycle re-classify
+                        recovery_decision = {}
                         if starter_approached:
                             strategy, desc = (
                                 "starter_approach",
-                                "moved to the first Poké Ball and pressed A",
+                                "moved to the nearest Poké Ball and opened its dialog",
                             )
                         else:
                             strategy, desc = _escalating_recovery(
@@ -3555,6 +3765,7 @@ def main() -> None:
                                 _last_direction,
                                 _last_saved_slot,
                                 game_state=patch_data,
+                                decision_out=recovery_decision,
                             )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
@@ -3578,6 +3789,7 @@ def main() -> None:
                             "reason": recovery_reason,
                             "attempt": _recovery_attempts,
                             "description": desc,
+                            **recovery_decision,
                         }
                         results.append(evt)
                         log_file.write(json.dumps(evt, default=str) + "\n")

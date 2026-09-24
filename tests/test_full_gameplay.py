@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
+from src.core import jev_client
 from cron_runner import (
     _approach_first_starter,
     _select_starter_from_menu,
@@ -122,10 +123,31 @@ class TestStarterSelection:
             call("a", frames=20),
         ]
 
-    def test_deterministic_branch_confirms_then_declines_nickname(self) -> None:
+    def test_jev_branch_confirms_then_declines_nickname(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(
+            jev_client,
+            "decide",
+            lambda *_args, **_kwargs: {
+                "ok": True,
+                "next_action": "CHARMANDER",
+                "phase": "STARTER",
+                "raw": {
+                    "next_action": {
+                        "choice": "CHARMANDER",
+                        "distribution": {"CHARMANDER": 1.0},
+                    }
+                },
+                "escalate": False,
+                "missing_class": "none",
+            },
+        )
         emu = MagicMock()
         reader = MagicMock()
         reader.party_count.side_effect = [0, 0, 1]
+        reader.read_dialog_text.return_value = "Do you want CHARMANDER?"
 
         party_count = _select_starter_from_menu(
             emu,
@@ -326,9 +348,9 @@ class TestFullGameplay:
         bs = obs.get("battle_state", {})
 
         # Not in battle — battle_state should be empty or have null values
-        assert (
-            not bs or bs.get("player", {}).get("hp", 0) == 0
-        ), f"Expected empty battle state, got {bs}"
+        assert not bs or bs.get("player", {}).get("hp", 0) == 0, (
+            f"Expected empty battle state, got {bs}"
+        )
 
         emu.stop()
 
@@ -352,9 +374,9 @@ class TestFullGameplay:
         ms = obs.get("menu_state", {})
 
         # No menu should be active
-        assert (
-            ms.get("num_items", 0) == 0 or ms.get("active", False) is False
-        ), f"Expected no active menu, got {ms}"
+        assert ms.get("num_items", 0) == 0 or ms.get("active", False) is False, (
+            f"Expected no active menu, got {ms}"
+        )
 
         emu.stop()
 
@@ -384,9 +406,9 @@ class TestFullGameplay:
                     )
                 )
 
-            assert (
-                len(set(coordinates)) > 1
-            ), f"Player never moved over 60 cycles: {coordinates[0]}"
+            assert len(set(coordinates)) > 1, (
+                f"Player never moved over 60 cycles: {coordinates[0]}"
+            )
         finally:
             emu.stop()
 
