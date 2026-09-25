@@ -1,0 +1,379 @@
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index 6be493f..d41a7e2 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -258,3 +258,5 @@
+ {"id": 256, "timestamp": "2026-09-24 09:40:00", "event_type": "audit", "task_id": null, "actor": "foreman", "detail": "{\"type\": \"tick_completed\", \"tick\": 238, \"summary\": \"T238: JEV-2 delivered (worker da2ac10, merged 3aa879c) \u2014 PRD v3 stage 7 / AC-6 teacher escalation layer: src/core/teacher_client.py typed StatePatch (missing_facts/fact_source/instruction_patch/one_shot_action/confidence), jev_client.apply_patch + escalate_and_reask (fail-closed, max_reasks=1), teacher_escalation run-log row (pre_ask/patch/post_ask triple, improved verdict), closeout teacher=K (J improved) tail, probe --escalate live-proof harness. Worker gpt-5.6-sol@openai-codex (lane-verified, session 20260924_035839_40fc8a), RED proof /tmp/jev2_red.txt (collection error pre-impl), 9 new tests green. Gates: ruff clean, mypy 0, focused 30 pass, full suite 4054p/14s on the worktree (ROM files copied into worktree data/rom/ \u2014 untracked, gitignored). Whole-tree lint lane flags 26 F401 in src/core/__init__.py = PRE-EXISTING at base 96f72be (identical on main; ruff check . passes because .gitignore _*.py glob matches __init__.py and directory recursion honors gitignore while explicit file args bypass it) \u2014 zero findings in the 5 worker files, staged-scope lint (the gate shape that fires on real commits) grades only clean files. Push 96f72be..3aa879c verified 0 unpushed. Tier2 judge dispatched async (job-fa963872da324a04ae5429c660473665). Wave manifest .coding-hermes/waves/ai-plays-poke-2026-09-24-08-40-56.json (single worker: JEV-2 only independent row; JEV-3 dep JEV-2, JEV-5 dep JEV-4, E2E-001 next due T242).\", \"commits\": [\"da2ac10\", \"3aa879c\"]}", "tick_number": 238}
+ {"actor": "foreman", "detail": "{\"type\": \"qa_foreman_cycle\", \"token\": \"qa_foreman_cycle_2026-09-24_ai-plays-poke\", \"date\": \"2026-09-24\", \"project\": \"ai-plays-poke\", \"battery\": {\"agent\": \"3d09c720\", \"server\": \"bunker-las-03\", \"evidence\": \"/tmp/bunker-qa-aipoke-20260924.jsonl\"}, \"cells\": {\"fresh-install\": \"OK\", \"ci-pass\": \"FAIL\", \"upgrade\": \"N/A\", \"docker-deploy\": \"N/A\", \"ui-probe\": \"N/A\", \"chaos-disconnect\": \"OK\", \"chaos-shutdown\": \"N/A\", \"chaos-corruption\": \"INFO\", \"chaos-resource\": \"FAIL\", \"chaos-errorpath\": \"INFO\"}, \"rows_filed\": [\"QA-AI-PLAYS-POKE-7\", \"QA-AI-PLAYS-POKE-8\", \"QA-AI-PLAYS-POKE-9\"], \"rows_normalized_status_null_to_pending\": [\"JEV-3\", \"JEV-4\", \"JEV-5\"], \"rows_closed_on_verified_ac\": {\"DOC-4\": \"commit c384025; TOC 26/26; 0 external assets\"}, \"ci_pass_finding\": \"pytest tests/ collection fails on clean tree (test_phase4_integration.py ROM boot at import); project CI already --ignores it (ci.yml:81)\"}", "event_type": "audit", "id": 257, "task_id": null, "tick_number": null, "timestamp": "2026-09-24 12:46:39"}
+ {"actor": "foreman", "detail": "{\"type\": \"task_completed\", \"task\": \"DOC-4\", \"by\": \"QA foreman 2026-09-24\", \"evidence\": \"AC verified live: PRD v3 doc+html tracked (c384025), TOC 26/26 anchors resolve, 0 external assets, JEV rows on board\"}", "event_type": "task_completed", "id": 258, "task_id": "DOC-4", "tick_number": null, "timestamp": "2026-09-24 12:46:39"}
++{"actor": "foreman", "detail": "{\"status\":\"in_progress\"}", "event_type": "task_updated", "id": 259, "task_id": "QA-AI-PLAYS-POKE-7", "tick_number": null, "timestamp": "2026-09-24 21:25:47"}
++{"actor": "foreman", "detail": "{\"status\":\"in_progress\"}", "event_type": "task_updated", "id": 260, "task_id": "JEV-4", "tick_number": null, "timestamp": "2026-09-24 21:25:47"}
+diff --git a/.coding-hermes/board/tasks.jsonl b/.coding-hermes/board/tasks.jsonl
+index 93e469e..f4a9234 100644
+--- a/.coding-hermes/board/tasks.jsonl
++++ b/.coding-hermes/board/tasks.jsonl
+@@ -98,11 +98,11 @@
+ {"id": "JEV-1", "title": "Emit autonomy counters per run (decisions_total, jev_answered, escalated, autonomy_ratio, escalation_rate_by_missing_class) — PRD v3 AC-1", "status": "complete", "priority": "P1", "complexity": 2, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §3.5/AC-1. The 2h marathon logged 34 LLM decisions against 24,714 deterministic actions and 329/330 episodes with zero model involvement, and nothing in the run reported it. Counters must derive from per-decision rows, not from the summary printer (anti-gaming clause).", "capability_tags": ["metrics", "observability"], "worker_status": "pending", "dispatched_at": null, "completed_at": "2026-09-24 06:45:00", "attempts": 0, "exit_code": null, "commit_hash": "da57258", "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": "Autonomy counters per PRD v3 AC-1: decision rows carry jev_answered/escalated/missing_class; closeout derives decisions_total/jev_answered/escalated/autonomy_ratio/escalation_rate_by_missing_class from decision rows only (anti-gaming: zero decisions => ratio None), emits a run_autonomy JSON row into cron_logs/run_<id>.jsonl + autonomy=J/D (E escalated) tail on the summary line. 12 new tests w/ RED proof; AC-1 probe ratio 2/4=0.5. Worker da57258, merged 33ef9a7.", "foreman_note": "T237: landed + merged + gated (ruff/mypy-strict EXIT 0/77 focused tests pass; aed958e typing fix + ca9288f format heal). Tier2 judge dispatched at closeout.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-24 06:45:00", "acceptance_criteria": "AC-1: given a completed run, the run jsonl contains decisions_total, jev_answered, escalated and autonomy_ratio, and the ratio equals jev_answered/decisions_total — proof: grep -c '\"autonomy_ratio\"' cron_logs/run_<id>.jsonl >= 1 plus equality assertion. (T)"}
+ {"id": "JEV-2", "title": "Teacher escalation layer: LLM repairs the STATE and control returns to JEV — PRD v3 stage 7 / AC-6", "status": "complete", "priority": "P1", "complexity": 4, "depends_on": ["JEV-1"], "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §3.3. On escalation the LLM receives JEV's distributions, the named missing_class, recent + milestone events, and DuckBrain-retrieved memory, and returns a TYPED state patch (missing_facts, fact_source, instruction_patch, optional one_shot_action). JEV is then re-asked. Live proof already measured: sufficient_state 0.22 -> 0.60 and missing_class map_topology -> none once the named fact was supplied.", "capability_tags": ["agent-loop", "llm-integration", "memory"], "worker_status": "complete", "dispatched_at": null, "completed_at": "2026-09-24T09:38:16", "attempts": 0, "exit_code": null, "commit_hash": "3aa879c", "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": "PASS (ruff clean, mypy 0, focused 30 tests, full suite 4054p/14s; whole-tree lint lane flags 26 PRE-EXISTING F401 in src/core/__init__.py — identical at base 96f72be, zero findings in worker files)", "ci_result": "SKIP", "worker_summary": "JEV-2 AC-6 teacher escalation layer: src/core/teacher_client.py (297L, typed StatePatch, fail-closed), jev_client.apply_patch + escalate_and_reask, probe --escalate live harness; teacher_escalation run-log row (pre_ask/patch/post_ask triple). Worker da2ac10 (gpt-5.6-sol@openai-codex, RED proof /tmp/jev2_red.txt), merged 3aa879c.", "foreman_note": "T238: landed + merged + gated. Tier2 judge dispatched async (job-fa963872da324a04ae5429c660473665).", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-24 09:37:54", "acceptance_criteria": "AC-6: given an escalation, the teacher returns a typed patch, the patch is applied, JEV is re-asked, and the re-ask's sufficient_state is >= pre-patch with missing_class cleared or narrowed — proof: a recorded (pre-ask, patch, post-ask) triple in the run log. (T)", "worktree": "/home/kara/worktrees/ai-plays-poke-JEV-2", "branch": "wt/JEV-2", "sessions": ["20260924_035623_39b551"]}
+ {"id": "JEV-3", "title": "Promote teacher patches to a versioned scenario file with evidence; escalation rate for a patched class must fall — PRD v3 stage 8 / AC-7", "status": "pending", "priority": "P1", "complexity": 3, "depends_on": ["JEV-2"], "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §3.3/AC-7. Without promotion the same gap escalates forever; with promotion the teacher AUTHORS the MECHANICS/LEARNING layers that have no writer today (live ns pokemon-global holds zero /game/mechanics/* and /game/learning/* records). Patches carry evidence: [run_id, cycle] and are git-versioned so the heuristic is inspectable, not buried in code.", "capability_tags": ["memory", "learning-loop"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": "Filed from PRD v3 (2026-09-23) in the same turn as the doc, per the doctrine that improvement items become board rows on the owning project. QA foreman 2026-09-24: status key was null (row invisible to status-keyed scans and foreman pick) — normalized to pending; every other field untouched.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-24 12:45:00", "acceptance_criteria": "AC-7: given a promoted patch, the same situation in a later run produces zero escalations for that class AND the patch file carries evidence: [run_id, cycle] — proof: escalation_rate_by_missing_class == 0 for the patched class, counter read from the gate's own decision path. (T)"}
+-{"id": "JEV-4", "title": "Retire assist A1 (fixed-tile starter walk) and A4 (battle always select_move(1)) — replace with JEV choices", "status": "pending", "priority": "P1", "complexity": 3, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §2.2 + §11 decision 1. A1: _approach_first_starter() walks to a HARDCODED tile (6,4) by arithmetic, which is the left ball — Charmander every run, with the LLM explicitly evicted by _should_select_starter() ('must bypass the LLM'), and _select_starter_from_menu() presses A then B without ever reading the highlighted species. A4: _escalating_recovery() issues select_move(move_number=1) in any battle. Both are one RAM read from being real decisions (the species is named in the confirm dialog).", "capability_tags": ["gameplay", "de-hardcoding"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": "Filed from PRD v3 (2026-09-23) in the same turn as the doc, per the doctrine that improvement items become board rows on the owning project. QA foreman 2026-09-24: status key was null (row invisible to status-keyed scans and foreman pick) — normalized to pending; every other field untouched.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-24 12:45:00", "acceptance_criteria": "AC-2: a fresh-save starter decision records the species with the JEV choice distribution, and forcing a different next_action selects a DIFFERENT species (a test asserting only 'a starter was obtained' passes on the hardcoded path and is invalid). AC-3: a battle turn logs phase=BATTLE with battle_action from {MOVE_1..4,SWITCH,ITEM,RUN} plus the raw distribution, and no select_move(1) signature. (T both)"}
++{"id": "JEV-4", "title": "Retire assist A1 (fixed-tile starter walk) and A4 (battle always select_move(1)) — replace with JEV choices", "status": "in_progress", "priority": "P1", "complexity": 3, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §2.2 + §11 decision 1. A1: _approach_first_starter() walks to a HARDCODED tile (6,4) by arithmetic, which is the left ball — Charmander every run, with the LLM explicitly evicted by _should_select_starter() ('must bypass the LLM'), and _select_starter_from_menu() presses A then B without ever reading the highlighted species. A4: _escalating_recovery() issues select_move(move_number=1) in any battle. Both are one RAM read from being real decisions (the species is named in the confirm dialog).", "capability_tags": ["gameplay", "de-hardcoding"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": "Filed from PRD v3 (2026-09-23) in the same turn as the doc, per the doctrine that improvement items become board rows on the owning project. QA foreman 2026-09-24: status key was null (row invisible to status-keyed scans and foreman pick) — normalized to pending; every other field untouched.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-24 21:25:47", "acceptance_criteria": "AC-2: a fresh-save starter decision records the species with the JEV choice distribution, and forcing a different next_action selects a DIFFERENT species (a test asserting only 'a starter was obtained' passes on the hardcoded path and is invalid). AC-3: a battle turn logs phase=BATTLE with battle_action from {MOVE_1..4,SWITCH,ITEM,RUN} plus the raw distribution, and no select_move(1) signature. (T both)", "worktree": "~/worktrees/ai-plays-poke-JEV-4", "branch": "wt/JEV-4", "sessions": ["ai-plays-poke-2026-09-24-21-15-59"]}
+ {"id": "JEV-5", "title": "Assist-inventory guard: fail the build when a new deterministic press_button call site appears outside the declared assist set — PRD v3 AC-8", "status": "pending", "priority": "P1", "complexity": 2, "depends_on": ["JEV-4"], "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §2.2 names nine assists (A1-A9) that accumulated invisibly, each added to stop a stall and each absorbing a decision the model should have made. Nothing tracked the accumulation, which is why a 330-episode run could be reported as agent play. This row makes the rot structurally impossible to repeat and is the one AC a green-but-idle implementation cannot fake.", "capability_tags": ["guardrail", "testing"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": "Filed from PRD v3 (2026-09-23) in the same turn as the doc, per the doctrine that improvement items become board rows on the owning project. QA foreman 2026-09-24: status key was null (row invisible to status-keyed scans and foreman pick) — normalized to pending; every other field untouched.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-24 12:45:00", "acceptance_criteria": "AC-8: given a merge adding a deterministic action path in the decision loop, the assist inventory is updated in the same commit — proof: a test that fails when emu.press_button( appears outside the declared assist set. (T)"}
+ {"id": "DOC-4", "title": "PRD v3 (Fast-Decisions + Teacher, DuckBrain as world model) filed — front door for the new decision architecture", "status": "complete", "priority": "P3", "complexity": 1, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "Bane 2026-09-23: 'build me a new prd on the new way we are trying to build the project and the tasks you done how we are using duckbrain in the project'. Doc: docs/prd/PRD_v3_jev_duckbrain.md + .html. Supersedes PRD v2 sequencing; inherits its ladder, north star and honesty doctrine. Status: proposed.", "capability_tags": ["docs"], "worker_status": "complete", "dispatched_at": null, "completed_at": "2026-09-24 12:45:00", "attempts": 0, "exit_code": null, "commit_hash": "c384025", "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": "Filed from PRD v3 (2026-09-23) in the same turn as the doc, per the doctrine that improvement items become board rows on the owning project. QA foreman 2026-09-24: AC verified live by QA foreman — docs/prd/PRD_v3_jev_duckbrain.md + .html tracked at c384025; TOC 26/26 anchors resolve, 0 external assets; JEV-1/2 complete and JEV-3/4/5 present on this board.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-23 11:58:02", "acceptance_criteria": "M: docs/prd/PRD_v3_jev_duckbrain.md and its rendered .html exist, the HTML has a resolving TOC and zero external assets, and the four JEV-* rows exist on this board. (M)"}
+ {"id": "DOC-5", "title": "[P3] docs/api/cron_runner.md: document decision-row fields (jev_answered/escalated/missing_class) + run_autonomy summary row (JEV-1 residual)", "status": "pending", "priority": "P3", "depends_on": [], "created_at": "2026-09-24 06:45:00", "updated_at": "2026-09-24 06:45:00", "foreman_note": "Filed by T237 foreman from the JEV-1 worker residual report."}
+ {"id": "FLAKY-1", "title": "[P2] Flaky perf test: TestAIDecisionTime::test_simple_ai_decision_time marginal timing assert (init 0.15s vs >150ms) fails under runner load", "status": "pending", "priority": "P2", "depends_on": [], "created_at": "2026-09-24 06:55:00", "updated_at": "2026-09-24 06:55:00", "foreman_note": "Filed T237. Evidence: run 35965828665 (commit 3a14d10, BOARD-ONLY commit, zero code delta) failed 1/2525 — 'AI manager initialization took 0.15s (>150ms)' — while the adjacent run on the same tree passed (3cf518b at 06:41Z) and CI had 5/5 green the day before. Same-tree pass/fail pair proves runner-load flakiness, matching the documented test_performance load-flaky family (T134 numpy RSS test). Fix: widen the threshold (>=300ms) or sample N inits and assert the median; do not skip."}
+-{"id": "QA-AI-PLAYS-POKE-7", "title": "[P1] Fresh-tree `pytest tests/` fails at collection: tests/test_phase4_integration.py needs a ROM that ships nowhere (README quickstart test command poisons collection)", "status": "pending", "priority": "P1", "complexity": 3, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "QA foreman cycle 2026-09-24 (hunter-verified real-use finding) — fresh-system battery on bunker-las-03 agent 3d09c720, cell ci-pass=FAIL: `pytest tests/` errors at collection with `FileNotFoundError: ROM not found: data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`, raised by tests/test_phase4_integration.py:19 module-level `Emulator(...)` boot (src/core/emulator.py:75). The file is a print-based integration script, not an importable test module: no test functions, executes a real emulator boot on import. The project's own CI already excludes it (`--ignore=tests/test_phase4_integration.py` in .github/workflows/ci.yml:81) because no ROM artifact ships in the repo — so the only environment where the documented `pytest tests/ -v` flow (README.md:354) is the entry point is exactly the fresh-clone environment, and there it hard-fails before collecting any real test. Distinct from GAP-051/GAP-054/DF-AIPP-6 (install/docs gaps): this row is the collection-poisoning mechanism itself.", "capability_tags": ["testing", "ci", "rom-handling"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": null, "blocked_reason": null, "review_notes": "EVIDENCE /tmp/bunker-qa-aipoke-20260924.jsonl ci-pass FAIL: 'no triggerable workflow — native rc=1: ERROR tests/test_phase4_integration.py - FileNotFoundError: ROM not found: /h...'; repro: fresh clone + `python -m venv .venv && .venv/bin/pip install -r requirements.txt && pytest tests/ --co -q` -> collection error. Verified at HEAD bade9c5: ci.yml:81 ignores the file; tests/test_phase4_integration.py:19 boots Emulator at module import.", "created_at": "2026-09-24 12:45:00", "updated_at": "2026-09-24 12:45:00", "acceptance_criteria": "(T) from a clean clone with no ROM present, `pytest tests/ --co -q` exits 0 — either the phase4 module is guarded (skipif on ROM/artifact presence, or plain-python script moved out of tests/ collection path) or excluded by a committed pytest.ini/conftest rule — and CI's own pytest leg (ci.yml:81 flags intact) still passes."}
++{"id": "QA-AI-PLAYS-POKE-7", "title": "[P1] Fresh-tree `pytest tests/` fails at collection: tests/test_phase4_integration.py needs a ROM that ships nowhere (README quickstart test command poisons collection)", "status": "in_progress", "priority": "P1", "complexity": 3, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "QA foreman cycle 2026-09-24 (hunter-verified real-use finding) — fresh-system battery on bunker-las-03 agent 3d09c720, cell ci-pass=FAIL: `pytest tests/` errors at collection with `FileNotFoundError: ROM not found: data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`, raised by tests/test_phase4_integration.py:19 module-level `Emulator(...)` boot (src/core/emulator.py:75). The file is a print-based integration script, not an importable test module: no test functions, executes a real emulator boot on import. The project's own CI already excludes it (`--ignore=tests/test_phase4_integration.py` in .github/workflows/ci.yml:81) because no ROM artifact ships in the repo — so the only environment where the documented `pytest tests/ -v` flow (README.md:354) is the entry point is exactly the fresh-clone environment, and there it hard-fails before collecting any real test. Distinct from GAP-051/GAP-054/DF-AIPP-6 (install/docs gaps): this row is the collection-poisoning mechanism itself.", "capability_tags": ["testing", "ci", "rom-handling"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": null, "blocked_reason": null, "review_notes": "EVIDENCE /tmp/bunker-qa-aipoke-20260924.jsonl ci-pass FAIL: 'no triggerable workflow — native rc=1: ERROR tests/test_phase4_integration.py - FileNotFoundError: ROM not found: /h...'; repro: fresh clone + `python -m venv .venv && .venv/bin/pip install -r requirements.txt && pytest tests/ --co -q` -> collection error. Verified at HEAD bade9c5: ci.yml:81 ignores the file; tests/test_phase4_integration.py:19 boots Emulator at module import.", "created_at": "2026-09-24 12:45:00", "updated_at": "2026-09-24 21:25:47", "acceptance_criteria": "(T) from a clean clone with no ROM present, `pytest tests/ --co -q` exits 0 — either the phase4 module is guarded (skipif on ROM/artifact presence, or plain-python script moved out of tests/ collection path) or excluded by a committed pytest.ini/conftest rule — and CI's own pytest leg (ci.yml:81 flags intact) still passes.", "worktree": "~/worktrees/ai-plays-poke-QA-AI-PLAYS-POKE-7", "branch": "wt/QA-AI-PLAYS-POKE-7", "sessions": ["ai-plays-poke-2026-09-24-21-15-59"]}
+ {"id": "QA-AI-PLAYS-POKE-8", "title": "[P2] Board hygiene: 4 task rows carried status:null (JEV-3/4/5, DOC-4) — invisible to status-keyed scans and foreman pick while counting as open work", "status": "pending", "priority": "P2", "complexity": 2, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "QA foreman cycle 2026-09-24 (hunter-verified real-use finding) — status census over the raw board lines: 101 rows carry a string status, 4 carry an explicit null (filed 2026-09-23 with the PRD v3 batch). A null satisfies neither `status=='pending'` filters nor open-work inventories: real P1 work (JEV-3/4/5) was undispatchable while looking filed. Normalized in this pass by the same writer (see foreman_note on those rows); this row tracks the CLASS: any writer that mints rows must set a board-vocabulary status, and a key/value census belongs in the board's own validation.", "capability_tags": ["board-hygiene", "validation"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": null, "blocked_reason": null, "review_notes": "EVIDENCE: jq -r '.status | type' tasks.jsonl | sort | uniq -c => 4 null / 101 string before this pass; boardctl validate warns 'missing status' only for DOC-4 (line 103) — the validator's warning did not cover JEV-3/4/5, so the census, not the validator, is the detector.", "created_at": "2026-09-24 12:45:00", "updated_at": "2026-09-24 12:45:00", "acceptance_criteria": "(M) `jq -r '.status | type' .coding-hermes/board/tasks.jsonl | sort | uniq -c` reports zero nulls; every row's status is in the board vocabulary; a writer-side check (or validate rule) fails on a status-less row mint."}
+ {"id": "QA-AI-PLAYS-POKE-9", "title": "[P3] .coding-hermes/board/board.parquet exists on disk but is untracked while the other 5 board files are tracked — writer-side cache drift (unknown-writer provenance)", "status": "pending", "priority": "P3", "complexity": 1, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "QA foreman cycle 2026-09-24 (hunter-verified real-use finding) — `git ls-files .coding-hermes/board/` lists board.jsonl/events.jsonl/fixtures.jsonl/schema.sql/tasks.jsonl but NOT board.parquet, yet the file exists in the working tree. Per the 2026-09-03 thin-JSONL doctrine the JSONL files are the board and board.db/parquet caches are retired; the file is most plausibly a stale writer's leftover (last cache-era writer predates 2026-09-03). No content claim is made — this row asks for a one-sided decision (ignore it in .gitignore, or delete it), not a migration.", "capability_tags": ["board-hygiene", "gitignore"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": null, "blocked_reason": null, "review_notes": "EVIDENCE: `git ls-files .coding-hermes/board/` (5 files) vs `ls .coding-hermes/board/` (6 files incl. board.parquet); git status shows it would appear as '??' on any fresh clone read. File untouched by this pass.", "created_at": "2026-09-24 12:45:00", "updated_at": "2026-09-24 12:45:00", "acceptance_criteria": "(M) fresh clone status is clean with respect to .coding-hermes/board/: board.parquet either listed in .gitignore or removed; `git status --short .coding-hermes/board/` shows no untracked entries after a normal tick."}
+diff --git a/.gitreins/history/2026-09-24/b4608032/commit.patch b/.gitreins/history/2026-09-24/b4608032/commit.patch
+new file mode 100644
+index 0000000..574170a
+--- /dev/null
++++ b/.gitreins/history/2026-09-24/b4608032/commit.patch
+@@ -0,0 +1,66 @@
++commit 6a2443dca4630a054711a3388c9c8053a6200c50
++Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
++AuthorDate: Thu Sep 24 04:38:59 2026 -0500
++Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
++CommitDate: Thu Sep 24 04:38:59 2026 -0500
++
++    board: T238 close — JEV-2 complete (worker da2ac10, merged 3aa879c) + events 254-256 + header
++    
++    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
++---
++ .coding-hermes/board/board.jsonl  |  2 +-
++ .coding-hermes/board/events.jsonl |  3 +++
++ .coding-hermes/board/tasks.jsonl  |  2 +-
++ .gitreins/tasks.yaml              | 11 +++++++++++
++ 4 files changed, 16 insertions(+), 2 deletions(-)
++
++diff --git a/.coding-hermes/board/board.jsonl b/.coding-hermes/board/board.jsonl
++index 9c6f7d5..41ac230 100644
++--- a/.coding-hermes/board/board.jsonl
+++++ b/.coding-hermes/board/board.jsonl
++@@ -1 +1 @@
++-{"project": "AI Plays Pok\u00e9mon", "namespace": "ai-plays-poke", "version": 2, "last_tick": "2026-09-24 01:48:14.000000", "ticks_total": 237, "ticks_idle": 0, "cooldown_s": 21600, "service_port": null, "service_url": null, "health_endpoint": null, "git_branch": "main", "git_remote": "origin", "last_commit": "52eea06", "updated_at": "2026-09-24 01:48:14.000000", "last_tick_at": "2026-08-07 09:29:00", "tick_history": [{"tick": 101, "event": "foreman audit", "ts": "2026-08-07 09:29:00"}]}
+++{"project":"AI Plays Pokémon","namespace":"ai-plays-poke","version":2,"last_tick":"2026-09-24 09:38:50.000000","ticks_total":238,"ticks_idle":0,"cooldown_s":21600,"service_port":null,"service_url":null,"health_endpoint":null,"git_branch":"main","git_remote":"origin","last_commit":"3aa879c","updated_at":"2026-09-24 09:38:50.000000","last_tick_at":"2026-08-07 09:29:00","tick_history":[{"tick":101,"event":"foreman audit","ts":"2026-08-07 09:29:00"}]}
++diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
++index fc9f58a..6472e8e 100644
++--- a/.coding-hermes/board/events.jsonl
+++++ b/.coding-hermes/board/events.jsonl
++@@ -253,3 +253,6 @@
++ {"id":251,"timestamp":"2026-09-24 01:08:54.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"e2e-executed\", \"tick\": 237, \"e2e001\": {\"executed\": true, \"window\": \"T232-T237 (LAST tick — due; no run since T227)\", \"run_id\": \"t237_e2e\", \"cycles\": \"20/20\", \"run_exit\": 0, \"actions\": 27, \"api\": \"27/27 success, 0 fail\", \"real_decisions\": 16, \"fallback_decisions\": 0, \"rss_peak_mb\": 110.6, \"rss_samples\": 10, \"starter\": \"Charmander picked c1 (party_count=1)\", \"progression\": \"Oak's Lab -> Pallet Town c4; battle c5-c7 entered and left cleanly; 12 distinct tiles\", \"screens\": {\"overworld\": 16, \"dialog\": 2, \"battle\": 2}, \"lock_rate\": \"5/20 cycles (25%)\", \"mem_boot_injection\": \"322 chars across 5 block markers\", \"errors\": 0, \"tracebacks\": 0, \"ulimit\": \"4GB vmem cap + ps sampler every 10s\"}}","tick_number":237}
++ {"id":252,"timestamp":"2026-09-24 01:37:27.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"tick_completed\", \"tick\": 237, \"summary\": \"T237 final: JEV-1 delivered (worker da57258, merged 33ef9a7) — PRD v3 AC-1 autonomy counters: decision rows carry jev_answered/escalated/missing_class; closeout derives decisions_total/jev_answered/escalated/autonomy_ratio/escalation_rate_by_missing_class from decision rows only, emits run_autonomy JSON row into run log + autonomy tail on summary line; anti-gaming honored (zero decisions => ratio None). Gates: 77 focused tests pass, ruff clean, whole-tree strict mypy EXIT 0 (aed958e parametrized 6 bare dict annotations in jev_client+probe that had silently broken it since 09-23), ca9288f heals the cron_runner format baseline via fail-closed hook (full suite). GAP-049 flipped complete (satisfied by GAP-052 d5919fb). DOC-5 filed (cron_runner.md decision-row/run_autonomy docs residual). Wave manifest marked merged. Tier2 judge for JEV-1 dispatched async at closeout. Push: 8cad828..306cfe5 verified 0 unpushed after redacting 2 verdict artifacts (7d1c6b6e, bf0cd3ba) that tripped GitHub push protection — same trap as T233/T234 folds.\", \"commits\": [\"da57258\", \"33ef9a7\", \"aed958e\", \"5bb8222\", \"306cfe5\"]}","tick_number":237}
++ {"id":253,"timestamp":"2026-09-24 01:48:14.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"ci_health\", \"tick\": 237, \"summary\": \"CI health T237 close: run 35965828665 (3a14d10, board-only commit) failed 1/2525 tests — TestAIDecisionTime::test_simple_ai_decision_time 'AI manager initialization took 0.15s (>150ms)' — while the SAME tree passed the adjacent run (3cf518b at 06:41Z, zero code delta) and the fold commit before it was green. Same-tree pass/fail pair = runner-load flake on a marginal timing assert, NOT a regression (matches test_performance load-flaky family, T134 precedent). FLAKY-1 filed with the fix direction (widen threshold or median-of-N; never skip). All code-carrying runs of this tick green: 306cfe5 full suite PASS, 3cf518b PASS.\", \"failed_run\": \"35965828665\", \"row\": \"FLAKY-1\"}","tick_number":237}
+++{"id":254,"timestamp":"2026-09-24 08:57:29.362426","event_type":"task_updated","task_id":"JEV-2","actor":"foreman","detail":"{\"status\":\"in_progress\"}","tick_number":null}
+++{"id":255,"timestamp":"2026-09-24 09:37:54.726145","event_type":"task_completed","task_id":"JEV-2","actor":"foreman","detail":"{\"status\":\"complete\"}","tick_number":null}
+++{"id": 256, "timestamp": "2026-09-24 09:40:00", "event_type": "audit", "task_id": null, "actor": "foreman", "detail": "{\"type\": \"tick_completed\", \"tick\": 238, \"summary\": \"T238: JEV-2 delivered (worker da2ac10, merged 3aa879c) \u2014 PRD v3 stage 7 / AC-6 teacher escalation layer: src/core/teacher_client.py typed StatePatch (missing_facts/fact_source/instruction_patch/one_shot_action/confidence), jev_client.apply_patch + escalate_and_reask (fail-closed, max_reasks=1), teacher_escalation run-log row (pre_ask/patch/post_ask triple, improved verdict), closeout teacher=K (J improved) tail, probe --escalate live-proof harness. Worker gpt-5.6-sol@openai-codex (lane-verified, session 20260924_035839_40fc8a), RED proof /tmp/jev2_red.txt (collection error pre-impl), 9 new tests green. Gates: ruff clean, mypy 0, focused 30 pass, full suite 4054p/14s on the worktree (ROM files copied into worktree data/rom/ \u2014 untracked, gitignored). Whole-tree lint lane flags 26 F401 in src/core/__init__.py = PRE-EXISTING at base 96f72be (identical on main; ruff check . passes because .gitignore _*.py glob matches __init__.py and directory recursion honors gitignore while explicit file args bypass it) \u2014 zero findings in the 5 worker files, staged-scope lint (the gate shape that fires on real commits) grades only clean files. Push 96f72be..3aa879c verified 0 unpushed. Tier2 judge dispatched async (job-fa963872da324a04ae5429c660473665). Wave manifest .coding-hermes/waves/ai-plays-poke-2026-09-24-08-40-56.json (single worker: JEV-2 only independent row; JEV-3 dep JEV-2, JEV-5 dep JEV-4, E2E-001 next due T242).\", \"commits\": [\"da2ac10\", \"3aa879c\"]}", "tick_number": 238}
++diff --git a/.coding-hermes/board/tasks.jsonl b/.coding-hermes/board/tasks.jsonl
++index 627002d..6b3214f 100644
++--- a/.coding-hermes/board/tasks.jsonl
+++++ b/.coding-hermes/board/tasks.jsonl
++@@ -96,7 +96,7 @@
++ {"status": "complete", "blocks": null, "fallback_model": "deepseek-v4-flash", "fallback_provider": "deepseek-foreman", "worker_status": "done", "dispatched_at": "2026-09-23 07:31:12.000000", "completed_at": "2026-09-23 08:49:49.000000", "attempts": "1", "exit_code": "0", "commit_hash": "80de287", "files_changed": "[\".github/workflows/ci.yml\",\"tools/scratch-baseline.txt\"]", "lines_added": "71", "lines_removed": "0", "guard_result": "PASS", "ci_result": "SKIP", "worker_summary": null, "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23T12:05:00Z", "updated_at": "2026-09-23 08:50:06", "id": "GAP-057", "priority": "P2", "complexity": 2, "depends_on": [], "primary_model": "deepseek-v4-flash", "primary_provider": "deepseek-foreman", "capability_tags": ["ci", "repo-hygiene"], "source": "pm-standin", "title": "P2 - No CI guard against root-level _*.py scratch re-accumulation (GAP-046 premise still live after 09-11 PRD rebuild): 29 root _*.py files (gitignored at .gitignore:152), ci.yml has no repo-hygiene job, tools/ dir absent", "detail": "PM verification 2026-09-23: `ls _*.py` at repo root = 29 files (_ci_check.py/_ci_check2.py duplicate-variant pairs etc.); .github/workflows/ci.yml runs only ruff/mypy/pytest, nothing fails on new root scratch files; gitignore hides them from review. GAP-046 (filed 08-29) was archived closed by the Bane-approved PRD v2 lifecycle rebuild without a fix. FIX: add a CI repo-hygiene step that fails when a NEW root-level _*.py file appears (baseline the existing 29 or fold with CLN-1's cleanup), and document the scratch home (tools/ or scripts/) in CONTRIBUTING/AGENTS. PASS: repo-hygiene CI check demonstrably fails on a new root scratch file in CI run; scratch-home documented; `ls _*.py` at repo root trends to empty via CLN-1", "reasoning": {"note": "PM stand-in 2026-09-23 cycle. Gates: G1 pass (key-set cloned from INT-GL-1, boardctl validate OK), G2 pass (enabled=1, cooldown pin 21600 = default tier), G3 pass (deepseek-v4-flash/deepseek-foreman = board convention), G4 pass (canonical board /home/kara/ai_plays_poke/.coding-hermes/board/tasks.jsonl, tick 11-11-59 completed before write), G5 skip (pin 21600, no wake), G6 pass (no zombie: last tick completed, session resp_9f27043f), G7 pass (no open row owns the CI-guard premise - GAP-046 archived closed; scratch-cleanup premise folds to open CLN-1)"}, "foreman_note": "Foreman gate on merged tree: full suite 3968 passed/14 skipped (222s), ruff clean, mypy 0 issues. Verdict artifact graded pre-rewrite sha 85d669d; content byte-identical to 80de287 (history rewritten this tick to redact a secret in a gitreins verdict artifact — see tick 234 narration)."}
++ {"id": "QA-AI-PLAYS-POKE-6", "title": "pyproject.toml [dev] extras missing requests-mock, pytest-benchmark, pytest-timeout — fresh-install env breaks test collection", "status": "complete", "priority": "P2", "complexity": 1, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "QA foreman cycle 2026-09-23 — fresh-system CI pass on bunker-las-02 (ci-pass + chaos-resource + chaos-disconnect cells)", "capability_tags": ["packaging", "test-infra"], "worker_status": "pending", "dispatched_at": null, "completed_at": "2026-09-24 06:05:00", "attempts": 0, "exit_code": null, "commit_hash": "4fbbc50", "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": "pyproject [project.optional-dependencies] dev completed: requests-mock, pytest-benchmark, pytest-timeout. Landed 4fbbc50 (T236 merge 4e632ef).", "foreman_note": "T237: flipped from landed T236 wave. Tier2 judge PASS with full acceptance verification (verdict 5c5f1464); tier1 tests stage was a judge-env timeout, not a code failure (full suite exceeds the judge tool window; docs-only risk on a packaging change).", "blocked_reason": null, "review_notes": "Root cause: battery fresh-install path runs pip install -e .[dev] which reads pyproject.toml [project.optional-dependencies] dev = {pytest, pytest-cov, pytest-xdist, black, mypy, flake8, pre-commit}. Missing: requests-mock (tests/test_ai_client.py:13 imports it), pytest-benchmark (tests/test_performance.py:165), pytest-timeout. Hosted CI compensates by explicitly pip-installing them. Fresh env: pytest collection dies ERROR tests/test_ai_client.py ModuleNotFoundError requests_mock. This ONE gap cascades: ci-pass native FAIL + chaos-resource FAIL + chaos-disconnect false-green (collection error mapped to OK by fails-fast logic before any disconnect handling ran). Fix: add requests-mock>=1.12, pytest-benchmark, pytest-timeout to [project.optional-dependencies] dev. Local repro: python3 -m venv /tmp/x && /tmp/x/bin/pip install -e \".[dev]\" && /tmp/x/bin/python -m pytest --co → ModuleNotFoundError. Evidence: /tmp/qa-ai-plays-poke.jsonl cells ci-pass, chaos-resource, chaos-disconnect.", "created_at": "2026-09-23T12:35:00Z", "updated_at": "2026-09-24 06:05:00"}
++ {"id": "JEV-1", "title": "Emit autonomy counters per run (decisions_total, jev_answered, escalated, autonomy_ratio, escalation_rate_by_missing_class) — PRD v3 AC-1", "status": "complete", "priority": "P1", "complexity": 2, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §3.5/AC-1. The 2h marathon logged 34 LLM decisions against 24,714 deterministic actions and 329/330 episodes with zero model involvement, and nothing in the run reported it. Counters must derive from per-decision rows, not from the summary printer (anti-gaming clause).", "capability_tags": ["metrics", "observability"], "worker_status": "pending", "dispatched_at": null, "completed_at": "2026-09-24 06:45:00", "attempts": 0, "exit_code": null, "commit_hash": "da57258", "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": "Autonomy counters per PRD v3 AC-1: decision rows carry jev_answered/escalated/missing_class; closeout derives decisions_total/jev_answered/escalated/autonomy_ratio/escalation_rate_by_missing_class from decision rows only (anti-gaming: zero decisions => ratio None), emits a run_autonomy JSON row into cron_logs/run_<id>.jsonl + autonomy=J/D (E escalated) tail on the summary line. 12 new tests w/ RED proof; AC-1 probe ratio 2/4=0.5. Worker da57258, merged 33ef9a7.", "foreman_note": "T237: landed + merged + gated (ruff/mypy-strict EXIT 0/77 focused tests pass; aed958e typing fix + ca9288f format heal). Tier2 judge dispatched at closeout.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-24 06:45:00", "acceptance_criteria": "AC-1: given a completed run, the run jsonl contains decisions_total, jev_answered, escalated and autonomy_ratio, and the ratio equals jev_answered/decisions_total — proof: grep -c '\"autonomy_ratio\"' cron_logs/run_<id>.jsonl >= 1 plus equality assertion. (T)"}
++-{"id": "JEV-2", "title": "Teacher escalation layer: LLM repairs the STATE and control returns to JEV — PRD v3 stage 7 / AC-6", "status": null, "priority": "P1", "complexity": 4, "depends_on": ["JEV-1"], "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §3.3. On escalation the LLM receives JEV's distributions, the named missing_class, recent + milestone events, and DuckBrain-retrieved memory, and returns a TYPED state patch (missing_facts, fact_source, instruction_patch, optional one_shot_action). JEV is then re-asked. Live proof already measured: sufficient_state 0.22 -> 0.60 and missing_class map_topology -> none once the named fact was supplied.", "capability_tags": ["agent-loop", "llm-integration", "memory"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": "Filed from PRD v3 (2026-09-23) in the same turn as the doc, per the doctrine that improvement items become board rows on the owning project.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-23 11:58:02", "acceptance_criteria": "AC-6: given an escalation, the teacher returns a typed patch, the patch is applied, JEV is re-asked, and the re-ask's sufficient_state is >= pre-patch with missing_class cleared or narrowed — proof: a recorded (pre-ask, patch, post-ask) triple in the run log. (T)"}
+++{"id": "JEV-2", "title": "Teacher escalation layer: LLM repairs the STATE and control returns to JEV — PRD v3 stage 7 / AC-6", "status": "complete", "priority": "P1", "complexity": 4, "depends_on": ["JEV-1"], "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §3.3. On escalation the LLM receives JEV's distributions, the named missing_class, recent + milestone events, and DuckBrain-retrieved memory, and returns a TYPED state patch (missing_facts, fact_source, instruction_patch, optional one_shot_action). JEV is then re-asked. Live proof already measured: sufficient_state 0.22 -> 0.60 and missing_class map_topology -> none once the named fact was supplied.", "capability_tags": ["agent-loop", "llm-integration", "memory"], "worker_status": "complete", "dispatched_at": null, "completed_at": "2026-09-24T09:38:16", "attempts": 0, "exit_code": null, "commit_hash": "3aa879c", "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": "PASS (ruff clean, mypy 0, focused 30 tests, full suite 4054p/14s; whole-tree lint lane flags 26 PRE-EXISTING F401 in src/core/__init__.py — identical at base 96f72be, zero findings in worker files)", "ci_result": "SKIP", "worker_summary": "JEV-2 AC-6 teacher escalation layer: src/core/teacher_client.py (297L, typed StatePatch, fail-closed), jev_client.apply_patch + escalate_and_reask, probe --escalate live harness; teacher_escalation run-log row (pre_ask/patch/post_ask triple). Worker da2ac10 (gpt-5.6-sol@openai-codex, RED proof /tmp/jev2_red.txt), merged 3aa879c.", "foreman_note": "T238: landed + merged + gated. Tier2 judge dispatched async (job-fa963872da324a04ae5429c660473665).", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-24 09:37:54", "acceptance_criteria": "AC-6: given an escalation, the teacher returns a typed patch, the patch is applied, JEV is re-asked, and the re-ask's sufficient_state is >= pre-patch with missing_class cleared or narrowed — proof: a recorded (pre-ask, patch, post-ask) triple in the run log. (T)", "worktree": "/home/kara/worktrees/ai-plays-poke-JEV-2", "branch": "wt/JEV-2", "sessions": ["20260924_035623_39b551"]}
++ {"id": "JEV-3", "title": "Promote teacher patches to a versioned scenario file with evidence; escalation rate for a patched class must fall — PRD v3 stage 8 / AC-7", "status": null, "priority": "P1", "complexity": 3, "depends_on": ["JEV-2"], "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §3.3/AC-7. Without promotion the same gap escalates forever; with promotion the teacher AUTHORS the MECHANICS/LEARNING layers that have no writer today (live ns pokemon-global holds zero /game/mechanics/* and /game/learning/* records). Patches carry evidence: [run_id, cycle] and are git-versioned so the heuristic is inspectable, not buried in code.", "capability_tags": ["memory", "learning-loop"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": "Filed from PRD v3 (2026-09-23) in the same turn as the doc, per the doctrine that improvement items become board rows on the owning project.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-23 11:58:02", "acceptance_criteria": "AC-7: given a promoted patch, the same situation in a later run produces zero escalations for that class AND the patch file carries evidence: [run_id, cycle] — proof: escalation_rate_by_missing_class == 0 for the patched class, counter read from the gate's own decision path. (T)"}
++ {"id": "JEV-4", "title": "Retire assist A1 (fixed-tile starter walk) and A4 (battle always select_move(1)) — replace with JEV choices", "status": null, "priority": "P1", "complexity": 3, "depends_on": null, "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §2.2 + §11 decision 1. A1: _approach_first_starter() walks to a HARDCODED tile (6,4) by arithmetic, which is the left ball — Charmander every run, with the LLM explicitly evicted by _should_select_starter() ('must bypass the LLM'), and _select_starter_from_menu() presses A then B without ever reading the highlighted species. A4: _escalating_recovery() issues select_move(move_number=1) in any battle. Both are one RAM read from being real decisions (the species is named in the confirm dialog).", "capability_tags": ["gameplay", "de-hardcoding"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": "Filed from PRD v3 (2026-09-23) in the same turn as the doc, per the doctrine that improvement items become board rows on the owning project.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-23 11:58:02", "acceptance_criteria": "AC-2: a fresh-save starter decision records the species with the JEV choice distribution, and forcing a different next_action selects a DIFFERENT species (a test asserting only 'a starter was obtained' passes on the hardcoded path and is invalid). AC-3: a battle turn logs phase=BATTLE with battle_action from {MOVE_1..4,SWITCH,ITEM,RUN} plus the raw distribution, and no select_move(1) signature. (T both)"}
++ {"id": "JEV-5", "title": "Assist-inventory guard: fail the build when a new deterministic press_button call site appears outside the declared assist set — PRD v3 AC-8", "status": null, "priority": "P1", "complexity": 2, "depends_on": ["JEV-4"], "blocks": null, "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "PRD v3 §2.2 names nine assists (A1-A9) that accumulated invisibly, each added to stop a stall and each absorbing a decision the model should have made. Nothing tracked the accumulation, which is why a 330-episode run could be reported as agent play. This row makes the rot structurally impossible to repeat and is the one AC a green-but-idle implementation cannot fake.", "capability_tags": ["guardrail", "testing"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": null, "lines_added": null, "lines_removed": null, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": "Filed from PRD v3 (2026-09-23) in the same turn as the doc, per the doctrine that improvement items become board rows on the owning project.", "blocked_reason": null, "review_notes": null, "created_at": "2026-09-23 11:58:02", "updated_at": "2026-09-23 11:58:02", "acceptance_criteria": "AC-8: given a merge adding a deterministic action path in the decision loop, the assist inventory is updated in the same commit — proof: a test that fails when emu.press_button( appears outside the declared assist set. (T)"}
++diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
++index 272c58c..95f88e8 100644
++--- a/.gitreins/tasks.yaml
+++++ b/.gitreins/tasks.yaml
++@@ -620,3 +620,14 @@ tasks:
++   status: complete
++   created_at: '2026-09-24T05:59:01.930142+00:00'
++   completed_at: '2026-09-24T06:37:03.480057+00:00'
+++- id: JEV-2
+++  title: 'Teacher escalation layer: LLM repairs the STATE and control returns to JEV
+++    (PRD v3 stage 7 / AC-6)'
+++  criteria:
+++  - "AC-6: given an escalation, the teacher returns a typed patch, the patch is applied,\
+++    \ JEV is re-asked, and the re-ask's sufficient_state is >= pre-patch with missing_class\
+++    \ cleared or narrowed \u2014 proof: a recorded (pre-ask, patch, post-ask) triple\
+++    \ in the run log"
+++  status: complete
+++  created_at: '2026-09-24T08:57:32.310399+00:00'
+++  completed_at: '2026-09-24T09:35:21.418708+00:00'
+diff --git a/.gitreins/history/2026-09-24/b4608032/summary.md b/.gitreins/history/2026-09-24/b4608032/summary.md
+new file mode 100644
+index 0000000..d29ba14
+--- /dev/null
++++ b/.gitreins/history/2026-09-24/b4608032/summary.md
+@@ -0,0 +1,32 @@
++# Verdict: JEV-2
++
++**Task:** Teacher escalation layer: LLM repairs the STATE and control returns to JEV (PRD v3 stage 7 / AC-6)
++**Evaluated:** 2026-09-24T09:46:13.123970
++**Result:** ✗ FAIL
++
++## Pipeline Stages
++
++- ✓ **tier1**
++  -   ✓ lint: ok (no output)
++  ✓ secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)
++  ✓ tests: ============================= test session starts ==============================
++- ✗ **tier2**
++  - INCOMPLETE
++
++Cap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria.
++
++## Summary
++
++Judge Result: JEV-2
++
++Stage tier1: PASS
++    ✓ lint: ok (no output)
++  ✓ secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)
++  ✓ tests: ============================= test session starts ==============================
++
++Stage tier2: FAIL
++  INCOMPLETE
++
++Cap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria.
++
++Overall: FAIL ✗
+diff --git a/.gitreins/history/2026-09-24/b4608032/verdict.json b/.gitreins/history/2026-09-24/b4608032/verdict.json
+new file mode 100644
+index 0000000..8800318
+--- /dev/null
++++ b/.gitreins/history/2026-09-24/b4608032/verdict.json
+@@ -0,0 +1,113 @@
++{
++  "task_id": "JEV-2",
++  "task_title": "Teacher escalation layer: LLM repairs the STATE and control returns to JEV (PRD v3 stage 7 / AC-6)",
++  "task_criteria": [
++    "AC-6: given an escalation, the teacher returns a typed patch, the patch is applied, JEV is re-asked, and the re-ask's sufficient_state is >= pre-patch with missing_class cleared or narrowed \u2014 proof: a recorded (pre-ask, patch, post-ask) triple in the run log"
++  ],
++  "passed": false,
++  "worktree": "/home/kara/ai_plays_poke",
++  "branch": "main",
++  "commit": "6a2443dca4630a054711a3388c9c8053a6200c50",
++  "items": [],
++  "stages": {
++    "tier1": {
++      "id": "tier1",
++      "passed": true,
++      "any_failed": false,
++      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
++      "steps": [
++        {
++          "id": "lint",
++          "type": "script",
++          "passed": true,
++          "output": "",
++          "error": "",
++          "data": {
++            "exit_code": 0,
++            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T093455.966673Z.log"
++          }
++        },
++        {
++          "id": "secrets",
++          "type": "script",
++          "passed": true,
++          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:37AM INF scanned ~236884244 bytes (236.88 MB) in 9.33s\n4:37AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72365 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
++          "error": "",
++          "data": {
++            "exit_code": 0,
++            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T093455.966673Z.log",
++            "secrets_scanners": [
++              "gitleaks",
++              "builtin"
++            ]
++          }
++        },
++        {
++          "id": "tests",
++          "type": "script",
++          "passed": true,
++          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4068 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [433603 chars omitted \u2014 4828 line(s)] \u2026\ntest_bench_pathfinding_find_path               761.9965 (1.21)           7,743.9981 (1.0)           1,638.0000 (1.95)          2,153.4273 (5.12)            911.9976 (1.12)           330.9979 (2.55)          1;1    610,500.6262 (0.51)         10           1\ntest_bench_vision_pipeline_validate          8,024.9956 (12.72)         40,645.0054 (5.25)         10,387.2218 (12.34)         2,229.5112 (5.30)          8,997.0054 (11.08)        3,977.0021 (30.59)    8099;183     96,272.1327 (0.08)      32748           1\ntest_bench_ram_reader_observe            1,028,703.9986 (>1000.0)  253,684,366.9950 (>1000.0)   2,976,823.7266 (>1000.0)  15,921,394.0672 (>1000.0)   1,818,835.9973 (>1000.0)    225,466.9962 (>1000.0)      4;71        335.9285 (0.00)        742           1\ntest_bench_vision_pipeline_process      40,403,097.9989 (>1000.0)   48,421,676.9983 (>1000.0)  43,129,254.9593 (>1000.0)   1,991,686.6718 (>1000.0)  42,923,433.0004 (>1000.0)  2,887,662.0054 (>1000.0)       6;0         23.1861 (0.00)         25           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4054 passed, 14 skipped in 203.35s (0:03:23) =================\n",
++          "error": "",
++          "data": {
++            "exit_code": 0,
++            "pytest_outcome": {
++              "kind": "passed",
++              "detail": "pytest passed",
++              "first_failing_test": null,
++              "failures": 0,
++              "interrupted": false
++            },
++            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T093455.966673Z.log"
++          }
++        }
++      ],
++      "coverage": "secrets+lint+tests"
++    },
++    "tier2": {
++      "id": "tier2",
++      "passed": false,
++      "any_failed": true,
++      "summary": "INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria.",
++      "steps": [
++        {
++          "id": "tier2",
++          "type": "ai_eval",
++          "passed": false,
++          "output": "INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria.",
++          "error": "",
++          "data": {
++            "verdict": "INCOMPLETE",
++            "items": [],
++            "summary": "Cap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria."
++          }
++        }
++      ]
++    }
++  },
++  "summary": "Judge Result: JEV-2\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria.\n\nOverall: FAIL \u2717",
++  "evaluated_at": "2026-09-24T09:46:13.123970",
++  "supersedes": null,
++  "superseded_by": null,
++  "evidence": {
++    "collected_at": "2026-09-24T09:46:13.146948+00:00",
++    "items": [
++      {
++        "name": "patch",
++        "label": "Landed commit patch",
++        "file": "commit.patch",
++        "bytes": 24366,
++        "truncated": false,
++        "source": "git show 6a2443dca463"
++      },
++      {
++        "name": "worktree",
++        "label": "Working-tree diff (graded)",
++        "file": "worktree.patch",
++        "bytes": 2131,
++        "truncated": false,
++        "source": "git diff HEAD (working tree)"
++      }
++    ],
++    "task_id": "JEV-2"
++  }
++}
+\ No newline at end of file
+diff --git a/.gitreins/history/2026-09-24/b4608032/worktree.patch b/.gitreins/history/2026-09-24/b4608032/worktree.patch
+new file mode 100644
+index 0000000..f57319b
+--- /dev/null
++++ b/.gitreins/history/2026-09-24/b4608032/worktree.patch
+@@ -0,0 +1,59 @@
++diff --git a/.coding-hermes/waves/ai-plays-poke-2026-09-24-08-40-56.json b/.coding-hermes/waves/ai-plays-poke-2026-09-24-08-40-56.json
++new file mode 100644
++index 0000000..ea9c2ad
++--- /dev/null
+++++ b/.coding-hermes/waves/ai-plays-poke-2026-09-24-08-40-56.json
++@@ -0,0 +1,24 @@
+++{
+++  "wave_id": "ai-plays-poke-2026-09-24-08-40-56",
+++  "tick": 238,
+++  "budget": 8,
+++  "workers": 1,
+++  "tasks": [
+++    "JEV-2"
+++  ],
+++  "worktrees": {
+++    "JEV-2": {
+++      "worktree": "~/worktrees/ai-plays-poke-JEV-2",
+++      "branch": "wt/JEV-2",
+++      "base": "96f72be"
+++    }
+++  },
+++  "briefs": {
+++    "JEV-2": "/tmp/ai-plays-poke-238_brief_JEV-2.md"
+++  },
+++  "dispatched_at": "2026-09-24T08:55:00Z",
+++  "status": "merged",
+++  "note": "Single-worker wave: JEV-2 (teacher escalation layer, PRD v3 stage 7 / AC-6) is the only independent implementable row (JEV-3 depends on JEV-2; JEV-5 on JEV-4; E2E-001 window next due T242). Lane probe verified real: gpt-5.6-sol @ openai-codex (session 20260924_035623_39b551, no fallback).",
+++  "merge_commit": "3aa879c",
+++  "merged_at": "2026-09-24T09:45:00Z"
+++}
++diff --git a/data/duration_profiles.json b/data/duration_profiles.json
++index 0c4eee6..85b6230 100644
++--- a/data/duration_profiles.json
+++++ b/data/duration_profiles.json
++@@ -2,16 +2,16 @@
++   "BATTLE/WILD": {
++     "mode": "BATTLE",
++     "sub_mode": "WILD",
++-    "sample_count": 578,
++-    "mean_duration": 0.10007569085986945,
++-    "std_duration": 1.3080985317999966e-05,
+++    "sample_count": 582,
+++    "mean_duration": 0.10008834316762995,
+++    "std_duration": 2.302843035061028e-05,
++     "min_duration": 0.10003995895385742,
++     "max_duration": 0.10204648971557617,
++-    "p50_duration": 0.10007569085986945,
++-    "p75_duration": 0.10074569085986945,
++-    "p95_duration": 0.10172069085986944,
++-    "p99_duration": 0.10240169085986944,
++-    "last_updated": 1790180941.3727157,
+++    "p50_duration": 0.10008834316762995,
+++    "p75_duration": 0.10075834316762995,
+++    "p95_duration": 0.10173334316762994,
+++    "p99_duration": 0.10241434316762994,
+++    "last_updated": 1790243130.9595137,
++     "trend": "insufficient_data",
++     "trend_slope": 0
++   }
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 95f88e8..1f80dfd 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -631,3 +631,22 @@ tasks:
+   status: complete
+   created_at: '2026-09-24T08:57:32.310399+00:00'
+   completed_at: '2026-09-24T09:35:21.418708+00:00'
++- id: QA-AI-PLAYS-POKE-7
++  title: Fresh-tree pytest collection poisoning fix
++  criteria:
++  - "From a clean clone with no ROM present, pytest tests/ --co -q exits 0 \u2014\
++    \ both integration modules guarded or excluded by committed repo content \u2014\
++    \ and CI's pytest leg flags (ci.yml:81) still pass"
++  status: complete
++  created_at: '2026-09-24T21:27:23.794527+00:00'
++  completed_at: '2026-09-24T21:36:15.415930+00:00'
++- id: JEV-4
++  title: "Retire assists A1+A4 \u2014 JEV-routed starter and battle decisions"
++  criteria:
++  - Starter decision records species with the JEV choice distribution and forcing
++    a different choice selects a DIFFERENT species; battle turn logs phase=BATTLE
++    with battle_action from the JEV vocabulary plus raw distribution and no select_move(1)
++    signature
++  status: complete
++  created_at: '2026-09-24T21:27:24.015454+00:00'
++  completed_at: '2026-09-24T21:56:19.749989+00:00'
+diff --git a/data/duration_profiles.json b/data/duration_profiles.json
+index 0c4eee6..12cb135 100644
+--- a/data/duration_profiles.json
++++ b/data/duration_profiles.json
+@@ -2,16 +2,16 @@
+   "BATTLE/WILD": {
+     "mode": "BATTLE",
+     "sub_mode": "WILD",
+-    "sample_count": 578,
+-    "mean_duration": 0.10007569085986945,
+-    "std_duration": 1.3080985317999966e-05,
++    "sample_count": 586,
++    "mean_duration": 0.10008271001294548,
++    "std_duration": 8.385219181240738e-06,
+     "min_duration": 0.10003995895385742,
+     "max_duration": 0.10204648971557617,
+-    "p50_duration": 0.10007569085986945,
+-    "p75_duration": 0.10074569085986945,
+-    "p95_duration": 0.10172069085986944,
+-    "p99_duration": 0.10240169085986944,
+-    "last_updated": 1790180941.3727157,
++    "p50_duration": 0.10008271001294548,
++    "p75_duration": 0.10075271001294549,
++    "p95_duration": 0.10172771001294548,
++    "p99_duration": 0.10240871001294548,
++    "last_updated": 1790287164.2441766,
+     "trend": "insufficient_data",
+     "trend_slope": 0
+   }

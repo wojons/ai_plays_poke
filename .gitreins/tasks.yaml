@@ -631,3 +631,22 @@ tasks:
   status: complete
   created_at: '2026-09-24T08:57:32.310399+00:00'
   completed_at: '2026-09-24T09:35:21.418708+00:00'
+- id: QA-AI-PLAYS-POKE-7
+  title: Fresh-tree pytest collection poisoning fix
+  criteria:
+  - "From a clean clone with no ROM present, pytest tests/ --co -q exits 0 \u2014\
+    \ both integration modules guarded or excluded by committed repo content \u2014\
+    \ and CI's pytest leg flags (ci.yml:81) still pass"
+  status: complete
+  created_at: '2026-09-24T21:27:23.794527+00:00'
+  completed_at: '2026-09-24T21:36:15.415930+00:00'
+- id: JEV-4
+  title: "Retire assists A1+A4 \u2014 JEV-routed starter and battle decisions"
+  criteria:
+  - Starter decision records species with the JEV choice distribution and forcing
+    a different choice selects a DIFFERENT species; battle turn logs phase=BATTLE
+    with battle_action from the JEV vocabulary plus raw distribution and no select_move(1)
+    signature
+  status: complete
+  created_at: '2026-09-24T21:27:24.015454+00:00'
+  completed_at: '2026-09-24T21:56:19.749989+00:00'

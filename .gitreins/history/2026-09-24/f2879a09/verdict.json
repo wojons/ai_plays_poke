@@ -1,0 +1,120 @@
+{
+  "task_id": "JEV-4",
+  "task_title": "Retire assists A1+A4 \u2014 JEV-routed starter and battle decisions",
+  "task_criteria": [
+    "Starter decision records species with the JEV choice distribution and forcing a different choice selects a DIFFERENT species; battle turn logs phase=BATTLE with battle_action from the JEV vocabulary plus raw distribution and no select_move(1) signature"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "d5cf7481fbb14896f188ad3070a98e3eacb9fb63",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T214539.424503Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:56PM INF scanned ~236949269 bytes (236.95 MB) in 10.8s\n4:56PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72455 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T214539.424503Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4071 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [433942 chars omitted \u2014 4831 line(s)] \u2026\ntest_bench_pathfinding_find_path               510.9905 (1.19)           5,039.0081 (1.0)             935.9989 (1.91)          1,189.2161 (7.43)            560.9982 (1.17)           120.9992 (4.03)          1;3  1,068,377.2823 (0.52)         14           1\ntest_bench_vision_pipeline_validate          8,364.9938 (19.45)        383,418.9993 (76.09)         9,967.8223 (20.32)         2,936.3061 (18.35)         8,956.9949 (18.62)        1,662.9929 (55.42)   3746;3566    100,322.8161 (0.05)      28462           1\ntest_bench_ram_reader_observe            1,044,281.0017 (>1000.0)  180,994,455.0041 (>1000.0)   2,078,538.5519 (>1000.0)  11,002,377.5639 (>1000.0)   1,272,344.0013 (>1000.0)    239,873.2577 (>1000.0)      4;51        481.1073 (0.00)        839           1\ntest_bench_vision_pipeline_process      41,531,653.0125 (>1000.0)   54,703,731.0025 (>1000.0)  45,605,108.3475 (>1000.0)   3,198,842.7287 (>1000.0)  45,564,853.9937 (>1000.0)  4,596,057.5044 (>1000.0)       6;1         21.9274 (0.00)         23           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4057 passed, 14 skipped in 291.14s (0:04:51) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T214539.424503Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Starter decision records species with the JEV choice distribution and forcing a different choice selects a DIFFERENT species; battle turn logs phase=BATTLE with battle_action from the JEV vocabulary plus raw distribution and no select_move(1) signature: STARTER: cron_runner.py:715-760 `_select_starter_from_menu` now calls `jev_client.decide(state, act_phase=True, questions=jev_client.starter_questions(visible_species=...))` with the species read from the live RAM dialog (`_starter_species_from_dialog`, cron_runner.py:707-711); the decision row records phase=STARTER, starter_choice, visible_species, raw_distribution=decision['raw'], jev_answered (cron_runner.py:752-760) and is written to the run log as `event: starter_selection` / `action: jev_starter_choice` (cron_runner.py:3053-3068). Forcing a different choice selects a DIFFERENT species: STARTER_BALL_X maps CHARMANDER=6/SQUIRTLE=8/BULBASAUR=10 and cron_runner.py:765-800 declines the visible ball with B, walks to target_x, re-confirms, and refuses to confirm if the ground-truth dialog names a different species. Test tests/test_jev4_dehardcoding.py::test_forcing_different_jev_choice_selects_different_starter_species asserts SQUIRTLE != BULBASAUR with different button sequences; the pre-change implementation (dacf0ad~1) had no `decision_out` kwarg and no JEV call, so the test is a genuine RED->GREEN proof, not a tautology. BATTLE: cron_runner.py:1017-1055 `_escalating_recovery` battle branch calls `jev_client.decide(in_battle=True, act_phase=True)`; BATTLE_ACTIONS = {MOVE_1..MOVE_4, SWITCH, ITEM, RUN} (cron_runner.py:930); the decision row records phase=BATTLE, battle_action from that vocabulary, intent, raw_distribution=decision['raw'], jev_answered (cron_runner.py:1030-1046) and is written to the run log as `event: recovery` with **recovery_decision (cron_runner.py:3786-3795). No select_move(1) signature: `_battle_tool_call` derives move_number from the JEV action (cron_runner.py:965), `_battle_action_description` renders select_move(N) (cron_runner.py:984), and the RAM fallback deliberately picks max-PP/later slot to avoid recreating always-move-1 (cron_runner.py:955-957); test_battle_recovery_has_no_select_move_one_signature asserts '{\"move_number\": 1}' is absent from the source. TEST EVIDENCE: `./venv/bin/pytest tests/test_jev4_dehardcoding.py tests/test_gameplay_escape.py tests/test_full_gameplay.py -q` -> exit_code 0, '39 passed in 3.91s' (JEV-4 file alone: 3 passed). LSP diagnostics: 0 findings. Note: pre-existing select_move(move_number=1) sites remain in src/core/state_window.py:516-525 and src/core/tools.py:405, but those files were not modified by this commit (last touched f31d620) and are outside the A4 recovery path the criterion targets.\nJEV-4 is fully implemented: the starter decision is JEV-routed and records the species plus raw distribution (forcing a different choice yields a different species), and the battle turn logs phase=BATTLE with a JEV-vocabulary battle_action plus raw distribution and no select_move(1) signature, with all 39 relevant tests passing.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Starter decision records species with the JEV choice distribution and forcing a different choice selects a DIFFERENT species; battle turn logs phase=BATTLE with battle_action from the JEV vocabulary plus raw distribution and no select_move(1) signature: STARTER: cron_runner.py:715-760 `_select_starter_from_menu` now calls `jev_client.decide(state, act_phase=True, questions=jev_client.starter_questions(visible_species=...))` with the species read from the live RAM dialog (`_starter_species_from_dialog`, cron_runner.py:707-711); the decision row records phase=STARTER, starter_choice, visible_species, raw_distribution=decision['raw'], jev_answered (cron_runner.py:752-760) and is written to the run log as `event: starter_selection` / `action: jev_starter_choice` (cron_runner.py:3053-3068). Forcing a different choice selects a DIFFERENT species: STARTER_BALL_X maps CHARMANDER=6/SQUIRTLE=8/BULBASAUR=10 and cron_runner.py:765-800 declines the visible ball with B, walks to target_x, re-confirms, and refuses to confirm if the ground-truth dialog names a different species. Test tests/test_jev4_dehardcoding.py::test_forcing_different_jev_choice_selects_different_starter_species asserts SQUIRTLE != BULBASAUR with different button sequences; the pre-change implementation (dacf0ad~1) had no `decision_out` kwarg and no JEV call, so the test is a genuine RED->GREEN proof, not a tautology. BATTLE: cron_runner.py:1017-1055 `_escalating_recovery` battle branch calls `jev_client.decide(in_battle=True, act_phase=True)`; BATTLE_ACTIONS = {MOVE_1..MOVE_4, SWITCH, ITEM, RUN} (cron_runner.py:930); the decision row records phase=BATTLE, battle_action from that vocabulary, intent, raw_distribution=decision['raw'], jev_answered (cron_runner.py:1030-1046) and is written to the run log as `event: recovery` with **recovery_decision (cron_runner.py:3786-3795). No select_move(1) signature: `_battle_tool_call` derives move_number from the JEV action (cron_runner.py:965), `_battle_action_description` renders select_move(N) (cron_runner.py:984), and the RAM fallback deliberately picks max-PP/later slot to avoid recreating always-move-1 (cron_runner.py:955-957); test_battle_recovery_has_no_select_move_one_signature asserts '{\"move_number\": 1}' is absent from the source. TEST EVIDENCE: `./venv/bin/pytest tests/test_jev4_dehardcoding.py tests/test_gameplay_escape.py tests/test_full_gameplay.py -q` -> exit_code 0, '39 passed in 3.91s' (JEV-4 file alone: 3 passed). LSP diagnostics: 0 findings. Note: pre-existing select_move(move_number=1) sites remain in src/core/state_window.py:516-525 and src/core/tools.py:405, but those files were not modified by this commit (last touched f31d620) and are outside the A4 recovery path the criterion targets.\nJEV-4 is fully implemented: the starter decision is JEV-routed and records the species plus raw distribution (forcing a different choice yields a different species), and the battle turn logs phase=BATTLE with a JEV-vocabulary battle_action plus raw distribution and no select_move(1) signature, with all 39 relevant tests passing.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Starter decision records species with the JEV choice distribution and forcing a different choice selects a DIFFERENT species; battle turn logs phase=BATTLE with battle_action from the JEV vocabulary plus raw distribution and no select_move(1) signature",
+                "status": "PASS",
+                "detail": "STARTER: cron_runner.py:715-760 `_select_starter_from_menu` now calls `jev_client.decide(state, act_phase=True, questions=jev_client.starter_questions(visible_species=...))` with the species read from the live RAM dialog (`_starter_species_from_dialog`, cron_runner.py:707-711); the decision row records phase=STARTER, starter_choice, visible_species, raw_distribution=decision['raw'], jev_answered (cron_runner.py:752-760) and is written to the run log as `event: starter_selection` / `action: jev_starter_choice` (cron_runner.py:3053-3068). Forcing a different choice selects a DIFFERENT species: STARTER_BALL_X maps CHARMANDER=6/SQUIRTLE=8/BULBASAUR=10 and cron_runner.py:765-800 declines the visible ball with B, walks to target_x, re-confirms, and refuses to confirm if the ground-truth dialog names a different species. Test tests/test_jev4_dehardcoding.py::test_forcing_different_jev_choice_selects_different_starter_species asserts SQUIRTLE != BULBASAUR with different button sequences; the pre-change implementation (dacf0ad~1) had no `decision_out` kwarg and no JEV call, so the test is a genuine RED->GREEN proof, not a tautology. BATTLE: cron_runner.py:1017-1055 `_escalating_recovery` battle branch calls `jev_client.decide(in_battle=True, act_phase=True)`; BATTLE_ACTIONS = {MOVE_1..MOVE_4, SWITCH, ITEM, RUN} (cron_runner.py:930); the decision row records phase=BATTLE, battle_action from that vocabulary, intent, raw_distribution=decision['raw'], jev_answered (cron_runner.py:1030-1046) and is written to the run log as `event: recovery` with **recovery_decision (cron_runner.py:3786-3795). No select_move(1) signature: `_battle_tool_call` derives move_number from the JEV action (cron_runner.py:965), `_battle_action_description` renders select_move(N) (cron_runner.py:984), and the RAM fallback deliberately picks max-PP/later slot to avoid recreating always-move-1 (cron_runner.py:955-957); test_battle_recovery_has_no_select_move_one_signature asserts '{\"move_number\": 1}' is absent from the source. TEST EVIDENCE: `./venv/bin/pytest tests/test_jev4_dehardcoding.py tests/test_gameplay_escape.py tests/test_full_gameplay.py -q` -> exit_code 0, '39 passed in 3.91s' (JEV-4 file alone: 3 passed). LSP diagnostics: 0 findings. Note: pre-existing select_move(move_number=1) sites remain in src/core/state_window.py:516-525 and src/core/tools.py:405, but those files were not modified by this commit (last touched f31d620) and are outside the A4 recovery path the criterion targets.",
+                "resolution_probability": 0.02
+              }
+            ],
+            "summary": "JEV-4 is fully implemented: the starter decision is JEV-routed and records the species plus raw distribution (forcing a different choice yields a different species), and the battle turn logs phase=BATTLE with a JEV-vocabulary battle_action plus raw distribution and no select_move(1) signature, with all 39 relevant tests passing."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: JEV-4\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Starter decision records species with the JEV choice distribution and forcing a different choice selects a DIFFERENT species; battle turn logs phase=BATTLE with battle_action from the JEV vocabulary plus raw distribution and no select_move(1) signature: STARTER: cron_runner.py:715-760 `_select_starter_from_menu` now calls `jev_client.decide(state, act_phase=True, questions=jev_client.starter_questions(visible_species=...))` with the species read from the live RAM dialog (`_starter_species_from_dialog`, cron_runner.py:707-711); the decision row records phase=STARTER, starter_choice, visible_species, raw_distribution=decision['raw'], jev_answered (cron_runner.py:752-760) and is written to the run log as `event: starter_selection` / `action: jev_starter_choice` (cron_runner.py:3053-3068). Forcing a different choice selects a DIFFERENT species: STARTER_BALL_X maps CHARMANDER=6/SQUIRTLE=8/BULBASAUR=10 and cron_runner.py:765-800 declines the visible ball with B, walks to target_x, re-confirms, and refuses to confirm if the ground-truth dialog names a different species. Test tests/test_jev4_dehardcoding.py::test_forcing_different_jev_choice_selects_different_starter_species asserts SQUIRTLE != BULBASAUR with different button sequences; the pre-change implementation (dacf0ad~1) had no `decision_out` kwarg and no JEV call, so the test is a genuine RED->GREEN proof, not a tautology. BATTLE: cron_runner.py:1017-1055 `_escalating_recovery` battle branch calls `jev_client.decide(in_battle=True, act_phase=True)`; BATTLE_ACTIONS = {MOVE_1..MOVE_4, SWITCH, ITEM, RUN} (cron_runner.py:930); the decision row records phase=BATTLE, battle_action from that vocabulary, intent, raw_distribution=decision['raw'], jev_answered (cron_runner.py:1030-1046) and is written to the run log as `event: recovery` with **recovery_decision (cron_runner.py:3786-3795). No select_move(1) signature: `_battle_tool_call` derives move_number from the JEV action (cron_runner.py:965), `_battle_action_description` renders select_move(N) (cron_runner.py:984), and the RAM fallback deliberately picks max-PP/later slot to avoid recreating always-move-1 (cron_runner.py:955-957); test_battle_recovery_has_no_select_move_one_signature asserts '{\"move_number\": 1}' is absent from the source. TEST EVIDENCE: `./venv/bin/pytest tests/test_jev4_dehardcoding.py tests/test_gameplay_escape.py tests/test_full_gameplay.py -q` -> exit_code 0, '39 passed in 3.91s' (JEV-4 file alone: 3 passed). LSP diagnostics: 0 findings. Note: pre-existing select_move(move_number=1) sites remain in src/core/state_window.py:516-525 and src/core/tools.py:405, but those files were not modified by this commit (last touched f31d620) and are outside the A4 recovery path the criterion targets.\nJEV-4 is fully implemented: the starter decision is JEV-routed and records the species plus raw distribution (forcing a different choice yields a different species), and the battle turn logs phase=BATTLE with a JEV-vocabulary battle_action plus raw distribution and no select_move(1) signature, with all 39 relevant tests passing.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-24T22:05:18.985739",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-24T22:05:19.006806+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 799,
+        "truncated": false,
+        "source": "git show d5cf7481fbb1"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 67601,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "JEV-4"
+  }
+}

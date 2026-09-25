@@ -1,0 +1,121 @@
+{
+  "task_id": "QA-AI-PLAYS-POKE-7",
+  "task_title": "Fresh-tree pytest collection poisoning fix",
+  "task_criteria": [
+    "From a clean clone with no ROM present, pytest tests/ --co -q exits 0 \u2014 both integration modules guarded or excluded by committed repo content \u2014 and CI's pytest leg flags (ci.yml:81) still pass"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "d5cf7481fbb14896f188ad3070a98e3eacb9fb63",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T125405.484535Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:36PM INF scanned ~236924200 bytes (236.92 MB) in 13.3s\n4:36PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72430 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T125405.484535Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4068 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [433599 chars omitted \u2014 4828 line(s)] \u2026\ntest_bench_pathfinding_find_path               471.0018 (1.07)           4,307.9926 (1.0)             832.8116 (1.68)           936.8405 (8.54)            555.9996 (1.13)           166.0082 (5.53)          1;1  1,200,751.8164 (0.59)         16           1\ntest_bench_vision_pipeline_validate          8,135.0008 (18.49)         33,471.9953 (7.77)          8,831.0323 (17.85)          756.7260 (6.90)          8,716.0006 (17.75)          249.9874 (8.33)     905;1463    113,237.0452 (0.06)      31577           1\ntest_bench_ram_reader_observe            1,019,174.9898 (>1000.0)  165,696,190.9903 (>1000.0)   1,822,253.4226 (>1000.0)  9,810,666.3876 (>1000.0)   1,129,650.0015 (>1000.0)    102,877.2567 (>1000.0)      4;20        548.7711 (0.00)        869           1\ntest_bench_vision_pipeline_process      38,105,179.9923 (>1000.0)   42,623,228.0006 (>1000.0)  39,777,298.5621 (>1000.0)  1,235,639.5072 (>1000.0)  39,600,847.0125 (>1000.0)  1,918,784.2518 (>1000.0)       9;0         25.1400 (0.00)         25           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4054 passed, 14 skipped in 207.11s (0:03:27) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T125405.484535Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 From a clean clone with no ROM present, pytest tests/ --co -q exits 0 \u2014 both integration modules guarded or excluded by committed repo content \u2014 and CI's pytest leg flags (ci.yml:81) still pass: Verified empirically in a fresh clone (`git clone /home/kara/ai_plays_poke /tmp/cleanclone`, HEAD 95fddf8 = merge of 32a1d6b) where `ls data/rom/` contains only README.md and `find . -name '*.gb' -o -name '*.gbc' -o -name '*.gba'` returns nothing. (1) `pytest tests/ --co -q` with OPENROUTER_API_KEY/OPENAI_API_KEY/PTP_LIVE unset \u2192 EXIT_CODE=0, '4068 tests collected in 1.26s', zero collection errors; grep for 'test_phase4_integration|test_vision_integration' in the collection output = 0 matches, i.e. both modules are excluded. (2) The exclusion is committed repo content: commit 32a1d6b adds `collect_ignore = [\"test_phase4_integration.py\", \"test_vision_integration.py\"]` at tests/conftest.py:25-30, and both files are git-tracked (git ls-files confirms) with module-level side effects (test_phase4_integration.py:16 constructs `Emulator(\"data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb\")` at import time and calls sys.exit(1) at line 73; test_vision_integration.py:21 calls sys.exit(1) when the API key is absent). (3) CI's pytest leg flags at ci.yml:81 still pass \u2014 ran the exact flag set (`pytest tests/ -q --tb=line -k \"not live\" --ignore=tests/test_live_demo.py --ignore=tests/test_phase4_integration.py --ignore=tests/test_vision_integration.py --deselect=tests/test_edge_cases.py::TestROMHandling::test_rom_path_with_spaces`) \u2192 '4003 passed, 20 skipped, 41 deselected in 208.09s', zero failures/errors; the collection-only variant of the same flags exits 0 with '4023/4064 tests collected (41 deselected)'. ci.yml:81 itself was not modified by this task (last edit 80de287, unrelated) and its --ignore flags for both integration modules remain intact. Note: --timeout=30 was omitted locally only because pytest-timeout is not installed in the local .venv; it is a per-test timeout, not a collection gate, and CI installs it explicitly. [resolution 0.30; ci.yml:81]\nA clean clone with no ROM collects 4068 tests with exit 0 (both integration modules excluded via committed tests/conftest.py collect_ignore), and the ci.yml:81 pytest leg flags run green at 4003 passed / 20 skipped / 0 failed.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 From a clean clone with no ROM present, pytest tests/ --co -q exits 0 \u2014 both integration modules guarded or excluded by committed repo content \u2014 and CI's pytest leg flags (ci.yml:81) still pass: Verified empirically in a fresh clone (`git clone /home/kara/ai_plays_poke /tmp/cleanclone`, HEAD 95fddf8 = merge of 32a1d6b) where `ls data/rom/` contains only README.md and `find . -name '*.gb' -o -name '*.gbc' -o -name '*.gba'` returns nothing. (1) `pytest tests/ --co -q` with OPENROUTER_API_KEY/OPENAI_API_KEY/PTP_LIVE unset \u2192 EXIT_CODE=0, '4068 tests collected in 1.26s', zero collection errors; grep for 'test_phase4_integration|test_vision_integration' in the collection output = 0 matches, i.e. both modules are excluded. (2) The exclusion is committed repo content: commit 32a1d6b adds `collect_ignore = [\"test_phase4_integration.py\", \"test_vision_integration.py\"]` at tests/conftest.py:25-30, and both files are git-tracked (git ls-files confirms) with module-level side effects (test_phase4_integration.py:16 constructs `Emulator(\"data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb\")` at import time and calls sys.exit(1) at line 73; test_vision_integration.py:21 calls sys.exit(1) when the API key is absent). (3) CI's pytest leg flags at ci.yml:81 still pass \u2014 ran the exact flag set (`pytest tests/ -q --tb=line -k \"not live\" --ignore=tests/test_live_demo.py --ignore=tests/test_phase4_integration.py --ignore=tests/test_vision_integration.py --deselect=tests/test_edge_cases.py::TestROMHandling::test_rom_path_with_spaces`) \u2192 '4003 passed, 20 skipped, 41 deselected in 208.09s', zero failures/errors; the collection-only variant of the same flags exits 0 with '4023/4064 tests collected (41 deselected)'. ci.yml:81 itself was not modified by this task (last edit 80de287, unrelated) and its --ignore flags for both integration modules remain intact. Note: --timeout=30 was omitted locally only because pytest-timeout is not installed in the local .venv; it is a per-test timeout, not a collection gate, and CI installs it explicitly. [resolution 0.30; ci.yml:81]\nA clean clone with no ROM collects 4068 tests with exit 0 (both integration modules excluded via committed tests/conftest.py collect_ignore), and the ci.yml:81 pytest leg flags run green at 4003 passed / 20 skipped / 0 failed.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "From a clean clone with no ROM present, pytest tests/ --co -q exits 0 \u2014 both integration modules guarded or excluded by committed repo content \u2014 and CI's pytest leg flags (ci.yml:81) still pass",
+                "status": "PASS",
+                "detail": "Verified empirically in a fresh clone (`git clone /home/kara/ai_plays_poke /tmp/cleanclone`, HEAD 95fddf8 = merge of 32a1d6b) where `ls data/rom/` contains only README.md and `find . -name '*.gb' -o -name '*.gbc' -o -name '*.gba'` returns nothing. (1) `pytest tests/ --co -q` with OPENROUTER_API_KEY/OPENAI_API_KEY/PTP_LIVE unset \u2192 EXIT_CODE=0, '4068 tests collected in 1.26s', zero collection errors; grep for 'test_phase4_integration|test_vision_integration' in the collection output = 0 matches, i.e. both modules are excluded. (2) The exclusion is committed repo content: commit 32a1d6b adds `collect_ignore = [\"test_phase4_integration.py\", \"test_vision_integration.py\"]` at tests/conftest.py:25-30, and both files are git-tracked (git ls-files confirms) with module-level side effects (test_phase4_integration.py:16 constructs `Emulator(\"data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb\")` at import time and calls sys.exit(1) at line 73; test_vision_integration.py:21 calls sys.exit(1) when the API key is absent). (3) CI's pytest leg flags at ci.yml:81 still pass \u2014 ran the exact flag set (`pytest tests/ -q --tb=line -k \"not live\" --ignore=tests/test_live_demo.py --ignore=tests/test_phase4_integration.py --ignore=tests/test_vision_integration.py --deselect=tests/test_edge_cases.py::TestROMHandling::test_rom_path_with_spaces`) \u2192 '4003 passed, 20 skipped, 41 deselected in 208.09s', zero failures/errors; the collection-only variant of the same flags exits 0 with '4023/4064 tests collected (41 deselected)'. ci.yml:81 itself was not modified by this task (last edit 80de287, unrelated) and its --ignore flags for both integration modules remain intact. Note: --timeout=30 was omitted locally only because pytest-timeout is not installed in the local .venv; it is a per-test timeout, not a collection gate, and CI installs it explicitly. [resolution 0.30; ci.yml:81]",
+                "resolution_probability": 0.3,
+                "cited_path": "ci.yml:81"
+              }
+            ],
+            "summary": "A clean clone with no ROM collects 4068 tests with exit 0 (both integration modules excluded via committed tests/conftest.py collect_ignore), and the ci.yml:81 pytest leg flags run green at 4003 passed / 20 skipped / 0 failed."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: QA-AI-PLAYS-POKE-7\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 From a clean clone with no ROM present, pytest tests/ --co -q exits 0 \u2014 both integration modules guarded or excluded by committed repo content \u2014 and CI's pytest leg flags (ci.yml:81) still pass: Verified empirically in a fresh clone (`git clone /home/kara/ai_plays_poke /tmp/cleanclone`, HEAD 95fddf8 = merge of 32a1d6b) where `ls data/rom/` contains only README.md and `find . -name '*.gb' -o -name '*.gbc' -o -name '*.gba'` returns nothing. (1) `pytest tests/ --co -q` with OPENROUTER_API_KEY/OPENAI_API_KEY/PTP_LIVE unset \u2192 EXIT_CODE=0, '4068 tests collected in 1.26s', zero collection errors; grep for 'test_phase4_integration|test_vision_integration' in the collection output = 0 matches, i.e. both modules are excluded. (2) The exclusion is committed repo content: commit 32a1d6b adds `collect_ignore = [\"test_phase4_integration.py\", \"test_vision_integration.py\"]` at tests/conftest.py:25-30, and both files are git-tracked (git ls-files confirms) with module-level side effects (test_phase4_integration.py:16 constructs `Emulator(\"data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb\")` at import time and calls sys.exit(1) at line 73; test_vision_integration.py:21 calls sys.exit(1) when the API key is absent). (3) CI's pytest leg flags at ci.yml:81 still pass \u2014 ran the exact flag set (`pytest tests/ -q --tb=line -k \"not live\" --ignore=tests/test_live_demo.py --ignore=tests/test_phase4_integration.py --ignore=tests/test_vision_integration.py --deselect=tests/test_edge_cases.py::TestROMHandling::test_rom_path_with_spaces`) \u2192 '4003 passed, 20 skipped, 41 deselected in 208.09s', zero failures/errors; the collection-only variant of the same flags exits 0 with '4023/4064 tests collected (41 deselected)'. ci.yml:81 itself was not modified by this task (last edit 80de287, unrelated) and its --ignore flags for both integration modules remain intact. Note: --timeout=30 was omitted locally only because pytest-timeout is not installed in the local .venv; it is a per-test timeout, not a collection gate, and CI installs it explicitly. [resolution 0.30; ci.yml:81]\nA clean clone with no ROM collects 4068 tests with exit 0 (both integration modules excluded via committed tests/conftest.py collect_ignore), and the ci.yml:81 pytest leg flags run green at 4003 passed / 20 skipped / 0 failed.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-24T21:47:14.660970",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-24T21:47:14.683084+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 799,
+        "truncated": false,
+        "source": "git show d5cf7481fbb1"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 30482,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "QA-AI-PLAYS-POKE-7"
+  }
+}

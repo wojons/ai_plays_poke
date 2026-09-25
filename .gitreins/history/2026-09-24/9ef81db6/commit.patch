@@ -1,0 +1,17 @@
+commit d5cf7481fbb14896f188ad3070a98e3eacb9fb63
+Merge: 95fddf8 dacf0ad
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Thu Sep 24 16:45:12 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Thu Sep 24 16:45:12 2026 -0500
+
+    merge: JEV-4 retire assists A1+A4 — JEV-routed starter + battle decisions (dacf0ad)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ cron_runner.py                  | 248 +++++++++++++++++++++++++++++++++++++---
+ src/core/jev_client.py          |  28 ++++-
+ tests/test_full_gameplay.py     |  42 +++++--
+ tests/test_gameplay_escape.py   |  33 +++++-
+ tests/test_jev4_dehardcoding.py | 190 ++++++++++++++++++++++++++++++
+ 5 files changed, 506 insertions(+), 35 deletions(-)

@@ -1,0 +1,35 @@
+{
+  "wave_id": "ai-plays-poke-2026-09-24-21-15-59",
+  "tick": 239,
+  "budget": 3,
+  "workers": 2,
+  "tasks": [
+    "QA-AI-PLAYS-POKE-7",
+    "JEV-4"
+  ],
+  "worktrees": {
+    "QA-AI-PLAYS-POKE-7": {
+      "worktree": "~/worktrees/ai-plays-poke-QA-AI-PLAYS-POKE-7",
+      "branch": "wt/QA-AI-PLAYS-POKE-7",
+      "base": "15b1e8e"
+    },
+    "JEV-4": {
+      "worktree": "~/worktrees/ai-plays-poke-JEV-4",
+      "branch": "wt/JEV-4",
+      "base": "15b1e8e"
+    }
+  },
+  "briefs": {
+    "QA-AI-PLAYS-POKE-7": "/tmp/ai-plays-poke-239_brief_QA-AI-PLAYS-POKE-7.md",
+    "JEV-4": "/tmp/ai-plays-poke-239_brief_JEV-4.md"
+  },
+  "dispatched_at": "2026-09-24T21:25:00Z",
+  "status": "merged",
+  "merged_at": "2026-09-24T22:15:00Z",
+  "merges": {
+    "QA-AI-PLAYS-POKE-7": {"worker_commit": "32a1d6b", "merge_commit": "95fddf8", "verdict": "2d98a573 PASS"},
+    "JEV-4": {"worker_commit": "dacf0ad", "merge_commit": "d5cf748", "verdict": "00e6fd34 PASS"}
+  },
+  "note": "Two mutually independent P1 rows: QA-AI-PLAYS-POKE-7 (tests/ collection poisoning, files tests/) and JEV-4 (assist de-hardcoding, files cron_runner.py + src/core/). Disjoint file sets, no depends_on edges between them (JEV-3 blocked on JEV-2 already merged; JEV-5 depends on JEV-4 so stays serial). MEM-1 also touches cron_runner.py = same band as JEV-4, deferred. Red proof live in QA worktree pre-dispatch: both test_phase4_integration.py and test_vision_integration.py error collection without ROM (4068 collected, 2 errors). Worker lane: gpt-5.6-sol @ openai-codex per project skill (gameplay Python). Full gate battery on merged HEAD green: pytest 4018 passed/8 skipped/0 failed, mypy 0/66, ruff clean, compileall OK.",
+  "merge_commit": "d5cf748"
+}

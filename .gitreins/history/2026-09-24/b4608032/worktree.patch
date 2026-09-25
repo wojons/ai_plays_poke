@@ -1,0 +1,59 @@
+diff --git a/.coding-hermes/waves/ai-plays-poke-2026-09-24-08-40-56.json b/.coding-hermes/waves/ai-plays-poke-2026-09-24-08-40-56.json
+new file mode 100644
+index 0000000..ea9c2ad
+--- /dev/null
++++ b/.coding-hermes/waves/ai-plays-poke-2026-09-24-08-40-56.json
+@@ -0,0 +1,24 @@
++{
++  "wave_id": "ai-plays-poke-2026-09-24-08-40-56",
++  "tick": 238,
++  "budget": 8,
++  "workers": 1,
++  "tasks": [
++    "JEV-2"
++  ],
++  "worktrees": {
++    "JEV-2": {
++      "worktree": "~/worktrees/ai-plays-poke-JEV-2",
++      "branch": "wt/JEV-2",
++      "base": "96f72be"
++    }
++  },
++  "briefs": {
++    "JEV-2": "/tmp/ai-plays-poke-238_brief_JEV-2.md"
++  },
++  "dispatched_at": "2026-09-24T08:55:00Z",
++  "status": "merged",
++  "note": "Single-worker wave: JEV-2 (teacher escalation layer, PRD v3 stage 7 / AC-6) is the only independent implementable row (JEV-3 depends on JEV-2; JEV-5 on JEV-4; E2E-001 window next due T242). Lane probe verified real: gpt-5.6-sol @ openai-codex (session 20260924_035623_39b551, no fallback).",
++  "merge_commit": "3aa879c",
++  "merged_at": "2026-09-24T09:45:00Z"
++}
+diff --git a/data/duration_profiles.json b/data/duration_profiles.json
+index 0c4eee6..85b6230 100644
+--- a/data/duration_profiles.json
++++ b/data/duration_profiles.json
+@@ -2,16 +2,16 @@
+   "BATTLE/WILD": {
+     "mode": "BATTLE",
+     "sub_mode": "WILD",
+-    "sample_count": 578,
+-    "mean_duration": 0.10007569085986945,
+-    "std_duration": 1.3080985317999966e-05,
++    "sample_count": 582,
++    "mean_duration": 0.10008834316762995,
++    "std_duration": 2.302843035061028e-05,
+     "min_duration": 0.10003995895385742,
+     "max_duration": 0.10204648971557617,
+-    "p50_duration": 0.10007569085986945,
+-    "p75_duration": 0.10074569085986945,
+-    "p95_duration": 0.10172069085986944,
+-    "p99_duration": 0.10240169085986944,
+-    "last_updated": 1790180941.3727157,
++    "p50_duration": 0.10008834316762995,
++    "p75_duration": 0.10075834316762995,
++    "p95_duration": 0.10173334316762994,
++    "p99_duration": 0.10241434316762994,
++    "last_updated": 1790243130.9595137,
+     "trend": "insufficient_data",
+     "trend_slope": 0
+   }

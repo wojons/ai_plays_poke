@@ -1,0 +1,113 @@
+{
+  "task_id": "JEV-2",
+  "task_title": "Teacher escalation layer: LLM repairs the STATE and control returns to JEV (PRD v3 stage 7 / AC-6)",
+  "task_criteria": [
+    "AC-6: given an escalation, the teacher returns a typed patch, the patch is applied, JEV is re-asked, and the re-ask's sufficient_state is >= pre-patch with missing_class cleared or narrowed \u2014 proof: a recorded (pre-ask, patch, post-ask) triple in the run log"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "6a2443dca4630a054711a3388c9c8053a6200c50",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T093455.966673Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:37AM INF scanned ~236884244 bytes (236.88 MB) in 9.33s\n4:37AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72365 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T093455.966673Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4068 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [433603 chars omitted \u2014 4828 line(s)] \u2026\ntest_bench_pathfinding_find_path               761.9965 (1.21)           7,743.9981 (1.0)           1,638.0000 (1.95)          2,153.4273 (5.12)            911.9976 (1.12)           330.9979 (2.55)          1;1    610,500.6262 (0.51)         10           1\ntest_bench_vision_pipeline_validate          8,024.9956 (12.72)         40,645.0054 (5.25)         10,387.2218 (12.34)         2,229.5112 (5.30)          8,997.0054 (11.08)        3,977.0021 (30.59)    8099;183     96,272.1327 (0.08)      32748           1\ntest_bench_ram_reader_observe            1,028,703.9986 (>1000.0)  253,684,366.9950 (>1000.0)   2,976,823.7266 (>1000.0)  15,921,394.0672 (>1000.0)   1,818,835.9973 (>1000.0)    225,466.9962 (>1000.0)      4;71        335.9285 (0.00)        742           1\ntest_bench_vision_pipeline_process      40,403,097.9989 (>1000.0)   48,421,676.9983 (>1000.0)  43,129,254.9593 (>1000.0)   1,991,686.6718 (>1000.0)  42,923,433.0004 (>1000.0)  2,887,662.0054 (>1000.0)       6;0         23.1861 (0.00)         25           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4054 passed, 14 skipped in 203.35s (0:03:23) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260924T093455.966673Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [],
+            "summary": "Cap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: JEV-2\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.6 used). Increase max_iterations or split criteria.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-24T09:46:13.123970",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-24T09:46:13.146948+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 24366,
+        "truncated": false,
+        "source": "git show 6a2443dca463"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 2131,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "JEV-2"
+  }
+}
