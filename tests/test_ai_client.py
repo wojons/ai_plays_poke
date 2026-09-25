@@ -18,6 +18,31 @@ from typing import Any
 # ── Module-level functions ──────────────────────────────────────────────
 
 
+EXPECTED_MODEL_PRICING = {
+    "gpt-5.6-luna": (0.2, 1.2),
+    "gpt-5.6-sol": (2.0, 10.0),
+    "deepseek-flash": (0.15, 0.6),
+    "deepseek-v4-flash": (0.15, 0.6),
+    "deepseek-v4.1-flash": (0.15, 0.6),
+    "deepseek-v4-pro": (0.66, 1.98),
+    "deepseek-chat": (0.15, 0.6),
+    "deepseek-reasoner": (0.66, 1.98),
+    "claude-3-opus": (15.0, 75.0),
+    "claude-3-sonnet": (3.0, 15.0),
+    "claude-3-haiku": (0.25, 1.25),
+    "claude-3.5-sonnet": (3.0, 15.0),
+    "claude-3.5-haiku": (0.8, 4.0),
+    "claude-sonnet-4": (3.0, 15.0),
+    "claude-opus-4": (15.0, 75.0),
+    "claude-2": (8.0, 32.0),
+    "gpt-4o-mini": (0.15, 0.6),
+    "gpt-4o": (5.0, 15.0),
+    "gpt-4-turbo": (10.0, 30.0),
+    "gpt-4": (30.0, 60.0),
+    "gpt-3.5-turbo": (0.5, 1.5),
+}
+
+
 class TestGetModelPricing:
     """Tests for get_model_pricing() — model name → (input_price, output_price)."""
 
@@ -69,7 +94,8 @@ class TestGetModelPricing:
     def test_unknown_model_default(self) -> None:
         from src.core.ai_client import get_model_pricing
 
-        assert get_model_pricing("some/unknown-model") == (5.0, 15.0)
+        with pytest.warns(RuntimeWarning, match="some/unknown-model"):
+            assert get_model_pricing("some/unknown-model") == (5.0, 15.0)
 
     def test_case_insensitive(self) -> None:
         from src.core.ai_client import get_model_pricing
@@ -82,6 +108,34 @@ class TestGetModelPricing:
 
         assert get_model_pricing("openai/gpt-4o-mini") == (0.15, 0.6)
 
+    @pytest.mark.parametrize("model, expected", EXPECTED_MODEL_PRICING.items())
+    def test_every_documented_table_entry(
+        self, model: str, expected: tuple[float, float]
+    ) -> None:
+        from src.core.ai_client import MODEL_PRICING, get_model_pricing
+
+        assert MODEL_PRICING == EXPECTED_MODEL_PRICING
+        assert get_model_pricing(model) == expected
+
+    def test_vendor_prefix_and_bare_id_resolve_identically(self) -> None:
+        from src.core.ai_client import get_model_pricing
+
+        assert get_model_pricing("openai/gpt-5.6-luna") == get_model_pricing(
+            "gpt-5.6-luna"
+        )
+
+    def test_similar_unknown_model_does_not_match_flash(self) -> None:
+        from src.core.ai_client import get_model_pricing
+
+        with pytest.warns(RuntimeWarning, match="deepseek-flash-pro"):
+            assert get_model_pricing("deepseek/deepseek-flash-pro") == (5.0, 15.0)
+
+    def test_unknown_model_default_is_observable(self) -> None:
+        from src.core.ai_client import get_model_pricing
+
+        with pytest.warns(RuntimeWarning, match="truly-unknown-model"):
+            assert get_model_pricing("vendor/truly-unknown-model") == (5.0, 15.0)
+
 
 class TestCalculateCost:
     """Tests for calculate_cost() — model, input/output tokens → cost."""
@@ -92,6 +146,14 @@ class TestCalculateCost:
         cost = calculate_cost("openai/gpt-4o-mini", 1000, 500)
         expected = (1000 / 1_000_000) * 0.15 + (500 / 1_000_000) * 0.6
         assert cost == pytest.approx(expected, rel=1e-6)
+
+    def test_deepseek_board_example_uses_flash_sticker_price(self) -> None:
+        from src.core.ai_client import calculate_cost
+
+        cost = calculate_cost("deepseek-v4-flash", 2045, 0)
+        assert cost == pytest.approx(0.00030675)
+        assert round(cost, 6) == 0.000307
+        assert round(cost, 6) != 0.012
 
     def test_zero_tokens(self) -> None:
         from src.core.ai_client import calculate_cost
@@ -107,7 +169,8 @@ class TestCalculateCost:
     def test_unknown_model_uses_default(self) -> None:
         from src.core.ai_client import calculate_cost
 
-        cost = calculate_cost("unknown/model", 1_000_000, 1_000_000)
+        with pytest.warns(RuntimeWarning, match="unknown/model"):
+            cost = calculate_cost("unknown/model", 1_000_000, 1_000_000)
         assert cost == pytest.approx(20.0, rel=1e-6)  # $5 + $15 default
 
 
@@ -2081,7 +2144,10 @@ class TestGameAIManagerAnalyzeScreenshotNoneHP:
         mgr.prompts = {"vision_analysis": "Analyze this game screenshot."}
         setattr(mgr, "prompt_manager", None)
         mgr.model_router = MagicMock()
-        mgr.model_router.select_model.return_value = ("openrouter", "openai/gpt-5.6-luna")
+        mgr.model_router.select_model.return_value = (
+            "openrouter",
+            "openai/gpt-5.6-luna",
+        )
         fake_client = MagicMock()
         fake_client.get_vision_response.return_value = (
             '{"screen_type":"overworld","enemy_pokemon":null,'
@@ -2125,7 +2191,10 @@ class TestGameAIManagerAnalyzeScreenshotNoneHP:
         mgr.prompts = {"vision_analysis": "Analyze this game screenshot."}
         setattr(mgr, "prompt_manager", None)
         mgr.model_router = MagicMock()
-        mgr.model_router.select_model.return_value = ("openrouter", "openai/gpt-5.6-luna")
+        mgr.model_router.select_model.return_value = (
+            "openrouter",
+            "openai/gpt-5.6-luna",
+        )
         fake_client = MagicMock()
         fake_client.get_vision_response.return_value = None  # the crash trigger
         setattr(mgr, "_get_client_for_model", MagicMock(return_value=fake_client))
