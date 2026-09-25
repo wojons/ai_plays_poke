@@ -660,3 +660,26 @@ tasks:
   status: complete
   created_at: '2026-09-25T05:02:31.389856+00:00'
   completed_at: '2026-09-25T05:35:07.873459+00:00'
+- id: DF-JEV-2
+  title: 'Teacher escalation: reasoning-token budget + in-game wiring'
+  criteria:
+  - In-game overworld escalation fires when JEV says escalate; live request_patch
+    returns usable content (finish_reason=stop) via reasoning/token handling fix;
+    pytest + mypy + ruff clean
+  status: in_progress
+  created_at: '2026-09-25T07:08:23.652869+00:00'
+- id: JEV-5
+  title: 'Assist-inventory guard: fail build on new deterministic press_button call
+    site outside declared set'
+  criteria:
+  - CI/pre-commit guard fails when a new emu.press_button call site appears outside
+    the declared assist set; declared set documented; pytest+ruff+mypy green
+  status: in_progress
+  created_at: '2026-09-25T07:08:23.910094+00:00'
+- id: DF-JEV-4
+  title: 'Cost telemetry: calculate_cost pricing for the models actually used'
+  criteria:
+  - calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing;
+    unit tests pin per-model rates; pytest+mypy+ruff clean
+  status: in_progress
+  created_at: '2026-09-25T07:08:24.162879+00:00'

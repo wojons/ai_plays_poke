@@ -1,0 +1,37 @@
+{
+  "wave_id": "ai-plays-poke-2026-09-25-06-51-05",
+  "tick": 241,
+  "budget": 3,
+  "workers": 3,
+  "tasks": [
+    "DF-JEV-2",
+    "JEV-5",
+    "DF-JEV-4"
+  ],
+  "worktrees": {
+    "DF-JEV-2": {
+      "worktree": "~/worktrees/ai-plays-poke-DF-JEV-2",
+      "branch": "wt/DF-JEV-2",
+      "base": "a33e7fd"
+    },
+    "JEV-5": {
+      "worktree": "~/worktrees/ai-plays-poke-JEV-5",
+      "branch": "wt/JEV-5",
+      "base": "a33e7fd"
+    },
+    "DF-JEV-4": {
+      "worktree": "~/worktrees/ai-plays-poke-DF-JEV-4",
+      "branch": "wt/DF-JEV-4",
+      "base": "a33e7fd"
+    }
+  },
+  "briefs": {
+    "DF-JEV-2": "/tmp/aipp241_brief_DF-JEV-2.md",
+    "JEV-5": "/tmp/aipp241_brief_JEV-5.md",
+    "DF-JEV-4": "/tmp/aipp241_brief_DF-JEV-4.md"
+  },
+  "dispatched_at": "2026-09-25T07:05:00Z",
+  "status": "dispatched",
+  "independence_note": "Three rows, disjoint file sets, no depends_on edges: DF-JEV-2 (src/core/teacher_client.py + src/core/jev_client.py + cron_runner.py escalate wiring), JEV-5 (new guard script scripts/check_assist_inventory.py + CI + declared-set doc/test), DF-JEV-4 (src/core/ai_client.py calculate_cost only). MEM-1 deferred: cron_runner.py collision with DF-JEV-2 + evidence gate needs a live E2E run (serial tick). JEV-3 blocked on JEV-2 (merged) \u2014 P1 but scenario-file promotion overlaps teacher_client.py with DF-JEV-2, so it stays serial next tick.",
+  "worker_lane": "gpt-5.6-sol @ openai-codex per project skill (gameplay Python)"
+}
