@@ -1,0 +1,942 @@
+commit 73982abbad3e1a7b1d0e80f6d532290c16b6ab9b
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Fri Sep 25 00:20:40 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Fri Sep 25 00:20:40 2026 -0500
+
+    feat(jev): wire the JEV tier into the overworld decision loop. Addresses DF-JEV-1.
+    
+    The overworld cycle was still decided by controller_plan(), and plan_entry read
+    jev_answered/escalated/missing_class off a controller payload that never sets
+    those keys — so every real run logged autonomy 0/16 even though JEV-1/2/4 were
+    complete. JEV was reachable only from the starter-menu and battle-recovery
+    branches; PRD v3 stages 5-6 were proven by scripts/jev_projection_probe.py but
+    never consumed by the game loop.
+    
+    cron_runner.py:
+    
+    - _jev_overworld_decision(obs, ...) — the new seam. It builds the bounded state
+      projection through the same state_projection.build() call, with the same
+      cross-cycle material (goal, per-tile repeat counts, recent events, last
+      action, mechanics rules) and the same last_action_failed value as
+      scripts/jev_projection_probe.py, then asks jev_client.decide. Fail closed:
+      the returned dict is EMPTY whenever JEV errored or next_action is outside the
+      overworld button vocabulary, and WAIT maps to an EMPTY plan — an unreadable
+      answer can never become an invented press. A raising tier is caught, printed
+      and treated as a miss, so a broken tier cannot hide behind an autonomy zero.
+    - main() overworld branch: JEV is consulted before the controller. A hit sets
+      the plan, stamps pipeline="jev" and skips the controller call and its image
+      tokens; a miss falls through to controller_plan() exactly as before.
+    - Per-tile repeat counts for the CURRENT map are tracked (reset on map change)
+      as the projection's stuck signal, and a direction press that left the player
+      on the same tile is handed to the gate as the failure trigger (PRD v3 §3.2
+      trigger 1).
+    - plan_entry stamps pipeline from the pipeline that actually decided,
+      raw_distribution from JEV's real payload (the acceptance field) and
+      jev_projection_chars; the stale comment claiming those keys are never set is
+      gone. The per-cycle log line names the deciding pipeline.
+    
+    Verified (no live LLM cycles were run — that is the foreman's job):
+    
+    - .venv/bin/python -m pytest -m "not heavy" -q → 4023 passed, 8 skipped
+    - .venv/bin/mypy src/ --ignore-missing-imports → no issues in 66 source files
+    - .venv/bin/ruff check . → all checks passed
+    - python3 cron_runner.py --dry-run → exit 0
+    - RED proof: re-wiring the row back to pipeline_name / raw_distribution None
+      fails TestPlanEntryRowShape, so the row-shape guards are not vacuous.
+    
+    tests/test_cron_runner_metrics.py also carries ~20 formatter-only rewraps of
+    pre-existing lines: the file was already ruff-format-dirty at HEAD (verified on
+    the HEAD blob), and the Tier-1 lint lane checks the whole file, so the gate
+    cannot pass while it stays dirty. No behaviour changes in those lines.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ cron_runner.py                    | 186 ++++++++++++--
+ tests/test_cron_runner_metrics.py | 495 ++++++++++++++++++++++++++++++++++++--
+ 2 files changed, 640 insertions(+), 41 deletions(-)
+
+diff --git a/cron_runner.py b/cron_runner.py
+index 6dabc97..9384070 100644
+--- a/cron_runner.py
++++ b/cron_runner.py
+@@ -496,6 +496,7 @@ from src.core.ram_reader import RAMReader
+ from src.core.frame_cache import FrameCache
+ from src.core.tools import execute_tool_call
+ from src.core import jev_client
++from src.core import state_projection
+ 
+ # ── Config ──────────────────────────────────────────────────────────
+ # ROM / DEFAULT_BOOT_STATE / CYCLES / USE_RAM_READER are defined at the
+@@ -989,6 +990,92 @@ def _battle_action_description(tool_name: str, arguments: dict[str, Any]) -> str
+     return "run_from_battle()"
+ 
+ 
++# ── JEV overworld tier (DF-JEV-1, PRD v3 stages 5-6) ────────────────────────
++
++# The overworld action vocabulary is the non-battle question set's criteria
++# (jev_client._questions): buttons, not battle moves. An answer outside this
++# set is a JEV miss, and a miss falls back to the reasoning controller — the
++# loop never invents a press out of an unreadable answer.
++OVERWORLD_ACTIONS: frozenset[str] = frozenset(jev_client.BUTTONS)
++
++# JEV's "do nothing this cycle" answer. It maps to an EMPTY plan because
++# translating it into any button press would invent one.
++OVERWORLD_WAIT = "WAIT"
++
++# The decision-row pipeline name for a plan JEV authored (PRD v3 AC-1 rows).
++JEV_PIPELINE = "jev"
++
++
++def _jev_overworld_decision(
++    obs: dict[str, Any],
++    *,
++    goal: str = "",
++    visited: dict[tuple[int, int], int] | None = None,
++    recent_events: list[dict[str, Any]] | None = None,
++    last_action: str = "",
++    last_action_changed_state: bool | None = None,
++) -> dict[str, Any]:
++    """Ask the JEV tier for this overworld cycle's plan (PRD v3 stages 5-6).
++
++    The bounded RAM projection is built the way ``scripts/jev_projection_probe.py``
++    builds it — the same ``state_projection.build()`` call over the live
++    ``observe()`` dict, with the same cross-cycle material (goal, per-tile repeat
++    counts, recent events, last action) and the same mechanics rules — so the
++    game loop consumes the exact contract the probe proved.
++
++    Fail-closed contract: the returned dict is EMPTY whenever JEV errored or its
++    ``next_action`` is not in the overworld vocabulary, so the caller falls back
++    to ``controller_plan()`` and no press is ever invented. On a hit, the dict
++    carries the ``plan``/``intent`` the loop executes plus the JEV proof fields
++    the per-decision rows stamp: ``jev_answered``, ``escalated``,
++    ``missing_class`` and ``raw_distribution`` (the full answer distribution).
++    """
++    try:
++        projection = state_projection.build(
++            obs,
++            goal=goal,
++            visited=visited,
++            recent_events=recent_events,
++            last_action=last_action,
++            last_action_changed_state=last_action_changed_state,
++            mechanics=state_projection.DEFAULT_MECHANICS,
++        )
++        decision = jev_client.decide(
++            projection,
++            last_action_failed=last_action_changed_state is False,
++        )
++    except Exception as exc:  # noqa: BLE001 - fail closed, but never silently
++        # A raising tier must not kill the cycle AND must not hide itself: the
++        # run keeps playing through the controller, and the reason is printed
++        # so a broken wiring cannot masquerade as a run that simply missed.
++        safe_print(f"  [JEV] overworld decision failed: {exc!r} - falling back")
++        return {}
++
++    raw_action = decision.get("next_action")
++    action = raw_action.upper() if isinstance(raw_action, str) else None
++    if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
++        return {}
++
++    escalate = bool(decision.get("escalate", False))
++    reason = decision.get("escalate_reason")
++    if action == OVERWORLD_WAIT:
++        plan: list[str] = []
++        intent = "jev WAIT (no press)"
++    else:
++        plan = [action]
++        intent = f"jev {action}"
++    return {
++        "plan": plan,
++        "intent": intent,
++        "jev_answered": True,
++        "escalated": escalate,
++        "missing_class": decision.get("missing_class"),
++        "raw_distribution": decision.get("raw"),
++        "jev_escalate_reason": reason if isinstance(reason, str) else None,
++        "jev_projection_chars": len(projection),
++    }
++
++
+ def _escalating_recovery(
+     emu,
+     recovery_level: int,
+@@ -2858,6 +2945,11 @@ def main() -> None:
+     # ── Per-run metrics (GAP-028) ──────────────────────────────────
+     _dir_lock_warn_cycles = 0  # cycles with >=1 direction-lock warning
+     _visited_tiles: set[tuple[int, int, int]] = set()  # (map_id, x, y) seen
++    # JEV projection cross-cycle material (DF-JEV-1, PRD v3 §3.4): how many
++    # times each tile of the CURRENT map has been stood on. Repeat counts are
++    # the projection's stuck signal, so they are reset on a map change.
++    _tile_visits: dict[tuple[int, int], int] = {}
++    _tile_visits_map_id: int | None = None
+ 
+     # ── Agent memory state (self-maintained, DuckBrain-backed) ──
+     # The agent tracks its own goal, notes, and world map across cycles
+@@ -2974,6 +3066,15 @@ def main() -> None:
+                 current_tile = (raw_map_id, raw_tile_x, raw_tile_y)
+             if current_tile is not None:
+                 _visited_tiles.add(current_tile)
++                # JEV projection (DF-JEV-1): repeat counts for the map the
++                # player is standing on right now.
++                if _tile_visits_map_id != current_tile[0]:
++                    _tile_visits.clear()
++                    _tile_visits_map_id = current_tile[0]
++                _tile_visits_key = (current_tile[1], current_tile[2])
++                _tile_visits[_tile_visits_key] = (
++                    _tile_visits.get(_tile_visits_key, 0) + 1
++                )
+             _last_tile, _same_tile_count = _track_same_tile(
+                 current_tile, _last_tile, _same_tile_count
+             )
+@@ -3256,7 +3357,6 @@ def main() -> None:
+                         if starter_approached:
+                             continue
+ 
+-                # Step 2b: Controller outputs movement PLAN from spatial description
+                 # Frame-cache dedup: hash the raw screenshot; if this exact
+                 # frame was seen before (same tile, same dialog box, battle
+                 # idle, looping flow), pass a text UUID reference instead of
+@@ -3288,23 +3388,60 @@ def main() -> None:
+                             map_name=patch_data.get("map_name", ""),
+                             screen=st,
+                         )
+-                decision = controller_plan(
+-                    controller_client,
++                # ── Step 2a: JEV tier (DF-JEV-1, PRD v3 stages 5-6) ────
++                # The cheap System-One tier decides this overworld cycle from
++                # the bounded RAM projection BEFORE the reasoning controller is
++                # consulted at all, so a JEV hit skips the controller call and
++                # its image tokens. A miss (invalid action, transport error)
++                # falls through to controller_plan() exactly as before; the only
++                # way JEV can express "press nothing" is an empty plan, and the
++                # loop never invents a press for an answer it could not read.
++                _jev_decision = _jev_overworld_decision(
+                     patch_data,
+-                    _last_direction or "",
+-                    _last_result,
+-                    blocked_dir=_same_dir or "",
+-                    blocked_count=_same_dir_count,
+-                    max_actions=CART_STEPS,
+-                    screenshot=_vision_frame,  # None on cache hit → no image cost
+-                    frame_ref=_frame_ref,  # UUID text ref on cache hit
+                     goal=_mem_goal,
+-                    notes=" | ".join(_mem_notes[:6])[:300],
+-                    last_dialog=_last_dialog_text,
+-                    study_result=_pending_study_result,
+-                    boot_memory=_boot_memory,  # MEM-2: built once at boot
+-                    model=controller_model,  # GAP-052: flag/env-resolved
++                    visited=_tile_visits,
++                    recent_events=results,
++                    last_action=_last_direction or "",
++                    # PRD v3 §3.2 trigger 1 (failure): a DIRECTION press that
++                    # left the player on the same (map, tile) changed nothing,
++                    # so the gate must escalate regardless of confidence. A
++                    # non-movement last action leaves the result UNKNOWN.
++                    last_action_changed_state=(
++                        _same_tile_count == 1
++                        if _last_direction in _DIR_ROTATION
++                        else None
++                    ),
+                 )
++                if _jev_decision:
++                    decision = _jev_decision
++                    _decision_pipeline = JEV_PIPELINE
++                    safe_print(
++                        f"  [JEV] {decision['intent']} | projection "
++                        f"{decision['jev_projection_chars']} chars | "
++                        f"escalated={decision['escalated']} "
++                        f"({decision.get('jev_escalate_reason')})"
++                    )
++                else:
++                    # ── Step 2b: controller outputs the movement PLAN ──
++                    # from the spatial description (JEV miss / unavailable).
++                    decision = controller_plan(
++                        controller_client,
++                        patch_data,
++                        _last_direction or "",
++                        _last_result,
++                        blocked_dir=_same_dir or "",
++                        blocked_count=_same_dir_count,
++                        max_actions=CART_STEPS,
++                        screenshot=_vision_frame,  # None on cache hit → no image cost
++                        frame_ref=_frame_ref,  # UUID text ref on cache hit
++                        goal=_mem_goal,
++                        notes=" | ".join(_mem_notes[:6])[:300],
++                        last_dialog=_last_dialog_text,
++                        study_result=_pending_study_result,
++                        boot_memory=_boot_memory,  # MEM-2: built once at boot
++                        model=controller_model,  # GAP-052: flag/env-resolved
++                    )
++                    _decision_pipeline = pipeline_name
+                 # Study result is injected once, then cleared
+                 _pending_study_result = ""
+                 plan = decision.get("plan", ["A"])
+@@ -3454,22 +3591,23 @@ def main() -> None:
+                 plan_entry = {
+                     "cycle": cycle + 1,
+                     "screen": st,
+-                    "pipeline": pipeline_name,
++                    "pipeline": _decision_pipeline,
+                     "plan": plan,
+                     "intent": intent,
+                     # JEV-1 (PRD v3 AC-1): every decision row carries the
+-                    # autonomy fields. The values are read off the decision
+-                    # payload, so wiring the JEV tier into this loop
+-                    # (JEV-2/JEV-4) fills them without editing this row — the
+-                    # closeout counters in `_autonomy_counters` then report
+-                    # real `jev_answered`/`escalated`/`missing_class` numbers.
+-                    # Until then the controller payload has no such keys and
+-                    # the row reports the defaults.
++                    # autonomy fields. DF-JEV-1 wired the JEV tier into this
++                    # loop, so a row JEV decided (`pipeline="jev"`) fills them
++                    # from JEV's real payload, `raw_distribution` included; a
++                    # row from the controller fallback path carries none of
++                    # these keys and reports the defaults, which is exactly the
++                    # split `_autonomy_counters` counts at closeout.
+                     "jev_answered": bool(decision.get("jev_answered", False)),
+                     "escalated": bool(decision.get("escalated", False)),
+                     "missing_class": (
+                         _missing_class if isinstance(_missing_class, str) else None
+                     ),
++                    "raw_distribution": decision.get("raw_distribution"),
++                    "jev_projection_chars": decision.get("jev_projection_chars"),
+                     "controller_raw": decision.get("raw_response", ""),
+                     "frame_cache": "hit" if _frame_ref else "miss",
+                     "frame_uuid": _frame_ref,
+@@ -3536,7 +3674,7 @@ def main() -> None:
+ 
+                 elapsed = time.time() - t0
+                 safe_print(
+-                    f"  [{cycle + 1}/{CYCLES}] {st} | {pipeline_name} x{CART_STEPS} | {elapsed:.1f}s"
++                    f"  [{cycle + 1}/{CYCLES}] {st} | {_decision_pipeline} x{CART_STEPS} | {elapsed:.1f}s"
+                 )
+ 
+             elif st == "name_entry":
+diff --git a/tests/test_cron_runner_metrics.py b/tests/test_cron_runner_metrics.py
+index f68bf2f..51ae1b4 100644
+--- a/tests/test_cron_runner_metrics.py
++++ b/tests/test_cron_runner_metrics.py
+@@ -2,17 +2,25 @@
+ 
+ Covers cron_runner._resolve_boot_state (default / skip / explicit path)
+ and _format_summary (per-run lock-rate fraction + distinct-tile count).
++
++DF-JEV-1 adds the overworld JEV tier: ``_jev_overworld_decision`` (a JEV hit
++supplies the plan + the AC-1 fields, a miss falls back to ``controller_plan``)
++and the per-decision rows' contribution to the run's autonomy ratio.
+ """
+ 
+ from __future__ import annotations
+ 
++import ast
+ import io
+ import json
+ import urllib.error
++from pathlib import Path
++from typing import Any
+ 
+ import pytest
+ 
+ import cron_runner
++from src.core import jev_client
+ 
+ 
+ @pytest.fixture(autouse=True)
+@@ -33,7 +41,9 @@ def _hermetic_api_keys(monkeypatch):
+ class TestResolveBootState:
+     """--boot-state / data/boot.state resolution (GAP-028)."""
+ 
+-    def test_default_uses_data_boot_state_when_present(self, monkeypatch, tmp_path) -> None:
++    def test_default_uses_data_boot_state_when_present(
++        self, monkeypatch, tmp_path
++    ) -> None:
+         ckpt = tmp_path / "boot.state"
+         ckpt.write_bytes(b"x")
+         monkeypatch.setattr(cron_runner, "DEFAULT_BOOT_STATE", ckpt)
+@@ -90,7 +100,9 @@ class TestDryRun:
+     only side effects are stdout prints and sys.exit.
+     """
+ 
+-    def test_dry_run_exits_zero_with_config_summary(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_dry_run_exits_zero_with_config_summary(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         rom = tmp_path / "rom.gb"
+         rom.write_bytes(b"x")
+         monkeypatch.setattr(cron_runner, "ROM", str(rom))
+@@ -108,7 +120,9 @@ class TestDryRun:
+         assert "no emulator boot, no LLM completions" in out
+         assert "📡" not in out  # no API call lines
+ 
+-    def test_dry_run_reflects_cycles_run_id_and_boot_state(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_dry_run_reflects_cycles_run_id_and_boot_state(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         rom = tmp_path / "rom.gb"
+         rom.write_bytes(b"x")
+         ckpt = tmp_path / "ckpt.state"
+@@ -116,7 +130,15 @@ class TestDryRun:
+         monkeypatch.setattr(cron_runner, "ROM", str(rom))
+         with pytest.raises(SystemExit) as e:
+             cron_runner._dry_run_precheck(
+-                ["--dry-run", "--cycles", "5", "--run-id", "probe", "--boot-state", str(ckpt)]
++                [
++                    "--dry-run",
++                    "--cycles",
++                    "5",
++                    "--run-id",
++                    "probe",
++                    "--boot-state",
++                    str(ckpt),
++                ]
+             )
+         assert e.value.code == 0
+         out = capsys.readouterr().out
+@@ -124,7 +146,9 @@ class TestDryRun:
+         assert "Run ID:         probe" in out
+         assert f"{ckpt}  [OK]" in out
+ 
+-    def test_dry_run_boot_state_skip_prints_bypass(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_dry_run_boot_state_skip_prints_bypass(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         rom = tmp_path / "rom.gb"
+         rom.write_bytes(b"x")
+         monkeypatch.setattr(cron_runner, "ROM", str(rom))
+@@ -133,12 +157,16 @@ class TestDryRun:
+         assert e.value.code == 0
+         assert "skip (legacy intro bypass)" in capsys.readouterr().out
+ 
+-    def test_dry_run_missing_boot_state_still_exits_zero(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_dry_run_missing_boot_state_still_exits_zero(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         rom = tmp_path / "rom.gb"
+         rom.write_bytes(b"x")
+         monkeypatch.setattr(cron_runner, "ROM", str(rom))
+         with pytest.raises(SystemExit) as e:
+-            cron_runner._dry_run_precheck(["--dry-run", "--boot-state", str(tmp_path / "nope.state")])
++            cron_runner._dry_run_precheck(
++                ["--dry-run", "--boot-state", str(tmp_path / "nope.state")]
++            )
+         assert e.value.code == 0
+         assert "fall back to intro bypass" in capsys.readouterr().out
+ 
+@@ -168,7 +196,9 @@ class TestRomFlag:
+     dry-run summary validates/reports. Mock-free and fast — no emulator boot.
+     """
+ 
+-    def test_dry_run_reports_explicit_rom_ok(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_dry_run_reports_explicit_rom_ok(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         rom = tmp_path / "custom.gb"
+         rom.write_bytes(b"x")
+         ckpt = tmp_path / "boot.state"
+@@ -181,10 +211,16 @@ class TestRomFlag:
+         assert f"ROM path:       {rom}  [OK]" in out
+         assert "Validation OK" in out
+ 
+-    def test_dry_run_missing_explicit_rom_exits_one(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_dry_run_missing_explicit_rom_exits_one(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         # A non-existent --rom path must be reported MISSING and exit 1,
+         # regardless of where the module-level ROM constant points.
+-        monkeypatch.setattr(cron_runner, "ROM", "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
++        monkeypatch.setattr(
++            cron_runner,
++            "ROM",
++            "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb",
++        )
+         missing = tmp_path / "nope.gb"
+         with pytest.raises(SystemExit) as e:
+             cron_runner._dry_run_precheck(["--dry-run", "--rom", str(missing)])
+@@ -193,7 +229,9 @@ class TestRomFlag:
+         assert f"ROM path:       {missing}  [MISSING]" in out
+         assert "ERROR: ROM not found" in out
+ 
+-    def test_dry_run_without_rom_uses_module_default(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_dry_run_without_rom_uses_module_default(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         # No --rom → the precheck falls back to the module ROM constant,
+         # preserving pre-GAP-033 behavior for direct cron_runner runs.
+         rom = tmp_path / "rom.gb"
+@@ -214,7 +252,6 @@ class TestRomFlag:
+         assert cron_runner._main_parser().parse_args([]).rom is None
+ 
+ 
+-
+ class TestBootStateRomMismatch:
+     """GAP-037: warn when a Blue-ROM checkpoint boots into a non-Blue ROM.
+ 
+@@ -235,7 +272,9 @@ class TestBootStateRomMismatch:
+         rom.write_bytes(bytes(data))
+         return str(rom)
+ 
+-    def test_mismatch_warns_for_non_blue_rom(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_mismatch_warns_for_non_blue_rom(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         # A boot checkpoint (Blue) loaded into a Red ROM must print the
+         # actionable mismatch warning.
+         rom = self._fake_rom(tmp_path, "POKEMON RED")
+@@ -258,7 +297,9 @@ class TestBootStateRomMismatch:
+         cron_runner._warn_boot_state_rom_mismatch("run1", ckpt, rom)
+         assert capsys.readouterr().out == ""
+ 
+-    def test_no_warning_when_boot_state_skipped(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_no_warning_when_boot_state_skipped(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         # --boot-state skip → boot_path is None → no checkpoint is loaded,
+         # so no warning even with a Red ROM.
+         rom = self._fake_rom(tmp_path, "POKEMON RED")
+@@ -266,7 +307,9 @@ class TestBootStateRomMismatch:
+         cron_runner._warn_boot_state_rom_mismatch("run2", None, rom)
+         assert capsys.readouterr().out == ""
+ 
+-    def test_no_warning_when_checkpoint_missing(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_no_warning_when_checkpoint_missing(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         # _resolve_boot_state returns None for a missing checkpoint; a
+         # missing checkpoint falls back to the intro bypass and never
+         # loads Blue RAM, so it must not warn either.
+@@ -281,10 +324,14 @@ class TestBootStateRomMismatch:
+         ckpt = tmp_path / "boot.state"
+         ckpt.write_bytes(b"x")
+         monkeypatch.setattr(cron_runner, "BOOT_STATE_ROM_TITLE", "POKEMON BLUE")
+-        cron_runner._warn_boot_state_rom_mismatch("run4", ckpt, str(tmp_path / "missing.gb"))
++        cron_runner._warn_boot_state_rom_mismatch(
++            "run4", ckpt, str(tmp_path / "missing.gb")
++        )
+         assert capsys.readouterr().out == ""
+ 
+-    def test_dry_run_summary_prints_mismatch_warning(self, monkeypatch, capsys, tmp_path) -> None:
++    def test_dry_run_summary_prints_mismatch_warning(
++        self, monkeypatch, capsys, tmp_path
++    ) -> None:
+         # The --dry-run pre-flight (the cheap path a user runs first) must
+         # surface the same mismatch so the problem is visible before boot.
+         rom = self._fake_rom(tmp_path, "POKEMON RED")
+@@ -500,3 +547,417 @@ class TestDryRunKeyLiveness:
+         assert extract("plain text error", 500) == "plain text error"
+         assert extract("", 503) == "HTTP 503"
+ 
++
++# ── DF-JEV-1: the JEV tier in the overworld decision loop ───────────
++#
++# PRD v3 stages 5-6: the cheap System-One tier decides from the bounded RAM
++# projection, and a miss (invalid action, transport error) falls back to
++# `controller_plan()`. These tests drive the real `_jev_overworld_decision`
++# seam with a mocked `jev_client.decide` — no emulator, no network, no LLM.
++
++# A live `RAMReader.observe()` shape, trimmed to the fields the projection
++# reads. The stuck signal (repeat counts) and the goal/events come from the
++# loop's own cross-cycle state, which the tests pass in explicitly.
++_OBS: dict[str, Any] = {
++    "result": "overworld",
++    "map_id": 40,
++    "map_name": "Oaks Lab",
++    "player_tile_x": 6,
++    "player_tile_y": 4,
++    "player_facing": "up",
++    "party_count": 0,
++    "first_party_species": None,
++    "adjacent": {
++        "up": "wall",
++        "down": "floor",
++        "left": "floor",
++        "right": "floor",
++    },
++    "minimap": "",
++    "overworld_grid": "",
++    "visible_exits": [],
++    "text_content": [],
++    "menu_state": {},
++}
++
++
++class _ScriptedClient:
++    """OpenRouterClient stand-in returning one canned controller response."""
++
++    def __init__(self, content: str) -> None:
++        self.content = content
++
++    def chat_completion(self, **kwargs: Any) -> dict[str, Any]:
++        return {"content": self.content}
++
++
++def _jev_payload(
++    action: Any,
++    *,
++    ok: bool = True,
++    escalate: bool = False,
++    missing_class: str = "none",
++) -> dict[str, Any]:
++    """One normalized `jev_client.decide()` payload."""
++    distribution = {action: 0.94} if isinstance(action, str) else {}
++    return {
++        "ok": ok,
++        "next_action": action,
++        "phase": "EXPLORE",
++        "raw": {
++            "next_action": {"choice": action, "distribution": distribution},
++            "phase": {"choice": "EXPLORE", "distribution": {"EXPLORE": 1.0}},
++        },
++        "escalate": escalate,
++        "escalate_reason": (
++            "low_confidence_act (0.31)" if escalate else "jev_confident"
++        ),
++        "missing_class": missing_class,
++    }
++
++
++def _install_decide(
++    monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]
++) -> list[dict[str, Any]]:
++    """Patch `jev_client.decide` with a recorder and return its call log."""
++    calls: list[dict[str, Any]] = []
++
++    def fake_decide(state: str, **kwargs: Any) -> dict[str, Any]:
++        calls.append({"state": state, **kwargs})
++        return payload
++
++    monkeypatch.setattr(jev_client, "decide", fake_decide)
++    return calls
++
++
++def _jev_decision(
++    monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]
++) -> dict[str, Any]:
++    """One overworld cycle decided by JEV, through the real seam."""
++    _install_decide(monkeypatch, payload)
++    decision = cron_runner._jev_overworld_decision(
++        _OBS,
++        goal="leave Oaks Lab and head toward Route 1",
++        visited={(6, 4): 3, (6, 5): 1},
++        recent_events=[{"cycle": 2, "action": "UP", "result": "no change"}],
++        last_action="UP",
++        last_action_changed_state=False,
++    )
++    assert decision, "JEV should have decided this cycle"
++    return decision
++
++
++def _jev_row(monkeypatch: pytest.MonkeyPatch, action: str) -> dict[str, Any]:
++    """One overworld cycle decided by JEV on a confident answer."""
++    return _jev_decision(monkeypatch, _jev_payload(action))
++
++
++def _decision_row(
++    decision: dict[str, Any], pipeline: str, cycle: int
++) -> dict[str, Any]:
++    """The per-decision row `plan_entry` stamps, built from a decision payload.
++
++    `plan_entry` is built inline in `main()` (no seam to call), so the row shape
++    this file relies on is pinned against cron_runner.py's own source by
++    `TestPlanEntryRowShape` below — the mirror cannot drift unnoticed.
++    """
++    missing_class = decision.get("missing_class")
++    return {
++        "cycle": cycle,
++        "screen": "overworld",
++        "pipeline": pipeline,
++        "plan": decision.get("plan", ["A"]),
++        "intent": decision.get("intent", ""),
++        "jev_answered": bool(decision.get("jev_answered", False)),
++        "escalated": bool(decision.get("escalated", False)),
++        "missing_class": missing_class if isinstance(missing_class, str) else None,
++        "raw_distribution": decision.get("raw_distribution"),
++    }
++
++
++class TestJevOverworldDecision:
++    """DF-JEV-1 (1): a JEV hit supplies the plan and the AC-1 fields."""
++
++    def test_hit_uses_jevs_action_and_records_the_distribution(
++        self, monkeypatch: pytest.MonkeyPatch
++    ) -> None:
++        raw = _jev_payload("RIGHT")["raw"]
++        _install_decide(monkeypatch, _jev_payload("RIGHT"))
++
++        decision = cron_runner._jev_overworld_decision(
++            _OBS,
++            goal="leave Oaks Lab and head toward Route 1",
++            visited={(6, 4): 3, (6, 5): 1},
++            recent_events=[{"cycle": 2, "action": "UP", "result": "no change"}],
++            last_action="UP",
++            last_action_changed_state=False,
++        )
++
++        assert decision["plan"] == ["RIGHT"]
++        assert decision["intent"] == "jev RIGHT"
++        assert decision["jev_answered"] is True
++        assert decision["escalated"] is False
++        assert decision["missing_class"] == "none"
++        assert decision["raw_distribution"] == raw
++        assert decision["jev_projection_chars"] > 0
++        assert decision["jev_escalate_reason"] == "jev_confident"
++
++    def test_the_live_ram_state_reaches_jev_as_the_projection(
++        self, monkeypatch: pytest.MonkeyPatch
++    ) -> None:
++        calls = _install_decide(monkeypatch, _jev_payload("RIGHT"))
++
++        cron_runner._jev_overworld_decision(
++            _OBS,
++            goal="leave Oaks Lab and head toward Route 1",
++            visited={(6, 4): 3, (6, 5): 1},
++            recent_events=[{"cycle": 2, "action": "UP", "result": "no change"}],
++            last_action="UP",
++            last_action_changed_state=False,
++        )
++
++        assert len(calls) == 1
++        projection = calls[0]["state"]
++        # map / tile / party / adjacency / goal / cross-cycle material
++        assert "Oaks Lab" in projection
++        assert "PARTY: empty (no Pokemon yet)" in projection
++        assert "UP=wall DOWN=floor LEFT=floor RIGHT=floor" in projection
++        assert "leave Oaks Lab and head toward Route 1" in projection
++        assert "(6, 4)*x3" in projection  # repeat counts = the stuck signal
++        assert "action=UP" in projection
++        # The overworld question set: no battle vocabulary on this call.
++        assert "in_battle" not in calls[0]
++
++    def test_a_failed_last_direction_action_reaches_the_gate_as_failure(
++        self, monkeypatch: pytest.MonkeyPatch
++    ) -> None:
++        calls = _install_decide(monkeypatch, _jev_payload("LEFT", escalate=True))
++
++        decision = cron_runner._jev_overworld_decision(
++            _OBS, last_action="UP", last_action_changed_state=False
++        )
++
++        # PRD v3 §3.2 trigger 1: the loop's same-tile streak is handed to the
++        # gate as a failure, and the gate's escalation is recorded on the row.
++        assert calls[0]["last_action_failed"] is True
++        assert decision["escalated"] is True
++        assert decision["jev_escalate_reason"] == "low_confidence_act (0.31)"
++
++    def test_a_movement_action_is_still_the_plan_when_the_gate_escalates(
++        self, monkeypatch: pytest.MonkeyPatch
++    ) -> None:
++        _install_decide(
++            monkeypatch,
++            _jev_payload("DOWN", escalate=True, missing_class="map_topology"),
++        )
++
++        decision = cron_runner._jev_overworld_decision(
++            _OBS, last_action="UP", last_action_changed_state=False
++        )
++
++        # Escalation is recorded for the teacher tier (stages 7-8, not built);
++        # it does not stop the cheap tier from acting this cycle.
++        assert decision["plan"] == ["DOWN"]
++        assert decision["escalated"] is True
++        assert decision["missing_class"] == "map_topology"
++
++    def test_wait_means_press_nothing_not_press_a(self, monkeypatch) -> None:
++        _install_decide(monkeypatch, _jev_payload("WAIT"))
++
++        decision = cron_runner._jev_overworld_decision(_OBS)
++
++        assert decision["plan"] == []
++        assert decision["intent"] == "jev WAIT (no press)"
++        assert decision["jev_answered"] is True
++
++    def test_lowercase_answer_is_a_hit_like_the_starter_branch(
++        self, monkeypatch
++    ) -> None:
++        _install_decide(monkeypatch, _jev_payload("right"))
++
++        assert cron_runner._jev_overworld_decision(_OBS)["plan"] == ["RIGHT"]
++
++    def test_the_overworld_vocabulary_is_the_button_set(self) -> None:
++        assert cron_runner.OVERWORLD_ACTIONS == frozenset(
++            {"UP", "DOWN", "LEFT", "RIGHT", "A", "B", "START", "WAIT"}
++        )
++        assert cron_runner.OVERWORLD_ACTIONS == frozenset(jev_client.BUTTONS)
++        # Battle moves are not overworld actions.
++        assert "MOVE_1" not in cron_runner.OVERWORLD_ACTIONS
++
++
++class TestJevOverworldMiss:
++    """DF-JEV-1 (2): a miss falls back to controller_plan() and never presses."""
++
++    @pytest.mark.parametrize(
++        "payload",
++        [
++            pytest.param({"ok": False, "error": "no key available"}, id="transport"),
++            pytest.param(_jev_payload("RIGHT", ok=False), id="ok-false"),
++            pytest.param(_jev_payload(None), id="no-action"),
++            pytest.param({"ok": True, "raw": {}}, id="absent-action"),
++            pytest.param(_jev_payload("TACKLE"), id="not-in-vocabulary"),
++            pytest.param(_jev_payload("MOVE_1"), id="battle-move"),
++            pytest.param(_jev_payload(7), id="non-string-action"),
++            pytest.param(_jev_payload(""), id="empty-action"),
++        ],
++    )
++    def test_miss_returns_no_plan(self, monkeypatch, payload) -> None:
++        _install_decide(monkeypatch, payload)
++
++        assert cron_runner._jev_overworld_decision(_OBS) == {}
++
++    def test_a_raising_tier_fails_closed_and_says_so(self, monkeypatch, capsys) -> None:
++        def boom(*args: Any, **kwargs: Any) -> dict[str, Any]:
++            raise RuntimeError("decisions endpoint exploded")
++
++        monkeypatch.setattr(jev_client, "decide", boom)
++
++        assert cron_runner._jev_overworld_decision(_OBS) == {}
++        out = capsys.readouterr().out
++        # Fail closed, but never silently: a broken tier must be visible.
++        assert "decisions endpoint exploded" in out
++        assert "falling back" in out
++
++    def test_miss_leaves_the_loop_on_the_controller_fallback(
++        self, monkeypatch: pytest.MonkeyPatch
++    ) -> None:
++        _install_decide(monkeypatch, _jev_payload("TACKLE"))
++        assert cron_runner._jev_overworld_decision(_OBS) == {}
++
++        # The fallback path's payload carries no JEV keys, so the row reports
++        # jev_answered=False — exactly the pre-DF-JEV-1 behaviour.
++        decision = cron_runner.controller_plan(
++            _ScriptedClient('{"plan": ["UP"], "intent": "walk north"}'),
++            _OBS,
++            "",
++            "",
++        )
++
++        assert decision["plan"] == ["UP"]
++        assert "jev_answered" not in decision
++        assert bool(decision.get("jev_answered", False)) is False
++        assert bool(decision.get("escalated", False)) is False
++        assert decision.get("raw_distribution") is None
++
++
++class TestPlanEntryRowShape:
++    """The row `main()` stamps: pinned to cron_runner.py's own source."""
++
++    @staticmethod
++    def _plan_entry_source() -> ast.Dict:
++        source = Path(cron_runner.__file__).read_text(encoding="utf-8")
++        for node in ast.walk(ast.parse(source)):
++            if isinstance(node, ast.Assign) and any(
++                isinstance(target, ast.Name) and target.id == "plan_entry"
++                for target in node.targets
++            ):
++                assert isinstance(node.value, ast.Dict)
++                return node.value
++        raise AssertionError("plan_entry assignment not found in cron_runner.py")
++
++    @staticmethod
++    def _field(entry: ast.Dict, key: str) -> str:
++        for field_key, value in zip(entry.keys, entry.values):
++            if isinstance(field_key, ast.Constant) and field_key.value == key:
++                return ast.unparse(value)
++        raise AssertionError(f"{key} not stamped on plan_entry")
++
++    @staticmethod
++    def _if_on(name: str) -> ast.If:
++        source = Path(cron_runner.__file__).read_text(encoding="utf-8")
++        matches = [
++            node
++            for node in ast.walk(ast.parse(source))
++            if isinstance(node, ast.If) and ast.unparse(node.test) == name
++        ]
++        assert len(matches) == 1, f"expected one `if {name}:`, found {len(matches)}"
++        return matches[0]
++
++    def test_row_names_the_pipeline_that_decided(self) -> None:
++        entry = self._plan_entry_source()
++
++        assert self._field(entry, "pipeline") == "_decision_pipeline"
++        assert cron_runner.JEV_PIPELINE == "jev"
++
++    def test_row_stamps_the_jev_proof_fields_from_the_payload(self) -> None:
++        entry = self._plan_entry_source()
++
++        assert "decision.get('raw_distribution')" == self._field(
++            entry, "raw_distribution"
++        )
++        assert "decision.get('jev_answered'" in self._field(entry, "jev_answered")
++        assert "decision.get('escalated'" in self._field(entry, "escalated")
++
++    def test_jev_hit_selects_jev_pipeline_and_the_miss_calls_the_controller(
++        self,
++    ) -> None:
++        node = self._if_on("_jev_decision")
++
++        hit = [ast.unparse(stmt) for stmt in node.body]
++        assert "decision = _jev_decision" in hit
++        assert "_decision_pipeline = JEV_PIPELINE" in hit
++
++        miss = [ast.unparse(stmt) for stmt in node.orelse]
++        assert "_decision_pipeline = pipeline_name" in miss
++        assert any("controller_plan(" in stmt for stmt in miss)
++
++
++class TestAutonomyRatioFromRealRows:
++    """DF-JEV-1 (4): the run's ratio is counted from per-decision rows."""
++
++    def test_ratio_is_jev_answered_over_decisions_total(
++        self, monkeypatch: pytest.MonkeyPatch
++    ) -> None:
++        rows = [
++            _decision_row(_jev_row(monkeypatch, "RIGHT"), "jev", 1),
++            _decision_row(_jev_row(monkeypatch, "DOWN"), "jev", 2),
++            _decision_row(_jev_row(monkeypatch, "A"), "jev", 3),
++        ]
++        fallback = cron_runner.controller_plan(
++            _ScriptedClient('{"plan": ["A"], "intent": "try the door"}'), _OBS, "", ""
++        )
++        rows.append(_decision_row(fallback, "RAM reader", 4))
++
++        block = cron_runner._autonomy_counters(rows)
++
++        assert block["decisions_total"] == 4
++        assert block["jev_answered"] == 3
++        assert block["escalated"] == 0
++        assert block["autonomy_ratio"] == 0.75
++        assert (
++            block["autonomy_ratio"] == block["jev_answered"] / block["decisions_total"]
++        )
++
++    def test_run_autonomy_row_reports_the_same_ratio(
++        self, monkeypatch: pytest.MonkeyPatch
++    ) -> None:
++        rows = [
++            _decision_row(_jev_row(monkeypatch, "RIGHT"), "jev", 1),
++            _decision_row(
++                _jev_decision(
++                    monkeypatch,
++                    _jev_payload("LEFT", escalate=True, missing_class="object_purpose"),
++                ),
++                "jev",
++                2,
++            ),
++        ]
++        fallback = cron_runner.controller_plan(
++            _ScriptedClient('{"plan": ["A"]}'), _OBS, "", ""
++        )
++        rows.append(_decision_row(fallback, "RAM reader", 3))
++
++        block = cron_runner._autonomy_counters(rows)
++        buffer = io.StringIO()
++        row = cron_runner._write_autonomy_row(buffer, "df-jev-1", block)
++        parsed = json.loads(buffer.getvalue())
++
++        assert parsed == row
++        assert parsed["event"] == cron_runner.AUTONOMY_LOG_EVENT
++        assert block["decisions_total"] == 3
++        assert block["jev_answered"] == 2
++        assert parsed["autonomy_ratio"] == round(
++            parsed["jev_answered"] / parsed["decisions_total"], 4
++        )
++        assert parsed["escalation_rate_by_missing_class"] == {"object_purpose": 1.0}

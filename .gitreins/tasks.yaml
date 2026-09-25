@@ -650,3 +650,13 @@ tasks:
   status: complete
   created_at: '2026-09-24T21:27:24.015454+00:00'
   completed_at: '2026-09-24T21:56:19.749989+00:00'
+- id: DF-JEV-1
+  title: Wire JEV tier into the overworld decision loop
+  criteria:
+  - Unit tests prove the overworld decision path consults jev_client.decide, fills
+    plan_entry jev_answered/escalated/missing_class/raw_distribution from the real
+    payload, and falls back to controller_plan on JEV miss; _autonomy_counters sum
+    from per-decision rows
+  status: complete
+  created_at: '2026-09-25T05:02:31.389856+00:00'
+  completed_at: '2026-09-25T05:35:07.873459+00:00'
