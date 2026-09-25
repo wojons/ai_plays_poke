@@ -11,6 +11,7 @@ import base64
 import json
 import re
 import threading
+import warnings
 from typing import Optional, Dict, Any, List, Callable
 from pathlib import Path
 from datetime import datetime
@@ -141,30 +142,67 @@ except ImportError:
                         os.environ[key] = value
 
 
-def get_model_pricing(model: str) -> tuple[Any, ...]:
-    """Get input/output pricing per million tokens for a model"""
-    model_lower = model.lower()
+# Public sticker prices in USD per 1M tokens. These intentionally ignore cache,
+# batch, subscription, and negotiated discounts so telemetry stays comparable.
+MODEL_PRICING: dict[str, tuple[float, float]] = {
+    # OpenRouter public model pages, checked 2026-09: $0.20/$1.20 and $2/$10.
+    "gpt-5.6-luna": (0.2, 1.2),
+    "gpt-5.6-sol": (2.0, 10.0),
+    # DeepSeek direct API public off-peak cache-miss/output rates, checked 2026-09.
+    "deepseek-flash": (0.15, 0.6),
+    # DeepSeek docs: legacy V4 Flash names serve V4.1 Flash at the Flash price.
+    "deepseek-v4-flash": (0.15, 0.6),
+    "deepseek-v4.1-flash": (0.15, 0.6),
+    # DeepSeek direct API public off-peak Pro rate, checked 2026-09.
+    "deepseek-v4-pro": (0.66, 1.98),
+    # Project compatibility ids: non-reasoning/reasoning map to Flash/Pro stickers.
+    "deepseek-chat": (0.15, 0.6),
+    "deepseek-reasoner": (0.66, 1.98),
+    # Anthropic public list prices retained for the project's Claude 2/3 families.
+    "claude-3-opus": (15.0, 75.0),
+    "claude-3-sonnet": (3.0, 15.0),
+    "claude-3-haiku": (0.25, 1.25),
+    "claude-2": (8.0, 32.0),
+    # Anthropic/OpenRouter public list prices for Claude 3.5 and Claude 4.
+    "claude-3.5-sonnet": (3.0, 15.0),
+    "claude-3.5-haiku": (0.8, 4.0),
+    "claude-sonnet-4": (3.0, 15.0),
+    "claude-opus-4": (15.0, 75.0),
+    # OpenAI public list prices retained for the project's GPT-3.5/4 families.
+    "gpt-4o-mini": (0.15, 0.6),
+    "gpt-4o": (5.0, 15.0),
+    "gpt-4-turbo": (10.0, 30.0),
+    "gpt-4": (30.0, 60.0),
+    "gpt-3.5-turbo": (0.5, 1.5),
+}
 
-    if "claude-3-opus" in model_lower:
-        return 15.0, 75.0  # $15/$75 per 1M
-    elif "claude-3-sonnet" in model_lower:
-        return 3.0, 15.0  # $3/$15 per 1M
-    elif "claude-3-haiku" in model_lower:
-        return 0.25, 1.25  # $0.25/$1.25 per 1M
-    elif "claude-2" in model_lower:
-        return 8.0, 32.0  # $8/$32 per 1M
-    elif "gpt-4o" in model_lower and "mini" not in model_lower:
-        return 5.0, 15.0  # $5/$15 per 1M
-    elif "gpt-4o-mini" in model_lower:
-        return 0.15, 0.6  # $0.15/$0.60 per 1M
-    elif "gpt-4-turbo" in model_lower:
-        return 10.0, 30.0  # $10/$30 per 1M
-    elif "gpt-4" in model_lower:
-        return 30.0, 60.0  # $30/$60 per 1M
-    elif "gpt-3.5-turbo" in model_lower:
-        return 0.5, 1.5  # $0.5/$1.5 per 1M
-    else:
-        return 5.0, 15.0  # Default pricing
+DEFAULT_MODEL_PRICING = (5.0, 15.0)
+_RELEASE_SUFFIX_RE = re.compile(r"-(?:\d{8}|\d{4}-\d{2}-\d{2})$")
+
+
+def _pricing_model_key(model: str) -> str:
+    """Normalize provider prefixes and dated releases without family substrings."""
+    model_key = model.strip().lower().rsplit("/", 1)[-1]
+    if model_key in MODEL_PRICING:
+        return model_key
+    return _RELEASE_SUFFIX_RE.sub("", model_key)
+
+
+def get_model_pricing(model: str) -> tuple[float, float]:
+    """Get public input/output sticker pricing per million tokens for a model."""
+    model_key = _pricing_model_key(model)
+    pricing = MODEL_PRICING.get(model_key)
+    if pricing is not None:
+        return pricing
+
+    warnings.warn(
+        f"No sticker pricing configured for model {model!r}; "
+        f"using default ${DEFAULT_MODEL_PRICING[0]:g}/${DEFAULT_MODEL_PRICING[1]:g} "
+        "per 1M input/output tokens",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+    return DEFAULT_MODEL_PRICING
 
 
 def calculate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
