@@ -52,6 +52,16 @@ class _TeacherClient:
         }
 
 
+class _ScriptedTeacherClient:
+    def __init__(self, responses: list[dict[str, Any]]) -> None:
+        self.responses = list(responses)
+        self.calls: list[dict[str, Any]] = []
+
+    def chat_completion(self, **kwargs: Any) -> dict[str, Any]:
+        self.calls.append(kwargs)
+        return self.responses.pop(0)
+
+
 def _teacher_json(**overrides: Any) -> str:
     payload = {
         key: value
@@ -318,3 +328,190 @@ def test_teacher_event_rows_do_not_change_autonomy_decision_population() -> None
         teacher=teacher,
     )
     assert summary.endswith("teacher=1 escalations (1 improved)")
+
+
+def test_reasoning_budget_exhaustion_retries_once_and_names_failure() -> None:
+    client = _ScriptedTeacherClient(
+        [
+            {
+                "content": "",
+                "finish_reason": "length",
+                "usage": {
+                    "completion_tokens": 16,
+                    "completion_tokens_details": {"reasoning_tokens": 16},
+                },
+            },
+            {
+                "content": "",
+                "finish_reason": "length",
+                "usage": {
+                    "completion_tokens": 32,
+                    "completion_tokens_details": {"reasoning_tokens": 32},
+                },
+            },
+        ]
+    )
+
+    patch = teacher_client.request_patch(
+        distributions=_pre_decision(),
+        missing_class="map_topology",
+        projection="MAP: Pallet Town",
+        teacher_model="test/reasoning-teacher",
+        client=client,
+        max_tokens=16,
+    )
+
+    assert patch["ok"] is False
+    assert (
+        patch["error"]
+        == "teacher token budget exhausted by reasoning tokens (finish_reason=length)"
+    )
+    assert [call["max_tokens"] for call in client.calls] == [16, 32]
+
+
+def test_provider_reasoning_field_and_inline_reasoning_normalize_patch() -> None:
+    client = _ScriptedTeacherClient(
+        [
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "reasoning_content": "provider-side private reasoning",
+                            "content": (
+                                "<think>inline private reasoning</think>"
+                                f"{_teacher_json()}|end_of_turn|"
+                            ),
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"cost": 0.0002},
+            }
+        ]
+    )
+
+    patch = teacher_client.request_patch(
+        distributions=_pre_decision(),
+        missing_class="map_topology",
+        projection="MAP: Pallet Town",
+        teacher_model="test/reasoning-teacher",
+        client=client,
+        max_tokens=32,
+    )
+
+    assert patch["ok"] is True
+    assert patch["instruction_patch"] == _TYPED_PATCH["instruction_patch"]
+    assert patch["applies_when"] == _TYPED_PATCH["applies_when"]
+
+
+def test_overworld_escalation_reasks_with_distribution_and_is_bounded(
+    monkeypatch: Any,
+) -> None:
+    distribution = {
+        "next_action": {"choice": "RIGHT", "distribution": {"RIGHT": 0.51}},
+        "missing_class": {
+            "choice": "map_topology",
+            "distribution": {"map_topology": 0.88},
+        },
+    }
+    pre_decision = {
+        **_pre_decision(),
+        "next_action": "RIGHT",
+        "raw": distribution,
+    }
+    monkeypatch.setattr(jev_client, "decide", lambda *_args, **_kwargs: pre_decision)
+
+    patch_calls: list[dict[str, Any]] = []
+
+    def fake_request_patch(**kwargs: Any) -> dict[str, Any]:
+        patch_calls.append(kwargs)
+        return {**deepcopy(_TYPED_PATCH), "one_shot_action": "DOWN"}
+
+    reask_calls: list[dict[str, Any]] = []
+
+    def fake_ask(state: str, **kwargs: Any) -> dict[str, Any]:
+        reask_calls.append({"state": state, **kwargs})
+        return {
+            "ok": True,
+            "next_action": "LEFT",
+            "sufficient_state": 0.91,
+            "missing_class": "none",
+            "raw": {"next_action": {"choice": "LEFT", "distribution": {"LEFT": 0.91}}},
+        }
+
+    monkeypatch.setattr(teacher_client, "request_patch", fake_request_patch)
+    monkeypatch.setattr(jev_client, "ask", fake_ask)
+    log_file = io.StringIO()
+    results: list[dict[str, Any]] = []
+    escalated_classes: set[str] = set()
+    kwargs = {
+        "goal": "leave Oaks Lab",
+        "recent_events": [{"cycle": 3, "action": "UP", "result": "no change"}],
+        "last_action": "UP",
+        "last_action_changed_state": False,
+        "teacher_api_client": object(),
+        "teacher_model": "test/reasoning-teacher",
+        "teacher_memory": "/game/runs/index: reached Oak's Lab",
+        "teacher_log_file": log_file,
+        "teacher_cycle": 4,
+        "teacher_results": results,
+        "escalated_classes": escalated_classes,
+    }
+
+    first = cron_runner._jev_overworld_decision({}, **kwargs)
+    second = cron_runner._jev_overworld_decision({}, **kwargs)
+
+    assert first["plan"] == ["DOWN"]
+    assert first["intent"] == "teacher one-shot DOWN"
+    assert second["plan"] == ["RIGHT"]
+    assert len(patch_calls) == 1
+    assert patch_calls[0]["distributions"] == pre_decision
+    assert patch_calls[0]["memory"] == "/game/runs/index: reached Oak's Lab"
+    assert len(reask_calls) == 1
+    assert (
+        _TYPED_PATCH["instruction_patch"]
+        in (reask_calls[0]["questions"]["next_action"]["instructions"])
+    )
+    assert escalated_classes == {"map_topology"}
+    assert len(results) == 1
+    assert results[0]["event"] == "teacher_escalation"
+    assert json.loads(log_file.getvalue())["patch"]["one_shot_action"] == "DOWN"
+
+
+def test_overworld_teacher_failure_degrades_to_normal_jev_decision(
+    monkeypatch: Any,
+) -> None:
+    decision = {**_pre_decision(), "next_action": "RIGHT", "raw": {}}
+    monkeypatch.setattr(jev_client, "decide", lambda *_args, **_kwargs: decision)
+    monkeypatch.setattr(
+        teacher_client,
+        "request_patch",
+        lambda **_kwargs: teacher_client.StatePatch.failed("teacher offline").to_dict(),
+    )
+    monkeypatch.setattr(
+        jev_client,
+        "ask",
+        lambda *_args, **_kwargs: pytest.fail(
+            "failed teacher patch must not re-ask JEV"
+        ),
+    )
+    log_file = io.StringIO()
+    results: list[dict[str, Any]] = []
+    escalated_classes: set[str] = set()
+
+    result = cron_runner._jev_overworld_decision(
+        {},
+        teacher_api_client=object(),
+        teacher_model="test/reasoning-teacher",
+        teacher_log_file=log_file,
+        teacher_cycle=5,
+        teacher_results=results,
+        escalated_classes=escalated_classes,
+    )
+
+    assert result["plan"] == ["RIGHT"]
+    assert result["intent"] == "jev RIGHT"
+    assert escalated_classes == {"map_topology"}
+    assert len(results) == 1
+    assert results[0]["ok"] is False
+    assert results[0]["error"] == "teacher offline"
