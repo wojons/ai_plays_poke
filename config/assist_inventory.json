@@ -1,0 +1,431 @@
+{
+  "version": 1,
+  "scope": [
+    "cron_runner.py",
+    "src/**/*.py"
+  ],
+  "matching": "file + enclosing function/class context + AST-normalized press_button call shape",
+  "notes": "This inventory covers every production press_button call in scope. Entries whose button is model/JEV-selected are declared transport sites, not deterministic assists; keeping them here makes any new call site fail closed.",
+  "sites": [
+    {
+      "file": "cron_runner.py",
+      "context": "_approach_first_starter",
+      "button": "a",
+      "call": "press_button('a', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: reaches and opens a ball dialog before the JEV species decision; it does not choose the species."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_approach_first_starter",
+      "button": "button",
+      "call": "press_button(button, frames=PRESS_FRAMES)",
+      "reason": "Starter transport: reaches and opens a ball dialog before the JEV species decision; it does not choose the species."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_approach_first_starter",
+      "button": "up",
+      "call": "press_button('up', frames=PRESS_FRAMES)",
+      "reason": "Starter transport: reaches and opens a ball dialog before the JEV species decision; it does not choose the species."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_approach_first_starter",
+      "button": "a",
+      "call": "press_button('a', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: reaches and opens a ball dialog before the JEV species decision; it does not choose the species."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_approach_first_starter",
+      "button": "a",
+      "call": "press_button('a', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: reaches and opens a ball dialog before the JEV species decision; it does not choose the species."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "b",
+      "call": "press_button('b', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "b",
+      "call": "press_button('b', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "direction",
+      "call": "press_button(direction, frames=PRESS_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "up",
+      "call": "press_button('up', frames=PRESS_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "a",
+      "call": "press_button('a', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "a",
+      "call": "press_button('a', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "b",
+      "call": "press_button('b', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "a",
+      "call": "press_button('a', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "a",
+      "call": "press_button('a', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_select_starter_from_menu",
+      "button": "b",
+      "call": "press_button('b', frames=STARTER_ACTION_FRAMES)",
+      "reason": "Starter transport: enacts the species selected by JEV and declines the optional nickname; no species choice is hardcoded here."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_escalating_recovery",
+      "button": "alt.lower()",
+      "call": "press_button(alt.lower(), frames=60)",
+      "reason": "Non-battle recovery ladder: deterministic escape from a proven stall; battle recovery is routed through JEV before these rungs."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_escalating_recovery",
+      "button": "start",
+      "call": "press_button('start', frames=30)",
+      "reason": "Non-battle recovery ladder: deterministic escape from a proven stall; battle recovery is routed through JEV before these rungs."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_escalating_recovery",
+      "button": "b",
+      "call": "press_button('b', frames=10)",
+      "reason": "Non-battle recovery ladder: deterministic escape from a proven stall; battle recovery is routed through JEV before these rungs."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_escalating_recovery",
+      "button": "b",
+      "call": "press_button('b', frames=10)",
+      "reason": "Non-battle recovery ladder: deterministic escape from a proven stall; battle recovery is routed through JEV before these rungs."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_escalating_recovery",
+      "button": "opp.lower()",
+      "call": "press_button(opp.lower(), frames=60)",
+      "reason": "Non-battle recovery ladder: deterministic escape from a proven stall; battle recovery is routed through JEV before these rungs."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_escalating_recovery",
+      "button": "a",
+      "call": "press_button('a', frames=3)",
+      "reason": "Non-battle recovery ladder: deterministic escape from a proven stall; battle recovery is routed through JEV before these rungs."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "_escalating_recovery",
+      "button": "b",
+      "call": "press_button('b', frames=30)",
+      "reason": "Non-battle recovery ladder: deterministic escape from a proven stall; battle recovery is routed through JEV before these rungs."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "a",
+      "call": "press_button('a', frames=15)",
+      "reason": "Pre-JEV intro/bootstrap transport: title, save selection, naming, or initial map exit occurs before the autonomous decision loop exists."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "down",
+      "call": "press_button('down', frames=15)",
+      "reason": "Pre-JEV intro/bootstrap transport: title, save selection, naming, or initial map exit occurs before the autonomous decision loop exists."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "a",
+      "call": "press_button('a', frames=15)",
+      "reason": "Pre-JEV intro/bootstrap transport: title, save selection, naming, or initial map exit occurs before the autonomous decision loop exists."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "a",
+      "call": "press_button('a', frames=_A_FRAMES)",
+      "reason": "Intro, name-entry, or dialog progression: pre-decision bootstrap and bounded recovery retained outside the overworld action choice."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "start",
+      "call": "press_button('start', frames=30)",
+      "reason": "Pre-JEV intro/bootstrap transport: title, save selection, naming, or initial map exit occurs before the autonomous decision loop exists."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "a",
+      "call": "press_button('a', frames=_A_FRAMES)",
+      "reason": "Intro, name-entry, or dialog progression: pre-decision bootstrap and bounded recovery retained outside the overworld action choice."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "up",
+      "call": "press_button('up', frames=15)",
+      "reason": "Pre-JEV intro/bootstrap transport: title, save selection, naming, or initial map exit occurs before the autonomous decision loop exists."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "b",
+      "call": "press_button('b', frames=30)",
+      "reason": "Pre-JEV intro/bootstrap transport: title, save selection, naming, or initial map exit occurs before the autonomous decision loop exists."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "button",
+      "call": "press_button(button, frames=30)",
+      "reason": "Pre-JEV intro bootstrap: follows the fixed bedroom/house exit route so the decision loop starts in the playable overworld."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "button",
+      "call": "press_button(button, frames=30)",
+      "reason": "Pre-JEV intro bootstrap: follows the fixed bedroom/house exit route so the decision loop starts in the playable overworld."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "btn",
+      "call": "press_button(btn, frames=PRESS_FRAMES)",
+      "reason": "Decision transport: executes the button selected by the JEV/controller plan; the call site supplies no deterministic action choice."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "a",
+      "call": "press_button('a', frames=_A_FRAMES)",
+      "reason": "Intro, name-entry, or dialog progression: pre-decision bootstrap and bounded recovery retained outside the overworld action choice."
+    },
+    {
+      "file": "cron_runner.py",
+      "context": "main",
+      "button": "a",
+      "call": "press_button('a', frames=_A_FRAMES)",
+      "reason": "Intro, name-entry, or dialog progression: pre-decision bootstrap and bounded recovery retained outside the overworld action choice."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.skip_intro",
+      "button": "a",
+      "call": "press_button('a', frames=press_frames)",
+      "reason": "Reusable pre-decision intro helper: bounded text advancement before any gameplay decision loop exists."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.bypass_title",
+      "button": "start",
+      "call": "press_button('start', frames=30)",
+      "reason": "Reusable pre-decision title helper: START is required to enter the game before autonomous decisions can begin."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.bypass_title",
+      "button": "start",
+      "call": "press_button('start', frames=15)",
+      "reason": "Reusable pre-decision title helper: START is required to enter the game before autonomous decisions can begin."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "right",
+      "call": "press_button('right', frames=5)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "left",
+      "call": "press_button('left', frames=5)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "down",
+      "call": "press_button('down', frames=5)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "up",
+      "call": "press_button('up', frames=5)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "a",
+      "call": "press_button('a', frames=15)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "right",
+      "call": "press_button('right', frames=5)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "left",
+      "call": "press_button('left', frames=5)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "down",
+      "call": "press_button('down', frames=5)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "up",
+      "call": "press_button('up', frames=5)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.enter_name",
+      "button": "a",
+      "call": "press_button('a', frames=15)",
+      "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.submit_name",
+      "button": "a",
+      "call": "press_button('a', frames=15)",
+      "reason": "Name-entry recovery: accepts a bounded default name when the intro is stuck, before autonomous gameplay begins."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.submit_name",
+      "button": "down",
+      "call": "press_button('down', frames=5)",
+      "reason": "Name-entry recovery: accepts a bounded default name when the intro is stuck, before autonomous gameplay begins."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.submit_name",
+      "button": "right",
+      "call": "press_button('right', frames=5)",
+      "reason": "Name-entry recovery: accepts a bounded default name when the intro is stuck, before autonomous gameplay begins."
+    },
+    {
+      "file": "src/core/emulator.py",
+      "context": "Emulator.submit_name",
+      "button": "a",
+      "call": "press_button('a', frames=15)",
+      "reason": "Name-entry recovery: accepts a bounded default name when the intro is stuck, before autonomous gameplay begins."
+    },
+    {
+      "file": "src/core/game_loop.py",
+      "context": "GameLoop._execute_pending_commands",
+      "button": "getattr(Button, button)",
+      "call": "press_button(getattr(Button, button))",
+      "reason": "Legacy command transport: executes a button parsed from the pending AI command, not a fixed gameplay choice."
+    },
+    {
+      "file": "src/core/state_window.py",
+      "context": "StateWindow.run",
+      "button": "a",
+      "call": "press_button('a', frames=30)",
+      "reason": "Legacy bounded dialog/name-entry advancement: retained for non-overworld state handling and capped before AI deliberation resumes."
+    },
+    {
+      "file": "src/core/state_window.py",
+      "context": "StateWindow.run",
+      "button": "a",
+      "call": "press_button('a', frames=30)",
+      "reason": "Legacy bounded dialog/name-entry advancement: retained for non-overworld state handling and capped before AI deliberation resumes."
+    },
+    {
+      "file": "src/core/state_window.py",
+      "context": "StateWindow.run",
+      "button": "button",
+      "call": "press_button(button, frames=dur)",
+      "reason": "Legacy name-entry transport: executes the keyboard action derived from the observed cursor and target name."
+    },
+    {
+      "file": "src/core/tools.py",
+      "context": "execute_tool_call",
+      "button": "button",
+      "call": "press_button(button, frames=duration)",
+      "reason": "Tool transport: executes the button and duration supplied by the deciding agent/tool call; no action is selected here."
+    },
+    {
+      "file": "src/core/tools.py",
+      "context": "_tap",
+      "button": "button",
+      "call": "press_button(button, frames=frames)",
+      "reason": "Battle-menu transport: taps the button selected by the higher-level JEV/tool action while navigating a known menu layout."
+    },
+    {
+      "file": "src/game_loop.py",
+      "context": "GameLoop._run_boot_progression",
+      "button": "button",
+      "call": "press_button(button, frames=30)",
+      "reason": "Legacy boot recovery: cycles a bounded boot-button sequence before the legacy gameplay loop starts."
+    },
+    {
+      "file": "src/game_loop.py",
+      "context": "GameLoop._execute_pending_commands",
+      "button": "button",
+      "call": "press_button(button)",
+      "reason": "Legacy command transport: executes the button parsed from the pending model command rather than choosing one deterministically."
+    }
+  ]
+}

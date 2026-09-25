@@ -62,6 +62,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Guard declared press_button assist inventory
+        run: python3 scripts/check_assist_inventory.py
+
       - name: Install SDL2 (PyBoy dep)
         run: sudo apt-get update -qq && sudo apt-get install -y -qq libsdl2-dev
 
