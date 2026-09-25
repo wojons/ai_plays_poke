@@ -1014,6 +1014,13 @@ def _jev_overworld_decision(
     recent_events: list[dict[str, Any]] | None = None,
     last_action: str = "",
     last_action_changed_state: bool | None = None,
+    teacher_api_client: Any = None,
+    teacher_model: str | None = None,
+    teacher_memory: str | None = None,
+    teacher_log_file: TextIO | None = None,
+    teacher_cycle: int | None = None,
+    teacher_results: list[dict[str, Any]] | None = None,
+    escalated_classes: set[str] | None = None,
 ) -> dict[str, Any]:
     """Ask the JEV tier for this overworld cycle's plan (PRD v3 stages 5-6).
 
@@ -1051,15 +1058,75 @@ def _jev_overworld_decision(
         safe_print(f"  [JEV] overworld decision failed: {exc!r} - falling back")
         return {}
 
-    raw_action = decision.get("next_action")
+    initial_decision = decision
+    teacher_record: dict[str, Any] | None = None
+    teacher_one_shot: str | None = None
+    missing_class = decision.get("missing_class")
+    escalation_class = (
+        missing_class if isinstance(missing_class, str) and missing_class else "unknown"
+    )
+    can_call_teacher = (
+        bool(decision.get("escalate"))
+        and teacher_api_client is not None
+        and bool(teacher_model)
+        and escalated_classes is not None
+        and escalation_class not in escalated_classes
+    )
+    if can_call_teacher:
+        # The predicate above narrows this for readers; the assertion also makes
+        # the Optional contract explicit to static analyzers.
+        assert escalated_classes is not None
+        # Consume the per-class allowance before the API boundary so a failed or
+        # raising teacher cannot be retried on every subsequent game cycle.
+        escalated_classes.add(escalation_class)
+        try:
+            teacher_record = jev_client.escalate_and_reask(
+                decision,
+                projection=projection,
+                memory=teacher_memory,
+                recent_events=recent_events,
+                milestones=[],
+                teacher_model=teacher_model,
+                client=teacher_api_client,
+                last_action_failed=last_action_changed_state is False,
+                log_file=teacher_log_file,
+                cycle=teacher_cycle,
+                results=teacher_results,
+            )
+        except Exception as exc:  # noqa: BLE001 - fail closed to normal decision
+            safe_print(
+                f"  [TEACHER] escalation failed: {exc!r} - using normal decision"
+            )
+        if teacher_record and teacher_record.get("ok"):
+            patch = teacher_record.get("patch")
+            post_ask = teacher_record.get("post_ask")
+            if isinstance(patch, dict):
+                raw_one_shot = patch.get("one_shot_action")
+                if isinstance(raw_one_shot, str):
+                    normalized_one_shot = raw_one_shot.upper()
+                    if normalized_one_shot in OVERWORLD_ACTIONS:
+                        teacher_one_shot = normalized_one_shot
+            if isinstance(post_ask, dict) and post_ask.get("ok"):
+                decision = post_ask
+
+    raw_action = teacher_one_shot or decision.get("next_action")
     action = raw_action.upper() if isinstance(raw_action, str) else None
+    if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
+        # A failed escalation degrades to the original JEV decision. If that is
+        # unusable too, the caller takes its existing controller fallback.
+        decision = initial_decision
+        raw_action = decision.get("next_action")
+        action = raw_action.upper() if isinstance(raw_action, str) else None
     if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
         return {}
 
-    escalate = bool(decision.get("escalate", False))
-    reason = decision.get("escalate_reason")
-    if action == OVERWORLD_WAIT:
-        plan: list[str] = []
+    escalate = bool(initial_decision.get("escalate", False))
+    reason = initial_decision.get("escalate_reason")
+    if teacher_one_shot is not None:
+        plan = [teacher_one_shot]
+        intent = f"teacher one-shot {teacher_one_shot}"
+    elif action == OVERWORLD_WAIT:
+        plan = []
         intent = "jev WAIT (no press)"
     else:
         plan = [action]
@@ -1069,7 +1136,7 @@ def _jev_overworld_decision(
         "intent": intent,
         "jev_answered": True,
         "escalated": escalate,
-        "missing_class": decision.get("missing_class"),
+        "missing_class": initial_decision.get("missing_class"),
         "raw_distribution": decision.get("raw"),
         "jev_escalate_reason": reason if isinstance(reason, str) else None,
         "jev_projection_chars": len(projection),
@@ -2682,6 +2749,9 @@ def main() -> None:
     _dir_blacklist: set[str] = set()  # directions that caused checkpoint recovery
     _last_direction: str = ""  # last direction pressed (for controller context)
     _last_result: str = "unknown"  # last movement result
+    # The teacher gets one attempt per missing-information class for this run.
+    # Membership is recorded before the API call, so failures remain bounded.
+    _teacher_escalated_classes: set[str] = set()
 
     # ── Stuck detection (4 independent dimensions) ──────────────────
     _same_dir: str | None = None  # last repeated direction
@@ -3411,6 +3481,13 @@ def main() -> None:
                         if _last_direction in _DIR_ROTATION
                         else None
                     ),
+                    teacher_api_client=controller_client,
+                    teacher_model=controller_model,
+                    teacher_memory=_boot_memory or None,
+                    teacher_log_file=log_file,
+                    teacher_cycle=cycle + 1,
+                    teacher_results=results,
+                    escalated_classes=_teacher_escalated_classes,
                 )
                 if _jev_decision:
                     decision = _jev_decision

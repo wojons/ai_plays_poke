@@ -18,6 +18,11 @@ from src.core.jev_client import MISSING_CLASSES
 MEMORY_CHAR_CAP = 1500
 PROJECTION_CHAR_CAP = 2000
 EVENT_LIMIT = 8
+# Reasoning models spend completion tokens on private thinking before emitting
+# JSON. 500 tokens starved 5/6 live teacher calls; 3,000 leaves bounded room for
+# both reasoning and the small state-patch object.
+TEACHER_MAX_TOKENS = 3000
+TEACHER_REASONING_RETRY_LIMIT = 1
 TEACHER_ESCALATION_EVENT = "teacher_escalation"
 
 _REASONING_BLOCK_RE = re.compile(
@@ -208,6 +213,44 @@ def _normalize_patch(
     )
 
 
+def _response_parts(
+    response: Any,
+) -> tuple[str | None, str | None, dict[str, Any], float | None]:
+    """Normalize both client and raw provider response envelopes.
+
+    OpenRouter/DeepSeek may expose private reasoning beside ``message.content``
+    (``reasoning``/``reasoning_content``). Those fields are deliberately ignored:
+    only public content can satisfy the typed patch contract.
+    """
+    if not isinstance(response, dict):
+        return None, None, {}, None
+
+    content = response.get("content")
+    finish_reason = response.get("finish_reason")
+    usage = response.get("usage")
+    cost = response.get("cost_usd")
+
+    choices = response.get("choices")
+    if isinstance(choices, list) and choices and isinstance(choices[0], dict):
+        choice = choices[0]
+        if finish_reason is None:
+            finish_reason = choice.get("finish_reason")
+        message = choice.get("message")
+        if isinstance(message, dict) and content is None:
+            content = message.get("content")
+
+    normalized_usage = usage if isinstance(usage, dict) else {}
+    if cost is None:
+        cost = normalized_usage.get("cost")
+    cost_usd = float(cost) if isinstance(cost, (int, float)) else None
+    return (
+        content if isinstance(content, str) else None,
+        finish_reason if isinstance(finish_reason, str) else None,
+        normalized_usage,
+        cost_usd,
+    )
+
+
 def request_patch(
     *,
     distributions: dict[str, Any] | None = None,
@@ -218,14 +261,21 @@ def request_patch(
     memory: str | None = None,
     teacher_model: str | None = None,
     client: Any = None,
+    max_tokens: int = TEACHER_MAX_TOKENS,
 ) -> dict[str, Any]:
-    """Request and normalize one teacher patch; never raise to the caller."""
+    """Request and normalize one teacher patch; never raise to the caller.
+
+    An empty length-limited response gets one bounded retry at twice the caller's
+    budget. ``max_tokens`` is injectable so unit tests and probes can stay cheap.
+    """
     started = time.monotonic()
     try:
         if client is None:
             raise ValueError("teacher client was not supplied")
         if not teacher_model:
             raise ValueError("teacher model was not supplied")
+        if max_tokens < 1:
+            raise ValueError("teacher max_tokens must be positive")
         prompt = build_teacher_prompt(
             distributions=distributions,
             missing_class=missing_class,
@@ -234,32 +284,43 @@ def request_patch(
             milestones=milestones,
             memory=memory,
         )
-        response = client.chat_completion(
-            model=teacher_model,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are the teacher escalation layer. Repair the supplied "
-                        "state contract and return typed JSON only."
-                    ),
-                },
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=500,
-            temperature=0.2,
-        )
-        content = response.get("content") if isinstance(response, dict) else None
-        if not isinstance(content, str):
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are the teacher escalation layer. Repair the supplied "
+                    "state contract and return typed JSON only."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ]
+        content: str | None = None
+        finish_reason: str | None = None
+        cost_usd: float | None = None
+        budget = max_tokens
+        for attempt in range(TEACHER_REASONING_RETRY_LIMIT + 1):
+            response = client.chat_completion(
+                model=teacher_model,
+                messages=messages,
+                max_tokens=budget,
+                temperature=0.2,
+            )
+            content, finish_reason, _usage, cost_usd = _response_parts(response)
+            if (content is None or not content.strip()) and finish_reason == "length":
+                if attempt < TEACHER_REASONING_RETRY_LIMIT:
+                    budget *= 2
+                    continue
+                raise ValueError(
+                    "teacher token budget exhausted by reasoning tokens "
+                    "(finish_reason=length)"
+                )
+            break
+
+        if not isinstance(content, str) or not content.strip():
             raise ValueError("teacher response has no text content")
         payload = _extract_json(content)
         if payload is None:
             raise ValueError("teacher response contained no JSON object")
-        usage = response.get("usage") if isinstance(response, dict) else None
-        cost = response.get("cost_usd") if isinstance(response, dict) else None
-        if cost is None and isinstance(usage, dict):
-            cost = usage.get("cost")
-        cost_usd = float(cost) if isinstance(cost, (int, float)) else None
         patch = _normalize_patch(
             payload,
             latency_s=time.monotonic() - started,
