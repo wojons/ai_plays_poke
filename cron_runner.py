@@ -496,6 +496,7 @@ from src.core.ram_reader import RAMReader
 from src.core.frame_cache import FrameCache
 from src.core.tools import execute_tool_call
 from src.core import jev_client
+from src.core import state_projection
 
 # ── Config ──────────────────────────────────────────────────────────
 # ROM / DEFAULT_BOOT_STATE / CYCLES / USE_RAM_READER are defined at the
@@ -987,6 +988,92 @@ def _battle_action_description(tool_name: str, arguments: dict[str, Any]) -> str
     if tool_name == "use_battle_item":
         return f"use_battle_item({arguments['item_name']})"
     return "run_from_battle()"
+
+
+# ── JEV overworld tier (DF-JEV-1, PRD v3 stages 5-6) ────────────────────────
+
+# The overworld action vocabulary is the non-battle question set's criteria
+# (jev_client._questions): buttons, not battle moves. An answer outside this
+# set is a JEV miss, and a miss falls back to the reasoning controller — the
+# loop never invents a press out of an unreadable answer.
+OVERWORLD_ACTIONS: frozenset[str] = frozenset(jev_client.BUTTONS)
+
+# JEV's "do nothing this cycle" answer. It maps to an EMPTY plan because
+# translating it into any button press would invent one.
+OVERWORLD_WAIT = "WAIT"
+
+# The decision-row pipeline name for a plan JEV authored (PRD v3 AC-1 rows).
+JEV_PIPELINE = "jev"
+
+
+def _jev_overworld_decision(
+    obs: dict[str, Any],
+    *,
+    goal: str = "",
+    visited: dict[tuple[int, int], int] | None = None,
+    recent_events: list[dict[str, Any]] | None = None,
+    last_action: str = "",
+    last_action_changed_state: bool | None = None,
+) -> dict[str, Any]:
+    """Ask the JEV tier for this overworld cycle's plan (PRD v3 stages 5-6).
+
+    The bounded RAM projection is built the way ``scripts/jev_projection_probe.py``
+    builds it — the same ``state_projection.build()`` call over the live
+    ``observe()`` dict, with the same cross-cycle material (goal, per-tile repeat
+    counts, recent events, last action) and the same mechanics rules — so the
+    game loop consumes the exact contract the probe proved.
+
+    Fail-closed contract: the returned dict is EMPTY whenever JEV errored or its
+    ``next_action`` is not in the overworld vocabulary, so the caller falls back
+    to ``controller_plan()`` and no press is ever invented. On a hit, the dict
+    carries the ``plan``/``intent`` the loop executes plus the JEV proof fields
+    the per-decision rows stamp: ``jev_answered``, ``escalated``,
+    ``missing_class`` and ``raw_distribution`` (the full answer distribution).
+    """
+    try:
+        projection = state_projection.build(
+            obs,
+            goal=goal,
+            visited=visited,
+            recent_events=recent_events,
+            last_action=last_action,
+            last_action_changed_state=last_action_changed_state,
+            mechanics=state_projection.DEFAULT_MECHANICS,
+        )
+        decision = jev_client.decide(
+            projection,
+            last_action_failed=last_action_changed_state is False,
+        )
+    except Exception as exc:  # noqa: BLE001 - fail closed, but never silently
+        # A raising tier must not kill the cycle AND must not hide itself: the
+        # run keeps playing through the controller, and the reason is printed
+        # so a broken wiring cannot masquerade as a run that simply missed.
+        safe_print(f"  [JEV] overworld decision failed: {exc!r} - falling back")
+        return {}
+
+    raw_action = decision.get("next_action")
+    action = raw_action.upper() if isinstance(raw_action, str) else None
+    if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
+        return {}
+
+    escalate = bool(decision.get("escalate", False))
+    reason = decision.get("escalate_reason")
+    if action == OVERWORLD_WAIT:
+        plan: list[str] = []
+        intent = "jev WAIT (no press)"
+    else:
+        plan = [action]
+        intent = f"jev {action}"
+    return {
+        "plan": plan,
+        "intent": intent,
+        "jev_answered": True,
+        "escalated": escalate,
+        "missing_class": decision.get("missing_class"),
+        "raw_distribution": decision.get("raw"),
+        "jev_escalate_reason": reason if isinstance(reason, str) else None,
+        "jev_projection_chars": len(projection),
+    }
 
 
 def _escalating_recovery(
@@ -2858,6 +2945,11 @@ def main() -> None:
     # ── Per-run metrics (GAP-028) ──────────────────────────────────
     _dir_lock_warn_cycles = 0  # cycles with >=1 direction-lock warning
     _visited_tiles: set[tuple[int, int, int]] = set()  # (map_id, x, y) seen
+    # JEV projection cross-cycle material (DF-JEV-1, PRD v3 §3.4): how many
+    # times each tile of the CURRENT map has been stood on. Repeat counts are
+    # the projection's stuck signal, so they are reset on a map change.
+    _tile_visits: dict[tuple[int, int], int] = {}
+    _tile_visits_map_id: int | None = None
 
     # ── Agent memory state (self-maintained, DuckBrain-backed) ──
     # The agent tracks its own goal, notes, and world map across cycles
@@ -2974,6 +3066,15 @@ def main() -> None:
                 current_tile = (raw_map_id, raw_tile_x, raw_tile_y)
             if current_tile is not None:
                 _visited_tiles.add(current_tile)
+                # JEV projection (DF-JEV-1): repeat counts for the map the
+                # player is standing on right now.
+                if _tile_visits_map_id != current_tile[0]:
+                    _tile_visits.clear()
+                    _tile_visits_map_id = current_tile[0]
+                _tile_visits_key = (current_tile[1], current_tile[2])
+                _tile_visits[_tile_visits_key] = (
+                    _tile_visits.get(_tile_visits_key, 0) + 1
+                )
             _last_tile, _same_tile_count = _track_same_tile(
                 current_tile, _last_tile, _same_tile_count
             )
@@ -3256,7 +3357,6 @@ def main() -> None:
                         if starter_approached:
                             continue
 
-                # Step 2b: Controller outputs movement PLAN from spatial description
                 # Frame-cache dedup: hash the raw screenshot; if this exact
                 # frame was seen before (same tile, same dialog box, battle
                 # idle, looping flow), pass a text UUID reference instead of
@@ -3288,23 +3388,60 @@ def main() -> None:
                             map_name=patch_data.get("map_name", ""),
                             screen=st,
                         )
-                decision = controller_plan(
-                    controller_client,
+                # ── Step 2a: JEV tier (DF-JEV-1, PRD v3 stages 5-6) ────
+                # The cheap System-One tier decides this overworld cycle from
+                # the bounded RAM projection BEFORE the reasoning controller is
+                # consulted at all, so a JEV hit skips the controller call and
+                # its image tokens. A miss (invalid action, transport error)
+                # falls through to controller_plan() exactly as before; the only
+                # way JEV can express "press nothing" is an empty plan, and the
+                # loop never invents a press for an answer it could not read.
+                _jev_decision = _jev_overworld_decision(
                     patch_data,
-                    _last_direction or "",
-                    _last_result,
-                    blocked_dir=_same_dir or "",
-                    blocked_count=_same_dir_count,
-                    max_actions=CART_STEPS,
-                    screenshot=_vision_frame,  # None on cache hit → no image cost
-                    frame_ref=_frame_ref,  # UUID text ref on cache hit
                     goal=_mem_goal,
-                    notes=" | ".join(_mem_notes[:6])[:300],
-                    last_dialog=_last_dialog_text,
-                    study_result=_pending_study_result,
-                    boot_memory=_boot_memory,  # MEM-2: built once at boot
-                    model=controller_model,  # GAP-052: flag/env-resolved
+                    visited=_tile_visits,
+                    recent_events=results,
+                    last_action=_last_direction or "",
+                    # PRD v3 §3.2 trigger 1 (failure): a DIRECTION press that
+                    # left the player on the same (map, tile) changed nothing,
+                    # so the gate must escalate regardless of confidence. A
+                    # non-movement last action leaves the result UNKNOWN.
+                    last_action_changed_state=(
+                        _same_tile_count == 1
+                        if _last_direction in _DIR_ROTATION
+                        else None
+                    ),
                 )
+                if _jev_decision:
+                    decision = _jev_decision
+                    _decision_pipeline = JEV_PIPELINE
+                    safe_print(
+                        f"  [JEV] {decision['intent']} | projection "
+                        f"{decision['jev_projection_chars']} chars | "
+                        f"escalated={decision['escalated']} "
+                        f"({decision.get('jev_escalate_reason')})"
+                    )
+                else:
+                    # ── Step 2b: controller outputs the movement PLAN ──
+                    # from the spatial description (JEV miss / unavailable).
+                    decision = controller_plan(
+                        controller_client,
+                        patch_data,
+                        _last_direction or "",
+                        _last_result,
+                        blocked_dir=_same_dir or "",
+                        blocked_count=_same_dir_count,
+                        max_actions=CART_STEPS,
+                        screenshot=_vision_frame,  # None on cache hit → no image cost
+                        frame_ref=_frame_ref,  # UUID text ref on cache hit
+                        goal=_mem_goal,
+                        notes=" | ".join(_mem_notes[:6])[:300],
+                        last_dialog=_last_dialog_text,
+                        study_result=_pending_study_result,
+                        boot_memory=_boot_memory,  # MEM-2: built once at boot
+                        model=controller_model,  # GAP-052: flag/env-resolved
+                    )
+                    _decision_pipeline = pipeline_name
                 # Study result is injected once, then cleared
                 _pending_study_result = ""
                 plan = decision.get("plan", ["A"])
@@ -3454,22 +3591,23 @@ def main() -> None:
                 plan_entry = {
                     "cycle": cycle + 1,
                     "screen": st,
-                    "pipeline": pipeline_name,
+                    "pipeline": _decision_pipeline,
                     "plan": plan,
                     "intent": intent,
                     # JEV-1 (PRD v3 AC-1): every decision row carries the
-                    # autonomy fields. The values are read off the decision
-                    # payload, so wiring the JEV tier into this loop
-                    # (JEV-2/JEV-4) fills them without editing this row — the
-                    # closeout counters in `_autonomy_counters` then report
-                    # real `jev_answered`/`escalated`/`missing_class` numbers.
-                    # Until then the controller payload has no such keys and
-                    # the row reports the defaults.
+                    # autonomy fields. DF-JEV-1 wired the JEV tier into this
+                    # loop, so a row JEV decided (`pipeline="jev"`) fills them
+                    # from JEV's real payload, `raw_distribution` included; a
+                    # row from the controller fallback path carries none of
+                    # these keys and reports the defaults, which is exactly the
+                    # split `_autonomy_counters` counts at closeout.
                     "jev_answered": bool(decision.get("jev_answered", False)),
                     "escalated": bool(decision.get("escalated", False)),
                     "missing_class": (
                         _missing_class if isinstance(_missing_class, str) else None
                     ),
+                    "raw_distribution": decision.get("raw_distribution"),
+                    "jev_projection_chars": decision.get("jev_projection_chars"),
                     "controller_raw": decision.get("raw_response", ""),
                     "frame_cache": "hit" if _frame_ref else "miss",
                     "frame_uuid": _frame_ref,
@@ -3536,7 +3674,7 @@ def main() -> None:
 
                 elapsed = time.time() - t0
                 safe_print(
-                    f"  [{cycle + 1}/{CYCLES}] {st} | {pipeline_name} x{CART_STEPS} | {elapsed:.1f}s"
+                    f"  [{cycle + 1}/{CYCLES}] {st} | {_decision_pipeline} x{CART_STEPS} | {elapsed:.1f}s"
                 )
 
             elif st == "name_entry":
