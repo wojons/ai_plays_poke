@@ -404,6 +404,37 @@ def test_provider_reasoning_field_and_inline_reasoning_normalize_patch() -> None
     assert patch["applies_when"] == _TYPED_PATCH["applies_when"]
 
 
+def test_teacher_call_disables_thinking_and_sends_budget() -> None:
+    client = _ScriptedTeacherClient(
+        [
+            {
+                "choices": [
+                    {
+                        "message": {"content": f"{_teacher_json()}|end_of_turn|"},
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {"cost": 0.0002},
+            }
+        ]
+    )
+
+    teacher_client.request_patch(
+        distributions=_pre_decision(),
+        missing_class="map_topology",
+        projection="MAP: Pallet Town",
+        teacher_model="test/reasoning-teacher",
+        client=client,
+        max_tokens=32,
+    )
+
+    # Reasoning models bill thinking against max_tokens: the teacher call
+    # must disable thinking (docs/dogfood/diagnostics.md) and pass its budget.
+    call = client.calls[0]
+    assert call["thinking"] == {"type": "disabled"}
+    assert call["max_tokens"] == 32
+
+
 def test_overworld_escalation_reasks_with_distribution_and_is_bounded(
     monkeypatch: Any,
 ) -> None:

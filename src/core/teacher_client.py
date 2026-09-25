@@ -304,6 +304,10 @@ def request_patch(
                 messages=messages,
                 max_tokens=budget,
                 temperature=0.2,
+                # Reasoning models bill thinking tokens against max_tokens;
+                # parseable teacher patches need thinking OFF + headroom.
+                # Repo diagnostics: docs/dogfood/diagnostics.md (judge finding b).
+                thinking={"type": "disabled"},
             )
             content, finish_reason, _usage, cost_usd = _response_parts(response)
             if (content is None or not content.strip()) and finish_reason == "length":
