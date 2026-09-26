@@ -296,3 +296,4 @@ v1.5.0 (JEV reality-check section + fresh install/E2E evidence refresh).
 **Install leg:** bunker proven (33 s); smoke = honest fail (ROM wall), NOT
 silent. **Costs on sticker prices only** (DF-JEV-4: printed $ values use
 the default table) — real spend well under $0.03 for the whole run.
+Sat Sep 26 11:39:17 AM UTC 2026 | PROMISING-BUT-ROUGH | PROMISE: Autonomous Pokémon gameplay through emulation with RAM reader and LLM controller | REALITY: Works but slow due to LLM latency; cold start 22.42s/5cycles, warm start 8.02s/5cycles | TOP3: DOGFOOD-INSTALL-001 (bunker unreachable), DOGFOOD-PERF-001 (LLM latency bottleneck), Recovery systems functional | LEFT BEHIND: docs/dogfood/2026-09-26-integration.md, docs/dogfood/2026-09-26-diagnostics.md, skills/ai-plays-poke-usage/SKILL.md

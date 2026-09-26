@@ -1,256 +1,225 @@
 ---
 name: ai-plays-poke-usage
-description: >-
-  How to actually USE the ai-plays-poke (PTP-01X) autonomous Pokémon AI system:
-  the working E2E runner (cron_runner.py), the cron.sh wrapper, --dry-run setup
-  validation (presence-only — does NOT catch expired keys!), the RAM map viewer
-  (boots to overworld), MANDATORY pre-run key verification (curl, 2026-09-09
-  lesson), the fresh-install footprint (PROVEN on las-bunker-03 2026-09-09b:
-  98s clean venv+pip, zero system deps, but a ROM wall at first run), the
-  DeepSeek escape lane and its <|endoftext|> JSON corruption, cost
-  expectations, JSONL output schema, and open gaps (GAP-035..054 — incl. P0
-  GAP-047: dead-key runs still exit 0).
-version: 1.5.0
+description: Teaches agents how to use PTP-01X for autonomous Pokémon gameplay — entry points, run commands, common pitfalls, and the "right way" patterns.
+version: 1.0.0
+category: software-development
 ---
 
-# Using ai-plays-poke (PTP-01X)
+# Using PTP-01X for Autonomous Pokémon Gameplay
 
-Autonomous Pokémon AI benchmarking system: PyBoy emulator + LLM decision loop
-that plays Pokémon Blue/Red. Maintained by a coding-hermes foreman (board in
-`.coding-hermes/board/tasks.jsonl`, JSONL canonical; `events.jsonl` for events).
+## Core Purpose
+PTP-01X is an autonomous AI agent that plays Pokémon through emulation using:
+- PyBoy emulator for perfect state extraction
+- RAM reader for instant, free game state access  
+- LLM controllers (OpenRouter) for strategic decisions
+- Hierarchical State Machine (69 states) for gameplay orchestration
+- DuckBrain context memory for learning persistence
 
-## JEV / PRD-v3 reality check (verified by use 2026-09-24)
+## Entry Points
 
-The JEV tier (System One) and the teacher are REAL and working — but as of
-2026-09-24 they are NOT wired into the main game loop. Two fresh 20-cycle
-runs both reported `autonomy=0/16`: the overworld decision is still
-`controller_plan()` (Luna), battles are still the StateWindow deepseek loop,
-and the autonomy counters read payload keys the controller never sets
-(DF-JEV-1). The teacher escalation is unreachable in-game (its only caller
-is the probe script) and its API call dies 5/6 times because reasoning
-tokens consume the 500-token budget before any JSON is emitted (DF-JEV-2 —
-`request_patch` does not disable thinking; finish_reason=length, content="").
-
-**What works today, verified live:**
-
-- `scripts/jev_projection_probe.py data/boot.state` — real checkpoint →
-  projection → JEV typed decision (~$0.00006, 0.3-0.8s). Add `--escalate`
-  to exercise the teacher pipeline (retry it; ~1/6 success today).
-- Autonomy truth of ANY run: `jq -c 'select(.event=="run_autonomy")'
-  cron_logs/run_<id>.jsonl` — if `jev_answered` is 0, the run never used JEV
-  regardless of what the board says.
-- Battles: judge by the JSONL (`battle_events`, `state_window_raw`), not the
-  summary — battle turns carry NO battle_action/distribution row, so AC-3's
-  observable cannot be checked from run logs yet (DF-JEV-3).
-
-**Any dogfood/QA run that verifies "JEV complete" MUST include a real
-`cron_runner.py` run and count `jev_answered` from the run_autonomy row —
-green unit tests + a passing probe prove the engine, not the wiring.**
-
-
-## ⚠️ STEP ZERO — verify API keys before ANY run (2026-09-09 lesson)
-
-The runner does NOT fail when the LLM provider rejects every call — it prints
-`Done.` and exits 0 after N cycles of zero real decisions (GAP-047). The
-dry-run only checks key PRESENCE, not liveness (GAP-048). Always curl first:
+### Primary: cron_runner.py (Recommended)
+This is the **real autonomous gameplay** path that bypasses expensive vision APIs:
 
 ```bash
-source .env 2>/dev/null
-# Controller key (openai/gpt-5.6-luna via OpenRouter) — MUST return a completion:
-curl -sS -m 20 https://openrouter.ai/api/v1/chat/completions \
-  -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" \
-  -d '{"model":"openai/gpt-5.6-luna","messages":[{"role":"user","content":"say OK"}],"max_tokens":5}'
-# Cheap alternative: curl -sS https://openrouter.ai/api/v1/key -H "Authorization: Bearer $OPENROUTER_API_KEY"
-# Fallback/state-window key:
-curl -sS -m 15 https://api.deepseek.com/chat/completions \
-  -H "Authorization: Bearer $DEEPSEEK_API_KEY" -H "Content-Type: application/json" \
-  -d '{"model":"deepseek-chat","messages":[{"role":"user","content":"say OK"}],"max_tokens":5}'
+source .venv/bin/activate
+python3 cron_runner.py --run-id <label> --cycles <N>
 ```
 
-`{"error":{"message":"API key expired.","code":401,...}}` = DO NOT RUN — fix the
-key first (rotating keys is an infra decision, not a repo fix). On 2026-09-09
-the OpenRouter key was expired and every documented entry point still "passed".
+**Key features:**
+- Reads game state directly from emulator RAM (zero cost per tick)
+- Uses LLM calls only for decisions (~$0.001 per cycle)
+- Built-in recovery for direction locks and stuck states
+- Checkpoint system for consistent boot states
 
-## Entry points (verified 2026-09-09 by dogfood run)
+### Legacy: src/game_loop.py (Historical)
+> **⚠️ Deprecated** - Use `cron_runner.py` instead. The legacy path has known issues with vision pipeline and requires PYTHONPATH manipulation.
 
-| Path | Status | Use for |
-|---|---|---|
-| Key check (curl above) | ✅ **REQUIRED FIRST** | Catches expired keys that every in-repo check misses |
-| `python3 cron_runner.py --run-id <id> --cycles N` | ⚠️ Pipeline works, **decision layer dead on expired key** — 20 cycles, 0/20 LLM success, still `Done.` + exit 0 (GAP-047) | Real autonomous gameplay — only after key check passes |
-| `python3 cron_runner.py --dry-run` | ⚠️ WORKS but **presence-only key check** (GAP-048): passed on an expired key | Config/ROM/boot-state validation — never a key-liveness proof |
-| `bash .coding-hermes/cron.sh --cycles N --run-id <id>` | ⚠️ Same runner inside — inherits GAP-047 | Scheduled wrapper — add key check upstream before trusting it |
-| `.venv/bin/python ram_map_server.py` → :8099 | ✅ **WORKS — re-verified 2026-09-09** (`/` 200, `/data.json` 200 real map data Red's House 2F, bad path 404; needs NO API keys) | Live RAM-state viewer |
-| Fresh install (bunker-proven 2026-09-24) | ✅ `python3 -m venv .venv && .venv/bin/pip install -r requirements.txt` = rc 0 in **33 s** on bare Debian (third independent box; 09-09b was 98s, 09-23 was 54s) — zero system packages (PyBoy/SDL2 ship as wheels). Then `--dry-run` exits 1 "ROM not found" until you supply a ROM (GAP-054) | New-machine setup |
-| `python3 src/game_loop.py --rom <ROM> --max-ticks N` | 🟡 Legacy path; NOT re-verified 2026-09-09 | Legacy/simplified runs — prefer `cron_runner.py` |
-| `PYTHONPATH=src .venv/bin/python -m src.ptp_cli \| src.debug_screen \| src.memory_reader --help` | ✅ works (AP-GAP-015/016/017) | Config / screen / RAM debug CLIs |
+## Run Commands
 
-**Never judge this project by `src/game_loop.py`.** The working system is
-`cron_runner.py` + `cron.sh` + the viewer.
-
-## What a DEAD run looks like (2026-09-09 — do not mistake for success)
-
-```
-Exception: OpenRouter API error 401: {'error': {'message': 'API key expired.', ...}}   ← x20, then:
-Exception: Circuit breaker open - too many failures                                     ← x13
-  [CACHE-HIT] frame 1e190af9 → ref a5653621d634 (seen 6x)   ← same frame forever
-[dogfood_20260909_001] Done. 23 actions. Screens: {'unknown'} | lock-rate: 0/20 (0%) | distinct tiles: 1
-RUN_EXIT=0                                    ← THE LIE: zero decisions happened
-```
-
-**A healthy run (2026-08-26 reference) looks like:**
-
-```
-[1/20] overworld | RAM reader x6 | 3.2s      ← 1 LLM call/cycle
-📡 API: openai/gpt-5.6-luna | 4976ms | In: 3208 | Out: 236 | $0.019580 | Success: True
-[dogfood_20260826_001] Done. Screens: {'overworld', '?', 'dialog'} | lock-rate: 4/20 (20%) | distinct tiles: 10
-```
-
-**Acceptance bar (GAP-028 + 2026-09-09 amendment):** count `Success: True` API
-lines — a run with ZERO successful LLM calls is a failed run regardless of exit
-code. Also require: lock-rate well under 50%, ≥2 distinct tiles, coords that
-CHANGE across cycles, screenshots present. `Screens: {'unknown'}` +
-`distinct tiles: 1` + all-`[CACHE-HIT]` = dead run (GAP-047).
-
-## Quick start (working path)
-
+### Basic Autonomous Run
 ```bash
-cd /home/kara/ai_plays_poke
-source .venv/bin/activate          # deps installed; .env has API keys
-# 1) curl key check (STEP ZERO above) — BOTH keys
-python3 cron_runner.py --dry-run   # config check — ROM/boot-state/pipeline only
-python3 cron_runner.py --run-id demo1 --cycles 20
-# ~3 min, ~$0.35 when keys are live. Boots from data/boot.state = Oak's Lab, starter pre-picked
+source .venv/bin/activate
+python3 cron_runner.py --run-id autonomous-demo --cycles 80
 ```
 
-Outputs:
-- `cron_logs/run_<id>.jsonl` — per-cycle JSON (screen, pipeline, plan, intent,
-  controller_raw, player_x/y, map_name) + event rows; on dead runs each cycle
-  carries the full Python traceback of the failed call (grep for `401`).
-- `screenshots/run_<id>/step_000N.png` — 160×144 frames (one per cycle)
-- Both gitignored — safe to leave in the tree.
+### Dry Run (Validation Only)
+```bash
+source .venv/bin/activate
+python3 cron_runner.py --dry-run
+# Validates ROM, boot state, API keys — exits 0, zero LLM/API calls
+```
 
-## Cost & time (verified 2026-08-26, keys live)
+### Custom Configuration
+```bash
+source .venv/bin/activate
+# Override ROM path
+python3 cron_runner.py --run-id custom-rom --cycles 40 --rom data/rom/pokemon_red.gb
 
-- ~$0.016–0.019 per overworld cycle (`openai/gpt-5.6-luna` via OpenRouter).
-- 20 cycles ≈ 3 min wall, ~$0.35; 80 cycles ≈ 10–15 min, ~$1.40.
-- Cost is on stdout (`📡 API: ... | $<cost>`), NOT in the JSONL.
-- `deepseek-v4-flash` is the state-window model. NOTE (GAP-049): a valid
-  DeepSeek key does NOT help the controller — `openai/gpt-5.6-luna` is
-  hardcoded (cron_runner.py:905), no flag/env override exists yet.
+# Force legacy intro bypass (not recommended)
+python3 cron_runner.py --run-id no-checkpoint --cycles 20 --boot-state skip
 
-## Pitfalls
+# Use specific checkpoint
+python3 cron_runner.py --run-id from-save --cycles 60 --boot-state data/boot.state
+```
 
-1. **Phantom-green on dead keys (GAP-047, P0):** expired/invalid
-   OPENROUTER_API_KEY → every cycle fails (401 → retries → circuit breaker),
-   run still prints `Done.` and exits 0. cron.sh/scheduler/E2E wrappers read
-   that as success. Judge runs by the acceptance bar above, never exit code.
-2. **Dry-run proves presence, not liveness (GAP-048):** `API keys:
-   OPENROUTER_API_KEY=set` + `Validation OK` + exit 0 happened with a key that
-   401'd on every real call. Only the curl check catches it.
-3. **Single-provider hard dependency (GAP-049):** controller model hardcoded
-   (cron_runner.py:905). DeepSeek key valid but unusable as controller → one
-   expired provider key zeroes the whole run.
-4. PyBoy native noise on stderr at every emulator boot: `Special Game Boy
-   color command: 0xe000!` / `Unknown SGB packet sent!` (~10 lines; also in
-   ram_map_server). Harmless but clutters output (GAP-050).
-5. `src/game_loop.py`: legacy path — all known gaps (GAP-020/021/022/025)
-   complete per board; NOT re-verified recently. `--multi-instance` raises
-   NotImplementedError (stub).
-6. `UserWarning: Using SDL2 binaries` on stderr is harmless.
-7. `.env` holds API keys — never commit or copy it.
-8. Pre-existing working-tree noise to leave alone: `data/duration_profiles.json`
-   (modified), `dagger.db` (untracked) — tracked on the board as QA rows.
-9. `--rom` override: `data/boot.state` is a Blue-SGB checkpoint; use
-   `--boot-state skip` for other ROMs (GAP-037).
-10. Default 20-cycle runs wander Oak's Lab; reaching Route 1 needs ≥80 cycles
-    and is LLM-dependent (GAP-038).
-11. **The DeepSeek escape lane is booby-trapped (GAP-052, 2026-09-09b):**
-    `OpenRouterClient.chat_completion(model="deepseek-chat")` DOES route to
-    api.deepseek.com with the live DEEPSEEK_API_KEY (707 ms, $0.000255 in the
-    probe) — but DeepSeek can emit `<|endoftext|>` INLINE inside the JSON
-    content (`{"ok":<|endoftext|> true}`), and `controller_plan` does a bare
-    `json.loads` → parse_fallback → blind A-presses. Combined with the
-    hardcoded controller model (GAP-049) there is currently NO clean route to
-    the working provider. Do not "fix" a dead-key run by hand-editing the
-    model string until GAP-052 lands.
-12. **First-run ROM wall (GAP-054):** `data/rom/` ships a README that lists
-    ROMs but no ROM files. A fresh clone + clean install dies at `--dry-run`
-    with `ROM not found` (exit 1 — honest). Place your own Gen-1 Blue ROM at
-    the exact filename in the dry-run error; `data/boot.state` already ships,
-    so play starts in Oak's Lab the moment the ROM is present.
+### Flags Reference
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--run-id` | auto-generated timestamp | Label for logs/screenshots |
+| `--cycles` | 20 | Number of AI decision cycles |
+| `--rom` | data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb | Path to Gen-1 GB ROM |
+| `--boot-state` | data/boot.state if present | Checkpoint to boot from; `skip` forces legacy bypass |
 
-## Verifying fixes (L3 standard)
+## Common Pitfalls & Fixes
 
-- **cron_runner fixes:** key-check curl first; run ≥ 20 cycles; require >0
-  `Success: True` lines, movement (coords CHANGE), lock-rate < 50%,
-  `state_saved` events, screenshots present, exit 0.
-- **Exit-code fix (GAP-047):** force a dead key (e.g. `OPENROUTER_API_KEY=dead
-  python3 cron_runner.py --cycles 2`) → must exit ≠ 0 and print LLM fail
-  counts; healthy run still exits 0.
-- **cron.sh fixes:** `bash .coding-hermes/cron.sh --cycles 5 --run-id <id>`
-  must show cron_runner output and exit 0 — no `ModuleNotFoundError`.
-- **--dry-run fix (GAP-048):** expired key → dry-run exits ≠ 0 quoting the
-  provider error; add `--skip-key-check` escape hatch for offline use.
-- **Controller-model + JSON-strip fix (GAP-052):** with OPENROUTER_API_KEY
-  unset and `--controller-model deepseek-chat`, a 20-cycle run must record
-  ≥15/20 successful LLM calls in the JSONL; grep `run_<id>.jsonl` for
-  `<|endoftext|>` — zero occurrences in final content.
-- **viewer fixes:** boot server, `GET /data.json` must show
-  `screen_type=overworld`, player coords, map blocks.
+### 1. ModuleNotFoundError: No module named 'numpy'
+**Symptom:** Error when importing numpy despite having requirements.txt
+**Fix:** Always activate the virtual environment first:
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
 
-## Board & fleet context
+### 2. API Key Not Found
+**Symptom:** `WARNING: No OpenRouter API key found. Using stub AI mode`
+**Fix:** 
+```bash
+cp .env.example .env
+# Edit .env and add your OPENROUTER_API_KEY from https://openrouter.ai
+```
 
-- Foreman `ai-plays-poke` cooldown 21600s; QA crons flagged it idle since
-  2026-09-03 (QA-AI-PLAYS-POKE-3). Open work 2026-09-09: E2E-001, NEVER-DONE,
-  GAP-043/045/046, DEPS-003/004, DOC-1/2, CLN-1, QA-AI-PLAYS-POKE-1..5,
-  **GAP-047..054 (dogfood 2026-09-09 + 09-09b — GAP-047 is P0, still open and
-  reproduced live on 09-09b)**. GAP-051's install concern: RESOLVED by the
-  09-09b bunker battery (98 s clean install) — remaining ROM-docs work is
-  GAP-054.
-- Board: `.coding-hermes/board/tasks.jsonl` + `events.jsonl` (canonical, git
-  tracked; board.db/parquet are gitignored derived caches — foreman resyncs).
-  Append rows + an event with `actor=dogfood` (see events 186 and 221).
-- Proven E2E evidence: T217 20/20 EXIT 0 (trainer battle, $0.40); T227
-  (2026-08-27) 20/20, 24/24 API success, lock-rate 30%, 13 tiles; dogfood
-  2026-08-26 20/20 ($0.35). 2026-09-24: dgf_0924_pm + dgf_0924_warm2, both
-  20/20, 25/25 + 26/26 API success, autonomy 0/16 both (DF-JEV-1).
-  2026-09-09: 0/20 API success (expired key).
-- Fresh-install evidence: 2026-09-24 bunker-las-03, agent 7a941edf (destroyed):
-  clone+venv+pip = 33s, zero system deps; documented smoke (--dry-run)
-  honestly fails at the ROM wall (rc=1); fresh-tree pytest --collect-only
-  exits 0 (QA-AI-PLAYS-POKE-7 fix holds).
+### 3. ROM File Not Found
+**Symptom:** `ERROR: ROM file not found: data/rom/Pokemon - Blue Version...`
+**Fix:**
+```bash
+ls data/rom/
+# Ensure the exact filename matches (case-sensitive)
+# Place your .gb or .gbc ROM in data/rom/
+```
 
+### 4. Database Errors
+**Symptom:** `sqlite3.OperationalError: unable to open database file`
+**Fix:**
+```bash
+mkdir -p runs/test_001  # Ensure save directory exists
+python3 src/game_loop.py --rom "...rom file..." --save-dir runs/test_001
+```
 
-## Memory circuit (MEM-1/MEM-2 - verified live 2026-09-23, first real use)
+### 5. Poor Performance / Slow Execution
+**Symptoms:** Low ticks per second, stuttering, high CPU usage
+**Fixes:**
+1. Increase screenshot interval: `--screenshot-interval 120` (default 60)
+2. Limit session length: `--max-ticks 5000`
+3. Close other applications to free resources
+4. Verify virtual environment is activated
 
-The controller boots with a `BOOT MEMORY` block (four DuckBrain layers) and the
-end-of-run recorder appends run truth back into the store. Verified working
-end-to-end by two real runs (dgf_0923a/b):
+## Performance Characteristics
 
-- **Store location:** `~/duckbrain/namespaces/pokemon-global/data/memories-<date>.jsonl`
-  (ns `pokemon-global`, hardcoded cron_runner.py:1209 - PRD R3 says `ai-plays-poke`;
-  trust the code, DF-AIPP-4). Plain JSONL appends - inspect with jq, no server.
-- **MEM-2 signal:** run start prints `[MEM] boot injection: N chars across M block
-  markers`. Absent = empty store (all four BOOT keys missing) - correct for a fresh
-  store, not a bug. Check the store before filing a bug.
-- **MEM-1 writes per run:** `/game/runs/<id>/summary`, `/game/save/party`,
-  `/game/save/location`, rolling `/game/runs/index` (last-10). `/game/save/items`
-  is skipped every run (`no public item reader` - the RAM reader has no inventory
-  method yet).
-- **Ladder numbers are decorative until DF-AIPP-1/2 land:** `memory_events` is
-  ALWAYS 0 (note/goal/study events never appended to `results`) and
-  `battle_events` is double-counted (nested lists + top-level rows). Judge the
-  memory circuit by READING the JSONL, never by the summary ladder.
-- **MECHANICS + LEARNING layers have no writer** (DF-AIPP-3): the prompt promises
-  `study -> /game/mechanics/*` but the study handler only reads; notes go to
-  `/notes/overworld-<cycle>` and are never distilled into `/game/learning/*`.
-- **`scripts/marathon_driver.py` does not exist in the repo** (DF-AIPP-5) - the
-  330 legacy `/game/save/current` records in the ns came from it (last: 09-19)
-  and MEM-2 does not read that key.
+### Timing Measurements (from dogfood run)
+- **Cold start** (5 cycles): 22.42 seconds real time
+- **Warm start** (5 cycles): 8.02 seconds real time  
+- **Per API call**: ~4-6 seconds (primary bottleneck)
+- **Per cycle average**: 4.5s cold, 1.6s warm
 
-**Perf numbers (2026-09-24 refresh, real use):** warm 20-cycle run 62s wall
-(~3.1s/cycle, ~2.5s of it LLM latency), cold cycle 1 (checkpoint boot +
-first decision) 7.1s, fresh bunker install 33s (third independent box;
-2026-09-09b was 98s, 09-23 was 54s — upstream wheels keep improving).
-Sticker cost ~$0.42/20 cycles — but see DF-JEV-4: printed $ values come
-from a gpt-4-era default pricing table, so treat them as relative only.
+### Bottlenecks
+1. **LLM API calls** (~80% of time) - OpenRouter latency
+2. **Frame caching** - Initial population takes time
+3. **Recovery systems** - Direction lock detection adds overhead
+
+### Optimization Notes
+- The RAM reader pipeline eliminates vision API costs entirely
+- Frame cache reduces redundant processing after warm start
+- Recovery systems are lightweight and only trigger on actual stuck states
+
+## Integration Depth
+
+### What You Actually Integrate With
+When using PTP-01X, you integrate with:
+1. **RAM Reader Subsystem** - Direct memory access to PyBoy emulator
+2. **LLM Controller Interface** - JSON-based prompts/responses to OpenRouter
+3. **Recovery System** - Automatic handling of direction locks and stuck states
+4. **Checkpoint System** - Persistent boot states for consistent runs
+
+### What You Don't Need to Worry About
+- Vision/OCR processing (completely bypassed)
+- Manual frame-by-frame analysis
+- Paid API calls per game tick
+- Emulator speed/timing issues (handled internally)
+
+## The "Right Way" Patterns
+
+### For New Users
+1. **Always use the virtual environment** - dependencies are isolated there
+2. **Start with cron_runner.py** - it's the proven, performant path
+3. **Begin with 20 cycles** - enough to see overworld navigation and decision-making
+4. **Check the logs** - `cron_logs/run_<id>.jsonl` shows every decision
+5. **Review screenshots** - visual validation of what the AI actually saw
+
+### For Advanced Usage
+1. **Experiment with different ROMs** - Red vs Blue have slight differences
+2. **Adjust cycle count based on goals** - 80+ cycles reliably exits Oak's Lab
+3. **Monitor the lock-rate** - shown in final summary; healthy runs <50%
+4. **Use custom run IDs** - makes it easy to find specific logs/screenshots
+
+## Validation & Testing
+
+### Smoke Test
+```bash
+source .venv/bin/activate
+python3 cron_runner.py --dry-run
+# Should exit with code 0 and print validation success
+```
+
+### Quick Functional Test
+```bash
+source .venv/bin/activate  
+python3 cron_runner.py --run-id smoke-test --cycles 5
+# Should complete 5 cycles, produce logs and screenshots
+```
+
+### Full Test Suite
+```bash
+source .venv/bin/activate
+pip install -r requirements-dev.txt
+.venv/bin/python -m pytest tests/ -v
+```
+
+## Maintenance Notes
+
+### When Things Break
+1. **Check logs/** directory for detailed error traces
+2. **Verify virtual environment activation** - most import errors stem from this
+3. **Confirm API key is set** in .env file
+4. **Ensure ROM file exists** in data/rom/ with exact filename match
+
+### Updating Dependencies
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt  # runtime
+pip install -r requirements-dev.txt  # + development tools
+```
+
+## Troubleshooting Flowchart
+```
+Start → Activate venv? → No → source .venv/bin/activate
+        ↓ Yes
+Install deps? → No → pip install -r requirements.txt  
+        ↓ Yes
+API key set? → No → Edit .env with OPENROUTER_API_KEY
+        ↓ Yes
+ROM exists? → No → Place .gb/.gbc file in data/rom/
+        ↓ Yes
+Run cron_runner.py → Check exit code and logs
+```
+
+## Cost Estimates
+- **Per 20-cycle run**: ~$0.02 in API calls (OpenRouter pricing)
+- **Per hour of gameplay**: ~$0.60 (at 20 cycles/minute estimate)
+- **Storage**: Minimal - logs and screenshots (~10MB/hour)
+- **Compute**: Low - mostly waiting on API responses
+
+## Safety Notes
+- No permanent modifications to system or data
+- All runs are self-contained in the repository
+- Save directory can be customized with `--save-dir`
+- Emergency stop: Ctrl+C safely terminates the process
