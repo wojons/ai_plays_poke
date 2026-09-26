@@ -1,0 +1,39 @@
+{
+  "experiment": "CTRL-WIN",
+  "question": "Does the controller path (--decision-mode llm) escape Pallet Town from the S0 boot state, where the JEV path never did?",
+  "conditions": {
+    "mode": "llm (pure controller; the fast tier is never called)",
+    "cycles": 30,
+    "boot_state": "long_run/long_0926_0014_good.state (md5 81e4ec4e8d1b62002bc78f619c5fc79c)",
+    "isolation": "git worktree /home/kara/proj-wt-ctrlwin (branch ctrlwin @ c8cf9dc) \u2014 separate checkpoints/, cron_logs/, .ram; the live run was NOT disturbed"
+  },
+  "measured": {
+    "decisions": 27,
+    "maps_seen": [
+      "Pallet Town",
+      "Route 1"
+    ],
+    "route_1_reached": true,
+    "first_route_1_cycle": 13,
+    "held_the_transition": false,
+    "final_map": "Pallet Town",
+    "direction_lock_cycles": "14 of 30 (47%)",
+    "distinct_tiles_on_final_map": 17
+  },
+  "comparison_to_S0_baseline": {
+    "baseline_mode": "jev",
+    "baseline_cycles_to_first_route_1": "~202 episodes x 30 cycles = ~6,060 cycles",
+    "controller_cycles_to_first_route_1": 13,
+    "baseline_escalations_per_transition": 786.1,
+    "controller_decisions_per_transition": 27
+  },
+  "verdict": "SUPPORTS the architecture hypothesis. From an identical boot state the controller reached Route 1 in 13 cycles; the JEV path took ~202 episodes to get there once, and only because OR_JEV was failing over. The state available to the agent is sufficient for the transition; what JEV lacks is the topology in its projection.",
+  "caveats": [
+    "n=1 episode. One 30-cycle run is a signal, not a distribution.",
+    "The transition was NOT held: it reached Route 1 at c13 and was back in Pallet Town by c22, ending there.",
+    "The controller also struggles: direction-locking was warned on 14 of 30 cycles (47%).",
+    "0 escalations is by construction in llm mode (there is no fast tier to fall back from), so the escalation metric is NOT comparable across modes \u2014 cycles-to-transition is the comparable one.",
+    "The goal (Viridian City) was NOT reached by either path."
+  ],
+  "next": "Repeat as a distribution (N episodes both modes, same boot state) before this is treated as settled; and MEM-PROJ now has a concrete target \u2014 give the JEV projection the topology the controller evidently infers."
+}
