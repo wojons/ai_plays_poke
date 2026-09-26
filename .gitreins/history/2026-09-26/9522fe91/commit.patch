@@ -1,0 +1,15 @@
+commit a40b177e30db222581e2b7a7e5ab000c3794ebfe
+Merge: c54f113 219d7c1
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sat Sep 26 13:57:39 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sat Sep 26 13:57:39 2026 -0500
+
+    merge wt/PERF-1: skip-on-identical-frame gate for the per-cycle screenshot save — one md5 per cycle feeds save gate + cartographer + controller cache; make_run_video gap-aware; census 30 cycles = 2 saves / 2 distinct (PERF-1, wave T249)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ cron_runner.py                |  45 +++++++++++----
+ make_run_video.py             | 127 ++++++++++++++++++++++++++++++++----------
+ tests/test_perf_frame_gate.py | 124 +++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 256 insertions(+), 40 deletions(-)

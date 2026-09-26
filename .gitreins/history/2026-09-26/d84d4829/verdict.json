@@ -1,0 +1,120 @@
+{
+  "task_id": "CENSUS-1",
+  "task_title": "list_keys silently truncates at 50 \u2014 the store census tool lies by default",
+  "task_criteria": [
+    "a default list_keys call either returns the full set or states loudly that it truncated (count returned vs total); all callers updated; guard green"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "a40b177e30db222581e2b7a7e5ab000c3794ebfe",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n2:15PM INF scanned ~306170800 bytes (306.17 MB) in 18s\n2:15PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 88771 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4218 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [450175 chars omitted \u2014 4985 line(s)] \u2026\ntest_bench_pathfinding_find_path               520.9877 (1.11)           1,973.9964 (1.33)            648.2330 (1.23)           343.4109 (8.20)            560.9763 (1.08)            35.0046 (1.17)          1;2  1,542,655.0927 (0.81)         17           1\ntest_bench_vision_pipeline_validate          6,191.0250 (13.14)         61,714.0031 (41.61)         7,161.7504 (13.59)        1,870.2493 (44.64)         6,621.9945 (12.71)          370.9865 (12.38)   2927;3712    139,630.6699 (0.07)      24561           1\ntest_bench_ram_reader_observe              986,064.0275 (>1000.0)  156,409,410.9926 (>1000.0)   1,832,721.3497 (>1000.0)  9,256,108.4342 (>1000.0)   1,168,928.0072 (>1000.0)    104,934.0062 (>1000.0)     4;112        545.6367 (0.00)        918           1\ntest_bench_vision_pipeline_process      37,304,665.9806 (>1000.0)   49,935,650.9827 (>1000.0)  40,760,128.2361 (>1000.0)  2,674,079.9230 (>1000.0)  40,694,869.9965 (>1000.0)  3,237,539.5022 (>1000.0)       6;1         24.5338 (0.00)         25           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4204 passed, 14 skipped in 227.41s (0:03:47) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 a default list_keys call either returns the full set or states loudly that it truncated (count returned vs total); all callers updated; guard green: src/core/duckbrain_client.py:140-190 \u2014 list_keys now tracks a `truncated` flag, reads one unique key past the cap, and on truncation emits both logger.warning and warnings.warn with 'list_keys truncated: returned {N} of >= {N+1} matching keys (limit={limit}); pass a larger limit for a full census' (lines 182-189), so a default (limit=50) call can no longer silently truncate. Sole production caller updated: src/core/state_window.py:621 now calls _dbc.list_keys(prefix=prefix, limit=2000) (grep confirms no other production callers). Tests: tests/test_duckbrain_client.py TestListKeys 39 passed (incl. test_truncation_warns_and_logs_correct_lower_bound, test_exact_limit_does_not_warn, test_one_past_cap_does_not_change_returned_keys); tests/test_state_window.py::TestDuckbrainTools::test_list_keys_caller_surfaces_large_census_warning PASSED (asserts pytest.warns 'returned 2000 of >= 2001 matching keys (limit=2000)'). Guard green: .gitreins/logs/guard-20260926T163704.197186Z.log (run_utc 2026-09-26T16:37:04Z, after CENSUS-1 commit 0b3d68d and merge c54f113) overall PASS, 5 guards 0 failed 1 skipped \u2014 [PASS] secrets clean, [PASS] tests (full) exit_code=0 '4188 passed, 14 skipped', [PASS] static_analysis mypy clean, [PASS] lsp pylsp clean, [SKIP] lint 'no staged files' (benign). Independently re-ran: ruff check on the 4 changed files = 'All checks passed!' (exit 0); mypy on both src files = 'Success: no issues found in 2 source files' (exit 0); LSP diagnostics = 0 findings.\nlist_keys now warns loudly (warn+log with count returned vs proven lower bound) on truncation, its only caller was updated to limit=2000, tests pass, and the guard is green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 a default list_keys call either returns the full set or states loudly that it truncated (count returned vs total); all callers updated; guard green: src/core/duckbrain_client.py:140-190 \u2014 list_keys now tracks a `truncated` flag, reads one unique key past the cap, and on truncation emits both logger.warning and warnings.warn with 'list_keys truncated: returned {N} of >= {N+1} matching keys (limit={limit}); pass a larger limit for a full census' (lines 182-189), so a default (limit=50) call can no longer silently truncate. Sole production caller updated: src/core/state_window.py:621 now calls _dbc.list_keys(prefix=prefix, limit=2000) (grep confirms no other production callers). Tests: tests/test_duckbrain_client.py TestListKeys 39 passed (incl. test_truncation_warns_and_logs_correct_lower_bound, test_exact_limit_does_not_warn, test_one_past_cap_does_not_change_returned_keys); tests/test_state_window.py::TestDuckbrainTools::test_list_keys_caller_surfaces_large_census_warning PASSED (asserts pytest.warns 'returned 2000 of >= 2001 matching keys (limit=2000)'). Guard green: .gitreins/logs/guard-20260926T163704.197186Z.log (run_utc 2026-09-26T16:37:04Z, after CENSUS-1 commit 0b3d68d and merge c54f113) overall PASS, 5 guards 0 failed 1 skipped \u2014 [PASS] secrets clean, [PASS] tests (full) exit_code=0 '4188 passed, 14 skipped', [PASS] static_analysis mypy clean, [PASS] lsp pylsp clean, [SKIP] lint 'no staged files' (benign). Independently re-ran: ruff check on the 4 changed files = 'All checks passed!' (exit 0); mypy on both src files = 'Success: no issues found in 2 source files' (exit 0); LSP diagnostics = 0 findings.\nlist_keys now warns loudly (warn+log with count returned vs proven lower bound) on truncation, its only caller was updated to limit=2000, tests pass, and the guard is green.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "a default list_keys call either returns the full set or states loudly that it truncated (count returned vs total); all callers updated; guard green",
+                "status": "PASS",
+                "detail": "src/core/duckbrain_client.py:140-190 \u2014 list_keys now tracks a `truncated` flag, reads one unique key past the cap, and on truncation emits both logger.warning and warnings.warn with 'list_keys truncated: returned {N} of >= {N+1} matching keys (limit={limit}); pass a larger limit for a full census' (lines 182-189), so a default (limit=50) call can no longer silently truncate. Sole production caller updated: src/core/state_window.py:621 now calls _dbc.list_keys(prefix=prefix, limit=2000) (grep confirms no other production callers). Tests: tests/test_duckbrain_client.py TestListKeys 39 passed (incl. test_truncation_warns_and_logs_correct_lower_bound, test_exact_limit_does_not_warn, test_one_past_cap_does_not_change_returned_keys); tests/test_state_window.py::TestDuckbrainTools::test_list_keys_caller_surfaces_large_census_warning PASSED (asserts pytest.warns 'returned 2000 of >= 2001 matching keys (limit=2000)'). Guard green: .gitreins/logs/guard-20260926T163704.197186Z.log (run_utc 2026-09-26T16:37:04Z, after CENSUS-1 commit 0b3d68d and merge c54f113) overall PASS, 5 guards 0 failed 1 skipped \u2014 [PASS] secrets clean, [PASS] tests (full) exit_code=0 '4188 passed, 14 skipped', [PASS] static_analysis mypy clean, [PASS] lsp pylsp clean, [SKIP] lint 'no staged files' (benign). Independently re-ran: ruff check on the 4 changed files = 'All checks passed!' (exit 0); mypy on both src files = 'Success: no issues found in 2 source files' (exit 0); LSP diagnostics = 0 findings.",
+                "resolution_probability": 0.01
+              }
+            ],
+            "summary": "list_keys now warns loudly (warn+log with count returned vs proven lower bound) on truncation, its only caller was updated to limit=2000, tests pass, and the guard is green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: CENSUS-1\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 a default list_keys call either returns the full set or states loudly that it truncated (count returned vs total); all callers updated; guard green: src/core/duckbrain_client.py:140-190 \u2014 list_keys now tracks a `truncated` flag, reads one unique key past the cap, and on truncation emits both logger.warning and warnings.warn with 'list_keys truncated: returned {N} of >= {N+1} matching keys (limit={limit}); pass a larger limit for a full census' (lines 182-189), so a default (limit=50) call can no longer silently truncate. Sole production caller updated: src/core/state_window.py:621 now calls _dbc.list_keys(prefix=prefix, limit=2000) (grep confirms no other production callers). Tests: tests/test_duckbrain_client.py TestListKeys 39 passed (incl. test_truncation_warns_and_logs_correct_lower_bound, test_exact_limit_does_not_warn, test_one_past_cap_does_not_change_returned_keys); tests/test_state_window.py::TestDuckbrainTools::test_list_keys_caller_surfaces_large_census_warning PASSED (asserts pytest.warns 'returned 2000 of >= 2001 matching keys (limit=2000)'). Guard green: .gitreins/logs/guard-20260926T163704.197186Z.log (run_utc 2026-09-26T16:37:04Z, after CENSUS-1 commit 0b3d68d and merge c54f113) overall PASS, 5 guards 0 failed 1 skipped \u2014 [PASS] secrets clean, [PASS] tests (full) exit_code=0 '4188 passed, 14 skipped', [PASS] static_analysis mypy clean, [PASS] lsp pylsp clean, [SKIP] lint 'no staged files' (benign). Independently re-ran: ruff check on the 4 changed files = 'All checks passed!' (exit 0); mypy on both src files = 'Success: no issues found in 2 source files' (exit 0); LSP diagnostics = 0 findings.\nlist_keys now warns loudly (warn+log with count returned vs proven lower bound) on truncation, its only caller was updated to limit=2000, tests pass, and the guard is green.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-26T19:21:33.863824",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T19:21:33.884821+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 876,
+        "truncated": false,
+        "source": "git show a40b177e30db"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 39056,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "CENSUS-1"
+  }
+}

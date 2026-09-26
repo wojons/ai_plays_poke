@@ -1,0 +1,114 @@
+{
+  "task_id": "DOC-5",
+  "task_title": "docs/api/cron_runner.md: document decision-row fields",
+  "task_criteria": [
+    "decision-row fields jev_answered/escalated/missing_class/raw_distribution + run_autonomy summary row documented with real examples from cron_runner.py:963/1317/2128; guard green"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "a40b177e30db222581e2b7a7e5ab000c3794ebfe",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4218 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [450175 chars omitted \u2014 4985 line(s)] \u2026\ntest_bench_pathfinding_find_path               511.0051 (1.09)           2,403.9764 (1.0)             730.6091 (1.29)           517.8310 (2.74)            540.9820 (1.06)           110.2235 (1.84)          1;3  1,368,720.9244 (0.77)         13           1\ntest_bench_vision_pipeline_validate          6,010.9887 (12.79)         41,727.0057 (17.36)         6,939.6212 (12.26)        1,149.8080 (6.08)          6,582.0059 (12.88)          260.9740 (4.35)    3288;4041    144,100.0848 (0.08)      34031           1\ntest_bench_ram_reader_observe              937,004.0207 (>1000.0)  148,386,930.9886 (>1000.0)   1,728,094.7573 (>1000.0)  9,050,140.9506 (>1000.0)   1,066,268.0143 (>1000.0)     99,137.9929 (>1000.0)      3;88        578.6720 (0.00)        676           1\ntest_bench_vision_pipeline_process      36,387,948.9887 (>1000.0)   57,014,749.0071 (>1000.0)  40,622,468.6930 (>1000.0)  4,293,225.9067 (>1000.0)  39,222,202.4966 (>1000.0)  4,269,800.0034 (>1000.0)       3;1         24.6169 (0.00)         26           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4204 passed, 14 skipped in 275.52s (0:04:35) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 decision-row fields jev_answered/escalated/missing_class/raw_distribution + run_autonomy summary row documented with real examples from cron_runner.py:963/1317/2128; guard green: docs/api/cron_runner.md:224-227 documents all four fields (jev_answered/escalated/missing_class/raw_distribution) with types+semantics; :233 gives a real example JSON whose keys match cron_runner.py:4286-4325 plan_entry construction exactly (verified against live log cron_logs/run_dgf_0924_pm.jsonl). :250-269 documents the run_autonomy closeout row; its field table matches _autonomy_counters (cron_runner.py:2155-2240) and _write_autonomy_row (2280-2320) exactly, and matches a real log row (cron_logs/*.jsonl run_autonomy). Cited code paths verified: cron_runner.py:963 = starter decision block writing raw_distribution/jev_answered/escalated/missing_class (doc :238 describes it accurately); :1317+ = _jev_overworld_decision docstring naming the four proof fields (doc :205); :2128+ = _autonomy_counters region (doc :240/:252). Guard green: .gitreins/logs/guard-20260926T163704.197186Z.log line 7 'guards: 5 (0 failed, 1 skipped)', [PASS] secrets, [PASS] tests (full) exit_code=0 '4188 passed, 14 skipped in 215.34s', [PASS] static_analysis (mypy clean), [PASS] lsp (pylsp clean), [SKIP] lint (no staged files, benign). Targeted re-run: ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_gap053_decision_intent_summary.py tests/test_jev403_degradation.py tests/test_gap052_controller_model.py -q => 123 passed in 0.85s. Minor non-disqualifying note: doc cites the docstring as 'lines 1317-1318' while it actually starts at 1326, and does not literally print '963'/'2128', but the code at those locations is accurately documented. [resolution 0.49; cron_runner.py:963]\nAll four decision-row fields and the run_autonomy summary row are documented in docs/api/cron_runner.md with real, code-accurate examples grounded in cron_runner.py:963/1317/2128, and the guard is green (5 guards, 0 failed; 4188 tests passed).",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 decision-row fields jev_answered/escalated/missing_class/raw_distribution + run_autonomy summary row documented with real examples from cron_runner.py:963/1317/2128; guard green: docs/api/cron_runner.md:224-227 documents all four fields (jev_answered/escalated/missing_class/raw_distribution) with types+semantics; :233 gives a real example JSON whose keys match cron_runner.py:4286-4325 plan_entry construction exactly (verified against live log cron_logs/run_dgf_0924_pm.jsonl). :250-269 documents the run_autonomy closeout row; its field table matches _autonomy_counters (cron_runner.py:2155-2240) and _write_autonomy_row (2280-2320) exactly, and matches a real log row (cron_logs/*.jsonl run_autonomy). Cited code paths verified: cron_runner.py:963 = starter decision block writing raw_distribution/jev_answered/escalated/missing_class (doc :238 describes it accurately); :1317+ = _jev_overworld_decision docstring naming the four proof fields (doc :205); :2128+ = _autonomy_counters region (doc :240/:252). Guard green: .gitreins/logs/guard-20260926T163704.197186Z.log line 7 'guards: 5 (0 failed, 1 skipped)', [PASS] secrets, [PASS] tests (full) exit_code=0 '4188 passed, 14 skipped in 215.34s', [PASS] static_analysis (mypy clean), [PASS] lsp (pylsp clean), [SKIP] lint (no staged files, benign). Targeted re-run: ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_gap053_decision_intent_summary.py tests/test_jev403_degradation.py tests/test_gap052_controller_model.py -q => 123 passed in 0.85s. Minor non-disqualifying note: doc cites the docstring as 'lines 1317-1318' while it actually starts at 1326, and does not literally print '963'/'2128', but the code at those locations is accurately documented. [resolution 0.49; cron_runner.py:963]\nAll four decision-row fields and the run_autonomy summary row are documented in docs/api/cron_runner.md with real, code-accurate examples grounded in cron_runner.py:963/1317/2128, and the guard is green (5 guards, 0 failed; 4188 tests passed).",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "decision-row fields jev_answered/escalated/missing_class/raw_distribution + run_autonomy summary row documented with real examples from cron_runner.py:963/1317/2128; guard green",
+                "status": "PASS",
+                "detail": "docs/api/cron_runner.md:224-227 documents all four fields (jev_answered/escalated/missing_class/raw_distribution) with types+semantics; :233 gives a real example JSON whose keys match cron_runner.py:4286-4325 plan_entry construction exactly (verified against live log cron_logs/run_dgf_0924_pm.jsonl). :250-269 documents the run_autonomy closeout row; its field table matches _autonomy_counters (cron_runner.py:2155-2240) and _write_autonomy_row (2280-2320) exactly, and matches a real log row (cron_logs/*.jsonl run_autonomy). Cited code paths verified: cron_runner.py:963 = starter decision block writing raw_distribution/jev_answered/escalated/missing_class (doc :238 describes it accurately); :1317+ = _jev_overworld_decision docstring naming the four proof fields (doc :205); :2128+ = _autonomy_counters region (doc :240/:252). Guard green: .gitreins/logs/guard-20260926T163704.197186Z.log line 7 'guards: 5 (0 failed, 1 skipped)', [PASS] secrets, [PASS] tests (full) exit_code=0 '4188 passed, 14 skipped in 215.34s', [PASS] static_analysis (mypy clean), [PASS] lsp (pylsp clean), [SKIP] lint (no staged files, benign). Targeted re-run: ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_gap053_decision_intent_summary.py tests/test_jev403_degradation.py tests/test_gap052_controller_model.py -q => 123 passed in 0.85s. Minor non-disqualifying note: doc cites the docstring as 'lines 1317-1318' while it actually starts at 1326, and does not literally print '963'/'2128', but the code at those locations is accurately documented. [resolution 0.49; cron_runner.py:963]",
+                "resolution_probability": 0.49,
+                "cited_path": "cron_runner.py:963"
+              }
+            ],
+            "summary": "All four decision-row fields and the run_autonomy summary row are documented in docs/api/cron_runner.md with real, code-accurate examples grounded in cron_runner.py:963/1317/2128, and the guard is green (5 guards, 0 failed; 4188 tests passed)."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DOC-5\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 decision-row fields jev_answered/escalated/missing_class/raw_distribution + run_autonomy summary row documented with real examples from cron_runner.py:963/1317/2128; guard green: docs/api/cron_runner.md:224-227 documents all four fields (jev_answered/escalated/missing_class/raw_distribution) with types+semantics; :233 gives a real example JSON whose keys match cron_runner.py:4286-4325 plan_entry construction exactly (verified against live log cron_logs/run_dgf_0924_pm.jsonl). :250-269 documents the run_autonomy closeout row; its field table matches _autonomy_counters (cron_runner.py:2155-2240) and _write_autonomy_row (2280-2320) exactly, and matches a real log row (cron_logs/*.jsonl run_autonomy). Cited code paths verified: cron_runner.py:963 = starter decision block writing raw_distribution/jev_answered/escalated/missing_class (doc :238 describes it accurately); :1317+ = _jev_overworld_decision docstring naming the four proof fields (doc :205); :2128+ = _autonomy_counters region (doc :240/:252). Guard green: .gitreins/logs/guard-20260926T163704.197186Z.log line 7 'guards: 5 (0 failed, 1 skipped)', [PASS] secrets, [PASS] tests (full) exit_code=0 '4188 passed, 14 skipped in 215.34s', [PASS] static_analysis (mypy clean), [PASS] lsp (pylsp clean), [SKIP] lint (no staged files, benign). Targeted re-run: ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_gap053_decision_intent_summary.py tests/test_jev403_degradation.py tests/test_gap052_controller_model.py -q => 123 passed in 0.85s. Minor non-disqualifying note: doc cites the docstring as 'lines 1317-1318' while it actually starts at 1326, and does not literally print '963'/'2128', but the code at those locations is accurately documented. [resolution 0.49; cron_runner.py:963]\nAll four decision-row fields and the run_autonomy summary row are documented in docs/api/cron_runner.md with real, code-accurate examples grounded in cron_runner.py:963/1317/2128, and the guard is green (5 guards, 0 failed; 4188 tests passed).\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-26T19:15:10.550366",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T19:15:10.573422+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 876,
+        "truncated": false,
+        "source": "git show a40b177e30db"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 39007,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-5"
+  }
+}

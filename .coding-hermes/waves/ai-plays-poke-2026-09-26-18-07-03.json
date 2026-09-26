@@ -1,0 +1,70 @@
+{
+  "wave_id": "ai-plays-poke-2026-09-26-18-07-03",
+  "tick": 249,
+  "budget": 8,
+  "workers": 3,
+  "tasks": [
+    "PERF-1",
+    "CENSUS-1",
+    "DOC-5"
+  ],
+  "worktrees": {
+    "PERF-1": {
+      "worktree": "/home/kara/worktrees/ai-plays-poke-PERF-1",
+      "branch": "wt/PERF-1",
+      "base": "origin/main",
+      "base_sha": "d5f1500"
+    },
+    "CENSUS-1": {
+      "worktree": "/home/kara/worktrees/ai-plays-poke-CENSUS-1",
+      "branch": "wt/CENSUS-1",
+      "base": "origin/main",
+      "base_sha": "d5f1500"
+    },
+    "DOC-5": {
+      "worktree": "/home/kara/worktrees/ai-plays-poke-DOC-5",
+      "branch": "wt/DOC-5",
+      "base": "origin/main",
+      "base_sha": "d5f1500"
+    }
+  },
+  "briefs": {
+    "PERF-1": "/tmp/aipp249_brief_PERF-1.md",
+    "CENSUS-1": "/tmp/aipp249_brief_CENSUS-1.md",
+    "DOC-5": "/tmp/aipp249_brief_DOC-5.md"
+  },
+  "dispatched_at": "2026-09-26T13:20:00-05:00",
+  "finished_at": "2026-09-26T15:20:00-05:00",
+  "status": "complete",
+  "independence_note": "Three pending rows, zero depends_on edges between them (verified from rows), disjoint file sets: PERF-1 (cron_runner.py:3645-3652 save site + make_run_video.py + tests), CENSUS-1 (src/core/duckbrain_client.py:137-168 list_keys + src/core/state_window.py:601 caller + tests), DOC-5 (docs/api/cron_runner.md only). Premise-checked this tick against the tree: CENSUS-1 cap verified live at duckbrain_client.py:137-140 (limit=50, silent early-return ~168; caller state_window.py:601); PERF-1 save site verified UNCONDITIONAL (now line 3652, row's 3590 is drift; existing hash consumers 3363/3674/3696/4021; make_run_video.py gapless step_%04d pattern confirmed = the consumer risk the row flagged, folded into the brief); DOC-5 verified 0 mentions of jev_answered/escalated in docs/api/cron_runner.md. MEM-POP/CTX-WIN/TOOLS-1/DELEG-1 (S-chain) NOT dispatched: MEM-POP acceptance is a live 30-cycle paid run and T248 precedent defers live-run legs out of waves; E2E-002 likewise deferred (paid live run). gitreins tasks PERF-1/CENSUS-1/DOC-5 created+started pre-dispatch.",
+  "worker_lane": "gpt-5.6-sol @ openai-codex per project skill (gameplay Python; GAMEPLAY-SOL, GAMEPLAY-STARTER-001, JEV-403, MEM-API, DF-JEV-3 all judge PASS on this lane)",
+  "venv_note": "Each worktree's venv/.venv are symlinks to the main repo py3.11/py3.13 venvs provisioned by the foreman pre-dispatch - workers MUST NOT delete, rebuild, or write through them beyond running tools. ROM fixture pokemon_red.gb copied per worktree (gitignored, guard baseline test dependency - T247 law).",
+  "outcomes": [
+    {
+      "task": "DOC-5",
+      "branch": "wt/DOC-5",
+      "work": "e2daa5d",
+      "merged_in": "bcdf1de (merge commit on main)",
+      "judge": "tier2 3271401a FAIL - tier1 secrets subprocess TIMEOUT under 3-judge box contention while tier2 criteria were ALL verified green (body evidence: doc fields match cron_runner.py:963/1317/2128, guard 4188 passed) -> unchanged re-run verdict d84d4829 PASS",
+      "status": "complete"
+    },
+    {
+      "task": "CENSUS-1",
+      "branch": "wt/CENSUS-1",
+      "work": "0b3d68d",
+      "merged_in": "c54f113 (merge commit on main)",
+      "judge": "tier2 PASS COMPLETE on first pass (judge independently verified RED-proof: 4 tests failed pre-fix; truncation warning shape verified)",
+      "status": "complete"
+    },
+    {
+      "task": "PERF-1",
+      "branch": "wt/PERF-1",
+      "work": "219d7c1",
+      "merged_in": "a40b177 (merge commit on main)",
+      "judge": "tier1 PASS; tier2 9522fe91 INCOMPLETE 'resource cap' but body verified ALL sub-claims (skip gate, census, hash reuse, video gap handling, guard green); tokens 3.4M/16M = tokens NOT binding, ~50min elapsed vs 30m max_time under 3-judge queue -> unchanged async re-run job-047c3c750d6c4ccebc8359149cc0b714",
+      "status": "complete-pending-final-verdict"
+    }
+  ],
+  "recovery": "Three sibling judges shared the box after the serial merge (loadavg 14-20): DOC-5's tier1 secrets leg timed out (T248 shape) -> unchanged re-run PASS d84d4829; PERF-1's tier2 starved on wall-clock (elapsed ~50m vs max_time 30m; queue-bound, tokens far under rung) -> unchanged re-run dispatched async on the idle box. No config rung changes (no two-starvation license: CENSUS-1 judged clean at the same rung mid-contention), no code changes, no criteria edits.",
+  "notes": "Post-merge main gates: full suite 4204 passed/14 skipped, mypy 0/66, ruff clean, pushed d5f1500..a40b177 with 0 unpushed, CI green on the merge push. Board rows DOC-5/CENSUS-1/PERF-1 closed with commit_hash + worker_summary; merge_complete events 301-303; DuckBrain /project/ai-plays-poke/status + tick-249 written and disk-verified."
+}
