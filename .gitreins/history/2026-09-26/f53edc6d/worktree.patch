@@ -1,0 +1,22 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 0d534b2..bedc500 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -697,3 +697,17 @@ tasks:
+   status: complete
+   created_at: '2026-09-26T10:40:23.772981+00:00'
+   completed_at: '2026-09-26T11:34:35.679348+00:00'
++- id: MODE-TEST
++  title: Decision-mode acceptance tests (M1-M6) + system1/system2/hybrid modes with
++    handoff policy
++  criteria:
++  - 'six falsifiable criteria from docs/specs/SPEC_decision_modes.md: M1 system1 run
++    stamps decision_mode=system1 with no teacher calls; M2 system2 never consults
++    JEV; M3 escalated rows name their trigger; M4 handoff toggles bind (failure-only
++    means no other trigger escalates); M5 mode AND policy recoverable from log alone;
++    M6 back-compat jev/llm keep exact stamped value and behaviour (M6 runs first,
++    protects committed baselines). Verified: 45 focused tests pass (tests/test_system_modes.py
++    + tests/test_decision_mode.py), mypy src/ 0/66, ruff clean, ruff format clean.'
++  status: complete
++  created_at: '2026-09-26T12:40:24.982836+00:00'
++  completed_at: '2026-09-26T12:49:52.017123+00:00'

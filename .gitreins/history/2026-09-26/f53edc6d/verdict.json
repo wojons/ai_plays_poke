@@ -1,0 +1,114 @@
+{
+  "task_id": "MODE-TEST",
+  "task_title": "Decision-mode acceptance tests (M1-M6) + system1/system2/hybrid modes with handoff policy",
+  "task_criteria": [
+    "six falsifiable criteria from docs/specs/SPEC_decision_modes.md: M1 system1 run stamps decision_mode=system1 with no teacher calls; M2 system2 never consults JEV; M3 escalated rows name their trigger; M4 handoff toggles bind (failure-only means no other trigger escalates); M5 mode AND policy recoverable from log alone; M6 back-compat jev/llm keep exact stamped value and behaviour (M6 runs first, protects committed baselines). Verified: 45 focused tests pass (tests/test_system_modes.py + tests/test_decision_mode.py), mypy src/ 0/66, ruff clean, ruff format clean."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "892e1ac58b3789fb607a147fa1975efb3c21a112",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T124506.702653Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4191 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [446770 chars omitted \u2014 4951 line(s)] \u2026\ntest_bench_pathfinding_find_path               489.9921 (1.14)           4,337.9841 (1.0)             817.5266 (1.65)            979.2312 (4.57)            530.9994 (1.10)            87.5152 (2.82)          1;3  1,223,201.7931 (0.61)         15           1\ntest_bench_vision_pipeline_validate          8,025.0029 (18.62)         26,778.9874 (6.17)          9,338.9088 (18.82)         1,619.4981 (7.56)          8,836.0102 (18.37)          400.9926 (12.92)   2810;3114    107,078.8911 (0.05)      25156           1\ntest_bench_ram_reader_observe            1,029,165.0251 (>1000.0)  189,444,446.0049 (>1000.0)   2,140,357.1747 (>1000.0)  11,506,271.5328 (>1000.0)   1,274,708.9786 (>1000.0)    287,509.2541 (>1000.0)      4;59        467.2117 (0.00)        865           1\ntest_bench_vision_pipeline_process      43,350,494.0011 (>1000.0)   54,816,299.9912 (>1000.0)  47,186,057.1156 (>1000.0)   2,635,592.3690 (>1000.0)  46,909,107.0117 (>1000.0)  2,857,540.0065 (>1000.0)       4;1         21.1927 (0.00)         18           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4177 passed, 14 skipped in 274.71s (0:04:34) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T124506.702653Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 six falsifiable criteria from docs/specs/SPEC_decision_modes.md: M1 system1 run stamps decision_mode=system1 with no teacher calls; M2 system2 never consults JEV; M3 escalated rows name their trigger; M4 handoff toggles bind (failure-only means no other trigger escalates); M5 mode AND policy recoverable from log alone; M6 back-compat jev/llm keep exact stamped value and behaviour (M6 runs first, protects committed baselines). Verified: 45 focused tests pass (tests/test_system_modes.py + tests/test_decision_mode.py), mypy src/ 0/66, ruff clean, ruff format clean.: All six M1-M6 criteria are implemented and tested. Spec docs/specs/SPEC_decision_modes.md section 3 defines M1-M6. tests/test_system_modes.py: M6 tests run FIRST (lines 40-57: test_m6_legacy_spellings_keep_their_stamped_value asserts resolve_decision_mode('jev')=='jev' and ('llm')=='llm'; test_m6_family_is_where_branching_reads), M2 (line 75 test_m2_system2_never_invokes_the_fast_tier + line 84 llm alias), M3 (line 125 test_m3_every_escalation_reason_from_the_gate_classifies), M4 (line 208 test_m4_only_the_permitted_trigger_may_hand_back, line 218 handoff_off_blocks_every_policy_trigger, line 234 class_filter_binds), M1 (line 275 test_m1_system1_policy_blocks_the_handoff_and_the_teacher asserts escalated False + teacher count 0), M5 (line 402 test_m5_run_row_records_mode_and_policy asserts row decision_mode + decision_mode_family + handoff_policy). Implementation in cron_runner.py: modes/aliases (114-130), normalize_decision_mode (133), decision_mode_family (147), resolve_decision_mode (169), classify_handoff_trigger (200), build_handoff_policy (241), handoff_allowed (274), _jev_or_none returns None for system2 (1398), can_call_teacher gate (1299-1307), row stamps decision_mode/decision_mode_family/handoff_trigger/allowed/blocked_reason (4203-4227). FRESH COMMAND OUTPUT: (1) ./venv/bin/pytest tests/test_system_modes.py tests/test_decision_mode.py -q => '45 passed in 3.25s' exit 0 (re-run '45 passed in 1.25s') \u2014 matches the claimed 45 exactly. (2) ./venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 66 source files' (0/66). (3) ./venv/bin/ruff check src/ tests/ cron_runner.py => 'All checks passed!'. (4) ./venv/bin/ruff format --check src/ tests/ cron_runner.py => 16 files would reformat, but NONE are the changed files (test_system_modes.py, test_decision_mode.py, cron_runner.py are format-clean; the 16 are pre-existing unrelated files). (5) Full suite ./venv/bin/pytest tests/ -q -k 'not benchmark' => '4172 passed, 14 skipped, 5 deselected in 294.00s' \u2014 zero failures, no regressions. [resolution 0.55; docs/specs/SPEC_decision_modes.md, tests/test_system_modes.py, tests/test_decision_mode.py]\nAll six M1-M6 decision-mode acceptance criteria are implemented in cron_runner.py and covered by dedicated tests; 45 focused tests pass, mypy 0/66, ruff check clean, changed files format-clean, and the full suite is green (4172 passed).",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 six falsifiable criteria from docs/specs/SPEC_decision_modes.md: M1 system1 run stamps decision_mode=system1 with no teacher calls; M2 system2 never consults JEV; M3 escalated rows name their trigger; M4 handoff toggles bind (failure-only means no other trigger escalates); M5 mode AND policy recoverable from log alone; M6 back-compat jev/llm keep exact stamped value and behaviour (M6 runs first, protects committed baselines). Verified: 45 focused tests pass (tests/test_system_modes.py + tests/test_decision_mode.py), mypy src/ 0/66, ruff clean, ruff format clean.: All six M1-M6 criteria are implemented and tested. Spec docs/specs/SPEC_decision_modes.md section 3 defines M1-M6. tests/test_system_modes.py: M6 tests run FIRST (lines 40-57: test_m6_legacy_spellings_keep_their_stamped_value asserts resolve_decision_mode('jev')=='jev' and ('llm')=='llm'; test_m6_family_is_where_branching_reads), M2 (line 75 test_m2_system2_never_invokes_the_fast_tier + line 84 llm alias), M3 (line 125 test_m3_every_escalation_reason_from_the_gate_classifies), M4 (line 208 test_m4_only_the_permitted_trigger_may_hand_back, line 218 handoff_off_blocks_every_policy_trigger, line 234 class_filter_binds), M1 (line 275 test_m1_system1_policy_blocks_the_handoff_and_the_teacher asserts escalated False + teacher count 0), M5 (line 402 test_m5_run_row_records_mode_and_policy asserts row decision_mode + decision_mode_family + handoff_policy). Implementation in cron_runner.py: modes/aliases (114-130), normalize_decision_mode (133), decision_mode_family (147), resolve_decision_mode (169), classify_handoff_trigger (200), build_handoff_policy (241), handoff_allowed (274), _jev_or_none returns None for system2 (1398), can_call_teacher gate (1299-1307), row stamps decision_mode/decision_mode_family/handoff_trigger/allowed/blocked_reason (4203-4227). FRESH COMMAND OUTPUT: (1) ./venv/bin/pytest tests/test_system_modes.py tests/test_decision_mode.py -q => '45 passed in 3.25s' exit 0 (re-run '45 passed in 1.25s') \u2014 matches the claimed 45 exactly. (2) ./venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 66 source files' (0/66). (3) ./venv/bin/ruff check src/ tests/ cron_runner.py => 'All checks passed!'. (4) ./venv/bin/ruff format --check src/ tests/ cron_runner.py => 16 files would reformat, but NONE are the changed files (test_system_modes.py, test_decision_mode.py, cron_runner.py are format-clean; the 16 are pre-existing unrelated files). (5) Full suite ./venv/bin/pytest tests/ -q -k 'not benchmark' => '4172 passed, 14 skipped, 5 deselected in 294.00s' \u2014 zero failures, no regressions. [resolution 0.55; docs/specs/SPEC_decision_modes.md, tests/test_system_modes.py, tests/test_decision_mode.py]\nAll six M1-M6 decision-mode acceptance criteria are implemented in cron_runner.py and covered by dedicated tests; 45 focused tests pass, mypy 0/66, ruff check clean, changed files format-clean, and the full suite is green (4172 passed).",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "six falsifiable criteria from docs/specs/SPEC_decision_modes.md: M1 system1 run stamps decision_mode=system1 with no teacher calls; M2 system2 never consults JEV; M3 escalated rows name their trigger; M4 handoff toggles bind (failure-only means no other trigger escalates); M5 mode AND policy recoverable from log alone; M6 back-compat jev/llm keep exact stamped value and behaviour (M6 runs first, protects committed baselines). Verified: 45 focused tests pass (tests/test_system_modes.py + tests/test_decision_mode.py), mypy src/ 0/66, ruff clean, ruff format clean.",
+                "status": "PASS",
+                "detail": "All six M1-M6 criteria are implemented and tested. Spec docs/specs/SPEC_decision_modes.md section 3 defines M1-M6. tests/test_system_modes.py: M6 tests run FIRST (lines 40-57: test_m6_legacy_spellings_keep_their_stamped_value asserts resolve_decision_mode('jev')=='jev' and ('llm')=='llm'; test_m6_family_is_where_branching_reads), M2 (line 75 test_m2_system2_never_invokes_the_fast_tier + line 84 llm alias), M3 (line 125 test_m3_every_escalation_reason_from_the_gate_classifies), M4 (line 208 test_m4_only_the_permitted_trigger_may_hand_back, line 218 handoff_off_blocks_every_policy_trigger, line 234 class_filter_binds), M1 (line 275 test_m1_system1_policy_blocks_the_handoff_and_the_teacher asserts escalated False + teacher count 0), M5 (line 402 test_m5_run_row_records_mode_and_policy asserts row decision_mode + decision_mode_family + handoff_policy). Implementation in cron_runner.py: modes/aliases (114-130), normalize_decision_mode (133), decision_mode_family (147), resolve_decision_mode (169), classify_handoff_trigger (200), build_handoff_policy (241), handoff_allowed (274), _jev_or_none returns None for system2 (1398), can_call_teacher gate (1299-1307), row stamps decision_mode/decision_mode_family/handoff_trigger/allowed/blocked_reason (4203-4227). FRESH COMMAND OUTPUT: (1) ./venv/bin/pytest tests/test_system_modes.py tests/test_decision_mode.py -q => '45 passed in 3.25s' exit 0 (re-run '45 passed in 1.25s') \u2014 matches the claimed 45 exactly. (2) ./venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 66 source files' (0/66). (3) ./venv/bin/ruff check src/ tests/ cron_runner.py => 'All checks passed!'. (4) ./venv/bin/ruff format --check src/ tests/ cron_runner.py => 16 files would reformat, but NONE are the changed files (test_system_modes.py, test_decision_mode.py, cron_runner.py are format-clean; the 16 are pre-existing unrelated files). (5) Full suite ./venv/bin/pytest tests/ -q -k 'not benchmark' => '4172 passed, 14 skipped, 5 deselected in 294.00s' \u2014 zero failures, no regressions. [resolution 0.55; docs/specs/SPEC_decision_modes.md, tests/test_system_modes.py, tests/test_decision_mode.py]",
+                "resolution_probability": 0.55,
+                "cited_path": "docs/specs/SPEC_decision_modes.md, tests/test_system_modes.py, tests/test_decision_mode.py"
+              }
+            ],
+            "summary": "All six M1-M6 decision-mode acceptance criteria are implemented in cron_runner.py and covered by dedicated tests; 45 focused tests pass, mypy 0/66, ruff check clean, changed files format-clean, and the full suite is green (4172 passed)."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: MODE-TEST\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 six falsifiable criteria from docs/specs/SPEC_decision_modes.md: M1 system1 run stamps decision_mode=system1 with no teacher calls; M2 system2 never consults JEV; M3 escalated rows name their trigger; M4 handoff toggles bind (failure-only means no other trigger escalates); M5 mode AND policy recoverable from log alone; M6 back-compat jev/llm keep exact stamped value and behaviour (M6 runs first, protects committed baselines). Verified: 45 focused tests pass (tests/test_system_modes.py + tests/test_decision_mode.py), mypy src/ 0/66, ruff clean, ruff format clean.: All six M1-M6 criteria are implemented and tested. Spec docs/specs/SPEC_decision_modes.md section 3 defines M1-M6. tests/test_system_modes.py: M6 tests run FIRST (lines 40-57: test_m6_legacy_spellings_keep_their_stamped_value asserts resolve_decision_mode('jev')=='jev' and ('llm')=='llm'; test_m6_family_is_where_branching_reads), M2 (line 75 test_m2_system2_never_invokes_the_fast_tier + line 84 llm alias), M3 (line 125 test_m3_every_escalation_reason_from_the_gate_classifies), M4 (line 208 test_m4_only_the_permitted_trigger_may_hand_back, line 218 handoff_off_blocks_every_policy_trigger, line 234 class_filter_binds), M1 (line 275 test_m1_system1_policy_blocks_the_handoff_and_the_teacher asserts escalated False + teacher count 0), M5 (line 402 test_m5_run_row_records_mode_and_policy asserts row decision_mode + decision_mode_family + handoff_policy). Implementation in cron_runner.py: modes/aliases (114-130), normalize_decision_mode (133), decision_mode_family (147), resolve_decision_mode (169), classify_handoff_trigger (200), build_handoff_policy (241), handoff_allowed (274), _jev_or_none returns None for system2 (1398), can_call_teacher gate (1299-1307), row stamps decision_mode/decision_mode_family/handoff_trigger/allowed/blocked_reason (4203-4227). FRESH COMMAND OUTPUT: (1) ./venv/bin/pytest tests/test_system_modes.py tests/test_decision_mode.py -q => '45 passed in 3.25s' exit 0 (re-run '45 passed in 1.25s') \u2014 matches the claimed 45 exactly. (2) ./venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 66 source files' (0/66). (3) ./venv/bin/ruff check src/ tests/ cron_runner.py => 'All checks passed!'. (4) ./venv/bin/ruff format --check src/ tests/ cron_runner.py => 16 files would reformat, but NONE are the changed files (test_system_modes.py, test_decision_mode.py, cron_runner.py are format-clean; the 16 are pre-existing unrelated files). (5) Full suite ./venv/bin/pytest tests/ -q -k 'not benchmark' => '4172 passed, 14 skipped, 5 deselected in 294.00s' \u2014 zero failures, no regressions. [resolution 0.55; docs/specs/SPEC_decision_modes.md, tests/test_system_modes.py, tests/test_decision_mode.py]\nAll six M1-M6 decision-mode acceptance criteria are implemented in cron_runner.py and covered by dedicated tests; 45 focused tests pass, mypy 0/66, ruff check clean, changed files format-clean, and the full suite is green (4172 passed).\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-26T13:07:47.679215",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T13:07:47.708915+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 262176,
+        "truncated": true,
+        "source": "git show 892e1ac58b37"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1154,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "MODE-TEST"
+  }
+}
