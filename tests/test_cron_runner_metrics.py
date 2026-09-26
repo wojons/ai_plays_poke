@@ -171,11 +171,17 @@ class TestDryRun:
         assert "fall back to intro bypass" in capsys.readouterr().out
 
     def test_dry_run_missing_rom_exits_one(self, monkeypatch, capsys, tmp_path) -> None:
-        monkeypatch.setattr(cron_runner, "ROM", str(tmp_path / "nope.gb"))
+        missing = tmp_path / "nope.gb"
+        monkeypatch.setattr(cron_runner, "ROM", str(missing))
         with pytest.raises(SystemExit) as e:
             cron_runner._dry_run_precheck(["--dry-run"])
         assert e.value.code == 1
-        assert "ERROR: ROM not found" in capsys.readouterr().out
+        out = capsys.readouterr().out
+        assert (
+            f"[DRY-RUN] ERROR: ROM not found at {missing} — a real run would crash "
+            f"at boot. Fix: you must own the game; place your own dump at {missing}."
+            in out
+        )
 
     def test_no_dry_run_returns_without_exiting(self) -> None:
         assert cron_runner._dry_run_precheck(["--cycles", "3"]) is None

@@ -1,26 +1,18 @@
-# Place your Pokemon ROM here
+# Supply your own Pokemon ROM
 
-## Available Games:
+ROM files are not included in this repository. You must own the game and supply your
+own dump.
 
-**Gen 1 (Game Boy):**
-- pokemon_red.gb
-- Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb ⭐ DEFAULT
-- pokemon_green.gb
-- pokemon_yellow.gb
+For the default configuration, place the dump at this exact path and filename:
 
-**Gen 2 (Game Boy Color):**
-- pokemon_gold.gbc
-- pokemon_silver.gbc
+`data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`
 
-## How to Select a Game:
+This path matches `rom.path` in `config/settings.yaml`. If you configure another game,
+update `rom.path` to the path of your own dump.
 
-Edit `config/settings.yaml` and change:
-```yaml
-rom:
-  path: "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"  # Change this line
-```
+The included `data/boot.state` checkpoint was captured from the exact default Pokemon
+Blue ROM above. Save states depend on their matching ROM; using the checkpoint with a
+different ROM can produce invalid game state. Use `--boot-state skip` when intentionally
+running another owned game without a matching checkpoint.
 
-## Notes:
-- .gbc = Game Boy Color games (larger, 2MB)
-- .gb = Original Game Boy games (1MB)
-- All files are ignored by git
+All `.gb` and `.gbc` files in this directory are ignored by git.
