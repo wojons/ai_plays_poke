@@ -93,39 +93,209 @@ def resolve_controller_model(flag_value: str | None = None) -> str:
     return override[0] if override is not None else DEFAULT_CONTROLLER_MODEL
 
 
-# ── Decision mode: fast tier (JEV) vs the pure-LLM benchmark ────────
-# Both modes are first-class and selectable, because the project's original
-# contribution is the LLM-core benchmark: what can a reasoning model do with
-# nothing but the harness that gives it control of the game?
+# ── Decision mode: System One, System Two, or both ──────────────────
+# The three families are first-class and selectable. The historical spellings
+# keep their exact meaning, because every committed baseline, artifact and run
+# log cites them ("jev" IS the hybrid; "llm" IS System Two alone).
 #
-#   "jev" (default) — the fast System-One tier decides every eligible
-#                     overworld cycle and escalates to the reasoning
-#                     controller when its projected state is insufficient.
-#   "llm"           — the controller decides EVERY cycle and JEV is never
-#                     consulted (not even called). This is the pure-LLM
-#                     benchmark: no fast-tier assistance, no teacher repair.
+#   "system1"          — the fast System-One tier decides EVERY eligible cycle
+#                        and never hands back. This is the mode that measures
+#                        the fast tier unaided, which is currently unknown.
+#   "system2" (= "llm")— the controller decides EVERY cycle and JEV is never
+#                        consulted (not even called). The pure-LLM benchmark.
+#   "system1+system2"  — the fast tier decides and hands back to the reasoning
+#      (= "jev")        teacher when a trigger fires AND the policy allows it.
 #
-# Resolved flag > env > default, and stamped into every decision row so a
-# run's mode is recoverable from its log alone.
-DEFAULT_DECISION_MODE = "jev"
+# The handoff policy (--handoff ...) selects WHICH trigger families may hand
+# back. "off" is exactly system1 — one mechanism, not two.
+#
+# Resolved flag > env > default, and stamped into every decision row so a run's
+# mode AND its policy are recoverable from its log alone.
+DEFAULT_DECISION_MODE = "jev"  # historical spelling; canonicalises to system1+system2
 DECISION_MODE_ENV_VARS = ("AIPP_DECISION_MODE", "CRON_DECISION_MODE")
-DECISION_MODES = ("jev", "llm")
+
+MODE_SYSTEM1 = "system1"
+MODE_SYSTEM2 = "system2"
+MODE_HYBRID = "system1+system2"
+
+# Every accepted spelling -> the single canonical family it means.
+DECISION_MODE_ALIASES: dict[str, str] = {
+    "system1": MODE_SYSTEM1,
+    "system2": MODE_SYSTEM2,
+    MODE_HYBRID: MODE_HYBRID,
+    "hybrid": MODE_HYBRID,
+    "jev": MODE_HYBRID,  # historical: fast tier WITH the teacher on call
+    "llm": MODE_SYSTEM2,  # historical: the pure-LLM benchmark
+}
+DECISION_MODES = tuple(DECISION_MODE_ALIASES)
+
+
+def normalize_decision_mode(value: str | None) -> str | None:
+    """Canonical SPELLING for a mode value, or ``None`` when unrecognised.
+
+    Normalises case and whitespace only. It deliberately does NOT rewrite a
+    legacy spelling into its family: the spelling is what gets stamped into
+    every decision row, and it must stay byte-identical to the run logs already
+    on disk (acceptance M6).
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip().lower()
+    return text if text in DECISION_MODE_ALIASES else None
+
+
+def decision_mode_family(mode: str | None) -> str:
+    """The System-One/System-Two family a mode spelling means.
+
+    This is the value the branching reads; :func:`resolve_decision_mode` returns
+    the spelling. Keeping the two separate is what lets the new names exist
+    WITHOUT changing the stamped value of the old ones.
+    """
+    normalised = normalize_decision_mode(mode)
+    return DECISION_MODE_ALIASES.get(normalised or "", MODE_HYBRID)
+
+
+def current_mode_family() -> str:
+    """The family of the module's CURRENT mode spelling.
+
+    Branching calls this rather than reading a cached family, so assigning
+    ``DECISION_MODE`` is sufficient to change behaviour. A second module-level
+    family variable would be a footgun: two values that must be kept in sync,
+    with a silent wrong branch whenever they drift.
+    """
+    return decision_mode_family(DECISION_MODE)
 
 
 def resolve_decision_mode(flag_value: str | None = None) -> str:
-    """Resolve the decision mode: flag > env > ``DEFAULT_DECISION_MODE``."""
-    if isinstance(flag_value, str) and flag_value.strip().lower() in DECISION_MODES:
-        return flag_value.strip().lower()
-    for name in DECISION_MODE_ENV_VARS:
-        value = os.environ.get(name)
-        if isinstance(value, str) and value.strip().lower() in DECISION_MODES:
-            return value.strip().lower()
-    return DEFAULT_DECISION_MODE
+    """Resolve the decision mode SPELLING: flag > env > ``DEFAULT_DECISION_MODE``.
+
+    Returns the spelling as given, so ``--decision-mode jev`` still stamps
+    ``decision_mode="jev"`` exactly as every existing run log does. Use
+    :func:`decision_mode_family` for the branchable family.
+    """
+    candidates = [flag_value, *(os.environ.get(n) for n in DECISION_MODE_ENV_VARS)]
+    for candidate in candidates:
+        normalised = normalize_decision_mode(candidate)
+        if normalised is not None:
+            return normalised
+    return normalize_decision_mode(DEFAULT_DECISION_MODE) or DEFAULT_DECISION_MODE
+
+
+# ── Handoff policy: WHICH triggers may hand back to System Two ───────
+# These three trigger families are exactly the ones
+# ``jev_client.should_escalate()`` already fires. The policy selects among
+# them; it never invents a trigger.
+HANDOFF_FAILURE = "failure"
+HANDOFF_GAP = "gap"
+HANDOFF_CONFIDENCE = "confidence"
+HANDOFF_ALL_FAMILIES = (HANDOFF_FAILURE, HANDOFF_GAP, HANDOFF_CONFIDENCE)
+HANDOFF_CHOICES = ("off", "any", "failure", "gap", "confidence")
+
+DEFAULT_HANDOFF = "any"
+DEFAULT_HANDOFF_CONFIDENCE = 0.50  # mirrors jev_client.ESCALATE_THRESHOLD
+DEFAULT_HANDOFF_AMBIGUITY = 0.40  # mirrors jev_client.AMBIGUITY_GATE
+HANDOFF_ENV_VARS = ("AIPP_HANDOFF", "CRON_HANDOFF")
+
+
+def classify_handoff_trigger(reason: str | None) -> str:
+    """Map a ``should_escalate()`` reason string to its trigger family.
+
+    The reason prefixes are the contract from ``jev_client.should_escalate()``.
+    A reason this does not recognise classifies as "other" and is reported —
+    it is never silently treated as "no trigger fired".
+    """
+    if not isinstance(reason, str) or not reason.strip():
+        return "none"
+    text = reason.strip().lower()
+    if text.startswith("transport"):
+        return "transport"
+    if text.startswith("failure"):
+        return HANDOFF_FAILURE
+    if text.startswith("insufficient_state") or text.startswith("missing_class"):
+        return HANDOFF_GAP
+    if text.startswith("low_confidence"):
+        return HANDOFF_CONFIDENCE
+    return "other"
+
+
+def resolve_handoff_families(value: str | None) -> frozenset[str]:
+    """Parse a ``--handoff`` value into the trigger families allowed to fire."""
+    raw = value
+    if not isinstance(raw, str) or not raw.strip():
+        raw = next(
+            (os.environ.get(n) for n in HANDOFF_ENV_VARS if os.environ.get(n)), None
+        )
+    if not isinstance(raw, str) or not raw.strip():
+        raw = DEFAULT_HANDOFF
+    text = raw.strip().lower()
+    if text == "off":
+        return frozenset()
+    if text in ("any", "all"):
+        return frozenset(HANDOFF_ALL_FAMILIES)
+    wanted = {p.strip() for p in text.replace("+", ",").split(",") if p.strip()}
+    if wanted & {"all", "any"}:
+        return frozenset(HANDOFF_ALL_FAMILIES)
+    return frozenset(wanted & set(HANDOFF_ALL_FAMILIES))
+
+
+def build_handoff_policy(
+    *,
+    handoff: str | None = None,
+    confidence: float | None = None,
+    ambiguity: float | None = None,
+    classes: str | None = None,
+    teacher_max: int | None = None,
+) -> dict[str, Any]:
+    """The effective handoff policy for a run, stamped into its log.
+
+    Defaults deliberately mirror the thresholds already in code
+    (``0.50`` / ``0.40``): changing a default would invalidate every committed
+    baseline, so the policy starts as a no-op on the existing behaviour.
+    """
+    families = resolve_handoff_families(handoff)
+    allow: frozenset[str] | None = None
+    if isinstance(classes, str) and classes.strip():
+        allow = frozenset(
+            p.strip() for p in classes.replace(";", ",").split(",") if p.strip()
+        )
+    return {
+        "families": sorted(families),
+        "classes": sorted(allow) if allow else None,
+        "confidence": (
+            float(confidence) if confidence is not None else DEFAULT_HANDOFF_CONFIDENCE
+        ),
+        "ambiguity": (
+            float(ambiguity) if ambiguity is not None else DEFAULT_HANDOFF_AMBIGUITY
+        ),
+        "teacher_max_per_episode": int(teacher_max) if teacher_max else None,
+    }
+
+
+def handoff_allowed(
+    policy: dict[str, Any], trigger: str, missing_class: str | None
+) -> tuple[bool, str]:
+    """May this trigger hand back under this policy? Returns (allowed, why)."""
+    if trigger == "transport":
+        # Availability, not policy: an unanswered fast tier must degrade to the
+        # controller or the cycle cannot proceed. This check comes FIRST —
+        # ahead of the empty-families test — because --handoff off must not be
+        # able to wedge a run by suppressing the failover that keeps it moving.
+        return True, "transport failover (not policy-gated)"
+    families = set(policy.get("families") or ())
+    if not families:
+        return False, "handoff off (system1)"
+    if trigger not in families:
+        return False, f"trigger {trigger!r} not in {sorted(families)}"
+    allow = policy.get("classes")
+    if allow and missing_class and missing_class not in allow:
+        return False, f"missing_class {missing_class!r} not in {sorted(allow)}"
+    return True, "allowed"
 
 
 # Module-level so the run loop and the row writers can stamp it; main()
-# re-resolves from the flag once the argument parser has run.
+# re-resolves from the flags once the argument parser has run.
 DECISION_MODE = resolve_decision_mode()
+HANDOFF_POLICY = build_handoff_policy()
 
 
 # ── --dry-run precheck (GAP-032) ────────────────────────────────────
@@ -1066,6 +1236,8 @@ def _jev_overworld_decision(
     teacher_cycle: int | None = None,
     teacher_results: list[dict[str, Any]] | None = None,
     escalated_classes: set[str] | None = None,
+    handoff_policy: dict[str, Any] | None = None,
+    teacher_budget: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """Ask the JEV tier for this overworld cycle's plan (PRD v3 stages 5-6).
 
@@ -1111,8 +1283,22 @@ def _jev_overworld_decision(
     escalation_class = (
         missing_class if isinstance(missing_class, str) and missing_class else "unknown"
     )
+    # Which trigger fired, and does THIS run's policy allow it to hand back?
+    # The trigger families are the ones jev_client.should_escalate() already
+    # fires; the policy only selects among them.
+    handoff_trigger = classify_handoff_trigger(decision.get("escalate_reason"))
+    policy = handoff_policy if isinstance(handoff_policy, dict) else HANDOFF_POLICY
+    handoff_ok, handoff_why = handoff_allowed(policy, handoff_trigger, escalation_class)
+    if handoff_ok and teacher_budget is not None:
+        cap = policy.get("teacher_max_per_episode")
+        if isinstance(cap, int) and cap > 0 and teacher_budget.get("used", 0) >= cap:
+            handoff_ok = False
+            handoff_why = (
+                f"teacher budget exhausted ({teacher_budget.get('used', 0)}/{cap})"
+            )
     can_call_teacher = (
         bool(decision.get("escalate"))
+        and handoff_ok
         and teacher_api_client is not None
         and bool(teacher_model)
         and escalated_classes is not None
@@ -1125,6 +1311,10 @@ def _jev_overworld_decision(
         # Consume the per-class allowance before the API boundary so a failed or
         # raising teacher cannot be retried on every subsequent game cycle.
         escalated_classes.add(escalation_class)
+        if teacher_budget is not None:
+            # Counted at the same boundary as the class allowance: a call that
+            # fails still spent the budget.
+            teacher_budget["used"] = teacher_budget.get("used", 0) + 1
         try:
             teacher_record = jev_client.escalate_and_reask(
                 decision,
@@ -1170,6 +1360,11 @@ def _jev_overworld_decision(
         return decision
 
     escalate = bool(initial_decision.get("escalate", False))
+    # A policy-blocked trigger is NOT an escalation: no teacher was called, so
+    # the row must not claim one. This is what makes system1 (handoff off)
+    # measurable — `escalated` means "handed back", not "wanted to".
+    if escalate and not handoff_ok:
+        escalate = False
     reason = initial_decision.get("escalate_reason")
     if teacher_one_shot is not None:
         plan = [teacher_one_shot]
@@ -1190,17 +1385,26 @@ def _jev_overworld_decision(
         "raw_distribution": decision.get("raw"),
         "jev_escalate_reason": reason if isinstance(reason, str) else None,
         "jev_projection_chars": len(projection),
+        # Handoff provenance: which trigger fired, whether the run's policy let
+        # it hand back, and why not when it did not. Stamped on every row so a
+        # mode and its policy are recoverable from the log alone.
+        "handoff_trigger": handoff_trigger,
+        "handoff_allowed": handoff_ok,
+        "handoff_blocked_reason": None if handoff_ok else handoff_why,
+        "handoff_policy_families": sorted(policy.get("families") or ()),
     }
 
 
 def _jev_or_none(*args: Any, **kwargs: Any) -> dict[str, Any] | None:
     """Return a fast-tier decision, or None in the pure-LLM benchmark mode.
 
-    In "llm" mode the fast tier is not merely ignored — it is never called,
-    so a benchmark run spends no JEV budget and every decision in its log is
-    the controller's own. In "jev" mode this is a transparent pass-through.
+    In ``system2`` (the historical "llm") the fast tier is not merely ignored —
+    it is never called, so a benchmark run spends no JEV budget and every
+    decision in its log is the controller's own. In ``system1`` and
+    ``system1+system2`` this is a transparent pass-through; the difference
+    between those two is the handoff policy, applied inside.
     """
-    if DECISION_MODE != "jev":
+    if current_mode_family() == MODE_SYSTEM2:
         return None
     return _jev_overworld_decision(*args, **kwargs)
 
@@ -1889,6 +2093,8 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     jev_transport_failures = 0
     jev_errors: list[str] = []
     escalated_by_class: Counter[str | None] = Counter()
+    handoff_triggers: Counter[str] = Counter()
+    handoff_blocked = 0
 
     for row in results:
         if "intent" not in row:
@@ -1901,6 +2107,14 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
             error = row.get("jev_error")
             if isinstance(error, str) and error and error not in jev_errors:
                 jev_errors.append(error)
+        # Handoff provenance: which trigger fired, and how often the run's
+        # policy refused it. Counted from the rows, never incremented by the
+        # printer — the same rule the other counters follow.
+        trigger = row.get("handoff_trigger")
+        if isinstance(trigger, str) and trigger not in ("", "none"):
+            handoff_triggers[trigger] += 1
+        if row.get("handoff_allowed") is False:
+            handoff_blocked += 1
         if row.get("escalated"):
             escalated += 1
             missing_class = row.get("missing_class")
@@ -1937,6 +2151,8 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         "jev_transport_failure_rate": jev_failure_rate,
         "jev_errors": jev_errors[:3],
         "degraded": degraded,
+        "handoff_trigger_counts": dict(handoff_triggers),
+        "handoff_blocked": handoff_blocked,
     }
 
 
@@ -2004,6 +2220,16 @@ def _write_autonomy_row(
         "jev_transport_failure_rate": autonomy.get("jev_transport_failure_rate", 0.0),
         "degraded": bool(autonomy.get("degraded")),
         "teacher_escalations": teacher or {"count": 0, "improved": 0},
+        # M5: the mode AND the effective handoff policy are recorded on the run
+        # row, so a run's decision architecture is recoverable from its log
+        # alone — not only from the command line that produced it.
+        "decision_mode": DECISION_MODE,
+        "decision_mode_family": current_mode_family(),
+        "handoff_policy": dict(HANDOFF_POLICY),
+        # Which triggers fired this run, and how often the policy refused one.
+        # Counted from the decision rows by _autonomy_counters.
+        "handoff_trigger_counts": autonomy.get("handoff_trigger_counts", {}),
+        "handoff_blocked": _as_int(autonomy.get("handoff_blocked")),
     }
     log_file.write(json.dumps(row, default=str) + "\n")
     log_file.flush()
@@ -2758,13 +2984,15 @@ def _run_jev_preflight(
     current_log_path: Path,
 ) -> dict[str, Any]:
     """Run or explicitly skip the real JEV startup probe and persist its row."""
-    if decision_mode != "jev":
+    if decision_mode_family(decision_mode) == MODE_SYSTEM2:
+        # Only system2 skips: it never calls the fast tier. system1 and
+        # system1+system2 both do, so the preflight matters for them.
         row: dict[str, Any] = {
             "run_id": current_run_id,
             "event": "preflight",
             "component": "jev",
             "status": "skipped",
-            "reason": f"decision_mode={decision_mode}",
+            "reason": f"decision_mode={decision_mode} (fast tier not used)",
         }
     elif skip_preflight:
         row = {
@@ -2869,24 +3097,90 @@ def _main_parser() -> argparse.ArgumentParser:
         default=None,
         choices=list(DECISION_MODES),
         help=(
-            "Who decides each cycle. 'jev' (default): the fast System-One "
-            "tier decides and escalates to the controller when its state is "
-            "insufficient. 'llm': the controller decides EVERY cycle and the "
-            "fast tier is never called — the pure-LLM benchmark mode. "
+            "Who decides each cycle. 'system1': the fast System-One tier "
+            "decides EVERY cycle and never hands back. 'system2' (alias 'llm'): "
+            "the controller decides EVERY cycle and the fast tier is never "
+            "called — the pure-LLM benchmark. 'system1+system2' (alias 'jev', "
+            "the default): the fast tier decides and hands back to the "
+            "reasoning teacher when a trigger fires and --handoff allows it. "
             "Overrides the AIPP_DECISION_MODE / CRON_DECISION_MODE env vars."
+        ),
+    )
+    parser.add_argument(
+        "--handoff",
+        default=None,
+        help=(
+            "Which handoff trigger families may hand back to the reasoning "
+            "teacher in 'system1+system2': 'off' (== system1), 'any' (default), "
+            "'failure', 'gap', 'confidence', or a comma list of those. "
+            "'failure' = the last action changed nothing; 'gap' = the fast tier "
+            "reports its state insufficient or names a missing class; "
+            "'confidence' = low action confidence with the layered gate. "
+            "Overrides AIPP_HANDOFF / CRON_HANDOFF."
+        ),
+    )
+    parser.add_argument(
+        "--handoff-confidence",
+        type=float,
+        default=None,
+        help=(
+            "Action-confidence floor for the confidence trigger "
+            f"(default {DEFAULT_HANDOFF_CONFIDENCE}). The default mirrors the "
+            "threshold already in code, so changing it invalidates comparison "
+            "against existing runs."
+        ),
+    )
+    parser.add_argument(
+        "--handoff-ambiguity",
+        type=float,
+        default=None,
+        help=(
+            "Ambiguity gate for the layered confidence trigger "
+            f"(default {DEFAULT_HANDOFF_AMBIGUITY}); low confidence alone does "
+            "not hand back unless the phase is irreversible."
+        ),
+    )
+    parser.add_argument(
+        "--handoff-classes",
+        default=None,
+        help=(
+            "Comma list of missing-information classes allowed to hand off "
+            "(e.g. 'map_topology'). Unset means any class may."
+        ),
+    )
+    parser.add_argument(
+        "--teacher-max-per-episode",
+        type=int,
+        default=None,
+        help=(
+            "Hard cap on teacher handoffs per episode. On exhaustion the run "
+            "keeps playing on the fast tier and records why the handoff was "
+            "blocked. Unset means unlimited."
         ),
     )
     return parser
 
 
 def main() -> None:
-    global CYCLES, ROM, run_id, log_path, SCREENSHOT_DIR, DECISION_MODE
+    global CYCLES, ROM, run_id, log_path, SCREENSHOT_DIR, DECISION_MODE, HANDOFF_POLICY
 
     parser = _main_parser()
     args = parser.parse_args()
     # Decision mode (flag > env > default). Stamped into every decision row,
     # so a log alone reveals whether a run was fast-tier or pure-LLM.
     DECISION_MODE = resolve_decision_mode(args.decision_mode)
+    HANDOFF_POLICY = build_handoff_policy(
+        handoff=args.handoff,
+        confidence=args.handoff_confidence,
+        ambiguity=args.handoff_ambiguity,
+        classes=args.handoff_classes,
+        teacher_max=args.teacher_max_per_episode,
+    )
+    # system1 means "never hand back", so the policy is emptied regardless of
+    # --handoff. The mode is the stronger statement and the two must not be able
+    # to contradict each other in the log.
+    if current_mode_family() == MODE_SYSTEM1 and HANDOFF_POLICY["families"]:
+        HANDOFF_POLICY = {**HANDOFF_POLICY, "families": []}
     if args.dry_run:
         # The import-time precheck normally exits first; this branch is a
         # defensive backstop for programmatic main() calls.
@@ -2977,6 +3271,9 @@ def main() -> None:
     # The teacher gets one attempt per missing-information class for this run.
     # Membership is recorded before the API call, so failures remain bounded.
     _teacher_escalated_classes: set[str] = set()
+    # Per-episode teacher budget (--teacher-max-per-episode). Counted at the API
+    # boundary so a failing call still spends it; None cap means unlimited.
+    _teacher_budget: dict[str, int] = {"used": 0}
 
     # ── Stuck detection (4 independent dimensions) ──────────────────
     _same_dir: str | None = None  # last repeated direction
@@ -3714,6 +4011,8 @@ def main() -> None:
                     teacher_cycle=cycle + 1,
                     teacher_results=results,
                     escalated_classes=_teacher_escalated_classes,
+                    handoff_policy=HANDOFF_POLICY,
+                    teacher_budget=_teacher_budget,
                 )
                 _jev_outcome = (
                     _jev_outcome_fields(_jev_attempt)
@@ -3902,6 +4201,10 @@ def main() -> None:
                     "screen": st,
                     "pipeline": _decision_pipeline,
                     "decision_mode": DECISION_MODE,
+                    # The family the spelling means. `decision_mode` keeps its
+                    # historical value so existing logs stay comparable (M6);
+                    # this field is the branchable one.
+                    "decision_mode_family": current_mode_family(),
                     "plan": plan,
                     "intent": intent,
                     # JEV-1 (PRD v3 AC-1): every decision row carries the
@@ -3917,6 +4220,11 @@ def main() -> None:
                         _missing_class if isinstance(_missing_class, str) else None
                     ),
                     "raw_distribution": decision.get("raw_distribution"),
+                    # Handoff provenance (M3/M5): which trigger fired, whether
+                    # this run's policy allowed it, and why not when it did not.
+                    "handoff_trigger": decision.get("handoff_trigger"),
+                    "handoff_allowed": decision.get("handoff_allowed"),
+                    "handoff_blocked_reason": decision.get("handoff_blocked_reason"),
                     **_jev_outcome,
                     "jev_projection_chars": decision.get("jev_projection_chars"),
                     "controller_raw": decision.get("raw_response", ""),

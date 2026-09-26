@@ -123,8 +123,25 @@ def test_parser_default_is_none_so_env_applies():
 def test_parser_rejects_unknown_mode():
     parser = cron_runner._main_parser()
     with pytest.raises(SystemExit):
-        parser.parse_args(["--decision-mode", "hybrid"])
+        parser.parse_args(["--decision-mode", "nonsense"])
+    # NOTE: this test previously used "hybrid" as its unknown value. "hybrid"
+    # became a VALID alias when the System-One/System-Two modes were added
+    # (SPEC_decision_modes.md), so the fixture had to move to a value that is
+    # still genuinely unknown. The assertion is unchanged.
 
 
-def test_modes_constant_matches_documented_modes():
-    assert set(cron_runner.DECISION_MODES) == {"jev", "llm"}
+def test_parser_accepts_the_new_mode_names():
+    parser = cron_runner._main_parser()
+    for name in ("system1", "system2", "system1+system2", "hybrid"):
+        assert parser.parse_args(["--decision-mode", name]).decision_mode == name
+
+
+def test_modes_constant_keeps_the_historical_names():
+    """The mode set grew ADDITIVELY: the two historical spellings must still be
+    accepted, because every committed baseline and run log cites them."""
+    modes = set(cron_runner.DECISION_MODES)
+    assert {"jev", "llm"} <= modes, "a historical mode spelling was dropped"
+    assert {"system1", "system2", "system1+system2"} <= modes
+    # And each historical spelling still means what it always meant.
+    assert cron_runner.decision_mode_family("jev") == cron_runner.MODE_HYBRID
+    assert cron_runner.decision_mode_family("llm") == cron_runner.MODE_SYSTEM2
