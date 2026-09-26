@@ -23,7 +23,23 @@
       "Pallet Town",
       "Route 1"
     ],
-    "goal_achieved": false
+    "goal_achieved": false,
+    "architecture_mix": "ep202-205 controller-driven; all other episodes JEV-driven"
   },
-  "falsifier_for_S6": "S6 fails if, with extra_facts populated, escalations_per_map_transition does not drop below this baseline."
+  "falsifier_for_S6": "S6 fails if, with extra_facts populated, escalations_per_map_transition does not drop below this baseline.",
+  "cause_of_transition": {
+    "status": "RESOLVED \u2014 measured, no longer an open question",
+    "mechanism": "OR_JEV returned HTTP 403 'RBAC: access denied' on ep202-205. In ep203 and ep204 JEV answered NOTHING (28/28 and 25/25 decisions had jev_answered=false), so _jev_or_none returned None and the loop fell through to the else branch \u2014 controller_plan(), the LLM controller.",
+    "measurement": {
+      "episodes_with_403": 4,
+      "episodes_list": "ep202, ep203, ep204, ep205",
+      "total_403_rows": 21,
+      "ep203_jev_failure": "28/28 = 100%",
+      "ep204_jev_failure": "25/25 = 100%",
+      "episodes_with_jev_answering_everything": "208 of 212"
+    },
+    "conclusion": "The escape to Route 1 happened while the FAST TIER WAS DEAD, on the controller path. In ep203 every decision is pipeline='RAM reader', jev_answered=false, escalated=false, with multi-step natural-language plans (plan lengths 3), and the agent reached Route 1 at cycle 18. JEV had 202 episodes of answering everything and never left Pallet Town.",
+    "significance": "A natural experiment, not a designed one: the same state that JEV escalates on 92% of the time was sufficient for the controller to navigate out of Pallet Town unaided. This is evidence that agent navigation is SOLVABLE FROM THE CURRENT STATE, and that the bottleneck is the JEV projection, not the information available to the agent.",
+    "caveat": "Episodes ep202-205 mix two architectures (JEV-driven and controller-driven), so this baseline's aggregate escalations_per_map_transition of 786.1 spans a failing-over system. It remains a valid control only if a comparison run uses the SAME failover conditions; a clean JEV-only and a clean controller-only baseline are both still owed."
+  }
 }
