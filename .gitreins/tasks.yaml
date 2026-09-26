@@ -725,3 +725,31 @@ tasks:
   status: complete
   created_at: '2026-09-26T13:43:56.507490+00:00'
   completed_at: '2026-09-26T14:11:24.268198+00:00'
+- id: FLAKY-1
+  title: Load-robust timing tests via min-of-N
+  criteria:
+  - tests/test_performance.py timing tests use min-of-5 attempts with original budgets
+    kept (init <0.15s, selection <0.05s), per-attempt ceiling 1.0s, perf_counter used,
+    no skip-gates; falsification proof shows tests still fail when they should; ruff
+    check+format clean, mypy clean, targeted tests pass.
+  status: in_progress
+  created_at: '2026-09-26T15:35:19.915944+00:00'
+- id: GAP-050
+  title: Silence PyBoy SGB/audio log spam at source
+  criteria:
+  - PyBoy logger set to ERROR in src/core/emulator.py covering both construction sites;
+    new regression tests prove the level is set by production code and fail pre-fix
+    (falsification shown); dry-run output free of PyBoy native lines; ruff+mypy clean
+    on touched files.
+  status: in_progress
+  created_at: '2026-09-26T15:35:20.083100+00:00'
+- id: DOC-2
+  title: Document --rom flag and boot-state mismatch warning
+  criteria:
+  - docs/api/cron_runner.md flags table gains a --rom row in argparse order stating
+    the module default, that ROMs are not shipped, and dry-run missing-ROM exit; new
+    Boot-state ROM mismatch subsection documents the warning on boot path + dry-run
+    and the --boot-state skip remedy; usage flags vs table rows cross-check passes;
+    no unrelated lines reflowed.
+  status: in_progress
+  created_at: '2026-09-26T15:35:20.259042+00:00'
