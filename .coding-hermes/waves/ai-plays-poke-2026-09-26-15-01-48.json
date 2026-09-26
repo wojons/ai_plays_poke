@@ -1,0 +1,23 @@
+{
+  "wave_id": "ai-plays-poke-2026-09-26-15-01-48",
+  "tick": 247,
+  "budget": 3,
+  "workers": 3,
+  "tasks": ["FLAKY-1", "GAP-050", "DOC-2"],
+  "worktrees": {
+    "FLAKY-1": {"worktree": "/home/kara/worktrees/ai-plays-poke-FLAKY-1", "branch": "wt/FLAKY-1", "base": "origin/main", "base_sha": "c5fe4c6"},
+    "GAP-050": {"worktree": "/home/kara/worktrees/ai-plays-poke-GAP-050", "branch": "wt/GAP-050", "base": "origin/main", "base_sha": "c5fe4c6"},
+    "DOC-2": {"worktree": "/home/kara/worktrees/ai-plays-poke-DOC-2", "branch": "wt/DOC-2", "base": "origin/main", "base_sha": "c5fe4c6"}
+  },
+  "briefs": {
+    "FLAKY-1": "/tmp/aipp247_brief_FLAKY-1.md",
+    "GAP-050": "/tmp/aipp247_brief_GAP-050.md",
+    "DOC-2": "/tmp/aipp247_brief_DOC-2.md"
+  },
+  "dispatched_at": "2026-09-26T10:30:00-05:00",
+  "status": "dispatched",
+  "independence_note": "Three rows, disjoint file sets, no depends_on edges (verified from rows): FLAKY-1 (tests/test_performance.py only), GAP-050 (src/core/emulator.py + new test file), DOC-2 (docs/api/cron_runner.md only). Row premises premise-checked this tick: FLAKY-1 test exists at tests/test_performance.py:109; GAP-050 verified no PyBoy logger config anywhere in src/, two _PyBoy construction sites emulator.py:81/322; DOC-2 verified --rom in usage block (line 41) + help (55-57) but MISSING from flags table (80-87), mismatch warning _warn_boot_state_rom_mismatch (cron_runner.py:351) undocumented. Two foreman-direct closes preceded dispatch (GUARD-1 residual work landed T246 + verdict f0210092; QA-AI-PLAYS-POKE-9 decision leave-ignored per .gitignore:183 + JSONL-NORM-001) so the wave merges onto a clean, current base. E2E-001 stays serial (live-run fixture, ~$1-4 + 30min wall clock; not a code task).",
+  "worker_lane": "gpt-5.6-sol @ openai-codex per project skill (gameplay Python); lane probe 20260926_101755_ac36b2 verified REAL (API call #1 model=gpt-5.6-sol provider=openai-codex, no fallback line)",
+  "venv_note": "Each worktree's .venv is a symlink to the main repo /home/kara/ai_plays_poke/.venv (py3.13) provisioned by the foreman pre-dispatch - workers MUST NOT delete, rebuild, or write through it beyond running tools.",
+  "outcomes": []
+}
