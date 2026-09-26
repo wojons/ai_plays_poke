@@ -13,7 +13,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from typing import Any, TextIO
 
-from src.core.jev_client import MISSING_CLASSES
+from src.core.jev_client import MISSING_CLASSES, recent_decisions_block
 
 MEMORY_CHAR_CAP = 1500
 PROJECTION_CHAR_CAP = 2000
@@ -89,6 +89,7 @@ def build_teacher_prompt(
     recent_events: list[dict[str, Any]] | None,
     milestones: list[dict[str, Any]] | None,
     memory: str | None,
+    recent_decisions: list[dict[str, Any]] | None = None,
 ) -> str:
     """Render one bounded, honest teacher request.
 
@@ -99,6 +100,8 @@ def build_teacher_prompt(
     missing_description = MISSING_CLASSES[missing_name]
     events = list(recent_events or [])[-EVENT_LIMIT:]
     milestone_rows = list(milestones or [])[-EVENT_LIMIT:]
+    decisions = recent_decisions_block(recent_decisions)
+    decisions_section = f"{decisions}\n\n" if decisions else ""
     return (
         "Repair the decision STATE for a typed JEV re-ask. Do not play the game, "
         "do not return a plan array, and do not change confidence thresholds.\n\n"
@@ -118,6 +121,7 @@ def build_teacher_prompt(
         f"{_bounded_json(distributions, 3000)}\n\n"
         "RECENT EVENTS (last 8):\n"
         f"{_bounded_json(events, 1800)}\n\n"
+        f"{decisions_section}"
         "MILESTONES (last 8):\n"
         f"{_bounded_json(milestone_rows, 1200)}\n\n"
         "MEMORY (DuckBrain):\n"
@@ -257,6 +261,7 @@ def request_patch(
     missing_class: str | None = None,
     projection: str | None = None,
     recent_events: list[dict[str, Any]] | None = None,
+    recent_decisions: list[dict[str, Any]] | None = None,
     milestones: list[dict[str, Any]] | None = None,
     memory: str | None = None,
     teacher_model: str | None = None,
@@ -269,6 +274,7 @@ def request_patch(
     budget. ``max_tokens`` is injectable so unit tests and probes can stay cheap.
     """
     started = time.monotonic()
+    prompt: str | None = None
     try:
         if client is None:
             raise ValueError("teacher client was not supplied")
@@ -281,6 +287,7 @@ def request_patch(
             missing_class=missing_class,
             projection=projection,
             recent_events=recent_events,
+            recent_decisions=recent_decisions,
             milestones=milestones,
             memory=memory,
         )
@@ -330,11 +337,16 @@ def request_patch(
             latency_s=time.monotonic() - started,
             cost_usd=cost_usd,
         )
-        return patch.to_dict()
+        result = patch.to_dict()
+        result["request_prompt"] = prompt
+        return result
     except Exception as exc:  # noqa: BLE001 - fail-closed API boundary
-        return StatePatch.failed(
+        result = StatePatch.failed(
             str(exc), latency_s=time.monotonic() - started
         ).to_dict()
+        if prompt is not None:
+            result["request_prompt"] = prompt
+        return result
 
 
 def write_escalation_row(
@@ -354,6 +366,9 @@ def write_escalation_row(
         "latency_s": record.get("latency_s"),
         "cost_usd": record.get("cost_usd"),
     }
+    request_prompt = record.get("request_prompt")
+    if isinstance(request_prompt, str):
+        row["request_prompt"] = request_prompt
     if not record.get("ok", False):
         row["ok"] = False
         row["error"] = record.get("error")

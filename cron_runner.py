@@ -1313,6 +1313,7 @@ def _jev_overworld_decision(
     goal: str = "",
     visited: dict[tuple[int, int], int] | None = None,
     recent_events: list[dict[str, Any]] | None = None,
+    recent_decisions: list[dict[str, Any]] | None = None,
     last_action: str = "",
     last_action_changed_state: bool | None = None,
     teacher_api_client: Any = None,
@@ -1401,12 +1402,20 @@ def _jev_overworld_decision(
             # Counted at the same boundary as the class allowance: a call that
             # fails still spent the budget.
             teacher_budget["used"] = teacher_budget.get("used", 0) + 1
+        prior_turn_count = len(
+            (recent_decisions or [])[-jev_client.RECENT_DECISION_LIMIT :]
+        )
+        if prior_turn_count:
+            safe_print(
+                f"  [CTX] teacher request carried {prior_turn_count} prior turns"
+            )
         try:
             teacher_record = jev_client.escalate_and_reask(
                 decision,
                 projection=projection,
                 memory=teacher_memory,
                 recent_events=recent_events,
+                recent_decisions=recent_decisions,
                 milestones=[],
                 teacher_model=teacher_model,
                 client=teacher_api_client,
@@ -1866,7 +1875,7 @@ def _interpret_controller_response(
     return "unreadable", None
 
 
-RECENT_DECISION_LIMIT = 6
+RECENT_DECISION_LIMIT = jev_client.RECENT_DECISION_LIMIT
 
 
 def _compact_recent_text(value: Any, fallback: str) -> str:
@@ -1903,17 +1912,11 @@ def _record_recent_decision(
 
 
 def _recent_decisions_block(history: list[dict[str, Any]]) -> str:
-    """Render only the bounded prior-turn summaries for a controller request."""
-    if not history:
-        return ""
-    lines = ["RECENT DECISIONS (prior turns):"]
-    for turn in history[-RECENT_DECISION_LIMIT:]:
-        lines.append(
-            f"- cycle {turn['cycle']} | screen={turn['screen']} | "
-            f"action={turn['action']} | intent={turn['intent']} | "
-            f"outcome={turn['outcome']}"
-        )
-    return "\n".join(lines)
+    """Render only the bounded prior-turn summaries for a reasoning request."""
+    return jev_client.recent_decisions_block(
+        history,
+        limit=RECENT_DECISION_LIMIT,
+    )
 
 
 def controller_plan(
@@ -4382,6 +4385,7 @@ def main() -> None:
                     goal=_mem_goal,
                     visited=_tile_visits,
                     recent_events=results,
+                    recent_decisions=_recent_decisions,
                     last_action=_last_direction or "",
                     # PRD v3 §3.2 trigger 1 (failure): a DIRECTION press that
                     # left the player on the same (map, tile) changed nothing,
