@@ -158,6 +158,8 @@ MODEL_PRICING: dict[str, tuple[float, float]] = {
     # Project compatibility ids: non-reasoning/reasoning map to Flash/Pro stickers.
     "deepseek-chat": (0.15, 0.6),
     "deepseek-reasoner": (0.66, 1.98),
+    # Google/OpenRouter public list price, checked 2026-09 (cartographer default).
+    "gemma-3-12b-it": (0.05, 0.15),
     # Anthropic public list prices retained for the project's Claude 2/3 families.
     "claude-3-opus": (15.0, 75.0),
     "claude-3-sonnet": (3.0, 15.0),

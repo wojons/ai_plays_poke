@@ -27,6 +27,7 @@ EXPECTED_MODEL_PRICING = {
     "deepseek-v4-pro": (0.66, 1.98),
     "deepseek-chat": (0.15, 0.6),
     "deepseek-reasoner": (0.66, 1.98),
+    "gemma-3-12b-it": (0.05, 0.15),
     "claude-3-opus": (15.0, 75.0),
     "claude-3-sonnet": (3.0, 15.0),
     "claude-3-haiku": (0.25, 1.25),
@@ -172,6 +173,40 @@ class TestCalculateCost:
         with pytest.warns(RuntimeWarning, match="unknown/model"):
             cost = calculate_cost("unknown/model", 1_000_000, 1_000_000)
         assert cost == pytest.approx(20.0, rel=1e-6)  # $5 + $15 default
+
+
+class TestProjectDefaultModelsHavePricing:
+    """DF-JEV-4 AC: every model id referenced by the project's defaults must
+    resolve to a real MODEL_PRICING table entry — never the 5.0/15.0 default.
+
+    Sources of truth: cron_runner.DEFAULT_CONTROLLER_MODEL (controller),
+    cron_runner cartographer_analyze() model literal (vision), and the
+    decision/state_window thinking_model defaults.
+    """
+
+    def test_controller_default_model_is_priced(self) -> None:
+        import cron_runner
+        from src.core.ai_client import MODEL_PRICING, get_model_pricing
+
+        model = cron_runner.DEFAULT_CONTROLLER_MODEL
+        key = model.rsplit("/", 1)[-1]
+        assert key in MODEL_PRICING
+        assert get_model_pricing(model) != (5.0, 15.0)
+
+    def test_cartographer_model_is_priced(self) -> None:
+        from src.core.ai_client import MODEL_PRICING, get_model_pricing
+
+        # The cartographer id appears in cron_runner.py as "google/gemma-3-12b-it";
+        # _pricing_model_key strips the vendor prefix to match the table entry.
+        assert "gemma-3-12b-it" in MODEL_PRICING
+        assert get_model_pricing("google/gemma-3-12b-it") == (0.05, 0.15)
+
+    def test_thinking_model_defaults_are_priced(self) -> None:
+        from src.core.ai_client import MODEL_PRICING, get_model_pricing
+
+        for model in ("deepseek-v4-flash", "deepseek-v4-pro"):
+            assert model in MODEL_PRICING
+            assert get_model_pricing(model) != (5.0, 15.0)
 
 
 class TestLogFunctions:
