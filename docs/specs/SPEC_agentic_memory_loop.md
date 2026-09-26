@@ -160,6 +160,7 @@ LATER cycle** — visible in the log, not asserted.
 | **S4** tool calling | `TOOLS-1` | the log shows ≥1 **model-chosen** tool call with its result; a failed call is visible to the model |
 | **S5** delegation | `DELEG-1` | ≥1 delegated finding written to memory and **consumed in a later cycle** |
 | **S6** memory-driven navigation | `NAV-MEM` | using `world/map/*` + `world/path/*`, cycles-to-first-map-transition drops vs the **S0** baseline, and the route is cited from memory |
+| **S6b** holding a transition | `HOLD-1` | a run crosses into Route 1 and **does not re-enter Pallet Town** for the remainder, with the mechanism cited from the log. Escaping and staying are different problems — measured: CTRL-WIN reached Route 1 at c13 and was back in Pallet Town by c22, and S0 did the same at ep203 |
 | **S7** benchmark parity | `BENCH-PAR` | both `--decision-mode jev` and `llm` run the new loop; mode stamped; logs comparable — **run before S6 is judged**, so the effect is attributable |
 
 **Dependencies (corrected):** S0 → S1 → S2 → S2b → S6; {S3, S4} branch off S2 and do **not** gate S6;
