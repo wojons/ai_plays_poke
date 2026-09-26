@@ -1,0 +1,121 @@
+{
+  "task_id": "JEV-403",
+  "task_title": "Fast-tier failure is silent \u2014 OR_JEV returned HTTP 403 for 4 episodes and the run still reported 0 errors",
+  "task_criteria": [
+    "A run in which >X% of decisions have jev_answered=false raises a loud, queryable degradation signal in long_run_status.json and the report, and an auth preflight catches a 403 on OR_JEV before a run starts. Falsifier: the alarm fires on a healthy run."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "3ccf41232761fa105710713febb805fbe1207201",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T111641.332670Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n6:34AM INF scanned ~305632066 bytes (305.63 MB) in 14.4s\n6:34AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 88166 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T111641.332670Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4161 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [444047 chars omitted \u2014 4921 line(s)] \u2026\ntest_bench_pathfinding_find_path               461.0047 (1.15)           3,156.0194 (1.0)             701.4126 (1.49)            641.5324 (3.81)            511.0051 (1.11)          77.4817 (1.94)          1;3  1,425,694.4059 (0.67)         17           1\ntest_bench_vision_pipeline_validate          7,593.9752 (18.98)         86,048.9963 (27.27)         8,327.8730 (17.63)           889.0593 (5.28)          8,185.0158 (17.75)        219.9959 (5.50)    1598;3065    120,078.6807 (0.06)      37838           1\ntest_bench_ram_reader_observe              888,284.0048 (>1000.0)  186,631,758.9884 (>1000.0)   1,928,021.5380 (>1000.0)  11,130,314.5471 (>1000.0)   1,098,252.0180 (>1000.0)   98,918.5064 (>1000.0)      5;38        518.6664 (0.00)        949           1\ntest_bench_vision_pipeline_process      39,099,098.9981 (>1000.0)   41,635,221.9763 (>1000.0)  40,440,136.6424 (>1000.0)     596,237.4693 (>1000.0)  40,512,283.9729 (>1000.0)  713,758.5126 (>1000.0)       5;0         24.7279 (0.00)         25           1\n--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4147 passed, 14 skipped in 387.17s (0:06:27) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T111641.332670Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 A run in which >X% of decisions have jev_answered=false raises a loud, queryable degradation signal in long_run_status.json and the report, and an auth preflight catches a 403 on OR_JEV before a run starts. Falsifier: the alarm fires on a healthy run.: All three required behaviors verified by code inspection, fresh test runs, and direct end-to-end execution. (1) long_run_status.json: scripts/long_run.py:38 STATUS=REPO/'long_run_status.json'; :196-204 summarise() sets degraded=(decisions>=5 and rate>0.5) and appends 'JEV DEGRADED: N/M transport failures (rate X%)' to errors; :408-410 totals['errors']+=len(s['errors']) and degraded_episodes; :485-506 writes top-level 'degraded' bool plus a 'degradation' block (component/transport_failures/decisions/failure_rate/threshold/min_decisions/degraded_episodes/last_episode_degraded/last_episode_errors). Direct run: poisoned 3/5 -> degraded=True rate=0.6 errors=['JEV DEGRADED: 3/5 transport failures (rate 60%)']; healthy 6/6 -> degraded=False rate=0.0 errors=[]. (2) Report: cron_runner.py:1863-1865 constants; :1890-1939 _autonomy_counters counts jev_ok is False; :2016-2035 _write_degradation_row emits queryable JSONL event='run_degradation' (None when healthy); :1952-1974 _format_autonomy_tail appends '| JEV DEGRADED: N/M transport failures (X%)' to the summary line; :2148-2161 DuckBrain summary_attributes carries degraded+degradation. Direct run: poisoned -> event=run_degradation, tail 'autonomy=2/5 (0 escalated) | JEV DEGRADED: 3/5 transport failures (60%)'; healthy -> row=None, buffer empty. Root-cause fix for the silent 403: cron_runner.py:3755 decision.update(_jev_outcome) stamps fallback controller rows with jev_ok=False + jev_error (200-char truncation, :1046-1051). (3) Auth preflight: src/core/jev_client.py:300-336 preflight() calls the real ask() (real HTTP POST with Authorization header, :227-272); regex \\bHTTP (?:401|403)\\b -> status 'auth_failure' with key_name parsed from the error prefix; cron_runner.py:2753-2806 _run_jev_preflight and :2907-2914 main() raises SystemExit(2) on auth_failure BEFORE Emulator(ROM) at :2925; only decision_mode=='jev' probes (llm/--skip-preflight/dry-run skip). Falsifier explicitly tested and verified: tests/test_jev403_degradation.py:196-207 test_healthy_escalated_rows_do_not_false_alarm (degraded False, row None, buffer empty, no 'DEGRADED' in summary) and :245-262 test_healthy_episode_has_no_synthetic_degradation_error; direct execution confirms healthy -> no alarm. TESTS (fresh, exit 0): './venv/bin/pytest tests/test_jev403_degradation.py -q --tb=short' => 16 passed in 7.48s; './venv/bin/pytest tests/test_autonomy_counters.py tests/test_cron_runner_metrics.py tests/test_jev403_degradation.py tests/test_jev4_dehardcoding.py -q' => 88 passed in 1.10s (matches commit's 'targeted pytest: 88 passed'); read_lsp_diagnostics => 0 diagnostics. Full-suite run was attempted but did not complete within the window due to heavy host contention with other pytest processes; every module touched by the change is covered green by the targeted runs. [resolution 0.53; long_run_status.json]\nJEV-403 is fully implemented and verified: a >50% JEV transport-failure rate produces a loud, queryable degradation signal in long_run_status.json and the run report, a real 403 auth preflight aborts before emulator boot, and the healthy-run falsifier is explicitly tested and confirmed not to alarm.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 A run in which >X% of decisions have jev_answered=false raises a loud, queryable degradation signal in long_run_status.json and the report, and an auth preflight catches a 403 on OR_JEV before a run starts. Falsifier: the alarm fires on a healthy run.: All three required behaviors verified by code inspection, fresh test runs, and direct end-to-end execution. (1) long_run_status.json: scripts/long_run.py:38 STATUS=REPO/'long_run_status.json'; :196-204 summarise() sets degraded=(decisions>=5 and rate>0.5) and appends 'JEV DEGRADED: N/M transport failures (rate X%)' to errors; :408-410 totals['errors']+=len(s['errors']) and degraded_episodes; :485-506 writes top-level 'degraded' bool plus a 'degradation' block (component/transport_failures/decisions/failure_rate/threshold/min_decisions/degraded_episodes/last_episode_degraded/last_episode_errors). Direct run: poisoned 3/5 -> degraded=True rate=0.6 errors=['JEV DEGRADED: 3/5 transport failures (rate 60%)']; healthy 6/6 -> degraded=False rate=0.0 errors=[]. (2) Report: cron_runner.py:1863-1865 constants; :1890-1939 _autonomy_counters counts jev_ok is False; :2016-2035 _write_degradation_row emits queryable JSONL event='run_degradation' (None when healthy); :1952-1974 _format_autonomy_tail appends '| JEV DEGRADED: N/M transport failures (X%)' to the summary line; :2148-2161 DuckBrain summary_attributes carries degraded+degradation. Direct run: poisoned -> event=run_degradation, tail 'autonomy=2/5 (0 escalated) | JEV DEGRADED: 3/5 transport failures (60%)'; healthy -> row=None, buffer empty. Root-cause fix for the silent 403: cron_runner.py:3755 decision.update(_jev_outcome) stamps fallback controller rows with jev_ok=False + jev_error (200-char truncation, :1046-1051). (3) Auth preflight: src/core/jev_client.py:300-336 preflight() calls the real ask() (real HTTP POST with Authorization header, :227-272); regex \\bHTTP (?:401|403)\\b -> status 'auth_failure' with key_name parsed from the error prefix; cron_runner.py:2753-2806 _run_jev_preflight and :2907-2914 main() raises SystemExit(2) on auth_failure BEFORE Emulator(ROM) at :2925; only decision_mode=='jev' probes (llm/--skip-preflight/dry-run skip). Falsifier explicitly tested and verified: tests/test_jev403_degradation.py:196-207 test_healthy_escalated_rows_do_not_false_alarm (degraded False, row None, buffer empty, no 'DEGRADED' in summary) and :245-262 test_healthy_episode_has_no_synthetic_degradation_error; direct execution confirms healthy -> no alarm. TESTS (fresh, exit 0): './venv/bin/pytest tests/test_jev403_degradation.py -q --tb=short' => 16 passed in 7.48s; './venv/bin/pytest tests/test_autonomy_counters.py tests/test_cron_runner_metrics.py tests/test_jev403_degradation.py tests/test_jev4_dehardcoding.py -q' => 88 passed in 1.10s (matches commit's 'targeted pytest: 88 passed'); read_lsp_diagnostics => 0 diagnostics. Full-suite run was attempted but did not complete within the window due to heavy host contention with other pytest processes; every module touched by the change is covered green by the targeted runs. [resolution 0.53; long_run_status.json]\nJEV-403 is fully implemented and verified: a >50% JEV transport-failure rate produces a loud, queryable degradation signal in long_run_status.json and the run report, a real 403 auth preflight aborts before emulator boot, and the healthy-run falsifier is explicitly tested and confirmed not to alarm.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "A run in which >X% of decisions have jev_answered=false raises a loud, queryable degradation signal in long_run_status.json and the report, and an auth preflight catches a 403 on OR_JEV before a run starts. Falsifier: the alarm fires on a healthy run.",
+                "status": "PASS",
+                "detail": "All three required behaviors verified by code inspection, fresh test runs, and direct end-to-end execution. (1) long_run_status.json: scripts/long_run.py:38 STATUS=REPO/'long_run_status.json'; :196-204 summarise() sets degraded=(decisions>=5 and rate>0.5) and appends 'JEV DEGRADED: N/M transport failures (rate X%)' to errors; :408-410 totals['errors']+=len(s['errors']) and degraded_episodes; :485-506 writes top-level 'degraded' bool plus a 'degradation' block (component/transport_failures/decisions/failure_rate/threshold/min_decisions/degraded_episodes/last_episode_degraded/last_episode_errors). Direct run: poisoned 3/5 -> degraded=True rate=0.6 errors=['JEV DEGRADED: 3/5 transport failures (rate 60%)']; healthy 6/6 -> degraded=False rate=0.0 errors=[]. (2) Report: cron_runner.py:1863-1865 constants; :1890-1939 _autonomy_counters counts jev_ok is False; :2016-2035 _write_degradation_row emits queryable JSONL event='run_degradation' (None when healthy); :1952-1974 _format_autonomy_tail appends '| JEV DEGRADED: N/M transport failures (X%)' to the summary line; :2148-2161 DuckBrain summary_attributes carries degraded+degradation. Direct run: poisoned -> event=run_degradation, tail 'autonomy=2/5 (0 escalated) | JEV DEGRADED: 3/5 transport failures (60%)'; healthy -> row=None, buffer empty. Root-cause fix for the silent 403: cron_runner.py:3755 decision.update(_jev_outcome) stamps fallback controller rows with jev_ok=False + jev_error (200-char truncation, :1046-1051). (3) Auth preflight: src/core/jev_client.py:300-336 preflight() calls the real ask() (real HTTP POST with Authorization header, :227-272); regex \\bHTTP (?:401|403)\\b -> status 'auth_failure' with key_name parsed from the error prefix; cron_runner.py:2753-2806 _run_jev_preflight and :2907-2914 main() raises SystemExit(2) on auth_failure BEFORE Emulator(ROM) at :2925; only decision_mode=='jev' probes (llm/--skip-preflight/dry-run skip). Falsifier explicitly tested and verified: tests/test_jev403_degradation.py:196-207 test_healthy_escalated_rows_do_not_false_alarm (degraded False, row None, buffer empty, no 'DEGRADED' in summary) and :245-262 test_healthy_episode_has_no_synthetic_degradation_error; direct execution confirms healthy -> no alarm. TESTS (fresh, exit 0): './venv/bin/pytest tests/test_jev403_degradation.py -q --tb=short' => 16 passed in 7.48s; './venv/bin/pytest tests/test_autonomy_counters.py tests/test_cron_runner_metrics.py tests/test_jev403_degradation.py tests/test_jev4_dehardcoding.py -q' => 88 passed in 1.10s (matches commit's 'targeted pytest: 88 passed'); read_lsp_diagnostics => 0 diagnostics. Full-suite run was attempted but did not complete within the window due to heavy host contention with other pytest processes; every module touched by the change is covered green by the targeted runs. [resolution 0.53; long_run_status.json]",
+                "resolution_probability": 0.53,
+                "cited_path": "long_run_status.json"
+              }
+            ],
+            "summary": "JEV-403 is fully implemented and verified: a >50% JEV transport-failure rate produces a loud, queryable degradation signal in long_run_status.json and the run report, a real 403 auth preflight aborts before emulator boot, and the healthy-run falsifier is explicitly tested and confirmed not to alarm."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: JEV-403\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 A run in which >X% of decisions have jev_answered=false raises a loud, queryable degradation signal in long_run_status.json and the report, and an auth preflight catches a 403 on OR_JEV before a run starts. Falsifier: the alarm fires on a healthy run.: All three required behaviors verified by code inspection, fresh test runs, and direct end-to-end execution. (1) long_run_status.json: scripts/long_run.py:38 STATUS=REPO/'long_run_status.json'; :196-204 summarise() sets degraded=(decisions>=5 and rate>0.5) and appends 'JEV DEGRADED: N/M transport failures (rate X%)' to errors; :408-410 totals['errors']+=len(s['errors']) and degraded_episodes; :485-506 writes top-level 'degraded' bool plus a 'degradation' block (component/transport_failures/decisions/failure_rate/threshold/min_decisions/degraded_episodes/last_episode_degraded/last_episode_errors). Direct run: poisoned 3/5 -> degraded=True rate=0.6 errors=['JEV DEGRADED: 3/5 transport failures (rate 60%)']; healthy 6/6 -> degraded=False rate=0.0 errors=[]. (2) Report: cron_runner.py:1863-1865 constants; :1890-1939 _autonomy_counters counts jev_ok is False; :2016-2035 _write_degradation_row emits queryable JSONL event='run_degradation' (None when healthy); :1952-1974 _format_autonomy_tail appends '| JEV DEGRADED: N/M transport failures (X%)' to the summary line; :2148-2161 DuckBrain summary_attributes carries degraded+degradation. Direct run: poisoned -> event=run_degradation, tail 'autonomy=2/5 (0 escalated) | JEV DEGRADED: 3/5 transport failures (60%)'; healthy -> row=None, buffer empty. Root-cause fix for the silent 403: cron_runner.py:3755 decision.update(_jev_outcome) stamps fallback controller rows with jev_ok=False + jev_error (200-char truncation, :1046-1051). (3) Auth preflight: src/core/jev_client.py:300-336 preflight() calls the real ask() (real HTTP POST with Authorization header, :227-272); regex \\bHTTP (?:401|403)\\b -> status 'auth_failure' with key_name parsed from the error prefix; cron_runner.py:2753-2806 _run_jev_preflight and :2907-2914 main() raises SystemExit(2) on auth_failure BEFORE Emulator(ROM) at :2925; only decision_mode=='jev' probes (llm/--skip-preflight/dry-run skip). Falsifier explicitly tested and verified: tests/test_jev403_degradation.py:196-207 test_healthy_escalated_rows_do_not_false_alarm (degraded False, row None, buffer empty, no 'DEGRADED' in summary) and :245-262 test_healthy_episode_has_no_synthetic_degradation_error; direct execution confirms healthy -> no alarm. TESTS (fresh, exit 0): './venv/bin/pytest tests/test_jev403_degradation.py -q --tb=short' => 16 passed in 7.48s; './venv/bin/pytest tests/test_autonomy_counters.py tests/test_cron_runner_metrics.py tests/test_jev403_degradation.py tests/test_jev4_dehardcoding.py -q' => 88 passed in 1.10s (matches commit's 'targeted pytest: 88 passed'); read_lsp_diagnostics => 0 diagnostics. Full-suite run was attempted but did not complete within the window due to heavy host contention with other pytest processes; every module touched by the change is covered green by the targeted runs. [resolution 0.53; long_run_status.json]\nJEV-403 is fully implemented and verified: a >50% JEV transport-failure rate produces a loud, queryable degradation signal in long_run_status.json and the run report, a real 403 auth preflight aborts before emulator boot, and the healthy-run falsifier is explicitly tested and confirmed not to alarm.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-26T11:55:57.054923",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T11:55:57.073985+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 32110,
+        "truncated": false,
+        "source": "git show 3ccf41232761"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 262176,
+        "truncated": true,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "JEV-403"
+  }
+}
