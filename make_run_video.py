@@ -18,11 +18,14 @@ The run_id is the part AFTER the first "run_" prefix in the log filename
 """
 
 import argparse
+from dataclasses import dataclass
 import json
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 BASE = Path(__file__).parent
 SHOTS = BASE / "screenshots"
@@ -32,6 +35,15 @@ OUT_DIR = BASE / "videos"
 FRAME_W, FRAME_H = 160, 144
 SCALE = 4
 OUT_W, OUT_H = FRAME_W * SCALE, FRAME_H * SCALE
+_STEP_RE = re.compile(r"^step_(\d+)\.png$")
+
+
+@dataclass(frozen=True)
+class StepFrame:
+    """A saved progress frame and the original run cycle it represents."""
+
+    cycle: int
+    path: Path
 
 
 def find_screenshot_dir(run_id: str) -> Path | None:
@@ -46,7 +58,17 @@ def find_screenshot_dir(run_id: str) -> Path | None:
     return None
 
 
-def load_log(run_id: str) -> list[dict]:
+def select_step_frames(shot_dir: Path) -> list[StepFrame]:
+    """Return exact ``step_N.png`` files ordered by their cycle number."""
+    frames: list[StepFrame] = []
+    for path in shot_dir.glob("step_*.png"):
+        match = _STEP_RE.fullmatch(path.name)
+        if match is not None:
+            frames.append(StepFrame(cycle=int(match.group(1)), path=path))
+    return sorted(frames, key=lambda frame: frame.cycle)
+
+
+def load_log(run_id: str) -> list[dict[str, Any]]:
     """Load log entries for the run (best-effort; missing log → empty)."""
     for name in (f"run_{run_id}.jsonl", f"{run_id}.jsonl"):
         p = LOGS / name
@@ -73,20 +95,20 @@ def _srt_time(seconds: float) -> str:
     return f"{h:02d}:{m:02d}:{s:02d},{ms:03d}"
 
 
-def build_srt(entries: list[dict], total_frames: int, fps: float) -> str:
-    """Build an SRT subtitle file overlaying cycle/screen/action per frame.
+def build_srt(entries: list[dict[str, Any]], cycles: list[int], fps: float) -> str:
+    """Build subtitles for saved frames, retaining their actual cycle numbers.
 
-    Each screenshot is one frame of the video; frame i (0-indexed) maps to
-    time [i/fps, (i+1)/fps). Cycle numbers in logs are 1-based, so step_0001
-    (frame 0) is cycle 1.
+    Frame position determines video time, while ``cycles`` maps each selected
+    ``step_N.png`` back to cycle N. Gaps therefore neither stop ffmpeg input nor
+    shift later HUD/log entries onto the wrong frame.
     """
-    by_cycle: dict[int, dict] = {}
+    by_cycle: dict[int, dict[str, Any]] = {}
     for e in entries:
         c = e.get("cycle")
         if c is not None:
             by_cycle[int(c)] = e
 
-    def fmt_entry(e: dict) -> str:
+    def fmt_entry(e: dict[str, Any]) -> str:
         screen = str(e.get("screen") or e.get("state") or "?")
         action = ""
         if e.get("plan"):
@@ -98,7 +120,7 @@ def build_srt(entries: list[dict], total_frames: int, fps: float) -> str:
             if e.get("species_hint"):
                 action += f" -- {e['species_hint']}"
         elif e.get("strategy"):
-            action = f"RECOVERY: {e['strategy']} ({e.get('reason','')})"
+            action = f"RECOVERY: {e['strategy']} ({e.get('reason', '')})"
         intent = str(e.get("intent") or "")[:70]
         line = f"{screen}"
         if action:
@@ -109,8 +131,7 @@ def build_srt(entries: list[dict], total_frames: int, fps: float) -> str:
 
     dur = 1.0 / fps
     parts = []
-    for i in range(total_frames):
-        cycle = i + 1
+    for i, cycle in enumerate(cycles):
         entry = by_cycle.get(cycle)
         text = f"Cycle {cycle}"
         if entry:
@@ -122,14 +143,37 @@ def build_srt(entries: list[dict], total_frames: int, fps: float) -> str:
     return "\n".join(parts)
 
 
+def _ffconcat_path(path: Path) -> str:
+    """Quote an absolute path for an ffconcat ``file`` directive."""
+    return str(path.resolve()).replace("'", "'\\''")
+
+
+def write_concat_manifest(
+    frames: list[StepFrame], manifest_path: Path, fps: float
+) -> None:
+    """Write an ffconcat manifest that preserves the selected frame ordering."""
+    if not frames:
+        raise ValueError("cannot write an empty frame manifest")
+    duration = 1.0 / fps
+    lines = ["ffconcat version 1.0"]
+    for frame in frames:
+        lines.append(f"file '{_ffconcat_path(frame.path)}'")
+        lines.append(f"duration {duration:.12g}")
+    # The concat demuxer ignores the final file's duration unless another file
+    # follows it. Repeat the final path; ``-frames:v`` caps output to the real
+    # selected-frame count, so this packet supplies timing without an extra frame.
+    lines.append(f"file '{_ffconcat_path(frames[-1].path)}'")
+    manifest_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 def make_video(run_id: str, fps: float, force: bool = False) -> Path | None:
     shot_dir = find_screenshot_dir(run_id)
     if shot_dir is None:
         print(f"[ERR] No screenshots for run '{run_id}'")
         return None
 
-    pngs = sorted(shot_dir.glob("step_*.png"))
-    if not pngs:
+    frames = select_step_frames(shot_dir)
+    if not frames:
         print(f"[ERR] No step_*.png in {shot_dir}")
         return None
 
@@ -144,39 +188,62 @@ def make_video(run_id: str, fps: float, force: bool = False) -> Path | None:
         return None
 
     entries = load_log(run_id)
-    srt_text = build_srt(entries, len(pngs), fps)
+    cycles = [frame.cycle for frame in frames]
+    srt_text = build_srt(entries, cycles, fps)
     srt_path = OUT_DIR / f"{run_id}.srt"
     srt_path.write_text(srt_text, encoding="utf-8")
+    manifest_path = OUT_DIR / f".{run_id}.frames.ffconcat"
+    write_concat_manifest(frames, manifest_path, fps)
 
-    # ffmpeg: image2 pattern input (step_%04d.png), scale 4x nearest-neighbor,
-    # burn SRT HUD overlay. -framerate N → each image holds 1/N seconds.
-    pattern = str(shot_dir / "step_%04d.png")
+    # ffmpeg: concat the explicitly selected files (step numbers may be gapped),
+    # scale 4x nearest-neighbor, and burn the cycle-aligned SRT HUD overlay.
     cmd = [
-        "ffmpeg", "-y",
-        "-framerate", str(fps),
-        "-i", pattern,
-        "-vf", (
-            f"scale={OUT_W}:{OUT_H}:flags=neighbor,"
-            f"subtitles={srt_path.name}"
-        ),
-        "-c:v", "libx264", "-preset", "fast", "-crf", "20",
-        "-pix_fmt", "yuv420p",
+        "ffmpeg",
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        manifest_path.name,
+        "-vf",
+        f"scale={OUT_W}:{OUT_H}:flags=neighbor,subtitles={srt_path.name}",
+        "-frames:v",
+        str(len(frames)),
+        "-fps_mode",
+        "vfr",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "fast",
+        "-crf",
+        "20",
+        "-pix_fmt",
+        "yuv420p",
         str(out_path),
     ]
-    print(f"[RUN] {len(pngs)} frames → {out_path.name} @ {fps}fps")
-    res = subprocess.run(cmd, cwd=OUT_DIR, capture_output=True, text=True)
+    print(f"[RUN] {len(frames)} frames → {out_path.name} @ {fps}fps")
+    try:
+        res = subprocess.run(cmd, cwd=OUT_DIR, capture_output=True, text=True)
+    finally:
+        manifest_path.unlink(missing_ok=True)
     if res.returncode != 0:
         print("[FFMPEG ERR]", res.stderr[-500:])
         return None
     size_kb = out_path.stat().st_size // 1024
-    print(f"[OK] {out_path.name} ({size_kb} KB, {len(pngs)} frames, {len(pngs)/fps:.0f}s)")
+    print(
+        f"[OK] {out_path.name} ({size_kb} KB, {len(frames)} frames, "
+        f"{len(frames) / fps:.0f}s)"
+    )
     return out_path
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Make review video from run screenshots")
     ap.add_argument("run_id", help="run id (after first run_ prefix)")
-    ap.add_argument("--fps", type=float, default=2.0, help="frames per second (default 2)")
+    ap.add_argument(
+        "--fps", type=float, default=2.0, help="frames per second (default 2)"
+    )
     ap.add_argument("--force", action="store_true", help="rebuild existing video")
     args = ap.parse_args()
     out = make_video(args.run_id, args.fps, args.force)
