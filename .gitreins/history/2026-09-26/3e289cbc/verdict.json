@@ -1,0 +1,112 @@
+{
+  "task_id": "GAP-054",
+  "task_title": "README Quick Start ROM provenance \u2014 user-supplied dump step + dry-run prints exact expected path",
+  "task_criteria": [
+    "README Quick Start gains a step stating the user must own the game and place their own Gen-1 Blue dump at data/rom/<exact documented filename> (legal wording), data/rom/README.md gives obtain guidance without linking piracy, and a fresh clone's --dry-run prints the exact expected ROM path when the file is missing; fresh-clone verification run reaches the API-keys line without a ROM error."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "0a81e6f7a74e994e218da4372d7dcc3b5494883b",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T205858.077717Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4221 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [450510 chars omitted \u2014 4988 line(s)] \u2026\ntest_bench_pathfinding_find_path               459.9860 (1.10)           3,496.9999 (1.0)             727.3888 (1.54)           724.7038 (4.59)            500.9788 (1.09)            59.9830 (2.85)          1;3  1,374,780.5834 (0.65)         18           1\ntest_bench_vision_pipeline_validate          6,060.9891 (14.43)         62,064.0058 (17.75)         7,047.7058 (14.96)        1,271.0881 (8.06)          6,641.9889 (14.41)          380.9982 (18.13)   3224;3695    141,890.1460 (0.07)      23948           1\ntest_bench_ram_reader_observe              914,431.9920 (>1000.0)  171,541,139.0178 (>1000.0)   1,697,972.3419 (>1000.0)  9,255,120.9870 (>1000.0)   1,075,635.9989 (>1000.0)    101,828.9768 (>1000.0)     4;129        588.9377 (0.00)       1022           1\ntest_bench_vision_pipeline_process      38,183,541.9976 (>1000.0)   42,975,990.0144 (>1000.0)  39,579,742.8431 (>1000.0)  1,234,610.6568 (>1000.0)  39,205,412.0020 (>1000.0)  1,195,166.2309 (>1000.0)       5;2         25.2654 (0.00)         25           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4207 passed, 14 skipped in 257.16s (0:04:17) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T205858.077717Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 README Quick Start gains a step stating the user must own the game and place their own Gen-1 Blue dump at data/rom/<exact documented filename> (legal wording), data/rom/README.md gives obtain guidance without linking piracy, and a fresh clone's --dry-run prints the exact expected ROM path when the file is missing; fresh-clone verification run reaches the API-keys line without a ROM error.: README.md Quick Start step 3 (lines 157-159): '# 3. Supply the ROM (ROM files are not included) / # You must own the game. Place your own dump at this exact path: / # data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb'; ROM Support section (lines 121-123) repeats legal wording. data/rom/README.md: 'ROM files are not included in this repository. You must own the game and supply your own dump.' with exact path; grep -niE 'http|www.|download|torrent|romsite|emuparadise|romsmania|link' data/rom/README.md returned exit 1 (no piracy links). Fresh clone at /tmp/gap054clone (data/rom/ contains only README.md) run: '.venv/bin/python3 cron_runner.py --dry-run' printed 'ROM path: data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb  [MISSING]' and reached 'API keys: OPENROUTER_API_KEY=not set \u00b7 DEEPSEEK_API_KEY=not set \u00b7 OPENAI_API_KEY=not set' BEFORE the ROM error line, which reads '[DRY-RUN] ERROR: ROM not found at data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb \u2014 a real run would crash at boot. Fix: you must own the game; place your own dump at data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb.' Filename matches config/settings.yaml rom.path (line 5). Tests: '.venv/bin/python3 -m pytest tests/test_cron_runner_metrics.py -k dry_run -q' => '11 passed, 46 deselected', including test_dry_run_missing_rom_exits_one which asserts the exact path-bearing error message.\nREADME Quick Start ROM provenance step, piracy-free data/rom/README.md guidance, and fresh-clone --dry-run exact-path output (reaching the API-keys line) are all verified with passing tests.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 README Quick Start gains a step stating the user must own the game and place their own Gen-1 Blue dump at data/rom/<exact documented filename> (legal wording), data/rom/README.md gives obtain guidance without linking piracy, and a fresh clone's --dry-run prints the exact expected ROM path when the file is missing; fresh-clone verification run reaches the API-keys line without a ROM error.: README.md Quick Start step 3 (lines 157-159): '# 3. Supply the ROM (ROM files are not included) / # You must own the game. Place your own dump at this exact path: / # data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb'; ROM Support section (lines 121-123) repeats legal wording. data/rom/README.md: 'ROM files are not included in this repository. You must own the game and supply your own dump.' with exact path; grep -niE 'http|www.|download|torrent|romsite|emuparadise|romsmania|link' data/rom/README.md returned exit 1 (no piracy links). Fresh clone at /tmp/gap054clone (data/rom/ contains only README.md) run: '.venv/bin/python3 cron_runner.py --dry-run' printed 'ROM path: data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb  [MISSING]' and reached 'API keys: OPENROUTER_API_KEY=not set \u00b7 DEEPSEEK_API_KEY=not set \u00b7 OPENAI_API_KEY=not set' BEFORE the ROM error line, which reads '[DRY-RUN] ERROR: ROM not found at data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb \u2014 a real run would crash at boot. Fix: you must own the game; place your own dump at data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb.' Filename matches config/settings.yaml rom.path (line 5). Tests: '.venv/bin/python3 -m pytest tests/test_cron_runner_metrics.py -k dry_run -q' => '11 passed, 46 deselected', including test_dry_run_missing_rom_exits_one which asserts the exact path-bearing error message.\nREADME Quick Start ROM provenance step, piracy-free data/rom/README.md guidance, and fresh-clone --dry-run exact-path output (reaching the API-keys line) are all verified with passing tests.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "README Quick Start gains a step stating the user must own the game and place their own Gen-1 Blue dump at data/rom/<exact documented filename> (legal wording), data/rom/README.md gives obtain guidance without linking piracy, and a fresh clone's --dry-run prints the exact expected ROM path when the file is missing; fresh-clone verification run reaches the API-keys line without a ROM error.",
+                "status": "PASS",
+                "detail": "README.md Quick Start step 3 (lines 157-159): '# 3. Supply the ROM (ROM files are not included) / # You must own the game. Place your own dump at this exact path: / # data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb'; ROM Support section (lines 121-123) repeats legal wording. data/rom/README.md: 'ROM files are not included in this repository. You must own the game and supply your own dump.' with exact path; grep -niE 'http|www.|download|torrent|romsite|emuparadise|romsmania|link' data/rom/README.md returned exit 1 (no piracy links). Fresh clone at /tmp/gap054clone (data/rom/ contains only README.md) run: '.venv/bin/python3 cron_runner.py --dry-run' printed 'ROM path: data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb  [MISSING]' and reached 'API keys: OPENROUTER_API_KEY=not set \u00b7 DEEPSEEK_API_KEY=not set \u00b7 OPENAI_API_KEY=not set' BEFORE the ROM error line, which reads '[DRY-RUN] ERROR: ROM not found at data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb \u2014 a real run would crash at boot. Fix: you must own the game; place your own dump at data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb.' Filename matches config/settings.yaml rom.path (line 5). Tests: '.venv/bin/python3 -m pytest tests/test_cron_runner_metrics.py -k dry_run -q' => '11 passed, 46 deselected', including test_dry_run_missing_rom_exits_one which asserts the exact path-bearing error message."
+              }
+            ],
+            "summary": "README Quick Start ROM provenance step, piracy-free data/rom/README.md guidance, and fresh-clone --dry-run exact-path output (reaching the API-keys line) are all verified with passing tests."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-054\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 README Quick Start gains a step stating the user must own the game and place their own Gen-1 Blue dump at data/rom/<exact documented filename> (legal wording), data/rom/README.md gives obtain guidance without linking piracy, and a fresh clone's --dry-run prints the exact expected ROM path when the file is missing; fresh-clone verification run reaches the API-keys line without a ROM error.: README.md Quick Start step 3 (lines 157-159): '# 3. Supply the ROM (ROM files are not included) / # You must own the game. Place your own dump at this exact path: / # data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb'; ROM Support section (lines 121-123) repeats legal wording. data/rom/README.md: 'ROM files are not included in this repository. You must own the game and supply your own dump.' with exact path; grep -niE 'http|www.|download|torrent|romsite|emuparadise|romsmania|link' data/rom/README.md returned exit 1 (no piracy links). Fresh clone at /tmp/gap054clone (data/rom/ contains only README.md) run: '.venv/bin/python3 cron_runner.py --dry-run' printed 'ROM path: data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb  [MISSING]' and reached 'API keys: OPENROUTER_API_KEY=not set \u00b7 DEEPSEEK_API_KEY=not set \u00b7 OPENAI_API_KEY=not set' BEFORE the ROM error line, which reads '[DRY-RUN] ERROR: ROM not found at data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb \u2014 a real run would crash at boot. Fix: you must own the game; place your own dump at data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb.' Filename matches config/settings.yaml rom.path (line 5). Tests: '.venv/bin/python3 -m pytest tests/test_cron_runner_metrics.py -k dry_run -q' => '11 passed, 46 deselected', including test_dry_run_missing_rom_exits_one which asserts the exact path-bearing error message.\nREADME Quick Start ROM provenance step, piracy-free data/rom/README.md guidance, and fresh-clone --dry-run exact-path output (reaching the API-keys line) are all verified with passing tests.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-26T21:20:26.162017",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T21:20:26.187206+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 15890,
+        "truncated": false,
+        "source": "git show 0a81e6f7a74e"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1709,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "GAP-054"
+  }
+}

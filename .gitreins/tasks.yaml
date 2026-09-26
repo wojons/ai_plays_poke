@@ -802,3 +802,28 @@ tasks:
   status: complete
   created_at: '2026-09-26T18:20:39.616653+00:00'
   completed_at: '2026-09-26T19:07:36.346363+00:00'
+- id: MEM-POP
+  title: "S2 memory population \u2014 30-cycle run writes world/map/* + world/object/*,\
+    \ next cycle retrieves"
+  criteria:
+  - A 30-cycle run (isolated worktree, boot state copied from data/baselines/base-1_boot.state
+    md5 81e4ec4e) writes >=1 world/map/* AND >=1 world/object/* key with the full
+    per-write field set (key, domain, attributes, typed facts, embedding_text, confidence,
+    evidence run/cycle/map/tile) using the label taxonomy, and a cycle AFTER the write
+    retrieves at least one of them via the MEM-API recall path. Existing store keys
+    untouched.
+  status: complete
+  created_at: '2026-09-26T20:46:38.255303+00:00'
+  completed_at: '2026-09-26T21:15:35.825058+00:00'
+- id: GAP-054
+  title: "README Quick Start ROM provenance \u2014 user-supplied dump step + dry-run\
+    \ prints exact expected path"
+  criteria:
+  - README Quick Start gains a step stating the user must own the game and place their
+    own Gen-1 Blue dump at data/rom/<exact documented filename> (legal wording), data/rom/README.md
+    gives obtain guidance without linking piracy, and a fresh clone's --dry-run prints
+    the exact expected ROM path when the file is missing; fresh-clone verification
+    run reaches the API-keys line without a ROM error.
+  status: complete
+  created_at: '2026-09-26T20:46:38.407539+00:00'
+  completed_at: '2026-09-26T21:15:35.876615+00:00'

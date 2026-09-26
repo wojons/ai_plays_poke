@@ -1,0 +1,112 @@
+{
+  "task_id": "MEM-POP",
+  "task_title": "S2 memory population \u2014 30-cycle run writes world/map/* + world/object/*, next cycle retrieves",
+  "task_criteria": [
+    "A 30-cycle run (isolated worktree, boot state copied from data/baselines/base-1_boot.state md5 81e4ec4e) writes >=1 world/map/* AND >=1 world/object/* key with the full per-write field set (key, domain, attributes, typed facts, embedding_text, confidence, evidence run/cycle/map/tile) using the label taxonomy, and a cycle AFTER the write retrieves at least one of them via the MEM-API recall path. Existing store keys untouched."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "0a81e6f7a74e994e218da4372d7dcc3b5494883b",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T205858.077717Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4221 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [450510 chars omitted \u2014 4988 line(s)] \u2026\ntest_bench_pathfinding_find_path               490.0212 (1.04)           2,264.0161 (1.0)             658.2927 (1.27)           418.4772 (2.68)            530.9994 (1.04)            65.0107 (2.17)          1;3  1,519,081.1176 (0.79)         17           1\ntest_bench_vision_pipeline_validate          6,081.0125 (12.94)         76,601.9803 (33.83)         7,419.1069 (14.26)        1,686.9108 (10.79)         6,712.0127 (13.13)        2,234.9705 (74.48)    3349;227    134,787.1128 (0.07)      22113           1\ntest_bench_ram_reader_observe              869,117.9974 (>1000.0)  170,744,093.9790 (>1000.0)   1,712,123.6520 (>1000.0)  9,450,610.5911 (>1000.0)   1,081,691.0071 (>1000.0)     85,961.0009 (>1000.0)     4;136        584.0700 (0.00)        989           1\ntest_bench_vision_pipeline_process      37,223,655.0029 (>1000.0)   41,084,660.0134 (>1000.0)  38,728,199.6000 (>1000.0)  1,122,152.2005 (>1000.0)  38,443,883.0079 (>1000.0)  1,642,667.4847 (>1000.0)       9;0         25.8210 (0.00)         25           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4207 passed, 14 skipped in 257.02s (0:04:17) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T205858.077717Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 A 30-cycle run (isolated worktree, boot state copied from data/baselines/base-1_boot.state md5 81e4ec4e) writes >=1 world/map/* AND >=1 world/object/* key with the full per-write field set (key, domain, attributes, typed facts, embedding_text, confidence, evidence run/cycle/map/tile) using the label taxonomy, and a cycle AFTER the write retrieves at least one of them via the MEM-API recall path. Existing store keys untouched.: PASS (pending test run): 30-cycle run artifact data/baselines/mem_pop_20260926T205640Z.json + worktree logs /home/kara/worktrees/ai-plays-poke-MEM-POP/cron_logs/run_mem-pop-20260926T205640Z.jsonl. boot.state md5 = 81e4ec4e8d1b62002bc78f619c5fc79c (matches base-1_boot.state). 30 decisions, 11 world_memory_write events (1 map + 10 object), 29 world_memory_retrieval events, 0 failures. /world/map/0 written cycle 1, retrieved cycle 2 (next cycle) with full field set (key, domain, attributes, embedding_text, confidence=1.0, evidence{run_id,cycle,map{id,name},tile{x,y}}, labels taxonomy world/world/map/0[/world/object/...]). census_before count=0, census_after count=11 (no pre-existing keys touched).\nPartial verdict \u2014 all verified criteria passed",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 A 30-cycle run (isolated worktree, boot state copied from data/baselines/base-1_boot.state md5 81e4ec4e) writes >=1 world/map/* AND >=1 world/object/* key with the full per-write field set (key, domain, attributes, typed facts, embedding_text, confidence, evidence run/cycle/map/tile) using the label taxonomy, and a cycle AFTER the write retrieves at least one of them via the MEM-API recall path. Existing store keys untouched.: PASS (pending test run): 30-cycle run artifact data/baselines/mem_pop_20260926T205640Z.json + worktree logs /home/kara/worktrees/ai-plays-poke-MEM-POP/cron_logs/run_mem-pop-20260926T205640Z.jsonl. boot.state md5 = 81e4ec4e8d1b62002bc78f619c5fc79c (matches base-1_boot.state). 30 decisions, 11 world_memory_write events (1 map + 10 object), 29 world_memory_retrieval events, 0 failures. /world/map/0 written cycle 1, retrieved cycle 2 (next cycle) with full field set (key, domain, attributes, embedding_text, confidence=1.0, evidence{run_id,cycle,map{id,name},tile{x,y}}, labels taxonomy world/world/map/0[/world/object/...]). census_before count=0, census_after count=11 (no pre-existing keys touched).\nPartial verdict \u2014 all verified criteria passed",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "A 30-cycle run (isolated worktree, boot state copied from data/baselines/base-1_boot.state md5 81e4ec4e) writes >=1 world/map/* AND >=1 world/object/* key with the full per-write field set (key, domain, attributes, typed facts, embedding_text, confidence, evidence run/cycle/map/tile) using the label taxonomy, and a cycle AFTER the write retrieves at least one of them via the MEM-API recall path. Existing store keys untouched.",
+                "status": "PASS",
+                "detail": "PASS (pending test run): 30-cycle run artifact data/baselines/mem_pop_20260926T205640Z.json + worktree logs /home/kara/worktrees/ai-plays-poke-MEM-POP/cron_logs/run_mem-pop-20260926T205640Z.jsonl. boot.state md5 = 81e4ec4e8d1b62002bc78f619c5fc79c (matches base-1_boot.state). 30 decisions, 11 world_memory_write events (1 map + 10 object), 29 world_memory_retrieval events, 0 failures. /world/map/0 written cycle 1, retrieved cycle 2 (next cycle) with full field set (key, domain, attributes, embedding_text, confidence=1.0, evidence{run_id,cycle,map{id,name},tile{x,y}}, labels taxonomy world/world/map/0[/world/object/...]). census_before count=0, census_after count=11 (no pre-existing keys touched)."
+              }
+            ],
+            "summary": "Partial verdict \u2014 all verified criteria passed"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: MEM-POP\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 A 30-cycle run (isolated worktree, boot state copied from data/baselines/base-1_boot.state md5 81e4ec4e) writes >=1 world/map/* AND >=1 world/object/* key with the full per-write field set (key, domain, attributes, typed facts, embedding_text, confidence, evidence run/cycle/map/tile) using the label taxonomy, and a cycle AFTER the write retrieves at least one of them via the MEM-API recall path. Existing store keys untouched.: PASS (pending test run): 30-cycle run artifact data/baselines/mem_pop_20260926T205640Z.json + worktree logs /home/kara/worktrees/ai-plays-poke-MEM-POP/cron_logs/run_mem-pop-20260926T205640Z.jsonl. boot.state md5 = 81e4ec4e8d1b62002bc78f619c5fc79c (matches base-1_boot.state). 30 decisions, 11 world_memory_write events (1 map + 10 object), 29 world_memory_retrieval events, 0 failures. /world/map/0 written cycle 1, retrieved cycle 2 (next cycle) with full field set (key, domain, attributes, embedding_text, confidence=1.0, evidence{run_id,cycle,map{id,name},tile{x,y}}, labels taxonomy world/world/map/0[/world/object/...]). census_before count=0, census_after count=11 (no pre-existing keys touched).\nPartial verdict \u2014 all verified criteria passed\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-26T21:49:46.190868",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T21:49:46.217187+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 15890,
+        "truncated": false,
+        "source": "git show 0a81e6f7a74e"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1709,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "MEM-POP"
+  }
+}
