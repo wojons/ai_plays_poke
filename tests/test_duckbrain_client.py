@@ -1,6 +1,9 @@
 """Unit tests for duckbrain_client.py — remember, recall, list_keys."""
 
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -130,6 +133,44 @@ class TestRemember:
             key="/u2", domain="concept", attributes={}, embedding_text="b"
         )
         assert id1 != id2
+
+    def test_persists_optional_memory_contract_fields(self, duckbrain_tmp):
+        labels = ["world", "visited"]
+        evidence = {"run_id": "run-7", "cycle": 12, "tile": {"x": 3, "y": 4}}
+        applies_when = {"screen": "overworld", "map_id": 1}
+
+        dbc.remember(
+            key="/world/map/1",
+            domain="world/map/1",
+            attributes={"exit": "north"},
+            embedding_text="Pallet Town has a northern exit",
+            labels=labels,
+            confidence=0.875,
+            evidence=evidence,
+            applies_when=applies_when,
+        )
+
+        data_dir = duckbrain_tmp / "pokemon-global" / "data"
+        record = json.loads(next(data_dir.glob("memories-*.jsonl")).read_text())
+        assert record["labels"] == labels
+        assert record["confidence"] == 0.875
+        assert record["evidence"] == evidence
+        assert record["applies_when"] == applies_when
+
+    def test_omits_optional_memory_contract_fields_when_not_provided(
+        self, duckbrain_tmp
+    ):
+        dbc.remember(
+            key="/legacy/shape",
+            domain="concept",
+            attributes={"value": 1},
+            embedding_text="legacy record",
+        )
+
+        data_dir = duckbrain_tmp / "pokemon-global" / "data"
+        record = json.loads(next(data_dir.glob("memories-*.jsonl")).read_text())
+        optional_fields = {"labels", "confidence", "evidence", "applies_when"}
+        assert optional_fields.isdisjoint(record)
 
 
 # ── recall ───────────────────────────────────────────────────────────
@@ -380,6 +421,132 @@ class TestRecall:
         )
         results = dbc.recall(namespace="test-multi")
         assert len(results) == 2
+
+    def test_filter_by_labels_requires_all_requested_labels(self, duckbrain_tmp):
+        namespace = "test-label-and"
+        dbc.remember(
+            key="/both",
+            domain="world/map/1",
+            attributes={},
+            embedding_text="both labels",
+            namespace=namespace,
+            labels=["world", "visited"],
+        )
+        dbc.remember(
+            key="/world-only",
+            domain="world/map/2",
+            attributes={},
+            embedding_text="one label",
+            namespace=namespace,
+            labels=["world"],
+        )
+        dbc.remember(
+            key="/visited-only",
+            domain="other",
+            attributes={},
+            embedding_text="other label",
+            namespace=namespace,
+            labels=["visited"],
+        )
+
+        results = dbc.recall(labels=["world", "visited"], namespace=namespace)
+        assert [record["key"] for record in results] == ["/both"]
+
+    def test_domain_counts_as_a_label(self, duckbrain_tmp):
+        namespace = "test-domain-label"
+        dbc.remember(
+            key="/domain-label",
+            domain="world/map/1",
+            attributes={},
+            embedding_text="domain label",
+            namespace=namespace,
+            labels=["visited"],
+        )
+        dbc.remember(
+            key="/wrong-domain",
+            domain="world/map/2",
+            attributes={},
+            embedding_text="wrong domain",
+            namespace=namespace,
+            labels=["visited"],
+        )
+
+        results = dbc.recall(labels=["visited", "world/map/1"], namespace=namespace)
+        assert [record["key"] for record in results] == ["/domain-label"]
+
+    def test_labels_none_preserves_unfiltered_recall(self, duckbrain_tmp):
+        namespace = "test-label-default"
+        dbc.remember(
+            key="/labeled",
+            domain="concept",
+            attributes={},
+            embedding_text="labeled",
+            namespace=namespace,
+            labels=["one"],
+        )
+        dbc.remember(
+            key="/unlabeled",
+            domain="concept",
+            attributes={},
+            embedding_text="unlabeled",
+            namespace=namespace,
+        )
+
+        assert dbc.recall(namespace=namespace) == dbc.recall(
+            labels=None, namespace=namespace
+        )
+
+
+class TestRestartSafeRetrieval:
+    def test_key_label_and_similarity_retrieval_survive_restart(self, tmp_path):
+        repo_root = Path(__file__).resolve().parents[1]
+        env = os.environ.copy()
+        env["HOME"] = str(tmp_path)
+        writer = """
+from src.core import duckbrain_client as dbc
+
+dbc.remember(
+    key="/world/map/1",
+    domain="world/map/1",
+    attributes={"exit": "north"},
+    embedding_text="Pallet Town northern exit reaches Route 1",
+    labels=["world", "visited"],
+)
+"""
+        subprocess.run(
+            [sys.executable, "-c", writer],
+            cwd=repo_root,
+            env=env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        reader = """
+import json
+from src.core import duckbrain_client as dbc
+
+print(json.dumps({
+    "by_key": dbc.get("/world/map/1"),
+    "by_label": dbc.recall(labels=["world", "world/map/1"]),
+    "by_similarity": dbc.search("northern exit"),
+}))
+"""
+        completed = subprocess.run(
+            [sys.executable, "-c", reader],
+            cwd=repo_root,
+            env=env,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        retrieved = json.loads(completed.stdout)
+
+        assert retrieved["by_key"]["key"] == "/world/map/1"
+        assert [record["key"] for record in retrieved["by_label"]] == ["/world/map/1"]
+        assert [record["key"] for record in retrieved["by_similarity"]] == [
+            "/world/map/1"
+        ]
 
 
 # ── list_keys ────────────────────────────────────────────────────────
