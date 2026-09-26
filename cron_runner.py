@@ -93,6 +93,41 @@ def resolve_controller_model(flag_value: str | None = None) -> str:
     return override[0] if override is not None else DEFAULT_CONTROLLER_MODEL
 
 
+# ── Decision mode: fast tier (JEV) vs the pure-LLM benchmark ────────
+# Both modes are first-class and selectable, because the project's original
+# contribution is the LLM-core benchmark: what can a reasoning model do with
+# nothing but the harness that gives it control of the game?
+#
+#   "jev" (default) — the fast System-One tier decides every eligible
+#                     overworld cycle and escalates to the reasoning
+#                     controller when its projected state is insufficient.
+#   "llm"           — the controller decides EVERY cycle and JEV is never
+#                     consulted (not even called). This is the pure-LLM
+#                     benchmark: no fast-tier assistance, no teacher repair.
+#
+# Resolved flag > env > default, and stamped into every decision row so a
+# run's mode is recoverable from its log alone.
+DEFAULT_DECISION_MODE = "jev"
+DECISION_MODE_ENV_VARS = ("AIPP_DECISION_MODE", "CRON_DECISION_MODE")
+DECISION_MODES = ("jev", "llm")
+
+
+def resolve_decision_mode(flag_value: str | None = None) -> str:
+    """Resolve the decision mode: flag > env > ``DEFAULT_DECISION_MODE``."""
+    if isinstance(flag_value, str) and flag_value.strip().lower() in DECISION_MODES:
+        return flag_value.strip().lower()
+    for name in DECISION_MODE_ENV_VARS:
+        value = os.environ.get(name)
+        if isinstance(value, str) and value.strip().lower() in DECISION_MODES:
+            return value.strip().lower()
+    return DEFAULT_DECISION_MODE
+
+
+# Module-level so the run loop and the row writers can stamp it; main()
+# re-resolves from the flag once the argument parser has run.
+DECISION_MODE = resolve_decision_mode()
+
+
 # ── --dry-run precheck (GAP-032) ────────────────────────────────────
 # Lightweight argparse pass that runs BEFORE yaml/numpy/PIL/src.* are
 # imported, so `--dry-run` validates setup without booting the emulator
@@ -1141,6 +1176,18 @@ def _jev_overworld_decision(
         "jev_escalate_reason": reason if isinstance(reason, str) else None,
         "jev_projection_chars": len(projection),
     }
+
+
+def _jev_or_none(*args: Any, **kwargs: Any) -> dict[str, Any] | None:
+    """Return a fast-tier decision, or None in the pure-LLM benchmark mode.
+
+    In "llm" mode the fast tier is not merely ignored — it is never called,
+    so a benchmark run spends no JEV budget and every decision in its log is
+    the controller's own. In "jev" mode this is a transparent pass-through.
+    """
+    if DECISION_MODE != "jev":
+        return None
+    return _jev_overworld_decision(*args, **kwargs)
 
 
 def _escalating_recovery(
@@ -2662,14 +2709,29 @@ def _main_parser() -> argparse.ArgumentParser:
             "api.deepseek.com via DEEPSEEK_API_KEY (GAP-052)."
         ),
     )
+    parser.add_argument(
+        "--decision-mode",
+        default=None,
+        choices=list(DECISION_MODES),
+        help=(
+            "Who decides each cycle. 'jev' (default): the fast System-One "
+            "tier decides and escalates to the controller when its state is "
+            "insufficient. 'llm': the controller decides EVERY cycle and the "
+            "fast tier is never called — the pure-LLM benchmark mode. "
+            "Overrides the AIPP_DECISION_MODE / CRON_DECISION_MODE env vars."
+        ),
+    )
     return parser
 
 
 def main() -> None:
-    global CYCLES, ROM, run_id, log_path, SCREENSHOT_DIR
+    global CYCLES, ROM, run_id, log_path, SCREENSHOT_DIR, DECISION_MODE
 
     parser = _main_parser()
     args = parser.parse_args()
+    # Decision mode (flag > env > default). Stamped into every decision row,
+    # so a log alone reveals whether a run was fast-tier or pure-LLM.
+    DECISION_MODE = resolve_decision_mode(args.decision_mode)
     if args.dry_run:
         # The import-time precheck normally exits first; this branch is a
         # defensive backstop for programmatic main() calls.
@@ -3466,7 +3528,7 @@ def main() -> None:
                 # falls through to controller_plan() exactly as before; the only
                 # way JEV can express "press nothing" is an empty plan, and the
                 # loop never invents a press for an answer it could not read.
-                _jev_decision = _jev_overworld_decision(
+                _jev_decision = _jev_or_none(
                     patch_data,
                     goal=_mem_goal,
                     visited=_tile_visits,
@@ -3669,6 +3731,7 @@ def main() -> None:
                     "cycle": cycle + 1,
                     "screen": st,
                     "pipeline": _decision_pipeline,
+                    "decision_mode": DECISION_MODE,
                     "plan": plan,
                     "intent": intent,
                     # JEV-1 (PRD v3 AC-1): every decision row carries the

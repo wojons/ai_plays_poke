@@ -192,3 +192,8 @@ data/frame_cache.json
 .env.bak-*
 dagger.db
 scripts/
+
+# ai-plays-poke long-run outputs (runtime state, regenerated each run)
+long_run_status.json
+long_run/
+screenshots/run_long_*
