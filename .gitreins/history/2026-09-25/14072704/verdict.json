@@ -1,0 +1,120 @@
+{
+  "task_id": "JEV-5",
+  "task_title": "Assist-inventory guard: fail build on new deterministic press_button call site outside declared set",
+  "task_criteria": [
+    "CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "aee179804aaa36418e3c9055104bfec8b3501d8d",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T084400.288414Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:00AM INF scanned ~237375951 bytes (237.38 MB) in 13s\n4:00AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72883 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T084400.288414Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4126 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [440373 chars omitted \u2014 4886 line(s)] \u2026\ntest_bench_pathfinding_find_path               460.0006 (1.21)           4,086.9927 (1.0)             865.0566 (1.97)           839.8771 (9.30)            731.9904 (1.70)         263.4915 (8.78)          1;1  1,155,993.7546 (0.51)         17           1\ntest_bench_vision_pipeline_validate          7,523.9950 (19.80)         96,628.9954 (23.64)         8,496.6120 (19.35)        1,977.1483 (21.88)         8,175.0040 (18.97)        201.0056 (6.70)    1746;3032    117,693.9700 (0.05)      28650           1\ntest_bench_ram_reader_observe              950,868.9982 (>1000.0)  168,936,000.0018 (>1000.0)   1,787,458.9527 (>1000.0)  9,554,923.4579 (>1000.0)   1,117,578.0091 (>1000.0)  117,696.7671 (>1000.0)      4;47        559.4534 (0.00)        907           1\ntest_bench_vision_pipeline_process      37,995,559.0033 (>1000.0)   43,247,768.0006 (>1000.0)  39,448,277.0392 (>1000.0)  1,028,381.1382 (>1000.0)  39,213,142.5033 (>1000.0)  994,029.0038 (>1000.0)       4;1         25.3496 (0.00)         26           1\n-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4112 passed, 14 skipped in 224.87s (0:03:44) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T084400.288414Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green: Guard: scripts/check_assist_inventory.py (312-line stdlib-only AST guard). Clean tree: `python3 scripts/check_assist_inventory.py` -> 'PASS: assist inventory matches 60 press_button call sites.' EXIT=0. Fail-closed verified by live injection: appending `emu.press_button(\"start\", frames=7)` to a cron_runner.py copy -> 'FAIL: assist inventory mismatch (1 new, 0 stale; 61 source sites, 60 declarations).' EXIT=1; appending `emu.press_button(\"a\", frames=30)` to src/core/tools.py copy -> FAIL EXIT=1; renaming enclosing fn `_tap`->`_tap_renamed` -> 'STALE src/core/tools.py _tap' + FAIL EXIT=1 (context is part of the match key). CI wired at .github/workflows/ci.yml step 3 'Guard declared press_button assist inventory' -> `python3 scripts/check_assist_inventory.py` (YAML parses valid; guard is stdlib-only so it runs before deps install). Regression tests tests/test_assist_inventory_guard.py: 3 passed (clean-pass, new-site-fail, stale-declaration-fail). Declared set documented: config/assist_inventory.json carries version/scope ['cron_runner.py','src/**/*.py']/matching/notes plus 60 sites each with non-empty file/context/button/call/reason (0 allow_stale), and docs/prd/PRD_v3_jev_duckbrain.md \u00a72.2 'What was actually hardcoded \u2014 the assist inventory' (A1\u2013A9) + AC-8 'no assist without an entry' names the exact `emu.press_button(` guard requirement. Green checks with real output: pytest `./venv/bin/pytest tests/ -q -k 'not live' --ignore=tests/test_live_demo.py --ignore=tests/test_phase4_integration.py --ignore=tests/test_vision_integration.py` -> '4073 passed, 8 skipped, 41 deselected in 317.34s', 0 failed; ruff `./venv/bin/ruff check src/ tests/ cron_runner.py scripts/check_assist_inventory.py` -> 'All checks passed!'; mypy `./venv/bin/mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 66 source files'.\nThe assist-inventory guard is implemented, CI-wired, fail-closed on new/renamed press_button sites, its declared set is documented in config/assist_inventory.json and PRD \u00a72.2/AC-8, and pytest (4073 passed), ruff, and mypy are all green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green: Guard: scripts/check_assist_inventory.py (312-line stdlib-only AST guard). Clean tree: `python3 scripts/check_assist_inventory.py` -> 'PASS: assist inventory matches 60 press_button call sites.' EXIT=0. Fail-closed verified by live injection: appending `emu.press_button(\"start\", frames=7)` to a cron_runner.py copy -> 'FAIL: assist inventory mismatch (1 new, 0 stale; 61 source sites, 60 declarations).' EXIT=1; appending `emu.press_button(\"a\", frames=30)` to src/core/tools.py copy -> FAIL EXIT=1; renaming enclosing fn `_tap`->`_tap_renamed` -> 'STALE src/core/tools.py _tap' + FAIL EXIT=1 (context is part of the match key). CI wired at .github/workflows/ci.yml step 3 'Guard declared press_button assist inventory' -> `python3 scripts/check_assist_inventory.py` (YAML parses valid; guard is stdlib-only so it runs before deps install). Regression tests tests/test_assist_inventory_guard.py: 3 passed (clean-pass, new-site-fail, stale-declaration-fail). Declared set documented: config/assist_inventory.json carries version/scope ['cron_runner.py','src/**/*.py']/matching/notes plus 60 sites each with non-empty file/context/button/call/reason (0 allow_stale), and docs/prd/PRD_v3_jev_duckbrain.md \u00a72.2 'What was actually hardcoded \u2014 the assist inventory' (A1\u2013A9) + AC-8 'no assist without an entry' names the exact `emu.press_button(` guard requirement. Green checks with real output: pytest `./venv/bin/pytest tests/ -q -k 'not live' --ignore=tests/test_live_demo.py --ignore=tests/test_phase4_integration.py --ignore=tests/test_vision_integration.py` -> '4073 passed, 8 skipped, 41 deselected in 317.34s', 0 failed; ruff `./venv/bin/ruff check src/ tests/ cron_runner.py scripts/check_assist_inventory.py` -> 'All checks passed!'; mypy `./venv/bin/mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 66 source files'.\nThe assist-inventory guard is implemented, CI-wired, fail-closed on new/renamed press_button sites, its declared set is documented in config/assist_inventory.json and PRD \u00a72.2/AC-8, and pytest (4073 passed), ruff, and mypy are all green.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green",
+                "status": "PASS",
+                "detail": "Guard: scripts/check_assist_inventory.py (312-line stdlib-only AST guard). Clean tree: `python3 scripts/check_assist_inventory.py` -> 'PASS: assist inventory matches 60 press_button call sites.' EXIT=0. Fail-closed verified by live injection: appending `emu.press_button(\"start\", frames=7)` to a cron_runner.py copy -> 'FAIL: assist inventory mismatch (1 new, 0 stale; 61 source sites, 60 declarations).' EXIT=1; appending `emu.press_button(\"a\", frames=30)` to src/core/tools.py copy -> FAIL EXIT=1; renaming enclosing fn `_tap`->`_tap_renamed` -> 'STALE src/core/tools.py _tap' + FAIL EXIT=1 (context is part of the match key). CI wired at .github/workflows/ci.yml step 3 'Guard declared press_button assist inventory' -> `python3 scripts/check_assist_inventory.py` (YAML parses valid; guard is stdlib-only so it runs before deps install). Regression tests tests/test_assist_inventory_guard.py: 3 passed (clean-pass, new-site-fail, stale-declaration-fail). Declared set documented: config/assist_inventory.json carries version/scope ['cron_runner.py','src/**/*.py']/matching/notes plus 60 sites each with non-empty file/context/button/call/reason (0 allow_stale), and docs/prd/PRD_v3_jev_duckbrain.md \u00a72.2 'What was actually hardcoded \u2014 the assist inventory' (A1\u2013A9) + AC-8 'no assist without an entry' names the exact `emu.press_button(` guard requirement. Green checks with real output: pytest `./venv/bin/pytest tests/ -q -k 'not live' --ignore=tests/test_live_demo.py --ignore=tests/test_phase4_integration.py --ignore=tests/test_vision_integration.py` -> '4073 passed, 8 skipped, 41 deselected in 317.34s', 0 failed; ruff `./venv/bin/ruff check src/ tests/ cron_runner.py scripts/check_assist_inventory.py` -> 'All checks passed!'; mypy `./venv/bin/mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 66 source files'.",
+                "resolution_probability": 0.0
+              }
+            ],
+            "summary": "The assist-inventory guard is implemented, CI-wired, fail-closed on new/renamed press_button sites, its declared set is documented in config/assist_inventory.json and PRD \u00a72.2/AC-8, and pytest (4073 passed), ruff, and mypy are all green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: JEV-5\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green: Guard: scripts/check_assist_inventory.py (312-line stdlib-only AST guard). Clean tree: `python3 scripts/check_assist_inventory.py` -> 'PASS: assist inventory matches 60 press_button call sites.' EXIT=0. Fail-closed verified by live injection: appending `emu.press_button(\"start\", frames=7)` to a cron_runner.py copy -> 'FAIL: assist inventory mismatch (1 new, 0 stale; 61 source sites, 60 declarations).' EXIT=1; appending `emu.press_button(\"a\", frames=30)` to src/core/tools.py copy -> FAIL EXIT=1; renaming enclosing fn `_tap`->`_tap_renamed` -> 'STALE src/core/tools.py _tap' + FAIL EXIT=1 (context is part of the match key). CI wired at .github/workflows/ci.yml step 3 'Guard declared press_button assist inventory' -> `python3 scripts/check_assist_inventory.py` (YAML parses valid; guard is stdlib-only so it runs before deps install). Regression tests tests/test_assist_inventory_guard.py: 3 passed (clean-pass, new-site-fail, stale-declaration-fail). Declared set documented: config/assist_inventory.json carries version/scope ['cron_runner.py','src/**/*.py']/matching/notes plus 60 sites each with non-empty file/context/button/call/reason (0 allow_stale), and docs/prd/PRD_v3_jev_duckbrain.md \u00a72.2 'What was actually hardcoded \u2014 the assist inventory' (A1\u2013A9) + AC-8 'no assist without an entry' names the exact `emu.press_button(` guard requirement. Green checks with real output: pytest `./venv/bin/pytest tests/ -q -k 'not live' --ignore=tests/test_live_demo.py --ignore=tests/test_phase4_integration.py --ignore=tests/test_vision_integration.py` -> '4073 passed, 8 skipped, 41 deselected in 317.34s', 0 failed; ruff `./venv/bin/ruff check src/ tests/ cron_runner.py scripts/check_assist_inventory.py` -> 'All checks passed!'; mypy `./venv/bin/mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 66 source files'.\nThe assist-inventory guard is implemented, CI-wired, fail-closed on new/renamed press_button sites, its declared set is documented in config/assist_inventory.json and PRD \u00a72.2/AC-8, and pytest (4073 passed), ruff, and mypy are all green.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-25T09:14:02.141909",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-25T09:14:02.205708+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 3288,
+        "truncated": false,
+        "source": "git show aee179804aaa"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 2409,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "JEV-5"
+  }
+}

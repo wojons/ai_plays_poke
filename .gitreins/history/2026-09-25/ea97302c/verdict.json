@@ -1,0 +1,112 @@
+{
+  "task_id": "DF-JEV-4",
+  "task_title": "Cost telemetry: calculate_cost pricing for the models actually used",
+  "task_criteria": [
+    "calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "5e88dd5ecbd297e7eb4295045864701fdc61d303",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T084400.288414Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4126 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [440385 chars omitted \u2014 4886 line(s)] \u2026\ntest_bench_pathfinding_find_path               450.9930 (1.16)           3,896.9883 (1.0)             782.0581 (1.65)            844.4682 (5.06)            510.9905 (1.13)           220.4979 (5.51)          1;1  1,278,677.3392 (0.61)         16           1\ntest_bench_vision_pipeline_validate          6,703.0051 (17.19)        643,641.9935 (165.16)        8,716.0900 (18.41)         3,847.6930 (23.04)         8,294.9991 (18.39)          952.0008 (23.80)   1380;3797    114,730.3435 (0.05)      34254           1\ntest_bench_ram_reader_observe              861,695.9967 (>1000.0)  163,950,581.9912 (>1000.0)   1,921,631.2145 (>1000.0)  10,286,164.4590 (>1000.0)   1,115,375.9988 (>1000.0)    154,265.9993 (>1000.0)      4;82        520.3912 (0.00)        789           1\ntest_bench_vision_pipeline_process      36,438,768.0020 (>1000.0)   45,184,987.0005 (>1000.0)  39,719,496.7192 (>1000.0)   2,193,105.6771 (>1000.0)  39,138,969.0049 (>1000.0)  2,726,214.2394 (>1000.0)       7;1         25.1766 (0.00)         25           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4112 passed, 14 skipped in 362.22s (0:06:02) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T084400.288414Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean: Criterion 1: \"calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean\"\n\nFINDINGS SO FAR:\n- src/core/ai_client.py:146-181 MODEL_PRICING table with real sticker prices:\n  gpt-5.6-luna (0.2,1.2), gpt-5.6-sol (2.0,10.0), deepseek-flash (0.15,0.6),\n  deepseek-v4-flash (0.15,0.6), deepseek-v4.1-flash (0.15,0.6), deepseek-v4-pro (0.66,1.98),\n  deepseek-chat (0.15,0.6), deepseek-reasoner (0.66,1.98), claude-3-opus/sonnet/haiku,\n  claude-3.5-sonnet/haiku, claude-sonnet-4, claude-opus-4, claude-2, gpt-4o-mini, gpt-4o,\n  gpt-4-turbo, gpt-4, gpt-3.5-turbo\n- _pricing_model_key() strips vendor prefix + dated release suffix; get_model_pricing warns RuntimeWarning on unknown; calculate_cost at ai_client.py:184-189\n- tests/test_ai_client.py:21-42 EXPECTED_MODEL_PRICING pins every table entry; test_every_documented_table_entry asserts MODEL_PRICING == EXPECTED_MODEL_PRICING and per-model rates; calculate_cost tests at lines 141-175\n- NO glm entry anywhere in repo (grep -i 'glm' across repo returns only .gitreins/tasks.yaml:684, the criterion text itself). No glm model is used by the project either.\n- pytest tests/test_ai_client.py: 237 passed in 18.01s\n- mypy src/ --ignore-missing-imports: Success: no issues found in 66 source files\n- ruff check src/ tests/ cron_runner.py: All checks passed!\n- Full suite running in background -> /tmp/full_pytest.log\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean: Criterion 1: \"calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean\"\n\nFINDINGS SO FAR:\n- src/core/ai_client.py:146-181 MODEL_PRICING table with real sticker prices:\n  gpt-5.6-luna (0.2,1.2), gpt-5.6-sol (2.0,10.0), deepseek-flash (0.15,0.6),\n  deepseek-v4-flash (0.15,0.6), deepseek-v4.1-flash (0.15,0.6), deepseek-v4-pro (0.66,1.98),\n  deepseek-chat (0.15,0.6), deepseek-reasoner (0.66,1.98), claude-3-opus/sonnet/haiku,\n  claude-3.5-sonnet/haiku, claude-sonnet-4, claude-opus-4, claude-2, gpt-4o-mini, gpt-4o,\n  gpt-4-turbo, gpt-4, gpt-3.5-turbo\n- _pricing_model_key() strips vendor prefix + dated release suffix; get_model_pricing warns RuntimeWarning on unknown; calculate_cost at ai_client.py:184-189\n- tests/test_ai_client.py:21-42 EXPECTED_MODEL_PRICING pins every table entry; test_every_documented_table_entry asserts MODEL_PRICING == EXPECTED_MODEL_PRICING and per-model rates; calculate_cost tests at lines 141-175\n- NO glm entry anywhere in repo (grep -i 'glm' across repo returns only .gitreins/tasks.yaml:684, the criterion text itself). No glm model is used by the project either.\n- pytest tests/test_ai_client.py: 237 passed in 18.01s\n- mypy src/ --ignore-missing-imports: Success: no issues found in 66 source files\n- ruff check src/ tests/ cron_runner.py: All checks passed!\n- Full suite running in background -> /tmp/full_pytest.log\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean",
+                "status": "FAIL",
+                "detail": "Criterion 1: \"calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean\"\n\nFINDINGS SO FAR:\n- src/core/ai_client.py:146-181 MODEL_PRICING table with real sticker prices:\n  gpt-5.6-luna (0.2,1.2), gpt-5.6-sol (2.0,10.0), deepseek-flash (0.15,0.6),\n  deepseek-v4-flash (0.15,0.6), deepseek-v4.1-flash (0.15,0.6), deepseek-v4-pro (0.66,1.98),\n  deepseek-chat (0.15,0.6), deepseek-reasoner (0.66,1.98), claude-3-opus/sonnet/haiku,\n  claude-3.5-sonnet/haiku, claude-sonnet-4, claude-opus-4, claude-2, gpt-4o-mini, gpt-4o,\n  gpt-4-turbo, gpt-4, gpt-3.5-turbo\n- _pricing_model_key() strips vendor prefix + dated release suffix; get_model_pricing warns RuntimeWarning on unknown; calculate_cost at ai_client.py:184-189\n- tests/test_ai_client.py:21-42 EXPECTED_MODEL_PRICING pins every table entry; test_every_documented_table_entry asserts MODEL_PRICING == EXPECTED_MODEL_PRICING and per-model rates; calculate_cost tests at lines 141-175\n- NO glm entry anywhere in repo (grep -i 'glm' across repo returns only .gitreins/tasks.yaml:684, the criterion text itself). No glm model is used by the project either.\n- pytest tests/test_ai_client.py: 237 passed in 18.01s\n- mypy src/ --ignore-missing-imports: Success: no issues found in 66 source files\n- ruff check src/ tests/ cron_runner.py: All checks passed!\n- Full suite running in background -> /tmp/full_pytest.log\n"
+              }
+            ],
+            "summary": "Partial verdict \u2014 evaluation hit resource cap before all criteria verified"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-JEV-4\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean: Criterion 1: \"calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean\"\n\nFINDINGS SO FAR:\n- src/core/ai_client.py:146-181 MODEL_PRICING table with real sticker prices:\n  gpt-5.6-luna (0.2,1.2), gpt-5.6-sol (2.0,10.0), deepseek-flash (0.15,0.6),\n  deepseek-v4-flash (0.15,0.6), deepseek-v4.1-flash (0.15,0.6), deepseek-v4-pro (0.66,1.98),\n  deepseek-chat (0.15,0.6), deepseek-reasoner (0.66,1.98), claude-3-opus/sonnet/haiku,\n  claude-3.5-sonnet/haiku, claude-sonnet-4, claude-opus-4, claude-2, gpt-4o-mini, gpt-4o,\n  gpt-4-turbo, gpt-4, gpt-3.5-turbo\n- _pricing_model_key() strips vendor prefix + dated release suffix; get_model_pricing warns RuntimeWarning on unknown; calculate_cost at ai_client.py:184-189\n- tests/test_ai_client.py:21-42 EXPECTED_MODEL_PRICING pins every table entry; test_every_documented_table_entry asserts MODEL_PRICING == EXPECTED_MODEL_PRICING and per-model rates; calculate_cost tests at lines 141-175\n- NO glm entry anywhere in repo (grep -i 'glm' across repo returns only .gitreins/tasks.yaml:684, the criterion text itself). No glm model is used by the project either.\n- pytest tests/test_ai_client.py: 237 passed in 18.01s\n- mypy src/ --ignore-missing-imports: Success: no issues found in 66 source files\n- ruff check src/ tests/ cron_runner.py: All checks passed!\n- Full suite running in background -> /tmp/full_pytest.log\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-25T09:51:37.347204",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-25T09:51:37.367968+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 38723,
+        "truncated": false,
+        "source": "git show 5e88dd5ecbd2"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 3599,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-JEV-4"
+  }
+}

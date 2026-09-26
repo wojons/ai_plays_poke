@@ -1,0 +1,78 @@
+commit aee179804aaa36418e3c9055104bfec8b3501d8d
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Fri Sep 25 03:38:01 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Fri Sep 25 03:38:01 2026 -0500
+
+    fix(teacher): disable thinking on the teacher API call (DF-JEV-2 judge finding b)
+    
+    Tier-2 judge verdict f772dd40: budget+retry landed but request_patch() still
+    let the reasoning model bill thinking tokens against max_tokens. Repo
+    diagnostics (docs/dogfood/diagnostics.md) require thinking disabled AND
+    headroom for any OpenRouter reasoning-model call needing parseable content.
+    Passes thinking={"type":"disabled"} (same contract as the controller retry
+    path) and pins it with test_teacher_call_disables_thinking_and_sends_budget.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ src/core/teacher_client.py       |  4 ++++
+ tests/test_teacher_escalation.py | 31 +++++++++++++++++++++++++++++++
+ 2 files changed, 35 insertions(+)
+
+diff --git a/src/core/teacher_client.py b/src/core/teacher_client.py
+index f212840..f5ab3ad 100644
+--- a/src/core/teacher_client.py
++++ b/src/core/teacher_client.py
+@@ -304,6 +304,10 @@ def request_patch(
+                 messages=messages,
+                 max_tokens=budget,
+                 temperature=0.2,
++                # Reasoning models bill thinking tokens against max_tokens;
++                # parseable teacher patches need thinking OFF + headroom.
++                # Repo diagnostics: docs/dogfood/diagnostics.md (judge finding b).
++                thinking={"type": "disabled"},
+             )
+             content, finish_reason, _usage, cost_usd = _response_parts(response)
+             if (content is None or not content.strip()) and finish_reason == "length":
+diff --git a/tests/test_teacher_escalation.py b/tests/test_teacher_escalation.py
+index d48c49c..7867212 100644
+--- a/tests/test_teacher_escalation.py
++++ b/tests/test_teacher_escalation.py
+@@ -404,6 +404,37 @@ def test_provider_reasoning_field_and_inline_reasoning_normalize_patch() -> None
+     assert patch["applies_when"] == _TYPED_PATCH["applies_when"]
+ 
+ 
++def test_teacher_call_disables_thinking_and_sends_budget() -> None:
++    client = _ScriptedTeacherClient(
++        [
++            {
++                "choices": [
++                    {
++                        "message": {"content": f"{_teacher_json()}|end_of_turn|"},
++                        "finish_reason": "stop",
++                    }
++                ],
++                "usage": {"cost": 0.0002},
++            }
++        ]
++    )
++
++    teacher_client.request_patch(
++        distributions=_pre_decision(),
++        missing_class="map_topology",
++        projection="MAP: Pallet Town",
++        teacher_model="test/reasoning-teacher",
++        client=client,
++        max_tokens=32,
++    )
++
++    # Reasoning models bill thinking against max_tokens: the teacher call
++    # must disable thinking (docs/dogfood/diagnostics.md) and pass its budget.
++    call = client.calls[0]
++    assert call["thinking"] == {"type": "disabled"}
++    assert call["max_tokens"] == 32
++
++
+ def test_overworld_escalation_reasks_with_distribution_and_is_bounded(
+     monkeypatch: Any,
+ ) -> None:

@@ -1,0 +1,16 @@
+commit 0d8657aee4b9c237e85b5f621e8c4a45c4d609cc
+Merge: b72b0a3 6071010
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Fri Sep 25 02:54:52 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Fri Sep 25 02:54:52 2026 -0500
+
+    merge: JEV-5 assist-inventory guard — CI fails on new deterministic press_button sites (6071010)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ .github/workflows/ci.yml             |   3 +
+ config/assist_inventory.json         | 431 +++++++++++++++++++++++++++++++++++
+ scripts/check_assist_inventory.py    | 312 +++++++++++++++++++++++++
+ tests/test_assist_inventory_guard.py |  79 +++++++
+ 4 files changed, 825 insertions(+)

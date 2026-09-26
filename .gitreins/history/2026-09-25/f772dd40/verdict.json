@@ -1,0 +1,119 @@
+{
+  "task_id": "DF-JEV-2",
+  "task_title": "Teacher escalation: reasoning-token budget + in-game wiring",
+  "task_criteria": [
+    "In-game overworld escalation fires when JEV says escalate; live request_patch returns usable content (finish_reason=stop) via reasoning/token handling fix; pytest + mypy + ruff clean"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "0d8657aee4b9c237e85b5f621e8c4a45c4d609cc",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T072033.304601Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n3:01AM INF scanned ~237326833 bytes (237.33 MB) in 9.95s\n3:01AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72807 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T072033.304601Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4125 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [440284 chars omitted \u2014 4885 line(s)] \u2026\ntest_bench_pathfinding_find_path               461.0047 (1.12)           5,089.0085 (4.16)            864.6894 (1.75)          1,133.2294 (19.13)           526.0008 (1.09)           205.0001 (4.10)          1;1  1,156,484.6895 (0.57)         16           1\ntest_bench_vision_pipeline_validate          7,783.9941 (18.94)         71,852.9918 (58.80)         8,618.5557 (17.41)         1,006.4933 (16.99)         8,414.9942 (17.49)          350.0027 (7.00)    1677;2118    116,028.7213 (0.06)      34816           1\ntest_bench_ram_reader_observe              985,915.0014 (>1000.0)  170,911,517.9983 (>1000.0)   1,864,084.5908 (>1000.0)  10,258,928.9629 (>1000.0)   1,142,825.0000 (>1000.0)    129,264.0009 (>1000.0)      4;21        536.4563 (0.00)        895           1\ntest_bench_vision_pipeline_process      38,598,784.0127 (>1000.0)   45,477,756.9976 (>1000.0)  40,568,600.5000 (>1000.0)   1,817,288.4501 (>1000.0)  40,116,538.0099 (>1000.0)  1,917,831.0031 (>1000.0)       5;2         24.6496 (0.00)         26           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4111 passed, 14 skipped in 206.11s (0:03:26) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T072033.304601Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 In-game overworld escalation fires when JEV says escalate; live request_patch returns usable content (finish_reason=stop) via reasoning/token handling fix; pytest + mypy + ruff clean: Criterion 1: \"In-game overworld escalation fires when JEV says escalate; live request_patch returns usable content (finish_reason=stop) via reasoning/token handling fix; pytest + mypy + ruff clean\"\n\nSub-findings:\n(a) In-game wiring: PRESENT. cron_runner.py:3481-3489 passes teacher_api_client=controller_client, teacher_model=controller_model, teacher_log_file, teacher_cycle, teacher_results, escalated_classes into _jev_overworld_decision. cron_runner.py:1060-1108 calls jev_client.escalate_and_reask when decision[\"escalate\"] is truthy. jev_client.decide() sets escalate (jev_client.py:524). Unit test test_overworld_escalation_reasks_with_distribution_and_is_bounded PASSES (mocked).\n\n(b) reasoning/token handling fix: PARTIAL. teacher_client.py:24 TEACHER_MAX_TOKENS=3000 (was 500), retry doubles budget once (teacher_client.py:300-316), _response_parts normalizes envelopes. BUT thinking is NOT disabled: request_patch calls client.chat_completion(model, messages, max_tokens, temperature) with NO thinking arg (teacher_client.py:302-307). The repo's own dogfood diagnostics (docs/dogfood/diagnostics.md:29-44) explicitly state the required fix: \"any OpenRouter reasoning-model call that needs parseable content must disable thinking AND leave headroom (>=1200 tokens)\". The controller path DOES pass thinking={\"type\":\"disabled\"} (cron_runner.py:1705,1722) but the teacher path does not. Teacher model is openai/gpt-5.6-luna (DEFAULT_CONTROLLER_MODEL, cron_runner.py:63) - a reasoning model.\n\n(c) LIVE evidence of finish_reason=stop: ABSENT. No live run after commit a3cfacf (Sep 25 02:46). Latest live run cron_logs/run_t240_dfjev1_live.jsonl (Sep 25 01:02) shows teacher_escalations count=0. The only finish_reason=stop evidence is a scripted mock in tests/test_teacher_escalation.py:385 (test_provider_reasoning_field_and_inline_reasoning_normalize_patch) - not a live call.\n\n(d) mypy: CLEAN - \"./venv/bin/mypy src/ --ignore-missing-imports\" -> \"Success: no issues found in 66 source files\"\n(e) ruff: CLEAN - \"./venv/bin/ruff check src/ tests/ cron_runner.py\" -> \"All checks passed!\"\n(f) pytest: tests/test_teacher_escalation.py -> 13 passed in 0.63s. Full suite running.\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 In-game overworld escalation fires when JEV says escalate; live request_patch returns usable content (finish_reason=stop) via reasoning/token handling fix; pytest + mypy + ruff clean: Criterion 1: \"In-game overworld escalation fires when JEV says escalate; live request_patch returns usable content (finish_reason=stop) via reasoning/token handling fix; pytest + mypy + ruff clean\"\n\nSub-findings:\n(a) In-game wiring: PRESENT. cron_runner.py:3481-3489 passes teacher_api_client=controller_client, teacher_model=controller_model, teacher_log_file, teacher_cycle, teacher_results, escalated_classes into _jev_overworld_decision. cron_runner.py:1060-1108 calls jev_client.escalate_and_reask when decision[\"escalate\"] is truthy. jev_client.decide() sets escalate (jev_client.py:524). Unit test test_overworld_escalation_reasks_with_distribution_and_is_bounded PASSES (mocked).\n\n(b) reasoning/token handling fix: PARTIAL. teacher_client.py:24 TEACHER_MAX_TOKENS=3000 (was 500), retry doubles budget once (teacher_client.py:300-316), _response_parts normalizes envelopes. BUT thinking is NOT disabled: request_patch calls client.chat_completion(model, messages, max_tokens, temperature) with NO thinking arg (teacher_client.py:302-307). The repo's own dogfood diagnostics (docs/dogfood/diagnostics.md:29-44) explicitly state the required fix: \"any OpenRouter reasoning-model call that needs parseable content must disable thinking AND leave headroom (>=1200 tokens)\". The controller path DOES pass thinking={\"type\":\"disabled\"} (cron_runner.py:1705,1722) but the teacher path does not. Teacher model is openai/gpt-5.6-luna (DEFAULT_CONTROLLER_MODEL, cron_runner.py:63) - a reasoning model.\n\n(c) LIVE evidence of finish_reason=stop: ABSENT. No live run after commit a3cfacf (Sep 25 02:46). Latest live run cron_logs/run_t240_dfjev1_live.jsonl (Sep 25 01:02) shows teacher_escalations count=0. The only finish_reason=stop evidence is a scripted mock in tests/test_teacher_escalation.py:385 (test_provider_reasoning_field_and_inline_reasoning_normalize_patch) - not a live call.\n\n(d) mypy: CLEAN - \"./venv/bin/mypy src/ --ignore-missing-imports\" -> \"Success: no issues found in 66 source files\"\n(e) ruff: CLEAN - \"./venv/bin/ruff check src/ tests/ cron_runner.py\" -> \"All checks passed!\"\n(f) pytest: tests/test_teacher_escalation.py -> 13 passed in 0.63s. Full suite running.\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "In-game overworld escalation fires when JEV says escalate; live request_patch returns usable content (finish_reason=stop) via reasoning/token handling fix; pytest + mypy + ruff clean",
+                "status": "FAIL",
+                "detail": "Criterion 1: \"In-game overworld escalation fires when JEV says escalate; live request_patch returns usable content (finish_reason=stop) via reasoning/token handling fix; pytest + mypy + ruff clean\"\n\nSub-findings:\n(a) In-game wiring: PRESENT. cron_runner.py:3481-3489 passes teacher_api_client=controller_client, teacher_model=controller_model, teacher_log_file, teacher_cycle, teacher_results, escalated_classes into _jev_overworld_decision. cron_runner.py:1060-1108 calls jev_client.escalate_and_reask when decision[\"escalate\"] is truthy. jev_client.decide() sets escalate (jev_client.py:524). Unit test test_overworld_escalation_reasks_with_distribution_and_is_bounded PASSES (mocked).\n\n(b) reasoning/token handling fix: PARTIAL. teacher_client.py:24 TEACHER_MAX_TOKENS=3000 (was 500), retry doubles budget once (teacher_client.py:300-316), _response_parts normalizes envelopes. BUT thinking is NOT disabled: request_patch calls client.chat_completion(model, messages, max_tokens, temperature) with NO thinking arg (teacher_client.py:302-307). The repo's own dogfood diagnostics (docs/dogfood/diagnostics.md:29-44) explicitly state the required fix: \"any OpenRouter reasoning-model call that needs parseable content must disable thinking AND leave headroom (>=1200 tokens)\". The controller path DOES pass thinking={\"type\":\"disabled\"} (cron_runner.py:1705,1722) but the teacher path does not. Teacher model is openai/gpt-5.6-luna (DEFAULT_CONTROLLER_MODEL, cron_runner.py:63) - a reasoning model.\n\n(c) LIVE evidence of finish_reason=stop: ABSENT. No live run after commit a3cfacf (Sep 25 02:46). Latest live run cron_logs/run_t240_dfjev1_live.jsonl (Sep 25 01:02) shows teacher_escalations count=0. The only finish_reason=stop evidence is a scripted mock in tests/test_teacher_escalation.py:385 (test_provider_reasoning_field_and_inline_reasoning_normalize_patch) - not a live call.\n\n(d) mypy: CLEAN - \"./venv/bin/mypy src/ --ignore-missing-imports\" -> \"Success: no issues found in 66 source files\"\n(e) ruff: CLEAN - \"./venv/bin/ruff check src/ tests/ cron_runner.py\" -> \"All checks passed!\"\n(f) pytest: tests/test_teacher_escalation.py -> 13 passed in 0.63s. Full suite running."
+              }
+            ],
+            "summary": "Partial verdict \u2014 evaluation hit resource cap before all criteria verified"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-JEV-2\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 In-game overworld escalation fires when JEV says escalate; live request_patch returns usable content (finish_reason=stop) via reasoning/token handling fix; pytest + mypy + ruff clean: Criterion 1: \"In-game overworld escalation fires when JEV says escalate; live request_patch returns usable content (finish_reason=stop) via reasoning/token handling fix; pytest + mypy + ruff clean\"\n\nSub-findings:\n(a) In-game wiring: PRESENT. cron_runner.py:3481-3489 passes teacher_api_client=controller_client, teacher_model=controller_model, teacher_log_file, teacher_cycle, teacher_results, escalated_classes into _jev_overworld_decision. cron_runner.py:1060-1108 calls jev_client.escalate_and_reask when decision[\"escalate\"] is truthy. jev_client.decide() sets escalate (jev_client.py:524). Unit test test_overworld_escalation_reasks_with_distribution_and_is_bounded PASSES (mocked).\n\n(b) reasoning/token handling fix: PARTIAL. teacher_client.py:24 TEACHER_MAX_TOKENS=3000 (was 500), retry doubles budget once (teacher_client.py:300-316), _response_parts normalizes envelopes. BUT thinking is NOT disabled: request_patch calls client.chat_completion(model, messages, max_tokens, temperature) with NO thinking arg (teacher_client.py:302-307). The repo's own dogfood diagnostics (docs/dogfood/diagnostics.md:29-44) explicitly state the required fix: \"any OpenRouter reasoning-model call that needs parseable content must disable thinking AND leave headroom (>=1200 tokens)\". The controller path DOES pass thinking={\"type\":\"disabled\"} (cron_runner.py:1705,1722) but the teacher path does not. Teacher model is openai/gpt-5.6-luna (DEFAULT_CONTROLLER_MODEL, cron_runner.py:63) - a reasoning model.\n\n(c) LIVE evidence of finish_reason=stop: ABSENT. No live run after commit a3cfacf (Sep 25 02:46). Latest live run cron_logs/run_t240_dfjev1_live.jsonl (Sep 25 01:02) shows teacher_escalations count=0. The only finish_reason=stop evidence is a scripted mock in tests/test_teacher_escalation.py:385 (test_provider_reasoning_field_and_inline_reasoning_normalize_patch) - not a live call.\n\n(d) mypy: CLEAN - \"./venv/bin/mypy src/ --ignore-missing-imports\" -> \"Success: no issues found in 66 source files\"\n(e) ruff: CLEAN - \"./venv/bin/ruff check src/ tests/ cron_runner.py\" -> \"All checks passed!\"\n(f) pytest: tests/test_teacher_escalation.py -> 13 passed in 0.63s. Full suite running.\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-25T08:27:47.230771",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-25T08:27:47.246462+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 755,
+        "truncated": false,
+        "source": "git show 0d8657aee4b9"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1685,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-JEV-2"
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "task_id": "JEV-5",
+  "task_title": "Assist-inventory guard: fail build on new deterministic press_button call site outside declared set",
+  "task_criteria": [
+    "CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "aee179804aaa36418e3c9055104bfec8b3501d8d",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T072033.304601Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n3:27AM INF scanned ~237337378 bytes (237.34 MB) in 11s\n3:27AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 72836 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T072033.304601Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green: Guard exists: scripts/check_assist_inventory.py (AST-based, 312 lines). CI wired: .github/workflows/ci.yml:65-66 \"Guard declared press_button assist inventory\" -> python3 scripts/check_assist_inventory.py. Declared set: config/assist_inventory.json (60 sites, scope cron_runner.py + src/**/*.py, per-site reason). Docs: docs/prd/PRD_v3_jev_duckbrain.md \u00a72.2 + AC-8. Tests: tests/test_assist_inventory_guard.py 3 passed. Live injection test: added emu.press_button('a', frames=7) to src/core/tools.py -> guard printed \"NEW src/core/tools.py:639 _new_deterministic_assist\" and \"FAIL: assist inventory mismatch (1 new, 0 stale; 61 source sites, 60 declarations).\" EXIT=1. Clean tree EXIT=0 PASS. ruff: All checks passed. mypy: Success no issues in 66 files. pytest full suite: RUNNING (pending).\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green: Guard exists: scripts/check_assist_inventory.py (AST-based, 312 lines). CI wired: .github/workflows/ci.yml:65-66 \"Guard declared press_button assist inventory\" -> python3 scripts/check_assist_inventory.py. Declared set: config/assist_inventory.json (60 sites, scope cron_runner.py + src/**/*.py, per-site reason). Docs: docs/prd/PRD_v3_jev_duckbrain.md \u00a72.2 + AC-8. Tests: tests/test_assist_inventory_guard.py 3 passed. Live injection test: added emu.press_button('a', frames=7) to src/core/tools.py -> guard printed \"NEW src/core/tools.py:639 _new_deterministic_assist\" and \"FAIL: assist inventory mismatch (1 new, 0 stale; 61 source sites, 60 declarations).\" EXIT=1. Clean tree EXIT=0 PASS. ruff: All checks passed. mypy: Success no issues in 66 files. pytest full suite: RUNNING (pending).\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green",
+                "status": "FAIL",
+                "detail": "Guard exists: scripts/check_assist_inventory.py (AST-based, 312 lines). CI wired: .github/workflows/ci.yml:65-66 \"Guard declared press_button assist inventory\" -> python3 scripts/check_assist_inventory.py. Declared set: config/assist_inventory.json (60 sites, scope cron_runner.py + src/**/*.py, per-site reason). Docs: docs/prd/PRD_v3_jev_duckbrain.md \u00a72.2 + AC-8. Tests: tests/test_assist_inventory_guard.py 3 passed. Live injection test: added emu.press_button('a', frames=7) to src/core/tools.py -> guard printed \"NEW src/core/tools.py:639 _new_deterministic_assist\" and \"FAIL: assist inventory mismatch (1 new, 0 stale; 61 source sites, 60 declarations).\" EXIT=1. Clean tree EXIT=0 PASS. ruff: All checks passed. mypy: Success no issues in 66 files. pytest full suite: RUNNING (pending)."
+              }
+            ],
+            "summary": "Partial verdict \u2014 evaluation hit resource cap before all criteria verified"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: JEV-5\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 CI/pre-commit guard fails when a new emu.press_button call site appears outside the declared assist set; declared set documented; pytest+ruff+mypy green: Guard exists: scripts/check_assist_inventory.py (AST-based, 312 lines). CI wired: .github/workflows/ci.yml:65-66 \"Guard declared press_button assist inventory\" -> python3 scripts/check_assist_inventory.py. Declared set: config/assist_inventory.json (60 sites, scope cron_runner.py + src/**/*.py, per-site reason). Docs: docs/prd/PRD_v3_jev_duckbrain.md \u00a72.2 + AC-8. Tests: tests/test_assist_inventory_guard.py 3 passed. Live injection test: added emu.press_button('a', frames=7) to src/core/tools.py -> guard printed \"NEW src/core/tools.py:639 _new_deterministic_assist\" and \"FAIL: assist inventory mismatch (1 new, 0 stale; 61 source sites, 60 declarations).\" EXIT=1. Clean tree EXIT=0 PASS. ruff: All checks passed. mypy: Success no issues in 66 files. pytest full suite: RUNNING (pending).\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-25T09:09:05.781709",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-25T09:09:05.821405+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 3288,
+        "truncated": false,
+        "source": "git show aee179804aaa"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 2118,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "JEV-5"
+  }
+}

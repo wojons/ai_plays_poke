@@ -1,0 +1,113 @@
+{
+  "task_id": "DF-JEV-4",
+  "task_title": "Cost telemetry: calculate_cost pricing for the models actually used",
+  "task_criteria": [
+    "calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "5e88dd5ecbd297e7eb4295045864701fdc61d303",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T084400.288414Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.2.3 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, benchmark-5.2.3, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4126 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [440385 chars omitted \u2014 4886 line(s)] \u2026\ntest_bench_pathfinding_find_path               842.0029 (1.25)           6,562.9865 (1.0)           1,623.1077 (1.83)          1,860.7833 (6.27)            942.0037 (1.09)           400.7488 (3.37)          1;1    616,102.0655 (0.54)          9           1\ntest_bench_vision_pipeline_validate         11,801.9962 (17.56)        937,074.0008 (142.78)       15,260.1407 (17.25)        10,080.6101 (33.99)        14,867.0078 (17.25)        1,310.9966 (11.02)     214;525     65,530.1951 (0.06)      18172           1\ntest_bench_ram_reader_observe            1,768,201.9970 (>1000.0)  279,547,512.0074 (>1000.0)   3,926,518.1038 (>1000.0)  19,741,833.3157 (>1000.0)   2,126,455.0014 (>1000.0)    292,510.9948 (>1000.0)      3;38        254.6786 (0.00)        472           1\ntest_bench_vision_pipeline_process      79,666,309.0005 (>1000.0)   88,554,125.9922 (>1000.0)  83,753,974.4170 (>1000.0)   2,505,208.1891 (>1000.0)  83,468,645.0034 (>1000.0)  2,942,199.4986 (>1000.0)       4;0         11.9397 (0.00)         12           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4112 passed, 14 skipped in 335.76s (0:05:35) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260925T084400.288414Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean: Criterion 1: \"calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean\"\n\nPARTIAL EVIDENCE:\n- src/core/ai_client.py:208 calculate_cost() exists; MODEL_PRICING table has gpt-5.6-luna (0.2,1.2), gpt-5.6-sol (2.0,10.0), deepseek-flash/v4-flash/v4.1-flash (0.15,0.6), deepseek-v4-pro (0.66,1.98), deepseek-chat, deepseek-reasoner. Real sticker pricing present for deepseek + gpt-5.6.\n- tests/test_ai_client.py EXPECTED_MODEL_PRICING pins every table entry (parametrized test_every_documented_table_entry asserts MODEL_PRICING == EXPECTED_MODEL_PRICING).\n- mypy: \"Success: no issues found in 66 source files\" (exit 0)\n- ruff: \"All checks passed!\" (exit 0)\n- pytest tests/test_ai_client.py tests/test_ai.py: 300 passed in 18.78s\n\nDEFECT: NO GLM coverage. grep -rni \"glm\" src/ tests/ cron_runner.py => 0 matches. MODEL_PRICING keys (verified via python) contain NO glm entry. Criterion explicitly requires \"deepseek/glm/gpt-5.6-era models\". GLM-5.2 is the project's configured fallback_model (seen in .gitreins task manifests: \"fallback_model\": \"GLM-5.2\"), so it is a model actually used. No unit test pins any GLM rate.\n=> FAIL on the glm coverage requirement.\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean: Criterion 1: \"calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean\"\n\nPARTIAL EVIDENCE:\n- src/core/ai_client.py:208 calculate_cost() exists; MODEL_PRICING table has gpt-5.6-luna (0.2,1.2), gpt-5.6-sol (2.0,10.0), deepseek-flash/v4-flash/v4.1-flash (0.15,0.6), deepseek-v4-pro (0.66,1.98), deepseek-chat, deepseek-reasoner. Real sticker pricing present for deepseek + gpt-5.6.\n- tests/test_ai_client.py EXPECTED_MODEL_PRICING pins every table entry (parametrized test_every_documented_table_entry asserts MODEL_PRICING == EXPECTED_MODEL_PRICING).\n- mypy: \"Success: no issues found in 66 source files\" (exit 0)\n- ruff: \"All checks passed!\" (exit 0)\n- pytest tests/test_ai_client.py tests/test_ai.py: 300 passed in 18.78s\n\nDEFECT: NO GLM coverage. grep -rni \"glm\" src/ tests/ cron_runner.py => 0 matches. MODEL_PRICING keys (verified via python) contain NO glm entry. Criterion explicitly requires \"deepseek/glm/gpt-5.6-era models\". GLM-5.2 is the project's configured fallback_model (seen in .gitreins task manifests: \"fallback_model\": \"GLM-5.2\"), so it is a model actually used. No unit test pins any GLM rate.\n=> FAIL on the glm coverage requirement.\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean",
+                "status": "FAIL",
+                "detail": "Criterion 1: \"calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean\"\n\nPARTIAL EVIDENCE:\n- src/core/ai_client.py:208 calculate_cost() exists; MODEL_PRICING table has gpt-5.6-luna (0.2,1.2), gpt-5.6-sol (2.0,10.0), deepseek-flash/v4-flash/v4.1-flash (0.15,0.6), deepseek-v4-pro (0.66,1.98), deepseek-chat, deepseek-reasoner. Real sticker pricing present for deepseek + gpt-5.6.\n- tests/test_ai_client.py EXPECTED_MODEL_PRICING pins every table entry (parametrized test_every_documented_table_entry asserts MODEL_PRICING == EXPECTED_MODEL_PRICING).\n- mypy: \"Success: no issues found in 66 source files\" (exit 0)\n- ruff: \"All checks passed!\" (exit 0)\n- pytest tests/test_ai_client.py tests/test_ai.py: 300 passed in 18.78s\n\nDEFECT: NO GLM coverage. grep -rni \"glm\" src/ tests/ cron_runner.py => 0 matches. MODEL_PRICING keys (verified via python) contain NO glm entry. Criterion explicitly requires \"deepseek/glm/gpt-5.6-era models\". GLM-5.2 is the project's configured fallback_model (seen in .gitreins task manifests: \"fallback_model\": \"GLM-5.2\"), so it is a model actually used. No unit test pins any GLM rate.\n=> FAIL on the glm coverage requirement.\n",
+                "resolution_probability": 0.44
+              }
+            ],
+            "summary": "Partial verdict \u2014 evaluation hit resource cap before all criteria verified"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-JEV-4\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean: Criterion 1: \"calculate_cost covers deepseek/glm/gpt-5.6-era models with real sticker pricing; unit tests pin per-model rates; pytest+mypy+ruff clean\"\n\nPARTIAL EVIDENCE:\n- src/core/ai_client.py:208 calculate_cost() exists; MODEL_PRICING table has gpt-5.6-luna (0.2,1.2), gpt-5.6-sol (2.0,10.0), deepseek-flash/v4-flash/v4.1-flash (0.15,0.6), deepseek-v4-pro (0.66,1.98), deepseek-chat, deepseek-reasoner. Real sticker pricing present for deepseek + gpt-5.6.\n- tests/test_ai_client.py EXPECTED_MODEL_PRICING pins every table entry (parametrized test_every_documented_table_entry asserts MODEL_PRICING == EXPECTED_MODEL_PRICING).\n- mypy: \"Success: no issues found in 66 source files\" (exit 0)\n- ruff: \"All checks passed!\" (exit 0)\n- pytest tests/test_ai_client.py tests/test_ai.py: 300 passed in 18.78s\n\nDEFECT: NO GLM coverage. grep -rni \"glm\" src/ tests/ cron_runner.py => 0 matches. MODEL_PRICING keys (verified via python) contain NO glm entry. Criterion explicitly requires \"deepseek/glm/gpt-5.6-era models\". GLM-5.2 is the project's configured fallback_model (seen in .gitreins task manifests: \"fallback_model\": \"GLM-5.2\"), so it is a model actually used. No unit test pins any GLM rate.\n=> FAIL on the glm coverage requirement.\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-25T09:46:23.715668",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-25T09:46:23.736184+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 38723,
+        "truncated": false,
+        "source": "git show 5e88dd5ecbd2"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 3599,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-JEV-4"
+  }
+}

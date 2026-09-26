@@ -1,0 +1,44 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 9cfc169..4107799 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -666,8 +666,9 @@ tasks:
+   - In-game overworld escalation fires when JEV says escalate; live request_patch
+     returns usable content (finish_reason=stop) via reasoning/token handling fix;
+     pytest + mypy + ruff clean
+-  status: in_progress
++  status: complete
+   created_at: '2026-09-25T07:08:23.652869+00:00'
++  completed_at: '2026-09-25T08:00:50.191111+00:00'
+ - id: JEV-5
+   title: 'Assist-inventory guard: fail build on new deterministic press_button call
+     site outside declared set'
+diff --git a/data/duration_profiles.json b/data/duration_profiles.json
+index cce2d93..12118c6 100644
+--- a/data/duration_profiles.json
++++ b/data/duration_profiles.json
+@@ -2,16 +2,16 @@
+   "BATTLE/WILD": {
+     "mode": "BATTLE",
+     "sub_mode": "WILD",
+-    "sample_count": 596,
+-    "mean_duration": 0.10049792533919923,
+-    "std_duration": 0.0005986695278533071,
++    "sample_count": 602,
++    "mean_duration": 0.10026693818977113,
++    "std_duration": 0.0005300927176331501,
+     "min_duration": 0.10003995895385742,
+     "max_duration": 0.10206747055053711,
+-    "p50_duration": 0.10049792533919923,
+-    "p75_duration": 0.10116792533919923,
+-    "p95_duration": 0.10214292533919922,
+-    "p99_duration": 0.10282392533919922,
+-    "last_updated": 1790316709.5168743,
++    "p50_duration": 0.10026693818977113,
++    "p75_duration": 0.10093693818977113,
++    "p95_duration": 0.10191193818977112,
++    "p99_duration": 0.10259293818977112,
++    "last_updated": 1790324608.558221,
+     "trend": "insufficient_data",
+     "trend_slope": 0
+   }
