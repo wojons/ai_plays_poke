@@ -1,0 +1,29 @@
+{
+  "baseline_id": "BASE-1/long_0926_0014",
+  "recorded_at": "2026-09-26T06:45:09Z",
+  "conditions": {
+    "decision_mode": "jev (DEFAULT_DECISION_MODE)",
+    "boot_state": "long_run_long_0926_0014_good.state",
+    "cycles_per_episode": 30,
+    "episodes": 212,
+    "store_state": "POPULATED (617 active keys, 0 under /world/*)",
+    "note": "NOT a clean store \u2014 a clean-store baseline is still owed"
+  },
+  "measurements": {
+    "decisions": 6363,
+    "escalations": 6289,
+    "escalation_rate": 0.9884,
+    "teacher_calls": 245,
+    "teacher_improved": 0,
+    "map_transitions": 8,
+    "escalations_per_map_transition": 786.1,
+    "map_topology_share": 0.9242,
+    "maps_visited": [
+      "Oak's Lab",
+      "Pallet Town",
+      "Route 1"
+    ],
+    "goal_achieved": false
+  },
+  "falsifier_for_S6": "S6 fails if, with extra_facts populated, escalations_per_map_transition does not drop below this baseline."
+}
