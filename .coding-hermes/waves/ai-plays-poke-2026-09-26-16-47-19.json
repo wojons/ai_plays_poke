@@ -1,0 +1,54 @@
+{
+  "wave_id": "ai-plays-poke-2026-09-26-16-47-19",
+  "tick": 248,
+  "budget": 2,
+  "workers": 2,
+  "tasks": [
+    "MEM-API",
+    "DF-JEV-3"
+  ],
+  "worktrees": {
+    "MEM-API": {
+      "worktree": "/home/kara/worktrees/ai_plays_poke-MEM-API",
+      "branch": "wt/MEM-API",
+      "base": "origin/main",
+      "base_sha": "dd298f5"
+    },
+    "DF-JEV-3": {
+      "worktree": "/home/kara/worktrees/ai_plays_poke-DF-JEV-3",
+      "branch": "wt/DF-JEV-3",
+      "base": "origin/main",
+      "base_sha": "dd298f5"
+    }
+  },
+  "briefs": {
+    "MEM-API": "/tmp/aipp248_brief_MEM-API.md",
+    "DF-JEV-3": "/tmp/aipp248_brief_DF-JEV-3.md"
+  },
+  "dispatched_at": "2026-09-26T16:55:00-05:00",
+  "status": "complete",
+  "independence_note": "Two P1 rows, disjoint file sets, no depends_on edges between them (verified from rows + SPEC-AGENTIC filing note): MEM-API (src/core/duckbrain_client.py + tests/test_duckbrain_client.py only) and DF-JEV-3 (cron_runner.py battle row stamping + one test file). Premise-checked this tick: MEM-API unblocked by SPEC-AGENTIC (complete per filing note 2026-09-26 00:45 + AGENTIC-STATUS-2026-09-26 report, row status stale pending); DF-JEV-3 verified no existing battle_action stamp on the path real runs take (grep battle_action: only cron_runner.py:1447-1470 site) — diagnosis is part of the brief. E2E-002 run not dispatched this tick (live paid run + wave contention; rollout order preserved).",
+  "worker_lane": "gpt-5.6-sol @ openai-codex per project skill (gameplay Python; GAMEPLAY-SOL, GAMEPLAY-STARTER-001, JEV-403 all judge PASS on this lane)",
+  "venv_note": "Each worktree's venv/.venv are symlinks to the main repo py3.11/py3.13 venvs provisioned by the foreman pre-dispatch - workers MUST NOT delete, rebuild, or write through them beyond running tools.",
+  "outcomes": [
+    {
+      "task": "MEM-API",
+      "branch": "wt/MEM-API",
+      "work": "88578a4",
+      "merged_in": "3df4545 (merge commit on main)",
+      "judge": "tier2 8e4cf62c PASS COMPLETE; tier1 re-run a4ec552f PASS; final a4ec552f PASS",
+      "status": "complete"
+    },
+    {
+      "task": "DF-JEV-3",
+      "branch": "wt/DF-JEV-3",
+      "work": "9c8c355",
+      "merged_in": "db89f29 (merge commit on main)",
+      "judge": "tier2 df44da42 PASS COMPLETE; tier1 re-run 586e8462 PASS; final 586e8462 PASS",
+      "status": "complete"
+    }
+  ],
+  "finished_at": "2026-09-26T12:56:00-05:00",
+  "recovery": "DF-JEV-3 worker #1 died mid-task (transient Hermes state.db busy-write collision between the two concurrent hermes chat sessions; 'No reply: session storage was busy'); its in-flight diff was resumed by worker #2 via /tmp/aipp248_brief_DF-JEV-3_resume.md (review -> verify -> commit; no re-implementation). First dual-judge pass hit tier1 secrets+tests subprocess timeouts under two-judge box contention (loadavg ~20-25) stamping false FAILs; tier2 verdicts were PASS COMPLETE both times. Re-ran tier1-only (--force --skip-tier2) serially on the idle box: both PASS. The two passed=false artifacts are the superseded contention runs (same commit sha).",
+  "notes": "Lane gpt-5.6-sol@openai-codex verified by worker session logs (both sessions report all verification commands green; no fallback lines). MEM-API judge independently reproduced restart retrieval with HOME=/tmp/memapi_eval two-process test. DF-JEV-3 judge ran an end-to-end real-path simulation + 146 tests across 7 battle/decision test files. Post-merge main gates: full fast tier 4197 passed/14 skipped, mypy 0/66, ruff clean, gitleaks clean, CI green on db89f29."
+}

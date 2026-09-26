@@ -1,0 +1,103 @@
+{
+  "task_id": "MEM-API",
+  "task_title": "S1 memory API \u2014 labels/confidence/evidence + label-filtered recall, restart-safe",
+  "task_criteria": [
+    "a written fact is retrievable by key AND by label AND by similarity, after a process restart"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "db89f2905bd612eedb5c23700e03f7ac356eec92",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 a written fact is retrievable by key AND by label AND by similarity, after a process restart: src/core/duckbrain_client.py: remember() (lines 28-70) persists the record (incl. labels/confidence/evidence) to on-disk JSONL ~/duckbrain/namespaces/<ns>/data/memories-YYYY-MM-DD.jsonl; get() (176-184) retrieves by exact key via recall(key=...); recall(labels=[...]) (73-134, filter at 118-126) retrieves by label; search() (187-230) retrieves by similarity (substring over embedding_text+attributes). Restart-safety proven by tests/test_duckbrain_client.py:501 TestRestartSafeRetrieval::test_key_label_and_similarity_retrieval_survive_restart, which writes in one subprocess and reads in a separate subprocess. Ran `./.venv/bin/pytest tests/test_duckbrain_client.py -v --tb=short` -> '37 passed in 0.72s' with that test PASSED. Independently reproduced: wrote a fact in one process (HOME=/tmp/memapi_eval), confirmed the JSONL on disk, then a fresh process returned by_key=['/world/map/1'], by_label=['/world/map/1'], by_sim=['/world/map/1']. LSP diagnostics: 0 findings.\nThe S1 memory API persists facts to disk and a fresh process retrieves them by key, by label, and by similarity \u2014 verified by the repo's restart test (37 passed) and an independent two-process reproduction.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 a written fact is retrievable by key AND by label AND by similarity, after a process restart: src/core/duckbrain_client.py: remember() (lines 28-70) persists the record (incl. labels/confidence/evidence) to on-disk JSONL ~/duckbrain/namespaces/<ns>/data/memories-YYYY-MM-DD.jsonl; get() (176-184) retrieves by exact key via recall(key=...); recall(labels=[...]) (73-134, filter at 118-126) retrieves by label; search() (187-230) retrieves by similarity (substring over embedding_text+attributes). Restart-safety proven by tests/test_duckbrain_client.py:501 TestRestartSafeRetrieval::test_key_label_and_similarity_retrieval_survive_restart, which writes in one subprocess and reads in a separate subprocess. Ran `./.venv/bin/pytest tests/test_duckbrain_client.py -v --tb=short` -> '37 passed in 0.72s' with that test PASSED. Independently reproduced: wrote a fact in one process (HOME=/tmp/memapi_eval), confirmed the JSONL on disk, then a fresh process returned by_key=['/world/map/1'], by_label=['/world/map/1'], by_sim=['/world/map/1']. LSP diagnostics: 0 findings.\nThe S1 memory API persists facts to disk and a fresh process retrieves them by key, by label, and by similarity \u2014 verified by the repo's restart test (37 passed) and an independent two-process reproduction.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "a written fact is retrievable by key AND by label AND by similarity, after a process restart",
+                "status": "PASS",
+                "detail": "src/core/duckbrain_client.py: remember() (lines 28-70) persists the record (incl. labels/confidence/evidence) to on-disk JSONL ~/duckbrain/namespaces/<ns>/data/memories-YYYY-MM-DD.jsonl; get() (176-184) retrieves by exact key via recall(key=...); recall(labels=[...]) (73-134, filter at 118-126) retrieves by label; search() (187-230) retrieves by similarity (substring over embedding_text+attributes). Restart-safety proven by tests/test_duckbrain_client.py:501 TestRestartSafeRetrieval::test_key_label_and_similarity_retrieval_survive_restart, which writes in one subprocess and reads in a separate subprocess. Ran `./.venv/bin/pytest tests/test_duckbrain_client.py -v --tb=short` -> '37 passed in 0.72s' with that test PASSED. Independently reproduced: wrote a fact in one process (HOME=/tmp/memapi_eval), confirmed the JSONL on disk, then a fresh process returned by_key=['/world/map/1'], by_label=['/world/map/1'], by_sim=['/world/map/1']. LSP diagnostics: 0 findings.",
+                "resolution_probability": 0.09
+              }
+            ],
+            "summary": "The S1 memory API persists facts to disk and a fresh process retrieves them by key, by label, and by similarity \u2014 verified by the repo's restart test (37 passed) and an independent two-process reproduction."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: MEM-API\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 a written fact is retrievable by key AND by label AND by similarity, after a process restart: src/core/duckbrain_client.py: remember() (lines 28-70) persists the record (incl. labels/confidence/evidence) to on-disk JSONL ~/duckbrain/namespaces/<ns>/data/memories-YYYY-MM-DD.jsonl; get() (176-184) retrieves by exact key via recall(key=...); recall(labels=[...]) (73-134, filter at 118-126) retrieves by label; search() (187-230) retrieves by similarity (substring over embedding_text+attributes). Restart-safety proven by tests/test_duckbrain_client.py:501 TestRestartSafeRetrieval::test_key_label_and_similarity_retrieval_survive_restart, which writes in one subprocess and reads in a separate subprocess. Ran `./.venv/bin/pytest tests/test_duckbrain_client.py -v --tb=short` -> '37 passed in 0.72s' with that test PASSED. Independently reproduced: wrote a fact in one process (HOME=/tmp/memapi_eval), confirmed the JSONL on disk, then a fresh process returned by_key=['/world/map/1'], by_label=['/world/map/1'], by_sim=['/world/map/1']. LSP diagnostics: 0 findings.\nThe S1 memory API persists facts to disk and a fresh process retrieves them by key, by label, and by similarity \u2014 verified by the repo's restart test (37 passed) and an independent two-process reproduction.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-26T17:45:19.356913",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T17:45:19.378403+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 697,
+        "truncated": false,
+        "source": "git show db89f2905bd6"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 39342,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "MEM-API"
+  }
+}

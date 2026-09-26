@@ -1,0 +1,14 @@
+commit db89f2905bd612eedb5c23700e03f7ac356eec92
+Merge: 3df4545 9c8c355
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sat Sep 26 12:23:33 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sat Sep 26 12:23:33 2026 -0500
+
+    merge wt/DF-JEV-3: battle decision rows carry battle_action + raw_distribution on the real battle path (DF-JEV-3, wave T248)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ cron_runner.py                     |  78 +++++++++++++++++++++++++-
+ tests/test_battle_observability.py | 111 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 188 insertions(+), 1 deletion(-)

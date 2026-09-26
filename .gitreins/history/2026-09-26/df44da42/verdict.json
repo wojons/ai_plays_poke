@@ -1,0 +1,102 @@
+{
+  "task_id": "DF-JEV-3",
+  "task_title": "Battle decision rows carry battle_action + raw_distribution on the real battle path",
+  "task_criteria": [
+    "every battle-adjacent decision row on the real battle path carries battle_action, and raw_distribution when a JEV payload exists; non-battle rows unchanged"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "db89f2905bd612eedb5c23700e03f7ac356eec92",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 every battle-adjacent decision row on the real battle path carries battle_action, and raw_distribution when a JEV payload exists; non-battle rows unchanged: cron_runner.py:1241-1259 `_stamp_battle_observability` early-returns unless state_type=='battle', else stamps phase='BATTLE', battle_action=_executed_battle_action(history) (cron_runner.py:1215-1239), and raw_distribution=jev_decision.get('raw') (None when no JEV payload). Real battle path wiring: cron_runner.py:4651-4657 computes battle_jev_decision=_observe_battle_decision(vis_dict) for state_type=='battle' (vis_dict carries battle_state/result='battle' at 4433-4437), and cron_runner.py:4720-4725 stamps the StateWindow decision row (built 4703-4718) before log_file.write at 4727. The battle-aware recovery row also carries the fields via `**recovery_decision` (cron_runner.py:1497-1524 -> 4611). Non-battle rows unchanged: early return leaves name_entry bypass row (4402) and overworld plan_entry (4304) untouched. Fresh test runs: `./.venv/bin/pytest tests/test_battle_observability.py -v` -> 3 passed in 1.21s; `./.venv/bin/pytest tests/test_battle_observability.py tests/test_battle_analyzer.py tests/test_decision.py tests/test_decision_mode.py tests/test_jev403_degradation.py tests/test_jev4_dehardcoding.py tests/test_ladder_battle_events_dedup.py -q` -> 146 passed in 1.04s. End-to-end simulation of the real path produced battle row {'phase':'BATTLE','battle_action':'MOVE_2','raw_distribution':{...}} with decide kwargs {'in_battle':True,'act_phase':True}, and left a non-battle row byte-identical. mypy cron_runner.py --ignore-missing-imports: Success, no issues; LSP diagnostics: 0.\nThe real StateWindow battle path (and the battle-aware recovery path) now stamps battle_action plus raw_distribution when a JEV payload exists, while non-battle rows are provably unchanged; all targeted tests pass.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 every battle-adjacent decision row on the real battle path carries battle_action, and raw_distribution when a JEV payload exists; non-battle rows unchanged: cron_runner.py:1241-1259 `_stamp_battle_observability` early-returns unless state_type=='battle', else stamps phase='BATTLE', battle_action=_executed_battle_action(history) (cron_runner.py:1215-1239), and raw_distribution=jev_decision.get('raw') (None when no JEV payload). Real battle path wiring: cron_runner.py:4651-4657 computes battle_jev_decision=_observe_battle_decision(vis_dict) for state_type=='battle' (vis_dict carries battle_state/result='battle' at 4433-4437), and cron_runner.py:4720-4725 stamps the StateWindow decision row (built 4703-4718) before log_file.write at 4727. The battle-aware recovery row also carries the fields via `**recovery_decision` (cron_runner.py:1497-1524 -> 4611). Non-battle rows unchanged: early return leaves name_entry bypass row (4402) and overworld plan_entry (4304) untouched. Fresh test runs: `./.venv/bin/pytest tests/test_battle_observability.py -v` -> 3 passed in 1.21s; `./.venv/bin/pytest tests/test_battle_observability.py tests/test_battle_analyzer.py tests/test_decision.py tests/test_decision_mode.py tests/test_jev403_degradation.py tests/test_jev4_dehardcoding.py tests/test_ladder_battle_events_dedup.py -q` -> 146 passed in 1.04s. End-to-end simulation of the real path produced battle row {'phase':'BATTLE','battle_action':'MOVE_2','raw_distribution':{...}} with decide kwargs {'in_battle':True,'act_phase':True}, and left a non-battle row byte-identical. mypy cron_runner.py --ignore-missing-imports: Success, no issues; LSP diagnostics: 0.\nThe real StateWindow battle path (and the battle-aware recovery path) now stamps battle_action plus raw_distribution when a JEV payload exists, while non-battle rows are provably unchanged; all targeted tests pass.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "every battle-adjacent decision row on the real battle path carries battle_action, and raw_distribution when a JEV payload exists; non-battle rows unchanged",
+                "status": "PASS",
+                "detail": "cron_runner.py:1241-1259 `_stamp_battle_observability` early-returns unless state_type=='battle', else stamps phase='BATTLE', battle_action=_executed_battle_action(history) (cron_runner.py:1215-1239), and raw_distribution=jev_decision.get('raw') (None when no JEV payload). Real battle path wiring: cron_runner.py:4651-4657 computes battle_jev_decision=_observe_battle_decision(vis_dict) for state_type=='battle' (vis_dict carries battle_state/result='battle' at 4433-4437), and cron_runner.py:4720-4725 stamps the StateWindow decision row (built 4703-4718) before log_file.write at 4727. The battle-aware recovery row also carries the fields via `**recovery_decision` (cron_runner.py:1497-1524 -> 4611). Non-battle rows unchanged: early return leaves name_entry bypass row (4402) and overworld plan_entry (4304) untouched. Fresh test runs: `./.venv/bin/pytest tests/test_battle_observability.py -v` -> 3 passed in 1.21s; `./.venv/bin/pytest tests/test_battle_observability.py tests/test_battle_analyzer.py tests/test_decision.py tests/test_decision_mode.py tests/test_jev403_degradation.py tests/test_jev4_dehardcoding.py tests/test_ladder_battle_events_dedup.py -q` -> 146 passed in 1.04s. End-to-end simulation of the real path produced battle row {'phase':'BATTLE','battle_action':'MOVE_2','raw_distribution':{...}} with decide kwargs {'in_battle':True,'act_phase':True}, and left a non-battle row byte-identical. mypy cron_runner.py --ignore-missing-imports: Success, no issues; LSP diagnostics: 0."
+              }
+            ],
+            "summary": "The real StateWindow battle path (and the battle-aware recovery path) now stamps battle_action plus raw_distribution when a JEV payload exists, while non-battle rows are provably unchanged; all targeted tests pass."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-JEV-3\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 every battle-adjacent decision row on the real battle path carries battle_action, and raw_distribution when a JEV payload exists; non-battle rows unchanged: cron_runner.py:1241-1259 `_stamp_battle_observability` early-returns unless state_type=='battle', else stamps phase='BATTLE', battle_action=_executed_battle_action(history) (cron_runner.py:1215-1239), and raw_distribution=jev_decision.get('raw') (None when no JEV payload). Real battle path wiring: cron_runner.py:4651-4657 computes battle_jev_decision=_observe_battle_decision(vis_dict) for state_type=='battle' (vis_dict carries battle_state/result='battle' at 4433-4437), and cron_runner.py:4720-4725 stamps the StateWindow decision row (built 4703-4718) before log_file.write at 4727. The battle-aware recovery row also carries the fields via `**recovery_decision` (cron_runner.py:1497-1524 -> 4611). Non-battle rows unchanged: early return leaves name_entry bypass row (4402) and overworld plan_entry (4304) untouched. Fresh test runs: `./.venv/bin/pytest tests/test_battle_observability.py -v` -> 3 passed in 1.21s; `./.venv/bin/pytest tests/test_battle_observability.py tests/test_battle_analyzer.py tests/test_decision.py tests/test_decision_mode.py tests/test_jev403_degradation.py tests/test_jev4_dehardcoding.py tests/test_ladder_battle_events_dedup.py -q` -> 146 passed in 1.04s. End-to-end simulation of the real path produced battle row {'phase':'BATTLE','battle_action':'MOVE_2','raw_distribution':{...}} with decide kwargs {'in_battle':True,'act_phase':True}, and left a non-battle row byte-identical. mypy cron_runner.py --ignore-missing-imports: Success, no issues; LSP diagnostics: 0.\nThe real StateWindow battle path (and the battle-aware recovery path) now stamps battle_action plus raw_distribution when a JEV payload exists, while non-battle rows are provably unchanged; all targeted tests pass.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-26T17:45:28.246890",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T17:45:28.266171+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 697,
+        "truncated": false,
+        "source": "git show db89f2905bd6"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 39342,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-JEV-3"
+  }
+}
