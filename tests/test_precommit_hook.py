@@ -153,5 +153,44 @@ def test_wrapper_allows_repo_without_gitreins_config(hook_repo):
     assert result.returncode == 0
 
 
+def test_wrapper_rejects_non_benign_skip(hook_repo):
+    """A skip for a real reason (tool missing) must reject under allow_skips=false."""
+    repo, bin_dir = hook_repo
+    _write_fresh_verdict(repo)
+
+    result = _invoke_wrapper(
+        repo,
+        bin_dir,
+        output=(
+            "Tier 1: DEGRADED PASS (skips: lsp=no LSP tool on PATH)  (test mode: full)\n"
+            "  ✓ secrets — clean (gitleaks + builtin cross-check)\n"
+            "  ~ lsp — skipped (no LSP tool on PATH (pylsp not installed))\n"
+        ),
+    )
+
+    assert result.returncode == 1
+    assert "non-benign" in result.stderr
+
+
+def test_wrapper_allows_benign_no_staged_files_skip(hook_repo):
+    """Bookkeeping-only commits (board JSONL, .gitreins history) legitimately
+    run lint with an empty diff scope: the 'no staged files' skip is allowed."""
+    repo, bin_dir = hook_repo
+    _write_fresh_verdict(repo)
+
+    result = _invoke_wrapper(
+        repo,
+        bin_dir,
+        output=(
+            "Tier 1: DEGRADED PASS (skips: lint=no staged files)  (test mode: full)\n"
+            "  ✓ secrets — clean (gitleaks + builtin cross-check)\n"
+            "  ~ lint — skipped (no staged files)\n"
+            "  ✓ tests (full)\n"
+        ),
+    )
+
+    assert result.returncode == 0
+
+
 def test_tracked_wrapper_is_executable():
     assert os.access(WRAPPER, os.X_OK)
