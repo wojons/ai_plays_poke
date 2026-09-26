@@ -187,6 +187,9 @@ One JSON object per line, written incrementally (the log doubles as a live feed 
 | `state_window_raw` | `str` | Raw StateWindow model responses (newline-separated) |
 | `battle_events` | `list` | Battle sub-events from StateWindow (empty for non-battle) |
 | `failed_flee_attempts` | `int` | Running count of failed flee attempts (fed into next battle prompt) |
+| `phase` | `str` | `"BATTLE"`, on battle rows only |
+| `battle_action` | `str \| null` | Effective action reconstructed from the tool call StateWindow actually executed (`MOVE_3`, `RUN`, `SWITCH_2`, `ITEM`, ...). This is execution evidence, not JEV's suggestion. |
+| `raw_distribution` | `object \| null` | Full JEV answer object observed for battle telemetry, or `null` when JEV was not called, failed, or returned no payload. JEV does not control the normal StateWindow battle action. |
 
 **Name entry bypass:**
 
@@ -196,6 +199,74 @@ One JSON object per line, written incrementally (the log doubles as a live feed 
 | `action` | `str` | `"name_bypass"` |
 | `elapsed_s` | `float` | Seconds spent on the cycle |
 | `cartographer_raw` | `str` | Raw observation payload |
+
+### Decision rows & autonomy metrics
+
+Decision evidence lives in the same line-oriented `cron_logs/run_<id>.jsonl` file as the cycle and event rows. The main overworld writer is `plan_entry` in `cron_runner.py`; the `_jev_overworld_decision()` docstring (currently lines 1317-1318) names the four proof fields it supplies: `jev_answered`, `escalated`, `missing_class`, and `raw_distribution`. The row is stamped after any JEV attempt and controller fallback, so it records both who ultimately supplied the plan (`pipeline`) and what happened to the JEV attempt.
+
+Use `jq` to inspect the decision evidence without mixing in recovery or state-save events:
+
+```bash
+# Every row carrying the JEV decision fields (overworld, starter, and JEV recovery rows)
+jq -c 'select(has("jev_answered") and .event != "run_autonomy") | {cycle,screen,event,pipeline,decision_mode,decision_mode_family,jev_answered,escalated,missing_class,raw_distribution,jev_ok,jev_error}' cron_logs/run_<id>.jsonl
+
+# Run closeout plus the optional transport-degradation event
+jq -c 'select(.event == "run_autonomy" or .event == "run_degradation")' cron_logs/run_<id>.jsonl
+```
+
+#### Per-decision fields
+
+| Field | Type | Meaning and presence |
+|-------|------|----------------------|
+| `pipeline` | `str` | `"jev"` when JEV supplied the executed overworld plan; otherwise the normal `"RAM reader"` / `"cartographer"` controller pipeline. |
+| `decision_mode` | `str` | Exact `--decision-mode` spelling used for an overworld row (`jev`, `llm`, `system1`, `system2`, `system1+system2`, or `hybrid`). The spelling is preserved for log compatibility. |
+| `decision_mode_family` | `str` | Branchable family: `system1`, `system2`, or `system1+system2`. |
+| `jev_answered` | `bool` | True only when the JEV request was `ok` **and** produced a valid action in that path's vocabulary. For starter selection this means a valid species; for battle recovery it means a valid battle action. A healthy transport response with an unusable choice is false and falls back rather than inventing an action. |
+| `escalated` | `bool` | True when the initial JEV decision requested a handoff and the active handoff policy allowed it. A policy-blocked trigger is false; inspect `handoff_trigger`, `handoff_allowed`, and `handoff_blocked_reason` to distinguish “no trigger” from “trigger blocked.” Teacher calls have their own `teacher_escalation` rows and the run-level `teacher_escalations` count. |
+| `missing_class` | `str \| null` | Missing-information class reported by the initial JEV decision (for example `map_topology` or `object_purpose`). The overworld writer keeps strings only and normalizes other values to `null`; it is most useful when a gap handoff fired. |
+| `raw_distribution` | `object \| null` | The complete JEV `raw` answer object, including each answer's selected value and distribution—not only the winning action. On an overworld controller fallback this is normally `null`; transport evidence is retained separately in `jev_ok` / `jev_error`. On a normal StateWindow battle row it is telemetry from `_observe_battle_decision()`. |
+| `jev_ok` | `bool \| null` | JEV transport/parse outcome. `true` means an answer payload arrived, not necessarily that its choice was usable. `false` counts as a transport failure. `null` means the pure-System-Two path intentionally made no JEV attempt. |
+| `jev_error` | `str` | Present only when `jev_ok` is false. The error is converted to text and truncated to 200 characters. |
+
+This representative row uses the same full-distribution shape exercised by the teacher-escalation tests and the exact keys written by the overworld `plan_entry` path:
+
+```json
+{"cycle": 12, "screen": "overworld", "pipeline": "jev", "decision_mode": "jev", "decision_mode_family": "system1+system2", "plan": ["LEFT"], "intent": "jev LEFT", "jev_answered": true, "escalated": true, "missing_class": "map_topology", "raw_distribution": {"next_action": {"choice": "LEFT", "distribution": {"LEFT": 0.91}}, "missing_class": {"choice": "map_topology", "distribution": {"map_topology": 0.88}}}, "handoff_trigger": "gap", "handoff_allowed": true, "handoff_blocked_reason": null, "jev_ok": true, "jev_projection_chars": 742, "controller_raw": "", "frame_cache": "hit", "frame_uuid": "88f6ea8100b0", "cartographer_raw": "{\"source\": \"ram_reader\", \"result\": \"overworld\"}", "map_id": 0, "map_name": "Pallet Town", "player_x": 2, "player_y": 3, "player_tile_x": 5, "player_tile_y": 6}
+```
+
+There are two path-specific details operators should not flatten away:
+
+- `starter_selection` rows carry the decision fields directly. There, `jev_answered` is exactly `decision.ok && valid_species`, and `raw_distribution` is the full starter answer object.
+- A normal StateWindow battle row carries only `phase: "BATTLE"`, the **executed** `battle_action`, and the observed `raw_distribution`. In `system1` / hybrid modes JEV is queried for telemetry, but StateWindow still chooses and executes the move; in `system2` / `llm`, JEV is not called and `raw_distribution` is `null`. These rows do not currently carry `jev_answered`, `escalated`, `missing_class`, `jev_ok`, `jev_error`, `decision_mode`, or `intent`, so `_autonomy_counters()` does not include them. JEV-driven battle **recovery** events are a separate path and do carry the JEV outcome fields.
+
+#### Semantics by decision mode
+
+| Mode spelling | Family | Row semantics |
+|---------------|--------|---------------|
+| `system1` | `system1` | JEV is called on every eligible overworld decision and teacher handoff is forced off. Valid JEV choices can set `jev_answered: true`; `escalated` stays false when a trigger is policy-blocked. A transport failure still fails over to the controller for availability and is visible as `jev_ok: false` plus `jev_error`. |
+| `system2` / `llm` | `system2` | JEV is never called. Overworld rows therefore have `jev_answered: false`, `escalated: false`, `missing_class: null`, `raw_distribution: null`, and `jev_ok: null`; the controller supplies the plan. An autonomy ratio of `0.0` is expected in this benchmark mode, not a degradation signal. |
+| `system1+system2` / `hybrid` / `jev` | `system1+system2` | JEV is called first. A valid answer can supply the plan directly; an allowed failure/gap/confidence trigger can hand back to the reasoning teacher. The JEV fields, handoff provenance, and teacher event rows distinguish direct answers, allowed escalation, blocked escalation, and transport fallback. |
+
+#### `run_autonomy` closeout event
+
+At normal run close, after the emulator stops, `_autonomy_counters()` derives one summary from rows that contain an `intent` key. The log is then finalized with exactly one `event: "run_autonomy"` row after the decision/event rows. It still fires for an empty decision population: `decisions_total` is `0` and `autonomy_ratio` is `null`, never a fabricated perfect score. `scripts/long_run.py` consumes this row directly.
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `decisions_total` | `int` | Number of autonomy-counted rows (`intent` key present); ordinary event/error/button rows and normal StateWindow rows are excluded. |
+| `jev_answered` | `int` | Count of those rows with `jev_answered: true`. |
+| `escalated` | `int` | Count of those rows with `escalated: true`. A row can be both answered and escalated, so this is not subtracted from `jev_answered`. |
+| `autonomy_ratio` | `float \| null` | `round(jev_answered / decisions_total, 4)`, or `null` when there were no decisions. This is the JEV-answered share; there is no separate `escalated / answered` ratio. |
+| `escalation_rate_by_missing_class` | `object` | Among escalated rows only, each class's share of the escalated population. Empty when nothing escalated. |
+| `jev_transport_failures` / `jev_transport_failure_rate` | `int` / `float` | Count/share of autonomy rows with `jev_ok: false`. |
+| `degraded` | `bool` | True only when there are at least 5 counted decisions **and** strictly more than 50% have `jev_ok: false`. |
+| `teacher_escalations` | `object` | `{count, improved}` summary of `teacher_escalation` event rows. |
+| `decision_mode` / `decision_mode_family` / `handoff_policy` | mixed | Effective run architecture, retained on the closeout row even when there were no decisions. |
+| `handoff_trigger_counts` / `handoff_blocked` | `object` / `int` | Trigger census and number refused by policy, derived from the decision rows. |
+
+For `system1` and hybrid/JEV runs, an autonomy ratio near `1.0` means the fast tier supplied nearly every counted decision; lower values mean more controller fallback. It is **not** a transport-health metric: use `jev_transport_failure_rate == 0`, `degraded == false`, and the absence of `jev_error` for that. In `system2` / `llm`, `autonomy_ratio == 0.0` is the healthy expected value because the fast tier is deliberately disabled.
+
+When the degradation gate trips (>50% transport failures over at least 5 decisions), closeout also appends an `event: "run_degradation"` row with failures, decisions, rate, threshold, minimum population, and up to three distinct JEV errors. The terminal summary ends with `JEV DEGRADED: F/D transport failures (P%)`. Healthy escalations do not trip this gate: only `jev_ok: false` rows count as transport failures.
 
 ### Event rows
 
@@ -212,6 +283,8 @@ One JSON object per line, written incrementally (the log doubles as a live feed 
 | `memory_note` | `cycle`, `event`, `map`, `note` |
 | `memory_goal` | `cycle`, `event`, `goal` |
 | `memory_study` | `cycle`, `event`, `key`, `result` |
+| `run_autonomy` | `run_id`, decision counts/ratio, escalation breakdown, transport health, teacher summary, decision mode, and handoff policy; written once at normal closeout |
+| `run_degradation` | `run_id`, failures, decisions, rate, threshold, minimum population, and sampled errors; written only when the JEV transport degradation gate trips |
 | `error` | `cycle`, `error` (full traceback text) |
 
 ```json
