@@ -1866,6 +1866,56 @@ def _interpret_controller_response(
     return "unreadable", None
 
 
+RECENT_DECISION_LIMIT = 6
+
+
+def _compact_recent_text(value: Any, fallback: str) -> str:
+    """Keep one prior-turn field short, scalar, and single-line."""
+    text = " ".join(str(value if value not in (None, "") else fallback).split())
+    return text[:160] or fallback
+
+
+def _record_recent_decision(
+    history: list[dict[str, Any]],
+    event: dict[str, Any],
+    *,
+    outcome: str,
+) -> dict[str, Any]:
+    """Append one cheap decision summary and enforce the per-run window bound."""
+    raw_plan = event.get("plan")
+    raw_action = event.get("action")
+    if raw_action in (None, "") and isinstance(raw_plan, list):
+        raw_action = ", ".join(str(item) for item in raw_plan)
+
+    raw_cycle = event.get("cycle")
+    turn = {
+        "cycle": raw_cycle if isinstance(raw_cycle, int) else 0,
+        "screen": _compact_recent_text(
+            event.get("screen") or event.get("state"), "unknown"
+        ),
+        "action": _compact_recent_text(raw_action, "none"),
+        "intent": _compact_recent_text(event.get("intent"), "none"),
+        "outcome": _compact_recent_text(outcome, "unknown"),
+    }
+    history.append(turn)
+    del history[:-RECENT_DECISION_LIMIT]
+    return turn
+
+
+def _recent_decisions_block(history: list[dict[str, Any]]) -> str:
+    """Render only the bounded prior-turn summaries for a controller request."""
+    if not history:
+        return ""
+    lines = ["RECENT DECISIONS (prior turns):"]
+    for turn in history[-RECENT_DECISION_LIMIT:]:
+        lines.append(
+            f"- cycle {turn['cycle']} | screen={turn['screen']} | "
+            f"action={turn['action']} | intent={turn['intent']} | "
+            f"outcome={turn['outcome']}"
+        )
+    return "\n".join(lines)
+
+
 def controller_plan(
     client: OpenRouterClient,
     spatial_desc: dict[str, Any],
@@ -1882,6 +1932,7 @@ def controller_plan(
     study_result: str = "",
     boot_memory: str = "",
     model: str | None = None,
+    recent_decisions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Controller model (Luna via OpenRouter) outputs a movement PLAN.
 
@@ -1893,6 +1944,10 @@ def controller_plan(
     ``_build_boot_memory_blocks()`` and appended to the system prompt; it is
     empty for a fresh store, in which case the prompt is byte-identical to
     the pre-MEM-2 form apart from the tool-filing lines.
+
+    ``recent_decisions`` (S3) is the bounded, per-run prior-turn window. It
+    rides in the user message because it changes every cycle, while the system
+    prompt remains stable instructions plus boot memory.
 
     When `screenshot` is provided, the live game frame is attached as an
     image so Luna can use its own vision to see the screen.
@@ -2013,11 +2068,12 @@ def controller_plan(
         f"LAST DIALOG: {last_dialog or 'none'}\n"
         f"STUDY RESULT: {study_result or '(none)'}\n"
     )
-    msg += (
-        memory_ctx
-        + "\nOutput a movement plan (max {max_actions} actions). JSON only.\n".format(
-            max_actions=max_actions
-        )
+    recent_ctx = _recent_decisions_block(recent_decisions or [])
+    msg += memory_ctx
+    if recent_ctx:
+        msg += f"\n{recent_ctx}\n"
+    msg += "\nOutput a movement plan (max {max_actions} actions). JSON only.\n".format(
+        max_actions=max_actions
     )
 
     # Build user message — include live screenshot for Luna's own vision.
@@ -3860,6 +3916,9 @@ def main() -> None:
     # Deduplicate deterministic world facts within this run. DuckBrain remains
     # the source of truth; retrieval still reads the store on every cycle.
     _world_memory_written_keys: set[str] = set()
+    # S3 context is deliberately run-local: cheap scalar summaries survive the
+    # cycle loop, but a new main() invocation starts with no prior turns.
+    _recent_decisions: list[dict[str, Any]] = []
 
     # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
     # Built ONCE here (not per cycle) from the four DuckBrain layers
@@ -4102,6 +4161,14 @@ def main() -> None:
                         f"species_hint={starter_event['species_hint']}"
                     )
                 _last_party_count = selected_party_count
+                _record_recent_decision(
+                    _recent_decisions,
+                    selection_entry,
+                    outcome=(
+                        f"party count {party_count} -> {selected_party_count}; "
+                        f"starter={starter_choice or 'unavailable'}"
+                    ),
+                )
                 safe_print(
                     f"  [{cycle + 1}/{CYCLES}] starter_selection | "
                     f"party={selected_party_count} | {time.time() - t0:.1f}s"
@@ -4367,6 +4434,7 @@ def main() -> None:
                         last_dialog=_last_dialog_text,
                         study_result=_pending_study_result,
                         boot_memory=_boot_memory,  # MEM-2: built once at boot
+                        recent_decisions=_recent_decisions,
                         model=controller_model,  # GAP-052: flag/env-resolved
                     )
                     decision.update(_jev_outcome)
@@ -4612,6 +4680,18 @@ def main() -> None:
                     # Recovery is now handled centrally in the stuck-detection block
                     # after cartographer analysis, using the escalating recovery ladder.
 
+                if plan:
+                    _last_result = f"executed {len(plan)} input(s): " + ", ".join(
+                        str(button).upper() for button in plan
+                    )
+                else:
+                    _last_result = "no input executed (WAIT)"
+                _record_recent_decision(
+                    _recent_decisions,
+                    plan_entry,
+                    outcome=_last_result,
+                )
+
                 elapsed = time.time() - t0
                 safe_print(
                     f"  [{cycle + 1}/{CYCLES}] {st} | {_decision_pipeline} x{CART_STEPS} | {elapsed:.1f}s"
@@ -4658,6 +4738,11 @@ def main() -> None:
                     "cartographer_raw": carto_raw,
                 }
                 results.append(entry)
+                _record_recent_decision(
+                    _recent_decisions,
+                    entry,
+                    outcome=f"name-entry bypass attempt {_main_ne_stuck}",
+                )
                 log_file.write(json.dumps(entry, default=str) + "\n")
                 log_file.flush()
                 safe_print(
@@ -4981,6 +5066,19 @@ def main() -> None:
                     state_type=state_type,
                     history=win._history,
                     jev_decision=battle_jev_decision,
+                )
+                _state_outcome = next(
+                    (
+                        str(item["action"])
+                        for item in reversed(win._history)
+                        if item.get("action") not in (None, "")
+                    ),
+                    f"executed {last_action}",
+                )
+                _record_recent_decision(
+                    _recent_decisions,
+                    entry,
+                    outcome=_state_outcome,
                 )
                 results.append(entry)
                 log_file.write(json.dumps(entry, default=str) + "\n")
