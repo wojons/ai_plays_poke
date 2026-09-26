@@ -805,7 +805,9 @@ class TestJevOverworldMiss:
     def test_miss_returns_no_plan(self, monkeypatch, payload) -> None:
         _install_decide(monkeypatch, payload)
 
-        assert cron_runner._jev_overworld_decision(_OBS) == {}
+        miss = cron_runner._jev_overworld_decision(_OBS)
+        assert "plan" not in miss
+        assert "jev_answered" not in miss
 
     def test_a_raising_tier_fails_closed_and_says_so(self, monkeypatch, capsys) -> None:
         def boom(*args: Any, **kwargs: Any) -> dict[str, Any]:
@@ -813,7 +815,9 @@ class TestJevOverworldMiss:
 
         monkeypatch.setattr(jev_client, "decide", boom)
 
-        assert cron_runner._jev_overworld_decision(_OBS) == {}
+        miss = cron_runner._jev_overworld_decision(_OBS)
+        assert miss["ok"] is False
+        assert "decisions endpoint exploded" in miss["error"]
         out = capsys.readouterr().out
         # Fail closed, but never silently: a broken tier must be visible.
         assert "decisions endpoint exploded" in out
@@ -823,9 +827,10 @@ class TestJevOverworldMiss:
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         _install_decide(monkeypatch, _jev_payload("TACKLE"))
-        assert cron_runner._jev_overworld_decision(_OBS) == {}
+        miss = cron_runner._jev_overworld_decision(_OBS)
+        assert "plan" not in miss
 
-        # The fallback path's payload carries no JEV keys, so the row reports
+        # The fallback path's controller payload carries no JEV keys by itself;
         # jev_answered=False — exactly the pre-DF-JEV-1 behaviour.
         decision = cron_runner.controller_plan(
             _ScriptedClient('{"plan": ["UP"], "intent": "walk north"}'),
@@ -892,10 +897,10 @@ class TestPlanEntryRowShape:
     def test_jev_hit_selects_jev_pipeline_and_the_miss_calls_the_controller(
         self,
     ) -> None:
-        node = self._if_on("_jev_decision")
+        node = self._if_on("_jev_attempt and _jev_attempt.get('jev_answered')")
 
         hit = [ast.unparse(stmt) for stmt in node.body]
-        assert "decision = _jev_decision" in hit
+        assert "decision = {**_jev_attempt, **_jev_outcome}" in hit
         assert "_decision_pipeline = JEV_PIPELINE" in hit
 
         miss = [ast.unparse(stmt) for stmt in node.orelse]

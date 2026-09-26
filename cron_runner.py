@@ -793,6 +793,7 @@ def _select_starter_from_menu(
                 "jev_answered": bool(decision.get("ok") and valid_choice),
                 "escalated": bool(decision.get("escalate", False)),
                 "missing_class": decision.get("missing_class"),
+                **_jev_outcome_fields(decision),
             }
         )
     if valid_choice is None or not decision.get("ok"):
@@ -1041,6 +1042,15 @@ OVERWORLD_WAIT = "WAIT"
 JEV_PIPELINE = "jev"
 
 
+def _jev_outcome_fields(decision: dict[str, Any]) -> dict[str, Any]:
+    """Return the additive transport fields stamped on every JEV decision row."""
+    ok = bool(decision.get("ok"))
+    fields: dict[str, Any] = {"jev_ok": ok}
+    if not ok:
+        fields["jev_error"] = str(decision.get("error"))[:200]
+    return fields
+
+
 def _jev_overworld_decision(
     obs: dict[str, Any],
     *,
@@ -1065,10 +1075,11 @@ def _jev_overworld_decision(
     counts, recent events, last action) and the same mechanics rules — so the
     game loop consumes the exact contract the probe proved.
 
-    Fail-closed contract: the returned dict is EMPTY whenever JEV errored or its
-    ``next_action`` is not in the overworld vocabulary, so the caller falls back
-    to ``controller_plan()`` and no press is ever invented. On a hit, the dict
-    carries the ``plan``/``intent`` the loop executes plus the JEV proof fields
+    Fail-closed contract: when JEV errors or its ``next_action`` is outside the
+    overworld vocabulary, the return carries only the unusable JEV attempt so
+    the caller falls back to ``controller_plan()`` while preserving transport
+    evidence; no press is ever invented. On a hit, the dict carries the
+    ``plan``/``intent`` the loop executes plus the JEV proof fields
     the per-decision rows stamp: ``jev_answered``, ``escalated``,
     ``missing_class`` and ``raw_distribution`` (the full answer distribution).
     """
@@ -1088,10 +1099,10 @@ def _jev_overworld_decision(
         )
     except Exception as exc:  # noqa: BLE001 - fail closed, but never silently
         # A raising tier must not kill the cycle AND must not hide itself: the
-        # run keeps playing through the controller, and the reason is printed
-        # so a broken wiring cannot masquerade as a run that simply missed.
+        # run keeps playing through the controller, and the transport outcome
+        # is carried into the fallback decision row for run-level degradation.
         safe_print(f"  [JEV] overworld decision failed: {exc!r} - falling back")
-        return {}
+        return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
 
     initial_decision = decision
     teacher_record: dict[str, Any] | None = None
@@ -1153,7 +1164,10 @@ def _jev_overworld_decision(
         raw_action = decision.get("next_action")
         action = raw_action.upper() if isinstance(raw_action, str) else None
     if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
-        return {}
+        # Return the JEV attempt, not an empty sentinel: the caller still takes
+        # the controller fallback, but can stamp whether this was a transport
+        # failure or a healthy response with no usable action.
+        return decision
 
     escalate = bool(initial_decision.get("escalate", False))
     reason = initial_decision.get("escalate_reason")
@@ -1167,6 +1181,7 @@ def _jev_overworld_decision(
         plan = [action]
         intent = f"jev {action}"
     return {
+        "ok": bool(decision.get("ok")),
         "plan": plan,
         "intent": intent,
         "jev_answered": True,
@@ -1240,6 +1255,7 @@ def _escalating_recovery(
                     "jev_answered": bool(decision.get("ok") and jev_action),
                     "escalated": bool(decision.get("escalate", False)),
                     "missing_class": decision.get("missing_class"),
+                    **_jev_outcome_fields(decision),
                 }
             )
         if battle_action is None:
@@ -1844,6 +1860,9 @@ def _classify_decision_intents(
 # run log as their own row, so `grep -c '"autonomy_ratio"'` over
 # `cron_logs/run_<id>.jsonl` is the run's autonomy proof.
 AUTONOMY_LOG_EVENT = "run_autonomy"
+JEV_DEGRADATION_LOG_EVENT = "run_degradation"
+JEV_DEGRADED_RATE = 0.5
+JEV_DEGRADED_MIN_DECISIONS = 5
 
 
 def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
@@ -1867,6 +1886,8 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     decisions_total = 0
     jev_answered = 0
     escalated = 0
+    jev_transport_failures = 0
+    jev_errors: list[str] = []
     escalated_by_class: Counter[str | None] = Counter()
 
     for row in results:
@@ -1875,6 +1896,11 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         decisions_total += 1
         if row.get("jev_answered"):
             jev_answered += 1
+        if row.get("jev_ok") is False:
+            jev_transport_failures += 1
+            error = row.get("jev_error")
+            if isinstance(error, str) and error and error not in jev_errors:
+                jev_errors.append(error)
         if row.get("escalated"):
             escalated += 1
             missing_class = row.get("missing_class")
@@ -1893,12 +1919,24 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         if escalated
         else {}
     )
+    raw_jev_failure_rate = (
+        jev_transport_failures / decisions_total if decisions_total else 0.0
+    )
+    jev_failure_rate = round(raw_jev_failure_rate, 4)
+    degraded = (
+        decisions_total >= JEV_DEGRADED_MIN_DECISIONS
+        and raw_jev_failure_rate > JEV_DEGRADED_RATE
+    )
     return {
         "decisions_total": decisions_total,
         "jev_answered": jev_answered,
         "escalated": escalated,
         "autonomy_ratio": ratio,
         "escalation_rate_by_missing_class": rates,
+        "jev_transport_failures": jev_transport_failures,
+        "jev_transport_failure_rate": jev_failure_rate,
+        "jev_errors": jev_errors[:3],
+        "degraded": degraded,
     }
 
 
@@ -1925,7 +1963,15 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
     escalated = _as_int(autonomy.get("escalated"))
     if not decisions_total:
         return f"autonomy=n/a (0 decisions, {escalated} escalated)"
-    return f"autonomy={jev_answered}/{decisions_total} ({escalated} escalated)"
+    tail = f"autonomy={jev_answered}/{decisions_total} ({escalated} escalated)"
+    if autonomy.get("degraded"):
+        failures = _as_int(autonomy.get("jev_transport_failures"))
+        rate = float(autonomy.get("jev_transport_failure_rate") or 0.0)
+        tail += (
+            f" | JEV DEGRADED: {failures}/{decisions_total} transport failures "
+            f"({rate:.0%})"
+        )
+    return tail
 
 
 def _write_autonomy_row(
@@ -1954,7 +2000,37 @@ def _write_autonomy_row(
         "escalation_rate_by_missing_class": autonomy.get(
             "escalation_rate_by_missing_class", {}
         ),
+        "jev_transport_failures": _as_int(autonomy.get("jev_transport_failures")),
+        "jev_transport_failure_rate": autonomy.get("jev_transport_failure_rate", 0.0),
+        "degraded": bool(autonomy.get("degraded")),
         "teacher_escalations": teacher or {"count": 0, "improved": 0},
+    }
+    log_file.write(json.dumps(row, default=str) + "\n")
+    log_file.flush()
+    return row
+
+
+def _write_degradation_row(
+    log_file: TextIO,
+    run_id: str,
+    autonomy: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Append a queryable row only when JEV transport health crossed the gate."""
+    if not autonomy.get("degraded"):
+        return None
+    failures = _as_int(autonomy.get("jev_transport_failures"))
+    jev_errors = list(autonomy.get("jev_errors") or [])[:3]
+    row: dict[str, Any] = {
+        "run_id": run_id,
+        "event": JEV_DEGRADATION_LOG_EVENT,
+        "failures": failures,
+        "jev_transport_failures": failures,
+        "decisions": _as_int(autonomy.get("decisions_total")),
+        "rate": autonomy.get("jev_transport_failure_rate", 0.0),
+        "threshold": JEV_DEGRADED_RATE,
+        "min_decisions": JEV_DEGRADED_MIN_DECISIONS,
+        "jev_errors": jev_errors,
+        "errors": jev_errors,
     }
     log_file.write(json.dumps(row, default=str) + "\n")
     log_file.flush()
@@ -2049,6 +2125,7 @@ def _record_run_memory(
         # GAP-053: split controller decisions by intent class so a run that
         # burned its budget on blind A-presses is visible as such.
         real_decisions, fallback_decisions = _classify_decision_intents(results)
+        autonomy = _autonomy_counters(results)
 
         ladder = {
             "memory_events": sum(
@@ -2069,6 +2146,20 @@ def _record_run_memory(
             ),
             "real_decisions": real_decisions,
             "fallback_decisions": fallback_decisions,
+            "autonomy": autonomy,
+            "degraded": bool(autonomy.get("degraded")),
+            "degradation": (
+                {
+                    "event": JEV_DEGRADATION_LOG_EVENT,
+                    "jev_transport_failures": autonomy["jev_transport_failures"],
+                    "decisions": autonomy["decisions_total"],
+                    "rate": autonomy["jev_transport_failure_rate"],
+                    "threshold": JEV_DEGRADED_RATE,
+                    "errors": autonomy["jev_errors"],
+                }
+                if autonomy.get("degraded")
+                else None
+            ),
             "distinct_maps": distinct_maps,
             "battle_events": battle_events,
             "cycles": len(results),
@@ -2659,6 +2750,62 @@ def _boot_memory_prompt(boot: BootMemory) -> str:
     return boot.text if boot.has_content else ""
 
 
+def _run_jev_preflight(
+    *,
+    decision_mode: str,
+    skip_preflight: bool,
+    current_run_id: str,
+    current_log_path: Path,
+) -> dict[str, Any]:
+    """Run or explicitly skip the real JEV startup probe and persist its row."""
+    if decision_mode != "jev":
+        row: dict[str, Any] = {
+            "run_id": current_run_id,
+            "event": "preflight",
+            "component": "jev",
+            "status": "skipped",
+            "reason": f"decision_mode={decision_mode}",
+        }
+    elif skip_preflight:
+        row = {
+            "run_id": current_run_id,
+            "event": "preflight",
+            "component": "jev",
+            "status": "skipped",
+            "reason": "--skip-preflight",
+        }
+    else:
+        outcome = jev_client.preflight(timeout=15)
+        status = str(outcome.get("status") or "transient")
+        row = {
+            "run_id": current_run_id,
+            "event": "preflight_warning" if status == "transient" else "preflight",
+            "component": "jev",
+            **outcome,
+        }
+
+    current_log_path.parent.mkdir(parents=True, exist_ok=True)
+    current_log_path.write_text(json.dumps(row, default=str) + "\n")
+
+    status = row["status"]
+    key_name = row.get("key_name") or "unknown key"
+    if status == "auth_failure":
+        safe_print(
+            f"[{current_run_id}] JEV PREFLIGHT AUTH FAILURE ({key_name}): "
+            f"{row.get('error', 'authentication rejected')}"
+        )
+    elif status == "transient":
+        safe_print(
+            f"[{current_run_id}] JEV PREFLIGHT WARNING ({key_name}): "
+            f"{row.get('error', 'transient failure')} — continuing"
+        )
+    elif status == "pass":
+        safe_print(f"[{current_run_id}] JEV preflight passed ({key_name})")
+    else:
+        safe_print(f"[{current_run_id}] JEV preflight skipped: {row.get('reason')}")
+    return row
+
+
 def _main_parser() -> argparse.ArgumentParser:
     """Build the real CLI parser main() uses (module-level so tests can parse)."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -2696,6 +2843,14 @@ def _main_parser() -> argparse.ArgumentParser:
         help=(
             "With --dry-run: skip the API-key liveness probes and report "
             "key presence only (offline validation, pre-GAP-048 behavior)."
+        ),
+    )
+    parser.add_argument(
+        "--skip-preflight",
+        action="store_true",
+        help=(
+            "Skip the real JEV startup probe for a JEV-mode run. The skip is "
+            "still stamped in the run log."
         ),
     )
     parser.add_argument(
@@ -2749,10 +2904,18 @@ def main() -> None:
     CYCLES = max(1, args.cycles)
     run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
     log_path = LOG_DIR / f"run_{run_id}.jsonl"
+    preflight_row = _run_jev_preflight(
+        decision_mode=DECISION_MODE,
+        skip_preflight=args.skip_preflight,
+        current_run_id=run_id,
+        current_log_path=log_path,
+    )
+    if preflight_row.get("status") == "auth_failure":
+        raise SystemExit(2)
     SCREENSHOT_DIR = Path("screenshots") / f"run_{run_id}"
     SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
 
-    results = []
+    results: list[dict[str, Any]] = []
     emu = Emulator(ROM)
 
     # ── Boot state (GAP-028) ────────────────────────────────────────
@@ -3057,9 +3220,10 @@ def main() -> None:
     if _rival_named:
         ctx.rival_name = "GARY"
 
-    # Open log file for incremental writing (web viewer polls this)
-    log_file = open(log_path, "w")
-    log_file.write("")  # create/truncate
+    # Open log file for incremental writing (web viewer polls this). The
+    # preflight row was written before emulator construction, so append here;
+    # final closeout still rewrites the complete in-memory result list.
+    log_file = open(log_path, "a")
     log_file.flush()
 
     # Persistent counter for the main loop's name_entry handler. The
@@ -3528,7 +3692,7 @@ def main() -> None:
                 # falls through to controller_plan() exactly as before; the only
                 # way JEV can express "press nothing" is an empty plan, and the
                 # loop never invents a press for an answer it could not read.
-                _jev_decision = _jev_or_none(
+                _jev_attempt = _jev_or_none(
                     patch_data,
                     goal=_mem_goal,
                     visited=_tile_visits,
@@ -3551,8 +3715,13 @@ def main() -> None:
                     teacher_results=results,
                     escalated_classes=_teacher_escalated_classes,
                 )
-                if _jev_decision:
-                    decision = _jev_decision
+                _jev_outcome = (
+                    _jev_outcome_fields(_jev_attempt)
+                    if isinstance(_jev_attempt, dict)
+                    else {"jev_ok": None}
+                )
+                if _jev_attempt and _jev_attempt.get("jev_answered"):
+                    decision = {**_jev_attempt, **_jev_outcome}
                     _decision_pipeline = JEV_PIPELINE
                     safe_print(
                         f"  [JEV] {decision['intent']} | projection "
@@ -3580,6 +3749,7 @@ def main() -> None:
                         boot_memory=_boot_memory,  # MEM-2: built once at boot
                         model=controller_model,  # GAP-052: flag/env-resolved
                     )
+                    decision.update(_jev_outcome)
                     _decision_pipeline = pipeline_name
                 # Study result is injected once, then cleared
                 _pending_study_result = ""
@@ -3747,6 +3917,7 @@ def main() -> None:
                         _missing_class if isinstance(_missing_class, str) else None
                     ),
                     "raw_distribution": decision.get("raw_distribution"),
+                    **_jev_outcome,
                     "jev_projection_chars": decision.get("jev_projection_chars"),
                     "controller_raw": decision.get("raw_response", ""),
                     "frame_cache": "hit" if _frame_ref else "miss",
@@ -4224,6 +4395,7 @@ def main() -> None:
     # Write log
     log_file.seek(0)
     log_file.truncate()
+    log_file.write(json.dumps(preflight_row, default=str) + "\n")
     for entry in results:
         log_file.write(json.dumps(entry, default=str) + "\n")
     # AC-1's proof row: one JSON line carrying decisions_total / jev_answered
@@ -4231,6 +4403,7 @@ def main() -> None:
     # other row. Kept out of `results` so the legacy "Done. N actions."
     # count and the DuckBrain ladder/cycles stay byte-identical.
     _write_autonomy_row(log_file, run_id, autonomy, teacher_summary)
+    _write_degradation_row(log_file, run_id, autonomy)
     log_file.close()
 
     # Summary

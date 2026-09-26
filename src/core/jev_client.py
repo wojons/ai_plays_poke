@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -294,6 +295,45 @@ def ask(
             "raw": ans,
         }
     return {"ok": False, "error": last_err}
+
+
+def preflight(*, timeout: int = 15) -> dict[str, Any]:
+    """Probe the real decisions endpoint once and classify startup safety.
+
+    The request uses one minimal typed question through :func:`ask`, so it
+    exercises the same key loading, endpoint, authorization header and response
+    decoder as gameplay. Authentication failures are fatal to a JEV-mode run;
+    network/provider failures are transient and may continue with a warning.
+    """
+    result = ask(
+        "JEV startup preflight. Choose READY.",
+        timeout=timeout,
+        questions={
+            "preflight": {
+                "type": "choice",
+                "instructions": "Confirm the decisions endpoint can answer.",
+                "criteria": {"READY": "the endpoint accepted this request"},
+            }
+        },
+    )
+    if result.get("ok"):
+        return {
+            "status": "pass",
+            "ok": True,
+            "key_name": result.get("key_name"),
+        }
+
+    error = str(result.get("error", "unknown preflight failure"))[:200]
+    key_name = error.partition(":")[0] if ":" in error else None
+    status = (
+        "auth_failure" if re.search(r"\bHTTP (?:401|403)\b", error) else "transient"
+    )
+    return {
+        "status": status,
+        "ok": False,
+        "key_name": key_name,
+        "error": error,
+    }
 
 
 # ── the gate: does Jev hand back to the reasoning LLM? ──────────────────────
