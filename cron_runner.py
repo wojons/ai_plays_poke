@@ -2606,6 +2606,222 @@ def _record_run_memory(
         safe_print(f"[MEM] recorder failed: {exc}")
 
 
+WORLD_MEMORY_NAMESPACE = "pokemon-global"
+_WORLD_TILE_OFFSETS: dict[str, tuple[int, int]] = {
+    "up": (0, -1),
+    "down": (0, 1),
+    "left": (-1, 0),
+    "right": (1, 0),
+}
+_WORLD_UNREMARKABLE_TILES = frozenset({"", "?", "unknown", "void", "floor"})
+
+
+def _append_run_event(
+    event: dict[str, Any],
+    *,
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+) -> None:
+    """Keep an observable run event identical in memory and on disk."""
+    results.append(event)
+    log_file.write(json.dumps(event, default=str) + "\n")
+    log_file.flush()
+
+
+def _populate_world_memory(
+    *,
+    observation: dict[str, Any],
+    run_id: str,
+    cycle: int,
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+    written_keys: set[str],
+) -> None:
+    """Retrieve current-map facts, then persist newly observed world facts.
+
+    Retrieval deliberately runs before writes.  Therefore a retrieval event for
+    cycle N can only contain a fact that was already in DuckBrain when cycle N
+    started; facts first written by this run on cycle N-1 become observable on
+    the next cycle without entering the JEV projection (MEM-PROJ owns that).
+    """
+    map_id = observation.get("map_id")
+    player_tile_x = observation.get("player_tile_x")
+    player_tile_y = observation.get("player_tile_y")
+    if (
+        not isinstance(map_id, int)
+        or not isinstance(player_tile_x, int)
+        or not isinstance(player_tile_y, int)
+    ):
+        return
+
+    typed_map_id = map_id
+    typed_tile_x = player_tile_x
+    typed_tile_y = player_tile_y
+    map_name = str(observation.get("map_name") or f"Map_{typed_map_id:02X}")
+    map_domain = f"world/map/{typed_map_id}"
+    map_key = f"/{map_domain}"
+    object_prefix = f"/world/object/{typed_map_id}/"
+
+    from src.core import duckbrain_client as _dbc
+
+    try:
+        recalled = [
+            *_dbc.recall(
+                key=map_key,
+                namespace=WORLD_MEMORY_NAMESPACE,
+                limit=1,
+            ),
+            *_dbc.recall(
+                key_prefix=object_prefix,
+                namespace=WORLD_MEMORY_NAMESPACE,
+                limit=8,
+            ),
+        ]
+        recalled_by_key: dict[str, dict[str, Any]] = {}
+        for record in recalled:
+            key = record.get("key")
+            if isinstance(key, str) and key not in recalled_by_key:
+                recalled_by_key[key] = record
+        if recalled_by_key:
+            retrieval_event = {
+                "cycle": cycle,
+                "event": "world_memory_retrieval",
+                "namespace": WORLD_MEMORY_NAMESPACE,
+                "map_id": typed_map_id,
+                "map_name": map_name,
+                "keys": list(recalled_by_key),
+                "records": list(recalled_by_key.values()),
+            }
+            _append_run_event(retrieval_event, results=results, log_file=log_file)
+            safe_print(
+                f"  [MEM-WORLD] cycle {cycle} retrieved "
+                f"{len(recalled_by_key)} fact(s): {', '.join(recalled_by_key)}"
+            )
+    except Exception as exc:  # memory must not stop gameplay
+        _append_run_event(
+            {
+                "cycle": cycle,
+                "event": "world_memory_retrieval_failed",
+                "namespace": WORLD_MEMORY_NAMESPACE,
+                "map_id": typed_map_id,
+                "error": str(exc),
+            },
+            results=results,
+            log_file=log_file,
+        )
+        safe_print(f"  [MEM-WORLD] retrieval failed: {exc}")
+
+    evidence = {
+        "run_id": run_id,
+        "cycle": cycle,
+        "map": {"id": typed_map_id, "name": map_name},
+        "tile": {"x": typed_tile_x, "y": typed_tile_y},
+    }
+    confidence = 1.0 if USE_RAM_READER else 0.75
+    writes: list[dict[str, Any]] = [
+        {
+            "key": map_key,
+            "domain": map_domain,
+            "attributes": {
+                "fact_type": "map_observation",
+                "map_id": typed_map_id,
+                "map_name": map_name,
+                "player_tile": {"x": typed_tile_x, "y": typed_tile_y},
+                "map_dimensions": observation.get("map_dimensions"),
+                "map_tileset": observation.get("map_tileset"),
+                "visible_exits": list(observation.get("visible_exits") or []),
+                "adjacent_tiles": dict(observation.get("adjacent") or {}),
+            },
+            "embedding_text": (
+                f"Observed {map_name} (map {typed_map_id}) at tile "
+                f"({typed_tile_x},{typed_tile_y})"
+            ),
+            "labels": ["world", map_domain],
+            "confidence": confidence,
+            "evidence": evidence,
+        }
+    ]
+
+    adjacent = observation.get("adjacent")
+    player_x = observation.get("player_x")
+    player_y = observation.get("player_y")
+    if (
+        isinstance(adjacent, dict)
+        and isinstance(player_x, int)
+        and isinstance(player_y, int)
+    ):
+        for direction, (dx, dy) in _WORLD_TILE_OFFSETS.items():
+            tile_type = str(adjacent.get(direction) or "").lower()
+            if tile_type in _WORLD_UNREMARKABLE_TILES:
+                continue
+            object_x = player_x + dx
+            object_y = player_y + dy
+            object_domain = f"world/object/{typed_map_id}/{object_x}_{object_y}"
+            writes.append(
+                {
+                    "key": f"/{object_domain}",
+                    "domain": object_domain,
+                    "attributes": {
+                        "fact_type": "tile_observation",
+                        "map_id": typed_map_id,
+                        "map_name": map_name,
+                        "position": {
+                            "x": object_x,
+                            "y": object_y,
+                            "coordinate_space": "map_block",
+                        },
+                        "tile_type": tile_type,
+                        "relative_direction": direction,
+                    },
+                    "embedding_text": (
+                        f"{map_name} map block ({object_x},{object_y}) is "
+                        f"{tile_type}, observed {direction} of the player"
+                    ),
+                    "labels": ["world", map_domain, object_domain],
+                    "confidence": confidence,
+                    "evidence": evidence,
+                    "applies_when": {"map_id": typed_map_id},
+                }
+            )
+
+    for write in writes:
+        key = str(write["key"])
+        if key in written_keys:
+            continue
+        try:
+            memory_id = _dbc.remember(
+                **write,
+                namespace=WORLD_MEMORY_NAMESPACE,
+            )
+            written_keys.add(key)
+            _append_run_event(
+                {
+                    "cycle": cycle,
+                    "event": "world_memory_write",
+                    "namespace": WORLD_MEMORY_NAMESPACE,
+                    "key": key,
+                    "memory_id": memory_id,
+                    "record": write,
+                },
+                results=results,
+                log_file=log_file,
+            )
+            safe_print(f"  [MEM-WORLD] wrote {key}")
+        except Exception as exc:  # memory must not stop gameplay
+            _append_run_event(
+                {
+                    "cycle": cycle,
+                    "event": "world_memory_write_failed",
+                    "namespace": WORLD_MEMORY_NAMESPACE,
+                    "key": key,
+                    "error": str(exc),
+                },
+                results=results,
+                log_file=log_file,
+            )
+            safe_print(f"  [MEM-WORLD] write failed for {key}: {exc}")
+
+
 def _apply_agent_memory_outputs(
     *,
     decision: dict[str, Any],
@@ -3638,6 +3854,9 @@ def main() -> None:
     _last_dialog_text = ""
     _pending_study_key = ""  # controller asked to study a key
     _pending_study_result = ""  # fetched content, injected once
+    # Deduplicate deterministic world facts within this run. DuckBrain remains
+    # the source of truth; retrieval still reads the store on every cycle.
+    _world_memory_written_keys: set[str] = set()
 
     # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
     # Built ONCE here (not per cycle) from the four DuckBrain layers
@@ -3763,6 +3982,18 @@ def main() -> None:
             tile_recovery_reason = _tile_lock_reason(_last_tile, _same_tile_count)
 
             map_id = int(raw_map_id) if isinstance(raw_map_id, int) else -1
+
+            # S2 world memory: retrieve facts already present at cycle start,
+            # then persist this observation. The ordering makes next-cycle use
+            # observable and keeps MEM-PROJ's projection wiring out of scope.
+            _populate_world_memory(
+                observation=patch_data,
+                run_id=run_id,
+                cycle=cycle + 1,
+                results=results,
+                log_file=log_file,
+                written_keys=_world_memory_written_keys,
+            )
 
             # ── Default exploration goal (GAP-038) ──────────────
             # Fresh boot states (no stored DuckBrain goal) leave the
