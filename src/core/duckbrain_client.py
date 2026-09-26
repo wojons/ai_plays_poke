@@ -31,6 +31,10 @@ def remember(
     attributes: dict[str, Any],
     embedding_text: str,
     namespace: str = "pokemon-global",
+    labels: list[str] | None = None,
+    confidence: float | None = None,
+    evidence: dict[str, Any] | None = None,
+    applies_when: dict[str, Any] | None = None,
 ) -> str:
     """Store a memory and return its UUID."""
     if not key.startswith("/"):
@@ -39,7 +43,7 @@ def remember(
     data_dir = _ensure_namespace(namespace)
     memory_id = str(uuid.uuid4())
 
-    record = {
+    record: dict[str, Any] = {
         "id": memory_id,
         "key": key,
         "domain": domain,
@@ -48,6 +52,14 @@ def remember(
         "created_at": datetime.now(timezone.utc).isoformat(),
         "status": "active",
     }
+    if labels is not None:
+        record["labels"] = labels
+    if confidence is not None:
+        record["confidence"] = confidence
+    if evidence is not None:
+        record["evidence"] = evidence
+    if applies_when is not None:
+        record["applies_when"] = applies_when
 
     # Append to today's JSONL file
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -64,8 +76,14 @@ def recall(
     domain: str | None = None,
     limit: int = 10,
     namespace: str = "pokemon-global",
+    labels: list[str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Query memories by key, prefix, or domain."""
+    """Query memories by key, prefix, domain, or labels.
+
+    Label filters use AND semantics: every requested label must match an exact
+    string in the record's labels list or equal the record's domain, which is
+    treated as an implicit label.
+    """
     data_dir = _ensure_namespace(namespace)
     results: list[dict[str, Any]] = []
 
@@ -97,6 +115,15 @@ def recall(
                         continue
                     if domain and record.get("domain") != domain:
                         continue
+                    if labels is not None:
+                        record_labels = record.get("labels", [])
+                        if not isinstance(record_labels, list):
+                            record_labels = []
+                        if not all(
+                            label == record.get("domain") or label in record_labels
+                            for label in labels
+                        ):
+                            continue
 
                     results.append(record)
                     if len(results) >= limit:
