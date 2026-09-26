@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# GUARD-1: fail-closed wrapper around `gitreins guard`.
+# Fresh clones activate this by copying it to .git/hooks/pre-commit.
+# Upstream gitreins FAILS OPEN on hook_timeout (engine/guard_manager.py
+# _timeout_result returns Tier1Result(passed=True) with only the checks that
+# completed), so a slow box turns a red gate green. This wrapper re-verifies
+# the run on disk before allowing the commit:
+#   - guard exit != 0                        -> pass the exit code through (reject)
+#   - guard exit 0 + timeout text in output   -> REJECT (exit 1)
+#   - guard exit 0 + no fresh run log under
+#     .gitreins/logs/ (gitreins persists one
+#     run log per invocation by default)      -> REJECT (exit 1)
+set -u
+
+REPO_ROOT="$(git rev-parse --show-toplevel)" || exit 1
+
+# The lsp (pylsp) and lint (ruff) guards resolve tools from PATH; with
+# guards.allow_skips=false a skipped lsp would reject every commit, so put the
+# project venv first (same convention as AGENTS.md commands).
+export PATH="$REPO_ROOT/.venv/bin:$PATH"
+
+if [ ! -f "$REPO_ROOT/.gitreins/config.yaml" ]; then
+  # Repo not initialised with gitreins: behave like the stock hook, allow.
+  exit 0
+fi
+
+GUARD_LOG="$(mktemp /tmp/guard-XXXXXX.log)"
+trap 'rm -f "$GUARD_LOG"' EXIT
+
+if command -v gitreins >/dev/null 2>&1; then
+  gitreins guard >"$GUARD_LOG" 2>&1
+elif [ -x "$HOME/.local/bin/gitreins" ]; then
+  "$HOME/.local/bin/gitreins" guard >"$GUARD_LOG" 2>&1
+else
+  echo "GUARD-1 wrapper: gitreins not found (PATH or ~/.local/bin) — REJECTING commit (fail-closed)." >&2
+  exit 1
+fi
+RC=$?
+tail -n 40 "$GUARD_LOG" >&2
+
+if [ "$RC" -ne 0 ]; then
+  exit "$RC"
+fi
+
+if grep -q "Remaining checks skipped" "$GUARD_LOG"; then
+  echo "GUARD-1 wrapper: guard TIMED OUT (fail-open in gitreins) — REJECTING commit. Fix lint/tests or re-run when the box is quiet." >&2
+  exit 1
+fi
+
+LATEST="$(ls -t "$REPO_ROOT"/.gitreins/logs/guard-*.log 2>/dev/null | head -1)"
+if [ -z "$LATEST" ] || [ -n "$(find "$LATEST" -mmin +5)" ]; then
+  echo "GUARD-1 wrapper: no fresh guard verdict (.gitreins/logs/guard-*.log older than 5min or missing) — REJECTING commit." >&2
+  exit 1
+fi
+
+exit 0
