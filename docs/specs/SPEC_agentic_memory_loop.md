@@ -126,17 +126,46 @@ LATER cycle** — visible in the log, not asserted.
 
 ## 6. Stages and acceptance criteria
 
+> **CORRECTION after Quorum #1 (5 seats, 5 families) — read this before the table.**
+>
+> The first draft of this spec put S3 (context window) and S4 (tool calling) on
+> `controller_plan`. **That path does not run.** Verified in raw code and re-verified by the
+> coordinator: `cron_runner.py:3554` is `if _jev_decision: decision = _jev_decision` with
+> `decision = controller_plan(...)` in the **else** at `:3566`, and `DEFAULT_DECISION_MODE = "jev"`
+> (`:110`). JEV answered 100% of the measured decisions, so `controller_plan` is dead code in the
+> live loop. **Memory that reaches only the controller prompt cannot move `escalated` or
+> `map_topology`, because those are JEV-emitted fields.** S6's metric is structurally immune to
+> S3 and S4 as originally written.
+>
+> The surface that matters is `state_projection.build()` (`src/core/state_projection.py:102`),
+> which **already accepts `extra_facts`** (`:111`, consumed `:199-201`) and where `extra_facts`
+> appears **nowhere** in `cron_runner.py`. The plumbing is built and unwired. That is the missing
+> stage, and it is added below as **S2b `MEM-PROJ`**.
+>
+> Corrected facts (the earlier draft's numbers were wrong and are kept here so the error is
+> auditable): the store holds **617 active unique keys** — 555 `/game/runs/*`, 50 `/notes/*`,
+> 3 `/game/save/*`, **0 `/world/*`** — not "~50 keys". The old count came from
+> `duckbrain_client.list_keys`'s default `limit: int = 50` (`:113`) silently truncating.
+> Memory is also **not** end-of-run-only: `_apply_agent_memory_outputs` (`:2209`) is called
+> per-cycle at `:3595`, and a `study` field reads a key mid-run into the next cycle. What is
+> missing is not *writing* — it is **labeled retrieval reaching the fast tier**.
+
 | stage | id | acceptance |
 |---|---|---|
+| **S0** control baseline | `BASE-1` | a baseline artifact names boot state, cycles/episode, decision-mode and model, with escalations-per-map-transition over ≥N episodes from a CLEAN store — **before S2**, so S6 has something to beat |
 | **S1** memory API | `MEM-API` | a written fact is retrievable by key AND by label AND by similarity, **after a process restart** |
-| **S2** memory population | `MEM-POP` | a 30-cycle run writes ≥1 `world/map/*` and ≥1 `world/object/*`; the NEXT cycle retrieves one |
+| **S2** memory population | `MEM-POP` | a 30-cycle run writes ≥1 `world/map/*` and ≥1 `world/object/*`; the NEXT cycle retrieves one. **Deterministic writers on observed map transitions**, not model goodwill — `/notes/*` already tries to record exits and still fails to structure them |
+| **S2b** memory reaches the fast tier | `MEM-PROJ` | a run log shows the **JEV projection** carrying ≥1 retrieved `world/*` fact via `state_projection.build(extra_facts=...)`, and that class's escalation rate falls against S0 |
 | **S3** context window | `CTX-WIN` | the log shows prior turns in the request, and the agent answers about a cycle >N back from the summary |
 | **S4** tool calling | `TOOLS-1` | the log shows ≥1 **model-chosen** tool call with its result; a failed call is visible to the model |
 | **S5** delegation | `DELEG-1` | ≥1 delegated finding written to memory and **consumed in a later cycle** |
-| **S6** memory-driven navigation | `NAV-MEM` | using `world/map/*` + `world/path/*`, cycles-to-first-map-transition drops vs the S2 baseline, and the route is cited from memory |
-| **S7** benchmark parity | `BENCH-PAR` | both `--decision-mode jev` and `llm` run the new loop; mode stamped; logs comparable |
+| **S6** memory-driven navigation | `NAV-MEM` | using `world/map/*` + `world/path/*`, cycles-to-first-map-transition drops vs the **S0** baseline, and the route is cited from memory |
+| **S7** benchmark parity | `BENCH-PAR` | both `--decision-mode jev` and `llm` run the new loop; mode stamped; logs comparable — **run before S6 is judged**, so the effect is attributable |
 
-**Dependencies:** S1 → S2 → {S3, S4} → S5 → S6; S7 after S4.
+**Dependencies (corrected):** S0 → S1 → S2 → S2b → S6; {S3, S4} branch off S2 and do **not** gate S6;
+S5 after S4; S7 before the S6 verdict.
+S5 delegation is **not** a precondition for navigating a room already walked — the old
+`NAV-MEM depends_on [CTX-WIN, DELEG-1]` ordering was backwards and is fixed on the board.
 
 ---
 
