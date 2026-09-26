@@ -166,6 +166,12 @@ cp .env.example .env
 python3 cron_runner.py --run-id demo1 --cycles 80
 ```
 
+> **`--help` needs the venv too:** every `cron_runner.py` invocation — even
+> `python3 cron_runner.py --help` — must run with the venv activated
+> (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before
+> argparse, so under the system Python even the help screen exits with
+> `ModuleNotFoundError`.
+
 **What this does:** Each cycle reads the game state directly from emulator RAM (no paid
 vision API calls per tick), sends the spatial data to the LLM controller
 (`openai/gpt-5.6-luna` for overworld navigation, `deepseek-v4-flash` for battles), and
