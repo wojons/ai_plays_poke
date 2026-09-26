@@ -8,9 +8,14 @@ Same API surface for drop-in compatibility.
 from __future__ import annotations
 
 from pathlib import Path
+
 import numpy as np
 from pyboy import PyBoy as _PyBoy
 from pyboy.utils import WindowEvent
+
+# PyBoy 2.7 uses a package-wide custom logger and resets it from this
+# constructor option on every boot. Keep ERRORs visible while filtering SGB chatter.
+_PYBOY_LOG_LEVEL = "ERROR"
 
 # ── Button name → WindowEvent mapping ────────────────────────────────────
 
@@ -78,10 +83,17 @@ class Emulator:
         # GAMEPLAY-LEAK-001: Disable SDL2 audio to prevent native-memory
         # accumulation in the audio queue during battle fast-forward spans
         # (SGB ROMs render SGB audio commands every frame at ~60 Hz).
-        self._pyboy: _PyBoy = _PyBoy(str(rom_path), window="null", sound=False)
+        self._pyboy: _PyBoy = _PyBoy(
+            str(rom_path),
+            window="null",
+            sound=False,
+            log_level=_PYBOY_LOG_LEVEL,
+        )
         self._running: bool = True
         self._is_gb: bool = True  # PyBoy only supports GB/GBC
-        self._render_debt: int = 0  # frames run without re-render (for capture freshness)
+        self._render_debt: int = (
+            0  # frames run without re-render (for capture freshness)
+        )
 
     # ── properties ───────────────────────────────────────────────────
 
@@ -319,7 +331,9 @@ class Emulator:
     def reset(self) -> None:
         """Reset the emulator to its initial state."""
         self._pyboy.stop()
-        self._pyboy = _PyBoy(str(self._rom_path), window="null")
+        self._pyboy = _PyBoy(
+            str(self._rom_path), window="null", log_level=_PYBOY_LOG_LEVEL
+        )
         self._running = True
 
     def stop(self) -> None:
