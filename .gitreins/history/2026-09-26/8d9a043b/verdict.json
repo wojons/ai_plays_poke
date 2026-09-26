@@ -1,0 +1,121 @@
+{
+  "task_id": "PERF-1",
+  "task_title": "PERF: skip-on-identical-frame gate for the per-cycle screenshot save",
+  "task_criteria": [
+    "step_*.png writes are skipped when md5(screenshot.tobytes()) equals the previous cycle's hash (or first cycle); saved-PNG census stays >= distinct game screens; cartographer hash logic reused not duplicated; make_run_video.py still produces a correct video from gapped step files; guard green"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "bd3fee37abcab17e21a4a65a4d3fcb02e4353a07",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n3:03PM INF scanned ~306179230 bytes (306.18 MB) in 13.4s\n3:03PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 88798 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4218 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [450175 chars omitted \u2014 4985 line(s)] \u2026\ntest_bench_pathfinding_find_path               480.9990 (1.12)           2,565.0079 (1.0)             662.9448 (1.27)           479.7473 (3.52)            536.0052 (1.09)            59.9830 (1.50)          1;3  1,508,421.1325 (0.78)         18           1\ntest_bench_vision_pipeline_validate          5,309.9939 (12.35)         71,683.0255 (27.95)         6,485.0472 (12.47)        1,438.8884 (10.56)         6,242.0149 (12.74)          300.0023 (7.50)    1445;5068    154,200.8832 (0.08)      40495           1\ntest_bench_ram_reader_observe              819,225.9993 (>1000.0)  155,004,976.9867 (>1000.0)   1,537,969.1067 (>1000.0)  8,246,296.6162 (>1000.0)     974,843.9916 (>1000.0)     70,203.9979 (>1000.0)     4;167        650.2081 (0.00)       1040           1\ntest_bench_vision_pipeline_process      33,221,310.9941 (>1000.0)   41,057,541.9955 (>1000.0)  36,353,740.2181 (>1000.0)  2,160,764.3182 (>1000.0)  36,861,097.0036 (>1000.0)  3,383,271.2579 (>1000.0)      11;0         27.5075 (0.00)         27           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4204 passed, 14 skipped in 219.05s (0:03:39) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T163704.197186Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 step_*.png writes are skipped when md5(screenshot.tobytes()) equals the previous cycle's hash (or first cycle); saved-PNG census stays >= distinct game screens; cartographer hash logic reused not duplicated; make_run_video.py still produces a correct video from gapped step files; guard green: All sub-claims verified. (1) Gate: cron_runner.py:1133-1145 _save_cycle_screenshot returns early when frame_hash==last_saved_frame_hash; _last_saved_frame_hash='' at :3385 guarantees first cycle saves; called at :3677 with cycle=cycle+1 (1-based step_NNNN preserved). Live check: first cycle saved=True, second identical skipped=True. (2) Census: live emulator 30 cycles from data/boot.state -> 10 saved PNGs vs 6 distinct hashes; invariant saved>=distinct HOLDS (gate saves on change-from-previous so every distinct screen is captured). (3) Reuse not duplicated: grep hashlib/md5/tobytes in cron_runner.py shows ONLY :1130 (_cycle_frame_hash); inline md5 in cartographer path and controller path removed, both now use shared frame_hash (:3702, :4046). (4) Gap-aware video: make_run_video.py select_step_frames/StepFrame cycle parsing + build_srt aligned to real cycles; test_make_video_encodes_gapped_step_files PASSED with real /usr/bin/ffmpeg encode of gapped step_0001/step_0004, SRT contains 'Cycle 4  battle'. (5) Guard green: .gitreins/logs/guard-20260926T184915.033165Z.log overall PASS, 5 guards 0 failed 0 skipped, tests (full) exit_code=0 '4201 passed, 14 skipped in 260.48s', static_analysis/lsp/lint/secrets PASS; independent ruff 'All checks passed!', mypy 'Success: no issues found in 2 source files', LSP diagnostics 0; focused run 4 passed in 0.66s. BATTLE_*.png milestone capture (cron_runner.py:4665-4666) left unconditional as required. [resolution 0.13; make_run_video.py]\nThe skip-on-identical-frame gate, census invariant, hash reuse, gap-aware video, and green guard are all verified with live emulator census, real ffmpeg encode, and guard/test output.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 step_*.png writes are skipped when md5(screenshot.tobytes()) equals the previous cycle's hash (or first cycle); saved-PNG census stays >= distinct game screens; cartographer hash logic reused not duplicated; make_run_video.py still produces a correct video from gapped step files; guard green: All sub-claims verified. (1) Gate: cron_runner.py:1133-1145 _save_cycle_screenshot returns early when frame_hash==last_saved_frame_hash; _last_saved_frame_hash='' at :3385 guarantees first cycle saves; called at :3677 with cycle=cycle+1 (1-based step_NNNN preserved). Live check: first cycle saved=True, second identical skipped=True. (2) Census: live emulator 30 cycles from data/boot.state -> 10 saved PNGs vs 6 distinct hashes; invariant saved>=distinct HOLDS (gate saves on change-from-previous so every distinct screen is captured). (3) Reuse not duplicated: grep hashlib/md5/tobytes in cron_runner.py shows ONLY :1130 (_cycle_frame_hash); inline md5 in cartographer path and controller path removed, both now use shared frame_hash (:3702, :4046). (4) Gap-aware video: make_run_video.py select_step_frames/StepFrame cycle parsing + build_srt aligned to real cycles; test_make_video_encodes_gapped_step_files PASSED with real /usr/bin/ffmpeg encode of gapped step_0001/step_0004, SRT contains 'Cycle 4  battle'. (5) Guard green: .gitreins/logs/guard-20260926T184915.033165Z.log overall PASS, 5 guards 0 failed 0 skipped, tests (full) exit_code=0 '4201 passed, 14 skipped in 260.48s', static_analysis/lsp/lint/secrets PASS; independent ruff 'All checks passed!', mypy 'Success: no issues found in 2 source files', LSP diagnostics 0; focused run 4 passed in 0.66s. BATTLE_*.png milestone capture (cron_runner.py:4665-4666) left unconditional as required. [resolution 0.13; make_run_video.py]\nThe skip-on-identical-frame gate, census invariant, hash reuse, gap-aware video, and green guard are all verified with live emulator census, real ffmpeg encode, and guard/test output.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "step_*.png writes are skipped when md5(screenshot.tobytes()) equals the previous cycle's hash (or first cycle); saved-PNG census stays >= distinct game screens; cartographer hash logic reused not duplicated; make_run_video.py still produces a correct video from gapped step files; guard green",
+                "status": "PASS",
+                "detail": "All sub-claims verified. (1) Gate: cron_runner.py:1133-1145 _save_cycle_screenshot returns early when frame_hash==last_saved_frame_hash; _last_saved_frame_hash='' at :3385 guarantees first cycle saves; called at :3677 with cycle=cycle+1 (1-based step_NNNN preserved). Live check: first cycle saved=True, second identical skipped=True. (2) Census: live emulator 30 cycles from data/boot.state -> 10 saved PNGs vs 6 distinct hashes; invariant saved>=distinct HOLDS (gate saves on change-from-previous so every distinct screen is captured). (3) Reuse not duplicated: grep hashlib/md5/tobytes in cron_runner.py shows ONLY :1130 (_cycle_frame_hash); inline md5 in cartographer path and controller path removed, both now use shared frame_hash (:3702, :4046). (4) Gap-aware video: make_run_video.py select_step_frames/StepFrame cycle parsing + build_srt aligned to real cycles; test_make_video_encodes_gapped_step_files PASSED with real /usr/bin/ffmpeg encode of gapped step_0001/step_0004, SRT contains 'Cycle 4  battle'. (5) Guard green: .gitreins/logs/guard-20260926T184915.033165Z.log overall PASS, 5 guards 0 failed 0 skipped, tests (full) exit_code=0 '4201 passed, 14 skipped in 260.48s', static_analysis/lsp/lint/secrets PASS; independent ruff 'All checks passed!', mypy 'Success: no issues found in 2 source files', LSP diagnostics 0; focused run 4 passed in 0.66s. BATTLE_*.png milestone capture (cron_runner.py:4665-4666) left unconditional as required. [resolution 0.13; make_run_video.py]",
+                "resolution_probability": 0.13,
+                "cited_path": "make_run_video.py"
+              }
+            ],
+            "summary": "The skip-on-identical-frame gate, census invariant, hash reuse, gap-aware video, and green guard are all verified with live emulator census, real ffmpeg encode, and guard/test output."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: PERF-1\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 step_*.png writes are skipped when md5(screenshot.tobytes()) equals the previous cycle's hash (or first cycle); saved-PNG census stays >= distinct game screens; cartographer hash logic reused not duplicated; make_run_video.py still produces a correct video from gapped step files; guard green: All sub-claims verified. (1) Gate: cron_runner.py:1133-1145 _save_cycle_screenshot returns early when frame_hash==last_saved_frame_hash; _last_saved_frame_hash='' at :3385 guarantees first cycle saves; called at :3677 with cycle=cycle+1 (1-based step_NNNN preserved). Live check: first cycle saved=True, second identical skipped=True. (2) Census: live emulator 30 cycles from data/boot.state -> 10 saved PNGs vs 6 distinct hashes; invariant saved>=distinct HOLDS (gate saves on change-from-previous so every distinct screen is captured). (3) Reuse not duplicated: grep hashlib/md5/tobytes in cron_runner.py shows ONLY :1130 (_cycle_frame_hash); inline md5 in cartographer path and controller path removed, both now use shared frame_hash (:3702, :4046). (4) Gap-aware video: make_run_video.py select_step_frames/StepFrame cycle parsing + build_srt aligned to real cycles; test_make_video_encodes_gapped_step_files PASSED with real /usr/bin/ffmpeg encode of gapped step_0001/step_0004, SRT contains 'Cycle 4  battle'. (5) Guard green: .gitreins/logs/guard-20260926T184915.033165Z.log overall PASS, 5 guards 0 failed 0 skipped, tests (full) exit_code=0 '4201 passed, 14 skipped in 260.48s', static_analysis/lsp/lint/secrets PASS; independent ruff 'All checks passed!', mypy 'Success: no issues found in 2 source files', LSP diagnostics 0; focused run 4 passed in 0.66s. BATTLE_*.png milestone capture (cron_runner.py:4665-4666) left unconditional as required. [resolution 0.13; make_run_video.py]\nThe skip-on-identical-frame gate, census invariant, hash reuse, gap-aware video, and green guard are all verified with live emulator census, real ffmpeg encode, and guard/test output.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-26T20:09:26.603426",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T20:09:26.627595+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 194076,
+        "truncated": false,
+        "source": "git show bd3fee37abca"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 36338,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "PERF-1"
+  }
+}
