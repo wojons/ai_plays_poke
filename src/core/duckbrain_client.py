@@ -8,14 +8,17 @@ Each namespace is a directory under ~/duckbrain/namespaces/<name>/data/.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import uuid
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 
 DUCKBRAIN_ROOT = Path(os.path.expanduser("~/duckbrain/namespaces"))
+logger = logging.getLogger(__name__)
 
 
 def _ensure_namespace(ns: str) -> Path:
@@ -147,6 +150,7 @@ def list_keys(
         return []
 
     jsonl_files = sorted(data_dir.glob("memories-*.jsonl"), reverse=True)
+    truncated = False
     for jsonl_path in jsonl_files:
         try:
             with open(jsonl_path) as f:
@@ -163,12 +167,26 @@ def list_keys(
                         continue
 
                     k = record.get("key", "")
-                    if k.startswith(prefix):
+                    if k.startswith(prefix) and k not in keys:
+                        # Read one unique key beyond the cap so a partial census
+                        # is always observable without changing the returned keys.
+                        if len(keys) >= limit:
+                            truncated = True
+                            break
                         keys.add(k)
-                    if len(keys) >= limit:
-                        return sorted(keys)
+            if truncated:
+                break
         except Exception:
             continue
+
+    if truncated:
+        message = (
+            "list_keys truncated: returned "
+            f"{len(keys)} of >= {len(keys) + 1} matching keys "
+            f"(limit={limit}); pass a larger limit for a full census"
+        )
+        logger.warning(message)
+        warnings.warn(message, stacklevel=2)
 
     return sorted(keys)
 

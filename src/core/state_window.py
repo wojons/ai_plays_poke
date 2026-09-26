@@ -517,28 +517,43 @@ class StateWindow:
                             arguments={"move_number": 1},
                         )
                         self._history.append(
-                            {"step": self._step_count, "forced": True,
-                             "tool_call": {"name": "select_move", "arguments": {"move_number": 1}},
-                             "action": forced}
+                            {
+                                "step": self._step_count,
+                                "forced": True,
+                                "tool_call": {
+                                    "name": "select_move",
+                                    "arguments": {"move_number": 1},
+                                },
+                                "action": forced,
+                            }
                         )
                         self._record_recent_action(
-                            {"name": "select_move", "arguments": {"move_number": 1}}, forced
+                            {"name": "select_move", "arguments": {"move_number": 1}},
+                            forced,
                         )
                         self.emulator.wait(60)
                         self.emulator.fast_forward(180)
                     else:
                         # Non-battle: plain A to keep the game advancing
                         action_result = execute_tool_call(
-                            self.emulator, tool_name="press_button",
+                            self.emulator,
+                            tool_name="press_button",
                             arguments={"button": "a", "duration": 30},
                         )
                         self._history.append(
-                            {"step": self._step_count, "forced": True,
-                             "tool_call": {"name": "press_button", "arguments": {"button": "a"}},
-                             "action": action_result}
+                            {
+                                "step": self._step_count,
+                                "forced": True,
+                                "tool_call": {
+                                    "name": "press_button",
+                                    "arguments": {"button": "a"},
+                                },
+                                "action": action_result,
+                            }
                         )
                         self._record_recent_action(
-                            {"name": "press_button", "arguments": {"button": "a"}}, action_result
+                            {"name": "press_button", "arguments": {"button": "a"}},
+                            action_result,
                         )
                     self._step_count += 1
                     # Check outcome (battle may have ended from the forced action)
@@ -546,8 +561,11 @@ class StateWindow:
                     if outcome:
                         if self._in_battle:
                             self._battle_events.append(
-                                {"event": "battle_end", "outcome": outcome.get("outcome", "unknown"),
-                                 "to_type": outcome.get("to_type", "unknown")}
+                                {
+                                    "event": "battle_end",
+                                    "outcome": outcome.get("outcome", "unknown"),
+                                    "to_type": outcome.get("to_type", "unknown"),
+                                }
                             )
                         outcome["_battle_events"] = self._battle_events
                         outcome["_failed_flee_attempts"] = self._failed_flee_attempts
@@ -598,8 +616,14 @@ class StateWindow:
                 try:
                     from src.core import duckbrain_client as _dbc
 
-                    keys = _dbc.list_keys(prefix=prefix, limit=50)
-                    answer = "\n".join(keys) if keys else "(nothing stored under this prefix)"
+                    # Agent memory browsing needs a deliberate near-full census;
+                    # list_keys still warns loudly if this higher safety cap truncates.
+                    keys = _dbc.list_keys(prefix=prefix, limit=2000)
+                    answer = (
+                        "\n".join(keys)
+                        if keys
+                        else "(nothing stored under this prefix)"
+                    )
                 except Exception as _e:
                     answer = f"(list_keys failed: {_e})"
                 self._history.append(
@@ -615,13 +639,19 @@ class StateWindow:
                     rec = _dbc.get(key=key)
                     if rec:
                         attrs = rec.get("attributes", {})
-                        body = attrs.get("fact") or attrs.get("goal") or rec.get("embedding_text", "")
+                        body = (
+                            attrs.get("fact")
+                            or attrs.get("goal")
+                            or rec.get("embedding_text", "")
+                        )
                         answer = f"{rec.get('key')}: {body}"[:400]
                     else:
                         answer = f"(no memory at {key})"
                 except Exception as _e:
                     answer = f"(get failed: {_e})"
-                self._history.append({"role": "get", "key": key, "content": answer[:400]})
+                self._history.append(
+                    {"role": "get", "key": key, "content": answer[:400]}
+                )
                 continue
 
             # Bound repeated flee requests. The counter is supplied by the
@@ -658,9 +688,9 @@ class StateWindow:
                 self.emulator.wait(60)
                 self.emulator.fast_forward(180)
                 current_battle_status = battle_status(self.emulator)
-                if (
-                    tool_call["name"] == "run_from_battle"
-                    and current_battle_status in ("wild", "trainer")
+                if tool_call["name"] == "run_from_battle" and current_battle_status in (
+                    "wild",
+                    "trainer",
                 ):
                     self._failed_flee_attempts += 1
                 elif current_battle_status == "ended":
@@ -1016,8 +1046,7 @@ class StateWindow:
             render = str(self.vision.get("render", ""))
             if render:
                 prompt = (
-                    render
-                    + "\n→ Call select_move(N) for move N (1-4), "
+                    render + "\n→ Call select_move(N) for move N (1-4), "
                     "run_from_battle() to flee, use_battle_item(name) to bag, "
                     "or switch_pokemon(N) to swap."
                 )
@@ -1080,7 +1109,7 @@ class StateWindow:
             p = bs.get("player", {})
             e = bs.get("enemy", {})
             moves = ", ".join(
-                f"{m.get('slot', i+1)}={m.get('name', '?')}(PP:{m.get('pp', '?')})"
+                f"{m.get('slot', i + 1)}={m.get('name', '?')}(PP:{m.get('pp', '?')})"
                 for i, m in enumerate(p.get("moves", []))
             )
             parts.append(

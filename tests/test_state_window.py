@@ -937,6 +937,47 @@ class TestDuckbrainTools:
         assert isinstance(_QUERY_GLOBAL_TOOL, dict)
         assert _QUERY_GLOBAL_TOOL["function"]["name"] == "query_global"
 
+    def test_list_keys_caller_surfaces_large_census_warning(
+        self, ctx, mock_emu, overworld_vision, monkeypatch, tmp_path
+    ):
+        import json
+
+        from src.core import duckbrain_client as dbc
+
+        monkeypatch.setattr(dbc, "DUCKBRAIN_ROOT", tmp_path)
+        data_dir = dbc._ensure_namespace("pokemon-global")
+        records = [
+            {
+                "id": str(i),
+                "key": f"/memory/{i:04d}",
+                "domain": "concept",
+                "attributes": {},
+                "status": "active",
+            }
+            for i in range(2001)
+        ]
+        jsonl = data_dir / "memories-2026-06-25.jsonl"
+        jsonl.write_text("".join(f"{json.dumps(record)}\n" for record in records))
+        window, mock_client = _make_window_with_client(
+            "overworld", ctx, mock_emu, overworld_vision, max_steps=1
+        )
+        mock_client.send_tool_request.return_value = "{}"
+
+        with (
+            patch(
+                "src.core.tools.parse_tool_call",
+                return_value={"name": "list_keys", "arguments": {"prefix": "/memory"}},
+            ),
+            pytest.warns(
+                UserWarning,
+                match=r"returned 2000 of >= 2001 matching keys \(limit=2000\)",
+            ),
+        ):
+            result = window.run()
+
+        assert result["outcome"] == "max_steps"
+        assert window._history[-1]["role"] == "list_keys"
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # _load_state_workflow tests
@@ -1176,11 +1217,23 @@ class TestBattleQueryBound:
             "result": "battle",
             "battle_state": {
                 "battle_type": "trainer",
-                "player": {"name": "Charmander", "level": 15, "hp": 30, "max_hp": 30,
-                           "hp_pct": 100, "type": "Fire",
-                           "moves": [{"name": "SCRATCH", "pp": 35, "slot": 1}]},
-                "enemy": {"name": "Squirtle", "level": 15, "hp": 20, "max_hp": 30,
-                          "hp_pct": 66, "type": "Water"},
+                "player": {
+                    "name": "Charmander",
+                    "level": 15,
+                    "hp": 30,
+                    "max_hp": 30,
+                    "hp_pct": 100,
+                    "type": "Fire",
+                    "moves": [{"name": "SCRATCH", "pp": 35, "slot": 1}],
+                },
+                "enemy": {
+                    "name": "Squirtle",
+                    "level": 15,
+                    "hp": 20,
+                    "max_hp": 30,
+                    "hp_pct": 66,
+                    "type": "Water",
+                },
             },
         }
         window, mock_client = _make_window_with_client(
@@ -1197,7 +1250,10 @@ class TestBattleQueryBound:
 
         def _parse_side_effect(*_a, **_kw):
             _parse[0] += 1
-            return {"name": "query_global", "arguments": {"question": "What is my party?"}}
+            return {
+                "name": "query_global",
+                "arguments": {"question": "What is my party?"},
+            }
 
         window._parse_tool_response = lambda text: _parse_side_effect(text)
 
@@ -1205,12 +1261,14 @@ class TestBattleQueryBound:
 
         # The third query was forced into select_move(1) on the emulator
         # execute_tool_call(select_move) presses FIGHT (a) then the move slot (a)
-        assert any(
-            "select_move" in str(call) or (
-                call[0] == "press_button" and "a" in str(call[1])
+        assert (
+            any(
+                "select_move" in str(call)
+                or (call[0] == "press_button" and "a" in str(call[1]))
+                for call in mock_emu.method_calls
             )
-            for call in mock_emu.method_calls
-        ) or mock_emu.press_button.call_count >= 1
+            or mock_emu.press_button.call_count >= 1
+        )
         # The query bound produced a forced action; run must not spin on
         # queries alone — at least one emulator action happened.
         assert mock_emu.press_button.call_count >= 1
@@ -1223,11 +1281,23 @@ class TestBattleQueryBound:
             "result": "battle",
             "battle_state": {
                 "battle_type": "trainer",
-                "player": {"name": "Charmander", "level": 15, "hp": 30, "max_hp": 30,
-                           "hp_pct": 100, "type": "Fire",
-                           "moves": [{"name": "SCRATCH", "pp": 35, "slot": 1}]},
-                "enemy": {"name": "Squirtle", "level": 15, "hp": 20, "max_hp": 30,
-                          "hp_pct": 66, "type": "Water"},
+                "player": {
+                    "name": "Charmander",
+                    "level": 15,
+                    "hp": 30,
+                    "max_hp": 30,
+                    "hp_pct": 100,
+                    "type": "Fire",
+                    "moves": [{"name": "SCRATCH", "pp": 35, "slot": 1}],
+                },
+                "enemy": {
+                    "name": "Squirtle",
+                    "level": 15,
+                    "hp": 20,
+                    "max_hp": 30,
+                    "hp_pct": 66,
+                    "type": "Water",
+                },
             },
         }
         window, mock_client = _make_window_with_client(
