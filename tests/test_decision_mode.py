@@ -5,6 +5,7 @@ fast tier must not be *invoked at all* (no budget, no latency, no influence),
 not merely have its answer discarded. A regression there would silently
 contaminate the LLM-core benchmark the project exists to measure.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -97,7 +98,9 @@ def test_jev_mode_passes_through(monkeypatch):
 def test_jev_mode_result_is_not_mutated(monkeypatch):
     """Pass-through must not copy or alter the decision dict."""
     sentinel = {"intent": "jev LEFT", "plan": ["LEFT"], "escalated": True}
-    monkeypatch.setattr(cron_runner, "_jev_overworld_decision", lambda *a, **k: sentinel)
+    monkeypatch.setattr(
+        cron_runner, "_jev_overworld_decision", lambda *a, **k: sentinel
+    )
     cron_runner.DECISION_MODE = "jev"
     out = cron_runner._jev_or_none()
     assert out is sentinel
