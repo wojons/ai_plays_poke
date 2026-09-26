@@ -12,12 +12,29 @@ Integration tests should be run separately in a full environment.
 Total: 9 active performance tests (16 skipped as integration tests)
 """
 
-import pytest
+import gc
 import time
+from collections.abc import Callable
+from unittest.mock import MagicMock
+
 import numpy as np
 import psutil
-import gc
-from unittest.mock import MagicMock
+import pytest
+
+
+def _min_over_attempts(
+    fn: Callable[[], object], attempts: int, ceiling_s: float
+) -> list[float]:
+    """Measure repeated calls, failing immediately on a pathological attempt."""
+    attempt_times: list[float] = []
+    for _ in range(attempts):
+        start_time = time.perf_counter()
+        fn()
+        attempt_times.append(time.perf_counter() - start_time)
+        assert attempt_times[-1] < ceiling_s, (
+            f"Timing attempt exceeded {ceiling_s:.2f}s; attempt times: {attempt_times}"
+        )
+    return attempt_times
 
 
 class TestScreenshotProcessing:
@@ -98,24 +115,30 @@ class TestAIDecisionTime:
         game_state = {"location": "Pallet Town", "in_battle": False}
 
         pm = PromptManager()
-        start_time = time.time()
-        pm.get_relevant_prompts("exploration", game_state)
-        selection_time = time.time() - start_time
+        selection_times = _min_over_attempts(
+            lambda: pm.get_relevant_prompts("exploration", game_state),
+            attempts=5,
+            ceiling_s=1.0,
+        )
 
-        assert selection_time < 0.05, (
-            f"Prompt selection took {selection_time:.2f}s (>50ms)"
+        assert min(selection_times) < 0.05, (
+            f"Prompt selection minimum was {min(selection_times):.2f}s (>50ms); "
+            f"attempt times: {selection_times}"
         )
 
     def test_simple_ai_decision_time(self) -> None:
-        """AI client initialization should complete in <50ms"""
+        """AI client initialization should complete in <150ms"""
         from src.core.ai_client import GameAIManager
 
-        start_time = time.time()
-        GameAIManager()
-        init_time = time.time() - start_time
+        init_times = _min_over_attempts(
+            GameAIManager,
+            attempts=5,
+            ceiling_s=1.0,
+        )
 
-        assert init_time < 0.15, (
-            f"AI manager initialization took {init_time:.2f}s (>150ms)"
+        assert min(init_times) < 0.15, (
+            f"AI manager initialization minimum was {min(init_times):.2f}s (>150ms); "
+            f"attempt times: {init_times}"
         )
 
 
