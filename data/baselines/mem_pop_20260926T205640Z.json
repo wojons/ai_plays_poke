@@ -1,0 +1,159 @@
+{
+  "acceptance": "a 30-cycle run writes >=1 world/map/* and >=1 world/object/*; the NEXT cycle retrieves one",
+  "conditions": {
+    "boot_state": "cron_logs/mem-pop-20260926T205640Z/boot.state",
+    "boot_state_md5": "81e4ec4e8d1b62002bc78f619c5fc79c",
+    "cycles_completed": 30,
+    "cycles_requested": 30,
+    "handoff": "off",
+    "isolation_note": "Run executed from the MEM-POP worktree; boot copy, checkpoints, screenshots, .ram and raw logs remained worktree-local. The main tree long_run/ was not touched.",
+    "jev_preflight": {
+      "component": "jev",
+      "event": "preflight",
+      "key_name": "OPENROUTER_API_KEY",
+      "ok": true,
+      "run_id": "mem-pop-20260926T205640Z",
+      "status": "pass"
+    },
+    "mode": "system1",
+    "pipeline": "RAM reader",
+    "run_log": "cron_logs/run_mem-pop-20260926T205640Z.jsonl",
+    "setup_note": "An initial pre-cycle launch failed because the isolated worktree did not contain its ignored .env; an ignored symlink to the main tree .env was added, dry-run key probes passed, and this recorded 30-cycle run then completed successfully.",
+    "source_baseline": "data/baselines/base-1_boot.state",
+    "stdout_log": "cron_logs/mem-pop-20260926T205640Z/stdout.log",
+    "store_namespace": "pokemon-global"
+  },
+  "falsifier": {
+    "condition": "No world/* fact written by this run is retrievable in a later cycle.",
+    "result": "Not triggered: /world/map/0 was written in cycle 1 and retrieved in cycle 2.",
+    "triggered": false
+  },
+  "measurements": {
+    "decisions": 30,
+    "retrieval_events": 29,
+    "retrieved_fact_instances": 233,
+    "store_census_after": {
+      "keys": [
+        "/world/map/0",
+        "/world/object/0/1_3",
+        "/world/object/0/2_3",
+        "/world/object/0/3_3",
+        "/world/object/0/3_6",
+        "/world/object/0/4_2",
+        "/world/object/0/4_3",
+        "/world/object/0/4_4",
+        "/world/object/0/4_5",
+        "/world/object/0/4_6",
+        "/world/object/0/5_3"
+      ],
+      "world_key_count": 11
+    },
+    "store_census_before": {
+      "keys": [],
+      "world_key_count": 0
+    },
+    "write_to_retrieval_proof": {
+      "is_next_cycle": true,
+      "key": "/world/map/0",
+      "log_line_quoted": "{\"cycle\": 2, \"event\": \"world_memory_retrieval\", \"namespace\": \"pokemon-global\", \"map_id\": 0, \"map_name\": \"Pallet Town\", \"keys\": [\"/world/map/0\", \"/world/object/0/2_3\", \"/world/object/0/4_3\"], \"records\": [{\"id\": \"0bfd2db1-9c6e-47ea-a68a-edf96056083f\", \"key\": \"/world/map/0\", \"domain\": \"world/map/0\", \"attributes\": {\"fact_type\": \"map_observation\", \"map_id\": 0, \"map_name\": \"Pallet Town\", \"player_tile\": {\"x\": 6, \"y\": 6}, \"map_dimensions\": \"10\\u00d79\", \"map_tileset\": 0, \"visible_exits\": [], \"adjacent_tiles\": {\"up\": \"unknown\", \"down\": \"unknown\", \"left\": \"grass\", \"right\": \"grass\"}}, \"embedding_text\": \"Observed Pallet Town (map 0) at tile (6,6)\", \"created_at\": \"2026-09-26T20:58:10.960816+00:00\", \"status\": \"active\", \"labels\": [\"world\", \"world/map/0\"], \"confidence\": 1.0, \"evidence\": {\"run_id\": \"mem-pop-20260926T205640Z\", \"cycle\": 1, \"map\": {\"id\": 0, \"name\": \"Pallet Town\"}, \"tile\": {\"x\": 6, \"y\": 6}}}, {\"id\": \"a7fb6a67-ed8e-4b76-899f-7fbddca93905\", \"key\": \"/world/object/0/2_3\", \"domain\": \"world/object/0/2_3\", \"attributes\": {\"fact_type\": \"tile_observation\", \"map_id\": 0, \"map_name\": \"Pallet Town\", \"position\": {\"x\": 2, \"y\": 3, \"coordinate_space\": \"map_block\"}, \"tile_type\": \"grass\", \"relative_direction\": \"left\"}, \"embedding_text\": \"Pallet Town map block (2,3) is grass, observed left of the player\", \"created_at\": \"2026-09-26T20:58:10.960985+00:00\", \"status\": \"active\", \"labels\": [\"world\", \"world/map/0\", \"world/object/0/2_3\"], \"confidence\": 1.0, \"evidence\": {\"run_id\": \"mem-pop-20260926T205640Z\", \"cycle\": 1, \"map\": {\"id\": 0, \"name\": \"Pallet Town\"}, \"tile\": {\"x\": 6, \"y\": 6}}, \"applies_when\": {\"map_id\": 0}}, {\"id\": \"2e9ade0a-7322-43a7-92fa-b8eae1ec7cbe\", \"key\": \"/world/object/0/4_3\", \"domain\": \"world/object/0/4_3\", \"attributes\": {\"fact_type\": \"tile_observation\", \"map_id\": 0, \"map_name\": \"Pallet Town\", \"position\": {\"x\": 4, \"y\": 3, \"coordinate_space\": \"map_block\"}, \"tile_type\": \"grass\", \"relative_direction\": \"right\"}, \"embedding_text\": \"Pallet Town map block (4,3) is grass, observed right of the player\", \"created_at\": \"2026-09-26T20:58:10.961077+00:00\", \"status\": \"active\", \"labels\": [\"world\", \"world/map/0\", \"world/object/0/4_3\"], \"confidence\": 1.0, \"evidence\": {\"run_id\": \"mem-pop-20260926T205640Z\", \"cycle\": 1, \"map\": {\"id\": 0, \"name\": \"Pallet Town\"}, \"tile\": {\"x\": 6, \"y\": 6}}, \"applies_when\": {\"map_id\": 0}}]}",
+      "retrieval_cycle": 2,
+      "retrieval_keys": [
+        "/world/map/0",
+        "/world/object/0/2_3",
+        "/world/object/0/4_3"
+      ],
+      "run_log_line_number": 7,
+      "stdout_line_quoted": "  [MEM-WORLD] cycle 2 retrieved 3 fact(s): /world/map/0, /world/object/0/2_3, /world/object/0/4_3",
+      "write_cycle": 1
+    },
+    "writes_attempted": 11,
+    "writes_failed": 0,
+    "writes_ok": 11,
+    "written_world_map_record": {
+      "attributes": {
+        "adjacent_tiles": {
+          "down": "unknown",
+          "left": "grass",
+          "right": "grass",
+          "up": "unknown"
+        },
+        "fact_type": "map_observation",
+        "map_dimensions": "10\u00d79",
+        "map_id": 0,
+        "map_name": "Pallet Town",
+        "map_tileset": 0,
+        "player_tile": {
+          "x": 6,
+          "y": 6
+        },
+        "visible_exits": []
+      },
+      "confidence": 1.0,
+      "created_at": "2026-09-26T20:58:10.960816+00:00",
+      "domain": "world/map/0",
+      "embedding_text": "Observed Pallet Town (map 0) at tile (6,6)",
+      "evidence": {
+        "cycle": 1,
+        "map": {
+          "id": 0,
+          "name": "Pallet Town"
+        },
+        "run_id": "mem-pop-20260926T205640Z",
+        "tile": {
+          "x": 6,
+          "y": 6
+        }
+      },
+      "id": "0bfd2db1-9c6e-47ea-a68a-edf96056083f",
+      "key": "/world/map/0",
+      "labels": [
+        "world",
+        "world/map/0"
+      ],
+      "status": "active"
+    },
+    "written_world_object_record": {
+      "applies_when": {
+        "map_id": 0
+      },
+      "attributes": {
+        "fact_type": "tile_observation",
+        "map_id": 0,
+        "map_name": "Pallet Town",
+        "position": {
+          "coordinate_space": "map_block",
+          "x": 2,
+          "y": 3
+        },
+        "relative_direction": "left",
+        "tile_type": "grass"
+      },
+      "confidence": 1.0,
+      "created_at": "2026-09-26T20:58:10.960985+00:00",
+      "domain": "world/object/0/2_3",
+      "embedding_text": "Pallet Town map block (2,3) is grass, observed left of the player",
+      "evidence": {
+        "cycle": 1,
+        "map": {
+          "id": 0,
+          "name": "Pallet Town"
+        },
+        "run_id": "mem-pop-20260926T205640Z",
+        "tile": {
+          "x": 6,
+          "y": 6
+        }
+      },
+      "id": "a7fb6a67-ed8e-4b76-899f-7fbddca93905",
+      "key": "/world/object/0/2_3",
+      "labels": [
+        "world",
+        "world/map/0",
+        "world/object/0/2_3"
+      ],
+      "status": "active"
+    }
+  },
+  "run_id": "mem-pop-20260926T205640Z",
+  "schema": "ai-plays-poke/mem-pop-proof/v1"
+}
