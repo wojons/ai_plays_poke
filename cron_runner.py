@@ -568,7 +568,10 @@ def _dry_run_summary(
     dead_keys = _check_configured_keys(skip_key_check)
     errors: list[str] = []
     if not rom_ok:
-        errors.append(f"ROM not found at {rom} — a real run would crash at boot.")
+        errors.append(
+            f"ROM not found at {rom} — a real run would crash at boot. "
+            f"Fix: you must own the game; place your own dump at {rom}."
+        )
     errors.extend(f"{name} is dead — {message}" for name, message in dead_keys)
     for message in errors:
         safe_print(f"[DRY-RUN] ERROR: {message}")

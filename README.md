@@ -118,7 +118,9 @@ Statistical deviation detection for anomaly handling:
 
 ## ROM Support
 
-**Place your ROM in:** `data/rom/`
+ROM files are not included. You must own the game and supply your own dump. For the
+default configuration, place it at
+`data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`.
 
 | Generation | Games |
 |------------|-------|
@@ -152,11 +154,15 @@ source .venv/bin/activate
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Set up API key
+# 3. Supply the ROM (ROM files are not included)
+# You must own the game. Place your own dump at this exact path:
+# data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb
+
+# 4. Set up API key
 cp .env.example .env
 # Edit .env — add your OPENROUTER_API_KEY
 
-# 4. Run (example: 80 AI decision cycles)
+# 5. Run (example: 80 AI decision cycles)
 python3 cron_runner.py --run-id demo1 --cycles 80
 ```
 
@@ -412,11 +418,15 @@ start htmlcov/index.html  # Windows
 ```
 ERROR: ROM file not found: data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb
 ```
-**Solution:** Verify the ROM path is correct. ROMs should be in `data/rom/`:
+**Solution:** ROMs are not included in a fresh clone. You must own the game and place
+your own dump at the exact configured path:
 ```bash
-ls data/rom/
-# Should show: Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb, pokemon_red.gb, etc.
+test -f "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" \
+  && echo "ROM is present"
 ```
+The default `data/boot.state` was captured from that exact Pokemon Blue ROM and needs
+the matching ROM. If you intentionally configure a different owned game, also use
+`--boot-state skip` unless you have a matching checkpoint.
 
 #### `No module named 'pyboy'`
 ```
