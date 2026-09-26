@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import warnings
 from pathlib import Path
 
 import pytest
@@ -626,7 +627,7 @@ class TestListKeys:
         assert "/projects/b" in keys
         assert "/other" not in keys
 
-    def test_respects_limit(self, duckbrain_tmp):
+    def test_truncation_warns_and_logs_correct_lower_bound(self, duckbrain_tmp, caplog):
         data_dir = dbc._ensure_namespace("test-limit-keys")
         records = [
             {
@@ -639,8 +640,59 @@ class TestListKeys:
             for i in range(10)
         ]
         _write_jsonl(data_dir, "2026-06-25", records)
-        keys = dbc.list_keys(limit=3, namespace="test-limit-keys")
+
+        message = (
+            "list_keys truncated: returned 3 of >= 4 matching keys (limit=3); "
+            "pass a larger limit for a full census"
+        )
+        with pytest.warns(
+            UserWarning, match=message.replace("(", r"\(").replace(")", r"\)")
+        ):
+            keys = dbc.list_keys(limit=3, namespace="test-limit-keys")
+
         assert len(keys) == 3
+        assert message in caplog.messages
+
+    def test_exact_limit_does_not_warn(self, duckbrain_tmp):
+        data_dir = dbc._ensure_namespace("test-exact-limit-keys")
+        records = [
+            {
+                "id": str(i),
+                "key": f"/k{i}",
+                "domain": "concept",
+                "attributes": {},
+                "status": "active",
+            }
+            for i in range(3)
+        ]
+        _write_jsonl(data_dir, "2026-06-25", records)
+
+        with warnings.catch_warnings(record=True) as captured:
+            warnings.simplefilter("always")
+            keys = dbc.list_keys(limit=3, namespace="test-exact-limit-keys")
+
+        assert keys == ["/k0", "/k1", "/k2"]
+        assert not captured
+
+    def test_one_past_cap_does_not_change_returned_keys(self, duckbrain_tmp):
+        data_dir = dbc._ensure_namespace("test-one-past-keys")
+        records = [
+            {
+                "id": str(i),
+                "key": key,
+                "domain": "concept",
+                "attributes": {},
+                "status": "active",
+            }
+            for i, key in enumerate(("/b", "/c", "/a"))
+        ]
+        _write_jsonl(data_dir, "2026-06-25", records)
+
+        with pytest.warns(UserWarning, match=r"returned 2 of >= 3 matching keys"):
+            keys = dbc.list_keys(limit=2, namespace="test-one-past-keys")
+
+        # The one-past key (/a) detects truncation but must not displace /b or /c.
+        assert keys == ["/b", "/c"]
 
     def test_skips_tombstones(self, duckbrain_tmp):
         data_dir = dbc._ensure_namespace("test-keys-tomb")
