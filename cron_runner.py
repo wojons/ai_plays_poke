@@ -1196,8 +1196,70 @@ def _battle_action_description(tool_name: str, arguments: dict[str, Any]) -> str
     return "run_from_battle()"
 
 
-# ── JEV overworld tier (DF-JEV-1, PRD v3 stages 5-6) ────────────────────────
+def _observe_battle_decision(game_state: dict[str, Any]) -> dict[str, Any] | None:
+    """Ask JEV for battle telemetry without changing the action controller chooses."""
+    if current_mode_family() == MODE_SYSTEM2:
+        return None
+    try:
+        decision = jev_client.decide(
+            json.dumps(game_state, default=str, sort_keys=True),
+            in_battle=True,
+            act_phase=True,
+        )
+    except Exception as exc:  # noqa: BLE001 - observability must not stop the battle
+        safe_print(f"  [JEV] battle observation failed: {exc!r}")
+        return None
+    return decision if isinstance(decision, dict) else None
 
+
+def _executed_battle_action(history: list[dict[str, Any]]) -> str | None:
+    """Return the effective vocabulary action from StateWindow's executed history."""
+    for item in reversed(history):
+        tool_call = item.get("tool_call")
+        if not isinstance(tool_call, dict):
+            continue
+        tool_name = tool_call.get("name")
+        raw_arguments = tool_call.get("arguments")
+        arguments = raw_arguments if isinstance(raw_arguments, dict) else {}
+        if tool_name == "select_move":
+            move_number = arguments.get("move_number")
+            return (
+                f"MOVE_{move_number}" if isinstance(move_number, int) else "SELECT_MOVE"
+            )
+        if tool_name == "run_from_battle":
+            return "RUN"
+        if tool_name == "switch_pokemon":
+            slot = arguments.get("slot")
+            return f"SWITCH_{slot}" if isinstance(slot, int) else "SWITCH"
+        if tool_name == "use_battle_item":
+            return "ITEM"
+        if isinstance(tool_name, str) and tool_name:
+            return tool_name.upper()
+    return None
+
+
+def _stamp_battle_observability(
+    entry: dict[str, Any],
+    *,
+    state_type: str,
+    history: list[dict[str, Any]],
+    jev_decision: dict[str, Any] | None,
+) -> None:
+    """Add battle-only telemetry to the real StateWindow decision row."""
+    if state_type != "battle":
+        return
+    entry.update(
+        {
+            "phase": "BATTLE",
+            "battle_action": _executed_battle_action(history),
+            "raw_distribution": (
+                jev_decision.get("raw") if isinstance(jev_decision, dict) else None
+            ),
+        }
+    )
+
+
+# ── JEV overworld tier (DF-JEV-1, PRD v3 stages 5-6) ────────────────────────
 # The overworld action vocabulary is the non-battle question set's criteria
 # (jev_client._questions): buttons, not battle moves. An answer outside this
 # set is a JEV miss, and a miss falls back to the reasoning controller — the
@@ -4586,6 +4648,14 @@ def main() -> None:
                     log_file.flush()
                     safe_print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle + 1}")
 
+                # Probe JEV for battle telemetry only. StateWindow still chooses and
+                # executes the action, preserving the established battle behavior.
+                battle_jev_decision = (
+                    _observe_battle_decision(vis_dict)
+                    if state_type == "battle"
+                    else None
+                )
+
                 # Battle windows execute one action against one fresh RAM read.
                 # The former 12-step loop reused a stale cycle-20 move-menu
                 # snapshot and generated multiple empty-arg RUN calls before
@@ -4647,6 +4717,12 @@ def main() -> None:
                     "battle_events": battle_events,
                     "failed_flee_attempts": _failed_flee_attempts,
                 }
+                _stamp_battle_observability(
+                    entry,
+                    state_type=state_type,
+                    history=win._history,
+                    jev_decision=battle_jev_decision,
+                )
                 results.append(entry)
                 log_file.write(json.dumps(entry, default=str) + "\n")
                 log_file.flush()
