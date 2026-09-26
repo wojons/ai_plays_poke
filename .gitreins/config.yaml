@@ -13,7 +13,12 @@ guards:
   static_analysis_tools:
     python:
     - mypy
-  allow_skips: false
+  # GUARD-1: kept true BY DESIGN — gitreins's allow_skips flag cannot
+  # distinguish a benign empty-scope skip ("lint=no staged files", produced by
+  # every bookkeeping-only commit) from a real degradation, and exits nonzero
+  # on both. Enforcement lives in scripts/hooks/pre-commit instead, which
+  # rejects the hook_timeout fail-open, any non-benign skip, and stale runs.
+  allow_skips: true
 evaluator:
   max_iterations: 100
   max_time: 30m

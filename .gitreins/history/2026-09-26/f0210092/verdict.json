@@ -1,0 +1,121 @@
+{
+  "task_id": "GUARD-1",
+  "task_title": "Guard fail-open on hook timeout - make the verdict load-independent",
+  "task_criteria": [
+    "1. .gitreins/config.yaml: guards.allow_skips=false and guards.hook_timeout raised to 900 (suite measured 368s under load vs 300s window); lsp guard resolved so ordinary green commits still pass. 2. scripts/hooks/pre-commit (tracked, executable): wraps gitreins guard fail-closed - timeout output exits 1, missing verdict exits 1, otherwise passes the guard exit code through; active in this clone via a shim in .git/hooks/pre-commit. 3. tests/test_precommit_hook.py proves wrapper behavior with a fake guard (pass-through / timeout-reject / no-verdict-reject / uninit-allow). 4. Focused tests + ruff clean."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "344242af8d76cc4e18caf09c4882c868edef2770",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T141038.846114Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n9:11AM INF scanned ~305971500 bytes (305.97 MB) in 15.7s\n9:11AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 88399 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T141038.846114Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4198 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [447179 chars omitted \u2014 4956 line(s)] \u2026\ntest_bench_pathfinding_find_path               511.0051 (1.19)           2,415.0067 (1.0)             678.5542 (1.38)           444.1712 (4.24)            545.9879 (1.14)            50.0004 (1.67)          1;3  1,473,721.6488 (0.72)         18           1\ntest_bench_vision_pipeline_validate          5,710.0260 (13.28)         83,193.9979 (34.45)         6,162.8286 (12.55)          864.0939 (8.25)          6,051.0065 (12.58)          121.0137 (4.03)    1416;2466    162,263.1536 (0.08)      43304           1\ntest_bench_ram_reader_observe              830,497.0106 (>1000.0)  170,518,773.0258 (>1000.0)   1,646,291.3731 (>1000.0)  9,614,504.9530 (>1000.0)     963,092.5051 (>1000.0)     57,511.0025 (>1000.0)     5;132        607.4259 (0.00)       1080           1\ntest_bench_vision_pipeline_process      34,168,947.0224 (>1000.0)   38,658,839.0102 (>1000.0)  35,683,293.4029 (>1000.0)  1,034,844.1189 (>1000.0)  35,598,934.0023 (>1000.0)  1,153,363.9918 (>1000.0)       9;1         28.0243 (0.00)         30           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4184 passed, 14 skipped in 269.68s (0:04:29) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T141038.846114Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 1. .gitreins/config.yaml: guards.allow_skips=false and guards.hook_timeout raised to 900 (suite measured 368s under load vs 300s window); lsp guard resolved so ordinary green commits still pass. 2. scripts/hooks/pre-commit (tracked, executable): wraps gitreins guard fail-closed - timeout output exits 1, missing verdict exits 1, otherwise passes the guard exit code through; active in this clone via a shim in .git/hooks/pre-commit. 3. tests/test_precommit_hook.py proves wrapper behavior with a fake guard (pass-through / timeout-reject / no-verdict-reject / uninit-allow). 4. Focused tests + ruff clean.: Config: .gitreins/config.yaml:10 'hook_timeout: 900', :16 'allow_skips: false' (commit 344242a diff shows allow_skips true->false, hook_timeout added, test_command ./.venv/bin/pytest). lsp resolved: newest guard log .gitreins/logs/guard-20260926T141038.846114Z.log shows '[PASS] lsp passed=true', 'overall: PASS', 'guards: 5 (0 failed, 0 skipped)'; .venv/bin/pylsp v1.15.0 present and python-lsp-server added to requirements-dev.txt. Wrapper: scripts/hooks/pre-commit tracked (git ls-files) with git mode 100755 (executable); end-to-end fake-guard test: timeout output rc=0 -> exit 1, clean pass no verdict -> exit 1, guard rc=2 -> exit 2 (pass-through), clean pass + fresh verdict -> exit 0; shim .git/hooks/pre-commit (executable) execs the tracked wrapper. Tests: tests/test_precommit_hook.py has 7 tests covering pass-through (accepts_clean_guard_with_fresh_verdict, preserves_guard_failure_exit_code), timeout-reject (rejects_fail_open_timeout), no-verdict-reject (rejects_missing_fresh_verdict, rejects_stale_verdict), uninit-allow (allows_repo_without_gitreins_config), plus tracked_wrapper_is_executable. Verification: './.venv/bin/pytest tests/test_precommit_hook.py -v' -> '7 passed in 0.30s'; './.venv/bin/ruff check tests/test_precommit_hook.py' -> 'All checks passed!' RC=0; 'bash -n scripts/hooks/pre-commit' -> OK. [resolution 0.37; tests/test_precommit_hook.py]\nAll four GUARD-1 criteria verified: config fail-closed with hook_timeout=900 and lsp guard passing (5/5 guards, 0 skipped), tracked executable fail-closed wrapper with shim active, 7 passing wrapper tests, and ruff clean.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 1. .gitreins/config.yaml: guards.allow_skips=false and guards.hook_timeout raised to 900 (suite measured 368s under load vs 300s window); lsp guard resolved so ordinary green commits still pass. 2. scripts/hooks/pre-commit (tracked, executable): wraps gitreins guard fail-closed - timeout output exits 1, missing verdict exits 1, otherwise passes the guard exit code through; active in this clone via a shim in .git/hooks/pre-commit. 3. tests/test_precommit_hook.py proves wrapper behavior with a fake guard (pass-through / timeout-reject / no-verdict-reject / uninit-allow). 4. Focused tests + ruff clean.: Config: .gitreins/config.yaml:10 'hook_timeout: 900', :16 'allow_skips: false' (commit 344242a diff shows allow_skips true->false, hook_timeout added, test_command ./.venv/bin/pytest). lsp resolved: newest guard log .gitreins/logs/guard-20260926T141038.846114Z.log shows '[PASS] lsp passed=true', 'overall: PASS', 'guards: 5 (0 failed, 0 skipped)'; .venv/bin/pylsp v1.15.0 present and python-lsp-server added to requirements-dev.txt. Wrapper: scripts/hooks/pre-commit tracked (git ls-files) with git mode 100755 (executable); end-to-end fake-guard test: timeout output rc=0 -> exit 1, clean pass no verdict -> exit 1, guard rc=2 -> exit 2 (pass-through), clean pass + fresh verdict -> exit 0; shim .git/hooks/pre-commit (executable) execs the tracked wrapper. Tests: tests/test_precommit_hook.py has 7 tests covering pass-through (accepts_clean_guard_with_fresh_verdict, preserves_guard_failure_exit_code), timeout-reject (rejects_fail_open_timeout), no-verdict-reject (rejects_missing_fresh_verdict, rejects_stale_verdict), uninit-allow (allows_repo_without_gitreins_config), plus tracked_wrapper_is_executable. Verification: './.venv/bin/pytest tests/test_precommit_hook.py -v' -> '7 passed in 0.30s'; './.venv/bin/ruff check tests/test_precommit_hook.py' -> 'All checks passed!' RC=0; 'bash -n scripts/hooks/pre-commit' -> OK. [resolution 0.37; tests/test_precommit_hook.py]\nAll four GUARD-1 criteria verified: config fail-closed with hook_timeout=900 and lsp guard passing (5/5 guards, 0 skipped), tracked executable fail-closed wrapper with shim active, 7 passing wrapper tests, and ruff clean.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "1. .gitreins/config.yaml: guards.allow_skips=false and guards.hook_timeout raised to 900 (suite measured 368s under load vs 300s window); lsp guard resolved so ordinary green commits still pass. 2. scripts/hooks/pre-commit (tracked, executable): wraps gitreins guard fail-closed - timeout output exits 1, missing verdict exits 1, otherwise passes the guard exit code through; active in this clone via a shim in .git/hooks/pre-commit. 3. tests/test_precommit_hook.py proves wrapper behavior with a fake guard (pass-through / timeout-reject / no-verdict-reject / uninit-allow). 4. Focused tests + ruff clean.",
+                "status": "PASS",
+                "detail": "Config: .gitreins/config.yaml:10 'hook_timeout: 900', :16 'allow_skips: false' (commit 344242a diff shows allow_skips true->false, hook_timeout added, test_command ./.venv/bin/pytest). lsp resolved: newest guard log .gitreins/logs/guard-20260926T141038.846114Z.log shows '[PASS] lsp passed=true', 'overall: PASS', 'guards: 5 (0 failed, 0 skipped)'; .venv/bin/pylsp v1.15.0 present and python-lsp-server added to requirements-dev.txt. Wrapper: scripts/hooks/pre-commit tracked (git ls-files) with git mode 100755 (executable); end-to-end fake-guard test: timeout output rc=0 -> exit 1, clean pass no verdict -> exit 1, guard rc=2 -> exit 2 (pass-through), clean pass + fresh verdict -> exit 0; shim .git/hooks/pre-commit (executable) execs the tracked wrapper. Tests: tests/test_precommit_hook.py has 7 tests covering pass-through (accepts_clean_guard_with_fresh_verdict, preserves_guard_failure_exit_code), timeout-reject (rejects_fail_open_timeout), no-verdict-reject (rejects_missing_fresh_verdict, rejects_stale_verdict), uninit-allow (allows_repo_without_gitreins_config), plus tracked_wrapper_is_executable. Verification: './.venv/bin/pytest tests/test_precommit_hook.py -v' -> '7 passed in 0.30s'; './.venv/bin/ruff check tests/test_precommit_hook.py' -> 'All checks passed!' RC=0; 'bash -n scripts/hooks/pre-commit' -> OK. [resolution 0.37; tests/test_precommit_hook.py]",
+                "resolution_probability": 0.37,
+                "cited_path": "tests/test_precommit_hook.py"
+              }
+            ],
+            "summary": "All four GUARD-1 criteria verified: config fail-closed with hook_timeout=900 and lsp guard passing (5/5 guards, 0 skipped), tracked executable fail-closed wrapper with shim active, 7 passing wrapper tests, and ruff clean."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GUARD-1\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 1. .gitreins/config.yaml: guards.allow_skips=false and guards.hook_timeout raised to 900 (suite measured 368s under load vs 300s window); lsp guard resolved so ordinary green commits still pass. 2. scripts/hooks/pre-commit (tracked, executable): wraps gitreins guard fail-closed - timeout output exits 1, missing verdict exits 1, otherwise passes the guard exit code through; active in this clone via a shim in .git/hooks/pre-commit. 3. tests/test_precommit_hook.py proves wrapper behavior with a fake guard (pass-through / timeout-reject / no-verdict-reject / uninit-allow). 4. Focused tests + ruff clean.: Config: .gitreins/config.yaml:10 'hook_timeout: 900', :16 'allow_skips: false' (commit 344242a diff shows allow_skips true->false, hook_timeout added, test_command ./.venv/bin/pytest). lsp resolved: newest guard log .gitreins/logs/guard-20260926T141038.846114Z.log shows '[PASS] lsp passed=true', 'overall: PASS', 'guards: 5 (0 failed, 0 skipped)'; .venv/bin/pylsp v1.15.0 present and python-lsp-server added to requirements-dev.txt. Wrapper: scripts/hooks/pre-commit tracked (git ls-files) with git mode 100755 (executable); end-to-end fake-guard test: timeout output rc=0 -> exit 1, clean pass no verdict -> exit 1, guard rc=2 -> exit 2 (pass-through), clean pass + fresh verdict -> exit 0; shim .git/hooks/pre-commit (executable) execs the tracked wrapper. Tests: tests/test_precommit_hook.py has 7 tests covering pass-through (accepts_clean_guard_with_fresh_verdict, preserves_guard_failure_exit_code), timeout-reject (rejects_fail_open_timeout), no-verdict-reject (rejects_missing_fresh_verdict, rejects_stale_verdict), uninit-allow (allows_repo_without_gitreins_config), plus tracked_wrapper_is_executable. Verification: './.venv/bin/pytest tests/test_precommit_hook.py -v' -> '7 passed in 0.30s'; './.venv/bin/ruff check tests/test_precommit_hook.py' -> 'All checks passed!' RC=0; 'bash -n scripts/hooks/pre-commit' -> OK. [resolution 0.37; tests/test_precommit_hook.py]\nAll four GUARD-1 criteria verified: config fail-closed with hook_timeout=900 and lsp guard passing (5/5 guards, 0 skipped), tracked executable fail-closed wrapper with shim active, 7 passing wrapper tests, and ruff clean.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-26T14:18:06.714993",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T14:18:06.738036+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 8584,
+        "truncated": false,
+        "source": "git show 344242af8d76"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 262176,
+        "truncated": true,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "GUARD-1"
+  }
+}

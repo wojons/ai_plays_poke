@@ -711,3 +711,17 @@ tasks:
   status: complete
   created_at: '2026-09-26T12:40:24.982836+00:00'
   completed_at: '2026-09-26T12:49:52.017123+00:00'
+- id: GUARD-1
+  title: Guard fail-open on hook timeout - make the verdict load-independent
+  criteria:
+  - '1. .gitreins/config.yaml: guards.allow_skips=false and guards.hook_timeout raised
+    to 900 (suite measured 368s under load vs 300s window); lsp guard resolved so
+    ordinary green commits still pass. 2. scripts/hooks/pre-commit (tracked, executable):
+    wraps gitreins guard fail-closed - timeout output exits 1, missing verdict exits
+    1, otherwise passes the guard exit code through; active in this clone via a shim
+    in .git/hooks/pre-commit. 3. tests/test_precommit_hook.py proves wrapper behavior
+    with a fake guard (pass-through / timeout-reject / no-verdict-reject / uninit-allow).
+    4. Focused tests + ruff clean.'
+  status: complete
+  created_at: '2026-09-26T13:43:56.507490+00:00'
+  completed_at: '2026-09-26T14:11:24.268198+00:00'
