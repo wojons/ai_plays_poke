@@ -1,0 +1,121 @@
+{
+  "task_id": "DOC-2",
+  "task_title": "Document --rom flag and boot-state mismatch warning",
+  "task_criteria": [
+    "docs/api/cron_runner.md flags table gains a --rom row in argparse order stating the module default, that ROMs are not shipped, and dry-run missing-ROM exit; new Boot-state ROM mismatch subsection documents the warning on boot path + dry-run and the --boot-state skip remedy; usage flags vs table rows cross-check passes; no unrelated lines reflowed."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "3da336fe9997becb409babbbf783e15e4c3b2a82",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T161200.351284Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n11:18AM INF scanned ~306063270 bytes (306.06 MB) in 12.9s\n11:18AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 88587 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T161200.351284Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4202 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [447560 chars omitted \u2014 4960 line(s)] \u2026\ntest_bench_pathfinding_find_path               500.9933 (1.11)           2,163.9862 (1.0)             630.6137 (1.04)           384.2205 (1.69)            535.9907 (1.05)          40.0178 (1.0)           1;3  1,585,756.8237 (0.96)         18           1\ntest_bench_vision_pipeline_validate          5,750.0147 (12.75)         71,461.9819 (33.02)         6,315.6101 (10.46)        1,299.1296 (5.73)          6,161.0190 (12.06)        160.0129 (4.00)    1040;2040    158,337.8305 (0.10)      39083           1\ntest_bench_ram_reader_observe              831,368.9905 (>1000.0)  153,514,528.9963 (>1000.0)   1,575,603.4645 (>1000.0)  8,541,048.1669 (>1000.0)     993,989.9901 (>1000.0)   41,942.9998 (>1000.0)     4;182        634.6775 (0.00)        976           1\ntest_bench_vision_pipeline_process      32,664,790.0220 (>1000.0)   38,378,316.0069 (>1000.0)  35,265,391.8631 (>1000.0)  1,172,245.1861 (>1000.0)  35,069,481.0040 (>1000.0)  894,333.4906 (>1000.0)       8;3         28.3564 (0.00)         29           1\n-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4188 passed, 14 skipped in 205.85s (0:03:25) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T161200.351284Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 docs/api/cron_runner.md flags table gains a --rom row in argparse order stating the module default, that ROMs are not shipped, and dry-run missing-ROM exit; new Boot-state ROM mismatch subsection documents the warning on boot path + dry-run and the --boot-state skip remedy; usage flags vs table rows cross-check passes; no unrelated lines reflowed.: --rom row at docs/api/cron_runner.md:86 sits between --cycles and --boot-state, matching parser order (cron_runner.py:3040-3095: --run-id, --cycles, --rom, --boot-state, --dry-run, --skip-key-check, --skip-preflight, --controller-model). Row states module default 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (matches ROM constant cron_runner.py:43); 'not shipped with the repo \u2014 data/rom/ contains only a README' is accurate (git ls-files data/rom/ => only README.md; *.gb gitignored at .gitignore:117-120); dry-run exit 1 on missing ROM confirmed by _dry_run_summary cron_runner.py:568-573 and test_dry_run_missing_rom_exits_one. New subsection '### Boot-state ROM mismatch warning' at docs/api/cron_runner.md:90 documents the warning on the real boot path (cron_runner.py:3223) and dry-run (cron_runner.py:536), names the mismatched title, and points to --boot-state skip (cron_runner.py:375-376); no-op conditions match code (boot_path None / title None / title==BOOT_STATE_ROM_TITLE). Usage-block flags vs table rows cross-check MATCH: True (both = --run-id, --cycles, --rom, --boot-state, --dry-run, --skip-key-check, --controller-model). No unrelated reflow: git show 2862d85 --numstat => '5 0 docs/api/cron_runner.md' (5 insertions, 0 deletions). Tests: `./.venv/bin/pytest tests/test_cron_runner_metrics.py -q -k 'rom or boot or dry'` => 34 passed, 23 deselected in 0.81s (exit 0), incl. TestBootStateRomMismatch (6 tests) and TestDryRunRomFlag. [resolution 0.37; docs/api/cron_runner.md]\nThe --rom table row (correct argparse order, module default, not-shipped note, dry-run exit 1) and the Boot-state ROM mismatch subsection are present and accurate against the code, usage/table cross-check passes, diff is 5 insertions/0 deletions, and the 34 relevant tests pass.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 docs/api/cron_runner.md flags table gains a --rom row in argparse order stating the module default, that ROMs are not shipped, and dry-run missing-ROM exit; new Boot-state ROM mismatch subsection documents the warning on boot path + dry-run and the --boot-state skip remedy; usage flags vs table rows cross-check passes; no unrelated lines reflowed.: --rom row at docs/api/cron_runner.md:86 sits between --cycles and --boot-state, matching parser order (cron_runner.py:3040-3095: --run-id, --cycles, --rom, --boot-state, --dry-run, --skip-key-check, --skip-preflight, --controller-model). Row states module default 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (matches ROM constant cron_runner.py:43); 'not shipped with the repo \u2014 data/rom/ contains only a README' is accurate (git ls-files data/rom/ => only README.md; *.gb gitignored at .gitignore:117-120); dry-run exit 1 on missing ROM confirmed by _dry_run_summary cron_runner.py:568-573 and test_dry_run_missing_rom_exits_one. New subsection '### Boot-state ROM mismatch warning' at docs/api/cron_runner.md:90 documents the warning on the real boot path (cron_runner.py:3223) and dry-run (cron_runner.py:536), names the mismatched title, and points to --boot-state skip (cron_runner.py:375-376); no-op conditions match code (boot_path None / title None / title==BOOT_STATE_ROM_TITLE). Usage-block flags vs table rows cross-check MATCH: True (both = --run-id, --cycles, --rom, --boot-state, --dry-run, --skip-key-check, --controller-model). No unrelated reflow: git show 2862d85 --numstat => '5 0 docs/api/cron_runner.md' (5 insertions, 0 deletions). Tests: `./.venv/bin/pytest tests/test_cron_runner_metrics.py -q -k 'rom or boot or dry'` => 34 passed, 23 deselected in 0.81s (exit 0), incl. TestBootStateRomMismatch (6 tests) and TestDryRunRomFlag. [resolution 0.37; docs/api/cron_runner.md]\nThe --rom table row (correct argparse order, module default, not-shipped note, dry-run exit 1) and the Boot-state ROM mismatch subsection are present and accurate against the code, usage/table cross-check passes, diff is 5 insertions/0 deletions, and the 34 relevant tests pass.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "docs/api/cron_runner.md flags table gains a --rom row in argparse order stating the module default, that ROMs are not shipped, and dry-run missing-ROM exit; new Boot-state ROM mismatch subsection documents the warning on boot path + dry-run and the --boot-state skip remedy; usage flags vs table rows cross-check passes; no unrelated lines reflowed.",
+                "status": "PASS",
+                "detail": "--rom row at docs/api/cron_runner.md:86 sits between --cycles and --boot-state, matching parser order (cron_runner.py:3040-3095: --run-id, --cycles, --rom, --boot-state, --dry-run, --skip-key-check, --skip-preflight, --controller-model). Row states module default 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (matches ROM constant cron_runner.py:43); 'not shipped with the repo \u2014 data/rom/ contains only a README' is accurate (git ls-files data/rom/ => only README.md; *.gb gitignored at .gitignore:117-120); dry-run exit 1 on missing ROM confirmed by _dry_run_summary cron_runner.py:568-573 and test_dry_run_missing_rom_exits_one. New subsection '### Boot-state ROM mismatch warning' at docs/api/cron_runner.md:90 documents the warning on the real boot path (cron_runner.py:3223) and dry-run (cron_runner.py:536), names the mismatched title, and points to --boot-state skip (cron_runner.py:375-376); no-op conditions match code (boot_path None / title None / title==BOOT_STATE_ROM_TITLE). Usage-block flags vs table rows cross-check MATCH: True (both = --run-id, --cycles, --rom, --boot-state, --dry-run, --skip-key-check, --controller-model). No unrelated reflow: git show 2862d85 --numstat => '5 0 docs/api/cron_runner.md' (5 insertions, 0 deletions). Tests: `./.venv/bin/pytest tests/test_cron_runner_metrics.py -q -k 'rom or boot or dry'` => 34 passed, 23 deselected in 0.81s (exit 0), incl. TestBootStateRomMismatch (6 tests) and TestDryRunRomFlag. [resolution 0.37; docs/api/cron_runner.md]",
+                "resolution_probability": 0.37,
+                "cited_path": "docs/api/cron_runner.md"
+              }
+            ],
+            "summary": "The --rom table row (correct argparse order, module default, not-shipped note, dry-run exit 1) and the Boot-state ROM mismatch subsection are present and accurate against the code, usage/table cross-check passes, diff is 5 insertions/0 deletions, and the 34 relevant tests pass."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DOC-2\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 docs/api/cron_runner.md flags table gains a --rom row in argparse order stating the module default, that ROMs are not shipped, and dry-run missing-ROM exit; new Boot-state ROM mismatch subsection documents the warning on boot path + dry-run and the --boot-state skip remedy; usage flags vs table rows cross-check passes; no unrelated lines reflowed.: --rom row at docs/api/cron_runner.md:86 sits between --cycles and --boot-state, matching parser order (cron_runner.py:3040-3095: --run-id, --cycles, --rom, --boot-state, --dry-run, --skip-key-check, --skip-preflight, --controller-model). Row states module default 'data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (matches ROM constant cron_runner.py:43); 'not shipped with the repo \u2014 data/rom/ contains only a README' is accurate (git ls-files data/rom/ => only README.md; *.gb gitignored at .gitignore:117-120); dry-run exit 1 on missing ROM confirmed by _dry_run_summary cron_runner.py:568-573 and test_dry_run_missing_rom_exits_one. New subsection '### Boot-state ROM mismatch warning' at docs/api/cron_runner.md:90 documents the warning on the real boot path (cron_runner.py:3223) and dry-run (cron_runner.py:536), names the mismatched title, and points to --boot-state skip (cron_runner.py:375-376); no-op conditions match code (boot_path None / title None / title==BOOT_STATE_ROM_TITLE). Usage-block flags vs table rows cross-check MATCH: True (both = --run-id, --cycles, --rom, --boot-state, --dry-run, --skip-key-check, --controller-model). No unrelated reflow: git show 2862d85 --numstat => '5 0 docs/api/cron_runner.md' (5 insertions, 0 deletions). Tests: `./.venv/bin/pytest tests/test_cron_runner_metrics.py -q -k 'rom or boot or dry'` => 34 passed, 23 deselected in 0.81s (exit 0), incl. TestBootStateRomMismatch (6 tests) and TestDryRunRomFlag. [resolution 0.37; docs/api/cron_runner.md]\nThe --rom table row (correct argparse order, module default, not-shipped note, dry-run exit 1) and the Boot-state ROM mismatch subsection are present and accurate against the code, usage/table cross-check passes, diff is 5 insertions/0 deletions, and the 34 relevant tests pass.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-26T16:24:50.746442",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T16:24:50.769999+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 41302,
+        "truncated": false,
+        "source": "git show 3da336fe9997"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1457,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-2"
+  }
+}
