@@ -61,14 +61,82 @@ class TestROMHandling:
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
 
+    @staticmethod
+    def _synthetic_rom() -> bytes:
+        """A minimal 32 KiB GameBoy ROM PyBoy accepts (valid logo + header checksum).
+
+        Bytes are irrelevant beyond the header — the test exercises path handling.
+        """
+        logo = bytes(
+            [
+                0xCE,
+                0xED,
+                0x66,
+                0x66,
+                0xCC,
+                0x0D,
+                0x00,
+                0x0B,
+                0x03,
+                0x73,
+                0x00,
+                0x83,
+                0x00,
+                0x0C,
+                0x00,
+                0x0D,
+                0x00,
+                0x08,
+                0x11,
+                0x1F,
+                0x88,
+                0x89,
+                0x00,
+                0x0E,
+                0xDC,
+                0xCC,
+                0x6E,
+                0xE6,
+                0xDD,
+                0xDD,
+                0xD9,
+                0x99,
+                0xBB,
+                0xBB,
+                0x67,
+                0x63,
+                0x6E,
+                0x0E,
+                0xEC,
+                0xCC,
+                0xDD,
+                0xDC,
+                0x99,
+                0x9F,
+                0xBB,
+                0xB9,
+                0x33,
+                0x3E,
+            ]
+        )
+        rom = bytearray(b"\x00" * 32768)
+        rom[0x104:0x134] = logo
+        rom[0x134:0x13A] = b"TESTER"  # title
+        header = rom[0x134:0x14D]
+        checksum = 0
+        for byte in header:
+            checksum = (checksum - byte - 1) & 0xFF
+        rom[0x14D] = checksum
+        return bytes(rom)
+
     def test_rom_path_with_spaces(self) -> None:
         """ROM path with spaces → proper handling"""
-        import shutil
-
         with tempfile.TemporaryDirectory() as tmpdir:
             spaced_path = os.path.join(tmpdir, "my rom file.gb")
-            # Copy a real ROM to the spaced path to test path handling
-            shutil.copy2("data/rom/pokemon_red.gb", spaced_path)
+            # Synthesize a tiny ROM: the test exercises path handling, not ROM
+            # contents, and data/rom/*.gb is gitignored (absent on fresh clones).
+            with open(spaced_path, "wb") as f:
+                f.write(self._synthetic_rom())
 
             from src.core.emulator import Emulator
 
