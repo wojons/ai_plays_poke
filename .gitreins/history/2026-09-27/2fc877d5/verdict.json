@@ -1,0 +1,120 @@
+{
+  "task_id": "PERF-2",
+  "task_title": "Fix JEV map_topology re-escalation post-MEM-PROJ",
+  "task_criteria": [
+    "Measured or unit-proven evidence that map_topology escalation no longer repeats per cycle, plus fix or pinning test; pytest fast suite + mypy src/ + ruff green"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "c43d7445e5ef58063ec6532d427180e9dcb244df",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T060851.327626Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n1:10AM INF scanned ~306877918 bytes (306.88 MB) in 19.3s\n1:10AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 89393 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T060851.327626Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4236 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [452100 chars omitted \u2014 5003 line(s)] \u2026\ntest_bench_pathfinding_find_path               480.9699 (1.09)           1,733.0167 (1.0)             616.4773 (1.26)           295.3263 (2.55)            530.9703 (1.10)            72.5267 (3.62)          1;3  1,622,119.6472 (0.79)         17           1\ntest_bench_vision_pipeline_validate          5,198.9919 (11.82)        632,020.0046 (364.69)        6,510.2945 (13.30)        3,897.7397 (33.68)         6,131.0129 (12.75)          421.0160 (21.03)    519;3767    153,602.8828 (0.08)      30770           1\ntest_bench_ram_reader_observe              943,867.0240 (>1000.0)  150,287,845.9869 (>1000.0)   1,816,048.4790 (>1000.0)  9,228,068.0487 (>1000.0)   1,129,189.5062 (>1000.0)    141,782.4824 (>1000.0)      4;80        550.6461 (0.00)        864           1\ntest_bench_vision_pipeline_process      32,865,158.9807 (>1000.0)   46,632,395.9990 (>1000.0)  36,707,003.7969 (>1000.0)  3,551,236.2146 (>1000.0)  35,793,888.4990 (>1000.0)  3,271,874.0404 (>1000.0)       8;3         27.2428 (0.00)         30           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4222 passed, 14 skipped in 339.38s (0:05:39) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T060851.327626Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Measured or unit-proven evidence that map_topology escalation no longer repeats per cycle, plus fix or pinning test; pytest fast suite + mypy src/ + ruff green: FIX: commit 8c24d6c adds cron_runner.py:1310 _map_topology_resolved() and cron_runner.py:1398-1405 which, when JEV reports a map_topology gap that ROM evidence resolves, sets decision['reported_missing_class']='map_topology', decision['missing_class']='none', decision['escalate']=False, decision['escalate_reason']='map_topology_resolved_by_rom'; supported by src/core/ram_reader.py tile_walkability()/adjacent_walkability()/build_collision_grid() and src/core/state_projection.py TOPOLOGY/LOCAL COLLISION MAP sections. PINNING TEST: tests/test_world_facts_projection.py:182 test_complete_map_fact_stops_repeat_topology_escalation calls _jev_overworld_decision twice and asserts both escalated=False, missing_class='none', jev_escalate_reason='map_topology_resolved_by_rom', teacher calls==0; ran `./.venv/bin/pytest tests/test_world_facts_projection.py -k topology -v` -> '1 passed, 6 deselected in 0.61s'. MEASURED: cron_logs/run_perf2_recheck_final_20260927_005242.jsonl shows raw_distribution.missing_class.choice=='map_topology' on ALL 5 cycles (prob 0.66-0.73) while effective missing_class=='none' and escalated==False on ALL 5, and run_autonomy summary escalated=0, teacher_escalations.count=0; data/baselines/perf2_recheck_20260927.json records before/after effective_escalations 5->0, teacher_calls 1->0, cprofile 14.4s->6.997s. GATES: `./.venv/bin/pytest tests/ -q -p no:cacheprovider -k 'not benchmark'` -> '4217 passed, 14 skipped, 5 deselected in 253.72s' (0 failures); `./.venv/bin/mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 66 source files'; `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> 'All checks passed!' exit 0; LSP diagnostics empty.\nPERF-2 is fully resolved: the map_topology re-escalation is deterministically reconciled by ROM collision truth (raw gap still reported every cycle but effective escalation 0/5), pinned by a passing regression test, with pytest (4217 passed), mypy (0 errors) and ruff all green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Measured or unit-proven evidence that map_topology escalation no longer repeats per cycle, plus fix or pinning test; pytest fast suite + mypy src/ + ruff green: FIX: commit 8c24d6c adds cron_runner.py:1310 _map_topology_resolved() and cron_runner.py:1398-1405 which, when JEV reports a map_topology gap that ROM evidence resolves, sets decision['reported_missing_class']='map_topology', decision['missing_class']='none', decision['escalate']=False, decision['escalate_reason']='map_topology_resolved_by_rom'; supported by src/core/ram_reader.py tile_walkability()/adjacent_walkability()/build_collision_grid() and src/core/state_projection.py TOPOLOGY/LOCAL COLLISION MAP sections. PINNING TEST: tests/test_world_facts_projection.py:182 test_complete_map_fact_stops_repeat_topology_escalation calls _jev_overworld_decision twice and asserts both escalated=False, missing_class='none', jev_escalate_reason='map_topology_resolved_by_rom', teacher calls==0; ran `./.venv/bin/pytest tests/test_world_facts_projection.py -k topology -v` -> '1 passed, 6 deselected in 0.61s'. MEASURED: cron_logs/run_perf2_recheck_final_20260927_005242.jsonl shows raw_distribution.missing_class.choice=='map_topology' on ALL 5 cycles (prob 0.66-0.73) while effective missing_class=='none' and escalated==False on ALL 5, and run_autonomy summary escalated=0, teacher_escalations.count=0; data/baselines/perf2_recheck_20260927.json records before/after effective_escalations 5->0, teacher_calls 1->0, cprofile 14.4s->6.997s. GATES: `./.venv/bin/pytest tests/ -q -p no:cacheprovider -k 'not benchmark'` -> '4217 passed, 14 skipped, 5 deselected in 253.72s' (0 failures); `./.venv/bin/mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 66 source files'; `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> 'All checks passed!' exit 0; LSP diagnostics empty.\nPERF-2 is fully resolved: the map_topology re-escalation is deterministically reconciled by ROM collision truth (raw gap still reported every cycle but effective escalation 0/5), pinned by a passing regression test, with pytest (4217 passed), mypy (0 errors) and ruff all green.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Measured or unit-proven evidence that map_topology escalation no longer repeats per cycle, plus fix or pinning test; pytest fast suite + mypy src/ + ruff green",
+                "status": "PASS",
+                "detail": "FIX: commit 8c24d6c adds cron_runner.py:1310 _map_topology_resolved() and cron_runner.py:1398-1405 which, when JEV reports a map_topology gap that ROM evidence resolves, sets decision['reported_missing_class']='map_topology', decision['missing_class']='none', decision['escalate']=False, decision['escalate_reason']='map_topology_resolved_by_rom'; supported by src/core/ram_reader.py tile_walkability()/adjacent_walkability()/build_collision_grid() and src/core/state_projection.py TOPOLOGY/LOCAL COLLISION MAP sections. PINNING TEST: tests/test_world_facts_projection.py:182 test_complete_map_fact_stops_repeat_topology_escalation calls _jev_overworld_decision twice and asserts both escalated=False, missing_class='none', jev_escalate_reason='map_topology_resolved_by_rom', teacher calls==0; ran `./.venv/bin/pytest tests/test_world_facts_projection.py -k topology -v` -> '1 passed, 6 deselected in 0.61s'. MEASURED: cron_logs/run_perf2_recheck_final_20260927_005242.jsonl shows raw_distribution.missing_class.choice=='map_topology' on ALL 5 cycles (prob 0.66-0.73) while effective missing_class=='none' and escalated==False on ALL 5, and run_autonomy summary escalated=0, teacher_escalations.count=0; data/baselines/perf2_recheck_20260927.json records before/after effective_escalations 5->0, teacher_calls 1->0, cprofile 14.4s->6.997s. GATES: `./.venv/bin/pytest tests/ -q -p no:cacheprovider -k 'not benchmark'` -> '4217 passed, 14 skipped, 5 deselected in 253.72s' (0 failures); `./.venv/bin/mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 66 source files'; `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> 'All checks passed!' exit 0; LSP diagnostics empty.",
+                "resolution_probability": 0.15
+              }
+            ],
+            "summary": "PERF-2 is fully resolved: the map_topology re-escalation is deterministically reconciled by ROM collision truth (raw gap still reported every cycle but effective escalation 0/5), pinned by a passing regression test, with pytest (4217 passed), mypy (0 errors) and ruff all green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: PERF-2\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Measured or unit-proven evidence that map_topology escalation no longer repeats per cycle, plus fix or pinning test; pytest fast suite + mypy src/ + ruff green: FIX: commit 8c24d6c adds cron_runner.py:1310 _map_topology_resolved() and cron_runner.py:1398-1405 which, when JEV reports a map_topology gap that ROM evidence resolves, sets decision['reported_missing_class']='map_topology', decision['missing_class']='none', decision['escalate']=False, decision['escalate_reason']='map_topology_resolved_by_rom'; supported by src/core/ram_reader.py tile_walkability()/adjacent_walkability()/build_collision_grid() and src/core/state_projection.py TOPOLOGY/LOCAL COLLISION MAP sections. PINNING TEST: tests/test_world_facts_projection.py:182 test_complete_map_fact_stops_repeat_topology_escalation calls _jev_overworld_decision twice and asserts both escalated=False, missing_class='none', jev_escalate_reason='map_topology_resolved_by_rom', teacher calls==0; ran `./.venv/bin/pytest tests/test_world_facts_projection.py -k topology -v` -> '1 passed, 6 deselected in 0.61s'. MEASURED: cron_logs/run_perf2_recheck_final_20260927_005242.jsonl shows raw_distribution.missing_class.choice=='map_topology' on ALL 5 cycles (prob 0.66-0.73) while effective missing_class=='none' and escalated==False on ALL 5, and run_autonomy summary escalated=0, teacher_escalations.count=0; data/baselines/perf2_recheck_20260927.json records before/after effective_escalations 5->0, teacher_calls 1->0, cprofile 14.4s->6.997s. GATES: `./.venv/bin/pytest tests/ -q -p no:cacheprovider -k 'not benchmark'` -> '4217 passed, 14 skipped, 5 deselected in 253.72s' (0 failures); `./.venv/bin/mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 66 source files'; `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> 'All checks passed!' exit 0; LSP diagnostics empty.\nPERF-2 is fully resolved: the map_topology re-escalation is deterministically reconciled by ROM collision truth (raw gap still reported every cycle but effective escalation 0/5), pinned by a passing regression test, with pytest (4217 passed), mypy (0 errors) and ruff all green.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-27T06:24:36.519867",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-27T06:24:36.582519+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 30545,
+        "truncated": false,
+        "source": "git show c43d7445e5ef"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 669,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "PERF-2"
+  }
+}
