@@ -1,0 +1,55 @@
+{
+  "scheduler_tick_id": "ai-plays-poke-2026-09-26-22-32-23",
+  "created_at": "2026-09-26T17:35:00-0500",
+  "wave_budget": 3,
+  "legs_used": 3,
+  "legs": [
+    {
+      "task_id": "CTX-WIN",
+      "priority": "P1",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-CTX-WIN",
+      "branch": "wt/CTX-WIN",
+      "base": "origin/main",
+      "base_sha": "6f2df2e",
+      "worker_model": "gpt-5.6-sol",
+      "worker_provider": "openai-codex",
+      "gitreins_task": "CTX-WIN",
+      "brief_file": "/tmp/t252_ctx_win_brief.md",
+      "independence": "cron_runner.py turn-history wiring + tests; no overlap with leg2 (.gitignore/scripts) or leg3 (AGENTS.md docs)"
+    },
+    {
+      "task_id": "GAP-AIPP-3",
+      "priority": "P2",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-GAP-AIPP-3",
+      "branch": "wt/GAP-AIPP-3",
+      "base": "origin/main",
+      "base_sha": "6f2df2e",
+      "worker_model": "glm-5.3-flash",
+      "worker_provider": "zai-glm-default",
+      "gitreins_task": "GAP-AIPP-3",
+      "brief_file": "/tmp/t252_gap_aipp3_brief.md",
+      "independence": ".gitignore scripts/ tracking rules only; no overlap with leg1 (cron_runner.py) or leg3 (AGENTS.md)"
+    },
+    {
+      "task_id": "DF-JEV-5",
+      "priority": "P3",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-DF-JEV-5",
+      "branch": "wt/DF-JEV-5",
+      "base": "origin/main",
+      "base_sha": "6f2df2e",
+      "worker_model": "glm-5.3-flash",
+      "worker_provider": "zai-glm-default",
+      "gitreins_task": "DF-JEV-5",
+      "brief_file": "/tmp/t252_df_jev5_brief.md",
+      "independence": "AGENTS.md + README docs for --help/venv requirement; no overlap with leg1 (cron_runner.py) or leg2 (.gitignore)"
+    }
+  ],
+  "rejected": [
+    {"task_id": "MEM-PROJ", "reason": "file collision with CTX-WIN: both wire memory paths through cron_runner.py (state_projection extra_facts vs prior-turn history)"},
+    {"task_id": "TEACH-1", "reason": "collides on cron_runner.py + needs long-run measurement; same rejection as wave 251"},
+    {"task_id": "DOGFOOD-PERF-001", "reason": "timing run contends with any worker running the test suite on the same box"},
+    {"task_id": "E2E-001", "reason": "recurring fixture, next due window not reached (ran T77-era + T251 audit gates); do not burn a wave leg on it"},
+    {"task_id": "DECIDE-1", "reason": "OWNER DECISION row - Bane must pick navigation path funding; not worker-dispatchable"}
+  ],
+  "status": "dispatched"
+}

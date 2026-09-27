@@ -1,0 +1,120 @@
+{
+  "task_id": "GAP-AIPP-3",
+  "task_title": "gitignore scripts/ blanket rule vs tracked scripts/long_run.py incoherence",
+  "task_criteria": [
+    ".gitignore no longer blanket-ignores scripts/; all 4 tracked scripts remain tracked with no untracked strays left behind; guard battery green."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "6512ab66e4b5db9408059bf69f62a46ec3caaaf3",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n6:37PM INF scanned ~306298906 bytes (306.30 MB) in 17.4s\n6:37PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 89006 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4224 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [450813 chars omitted \u2014 4991 line(s)] \u2026\ntest_bench_pathfinding_find_path               511.0051 (1.11)           2,244.0217 (1.75)            670.1174 (1.32)           410.1854 (10.82)           561.0054 (1.12)            57.5092 (1.92)          1;2  1,492,275.8127 (0.76)         17           1\ntest_bench_vision_pipeline_validate          6,301.0375 (13.70)         56,954.9738 (44.43)         6,983.1684 (13.76)        1,122.3080 (29.61)         6,682.9962 (13.34)          239.9902 (8.01)    2968;3892    143,201.4731 (0.07)      35649           1\ntest_bench_ram_reader_observe              930,431.9974 (>1000.0)  168,252,395.9898 (>1000.0)   1,765,564.1469 (>1000.0)  9,314,702.7002 (>1000.0)   1,100,781.9849 (>1000.0)    125,421.9678 (>1000.0)     4;131        566.3912 (0.00)        982           1\ntest_bench_vision_pipeline_process      35,164,253.9608 (>1000.0)   44,978,536.9565 (>1000.0)  38,725,802.7913 (>1000.0)  1,806,191.0541 (>1000.0)  38,916,066.9874 (>1000.0)  1,544,540.1950 (>1000.0)       6;2         25.8226 (0.00)         29           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4210 passed, 14 skipped in 276.73s (0:04:36) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 .gitignore no longer blanket-ignores scripts/; all 4 tracked scripts remain tracked with no untracked strays left behind; guard battery green.: (1) .gitignore has no `scripts/` pattern \u2014 grep -n 'scripts' .gitignore returns only comment lines (151,170,192-193); commit a9ae025 diff shows `-scripts/` removed and replaced with an explanatory comment; change is committed (git diff HEAD -- .gitignore empty). (2) git ls-files scripts/ => exactly 4 tracked: check_assist_inventory.py, hooks/pre-commit, jev_projection_probe.py, long_run.py; git check-ignore -v on all 4 returns exit 1 (none ignored). (3) No untracked strays: git ls-files --others --exclude-standard scripts/ is empty; the only ignored entries are scripts/__pycache__/*.pyc, correctly covered by the global `__pycache__/` rule at .gitignore:2. (4) Guard battery green: .gitreins/logs/guard-20260926T215445.297127Z.log => overall PASS with '4207 passed, 14 skipped in 264.34s', mypy clean, pylsp clean, gitleaks clean; latest guard-20260926T230958.229230Z.log => PASS (degraded only by benign 'no staged files' / pylsp-not-on-PATH skips). Fresh re-verification: mypy 'Success: no issues found in 66 source files'; ruff 'All checks passed!'; pytest -k 'long_run or assist or jev' => 57 passed. Fresh full pytest reached 1491 passed/1 skipped before a single ERROR caused by sqlite3.OperationalError 'database or disk is full' (disk 97% full, 58G free) \u2014 an environmental condition, not a code defect; that test (test_game_database.py::TestBattleTracking::test_log_battle_start_minimal) PASSES in isolation (1 passed in 0.71s).\nThe blanket scripts/ ignore was removed and committed, all 4 scripts remain tracked with no untracked strays, and the guard battery (secrets/lint/tests/static_analysis/lsp) is green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 .gitignore no longer blanket-ignores scripts/; all 4 tracked scripts remain tracked with no untracked strays left behind; guard battery green.: (1) .gitignore has no `scripts/` pattern \u2014 grep -n 'scripts' .gitignore returns only comment lines (151,170,192-193); commit a9ae025 diff shows `-scripts/` removed and replaced with an explanatory comment; change is committed (git diff HEAD -- .gitignore empty). (2) git ls-files scripts/ => exactly 4 tracked: check_assist_inventory.py, hooks/pre-commit, jev_projection_probe.py, long_run.py; git check-ignore -v on all 4 returns exit 1 (none ignored). (3) No untracked strays: git ls-files --others --exclude-standard scripts/ is empty; the only ignored entries are scripts/__pycache__/*.pyc, correctly covered by the global `__pycache__/` rule at .gitignore:2. (4) Guard battery green: .gitreins/logs/guard-20260926T215445.297127Z.log => overall PASS with '4207 passed, 14 skipped in 264.34s', mypy clean, pylsp clean, gitleaks clean; latest guard-20260926T230958.229230Z.log => PASS (degraded only by benign 'no staged files' / pylsp-not-on-PATH skips). Fresh re-verification: mypy 'Success: no issues found in 66 source files'; ruff 'All checks passed!'; pytest -k 'long_run or assist or jev' => 57 passed. Fresh full pytest reached 1491 passed/1 skipped before a single ERROR caused by sqlite3.OperationalError 'database or disk is full' (disk 97% full, 58G free) \u2014 an environmental condition, not a code defect; that test (test_game_database.py::TestBattleTracking::test_log_battle_start_minimal) PASSES in isolation (1 passed in 0.71s).\nThe blanket scripts/ ignore was removed and committed, all 4 scripts remain tracked with no untracked strays, and the guard battery (secrets/lint/tests/static_analysis/lsp) is green.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": ".gitignore no longer blanket-ignores scripts/; all 4 tracked scripts remain tracked with no untracked strays left behind; guard battery green.",
+                "status": "PASS",
+                "detail": "(1) .gitignore has no `scripts/` pattern \u2014 grep -n 'scripts' .gitignore returns only comment lines (151,170,192-193); commit a9ae025 diff shows `-scripts/` removed and replaced with an explanatory comment; change is committed (git diff HEAD -- .gitignore empty). (2) git ls-files scripts/ => exactly 4 tracked: check_assist_inventory.py, hooks/pre-commit, jev_projection_probe.py, long_run.py; git check-ignore -v on all 4 returns exit 1 (none ignored). (3) No untracked strays: git ls-files --others --exclude-standard scripts/ is empty; the only ignored entries are scripts/__pycache__/*.pyc, correctly covered by the global `__pycache__/` rule at .gitignore:2. (4) Guard battery green: .gitreins/logs/guard-20260926T215445.297127Z.log => overall PASS with '4207 passed, 14 skipped in 264.34s', mypy clean, pylsp clean, gitleaks clean; latest guard-20260926T230958.229230Z.log => PASS (degraded only by benign 'no staged files' / pylsp-not-on-PATH skips). Fresh re-verification: mypy 'Success: no issues found in 66 source files'; ruff 'All checks passed!'; pytest -k 'long_run or assist or jev' => 57 passed. Fresh full pytest reached 1491 passed/1 skipped before a single ERROR caused by sqlite3.OperationalError 'database or disk is full' (disk 97% full, 58G free) \u2014 an environmental condition, not a code defect; that test (test_game_database.py::TestBattleTracking::test_log_battle_start_minimal) PASSES in isolation (1 passed in 0.71s).",
+                "resolution_probability": 0.36
+              }
+            ],
+            "summary": "The blanket scripts/ ignore was removed and committed, all 4 scripts remain tracked with no untracked strays, and the guard battery (secrets/lint/tests/static_analysis/lsp) is green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: GAP-AIPP-3\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 .gitignore no longer blanket-ignores scripts/; all 4 tracked scripts remain tracked with no untracked strays left behind; guard battery green.: (1) .gitignore has no `scripts/` pattern \u2014 grep -n 'scripts' .gitignore returns only comment lines (151,170,192-193); commit a9ae025 diff shows `-scripts/` removed and replaced with an explanatory comment; change is committed (git diff HEAD -- .gitignore empty). (2) git ls-files scripts/ => exactly 4 tracked: check_assist_inventory.py, hooks/pre-commit, jev_projection_probe.py, long_run.py; git check-ignore -v on all 4 returns exit 1 (none ignored). (3) No untracked strays: git ls-files --others --exclude-standard scripts/ is empty; the only ignored entries are scripts/__pycache__/*.pyc, correctly covered by the global `__pycache__/` rule at .gitignore:2. (4) Guard battery green: .gitreins/logs/guard-20260926T215445.297127Z.log => overall PASS with '4207 passed, 14 skipped in 264.34s', mypy clean, pylsp clean, gitleaks clean; latest guard-20260926T230958.229230Z.log => PASS (degraded only by benign 'no staged files' / pylsp-not-on-PATH skips). Fresh re-verification: mypy 'Success: no issues found in 66 source files'; ruff 'All checks passed!'; pytest -k 'long_run or assist or jev' => 57 passed. Fresh full pytest reached 1491 passed/1 skipped before a single ERROR caused by sqlite3.OperationalError 'database or disk is full' (disk 97% full, 58G free) \u2014 an environmental condition, not a code defect; that test (test_game_database.py::TestBattleTracking::test_log_battle_start_minimal) PASSES in isolation (1 passed in 0.71s).\nThe blanket scripts/ ignore was removed and committed, all 4 scripts remain tracked with no untracked strays, and the guard battery (secrets/lint/tests/static_analysis/lsp) is green.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-26T23:51:14.695777",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T23:51:14.714100+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 561,
+        "truncated": false,
+        "source": "git show 6512ab66e4b5"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 46642,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "GAP-AIPP-3"
+  }
+}

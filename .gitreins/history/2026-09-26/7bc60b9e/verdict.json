@@ -1,0 +1,121 @@
+{
+  "task_id": "DF-JEV-5",
+  "task_title": "bare python3 cron_runner.py --help docs fix",
+  "task_criteria": [
+    "AGENTS.md and README Quick Start state that bare python3 cron_runner.py --help needs the project venv (numpy ModuleNotFoundError otherwise); guard battery green; no code change required."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "6512ab66e4b5db9408059bf69f62a46ec3caaaf3",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n6:51PM INF scanned ~306305786 bytes (306.31 MB) in 15s\n6:51PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 89030 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4224 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [450813 chars omitted \u2014 4991 line(s)] \u2026\ntest_bench_pathfinding_find_path               461.0047 (1.07)           1,923.9960 (1.0)             582.6924 (1.20)           327.0276 (3.60)            500.9933 (1.04)            34.9974 (1.67)          1;3  1,716,171.3897 (0.83)         19           1\ntest_bench_vision_pipeline_validate          5,860.9876 (13.63)         19,827.0427 (10.31)         6,272.6948 (12.97)          566.7855 (6.23)          6,171.0016 (12.83)          171.0141 (8.16)    1195;1890    159,421.1158 (0.08)      36416           1\ntest_bench_ram_reader_observe              841,427.0123 (>1000.0)  172,621,560.0502 (>1000.0)   1,680,384.2006 (>1000.0)  9,658,656.2966 (>1000.0)     986,415.9802 (>1000.0)     47,508.0451 (>1000.0)     5;197        595.1020 (0.00)       1062           1\ntest_bench_vision_pipeline_process      34,570,435.9934 (>1000.0)   40,386,027.9475 (>1000.0)  36,839,090.5642 (>1000.0)  1,503,237.6471 (>1000.0)  36,771,443.9926 (>1000.0)  1,647,524.5066 (>1000.0)       7;2         27.1451 (0.00)         28           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4210 passed, 14 skipped in 220.75s (0:03:40) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 AGENTS.md and README Quick Start state that bare python3 cron_runner.py --help needs the project venv (numpy ModuleNotFoundError otherwise); guard battery green; no code change required.: README.md:169-173 PASSES: explicit callout '**`--help` needs the venv too:** every `cron_runner.py` invocation \u2014 even `python3 cron_runner.py --help` \u2014 must run with the venv activated (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before argparse, so under the system Python even the help screen exits with `ModuleNotFoundError`.' BUT AGENTS.md FAILS: `grep -n -- '--help' AGENTS.md` returns ZERO matches; AGENTS.md:67-68 only says generically 'Run it from the repo root with the project venv activated' with no mention of --help or numpy, and AGENTS.md:92's ModuleNotFoundError note concerns the legacy game_loop.py 'db' module, not cron_runner.py --help/numpy. Commit evidence confirms the omission is deliberate: merge commit 6512ab6 changed ONLY README.md (1 file, 6 insertions) and its message states 'AGENTS.md portion withheld per owner rule'; de0047e message: 'the venv requirement is documented in README only.' Guard battery: .gitreins/logs/guard-20260926T230958.229230Z.log = 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 3 skipped)' \u2014 lint/tests/lsp were SKIPPED (no staged files / no pylsp), so the tests lane never actually ran in the guard; I ran ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_dashboard.py -q \u2192 '115 passed in 14.56s'. No code change required: confirmed (docs-only, zero Python files changed). The AGENTS.md half of the conjunctive criterion is unmet.\nREADME Quick Start correctly documents the venv/--help requirement and tests pass, but AGENTS.md was explicitly left unedited (commit 6512ab6 touched only README.md), so the criterion requiring BOTH files is not met.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 AGENTS.md and README Quick Start state that bare python3 cron_runner.py --help needs the project venv (numpy ModuleNotFoundError otherwise); guard battery green; no code change required.: README.md:169-173 PASSES: explicit callout '**`--help` needs the venv too:** every `cron_runner.py` invocation \u2014 even `python3 cron_runner.py --help` \u2014 must run with the venv activated (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before argparse, so under the system Python even the help screen exits with `ModuleNotFoundError`.' BUT AGENTS.md FAILS: `grep -n -- '--help' AGENTS.md` returns ZERO matches; AGENTS.md:67-68 only says generically 'Run it from the repo root with the project venv activated' with no mention of --help or numpy, and AGENTS.md:92's ModuleNotFoundError note concerns the legacy game_loop.py 'db' module, not cron_runner.py --help/numpy. Commit evidence confirms the omission is deliberate: merge commit 6512ab6 changed ONLY README.md (1 file, 6 insertions) and its message states 'AGENTS.md portion withheld per owner rule'; de0047e message: 'the venv requirement is documented in README only.' Guard battery: .gitreins/logs/guard-20260926T230958.229230Z.log = 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 3 skipped)' \u2014 lint/tests/lsp were SKIPPED (no staged files / no pylsp), so the tests lane never actually ran in the guard; I ran ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_dashboard.py -q \u2192 '115 passed in 14.56s'. No code change required: confirmed (docs-only, zero Python files changed). The AGENTS.md half of the conjunctive criterion is unmet.\nREADME Quick Start correctly documents the venv/--help requirement and tests pass, but AGENTS.md was explicitly left unedited (commit 6512ab6 touched only README.md), so the criterion requiring BOTH files is not met.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "AGENTS.md and README Quick Start state that bare python3 cron_runner.py --help needs the project venv (numpy ModuleNotFoundError otherwise); guard battery green; no code change required.",
+                "status": "FAIL",
+                "detail": "README.md:169-173 PASSES: explicit callout '**`--help` needs the venv too:** every `cron_runner.py` invocation \u2014 even `python3 cron_runner.py --help` \u2014 must run with the venv activated (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before argparse, so under the system Python even the help screen exits with `ModuleNotFoundError`.' BUT AGENTS.md FAILS: `grep -n -- '--help' AGENTS.md` returns ZERO matches; AGENTS.md:67-68 only says generically 'Run it from the repo root with the project venv activated' with no mention of --help or numpy, and AGENTS.md:92's ModuleNotFoundError note concerns the legacy game_loop.py 'db' module, not cron_runner.py --help/numpy. Commit evidence confirms the omission is deliberate: merge commit 6512ab6 changed ONLY README.md (1 file, 6 insertions) and its message states 'AGENTS.md portion withheld per owner rule'; de0047e message: 'the venv requirement is documented in README only.' Guard battery: .gitreins/logs/guard-20260926T230958.229230Z.log = 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 3 skipped)' \u2014 lint/tests/lsp were SKIPPED (no staged files / no pylsp), so the tests lane never actually ran in the guard; I ran ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_dashboard.py -q \u2192 '115 passed in 14.56s'. No code change required: confirmed (docs-only, zero Python files changed). The AGENTS.md half of the conjunctive criterion is unmet.",
+                "resolution_probability": 0.37,
+                "cited_path": "AGENTS.md, cron_runner.py"
+              }
+            ],
+            "summary": "README Quick Start correctly documents the venv/--help requirement and tests pass, but AGENTS.md was explicitly left unedited (commit 6512ab6 touched only README.md), so the criterion requiring BOTH files is not met."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-JEV-5\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 AGENTS.md and README Quick Start state that bare python3 cron_runner.py --help needs the project venv (numpy ModuleNotFoundError otherwise); guard battery green; no code change required.: README.md:169-173 PASSES: explicit callout '**`--help` needs the venv too:** every `cron_runner.py` invocation \u2014 even `python3 cron_runner.py --help` \u2014 must run with the venv activated (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before argparse, so under the system Python even the help screen exits with `ModuleNotFoundError`.' BUT AGENTS.md FAILS: `grep -n -- '--help' AGENTS.md` returns ZERO matches; AGENTS.md:67-68 only says generically 'Run it from the repo root with the project venv activated' with no mention of --help or numpy, and AGENTS.md:92's ModuleNotFoundError note concerns the legacy game_loop.py 'db' module, not cron_runner.py --help/numpy. Commit evidence confirms the omission is deliberate: merge commit 6512ab6 changed ONLY README.md (1 file, 6 insertions) and its message states 'AGENTS.md portion withheld per owner rule'; de0047e message: 'the venv requirement is documented in README only.' Guard battery: .gitreins/logs/guard-20260926T230958.229230Z.log = 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 3 skipped)' \u2014 lint/tests/lsp were SKIPPED (no staged files / no pylsp), so the tests lane never actually ran in the guard; I ran ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_dashboard.py -q \u2192 '115 passed in 14.56s'. No code change required: confirmed (docs-only, zero Python files changed). The AGENTS.md half of the conjunctive criterion is unmet.\nREADME Quick Start correctly documents the venv/--help requirement and tests pass, but AGENTS.md was explicitly left unedited (commit 6512ab6 touched only README.md), so the criterion requiring BOTH files is not met.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-26T23:57:31.071123",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-26T23:57:31.095436+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 561,
+        "truncated": false,
+        "source": "git show 6512ab66e4b5"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 46691,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-JEV-5"
+  }
+}

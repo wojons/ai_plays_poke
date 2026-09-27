@@ -1,0 +1,13 @@
+commit 6512ab66e4b5db9408059bf69f62a46ec3caaaf3
+Merge: 0976d5e de0047e
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sat Sep 26 18:24:43 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sat Sep 26 18:24:43 2026 -0500
+
+    merge wt/DF-JEV-5: README documents --help requires the project venv (DF-JEV-5, wave T252; AGENTS.md portion withheld per owner rule)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ README.md | 6 ++++++
+ 1 file changed, 6 insertions(+)
