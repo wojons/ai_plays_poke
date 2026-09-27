@@ -248,9 +248,9 @@ def write_findings(state: dict[str, Any]) -> None:
             "episodes": state.get("episodes"),
             "decisions": decisions,
             "escalated": escalated,
-            "autonomy_ratio_honest": round((decisions - escalated) / decisions, 3)
-            if decisions
-            else None,
+            "autonomy_ratio_honest": (
+                round((decisions - escalated) / decisions, 3) if decisions else None
+            ),
             "teacher_calls": totals.get("teacher_calls"),
             "teacher_improved": totals.get("teacher_improved"),
             "degraded": bool(state.get("degraded")),
@@ -432,12 +432,16 @@ def main() -> int:
                 next_boot = str(GOOD_STATE)
                 log(f"  state rejected ({verdict.get('error')}) — chaining last good")
 
+        # GOAL is a HOLD, not a touch. `maps_visited` is evidence and keeps
+        # accumulating, but it must not satisfy the goal: it is built from every
+        # map reading in the episode, so a single-cycle glimpse of a target map
+        # used to read as "reached" and halt the run. Measured 2026-09-27: the
+        # pure-LLM run stopped at ep21/54min on ONE cycle-2 reading of Viridian
+        # City, was back on Route 1 by cycle 3, and never ended an episode there —
+        # so the 4h window was cut short by the win condition itself, and the
+        # question "how far can it go" went unanswered.
         goal_hit = bool(final_map and GOAL["marker"] in final_map.lower())
-        goal_achieved = (
-            goal_achieved
-            or goal_hit
-            or any(GOAL["marker"] in (m or "").lower() for m in maps_visited)
-        )
+        goal_achieved = goal_achieved or goal_hit
 
         sig = (final_map, s["decisions"], s["escalated"], s["teacher_calls"])
         consecutive_identical = consecutive_identical + 1 if sig == last_sig else 0
