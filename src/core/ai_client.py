@@ -39,13 +39,23 @@ except ImportError:
     SpriteRecognizer = None  # type: ignore
     BattleAnalyzer = None  # type: ignore
     LocationDetector = None  # type: ignore
-try:
-    from anthropic import Anthropic
+Anthropic = None  # type: ignore
+ANTHROPIC_AVAILABLE = False
 
-    ANTHROPIC_AVAILABLE = True
-except ImportError:
-    ANTHROPIC_AVAILABLE = False
-    Anthropic = None  # type: ignore
+
+def _load_anthropic():
+    """Lazy-load the anthropic SDK so importing this module stays cheap."""
+    global Anthropic, ANTHROPIC_AVAILABLE
+    if Anthropic is None:
+        try:
+            from anthropic import Anthropic as _Anthropic
+
+            Anthropic = _Anthropic
+            ANTHROPIC_AVAILABLE = True
+        except ImportError:
+            ANTHROPIC_AVAILABLE = False
+    return Anthropic
+
 
 # Re-exports for backward compatibility (QUALITY-01 split)
 from src.core.circuit_breaker import CircuitBreaker  # noqa: E402
@@ -430,7 +440,8 @@ class ClaudeClient:
     """Client for Anthropic Claude API"""
 
     def __init__(self, api_key: Optional[str] = None):
-        if not ANTHROPIC_AVAILABLE:
+        Anthropic = _load_anthropic()
+        if Anthropic is None or not ANTHROPIC_AVAILABLE:
             raise ImportError("Anthropic SDK not installed. Run: pip install anthropic")
 
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
@@ -1268,7 +1279,7 @@ class GameAIManager:
         self.ai_model_client = AIModelClient(api_key)
         self.openrouter_client = self.ai_model_client._client
 
-        if ANTHROPIC_AVAILABLE:
+        if _load_anthropic() is not None:
             try:
                 self.claude_client = ClaudeClient(anthropic_api_key)
                 print("✅ Claude client initialized")

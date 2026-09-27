@@ -698,7 +698,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 # ruff: noqa: E402 — sys.path must be modified before project imports
 from src.core.emulator import Emulator
 from src.core.global_context import GlobalContext
-from src.core.state_window import StateWindow
 from src.core.ai_client import OpenRouterClient
 from src.core.prompt_loader import load_system_prompt
 from src.core.ram_reader import RAMReader
@@ -5393,6 +5392,10 @@ def main() -> None:
                 # The former 12-step loop reused a stale cycle-20 move-menu
                 # snapshot and generated multiple empty-arg RUN calls before
                 # cron_runner could observe the next battle phase.
+                from src.core.state_window import (
+                    StateWindow,
+                )  # deferred: ~592ms import, sys.path[0] ordering not relied on
+
                 win = StateWindow(
                     state_type,
                     ctx,
