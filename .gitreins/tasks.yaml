@@ -872,3 +872,19 @@ tasks:
   status: complete
   created_at: '2026-09-27T05:30:34.668684+00:00'
   completed_at: '2026-09-27T06:09:58.178785+00:00'
+- id: PERF-3
+  title: RAM-derived adjacent-tile walkability
+  criteria:
+  - 'Memory no longer serves vision-labeled unknown walkability forever: adjacent-tile
+    walkability is derived from RAM collision data (or re-derived on retrieval); repeated
+    5-cycle run shows map_topology escalation drops vs PERF-2''s 5/5 baseline'
+  status: complete
+  created_at: '2026-09-27T06:34:49.521265+00:00'
+  completed_at: '2026-09-27T07:23:19.836895+00:00'
+- id: DIST-1
+  title: "CTRL-WIN as a distribution \u2014 N episodes, both modes, same boot state"
+  criteria:
+  - Both modes have >=5 episodes and cycles-to-transition distributions are reported
+    with spread (not just a mean), same boot state, per-episode metrics recorded
+  status: in_progress
+  created_at: '2026-09-27T08:06:35.707393+00:00'
