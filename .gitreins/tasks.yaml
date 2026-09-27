@@ -873,14 +873,14 @@ tasks:
   created_at: '2026-09-27T05:30:34.668684+00:00'
   completed_at: '2026-09-27T06:09:58.178785+00:00'
 - id: PERF-3
-  title: RAM-derived adjacent-tile walkability
+  title: RAM-derived walkability into world memory so JEV stops re-escalating map_topology
   criteria:
-  - 'Memory no longer serves vision-labeled unknown walkability forever: adjacent-tile
-    walkability is derived from RAM collision data (or re-derived on retrieval); repeated
-    5-cycle run shows map_topology escalation drops vs PERF-2''s 5/5 baseline'
+  - '5-cycle cold run (--boot-state skip): JEV escalations <=1/5, teacher_escalations=0
+    when map facts retrieved; unknowns only where unobservable; fail-closed preserved;
+    full suite+mypy+ruff green'
   status: complete
-  created_at: '2026-09-27T06:34:49.521265+00:00'
-  completed_at: '2026-09-27T07:23:19.836895+00:00'
+  created_at: '2026-09-27T10:15:39.935551+00:00'
+  completed_at: '2026-09-27T11:01:44.230277+00:00'
 - id: DIST-1
   title: "CTRL-WIN as a distribution \u2014 N episodes, both modes, same boot state"
   criteria:
