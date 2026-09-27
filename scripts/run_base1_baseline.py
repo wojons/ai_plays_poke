@@ -61,9 +61,12 @@ RAM_SNAPSHOT = REPO / "long_run" / "base1_ram.ram"
 
 EPISODES = 5
 EPISODE_CYCLES = 5
-DECISION_MODE = "jev"
+DECISION_MODE = os.environ.get("BASE1_DECISION_MODE", "jev")
+RUN_ID_TAG = os.environ.get("BASE1_RUN_ID_TAG", "base1")
+OUTPUT_PATH = os.environ.get(
+    "BASE1_OUTPUT_PATH", "data/baselines/base1_control_2026-09-27.json"
+)
 EPISODE_TIMEOUT_S = 1800  # same guard as long_run.py / dist1_episodes.py
-RUN_ID_TAG = "base1"
 
 
 def now() -> str:
@@ -433,8 +436,20 @@ def cmd_report(episode_log: Path) -> int:
         )
         return 2
     mode_seen = {e.get("decision_mode_log") for e in episodes}
+    # Evidence-quality: prefer the mode actually stamped in the episode logs
+    # over the env default (a `report` subprocess invoked without
+    # BASE1_DECISION_MODE would otherwise mis-stamp llm runs as jev).
+    report_mode = (
+        mode_seen.pop()
+        if len(mode_seen) == 1 and None not in mode_seen
+        else DECISION_MODE
+    )
     models = sorted({e.get("model_build") for e in episodes if e.get("model_build")})
     summary = summarise_episodes(episodes)
+    if report_mode == "llm":
+        summary["llm_decisions_total"] = sum(
+            int((e.get("autonomy") or {}).get("decisions_total") or 0) for e in episodes
+        )
     artifact = {
         "baseline_id": "BASE-1",
         "role": (
@@ -443,7 +458,7 @@ def cmd_report(episode_log: Path) -> int:
         ),
         "recorded_at": now(),
         "conditions": {
-            "decision_mode": DECISION_MODE,
+            "decision_mode": report_mode,
             "boot_state": "data/boot.state",
             "boot_state_sha256": episodes[0].get("boot_sha256"),
             "cycles_per_episode": EPISODE_CYCLES,
@@ -498,9 +513,9 @@ def cmd_report(episode_log: Path) -> int:
             "value at equal cycles/episode"
         ),
     }
-    if mode_seen - {DECISION_MODE}:
-        log(f"WARN: decision_mode_log values {sorted(mode_seen)} != '{DECISION_MODE}'")
-    out = REPO / "data" / "baselines" / f"base1_control_{today()}.json"
+    if mode_seen - {report_mode}:
+        log(f"WARN: decision_mode_log values {sorted(mode_seen)} != '{report_mode}'")
+    out = REPO / OUTPUT_PATH
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(artifact, indent=2) + "\n")
     log(f"artifact -> {out.relative_to(REPO)}")

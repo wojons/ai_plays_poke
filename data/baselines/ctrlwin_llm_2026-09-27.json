@@ -1,0 +1,250 @@
+{
+  "baseline_id": "BASE-1",
+  "role": "S0 control baseline: the number CTRL-WIN (llm-vs-jev), HOLD-1 and BASE-REPIN must beat or reproduce",
+  "recorded_at": "2026-09-27T13:56:45Z",
+  "conditions": {
+    "decision_mode": "llm",
+    "boot_state": "data/boot.state",
+    "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+    "cycles_per_episode": 5,
+    "episodes": 5,
+    "episode_run_ids": [
+      "ctrlwin_ep1_20260927",
+      "ctrlwin_ep2_20260927",
+      "ctrlwin_ep3_20260927",
+      "ctrlwin_ep4_20260927",
+      "ctrlwin_ep5_20260927"
+    ],
+    "ram_restore": {
+      "distinct_md5": [
+        "89adbaba43925d5d8dacf43c9ba210cf"
+      ],
+      "episodes_with_restore": 5,
+      "note": "episode 1 arms the snapshot, so its restore md5 is None; later episodes report the md5 they booted with"
+    },
+    "model_build_seen": null,
+    "model_build_reason": "jev model identity from teacher_escalation post_ask.model_build; None when no episode escalated (fast tier answered everything)"
+  },
+  "summary": {
+    "episodes": 5,
+    "cycles": 0,
+    "decisions": 0,
+    "jev_answered": 0,
+    "escalations_jev": 0,
+    "teacher_calls": 0,
+    "teacher_improved": 0,
+    "map_transitions": 0,
+    "wall_time_s": 129.5,
+    "escalations_per_map_transition": null,
+    "wall_time_s_per_episode": {
+      "mean": 25.9,
+      "min": 20.4,
+      "max": 30.9,
+      "stdev": 4.75
+    },
+    "maps_visited": [],
+    "episodes_completed": 5,
+    "episodes_with_zero_decisions": 5,
+    "escalations_per_map_transition_note": "no map transition occurred in any episode; escalations per transition is undefined (null), not zero",
+    "llm_decisions_total": 12
+  },
+  "episodes": [
+    {
+      "run_id": "ctrlwin_ep1_20260927",
+      "at": "2026-09-27T13:49:34Z",
+      "exit_code": 0,
+      "wall_time_s": 20.4,
+      "cycles": 0,
+      "cycles_requested": 5,
+      "decisions": 0,
+      "jev_answered": 0,
+      "escalations_jev": 0,
+      "teacher_calls": 0,
+      "teacher_improved": 0,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": null,
+      "maps_seen": [],
+      "missing_classes": {},
+      "autonomy": {
+        "decisions_total": 3,
+        "jev_answered": 0,
+        "escalated": 0,
+        "autonomy_ratio": 0.0,
+        "teacher_escalations": {
+          "count": 0,
+          "improved": 0
+        }
+      },
+      "decision_mode_log": "llm",
+      "model_build": null,
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    },
+    {
+      "run_id": "ctrlwin_ep2_20260927",
+      "at": "2026-09-27T13:50:04Z",
+      "exit_code": 0,
+      "wall_time_s": 27.8,
+      "cycles": 0,
+      "cycles_requested": 5,
+      "decisions": 0,
+      "jev_answered": 0,
+      "escalations_jev": 0,
+      "teacher_calls": 0,
+      "teacher_improved": 0,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": null,
+      "maps_seen": [],
+      "missing_classes": {},
+      "autonomy": {
+        "decisions_total": 2,
+        "jev_answered": 0,
+        "escalated": 0,
+        "autonomy_ratio": 0.0,
+        "teacher_escalations": {
+          "count": 0,
+          "improved": 0
+        }
+      },
+      "decision_mode_log": "llm",
+      "model_build": null,
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    },
+    {
+      "run_id": "ctrlwin_ep3_20260927",
+      "at": "2026-09-27T13:50:37Z",
+      "exit_code": 0,
+      "wall_time_s": 30.9,
+      "cycles": 0,
+      "cycles_requested": 5,
+      "decisions": 0,
+      "jev_answered": 0,
+      "escalations_jev": 0,
+      "teacher_calls": 0,
+      "teacher_improved": 0,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": null,
+      "maps_seen": [],
+      "missing_classes": {},
+      "autonomy": {
+        "decisions_total": 2,
+        "jev_answered": 0,
+        "escalated": 0,
+        "autonomy_ratio": 0.0,
+        "teacher_escalations": {
+          "count": 0,
+          "improved": 0
+        }
+      },
+      "decision_mode_log": "llm",
+      "model_build": null,
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    },
+    {
+      "run_id": "ctrlwin_ep4_20260927",
+      "at": "2026-09-27T13:51:08Z",
+      "exit_code": 0,
+      "wall_time_s": 29.1,
+      "cycles": 0,
+      "cycles_requested": 5,
+      "decisions": 0,
+      "jev_answered": 0,
+      "escalations_jev": 0,
+      "teacher_calls": 0,
+      "teacher_improved": 0,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": null,
+      "maps_seen": [],
+      "missing_classes": {},
+      "autonomy": {
+        "decisions_total": 2,
+        "jev_answered": 0,
+        "escalated": 0,
+        "autonomy_ratio": 0.0,
+        "teacher_escalations": {
+          "count": 0,
+          "improved": 0
+        }
+      },
+      "decision_mode_log": "llm",
+      "model_build": null,
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    },
+    {
+      "run_id": "ctrlwin_ep5_20260927",
+      "at": "2026-09-27T13:51:31Z",
+      "exit_code": 0,
+      "wall_time_s": 21.3,
+      "cycles": 0,
+      "cycles_requested": 5,
+      "decisions": 0,
+      "jev_answered": 0,
+      "escalations_jev": 0,
+      "teacher_calls": 0,
+      "teacher_improved": 0,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": null,
+      "maps_seen": [],
+      "missing_classes": {},
+      "autonomy": {
+        "decisions_total": 3,
+        "jev_answered": 0,
+        "escalated": 0,
+        "autonomy_ratio": 0.0,
+        "teacher_escalations": {
+          "count": 0,
+          "improved": 0
+        }
+      },
+      "decision_mode_log": "llm",
+      "model_build": null,
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    }
+  ],
+  "episode_log": "cron_logs/base1_20260927T134914_episodes.jsonl",
+  "falsifier_for_CTRL-WIN": "CTRL-WIN fails to improve on S0 if its llm-vs-jev comparison does not reduce escalations_per_map_transition below this baseline's value at equal cycles/episode",
+  "ctrl_win_comparison": {
+    "baseline": {
+      "artifact": "data/baselines/base1_control_2026-09-27.json",
+      "decision_mode": "llm",
+      "escalations": 0,
+      "decisions": 0,
+      "map_transitions": 0,
+      "escalations_per_map_transition": null,
+      "note": "BASE-1 jev arm: 7 escalations / 25 decisions / 0 map transitions"
+    },
+    "ctrlwin": {
+      "artifact": "data/baselines/ctrlwin_llm_2026-09-27.json",
+      "decision_mode": "llm",
+      "llm_decisions_total": 12,
+      "escalations": 0,
+      "map_transitions": 0,
+      "escalations_per_map_transition": null,
+      "note": "llm arm: 0 escalations / 12 real llm decisions / 0 map transitions, same boot state sha256 a74ca90b"
+    },
+    "verdict": "indeterminate - zero map transitions in BOTH arms at 5 cycles/episode, so escalations-per-map-transition is undefined for both; head-to-head must re-run at longer episodes (see E2E-002 / DIST-1). Secondary signal: llm arm made 12 real controller decisions with 0 teacher escalations; jev arm made 25 fast-tier decisions with 7 escalations.",
+    "wall_time_s_per_episode": {
+      "llm": 25.9,
+      "jev": 10.94
+    }
+  }
+}
