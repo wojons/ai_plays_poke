@@ -3,7 +3,7 @@
   "created_at": "2026-09-27T20:26:00-05:00",
   "base_sha": "f4d51a4",
   "budget": 5,
-  "status": "dispatched",
+  "status": "finished",
   "legs": [
     {
       "task_id": "REVIEW-2",
@@ -28,11 +28,34 @@
     }
   ],
   "excluded": [
-    {"task_id": "DIST-1", "reason": "complete in T257"},
-    {"task_id": "DECIDE-1", "reason": "owner-blocked, not worker-dispatchable"},
-    {"task_id": "BOARD-HYG-1", "reason": "defect 1 already healed; defect 2 is a one-row status normalization done foreman-direct"},
-    {"task_id": "E2E-001", "reason": "recurring fixture, ran T251-era"},
-    {"task_id": "CH-*", "reason": "design notes / larger efforts (1-5 day ests), not wave-sized"},
-    {"task_id": "BASE-REPIN", "reason": "P2, infrastructure-touching, deferred to avoid a 4th concurrent leg on shared baselines"}
-  ]
+    {
+      "task_id": "DIST-1",
+      "reason": "complete in T257"
+    },
+    {
+      "task_id": "DECIDE-1",
+      "reason": "owner-blocked, not worker-dispatchable"
+    },
+    {
+      "task_id": "BOARD-HYG-1",
+      "reason": "defect 1 already healed; defect 2 is a one-row status normalization done foreman-direct"
+    },
+    {
+      "task_id": "E2E-001",
+      "reason": "recurring fixture, ran T251-era"
+    },
+    {
+      "task_id": "CH-*",
+      "reason": "design notes / larger efforts (1-5 day ests), not wave-sized"
+    },
+    {
+      "task_id": "BASE-REPIN",
+      "reason": "P2, infrastructure-touching, deferred to avoid a 4th concurrent leg on shared baselines"
+    }
+  ],
+  "finished_at": "2026-09-27T21:55:00-05:00",
+  "recovery": {
+    "mode": "wave-recovery-tick-2143-32",
+    "notes": "all 3 legs already merged in T263 close commits (a425fd1); gates re-verified on main tip: ruff PASS, mypy 0/66, PERF-4 tier2 judge PASS (4281 passed); REVIEW-2 tier2 re-run post-recovery"
+  }
 }
