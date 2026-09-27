@@ -1,0 +1,121 @@
+{
+  "task_id": "MEM-PROJ",
+  "task_title": "S2b memory reaches the JEV projection",
+  "task_criteria": [
+    "cron_runner.py wires retrieved world/* facts into the JEV projection via state_projection.build(extra_facts=...) on the live overworld path; wiring is fail-closed (missing or empty retrieval degrades to today's projection byte-for-byte); unit tests cover the threading, the empty case and the cap; full guard battery green."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "afb07d4d0671bc287201779d04bdfbfae2918790",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T021738.869239Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n9:30PM INF scanned ~306464645 bytes (306.46 MB) in 21s\n9:30PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 89263 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T021738.869239Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4231 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [451552 chars omitted \u2014 4998 line(s)] \u2026\ntest_bench_pathfinding_find_path               991.9750 (1.98)           3,656.9545 (1.55)          1,296.2264 (1.82)            723.8270 (3.71)          1,041.9753 (1.73)           205.2693 (1.0)           1;1    771,470.1686 (0.55)         13           1\ntest_bench_vision_pipeline_validate          7,043.0106 (14.06)      5,019,287.9862 (>1000.0)      13,907.1523 (19.51)        42,680.8418 (218.94)       11,611.9627 (19.32)        1,262.9316 (6.15)      62;1955     71,905.4469 (0.05)      21121           1\ntest_bench_ram_reader_observe            1,215,728.9893 (>1000.0)  193,669,849.0172 (>1000.0)   3,134,090.3434 (>1000.0)  14,220,704.5259 (>1000.0)   1,961,975.0092 (>1000.0)    238,662.0326 (>1000.0)      3;99        319.0718 (0.00)        528           1\ntest_bench_vision_pipeline_process      70,796,860.0327 (>1000.0)   95,978,105.0333 (>1000.0)  78,687,116.0157 (>1000.0)   7,443,038.5756 (>1000.0)  77,423,011.0110 (>1000.0)  6,685,293.2505 (>1000.0)       4;2         12.7086 (0.00)         13           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4217 passed, 14 skipped in 268.30s (0:04:28) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T021738.869239Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 cron_runner.py wires retrieved world/* facts into the JEV projection via state_projection.build(extra_facts=...) on the live overworld path; wiring is fail-closed (missing or empty retrieval degrades to today's projection byte-for-byte); unit tests cover the threading, the empty case and the cap; full guard battery green.: Wiring: cron_runner.py:1357 passes `extra_facts=world_facts or None` into state_projection.build inside _jev_overworld_decision; _populate_world_memory now returns list[str] (retrieved_facts) and is called at cron_runner.py:4062 assigning _world_facts, which is threaded via _jev_or_none (cron_runner.py:4395, world_facts=_world_facts) \u2014 a transparent pass-through to _jev_overworld_decision (cron_runner.py:1497-1507) on the live overworld path. Fail-closed: independently verified state_projection.build with extra_facts=None/[]/() all produce byte-identical output to the base projection (919 chars, no 'SUPPLIED FACTS' section); the retrieval exception path sets retrieved_facts=[] (cron_runner.py ~2769). Tests: tests/test_world_facts_projection.py covers threading (test_retrieved_world_facts_reach_jev_projection), empty case (test_empty_world_facts_preserve_projection_bytes parametrized None/[]), cap (test_world_facts_respect_projection_caps asserting 6000-char projection cap and 240-char per-fact cap) and retrieval failure \u2014 ran `./.venv/bin/pytest tests/test_world_facts_projection.py -v` -> 5 passed in 0.87s. Full guard battery: `./.venv/bin/pytest -x --tb=short -q` -> '4217 passed, 14 skipped in 219.36s' (exit 0, all 5 MEM-PROJ tests included and PASSED); `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> 'All checks passed!' (exit 0); `./.venv/bin/mypy src/ --python-version 3.13 --ignore-missing-imports` -> 'Success: no issues found in 66 source files'; LSP diagnostics: 0 findings. [resolution 0.63; cron_runner.py]\nMEM-PROJ is fully implemented: world/* facts are threaded into the JEV projection on the live overworld path, fail-closed byte-for-byte on empty/missing retrieval, covered by 5 passing unit tests, with the full suite (4217 passed) and all guards green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 cron_runner.py wires retrieved world/* facts into the JEV projection via state_projection.build(extra_facts=...) on the live overworld path; wiring is fail-closed (missing or empty retrieval degrades to today's projection byte-for-byte); unit tests cover the threading, the empty case and the cap; full guard battery green.: Wiring: cron_runner.py:1357 passes `extra_facts=world_facts or None` into state_projection.build inside _jev_overworld_decision; _populate_world_memory now returns list[str] (retrieved_facts) and is called at cron_runner.py:4062 assigning _world_facts, which is threaded via _jev_or_none (cron_runner.py:4395, world_facts=_world_facts) \u2014 a transparent pass-through to _jev_overworld_decision (cron_runner.py:1497-1507) on the live overworld path. Fail-closed: independently verified state_projection.build with extra_facts=None/[]/() all produce byte-identical output to the base projection (919 chars, no 'SUPPLIED FACTS' section); the retrieval exception path sets retrieved_facts=[] (cron_runner.py ~2769). Tests: tests/test_world_facts_projection.py covers threading (test_retrieved_world_facts_reach_jev_projection), empty case (test_empty_world_facts_preserve_projection_bytes parametrized None/[]), cap (test_world_facts_respect_projection_caps asserting 6000-char projection cap and 240-char per-fact cap) and retrieval failure \u2014 ran `./.venv/bin/pytest tests/test_world_facts_projection.py -v` -> 5 passed in 0.87s. Full guard battery: `./.venv/bin/pytest -x --tb=short -q` -> '4217 passed, 14 skipped in 219.36s' (exit 0, all 5 MEM-PROJ tests included and PASSED); `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> 'All checks passed!' (exit 0); `./.venv/bin/mypy src/ --python-version 3.13 --ignore-missing-imports` -> 'Success: no issues found in 66 source files'; LSP diagnostics: 0 findings. [resolution 0.63; cron_runner.py]\nMEM-PROJ is fully implemented: world/* facts are threaded into the JEV projection on the live overworld path, fail-closed byte-for-byte on empty/missing retrieval, covered by 5 passing unit tests, with the full suite (4217 passed) and all guards green.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "cron_runner.py wires retrieved world/* facts into the JEV projection via state_projection.build(extra_facts=...) on the live overworld path; wiring is fail-closed (missing or empty retrieval degrades to today's projection byte-for-byte); unit tests cover the threading, the empty case and the cap; full guard battery green.",
+                "status": "PASS",
+                "detail": "Wiring: cron_runner.py:1357 passes `extra_facts=world_facts or None` into state_projection.build inside _jev_overworld_decision; _populate_world_memory now returns list[str] (retrieved_facts) and is called at cron_runner.py:4062 assigning _world_facts, which is threaded via _jev_or_none (cron_runner.py:4395, world_facts=_world_facts) \u2014 a transparent pass-through to _jev_overworld_decision (cron_runner.py:1497-1507) on the live overworld path. Fail-closed: independently verified state_projection.build with extra_facts=None/[]/() all produce byte-identical output to the base projection (919 chars, no 'SUPPLIED FACTS' section); the retrieval exception path sets retrieved_facts=[] (cron_runner.py ~2769). Tests: tests/test_world_facts_projection.py covers threading (test_retrieved_world_facts_reach_jev_projection), empty case (test_empty_world_facts_preserve_projection_bytes parametrized None/[]), cap (test_world_facts_respect_projection_caps asserting 6000-char projection cap and 240-char per-fact cap) and retrieval failure \u2014 ran `./.venv/bin/pytest tests/test_world_facts_projection.py -v` -> 5 passed in 0.87s. Full guard battery: `./.venv/bin/pytest -x --tb=short -q` -> '4217 passed, 14 skipped in 219.36s' (exit 0, all 5 MEM-PROJ tests included and PASSED); `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> 'All checks passed!' (exit 0); `./.venv/bin/mypy src/ --python-version 3.13 --ignore-missing-imports` -> 'Success: no issues found in 66 source files'; LSP diagnostics: 0 findings. [resolution 0.63; cron_runner.py]",
+                "resolution_probability": 0.63,
+                "cited_path": "cron_runner.py"
+              }
+            ],
+            "summary": "MEM-PROJ is fully implemented: world/* facts are threaded into the JEV projection on the live overworld path, fail-closed byte-for-byte on empty/missing retrieval, covered by 5 passing unit tests, with the full suite (4217 passed) and all guards green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: MEM-PROJ\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 cron_runner.py wires retrieved world/* facts into the JEV projection via state_projection.build(extra_facts=...) on the live overworld path; wiring is fail-closed (missing or empty retrieval degrades to today's projection byte-for-byte); unit tests cover the threading, the empty case and the cap; full guard battery green.: Wiring: cron_runner.py:1357 passes `extra_facts=world_facts or None` into state_projection.build inside _jev_overworld_decision; _populate_world_memory now returns list[str] (retrieved_facts) and is called at cron_runner.py:4062 assigning _world_facts, which is threaded via _jev_or_none (cron_runner.py:4395, world_facts=_world_facts) \u2014 a transparent pass-through to _jev_overworld_decision (cron_runner.py:1497-1507) on the live overworld path. Fail-closed: independently verified state_projection.build with extra_facts=None/[]/() all produce byte-identical output to the base projection (919 chars, no 'SUPPLIED FACTS' section); the retrieval exception path sets retrieved_facts=[] (cron_runner.py ~2769). Tests: tests/test_world_facts_projection.py covers threading (test_retrieved_world_facts_reach_jev_projection), empty case (test_empty_world_facts_preserve_projection_bytes parametrized None/[]), cap (test_world_facts_respect_projection_caps asserting 6000-char projection cap and 240-char per-fact cap) and retrieval failure \u2014 ran `./.venv/bin/pytest tests/test_world_facts_projection.py -v` -> 5 passed in 0.87s. Full guard battery: `./.venv/bin/pytest -x --tb=short -q` -> '4217 passed, 14 skipped in 219.36s' (exit 0, all 5 MEM-PROJ tests included and PASSED); `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> 'All checks passed!' (exit 0); `./.venv/bin/mypy src/ --python-version 3.13 --ignore-missing-imports` -> 'Success: no issues found in 66 source files'; LSP diagnostics: 0 findings. [resolution 0.63; cron_runner.py]\nMEM-PROJ is fully implemented: world/* facts are threaded into the JEV projection on the live overworld path, fail-closed byte-for-byte on empty/missing retrieval, covered by 5 passing unit tests, with the full suite (4217 passed) and all guards green.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-27T02:47:22.212876",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-27T02:47:22.238241+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 21139,
+        "truncated": false,
+        "source": "git show afb07d4d0671"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 539,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "MEM-PROJ"
+  }
+}
