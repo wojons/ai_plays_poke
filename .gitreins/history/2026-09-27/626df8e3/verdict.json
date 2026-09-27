@@ -1,0 +1,120 @@
+{
+  "task_id": "REVIEW-1",
+  "task_title": "Dashboard credential hardening (P0)",
+  "task_criteria": [
+    "API_KEY has no default and auth fails closed when PTP_API_KEY unset; PTP_DASHBOARD_HOST defaults to 127.0.0.1; key never printed to stdout; string ptp-secret-key absent from source; dashboard tests pass"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "fix/dashboard-credential-hardening",
+  "commit": "d60b1c8b06e2301def577617cd92f3dcdc7d7ab0",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T194835.856213Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n2:53PM INF scanned ~311314875 bytes (311.31 MB) in 14.6s\n2:53PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 90653 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T194835.856213Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4295 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [459525 chars omitted \u2014 5075 line(s)] \u2026\ntest_bench_pathfinding_find_path               511.0051 (1.06)           8,976.0288 (1.11)          1,365.2762 (2.38)          2,163.9115 (10.36)           761.9965 (1.43)           298.5325 (7.45)          1;2    732,452.5203 (0.42)         15           1\ntest_bench_vision_pipeline_validate          6,071.0008 (12.62)        117,115.9674 (14.49)         8,715.9961 (15.17)         2,740.3158 (13.12)         7,633.9929 (14.38)        3,134.9482 (78.28)    1374;265    114,731.5793 (0.07)      26062           1\ntest_bench_ram_reader_observe            1,110,515.9647 (>1000.0)  175,296,290.0209 (>1000.0)   2,288,962.1933 (>1000.0)  10,920,971.1082 (>1000.0)   1,420,549.0006 (>1000.0)    325,617.5114 (>1000.0)      4;29        436.8792 (0.00)        813           1\ntest_bench_vision_pipeline_process      52,513,924.0199 (>1000.0)   95,863,656.0244 (>1000.0)  67,335,726.5323 (>1000.0)   9,182,958.5699 (>1000.0)  65,279,860.9808 (>1000.0)  5,963,779.7676 (>1000.0)       4;2         14.8510 (0.00)         17           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4281 passed, 14 skipped in 246.46s (0:04:06) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T194835.856213Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 API_KEY has no default and auth fails closed when PTP_API_KEY unset; PTP_DASHBOARD_HOST defaults to 127.0.0.1; key never printed to stdout; string ptp-secret-key absent from source; dashboard tests pass: All five sub-claims verified. (1) No default: src/dashboard/main.py:37 `API_KEY = os.getenv(\"PTP_API_KEY\")` \u2014 commit 692cddd diff confirms the old `os.getenv(\"PTP_API_KEY\", \"ptp-secret-key-12345\")` was removed. (2) Fail closed: main.py:66-71 `verify_api_key` -> `if not API_KEY or x_api_key != API_KEY: raise HTTPException(status_code=401, ...)`; tests/test_dashboard.py:64-124 (TestFailClosedAuth) assert 401 for the old default key, a missing header, and an empty header when API_KEY is None, plus 200 with a configured key. (3) Host default: main.py:512 `host = os.getenv(\"PTP_DASHBOARD_HOST\", \"127.0.0.1\")`; `grep -n 0.0.0.0 src/dashboard/main.py src/dashboard/static/index.html` returns no match (exit 1). (4) Key not printed: main.py:514-515 print only host/port and the docs URL; the `print(f\"API Key: {API_KEY}\")` line was deleted in 692cddd, and tests/test_dashboard.py:104-124 (test_startup_does_not_print_the_api_key) runs the __main__ block via runpy and asserts `\"API Key\" not in out` and `TEST_API_KEY not in out`. (5) Literal absent: repo-wide grep for `ptp-secret-key` (excluding .git/.venv/.coding-hermes/.gitreins) matches only tests/test_dashboard.py:77, which assembles it as `\"ptp\" + \"-secret-key-12345\"` so the exact string never appears; src/dashboard/static/index.html:430 uses `(window.ENV && window.ENV.PTP_API_KEY) || ''` with serve-time injection via render_index_html (main.py:43-59). Tests run fresh: `./.venv/bin/pytest tests/test_dashboard.py -q -p no:cacheprovider` -> \"63 passed in 0.54s\" (exit 0); full suite `./.venv/bin/pytest tests/ -q --tb=line -k \"not benchmark\" -p no:cacheprovider` -> \"4276 passed, 14 skipped, 5 deselected in 237.59s\" (exit 0). Only caveat: a stale untracked build artifact src/dashboard/__pycache__/main.cpython-311.pyc still contains the old literals, but it is not source and is not tracked.\nDashboard credential hardening is fully implemented and verified: no default API key, fail-closed auth, 127.0.0.1 bind default, no key on stdout, no ptp-secret-key literal in source, and 63 dashboard tests plus the full 4276-test suite pass.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 API_KEY has no default and auth fails closed when PTP_API_KEY unset; PTP_DASHBOARD_HOST defaults to 127.0.0.1; key never printed to stdout; string ptp-secret-key absent from source; dashboard tests pass: All five sub-claims verified. (1) No default: src/dashboard/main.py:37 `API_KEY = os.getenv(\"PTP_API_KEY\")` \u2014 commit 692cddd diff confirms the old `os.getenv(\"PTP_API_KEY\", \"ptp-secret-key-12345\")` was removed. (2) Fail closed: main.py:66-71 `verify_api_key` -> `if not API_KEY or x_api_key != API_KEY: raise HTTPException(status_code=401, ...)`; tests/test_dashboard.py:64-124 (TestFailClosedAuth) assert 401 for the old default key, a missing header, and an empty header when API_KEY is None, plus 200 with a configured key. (3) Host default: main.py:512 `host = os.getenv(\"PTP_DASHBOARD_HOST\", \"127.0.0.1\")`; `grep -n 0.0.0.0 src/dashboard/main.py src/dashboard/static/index.html` returns no match (exit 1). (4) Key not printed: main.py:514-515 print only host/port and the docs URL; the `print(f\"API Key: {API_KEY}\")` line was deleted in 692cddd, and tests/test_dashboard.py:104-124 (test_startup_does_not_print_the_api_key) runs the __main__ block via runpy and asserts `\"API Key\" not in out` and `TEST_API_KEY not in out`. (5) Literal absent: repo-wide grep for `ptp-secret-key` (excluding .git/.venv/.coding-hermes/.gitreins) matches only tests/test_dashboard.py:77, which assembles it as `\"ptp\" + \"-secret-key-12345\"` so the exact string never appears; src/dashboard/static/index.html:430 uses `(window.ENV && window.ENV.PTP_API_KEY) || ''` with serve-time injection via render_index_html (main.py:43-59). Tests run fresh: `./.venv/bin/pytest tests/test_dashboard.py -q -p no:cacheprovider` -> \"63 passed in 0.54s\" (exit 0); full suite `./.venv/bin/pytest tests/ -q --tb=line -k \"not benchmark\" -p no:cacheprovider` -> \"4276 passed, 14 skipped, 5 deselected in 237.59s\" (exit 0). Only caveat: a stale untracked build artifact src/dashboard/__pycache__/main.cpython-311.pyc still contains the old literals, but it is not source and is not tracked.\nDashboard credential hardening is fully implemented and verified: no default API key, fail-closed auth, 127.0.0.1 bind default, no key on stdout, no ptp-secret-key literal in source, and 63 dashboard tests plus the full 4276-test suite pass.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "API_KEY has no default and auth fails closed when PTP_API_KEY unset; PTP_DASHBOARD_HOST defaults to 127.0.0.1; key never printed to stdout; string ptp-secret-key absent from source; dashboard tests pass",
+                "status": "PASS",
+                "detail": "All five sub-claims verified. (1) No default: src/dashboard/main.py:37 `API_KEY = os.getenv(\"PTP_API_KEY\")` \u2014 commit 692cddd diff confirms the old `os.getenv(\"PTP_API_KEY\", \"ptp-secret-key-12345\")` was removed. (2) Fail closed: main.py:66-71 `verify_api_key` -> `if not API_KEY or x_api_key != API_KEY: raise HTTPException(status_code=401, ...)`; tests/test_dashboard.py:64-124 (TestFailClosedAuth) assert 401 for the old default key, a missing header, and an empty header when API_KEY is None, plus 200 with a configured key. (3) Host default: main.py:512 `host = os.getenv(\"PTP_DASHBOARD_HOST\", \"127.0.0.1\")`; `grep -n 0.0.0.0 src/dashboard/main.py src/dashboard/static/index.html` returns no match (exit 1). (4) Key not printed: main.py:514-515 print only host/port and the docs URL; the `print(f\"API Key: {API_KEY}\")` line was deleted in 692cddd, and tests/test_dashboard.py:104-124 (test_startup_does_not_print_the_api_key) runs the __main__ block via runpy and asserts `\"API Key\" not in out` and `TEST_API_KEY not in out`. (5) Literal absent: repo-wide grep for `ptp-secret-key` (excluding .git/.venv/.coding-hermes/.gitreins) matches only tests/test_dashboard.py:77, which assembles it as `\"ptp\" + \"-secret-key-12345\"` so the exact string never appears; src/dashboard/static/index.html:430 uses `(window.ENV && window.ENV.PTP_API_KEY) || ''` with serve-time injection via render_index_html (main.py:43-59). Tests run fresh: `./.venv/bin/pytest tests/test_dashboard.py -q -p no:cacheprovider` -> \"63 passed in 0.54s\" (exit 0); full suite `./.venv/bin/pytest tests/ -q --tb=line -k \"not benchmark\" -p no:cacheprovider` -> \"4276 passed, 14 skipped, 5 deselected in 237.59s\" (exit 0). Only caveat: a stale untracked build artifact src/dashboard/__pycache__/main.cpython-311.pyc still contains the old literals, but it is not source and is not tracked.",
+                "resolution_probability": 0.12
+              }
+            ],
+            "summary": "Dashboard credential hardening is fully implemented and verified: no default API key, fail-closed auth, 127.0.0.1 bind default, no key on stdout, no ptp-secret-key literal in source, and 63 dashboard tests plus the full 4276-test suite pass."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: REVIEW-1\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 API_KEY has no default and auth fails closed when PTP_API_KEY unset; PTP_DASHBOARD_HOST defaults to 127.0.0.1; key never printed to stdout; string ptp-secret-key absent from source; dashboard tests pass: All five sub-claims verified. (1) No default: src/dashboard/main.py:37 `API_KEY = os.getenv(\"PTP_API_KEY\")` \u2014 commit 692cddd diff confirms the old `os.getenv(\"PTP_API_KEY\", \"ptp-secret-key-12345\")` was removed. (2) Fail closed: main.py:66-71 `verify_api_key` -> `if not API_KEY or x_api_key != API_KEY: raise HTTPException(status_code=401, ...)`; tests/test_dashboard.py:64-124 (TestFailClosedAuth) assert 401 for the old default key, a missing header, and an empty header when API_KEY is None, plus 200 with a configured key. (3) Host default: main.py:512 `host = os.getenv(\"PTP_DASHBOARD_HOST\", \"127.0.0.1\")`; `grep -n 0.0.0.0 src/dashboard/main.py src/dashboard/static/index.html` returns no match (exit 1). (4) Key not printed: main.py:514-515 print only host/port and the docs URL; the `print(f\"API Key: {API_KEY}\")` line was deleted in 692cddd, and tests/test_dashboard.py:104-124 (test_startup_does_not_print_the_api_key) runs the __main__ block via runpy and asserts `\"API Key\" not in out` and `TEST_API_KEY not in out`. (5) Literal absent: repo-wide grep for `ptp-secret-key` (excluding .git/.venv/.coding-hermes/.gitreins) matches only tests/test_dashboard.py:77, which assembles it as `\"ptp\" + \"-secret-key-12345\"` so the exact string never appears; src/dashboard/static/index.html:430 uses `(window.ENV && window.ENV.PTP_API_KEY) || ''` with serve-time injection via render_index_html (main.py:43-59). Tests run fresh: `./.venv/bin/pytest tests/test_dashboard.py -q -p no:cacheprovider` -> \"63 passed in 0.54s\" (exit 0); full suite `./.venv/bin/pytest tests/ -q --tb=line -k \"not benchmark\" -p no:cacheprovider` -> \"4276 passed, 14 skipped, 5 deselected in 237.59s\" (exit 0). Only caveat: a stale untracked build artifact src/dashboard/__pycache__/main.cpython-311.pyc still contains the old literals, but it is not source and is not tracked.\nDashboard credential hardening is fully implemented and verified: no default API key, fail-closed auth, 127.0.0.1 bind default, no key on stdout, no ptp-secret-key literal in source, and 63 dashboard tests plus the full 4276-test suite pass.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-27T20:03:17.390571",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-27T20:03:17.412502+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 3275,
+        "truncated": false,
+        "source": "git show d60b1c8b06e2"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 706,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "REVIEW-1"
+  }
+}

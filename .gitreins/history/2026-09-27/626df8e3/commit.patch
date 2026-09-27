@@ -1,0 +1,22 @@
+commit d60b1c8b06e2301def577617cd92f3dcdc7d7ab0
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sun Sep 27 14:58:13 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sun Sep 27 14:58:13 2026 -0500
+
+    chore(board): PERF-5 event EVT-PERF5-404 — perf tick evidence note
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ .coding-hermes/board/events.jsonl | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index 7e7f97d..efca4eb 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -356,3 +356,4 @@
+ {"ts": "2026-09-27 17:27:57", "event": "note", "id": "CH-NAV", "summary": "HOMEWORK READ AND FILED. Six rows (CH-NAV, CH-OBJ, CH-SPLIT, CH-SUBA, CH-CTX, CH-MCP) come from reading the two projects that have actually finished a Pokemon game, at source level rather than from summaries: github.com/sethkarten/continual-harness (README.md, agents/README.md, System-Design/README.md — the Continual Harness / PokeAgent reference, which completed Blue, Yellow Legacy hard and Crystal), the PokeAgent Challenge paper (arxiv 2603.15563), and Anthropic's Pokemon agent via the ZenML LLMOps writeup. The convergence worth acting on: BOTH incumbents hand navigation to a TOOL (Anthropic's navigator; PokeAgent's A* and navigate_to) rather than asking the model to reason about adjacency — which is precisely the class that was 95% of this project's escalations. CH-NAV therefore reframes DECIDE-1, which until now offered only two options. CH-OBJ and CH-CTX address the two things the carter review measured as absent (a free-text goal string the agent writes for itself; a context window that is 6 notes and 300 characters). CH-SPLIT/CH-SUBA/CH-MCP are structural: an environment a different agent can drive."}
+ {"ts": "2026-09-27 17:29:06", "event": "note", "id": "BOARD-HYG-1", "summary": "Filed from a census crash during the homework-filing tick. tasks.jsonl line 159 is an event object (EVT-PERF3-T259) sitting in the tasks file, so Counter(status) raises KeyError and any status census on this board is broken until it moves. A second row carries the non-canonical status 'open'. Neither is mine and neither was fixed in passing: relocating another writer's row across files is a semantic change and belongs in its own commit. Flagged by the same discipline the carter report asks of the project — a surface that cannot report its own state is a surface that will lie."}
+ {"id": "EVT-PERF3-T259", "type": "task_completed", "task": "PERF-3", "ts": "2026-09-27 11:05:00", "by": "foreman", "note": "306679d merged cb7fe62, 0/5 escalations vs 5/5 baseline, wall 3.97s, CI green"}
++{"id": "EVT-PERF5-404", "event": "perf_finding_filed", "task_id": "PERF-5", "ts": "2026-09-27 14:58:00", "note": "Perf lane tick: PERF-4 premise re-verified at HEAD 409da9d via importtime + hyperfine 20-run (state_window import 969.5ms +/-118.5, anthropic 384,784us of 591,592us cumulative); row appended as duplicate-evidence reinforcement; no code changed by this lane. PERF-3 premise also still live (23/294 served records carry unknown walkability).", "actor": "ai-plays-poke-perf"}
