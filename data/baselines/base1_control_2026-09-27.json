@@ -1,0 +1,249 @@
+{
+  "baseline_id": "BASE-1",
+  "role": "S0 control baseline: the number CTRL-WIN (llm-vs-jev), HOLD-1 and BASE-REPIN must beat or reproduce",
+  "recorded_at": "2026-09-27T12:16:57Z",
+  "conditions": {
+    "decision_mode": "jev",
+    "boot_state": "data/boot.state",
+    "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+    "cycles_per_episode": 5,
+    "episodes": 5,
+    "episode_run_ids": [
+      "base1_ep1_20260927",
+      "base1_ep2_20260927",
+      "base1_ep3_20260927",
+      "base1_ep4_20260927",
+      "base1_ep5_20260927"
+    ],
+    "ram_restore": {
+      "distinct_md5": [
+        "cbd5d0c3b7590443c4b7227b69f60c33"
+      ],
+      "episodes_with_restore": 4,
+      "note": "episode 1 arms the snapshot, so its restore md5 is None; later episodes report the md5 they booted with"
+    },
+    "model_build_seen": [
+      "typesafe/jev-1.13-20260917"
+    ],
+    "model_build_reason": "jev model identity from teacher_escalation post_ask.model_build"
+  },
+  "summary": {
+    "episodes": 5,
+    "cycles": 25,
+    "decisions": 25,
+    "jev_answered": 25,
+    "escalations_jev": 7,
+    "teacher_calls": 6,
+    "teacher_improved": 4,
+    "map_transitions": 0,
+    "wall_time_s": 54.7,
+    "escalations_per_map_transition": null,
+    "wall_time_s_per_episode": {
+      "mean": 10.94,
+      "min": 8.6,
+      "max": 16.1,
+      "stdev": 2.99
+    },
+    "maps_visited": [
+      "Oak's Lab"
+    ],
+    "episodes_completed": 5,
+    "episodes_with_zero_decisions": 0,
+    "escalations_per_map_transition_note": "no map transition occurred in any episode; escalations per transition is undefined (null), not zero"
+  },
+  "episodes": [
+    {
+      "run_id": "base1_ep1_20260927",
+      "at": "2026-09-27T12:13:07Z",
+      "exit_code": 0,
+      "wall_time_s": 10.6,
+      "cycles": 5,
+      "cycles_requested": 5,
+      "decisions": 5,
+      "jev_answered": 5,
+      "escalations_jev": 2,
+      "teacher_calls": 1,
+      "teacher_improved": 0,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": "Oak's Lab",
+      "maps_seen": [
+        "Oak's Lab"
+      ],
+      "missing_classes": {
+        "none": 5
+      },
+      "autonomy": {
+        "decisions_total": 5,
+        "jev_answered": 5,
+        "escalated": 2,
+        "autonomy_ratio": 1.0,
+        "teacher_escalations": {
+          "count": 1,
+          "improved": 0
+        }
+      },
+      "decision_mode_log": "jev",
+      "model_build": "typesafe/jev-1.13-20260917",
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    },
+    {
+      "run_id": "base1_ep2_20260927",
+      "at": "2026-09-27T12:13:25Z",
+      "exit_code": 0,
+      "wall_time_s": 16.1,
+      "cycles": 5,
+      "cycles_requested": 5,
+      "decisions": 5,
+      "jev_answered": 5,
+      "escalations_jev": 2,
+      "teacher_calls": 2,
+      "teacher_improved": 1,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": "Oak's Lab",
+      "maps_seen": [
+        "Oak's Lab"
+      ],
+      "missing_classes": {
+        "none": 4,
+        "map_topology": 1
+      },
+      "autonomy": {
+        "decisions_total": 5,
+        "jev_answered": 5,
+        "escalated": 2,
+        "autonomy_ratio": 1.0,
+        "teacher_escalations": {
+          "count": 2,
+          "improved": 1
+        }
+      },
+      "decision_mode_log": "jev",
+      "model_build": "typesafe/jev-1.13-20260917",
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    },
+    {
+      "run_id": "base1_ep3_20260927",
+      "at": "2026-09-27T12:13:35Z",
+      "exit_code": 0,
+      "wall_time_s": 8.6,
+      "cycles": 5,
+      "cycles_requested": 5,
+      "decisions": 5,
+      "jev_answered": 5,
+      "escalations_jev": 1,
+      "teacher_calls": 1,
+      "teacher_improved": 1,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": "Oak's Lab",
+      "maps_seen": [
+        "Oak's Lab"
+      ],
+      "missing_classes": {
+        "none": 5
+      },
+      "autonomy": {
+        "decisions_total": 5,
+        "jev_answered": 5,
+        "escalated": 1,
+        "autonomy_ratio": 1.0,
+        "teacher_escalations": {
+          "count": 1,
+          "improved": 1
+        }
+      },
+      "decision_mode_log": "jev",
+      "model_build": "typesafe/jev-1.13-20260917",
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    },
+    {
+      "run_id": "base1_ep4_20260927",
+      "at": "2026-09-27T12:13:47Z",
+      "exit_code": 0,
+      "wall_time_s": 9.2,
+      "cycles": 5,
+      "cycles_requested": 5,
+      "decisions": 5,
+      "jev_answered": 5,
+      "escalations_jev": 1,
+      "teacher_calls": 1,
+      "teacher_improved": 1,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": "Oak's Lab",
+      "maps_seen": [
+        "Oak's Lab"
+      ],
+      "missing_classes": {
+        "none": 5
+      },
+      "autonomy": {
+        "decisions_total": 5,
+        "jev_answered": 5,
+        "escalated": 1,
+        "autonomy_ratio": 1.0,
+        "teacher_escalations": {
+          "count": 1,
+          "improved": 1
+        }
+      },
+      "decision_mode_log": "jev",
+      "model_build": "typesafe/jev-1.13-20260917",
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    },
+    {
+      "run_id": "base1_ep5_20260927",
+      "at": "2026-09-27T12:13:59Z",
+      "exit_code": 0,
+      "wall_time_s": 10.2,
+      "cycles": 5,
+      "cycles_requested": 5,
+      "decisions": 5,
+      "jev_answered": 5,
+      "escalations_jev": 1,
+      "teacher_calls": 1,
+      "teacher_improved": 1,
+      "map_transitions_count": 0,
+      "map_transitions": [],
+      "escalations_per_map_transition": null,
+      "final_map": "Oak's Lab",
+      "maps_seen": [
+        "Oak's Lab"
+      ],
+      "missing_classes": {
+        "none": 5
+      },
+      "autonomy": {
+        "decisions_total": 5,
+        "jev_answered": 5,
+        "escalated": 1,
+        "autonomy_ratio": 1.0,
+        "teacher_escalations": {
+          "count": 1,
+          "improved": 1
+        }
+      },
+      "decision_mode_log": "jev",
+      "model_build": "typesafe/jev-1.13-20260917",
+      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
+      "run_completed": true,
+      "errors": []
+    }
+  ],
+  "episode_log": "cron_logs/base1_20260927T121256_episodes.jsonl",
+  "falsifier_for_CTRL-WIN": "CTRL-WIN fails to improve on S0 if its llm-vs-jev comparison does not reduce escalations_per_map_transition below this baseline's value at equal cycles/episode"
+}
