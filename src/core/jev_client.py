@@ -40,6 +40,9 @@ AMBIGUITY_GATE = 0.40  # low confidence alone is not enough (layered gate)
 SUFFICIENCY_FLOOR = 0.50  # Jev says "I lack the state to decide" below this
 PROGRESS_FLOOR = 1.0  # score 0..3; below this = not making progress
 
+# Shared bound for the rolling prior-turn window in both reasoning paths.
+RECENT_DECISION_LIMIT = 6
+
 BUTTONS = ["UP", "DOWN", "LEFT", "RIGHT", "A", "B", "START", "WAIT"]
 
 MISSING_CLASSES = {
@@ -383,6 +386,24 @@ def should_escalate(
     return False, "jev_confident"
 
 
+def recent_decisions_block(
+    history: list[dict[str, Any]] | None,
+    *,
+    limit: int = RECENT_DECISION_LIMIT,
+) -> str:
+    """Render the shared bounded prior-turn block for reasoning requests."""
+    if not history:
+        return ""
+    lines = ["RECENT DECISIONS (prior turns):"]
+    for turn in history[-limit:]:
+        lines.append(
+            f"- cycle {turn['cycle']} | screen={turn['screen']} | "
+            f"action={turn['action']} | intent={turn['intent']} | "
+            f"outcome={turn['outcome']}"
+        )
+    return "\n".join(lines)
+
+
 def apply_patch(
     base_questions: dict[str, Any], patch: dict[str, Any]
 ) -> dict[str, Any]:
@@ -428,6 +449,7 @@ def escalate_and_reask(
     projection: str,
     memory: str | None = None,
     recent_events: list[dict[str, Any]] | None = None,
+    recent_decisions: list[dict[str, Any]] | None = None,
     milestones: list[dict[str, Any]] | None = None,
     teacher_model: str | None = None,
     client: Any = None,
@@ -495,11 +517,15 @@ def escalate_and_reask(
         ),
         projection=projection,
         recent_events=recent_events,
+        recent_decisions=recent_decisions,
         milestones=milestones,
         memory=memory,
         teacher_model=teacher_model,
         client=client,
     )
+    request_prompt = patch.pop("request_prompt", None)
+    if isinstance(request_prompt, str):
+        record["request_prompt"] = request_prompt
     record["patch"] = patch
     if not patch.get("ok"):
         record["error"] = patch.get("error", "teacher patch failed")
