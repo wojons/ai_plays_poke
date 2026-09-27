@@ -1,0 +1,439 @@
+{
+  "experiment": "DIST-1",
+  "question": "Does the controller path's Route-1 transition hold up as a distribution, or was the single CTRL-WIN run a lucky draw?",
+  "recorded_at": "2026-09-27T09:09:25Z",
+  "conditions": {
+    "boot_state": "data/baselines/base-1_boot.state (rescued copy)",
+    "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c",
+    "boot_md5_verified_every_episode": true,
+    "sram_isolation": "the ROM's .ram (SRAM) file is snapshotted before the first episode and restored before every subsequent one, so battery-side save-file drift cannot differentiate episodes; ram_md5_before_episode is stamped per episode",
+    "start_map": "Pallet Town",
+    "goal_map": "Route 1",
+    "cycles_per_episode": 30,
+    "censor_rule": "an episode with no start-map exit within the fixed 30-cycle window is recorded censored at the cap (censored=true, first_transition_cycle=null) rather than extended \u2014 bounds LLM spend per episode",
+    "modes": {
+      "llm": "controller path (--decision-mode llm; the CTRL-WIN mode)",
+      "jev": "default fast-tier+teacher (--decision-mode jev)"
+    },
+    "held_definition": "held_the_transition = the goal map was reached AND the episode ended on it (CTRL-WIN semantics: reached Route 1 c13, back in Pallet Town by c22 -> false)",
+    "isolation": "all episodes executed in git worktree /home/kara/worktrees/ai-plays-poke-DIST-1 on branch wt/DIST-1; own cron_logs/, checkpoints/ and .ram; the live checkout was not touched and nothing was written to DuckBrain"
+  },
+  "modes": {
+    "jev": {
+      "n_episodes": 5,
+      "n_transitions_observed": 0,
+      "n_censored_no_transition": 5,
+      "cycles_to_first_transition": [],
+      "spread": null,
+      "spread_note": "no episode left the start map inside the episode window \u2014 every episode is censored at the cap, so no cycle distribution exists",
+      "transitions_held": {
+        "held": 0,
+        "of": 5
+      },
+      "direction_lock_rate": {
+        "mean": 0.0067,
+        "per_episode": [
+          0.0,
+          0.0333,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "cost_usd_observed_total": 0.003205,
+      "episodes": [
+        {
+          "run_id": "dist1_jev_e001",
+          "episode": 1,
+          "exit_code": 0,
+          "duration_s": 10.8,
+          "cycles": 30,
+          "censored": true,
+          "first_transition_cycle": null,
+          "first_route_1_cycle": null,
+          "held_the_transition": false,
+          "transitions_count": 0,
+          "map_transitions": [],
+          "route1_cycles": 0,
+          "final_map": "Pallet Town",
+          "maps_seen": [
+            "Pallet Town"
+          ],
+          "direction_lock": {
+            "warned_cycles": 0,
+            "total_cycles": 30,
+            "rate": 0.0
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        },
+        {
+          "run_id": "dist1_jev_e002",
+          "episode": 2,
+          "exit_code": 0,
+          "duration_s": 16.7,
+          "cycles": 30,
+          "censored": true,
+          "first_transition_cycle": null,
+          "first_route_1_cycle": null,
+          "held_the_transition": false,
+          "transitions_count": 0,
+          "map_transitions": [],
+          "route1_cycles": 0,
+          "final_map": "Pallet Town",
+          "maps_seen": [
+            "Pallet Town"
+          ],
+          "direction_lock": {
+            "warned_cycles": 1,
+            "total_cycles": 30,
+            "rate": 0.0333
+          },
+          "teacher_calls": 1,
+          "cost_usd_observed": 0.003205,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        },
+        {
+          "run_id": "dist1_jev_e003",
+          "episode": 3,
+          "exit_code": 0,
+          "duration_s": 10.3,
+          "cycles": 30,
+          "censored": true,
+          "first_transition_cycle": null,
+          "first_route_1_cycle": null,
+          "held_the_transition": false,
+          "transitions_count": 0,
+          "map_transitions": [],
+          "route1_cycles": 0,
+          "final_map": "Pallet Town",
+          "maps_seen": [
+            "Pallet Town"
+          ],
+          "direction_lock": {
+            "warned_cycles": 0,
+            "total_cycles": 30,
+            "rate": 0.0
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        },
+        {
+          "run_id": "dist1_jev_e004",
+          "episode": 4,
+          "exit_code": 0,
+          "duration_s": 10.8,
+          "cycles": 30,
+          "censored": true,
+          "first_transition_cycle": null,
+          "first_route_1_cycle": null,
+          "held_the_transition": false,
+          "transitions_count": 0,
+          "map_transitions": [],
+          "route1_cycles": 0,
+          "final_map": "Pallet Town",
+          "maps_seen": [
+            "Pallet Town"
+          ],
+          "direction_lock": {
+            "warned_cycles": 0,
+            "total_cycles": 30,
+            "rate": 0.0
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        },
+        {
+          "run_id": "dist1_jev_e005",
+          "episode": 5,
+          "exit_code": 0,
+          "duration_s": 10.7,
+          "cycles": 30,
+          "censored": true,
+          "first_transition_cycle": null,
+          "first_route_1_cycle": null,
+          "held_the_transition": false,
+          "transitions_count": 0,
+          "map_transitions": [],
+          "route1_cycles": 0,
+          "final_map": "Pallet Town",
+          "maps_seen": [
+            "Pallet Town"
+          ],
+          "direction_lock": {
+            "warned_cycles": 0,
+            "total_cycles": 30,
+            "rate": 0.0
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        }
+      ]
+    },
+    "llm": {
+      "n_episodes": 6,
+      "n_transitions_observed": 6,
+      "n_censored_no_transition": 0,
+      "cycles_to_first_transition": [
+        6,
+        8,
+        12,
+        15,
+        23,
+        26
+      ],
+      "spread": {
+        "min": 6,
+        "median": 13.5,
+        "max": 26,
+        "stdev": 8.05
+      },
+      "transitions_held": {
+        "held": 4,
+        "of": 6
+      },
+      "direction_lock_rate": {
+        "mean": 0.4111,
+        "per_episode": [
+          0.4333,
+          0.2667,
+          0.4667,
+          0.5,
+          0.4,
+          0.4
+        ]
+      },
+      "cost_usd_observed_total": 0.0,
+      "episodes": [
+        {
+          "run_id": "dist1_llm_e001",
+          "episode": 1,
+          "exit_code": 0,
+          "duration_s": 130.6,
+          "cycles": 30,
+          "censored": false,
+          "first_transition_cycle": 23,
+          "first_route_1_cycle": 23,
+          "held_the_transition": false,
+          "transitions_count": 2,
+          "map_transitions": [
+            {
+              "cycle": 23,
+              "from_map": "Pallet Town",
+              "to_map": "Route 1"
+            },
+            {
+              "cycle": 30,
+              "from_map": "Route 1",
+              "to_map": "Pallet Town"
+            }
+          ],
+          "route1_cycles": 5,
+          "final_map": "Pallet Town",
+          "maps_seen": [
+            "Pallet Town",
+            "Route 1"
+          ],
+          "direction_lock": {
+            "warned_cycles": 13,
+            "total_cycles": 30,
+            "rate": 0.4333
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        },
+        {
+          "run_id": "dist1_llm_e002",
+          "episode": 2,
+          "exit_code": 0,
+          "duration_s": 145.6,
+          "cycles": 30,
+          "censored": false,
+          "first_transition_cycle": 8,
+          "first_route_1_cycle": 8,
+          "held_the_transition": true,
+          "transitions_count": 3,
+          "map_transitions": [
+            {
+              "cycle": 8,
+              "from_map": "Pallet Town",
+              "to_map": "Route 1"
+            },
+            {
+              "cycle": 9,
+              "from_map": "Route 1",
+              "to_map": "Pallet Town"
+            },
+            {
+              "cycle": 10,
+              "from_map": "Pallet Town",
+              "to_map": "Route 1"
+            }
+          ],
+          "route1_cycles": 16,
+          "final_map": "Route 1",
+          "maps_seen": [
+            "Pallet Town",
+            "Route 1"
+          ],
+          "direction_lock": {
+            "warned_cycles": 8,
+            "total_cycles": 30,
+            "rate": 0.2667
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        },
+        {
+          "run_id": "dist1_llm_e003",
+          "episode": 3,
+          "exit_code": 0,
+          "duration_s": 192.5,
+          "cycles": 28,
+          "censored": false,
+          "first_transition_cycle": 6,
+          "first_route_1_cycle": 6,
+          "held_the_transition": true,
+          "transitions_count": 1,
+          "map_transitions": [
+            {
+              "cycle": 6,
+              "from_map": "Pallet Town",
+              "to_map": "Route 1"
+            }
+          ],
+          "route1_cycles": 19,
+          "final_map": "Route 1",
+          "maps_seen": [
+            "Pallet Town",
+            "Route 1"
+          ],
+          "direction_lock": {
+            "warned_cycles": 14,
+            "total_cycles": 30,
+            "rate": 0.4667
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        },
+        {
+          "run_id": "dist1_llm_e004",
+          "episode": 4,
+          "exit_code": 0,
+          "duration_s": 125.5,
+          "cycles": 30,
+          "censored": false,
+          "first_transition_cycle": 26,
+          "first_route_1_cycle": 26,
+          "held_the_transition": true,
+          "transitions_count": 1,
+          "map_transitions": [
+            {
+              "cycle": 26,
+              "from_map": "Pallet Town",
+              "to_map": "Route 1"
+            }
+          ],
+          "route1_cycles": 3,
+          "final_map": "Route 1",
+          "maps_seen": [
+            "Pallet Town",
+            "Route 1"
+          ],
+          "direction_lock": {
+            "warned_cycles": 15,
+            "total_cycles": 30,
+            "rate": 0.5
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        },
+        {
+          "run_id": "dist1_llm_e005",
+          "episode": 5,
+          "exit_code": 0,
+          "duration_s": 150.8,
+          "cycles": 30,
+          "censored": false,
+          "first_transition_cycle": 12,
+          "first_route_1_cycle": 12,
+          "held_the_transition": true,
+          "transitions_count": 1,
+          "map_transitions": [
+            {
+              "cycle": 12,
+              "from_map": "Pallet Town",
+              "to_map": "Route 1"
+            }
+          ],
+          "route1_cycles": 16,
+          "final_map": "Route 1",
+          "maps_seen": [
+            "Pallet Town",
+            "Route 1"
+          ],
+          "direction_lock": {
+            "warned_cycles": 12,
+            "total_cycles": 30,
+            "rate": 0.4
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        },
+        {
+          "run_id": "dist1_llm_e006",
+          "episode": 6,
+          "exit_code": 0,
+          "duration_s": 109.9,
+          "cycles": 30,
+          "censored": false,
+          "first_transition_cycle": 15,
+          "first_route_1_cycle": 15,
+          "held_the_transition": false,
+          "transitions_count": 2,
+          "map_transitions": [
+            {
+              "cycle": 15,
+              "from_map": "Pallet Town",
+              "to_map": "Route 1"
+            },
+            {
+              "cycle": 29,
+              "from_map": "Route 1",
+              "to_map": "Pallet Town"
+            }
+          ],
+          "route1_cycles": 11,
+          "final_map": "Pallet Town",
+          "maps_seen": [
+            "Pallet Town",
+            "Route 1"
+          ],
+          "direction_lock": {
+            "warned_cycles": 12,
+            "total_cycles": 30,
+            "rate": 0.4
+          },
+          "teacher_calls": 0,
+          "cost_usd_observed": 0.0,
+          "boot_md5": "81e4ec4e8d1b62002bc78f619c5fc79c"
+        }
+      ]
+    }
+  },
+  "verdict": "SUPPORTS the architecture hypothesis as a DISTRIBUTION: 6/6 controller-path episodes left Pallet Town and reached Route 1 (min 6 / median 13.5 / max 26 cycles, stdev 8.05) against 5/5 JEV episodes censored at the 30-cycle cap with zero transitions. CTRL-WIN's n=1 result (c13) sits at this distribution's median \u2014 it was representative, not a lucky draw. The falsifier did not fire. Two honest deductions: (1) HELD is 4/6 \u2014 the controller still wanders back into Pallet Town inside the window in a third of episodes; (2) direction-locking persists (mean 41% of cycles, per-episode 27-50%), vs ~0.7% for JEV, whose failure mode is staying put rather than locking up.",
+  "caveats": [
+    "n is small (the board row asks for >=5/mode); treat the spread as order-of-magnitude evidence, not a tight interval",
+    "cost_usd_observed sums only cost_usd fields present in run logs: JEV rows carry per-call cost_usd (5 episodes total ~$0.0032) but llm-mode controller calls are NOT itemized with a cost field in the run logs, so llm spend is unmeasured here \u2014 by public pricing it is roughly 30 controller calls (~$0.5) per episode, the honest cost comparison lives in the DECIDE-1 owner decision, not here",
+    "all 5 JEV episodes are censored at the 30-cycle cap, so the JEV 'distribution' is an upper bound (>=30 cycles), not a median; the ~202-episode baseline remains the reference for how rare the JEV transition is"
+  ]
+}
