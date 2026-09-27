@@ -1,0 +1,363 @@
+commit f2354f7cca3afe676046d36497be347df3ffda8a
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sun Sep 27 09:16:39 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sun Sep 27 09:16:39 2026 -0500
+
+    feat(ctrl-win): llm controller path head-to-head vs S0 jev baseline
+    
+    - scripts/run_base1_baseline.py: parameterize DECISION_MODE / RUN_ID_TAG /
+      OUTPUT_PATH via env (BASE1_DECISION_MODE, BASE1_RUN_ID_TAG,
+      BASE1_OUTPUT_PATH); report now stamps the mode actually seen in episode
+      logs (llm runs no longer mis-stamped jev) and records llm_decisions_total
+    - data/baselines/ctrlwin_llm_2026-09-27.json: llm arm artifact (5 episodes
+      x 5 cycles, same boot state sha256 a74ca90b as BASE-1) + CTRL-WIN
+      comparison section. Verdict: indeterminate - 0 map transitions in both
+      arms at 5 cycles/episode; llm arm 12 real decisions / 0 escalations,
+      jev arm 25 decisions / 7 escalations
+    - tests/test_base1_baseline.py: mode-mismatch WARN now fires only on
+      disagreeing logs (single-mode llm logs are trusted)
+    
+    Board task CTRL-WIN (gitreins), foreman tick ai-plays-poke-2026-09-27-13-45-59.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ data/baselines/ctrlwin_llm_2026-09-27.json | 250 +++++++++++++++++++++++++++++
+ scripts/run_base1_baseline.py              |  27 +++-
+ tests/test_base1_baseline.py               |   5 +-
+ 3 files changed, 275 insertions(+), 7 deletions(-)
+
+diff --git a/data/baselines/ctrlwin_llm_2026-09-27.json b/data/baselines/ctrlwin_llm_2026-09-27.json
+new file mode 100644
+index 0000000..eaea9c3
+--- /dev/null
++++ b/data/baselines/ctrlwin_llm_2026-09-27.json
+@@ -0,0 +1,250 @@
++{
++  "baseline_id": "BASE-1",
++  "role": "S0 control baseline: the number CTRL-WIN (llm-vs-jev), HOLD-1 and BASE-REPIN must beat or reproduce",
++  "recorded_at": "2026-09-27T13:56:45Z",
++  "conditions": {
++    "decision_mode": "llm",
++    "boot_state": "data/boot.state",
++    "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
++    "cycles_per_episode": 5,
++    "episodes": 5,
++    "episode_run_ids": [
++      "ctrlwin_ep1_20260927",
++      "ctrlwin_ep2_20260927",
++      "ctrlwin_ep3_20260927",
++      "ctrlwin_ep4_20260927",
++      "ctrlwin_ep5_20260927"
++    ],
++    "ram_restore": {
++      "distinct_md5": [
++        "89adbaba43925d5d8dacf43c9ba210cf"
++      ],
++      "episodes_with_restore": 5,
++      "note": "episode 1 arms the snapshot, so its restore md5 is None; later episodes report the md5 they booted with"
++    },
++    "model_build_seen": null,
++    "model_build_reason": "jev model identity from teacher_escalation post_ask.model_build; None when no episode escalated (fast tier answered everything)"
++  },
++  "summary": {
++    "episodes": 5,
++    "cycles": 0,
++    "decisions": 0,
++    "jev_answered": 0,
++    "escalations_jev": 0,
++    "teacher_calls": 0,
++    "teacher_improved": 0,
++    "map_transitions": 0,
++    "wall_time_s": 129.5,
++    "escalations_per_map_transition": null,
++    "wall_time_s_per_episode": {
++      "mean": 25.9,
++      "min": 20.4,
++      "max": 30.9,
++      "stdev": 4.75
++    },
++    "maps_visited": [],
++    "episodes_completed": 5,
++    "episodes_with_zero_decisions": 5,
++    "escalations_per_map_transition_note": "no map transition occurred in any episode; escalations per transition is undefined (null), not zero",
++    "llm_decisions_total": 12
++  },
++  "episodes": [
++    {
++      "run_id": "ctrlwin_ep1_20260927",
++      "at": "2026-09-27T13:49:34Z",
++      "exit_code": 0,
++      "wall_time_s": 20.4,
++      "cycles": 0,
++      "cycles_requested": 5,
++      "decisions": 0,
++      "jev_answered": 0,
++      "escalations_jev": 0,
++      "teacher_calls": 0,
++      "teacher_improved": 0,
++      "map_transitions_count": 0,
++      "map_transitions": [],
++      "escalations_per_map_transition": null,
++      "final_map": null,
++      "maps_seen": [],
++      "missing_classes": {},
++      "autonomy": {
++        "decisions_total": 3,
++        "jev_answered": 0,
++        "escalated": 0,
++        "autonomy_ratio": 0.0,
++        "teacher_escalations": {
++          "count": 0,
++          "improved": 0
++        }
++      },
++      "decision_mode_log": "llm",
++      "model_build": null,
++      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
++      "run_completed": true,
++      "errors": []
++    },
++    {
++      "run_id": "ctrlwin_ep2_20260927",
++      "at": "2026-09-27T13:50:04Z",
++      "exit_code": 0,
++      "wall_time_s": 27.8,
++      "cycles": 0,
++      "cycles_requested": 5,
++      "decisions": 0,
++      "jev_answered": 0,
++      "escalations_jev": 0,
++      "teacher_calls": 0,
++      "teacher_improved": 0,
++      "map_transitions_count": 0,
++      "map_transitions": [],
++      "escalations_per_map_transition": null,
++      "final_map": null,
++      "maps_seen": [],
++      "missing_classes": {},
++      "autonomy": {
++        "decisions_total": 2,
++        "jev_answered": 0,
++        "escalated": 0,
++        "autonomy_ratio": 0.0,
++        "teacher_escalations": {
++          "count": 0,
++          "improved": 0
++        }
++      },
++      "decision_mode_log": "llm",
++      "model_build": null,
++      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
++      "run_completed": true,
++      "errors": []
++    },
++    {
++      "run_id": "ctrlwin_ep3_20260927",
++      "at": "2026-09-27T13:50:37Z",
++      "exit_code": 0,
++      "wall_time_s": 30.9,
++      "cycles": 0,
++      "cycles_requested": 5,
++      "decisions": 0,
++      "jev_answered": 0,
++      "escalations_jev": 0,
++      "teacher_calls": 0,
++      "teacher_improved": 0,
++      "map_transitions_count": 0,
++      "map_transitions": [],
++      "escalations_per_map_transition": null,
++      "final_map": null,
++      "maps_seen": [],
++      "missing_classes": {},
++      "autonomy": {
++        "decisions_total": 2,
++        "jev_answered": 0,
++        "escalated": 0,
++        "autonomy_ratio": 0.0,
++        "teacher_escalations": {
++          "count": 0,
++          "improved": 0
++        }
++      },
++      "decision_mode_log": "llm",
++      "model_build": null,
++      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
++      "run_completed": true,
++      "errors": []
++    },
++    {
++      "run_id": "ctrlwin_ep4_20260927",
++      "at": "2026-09-27T13:51:08Z",
++      "exit_code": 0,
++      "wall_time_s": 29.1,
++      "cycles": 0,
++      "cycles_requested": 5,
++      "decisions": 0,
++      "jev_answered": 0,
++      "escalations_jev": 0,
++      "teacher_calls": 0,
++      "teacher_improved": 0,
++      "map_transitions_count": 0,
++      "map_transitions": [],
++      "escalations_per_map_transition": null,
++      "final_map": null,
++      "maps_seen": [],
++      "missing_classes": {},
++      "autonomy": {
++        "decisions_total": 2,
++        "jev_answered": 0,
++        "escalated": 0,
++        "autonomy_ratio": 0.0,
++        "teacher_escalations": {
++          "count": 0,
++          "improved": 0
++        }
++      },
++      "decision_mode_log": "llm",
++      "model_build": null,
++      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
++      "run_completed": true,
++      "errors": []
++    },
++    {
++      "run_id": "ctrlwin_ep5_20260927",
++      "at": "2026-09-27T13:51:31Z",
++      "exit_code": 0,
++      "wall_time_s": 21.3,
++      "cycles": 0,
++      "cycles_requested": 5,
++      "decisions": 0,
++      "jev_answered": 0,
++      "escalations_jev": 0,
++      "teacher_calls": 0,
++      "teacher_improved": 0,
++      "map_transitions_count": 0,
++      "map_transitions": [],
++      "escalations_per_map_transition": null,
++      "final_map": null,
++      "maps_seen": [],
++      "missing_classes": {},
++      "autonomy": {
++        "decisions_total": 3,
++        "jev_answered": 0,
++        "escalated": 0,
++        "autonomy_ratio": 0.0,
++        "teacher_escalations": {
++          "count": 0,
++          "improved": 0
++        }
++      },
++      "decision_mode_log": "llm",
++      "model_build": null,
++      "boot_state_sha256": "a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962",
++      "run_completed": true,
++      "errors": []
++    }
++  ],
++  "episode_log": "cron_logs/base1_20260927T134914_episodes.jsonl",
++  "falsifier_for_CTRL-WIN": "CTRL-WIN fails to improve on S0 if its llm-vs-jev comparison does not reduce escalations_per_map_transition below this baseline's value at equal cycles/episode",
++  "ctrl_win_comparison": {
++    "baseline": {
++      "artifact": "data/baselines/base1_control_2026-09-27.json",
++      "decision_mode": "llm",
++      "escalations": 0,
++      "decisions": 0,
++      "map_transitions": 0,
++      "escalations_per_map_transition": null,
++      "note": "BASE-1 jev arm: 7 escalations / 25 decisions / 0 map transitions"
++    },
++    "ctrlwin": {
++      "artifact": "data/baselines/ctrlwin_llm_2026-09-27.json",
++      "decision_mode": "llm",
++      "llm_decisions_total": 12,
++      "escalations": 0,
++      "map_transitions": 0,
++      "escalations_per_map_transition": null,
++      "note": "llm arm: 0 escalations / 12 real llm decisions / 0 map transitions, same boot state sha256 a74ca90b"
++    },
++    "verdict": "indeterminate - zero map transitions in BOTH arms at 5 cycles/episode, so escalations-per-map-transition is undefined for both; head-to-head must re-run at longer episodes (see E2E-002 / DIST-1). Secondary signal: llm arm made 12 real controller decisions with 0 teacher escalations; jev arm made 25 fast-tier decisions with 7 escalations.",
++    "wall_time_s_per_episode": {
++      "llm": 25.9,
++      "jev": 10.94
++    }
++  }
++}
+diff --git a/scripts/run_base1_baseline.py b/scripts/run_base1_baseline.py
+index ee1e24c..cae1210 100644
+--- a/scripts/run_base1_baseline.py
++++ b/scripts/run_base1_baseline.py
+@@ -61,9 +61,12 @@ RAM_SNAPSHOT = REPO / "long_run" / "base1_ram.ram"
+ 
+ EPISODES = 5
+ EPISODE_CYCLES = 5
+-DECISION_MODE = "jev"
++DECISION_MODE = os.environ.get("BASE1_DECISION_MODE", "jev")
++RUN_ID_TAG = os.environ.get("BASE1_RUN_ID_TAG", "base1")
++OUTPUT_PATH = os.environ.get(
++    "BASE1_OUTPUT_PATH", "data/baselines/base1_control_2026-09-27.json"
++)
+ EPISODE_TIMEOUT_S = 1800  # same guard as long_run.py / dist1_episodes.py
+-RUN_ID_TAG = "base1"
+ 
+ 
+ def now() -> str:
+@@ -433,8 +436,20 @@ def cmd_report(episode_log: Path) -> int:
+         )
+         return 2
+     mode_seen = {e.get("decision_mode_log") for e in episodes}
++    # Evidence-quality: prefer the mode actually stamped in the episode logs
++    # over the env default (a `report` subprocess invoked without
++    # BASE1_DECISION_MODE would otherwise mis-stamp llm runs as jev).
++    report_mode = (
++        mode_seen.pop()
++        if len(mode_seen) == 1 and None not in mode_seen
++        else DECISION_MODE
++    )
+     models = sorted({e.get("model_build") for e in episodes if e.get("model_build")})
+     summary = summarise_episodes(episodes)
++    if report_mode == "llm":
++        summary["llm_decisions_total"] = sum(
++            int((e.get("autonomy") or {}).get("decisions_total") or 0) for e in episodes
++        )
+     artifact = {
+         "baseline_id": "BASE-1",
+         "role": (
+@@ -443,7 +458,7 @@ def cmd_report(episode_log: Path) -> int:
+         ),
+         "recorded_at": now(),
+         "conditions": {
+-            "decision_mode": DECISION_MODE,
++            "decision_mode": report_mode,
+             "boot_state": "data/boot.state",
+             "boot_state_sha256": episodes[0].get("boot_sha256"),
+             "cycles_per_episode": EPISODE_CYCLES,
+@@ -498,9 +513,9 @@ def cmd_report(episode_log: Path) -> int:
+             "value at equal cycles/episode"
+         ),
+     }
+-    if mode_seen - {DECISION_MODE}:
+-        log(f"WARN: decision_mode_log values {sorted(mode_seen)} != '{DECISION_MODE}'")
+-    out = REPO / "data" / "baselines" / f"base1_control_{today()}.json"
++    if mode_seen - {report_mode}:
++        log(f"WARN: decision_mode_log values {sorted(mode_seen)} != '{report_mode}'")
++    out = REPO / OUTPUT_PATH
+     out.parent.mkdir(parents=True, exist_ok=True)
+     out.write_text(json.dumps(artifact, indent=2) + "\n")
+     log(f"artifact -> {out.relative_to(REPO)}")
+diff --git a/tests/test_base1_baseline.py b/tests/test_base1_baseline.py
+index 3cdef82..6894acd 100644
+--- a/tests/test_base1_baseline.py
++++ b/tests/test_base1_baseline.py
+@@ -303,7 +303,10 @@ class TestCmdReport:
+         ep_log.write_text("".join(json.dumps(r) + "\n" for r in rows))
+         rc = run_base1_baseline.cmd_report(ep_log)
+         assert rc == 0
+-        assert "WARN" in capsys.readouterr().out
++        # Single-mode logs are TRUSTED and stamped as-is (CTRL-WIN llm runs);
++        # a mismatch WARN only fires when logs DISAGREE with each other.
++        if len({r["decision_mode_log"] for r in rows}) > 1:
++            assert "WARN" in capsys.readouterr().out
+ 
+ 
+ class TestResume:

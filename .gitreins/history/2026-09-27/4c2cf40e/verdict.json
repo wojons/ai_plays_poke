@@ -1,0 +1,120 @@
+{
+  "task_id": "CTRL-WIN",
+  "task_title": "Measure the controller path head-to-head vs the locked S0 jev baseline",
+  "task_criteria": [
+    "A CTRL-WIN artifact exists under data/baselines/ recording decision-mode llm runs from the same S0 boot state (same cycles/episode count as BASE-1) with escalations-per-map-transition compared against the BASE-1 jev numbers; the comparison is written to the board row. Falsifier: no llm-mode artifact or no comparison against BASE-1."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "f2354f7cca3afe676046d36497be347df3ffda8a",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T142042.861714Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n9:22AM INF scanned ~308185881 bytes (308.19 MB) in 15.7s\n9:22AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 90099 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T142042.861714Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4290 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [457935 chars omitted \u2014 5057 line(s)] \u2026\ntest_bench_pathfinding_find_path               491.0398 (1.09)           2,384.0112 (1.0)             669.4805 (1.02)            446.3573 (1.46)            541.0402 (1.0)             42.7390 (1.0)           1;3  1,493,695.3778 (0.98)         17           1\ntest_bench_vision_pipeline_validate          6,001.0352 (13.31)         31,467.9928 (13.20)         7,599.6784 (11.62)         1,687.9481 (5.52)          6,861.9847 (12.68)          842.0320 (19.70)   6195;6661    131,584.5147 (0.09)      30553           1\ntest_bench_ram_reader_observe            1,043,160.9699 (>1000.0)  172,900,560.0209 (>1000.0)   2,042,724.0108 (>1000.0)  10,377,750.6338 (>1000.0)   1,231,539.0049 (>1000.0)    223,812.0069 (>1000.0)      4;79        489.5424 (0.00)        853           1\ntest_bench_vision_pipeline_process      37,207,129.0039 (>1000.0)   50,419,197.0103 (>1000.0)  43,469,774.3129 (>1000.0)   3,714,589.1816 (>1000.0)  42,924,974.5212 (>1000.0)  5,243,311.9854 (>1000.0)       9;0         23.0045 (0.00)         26           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4276 passed, 14 skipped in 243.86s (0:04:03) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T142042.861714Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 A CTRL-WIN artifact exists under data/baselines/ recording decision-mode llm runs from the same S0 boot state (same cycles/episode count as BASE-1) with escalations-per-map-transition compared against the BASE-1 jev numbers; the comparison is written to the board row. Falsifier: no llm-mode artifact or no comparison against BASE-1.: Artifact half is satisfied: data/baselines/ctrlwin_llm_2026-09-27.json exists with conditions.decision_mode='llm', boot_state_sha256='a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962' (identical to BASE-1 control data/baselines/base1_control_2026-09-27.json), cycles_per_episode=5 and episodes=5 (identical to BASE-1), and a ctrl_win_comparison block comparing against BASE-1 jev numbers (baseline: 7 escalations/25 decisions/0 map_transitions; ctrlwin: 0 escalations/12 llm decisions/0 transitions; escalations_per_map_transition=null in both arms). BUT the required 'comparison is written to the board row' is unmet: .coding-hermes/board/tasks.jsonl:133 still shows the CTRL-WIN row as \"status\": \"pending\" with no comparison field \u2014 grep for 'escalations_per_map_transition' or 'ctrl_win_comparison' in tasks.jsonl returns zero hits, and events.jsonl has no CTRL-WIN completion event (only notes at lines 293-294). The comparison lives only inside the artifact JSON, never in the board row, so the criterion's explicit board-row requirement fails.\nThe llm-mode artifact and BASE-1 comparison exist in data/baselines/ctrlwin_llm_2026-09-27.json, but the comparison was never written to the board row (tasks.jsonl CTRL-WIN still 'pending', no comparison field), so the criterion is not fully met.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 A CTRL-WIN artifact exists under data/baselines/ recording decision-mode llm runs from the same S0 boot state (same cycles/episode count as BASE-1) with escalations-per-map-transition compared against the BASE-1 jev numbers; the comparison is written to the board row. Falsifier: no llm-mode artifact or no comparison against BASE-1.: Artifact half is satisfied: data/baselines/ctrlwin_llm_2026-09-27.json exists with conditions.decision_mode='llm', boot_state_sha256='a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962' (identical to BASE-1 control data/baselines/base1_control_2026-09-27.json), cycles_per_episode=5 and episodes=5 (identical to BASE-1), and a ctrl_win_comparison block comparing against BASE-1 jev numbers (baseline: 7 escalations/25 decisions/0 map_transitions; ctrlwin: 0 escalations/12 llm decisions/0 transitions; escalations_per_map_transition=null in both arms). BUT the required 'comparison is written to the board row' is unmet: .coding-hermes/board/tasks.jsonl:133 still shows the CTRL-WIN row as \"status\": \"pending\" with no comparison field \u2014 grep for 'escalations_per_map_transition' or 'ctrl_win_comparison' in tasks.jsonl returns zero hits, and events.jsonl has no CTRL-WIN completion event (only notes at lines 293-294). The comparison lives only inside the artifact JSON, never in the board row, so the criterion's explicit board-row requirement fails.\nThe llm-mode artifact and BASE-1 comparison exist in data/baselines/ctrlwin_llm_2026-09-27.json, but the comparison was never written to the board row (tasks.jsonl CTRL-WIN still 'pending', no comparison field), so the criterion is not fully met.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "A CTRL-WIN artifact exists under data/baselines/ recording decision-mode llm runs from the same S0 boot state (same cycles/episode count as BASE-1) with escalations-per-map-transition compared against the BASE-1 jev numbers; the comparison is written to the board row. Falsifier: no llm-mode artifact or no comparison against BASE-1.",
+                "status": "FAIL",
+                "detail": "Artifact half is satisfied: data/baselines/ctrlwin_llm_2026-09-27.json exists with conditions.decision_mode='llm', boot_state_sha256='a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962' (identical to BASE-1 control data/baselines/base1_control_2026-09-27.json), cycles_per_episode=5 and episodes=5 (identical to BASE-1), and a ctrl_win_comparison block comparing against BASE-1 jev numbers (baseline: 7 escalations/25 decisions/0 map_transitions; ctrlwin: 0 escalations/12 llm decisions/0 transitions; escalations_per_map_transition=null in both arms). BUT the required 'comparison is written to the board row' is unmet: .coding-hermes/board/tasks.jsonl:133 still shows the CTRL-WIN row as \"status\": \"pending\" with no comparison field \u2014 grep for 'escalations_per_map_transition' or 'ctrl_win_comparison' in tasks.jsonl returns zero hits, and events.jsonl has no CTRL-WIN completion event (only notes at lines 293-294). The comparison lives only inside the artifact JSON, never in the board row, so the criterion's explicit board-row requirement fails.",
+                "resolution_probability": 0.13
+              }
+            ],
+            "summary": "The llm-mode artifact and BASE-1 comparison exist in data/baselines/ctrlwin_llm_2026-09-27.json, but the comparison was never written to the board row (tasks.jsonl CTRL-WIN still 'pending', no comparison field), so the criterion is not fully met."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: CTRL-WIN\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 A CTRL-WIN artifact exists under data/baselines/ recording decision-mode llm runs from the same S0 boot state (same cycles/episode count as BASE-1) with escalations-per-map-transition compared against the BASE-1 jev numbers; the comparison is written to the board row. Falsifier: no llm-mode artifact or no comparison against BASE-1.: Artifact half is satisfied: data/baselines/ctrlwin_llm_2026-09-27.json exists with conditions.decision_mode='llm', boot_state_sha256='a74ca90bf1b2616f4e97cf17b8b76554bec10f54bd7ad5808660f596a8bf0962' (identical to BASE-1 control data/baselines/base1_control_2026-09-27.json), cycles_per_episode=5 and episodes=5 (identical to BASE-1), and a ctrl_win_comparison block comparing against BASE-1 jev numbers (baseline: 7 escalations/25 decisions/0 map_transitions; ctrlwin: 0 escalations/12 llm decisions/0 transitions; escalations_per_map_transition=null in both arms). BUT the required 'comparison is written to the board row' is unmet: .coding-hermes/board/tasks.jsonl:133 still shows the CTRL-WIN row as \"status\": \"pending\" with no comparison field \u2014 grep for 'escalations_per_map_transition' or 'ctrl_win_comparison' in tasks.jsonl returns zero hits, and events.jsonl has no CTRL-WIN completion event (only notes at lines 293-294). The comparison lives only inside the artifact JSON, never in the board row, so the criterion's explicit board-row requirement fails.\nThe llm-mode artifact and BASE-1 comparison exist in data/baselines/ctrlwin_llm_2026-09-27.json, but the comparison was never written to the board row (tasks.jsonl CTRL-WIN still 'pending', no comparison field), so the criterion is not fully met.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-27T14:29:23.013242",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-27T14:29:23.041772+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 13084,
+        "truncated": false,
+        "source": "git show f2354f7cca3a"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 903,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "CTRL-WIN"
+  }
+}

@@ -1,0 +1,120 @@
+{
+  "task_id": "DIST-1",
+  "task_title": "CTRL-WIN as a distribution \u2014 N episodes, both modes, same boot state",
+  "task_criteria": [
+    "Both modes have >=5 episodes and cycles-to-transition distributions are reported with spread (not just a mean), same boot state, per-episode metrics recorded"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "62f0b52b4475d8d60740abe0cc059e62c93ef3d1",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T095200.574896Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:58AM INF scanned ~307091310 bytes (307.09 MB) in 12.8s\n4:58AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 89653 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T095200.574896Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4265 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [455285 chars omitted \u2014 5032 line(s)] \u2026\ntest_bench_pathfinding_small_grid              489.9921 (1.02)          11,491.0072 (4.99)            550.5448 (1.0)             246.5385 (1.0)             530.9703 (1.0)             30.0352 (1.0)        30;239  1,816,382.6691 (1.0)        2123           1\ntest_bench_vision_pipeline_validate          6,071.9904 (12.62)         22,051.0410 (9.57)          6,966.5328 (12.65)         1,236.9613 (5.02)          6,552.0289 (12.34)          331.0270 (11.02)   4218;4572    143,543.4289 (0.08)      36496           1\ntest_bench_ram_reader_observe              980,617.0128 (>1000.0)  177,478,188.9981 (>1000.0)   1,886,608.3494 (>1000.0)  10,006,441.2519 (>1000.0)   1,170,198.0256 (>1000.0)    101,640.7477 (>1000.0)     4;154        530.0517 (0.00)        961           1\ntest_bench_vision_pipeline_process      35,007,404.9784 (>1000.0)   41,714,010.0035 (>1000.0)  36,847,830.4964 (>1000.0)   1,496,418.4705 (>1000.0)  36,767,139.9727 (>1000.0)  1,553,494.0176 (>1000.0)       5;2         27.1386 (0.00)         28           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4251 passed, 14 skipped in 265.56s (0:04:25) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T095200.574896Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Both modes have >=5 episodes and cycles-to-transition distributions are reported with spread (not just a mean), same boot state, per-episode metrics recorded: data/baselines/dist1_ctrlwin_distribution_2026-09-27.json: llm mode n_episodes=6 with cycles_to_first_transition=[6,8,12,15,23,26] and spread={min:6,median:13.5,max:26,stdev:8.05} (real spread, not just a mean); jev mode n_episodes=5, all censored at the 30-cycle cap so spread=null with an explicit spread_note (no fabricated number). Same boot state: boot_md5=81e4ec4e8d1b62002bc78f619c5fc79c stamped on all 11 episode records and matches md5sum of data/baselines/base-1_boot.state. Per-episode metrics recorded for every episode (first_transition_cycle, held_the_transition, map_transitions, direction_lock.rate, cost_usd_observed, boot_md5, etc.). Driver scripts/dist1_episodes.py:229 summarise_distribution computes min/median/max/stdev. Tests: ./.venv/bin/pytest tests/test_dist1_episodes.py -v => 16 passed (incl. test_all_censored_reports_no_fabricated_spread, test_report_writes_both_modes_with_spread); combined with tests/test_system_modes.py => 45 passed. Commit b9d771c documents 6 llm vs 5 jev episodes from one boot state.\nDIST-1 is fully satisfied: both modes have >=5 episodes from the identical boot state (md5-verified), the llm cycles-to-transition distribution is reported with min/median/max/stdev spread, the all-censored jev mode honestly reports no spread, and per-episode metrics are recorded with 16 passing unit tests.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Both modes have >=5 episodes and cycles-to-transition distributions are reported with spread (not just a mean), same boot state, per-episode metrics recorded: data/baselines/dist1_ctrlwin_distribution_2026-09-27.json: llm mode n_episodes=6 with cycles_to_first_transition=[6,8,12,15,23,26] and spread={min:6,median:13.5,max:26,stdev:8.05} (real spread, not just a mean); jev mode n_episodes=5, all censored at the 30-cycle cap so spread=null with an explicit spread_note (no fabricated number). Same boot state: boot_md5=81e4ec4e8d1b62002bc78f619c5fc79c stamped on all 11 episode records and matches md5sum of data/baselines/base-1_boot.state. Per-episode metrics recorded for every episode (first_transition_cycle, held_the_transition, map_transitions, direction_lock.rate, cost_usd_observed, boot_md5, etc.). Driver scripts/dist1_episodes.py:229 summarise_distribution computes min/median/max/stdev. Tests: ./.venv/bin/pytest tests/test_dist1_episodes.py -v => 16 passed (incl. test_all_censored_reports_no_fabricated_spread, test_report_writes_both_modes_with_spread); combined with tests/test_system_modes.py => 45 passed. Commit b9d771c documents 6 llm vs 5 jev episodes from one boot state.\nDIST-1 is fully satisfied: both modes have >=5 episodes from the identical boot state (md5-verified), the llm cycles-to-transition distribution is reported with min/median/max/stdev spread, the all-censored jev mode honestly reports no spread, and per-episode metrics are recorded with 16 passing unit tests.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Both modes have >=5 episodes and cycles-to-transition distributions are reported with spread (not just a mean), same boot state, per-episode metrics recorded",
+                "status": "PASS",
+                "detail": "data/baselines/dist1_ctrlwin_distribution_2026-09-27.json: llm mode n_episodes=6 with cycles_to_first_transition=[6,8,12,15,23,26] and spread={min:6,median:13.5,max:26,stdev:8.05} (real spread, not just a mean); jev mode n_episodes=5, all censored at the 30-cycle cap so spread=null with an explicit spread_note (no fabricated number). Same boot state: boot_md5=81e4ec4e8d1b62002bc78f619c5fc79c stamped on all 11 episode records and matches md5sum of data/baselines/base-1_boot.state. Per-episode metrics recorded for every episode (first_transition_cycle, held_the_transition, map_transitions, direction_lock.rate, cost_usd_observed, boot_md5, etc.). Driver scripts/dist1_episodes.py:229 summarise_distribution computes min/median/max/stdev. Tests: ./.venv/bin/pytest tests/test_dist1_episodes.py -v => 16 passed (incl. test_all_censored_reports_no_fabricated_spread, test_report_writes_both_modes_with_spread); combined with tests/test_system_modes.py => 45 passed. Commit b9d771c documents 6 llm vs 5 jev episodes from one boot state.",
+                "resolution_probability": 0.18
+              }
+            ],
+            "summary": "DIST-1 is fully satisfied: both modes have >=5 episodes from the identical boot state (md5-verified), the llm cycles-to-transition distribution is reported with min/median/max/stdev spread, the all-censored jev mode honestly reports no spread, and per-episode metrics are recorded with 16 passing unit tests."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DIST-1\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Both modes have >=5 episodes and cycles-to-transition distributions are reported with spread (not just a mean), same boot state, per-episode metrics recorded: data/baselines/dist1_ctrlwin_distribution_2026-09-27.json: llm mode n_episodes=6 with cycles_to_first_transition=[6,8,12,15,23,26] and spread={min:6,median:13.5,max:26,stdev:8.05} (real spread, not just a mean); jev mode n_episodes=5, all censored at the 30-cycle cap so spread=null with an explicit spread_note (no fabricated number). Same boot state: boot_md5=81e4ec4e8d1b62002bc78f619c5fc79c stamped on all 11 episode records and matches md5sum of data/baselines/base-1_boot.state. Per-episode metrics recorded for every episode (first_transition_cycle, held_the_transition, map_transitions, direction_lock.rate, cost_usd_observed, boot_md5, etc.). Driver scripts/dist1_episodes.py:229 summarise_distribution computes min/median/max/stdev. Tests: ./.venv/bin/pytest tests/test_dist1_episodes.py -v => 16 passed (incl. test_all_censored_reports_no_fabricated_spread, test_report_writes_both_modes_with_spread); combined with tests/test_system_modes.py => 45 passed. Commit b9d771c documents 6 llm vs 5 jev episodes from one boot state.\nDIST-1 is fully satisfied: both modes have >=5 episodes from the identical boot state (md5-verified), the llm cycles-to-transition distribution is reported with min/median/max/stdev spread, the all-censored jev mode honestly reports no spread, and per-episode metrics are recorded with 16 passing unit tests.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-27T10:05:32.348340",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-27T10:05:32.365753+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 692,
+        "truncated": false,
+        "source": "git show 62f0b52b4475"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 10668,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DIST-1"
+  }
+}

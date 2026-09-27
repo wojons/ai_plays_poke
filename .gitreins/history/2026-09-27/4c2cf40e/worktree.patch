@@ -1,0 +1,18 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index f43f857..16defa1 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -898,3 +898,13 @@ tasks:
+     script under scripts/ or docs note; full suite + mypy + ruff green'
+   status: in_progress
+   created_at: '2026-09-27T11:43:09.200731+00:00'
++- id: CTRL-WIN
++  title: Measure the controller path head-to-head vs the locked S0 jev baseline
++  criteria:
++  - 'A CTRL-WIN artifact exists under data/baselines/ recording decision-mode llm
++    runs from the same S0 boot state (same cycles/episode count as BASE-1) with escalations-per-map-transition
++    compared against the BASE-1 jev numbers; the comparison is written to the board
++    row. Falsifier: no llm-mode artifact or no comparison against BASE-1.'
++  status: complete
++  created_at: '2026-09-27T13:47:26.258632+00:00'
++  completed_at: '2026-09-27T14:22:42.976340+00:00'

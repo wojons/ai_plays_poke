@@ -1,0 +1,15 @@
+commit 62f0b52b4475d8d60740abe0cc059e62c93ef3d1
+Merge: 1438052 b9d771c
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sun Sep 27 04:52:05 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sun Sep 27 04:52:05 2026 -0500
+
+    Merge DIST-1: CTRL-WIN as a distribution (worker b9d771c)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ .../dist1_ctrlwin_distribution_2026-09-27.json     | 439 ++++++++++++++++
+ scripts/dist1_episodes.py                          | 562 +++++++++++++++++++++
+ tests/test_dist1_episodes.py                       | 290 +++++++++++
+ 3 files changed, 1291 insertions(+)
