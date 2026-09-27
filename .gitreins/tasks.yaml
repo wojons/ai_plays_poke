@@ -889,3 +889,12 @@ tasks:
   status: complete
   created_at: '2026-09-27T08:06:35.707393+00:00'
   completed_at: '2026-09-27T09:58:12.641374+00:00'
+- id: BASE-1
+  title: Lock S0 control baseline
+  criteria:
+  - 'Baseline artifact: >=5 identical episodes (same boot state data/boot.state, same
+    cycle count, --decision-mode jev fast tier) recorded to data/baselines/base1_control_<date>.json
+    with escalations-per-map-transition, wall time, and cycles per episode; a re-run
+    script under scripts/ or docs note; full suite + mypy + ruff green'
+  status: in_progress
+  created_at: '2026-09-27T11:43:09.200731+00:00'
