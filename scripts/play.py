@@ -101,6 +101,10 @@ def render(r: dict) -> str:
             f"BRIDGE UP · rom={r['rom']} boot={r.get('boot_state')} "
             f"cycles={r.get('cycles')} map={r.get('map')}"
         )
+    if r.get("paused") is not None and not out:
+        out.append(f"paused: {r['paused']}")
+    if not out:
+        out.append(json.dumps(r, indent=2))
     return "\n".join(out)
 
 
@@ -108,7 +112,21 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "cmd",
-        choices=["observe", "press", "step", "frame", "save", "load", "goal", "health"],
+        choices=[
+            "observe",
+            "press",
+            "step",
+            "frame",
+            "save",
+            "load",
+            "goal",
+            "health",
+            "pause",
+            "resume",
+            "list_saves",
+            "delete_save",
+            "reset",
+        ],
     )
     ap.add_argument("args", nargs="*")
     a = ap.parse_args()
@@ -121,6 +139,8 @@ def main() -> int:
         req = {"cmd": "frame", "label": a.args[0] if a.args else "now"}
     elif a.cmd in ("save", "load"):
         req = {"cmd": a.cmd, "slot": a.args[0] if a.args else "slot1"}
+    elif a.cmd == "delete_save":
+        req = {"cmd": "delete_save", "slot": a.args[0] if a.args else ""}
     elif a.cmd == "goal":
         req = {"cmd": "goal", "text": " ".join(a.args)}
     else:

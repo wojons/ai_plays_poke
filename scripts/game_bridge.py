@@ -70,6 +70,7 @@ class Game:
         self.last_action = ""
         self.last_changed: bool | None = None
         self.cycles = 0
+        self.paused = False
         FRAME_DIR.mkdir(exist_ok=True)
 
     # ---- observation -------------------------------------------------
@@ -107,13 +108,15 @@ class Game:
         }
 
     # ---- acting ------------------------------------------------------
-    def press(self, buttons: list[str], frames: int = 5) -> dict:
+    def press(self, buttons: list[str], frames: int = 5, settle: bool = True) -> dict:
         bad = [b for b in buttons if b.lower() not in BUTTONS]
         if bad:
             return {
                 "ok": False,
                 "error": f"unknown buttons {bad}; valid {sorted(BUTTONS)}",
             }
+        if self.paused:
+            return {"ok": False, "error": "paused — call resume first", "paused": True}
         before = (
             self.reader.current_map_name(),
             self.reader.player_tile_x(),
@@ -128,12 +131,16 @@ class Game:
             # a blocked direction can look like a move. Hold the sample until the
             # player stops moving, exactly as a human holds the d-pad. Found by
             # pressing DOWN (walkable) -> no change, then UP -> a downward move.
-            waited = 0
-            for _ in range(40):
-                self.emu.tick(2)
-                waited += 2
-                if not self.reader.is_moving():
-                    break
+            if settle:
+                waited = 0
+                for _ in range(40):
+                    self.emu.tick(2)
+                    waited += 2
+                    if not self.reader.is_moving():
+                        break
+            else:
+                self.emu.tick(8)
+                waited = 8
             settled.append(waited)
         after = (
             self.reader.current_map_name(),
@@ -181,6 +188,58 @@ class Game:
         p = FRAME_DIR / f"{label}.png"
         Image.fromarray(arr).save(p)
         return {"ok": True, "frame": str(p), "size": list(arr.shape[:2][::-1])}
+
+    def pause(self) -> dict:
+        self.paused = True
+        return {"ok": True, "paused": True}
+
+    def resume(self) -> dict:
+        self.paused = False
+        return {"ok": True, "paused": False}
+
+    def list_saves(self) -> dict:
+        d = REPO / "play_states"
+        d.mkdir(exist_ok=True)
+        items = []
+        for p in sorted(d.glob("*.state")):
+            st = p.stat()
+            items.append(
+                {
+                    "slot": p.stem,
+                    "bytes": st.st_size,
+                    "modified": time.strftime(
+                        "%Y-%m-%d %H:%M:%S", time.localtime(st.st_mtime)
+                    ),
+                }
+            )
+        return {"ok": True, "count": len(items), "saves": items}
+
+    def delete_save(self, slot: str) -> dict:
+        p = REPO / "play_states" / f"{slot}.state"
+        if not p.exists():
+            return {"ok": False, "error": f"no such save {p}"}
+        p.unlink()
+        return {"ok": True, "deleted": str(p)}
+
+    def reset(self) -> dict:
+        """Cold boot: a fresh emulator with no state loaded, back to the title."""
+        from src.core.emulator import Emulator
+        from src.core.ram_reader import RAMReader
+
+        try:
+            self.emu.stop()
+        except Exception:
+            pass
+        self.emu = Emulator(str(ROM))
+        self.reader = RAMReader(self.emu, str(ROM))
+        self.visited = {}
+        self.events = []
+        self.last_action = ""
+        self.last_changed = None
+        self.cycles = 0
+        self.paused = False
+        self.emu.tick(30)
+        return {"ok": True, "cold_boot": True, "screen": self.reader.screen_type()}
 
     def health(self) -> dict:
         return {
@@ -232,15 +291,36 @@ def handle(conn, game: Game, token: str, log):
             elif cmd == "observe":
                 rep = game.observe()
             elif cmd == "press":
-                rep = game.press(req.get("buttons") or [], int(req.get("frames", 5)))
+                rep = game.press(
+                    req.get("buttons") or [],
+                    int(req.get("frames", 5)),
+                    bool(req.get("settle", True)),
+                )
             elif cmd == "step":
-                rep = game.step(int(req.get("n", 30)))
+                if game.paused:
+                    rep = {
+                        "ok": False,
+                        "error": "paused — call resume first",
+                        "paused": True,
+                    }
+                else:
+                    rep = game.step(int(req.get("n", 30)))
             elif cmd == "save":
                 rep = game.save(str(req.get("slot", "slot1")))
             elif cmd == "load":
                 rep = game.load(str(req.get("slot", "slot1")))
             elif cmd == "frame":
                 rep = game.frame(str(req.get("label", "now")))
+            elif cmd == "pause":
+                rep = game.pause()
+            elif cmd == "resume":
+                rep = game.resume()
+            elif cmd == "list_saves":
+                rep = game.list_saves()
+            elif cmd == "delete_save":
+                rep = game.delete_save(str(req.get("slot", "")))
+            elif cmd == "reset":
+                rep = game.reset()
             elif cmd == "goal":
                 game.goal = str(req.get("text") or game.goal)
                 rep = {"ok": True, "goal": game.goal}
