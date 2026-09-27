@@ -26,7 +26,7 @@ _OBSERVATION: dict[str, Any] = {
         "left": "walkable",
         "right": "blocked",
     },
-    "collision_grid": "#.#\n.O.\n...",
+    "collision_grid": "###\n.O#\n...",
     "visible_exits": [],
 }
 
@@ -86,7 +86,7 @@ def test_retrieved_world_facts_reach_jev_projection(
                     "left": "walkable",
                     "right": "blocked",
                 },
-                "local_collision_grid": "#.#\n.O.\n...",
+                "local_collision_grid": "###\n.O#\n...",
                 "visible_exits": [],
             },
         },
@@ -122,7 +122,7 @@ def test_retrieved_world_facts_reach_jev_projection(
             "/world/map/0: Observed Pallet Town; tile=6,6; "
             "walkability=U:blocked,D:walkable,L:walkable,R:blocked; "
             "terrain=U:wall,D:floor,L:grass,R:object; "
-            "local_collision=#.#/.O./...; exits=none"
+            "local_collision=###/.O#/...; exits=none"
         ),
         "/world/object/0/2_3: Pallet Town block (2,3) is grass",
     ]
@@ -147,7 +147,7 @@ def test_projection_distinguishes_walkability_from_terrain() -> None:
         "LOCAL COLLISION MAP (O=player, .=walkable, #=blocked, ?=unknown):"
         in projection
     )
-    assert "  #.#\n  .O.\n  ..." in projection
+    assert "  ###\n  .O#\n  ..." in projection
 
 
 @pytest.mark.parametrize("world_facts", [None, []])
@@ -214,7 +214,7 @@ def test_complete_map_fact_stops_repeat_topology_escalation(
     fact = (
         "/world/map/0: Observed Pallet Town; tile=6,6; "
         "walkability=U:blocked,D:walkable,L:walkable,R:blocked; "
-        "local_collision=#.#/.O./...; exits=none"
+        "local_collision=###/.O#/...; exits=none"
     )
     escalated_classes: set[str] = set()
 

@@ -59,9 +59,10 @@ class VisionClient:
         'For battles against the rival (Gary/Blue), set to "rival_battle" '
         "— look for the rival's unique sprite (spiky hair) and no wild "
         "encounter animation/flash.\n"
-        "- adjacent_tiles: for overworld ONLY. Describe what is ONE TILE in "
+        "- adjacent_tiles: for overworld ONLY. Describe visible appearance ONE TILE in "
         "each direction from the player. Use: wall, stairs, path, grass, "
-        "npc, door, empty, bed, table, pc, plant.\n"
+        "npc, door, empty, bed, table, pc, plant. This is appearance metadata "
+        "only: never infer or label walkability/collision from the screenshot.\n"
         "- name_field: for name_entry/name_confirm screens, copy the name "
         "text from the entry field.\n"
         "- text_lines: copy text verbatim from any visible text boxes.\n"

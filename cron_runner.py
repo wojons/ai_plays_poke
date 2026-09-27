@@ -1333,6 +1333,48 @@ def _map_topology_resolved(obs: dict[str, Any], world_facts: list[str] | None) -
     )
 
 
+def _teacher_world_memory_targets(
+    patch: dict[str, Any], observation: dict[str, Any]
+) -> tuple[list[str], list[str]]:
+    """Bind a teacher's missing facts to exact current-map memory keys.
+
+    The map record is always the primary target. Directional gaps additionally
+    target the adjacent object key so a record beyond the normal prefix limit is
+    fetched explicitly on the next cycle. Invalid/untyped patch entries produce
+    no targets rather than broadening retrieval.
+    """
+    raw_missing = patch.get("missing_facts")
+    if not isinstance(raw_missing, list):
+        return [], []
+    missing_facts = [
+        fact.strip() for fact in raw_missing if isinstance(fact, str) and fact.strip()
+    ]
+    map_id = observation.get("map_id")
+    if not missing_facts or not isinstance(map_id, int) or map_id < 0:
+        return missing_facts, []
+
+    targets = [f"/world/map/{map_id}"]
+    player_x = observation.get("player_x")
+    player_y = observation.get("player_y")
+    if isinstance(player_x, int) and isinstance(player_y, int):
+        aliases = {
+            "up": {"up", "above", "north"},
+            "down": {"down", "below", "south"},
+            "left": {"left", "west"},
+            "right": {"right", "east"},
+        }
+        for fact in missing_facts:
+            words = set(re.findall(r"[a-z]+", fact.lower()))
+            for direction, direction_aliases in aliases.items():
+                if words.isdisjoint(direction_aliases):
+                    continue
+                dx, dy = _WORLD_TILE_OFFSETS[direction]
+                target = f"/world/object/{map_id}/{player_x + dx}_{player_y + dy}"
+                if target not in targets:
+                    targets.append(target)
+    return missing_facts, targets
+
+
 def _jev_overworld_decision(
     obs: dict[str, Any],
     *,
@@ -1413,6 +1455,8 @@ def _jev_overworld_decision(
     initial_decision = decision
     teacher_record: dict[str, Any] | None = None
     teacher_one_shot: str | None = None
+    teacher_missing_facts: list[str] = []
+    teacher_memory_targets: list[str] = []
     missing_class = decision.get("missing_class")
     escalation_class = (
         missing_class if isinstance(missing_class, str) and missing_class else "unknown"
@@ -1479,6 +1523,9 @@ def _jev_overworld_decision(
             patch = teacher_record.get("patch")
             post_ask = teacher_record.get("post_ask")
             if isinstance(patch, dict):
+                teacher_missing_facts, teacher_memory_targets = (
+                    _teacher_world_memory_targets(patch, obs)
+                )
                 raw_one_shot = patch.get("one_shot_action")
                 if isinstance(raw_one_shot, str):
                     normalized_one_shot = raw_one_shot.upper()
@@ -1534,6 +1581,10 @@ def _jev_overworld_decision(
         "handoff_allowed": handoff_ok,
         "handoff_blocked_reason": None if handoff_ok else handoff_why,
         "handoff_policy_families": sorted(policy.get("families") or ()),
+        # A successful teacher patch becomes a one-cycle retrieval request.
+        # The main loop holds these exact /world/* keys until the next cycle.
+        "teacher_missing_facts": teacher_missing_facts,
+        "teacher_memory_targets": teacher_memory_targets,
     }
 
 
@@ -2763,6 +2814,39 @@ def _known_walkability(values: Any) -> dict[str, str]:
     }
 
 
+def _walkability_from_collision_grid(value: Any) -> dict[str, str]:
+    """Derive adjacent movement truth from a RAMReader collision grid.
+
+    ``RAMReader.build_collision_grid()`` emits exactly one ``O`` for the player,
+    ``.`` for walkable, ``#`` for blocked, and ``?`` where ROM topology cannot
+    resolve a tile. Only the two resolved symbols become facts; unresolved or
+    malformed cells are omitted rather than persisted as sticky ``unknown``.
+    """
+    if not isinstance(value, str):
+        return {}
+    rows = value.splitlines()
+    player_cells = [
+        (x, y)
+        for y, row in enumerate(rows)
+        for x, cell in enumerate(row)
+        if cell == "O"
+    ]
+    if len(player_cells) != 1:
+        return {}
+    player_x, player_y = player_cells[0]
+    resolved: dict[str, str] = {}
+    for direction, (dx, dy) in _WORLD_TILE_OFFSETS.items():
+        x, y = player_x + dx, player_y + dy
+        if y < 0 or y >= len(rows) or x < 0 or x >= len(rows[y]):
+            continue
+        cell = rows[y][x]
+        if cell == ".":
+            resolved[direction] = "walkable"
+        elif cell == "#":
+            resolved[direction] = "blocked"
+    return resolved
+
+
 def _walkability_text(values: dict[str, str]) -> str:
     """Render a walkability mapping in a fixed direction order."""
     return ",".join(
@@ -2800,7 +2884,7 @@ def _fresh_topology_fact(observation: dict[str, Any]) -> str | None:
     map_id = observation.get("map_id")
     if not isinstance(map_id, int) or map_id < 0:
         return None
-    walkability = _known_walkability(observation.get("adjacent_walkability"))
+    walkability = _walkability_from_collision_grid(observation.get("collision_grid"))
     if set(walkability) < {"up", "down", "left", "right"}:
         return None
     parts = ["live ROM collision truth (this cycle)"]
@@ -2881,6 +2965,7 @@ def _populate_world_memory(
     results: list[dict[str, Any]],
     log_file: TextIO,
     written_keys: set[str],
+    retrieval_targets: list[str] | None = None,
 ) -> list[str]:
     """Retrieve current-map facts, then persist newly observed world facts.
 
@@ -2909,12 +2994,31 @@ def _populate_world_memory(
 
     from src.core import duckbrain_client as _dbc
 
-    fresh_walkability = _known_walkability(observation.get("adjacent_walkability"))
     fresh_grid = observation.get("collision_grid")
+    # Movement truth is derived from RAMReader's collision grid. The adjacent
+    # terrain labels may come from vision and are metadata only.
+    fresh_walkability = _walkability_from_collision_grid(fresh_grid)
     fresh_topology = _fresh_topology_fact(observation)
+    normalized_targets: list[str] = []
+    for target in retrieval_targets or []:
+        if (
+            isinstance(target, str)
+            and target.startswith("/world/")
+            and target not in normalized_targets
+        ):
+            normalized_targets.append(target)
 
     retrieved_facts: list[str] = []
     try:
+        targeted_records: list[dict[str, Any]] = []
+        for target in normalized_targets:
+            targeted_records.extend(
+                _dbc.recall(
+                    key=target,
+                    namespace=WORLD_MEMORY_NAMESPACE,
+                    limit=8,
+                )
+            )
         recalled = [
             *_dbc.recall(
                 key=map_key,
@@ -2926,6 +3030,7 @@ def _populate_world_memory(
                 namespace=WORLD_MEMORY_NAMESPACE,
                 limit=8,
             ),
+            *targeted_records,
         ]
         recalled_by_key: dict[str, dict[str, Any]] = {}
         for record in recalled:
@@ -2937,6 +3042,25 @@ def _populate_world_memory(
                 current.get("created_at") or ""
             ):
                 recalled_by_key[key] = record
+        if normalized_targets:
+            matched_keys = [
+                target for target in normalized_targets if target in recalled_by_key
+            ]
+            _append_run_event(
+                {
+                    "cycle": cycle,
+                    "event": "world_memory_teacher_targets_consumed",
+                    "namespace": WORLD_MEMORY_NAMESPACE,
+                    "targets": normalized_targets,
+                    "matched_keys": matched_keys,
+                },
+                results=results,
+                log_file=log_file,
+            )
+            safe_print(
+                f"  [MEM-WORLD] consumed {len(normalized_targets)} teacher target(s); "
+                f"matched {len(matched_keys)}"
+            )
         retrieved_facts = [
             _world_fact_text(
                 record,
@@ -3028,9 +3152,9 @@ def _populate_world_memory(
                 "map_tileset": observation.get("map_tileset"),
                 "visible_exits": list(observation.get("visible_exits") or []),
                 "adjacent_tiles": dict(observation.get("adjacent") or {}),
-                "adjacent_walkability": dict(
-                    observation.get("adjacent_walkability") or {}
-                ),
+                # Never persist vision-derived labels as movement truth. Missing
+                # collision cells stay absent and are re-derived on retrieval.
+                "adjacent_walkability": dict(fresh_walkability),
                 "local_collision_grid": str(observation.get("collision_grid") or ""),
             },
             "embedding_text": (
@@ -3876,6 +4000,9 @@ def main() -> None:
     # Per-episode teacher budget (--teacher-max-per-episode). Counted at the API
     # boundary so a failing call still spends it; None cap means unlimited.
     _teacher_budget: dict[str, int] = {"used": 0}
+    # A teacher patch's missing facts are bound to exact /world/* keys after the
+    # decision, then consumed once by the following cycle's memory retrieval.
+    _pending_teacher_memory_targets: list[str] = []
 
     # ── Stuck detection (4 independent dimensions) ──────────────────
     _same_dir: str | None = None  # last repeated direction
@@ -4292,6 +4419,8 @@ def main() -> None:
             # S2 world memory: retrieve facts already present at cycle start,
             # then persist this observation. The ordering makes next-cycle use
             # observable in the JEV projection.
+            _teacher_targets_for_cycle = _pending_teacher_memory_targets
+            _pending_teacher_memory_targets = []
             _world_facts = _populate_world_memory(
                 observation=patch_data,
                 run_id=run_id,
@@ -4299,6 +4428,7 @@ def main() -> None:
                 results=results,
                 log_file=log_file,
                 written_keys=_world_memory_written_keys,
+                retrieval_targets=_teacher_targets_for_cycle,
             )
 
             # ── Default exploration goal (GAP-038) ──────────────
@@ -4648,6 +4778,19 @@ def main() -> None:
                     handoff_policy=HANDOFF_POLICY,
                     teacher_budget=_teacher_budget,
                 )
+                if isinstance(_jev_attempt, dict):
+                    raw_targets = _jev_attempt.get("teacher_memory_targets")
+                    if isinstance(raw_targets, list):
+                        _pending_teacher_memory_targets = [
+                            target
+                            for target in raw_targets
+                            if isinstance(target, str) and target.startswith("/world/")
+                        ]
+                        if _pending_teacher_memory_targets:
+                            safe_print(
+                                "  [MEM-WORLD] queued teacher targets for next cycle: "
+                                + ", ".join(_pending_teacher_memory_targets)
+                            )
                 _jev_outcome = (
                     _jev_outcome_fields(_jev_attempt)
                     if isinstance(_jev_attempt, dict)
