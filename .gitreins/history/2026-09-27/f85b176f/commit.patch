@@ -1,0 +1,16 @@
+commit 228cc5ebcededf78aa90a125c69417e471fb9a58
+Merge: 6512ab6 72048dc
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sat Sep 26 19:04:28 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sat Sep 26 19:04:28 2026 -0500
+
+    merge wt/CTX-WIN: route prior turns into the live JEV teacher request + log it (CTX-WIN r2, judge-remediation, wave T252)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ cron_runner.py               |  28 ++++++-----
+ src/core/jev_client.py       |  26 +++++++++++
+ src/core/teacher_client.py   |  21 +++++++--
+ tests/test_context_window.py | 109 +++++++++++++++++++++++++++++++++++++++++++
+ 4 files changed, 169 insertions(+), 15 deletions(-)

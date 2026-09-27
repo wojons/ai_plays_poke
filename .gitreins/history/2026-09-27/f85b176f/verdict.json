@@ -1,0 +1,114 @@
+{
+  "task_id": "DF-JEV-5",
+  "task_title": "README documents --help venv requirement",
+  "task_criteria": [
+    "README.md Quick Start documents that bare python3 cron_runner.py --help requires the project venv (numpy ModuleNotFoundError otherwise); guard battery green; docs-only change."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "228cc5ebcededf78aa90a125c69417e471fb9a58",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4226 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [451035 chars omitted \u2014 4993 line(s)] \u2026\ntest_bench_pathfinding_find_path               571.0172 (1.06)           2,545.0136 (1.0)             874.4590 (1.13)            575.7988 (2.06)            671.0179 (1.0)            263.1859 (1.0)           1;1  1,143,564.2164 (0.89)         11           1\ntest_bench_vision_pipeline_validate          6,342.0157 (11.72)         52,568.0371 (20.66)         9,543.1377 (12.33)         2,257.9690 (8.09)         10,008.9819 (14.92)        3,836.9908 (14.58)    6004;154    104,787.3381 (0.08)      20305           1\ntest_bench_ram_reader_observe            1,058,187.9760 (>1000.0)  219,211,773.0156 (>1000.0)   2,636,012.5973 (>1000.0)  12,413,926.3415 (>1000.0)   1,813,756.0110 (>1000.0)    490,034.2465 (>1000.0)      3;30        379.3609 (0.00)        689           1\ntest_bench_vision_pipeline_process      46,422,172.0467 (>1000.0)   64,533,806.9880 (>1000.0)  52,847,971.1866 (>1000.0)   5,588,530.4810 (>1000.0)  51,194,172.4981 (>1000.0)  7,719,720.5101 (>1000.0)       6;0         18.9222 (0.00)         16           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4212 passed, 14 skipped in 287.27s (0:04:47) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 README.md Quick Start documents that bare python3 cron_runner.py --help requires the project venv (numpy ModuleNotFoundError otherwise); guard battery green; docs-only change.: README.md:143 '## Quick Start (working path)' contains the callout at README.md:169-173: '**`--help` needs the venv too:** every `cron_runner.py` invocation \u2014 even `python3 cron_runner.py --help` \u2014 must run with the venv activated (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before argparse, so under the system Python even the help screen exits with `ModuleNotFoundError`.' Claim verified in code: cron_runner.py:621 `import numpy as np` is module-level, before _main_parser() at 3398 and parse_args() at 3529; live repro `/usr/bin/python3 cron_runner.py --help` => 'ModuleNotFoundError: No module named pyboy' (numpy on other boxes) \u2014 bare python3 --help does fail without the venv exactly as documented. Docs-only: `git show de0047e --name-only` => README.md only; `git diff --name-only 0976d5e 6512ab6` => README.md only (zero Python files). Guard battery green: .gitreins/logs/guard-20260926T215445.297127Z.log => 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 1 skipped)' with '4207 passed, 14 skipped in 264.34s', static_analysis PASS, lsp PASS; latest .gitreins/logs/guard-20260926T230958.229230Z.log => 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 3 skipped)' (lint/tests/lsp skipped for no staged files / no pylsp). Fresh re-verification: `./.venv/bin/pytest tests/test_cron_runner_metrics.py -q` => '57 passed in 9.75s'; `./.venv/bin/ruff check cron_runner.py` => 'All checks passed!'. [resolution 0.32; README.md, cron_runner.py]\nREADME Quick Start documents the venv/--help requirement (verified live), the change is docs-only (README.md only), and the guard battery is green.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 README.md Quick Start documents that bare python3 cron_runner.py --help requires the project venv (numpy ModuleNotFoundError otherwise); guard battery green; docs-only change.: README.md:143 '## Quick Start (working path)' contains the callout at README.md:169-173: '**`--help` needs the venv too:** every `cron_runner.py` invocation \u2014 even `python3 cron_runner.py --help` \u2014 must run with the venv activated (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before argparse, so under the system Python even the help screen exits with `ModuleNotFoundError`.' Claim verified in code: cron_runner.py:621 `import numpy as np` is module-level, before _main_parser() at 3398 and parse_args() at 3529; live repro `/usr/bin/python3 cron_runner.py --help` => 'ModuleNotFoundError: No module named pyboy' (numpy on other boxes) \u2014 bare python3 --help does fail without the venv exactly as documented. Docs-only: `git show de0047e --name-only` => README.md only; `git diff --name-only 0976d5e 6512ab6` => README.md only (zero Python files). Guard battery green: .gitreins/logs/guard-20260926T215445.297127Z.log => 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 1 skipped)' with '4207 passed, 14 skipped in 264.34s', static_analysis PASS, lsp PASS; latest .gitreins/logs/guard-20260926T230958.229230Z.log => 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 3 skipped)' (lint/tests/lsp skipped for no staged files / no pylsp). Fresh re-verification: `./.venv/bin/pytest tests/test_cron_runner_metrics.py -q` => '57 passed in 9.75s'; `./.venv/bin/ruff check cron_runner.py` => 'All checks passed!'. [resolution 0.32; README.md, cron_runner.py]\nREADME Quick Start documents the venv/--help requirement (verified live), the change is docs-only (README.md only), and the guard battery is green.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "README.md Quick Start documents that bare python3 cron_runner.py --help requires the project venv (numpy ModuleNotFoundError otherwise); guard battery green; docs-only change.",
+                "status": "PASS",
+                "detail": "README.md:143 '## Quick Start (working path)' contains the callout at README.md:169-173: '**`--help` needs the venv too:** every `cron_runner.py` invocation \u2014 even `python3 cron_runner.py --help` \u2014 must run with the venv activated (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before argparse, so under the system Python even the help screen exits with `ModuleNotFoundError`.' Claim verified in code: cron_runner.py:621 `import numpy as np` is module-level, before _main_parser() at 3398 and parse_args() at 3529; live repro `/usr/bin/python3 cron_runner.py --help` => 'ModuleNotFoundError: No module named pyboy' (numpy on other boxes) \u2014 bare python3 --help does fail without the venv exactly as documented. Docs-only: `git show de0047e --name-only` => README.md only; `git diff --name-only 0976d5e 6512ab6` => README.md only (zero Python files). Guard battery green: .gitreins/logs/guard-20260926T215445.297127Z.log => 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 1 skipped)' with '4207 passed, 14 skipped in 264.34s', static_analysis PASS, lsp PASS; latest .gitreins/logs/guard-20260926T230958.229230Z.log => 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 3 skipped)' (lint/tests/lsp skipped for no staged files / no pylsp). Fresh re-verification: `./.venv/bin/pytest tests/test_cron_runner_metrics.py -q` => '57 passed in 9.75s'; `./.venv/bin/ruff check cron_runner.py` => 'All checks passed!'. [resolution 0.32; README.md, cron_runner.py]",
+                "resolution_probability": 0.32,
+                "cited_path": "README.md, cron_runner.py"
+              }
+            ],
+            "summary": "README Quick Start documents the venv/--help requirement (verified live), the change is docs-only (README.md only), and the guard battery is green."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-JEV-5\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 README.md Quick Start documents that bare python3 cron_runner.py --help requires the project venv (numpy ModuleNotFoundError otherwise); guard battery green; docs-only change.: README.md:143 '## Quick Start (working path)' contains the callout at README.md:169-173: '**`--help` needs the venv too:** every `cron_runner.py` invocation \u2014 even `python3 cron_runner.py --help` \u2014 must run with the venv activated (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before argparse, so under the system Python even the help screen exits with `ModuleNotFoundError`.' Claim verified in code: cron_runner.py:621 `import numpy as np` is module-level, before _main_parser() at 3398 and parse_args() at 3529; live repro `/usr/bin/python3 cron_runner.py --help` => 'ModuleNotFoundError: No module named pyboy' (numpy on other boxes) \u2014 bare python3 --help does fail without the venv exactly as documented. Docs-only: `git show de0047e --name-only` => README.md only; `git diff --name-only 0976d5e 6512ab6` => README.md only (zero Python files). Guard battery green: .gitreins/logs/guard-20260926T215445.297127Z.log => 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 1 skipped)' with '4207 passed, 14 skipped in 264.34s', static_analysis PASS, lsp PASS; latest .gitreins/logs/guard-20260926T230958.229230Z.log => 'overall: PASS (DEGRADED \u2014 skipped checks); guards: 5 (0 failed, 3 skipped)' (lint/tests/lsp skipped for no staged files / no pylsp). Fresh re-verification: `./.venv/bin/pytest tests/test_cron_runner_metrics.py -q` => '57 passed in 9.75s'; `./.venv/bin/ruff check cron_runner.py` => 'All checks passed!'. [resolution 0.32; README.md, cron_runner.py]\nREADME Quick Start documents the venv/--help requirement (verified live), the change is docs-only (README.md only), and the guard battery is green.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-27T00:46:54.442353",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-27T00:46:54.465761+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 769,
+        "truncated": false,
+        "source": "git show 228cc5ebcede"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 262176,
+        "truncated": true,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-JEV-5"
+  }
+}

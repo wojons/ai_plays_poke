@@ -1,0 +1,120 @@
+{
+  "task_id": "CTX-WIN",
+  "task_title": "S3 context window - request carries prior turns, agent answers about a cycle >N back",
+  "task_criteria": [
+    "The LLM request carries prior decision turns (history), and the agent correctly answers a question about a cycle >N back from the summary; guard battery green; CI wiring unchanged."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "228cc5ebcededf78aa90a125c69417e471fb9a58",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n7:06PM INF scanned ~306324466 bytes (306.32 MB) in 15.7s\n7:06PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 89086 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4226 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [451031 chars omitted \u2014 4993 line(s)] \u2026\ntest_bench_pathfinding_find_path               479.9804 (1.14)           2,093.9624 (1.0)             613.2606 (1.32)           361.9589 (3.89)            511.0051 (1.11)            54.9626 (2.62)          1;2  1,630,628.1603 (0.76)         19           1\ntest_bench_vision_pipeline_validate          6,000.9770 (14.29)         46,195.9862 (22.06)         6,441.3025 (13.87)          669.5053 (7.20)          6,331.0144 (13.73)          150.9325 (7.18)    1229;2544    155,248.1036 (0.07)      35738           1\ntest_bench_ram_reader_observe              845,043.9782 (>1000.0)  153,879,044.9849 (>1000.0)   1,514,218.0426 (>1000.0)  8,159,049.6612 (>1000.0)     974,915.0195 (>1000.0)     46,205.0084 (>1000.0)     4;138        660.4069 (0.00)       1034           1\ntest_bench_vision_pipeline_process      34,577,588.0269 (>1000.0)   41,425,360.9488 (>1000.0)  38,720,060.1140 (>1000.0)  1,692,872.6131 (>1000.0)  38,903,784.0068 (>1000.0)  1,491,046.7580 (>1000.0)       7;4         25.8264 (0.00)         27           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4212 passed, 14 skipped in 222.69s (0:03:42) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260926T230958.229230Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 The LLM request carries prior decision turns (history), and the agent correctly answers a question about a cycle >N back from the summary; guard battery green; CI wiring unchanged.: CTX-WIN criterion 1 evidence so far:\n- src/core/jev_client.py: RECENT_DECISION_LIMIT=6, recent_decisions_block() renders \"RECENT DECISIONS (prior turns):\" lines; escalate_and_reask accepts recent_decisions and passes to teacher_client.request_patch; request_prompt captured into record.\n- src/core/teacher_client.py: build_teacher_prompt inserts decisions_section; request_patch returns result[\"request_prompt\"].\n- cron_runner.py: _record_recent_decision (line 1887) appends bounded turn + del history[:-6]; _recent_decisions_block (1914); controller_plan recent_decisions param (1938) injected into user msg at 2074; _jev_overworld_decision recent_decisions param (1316) -> escalate_and_reask (1418) + [CTX] marker (1406-1412); _recent_decisions run-local list (3924); recorded at 4167, 4693, 4745, 5082; passed at 4388, 4441.\n- tests/test_context_window.py: 5 tests PASS (ran: ./.venv/bin/pytest tests/test_context_window.py -v -> 5 passed in 0.60s). Includes test_model_can_answer_from_three_cycles_back_and_event_records_it (cycle 2 answer from cycle 5) and test_live_teacher_prompt_and_logged_record_carried_prior_turns.\n- mypy src/ 66 files: Success no issues. mypy cron_runner.py: Success. ruff check src/ tests/ cron_runner.py: All checks passed. LSP diagnostics: 0.\n- CI wiring: git diff 0976d5e~1 228cc5e -- .github/ = EMPTY (unchanged). ci.yml pytest step intact.\n- Full suite: running in background /tmp/ctxwin_full.log\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 The LLM request carries prior decision turns (history), and the agent correctly answers a question about a cycle >N back from the summary; guard battery green; CI wiring unchanged.: CTX-WIN criterion 1 evidence so far:\n- src/core/jev_client.py: RECENT_DECISION_LIMIT=6, recent_decisions_block() renders \"RECENT DECISIONS (prior turns):\" lines; escalate_and_reask accepts recent_decisions and passes to teacher_client.request_patch; request_prompt captured into record.\n- src/core/teacher_client.py: build_teacher_prompt inserts decisions_section; request_patch returns result[\"request_prompt\"].\n- cron_runner.py: _record_recent_decision (line 1887) appends bounded turn + del history[:-6]; _recent_decisions_block (1914); controller_plan recent_decisions param (1938) injected into user msg at 2074; _jev_overworld_decision recent_decisions param (1316) -> escalate_and_reask (1418) + [CTX] marker (1406-1412); _recent_decisions run-local list (3924); recorded at 4167, 4693, 4745, 5082; passed at 4388, 4441.\n- tests/test_context_window.py: 5 tests PASS (ran: ./.venv/bin/pytest tests/test_context_window.py -v -> 5 passed in 0.60s). Includes test_model_can_answer_from_three_cycles_back_and_event_records_it (cycle 2 answer from cycle 5) and test_live_teacher_prompt_and_logged_record_carried_prior_turns.\n- mypy src/ 66 files: Success no issues. mypy cron_runner.py: Success. ruff check src/ tests/ cron_runner.py: All checks passed. LSP diagnostics: 0.\n- CI wiring: git diff 0976d5e~1 228cc5e -- .github/ = EMPTY (unchanged). ci.yml pytest step intact.\n- Full suite: running in background /tmp/ctxwin_full.log\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "The LLM request carries prior decision turns (history), and the agent correctly answers a question about a cycle >N back from the summary; guard battery green; CI wiring unchanged.",
+                "status": "FAIL",
+                "detail": "CTX-WIN criterion 1 evidence so far:\n- src/core/jev_client.py: RECENT_DECISION_LIMIT=6, recent_decisions_block() renders \"RECENT DECISIONS (prior turns):\" lines; escalate_and_reask accepts recent_decisions and passes to teacher_client.request_patch; request_prompt captured into record.\n- src/core/teacher_client.py: build_teacher_prompt inserts decisions_section; request_patch returns result[\"request_prompt\"].\n- cron_runner.py: _record_recent_decision (line 1887) appends bounded turn + del history[:-6]; _recent_decisions_block (1914); controller_plan recent_decisions param (1938) injected into user msg at 2074; _jev_overworld_decision recent_decisions param (1316) -> escalate_and_reask (1418) + [CTX] marker (1406-1412); _recent_decisions run-local list (3924); recorded at 4167, 4693, 4745, 5082; passed at 4388, 4441.\n- tests/test_context_window.py: 5 tests PASS (ran: ./.venv/bin/pytest tests/test_context_window.py -v -> 5 passed in 0.60s). Includes test_model_can_answer_from_three_cycles_back_and_event_records_it (cycle 2 answer from cycle 5) and test_live_teacher_prompt_and_logged_record_carried_prior_turns.\n- mypy src/ 66 files: Success no issues. mypy cron_runner.py: Success. ruff check src/ tests/ cron_runner.py: All checks passed. LSP diagnostics: 0.\n- CI wiring: git diff 0976d5e~1 228cc5e -- .github/ = EMPTY (unchanged). ci.yml pytest step intact.\n- Full suite: running in background /tmp/ctxwin_full.log\n",
+                "resolution_probability": 0.13
+              }
+            ],
+            "summary": "Partial verdict \u2014 evaluation hit resource cap before all criteria verified"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: CTX-WIN\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 The LLM request carries prior decision turns (history), and the agent correctly answers a question about a cycle >N back from the summary; guard battery green; CI wiring unchanged.: CTX-WIN criterion 1 evidence so far:\n- src/core/jev_client.py: RECENT_DECISION_LIMIT=6, recent_decisions_block() renders \"RECENT DECISIONS (prior turns):\" lines; escalate_and_reask accepts recent_decisions and passes to teacher_client.request_patch; request_prompt captured into record.\n- src/core/teacher_client.py: build_teacher_prompt inserts decisions_section; request_patch returns result[\"request_prompt\"].\n- cron_runner.py: _record_recent_decision (line 1887) appends bounded turn + del history[:-6]; _recent_decisions_block (1914); controller_plan recent_decisions param (1938) injected into user msg at 2074; _jev_overworld_decision recent_decisions param (1316) -> escalate_and_reask (1418) + [CTX] marker (1406-1412); _recent_decisions run-local list (3924); recorded at 4167, 4693, 4745, 5082; passed at 4388, 4441.\n- tests/test_context_window.py: 5 tests PASS (ran: ./.venv/bin/pytest tests/test_context_window.py -v -> 5 passed in 0.60s). Includes test_model_can_answer_from_three_cycles_back_and_event_records_it (cycle 2 answer from cycle 5) and test_live_teacher_prompt_and_logged_record_carried_prior_turns.\n- mypy src/ 66 files: Success no issues. mypy cron_runner.py: Success. ruff check src/ tests/ cron_runner.py: All checks passed. LSP diagnostics: 0.\n- CI wiring: git diff 0976d5e~1 228cc5e -- .github/ = EMPTY (unchanged). ci.yml pytest step intact.\n- Full suite: running in background /tmp/ctxwin_full.log\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-27T00:39:24.170002",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-27T00:39:24.271182+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 769,
+        "truncated": false,
+        "source": "git show 228cc5ebcede"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 262176,
+        "truncated": true,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "CTX-WIN"
+  }
+}
