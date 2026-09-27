@@ -44,7 +44,10 @@ CHAIN_DIR = REPO / "long_run"
 GOOD_STATE = CHAIN_DIR / f"{RUN_ID}_good.state"
 CHECKPOINT_DIR = REPO / "checkpoints"
 ROM = REPO / "data" / "rom" / "Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
-BOOT = REPO / "data" / "boot.state"
+# Default boot = the MEASURED baseline (base-1_boot.state, Pallet Town, map 0 —
+# the state CTRL-WIN/DIST-1/BASE-1 were measured on); data/boot.state sits in
+# Oak's Lab and makes a run silently incomparable to data/baselines/.
+BOOT = REPO / "data" / "baselines" / "base-1_boot.state"
 
 GOAL = {
     "id": "GOAL-1",
@@ -118,6 +121,48 @@ def probe_state(path: Path) -> dict[str, Any]:
     except Exception as exc:  # noqa: BLE001
         out["error"] = f"{type(exc).__name__}: {exc}"
     return out
+
+
+def resolve_boot_state() -> Path:
+    """Explicit override wins: LONG_RUN_BOOT_STATE env > the baseline default."""
+    override = os.environ.get("LONG_RUN_BOOT_STATE")
+    return Path(override) if override else BOOT
+
+
+def resolve_decision_mode() -> str:
+    """Mirror cron_runner.resolve_decision_mode: AIPP > CRON env > 'jev'.
+
+    Minimal mirror (cron_runner is not imported here): the value is normalised
+    to cron_runner's spelling form, and cron_runner itself re-resolves the flag
+    and falls back to its default on unrecognised spellings, so garbage passed
+    through degrades to 'jev' on the child side exactly as before.
+    """
+    for name in ("AIPP_DECISION_MODE", "CRON_DECISION_MODE"):
+        value = os.environ.get(name)
+        if value and value.strip():
+            return value.strip().lower()
+    return "jev"
+
+
+def episode_argv(run_id: str, boot: str, mode: str) -> list[str]:
+    """The cron_runner subprocess argv for one episode, arm stamped explicitly."""
+    return [
+        str(REPO / ".venv/bin/python"),
+        "cron_runner.py",
+        "--run-id",
+        run_id,
+        "--cycles",
+        str(EPISODE_CYCLES),
+        "--boot-state",
+        boot,
+        "--decision-mode",
+        mode,
+    ]
+
+
+# Resolved once at import; cron_runner re-resolves its own flag/env on the child
+# side — this stamp makes the arm explicit in the argv and the run records.
+DECISION_MODE = resolve_decision_mode()
 
 
 def newest_checkpoint(after: float) -> Path | None:
@@ -352,7 +397,7 @@ def main() -> int:
 
     # Resume from the last state that PASSED validation when one exists — a
     # restart continues the run instead of replaying the opening from scratch.
-    boot = str(GOOD_STATE) if GOOD_STATE.exists() else str(BOOT)
+    boot = str(GOOD_STATE) if GOOD_STATE.exists() else str(resolve_boot_state())
     consecutive_identical = 0
     last_sig = None
 
@@ -371,16 +416,7 @@ def main() -> int:
 
         try:
             proc = subprocess.run(
-                [
-                    str(REPO / ".venv/bin/python"),
-                    "cron_runner.py",
-                    "--run-id",
-                    rid,
-                    "--cycles",
-                    str(EPISODE_CYCLES),
-                    "--boot-state",
-                    boot,
-                ],
+                episode_argv(rid, boot, DECISION_MODE),
                 cwd=str(REPO),
                 capture_output=True,
                 text=True,
@@ -451,6 +487,7 @@ def main() -> int:
             "at": now(),
             "episode": ep,
             "run_id": rid,
+            "decision_mode": DECISION_MODE,
             "exit_code": rc,
             "duration_s": round(dur, 1),
             "decisions": s["decisions"],
