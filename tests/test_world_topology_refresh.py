@@ -315,12 +315,7 @@ def test_fresh_topology_is_withheld_when_the_rom_read_is_incomplete(
     """A partial read must not masquerade as fresh truth."""
     _install_memory_store(monkeypatch, records=[])
     observation = _observation(
-        adjacent_walkability={
-            "up": "unknown",
-            "down": "walkable",
-            "left": "walkable",
-            "right": "walkable",
-        }
+        collision_grid=".####\n##?##\n..O..\n.....\n.....",
     )
     results: list[dict[str, Any]] = []
 
@@ -432,3 +427,161 @@ def test_live_rom_topology_clears_a_jev_reported_gap_without_the_teacher(
     assert decision["missing_class"] == "none"
     assert decision["jev_escalate_reason"] == "map_topology_resolved_by_rom"
     assert teacher_calls["count"] == 0
+
+
+# ── PERF-3 follow-up: derive, invalidate, and target missing facts ────────────
+
+
+def test_world_writer_uses_collision_grid_not_vision_walkability(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The persisted walkability comes from RAM collision cells only."""
+    written = _install_memory_store(monkeypatch, records=[])
+    observation = _observation(
+        # Deliberately contradictory vision-like labels. These must never be
+        # persisted as movement truth.
+        adjacent_walkability={
+            "up": "blocked",
+            "down": "walkable",
+            "left": "blocked",
+            "right": "walkable",
+        },
+        collision_grid="#####\n##.##\n#.O##\n#####\n#####",
+    )
+
+    facts = cron_runner._populate_world_memory(
+        observation=observation,
+        run_id="perf3-writer-test",
+        cycle=1,
+        results=[],
+        log_file=StringIO(),
+        written_keys=set(),
+    )
+
+    assert written[0]["attributes"]["adjacent_walkability"] == {
+        "up": "walkable",
+        "down": "blocked",
+        "left": "walkable",
+        "right": "blocked",
+    }
+    assert facts[0].endswith("walkability=U:walkable,D:blocked,L:walkable,R:blocked")
+
+
+def test_retrieval_rederives_unknown_walkability_from_collision_grid(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cached all-unknown record is repaired from the live collision grid."""
+    stale = _map_record(
+        tile=(5, 6),
+        walkability={direction: "unknown" for direction in _DIRECTIONS},
+    )
+    _install_memory_store(monkeypatch, records=[stale])
+    observation = _observation(
+        adjacent_walkability={direction: "unknown" for direction in _DIRECTIONS},
+        collision_grid="#####\n##.##\n#.O##\n#####\n#####",
+    )
+
+    facts = cron_runner._populate_world_memory(
+        observation=observation,
+        run_id="perf3-retrieval-test",
+        cycle=2,
+        results=[],
+        log_file=StringIO(),
+        written_keys=set(),
+    )
+
+    assert any(
+        "walkability=U:walkable,D:blocked,L:walkable,R:blocked" in fact
+        for fact in facts
+    )
+    assert all(":unknown" not in fact for fact in facts)
+
+
+def test_teacher_missing_facts_become_next_cycle_world_targets(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Teacher gaps bind to exact world keys and are recalled on the next cycle."""
+    pre_decision = {
+        "ok": True,
+        "next_action": "RIGHT",
+        "sufficient_state": 0.18,
+        "missing_class": "map_topology",
+        "escalate": True,
+        "escalate_reason": "insufficient_state (0.18) missing=map_topology",
+        "raw": {},
+    }
+    monkeypatch.setattr(
+        cron_runner.jev_client, "decide", lambda *_args, **_kwargs: pre_decision
+    )
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "escalate_and_reask",
+        lambda *_args, **_kwargs: {
+            "ok": True,
+            "patch": {
+                "missing_facts": ["the walkable exit below the player"],
+                "instruction_patch": "prefer the resolved exit",
+            },
+            "post_ask": {
+                "ok": True,
+                "next_action": "DOWN",
+                "missing_class": "none",
+                "raw": {},
+            },
+        },
+    )
+
+    decision = cron_runner._jev_overworld_decision(
+        _observation(),
+        teacher_api_client=object(),
+        teacher_model="test/teacher",
+        escalated_classes=set(),
+    )
+    assert decision["teacher_missing_facts"] == ["the walkable exit below the player"]
+    assert decision["teacher_memory_targets"] == [
+        "/world/map/0",
+        "/world/object/0/3_4",
+    ]
+
+    recall_calls: list[dict[str, Any]] = []
+
+    def recall(**kwargs: Any) -> list[dict[str, Any]]:
+        recall_calls.append(kwargs)
+        if kwargs.get("key") == "/world/object/0/3_4":
+            return [
+                {
+                    "key": "/world/object/0/3_4",
+                    "embedding_text": "Pallet Town block (3,4) is a walkable exit",
+                }
+            ]
+        return []
+
+    monkeypatch.setattr(duckbrain_client, "recall", recall)
+    monkeypatch.setattr(duckbrain_client, "remember", lambda **_kwargs: "memory-id")
+    results: list[dict[str, Any]] = []
+    facts = cron_runner._populate_world_memory(
+        observation=_observation(),
+        run_id="perf3-target-test",
+        cycle=2,
+        results=results,
+        log_file=StringIO(),
+        written_keys=set(),
+        retrieval_targets=decision["teacher_memory_targets"],
+    )
+
+    assert any(call.get("key") == "/world/object/0/3_4" for call in recall_calls)
+    assert any("/world/object/0/3_4:" in fact for fact in facts)
+    consumed = [
+        row
+        for row in results
+        if row["event"] == "world_memory_teacher_targets_consumed"
+    ]
+    assert consumed == [
+        {
+            "cycle": 2,
+            "event": "world_memory_teacher_targets_consumed",
+            "namespace": cron_runner.WORLD_MEMORY_NAMESPACE,
+            "targets": ["/world/map/0", "/world/object/0/3_4"],
+            "matched_keys": ["/world/object/0/3_4"],
+        }
+    ]

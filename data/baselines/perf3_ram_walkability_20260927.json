@@ -1,0 +1,79 @@
+{
+  "row": "PERF-3",
+  "generated_at": "2026-09-27T10:34:34Z",
+  "run": {
+    "run_id": "perf3_20260927T103430Z",
+    "command": "source .venv/bin/activate && python3 cron_runner.py --run-id perf3_20260927T103430Z --cycles 5 --boot-state skip",
+    "log": "cron_logs/run_perf3_20260927T103430Z.jsonl",
+    "cycles": 5,
+    "boot_state": "skip",
+    "wall_time_seconds": 3.97
+  },
+  "baseline": {
+    "run_id": "perfcold_t254",
+    "wall_time_seconds": 14.4,
+    "jev_escalations": 5,
+    "cycles": 5
+  },
+  "comparison": {
+    "wall_time_delta_seconds": -10.43,
+    "wall_time_reduction_percent": 72.43
+  },
+  "results": {
+    "decisions_total": 5,
+    "jev_answered": 5,
+    "jev_escalations": 0,
+    "teacher_escalations": 0,
+    "teacher_improved": 0,
+    "map_topology_refresh_cycles": 5,
+    "map_fact_retrieval_cycles": 5,
+    "decision_rows": 5,
+    "all_refreshes_have_four_ram_resolved_directions": true,
+    "refresh_walkability": [
+      {
+        "up": "walkable",
+        "down": "walkable",
+        "left": "walkable",
+        "right": "walkable"
+      },
+      {
+        "up": "walkable",
+        "down": "walkable",
+        "left": "walkable",
+        "right": "walkable"
+      },
+      {
+        "up": "walkable",
+        "down": "blocked",
+        "left": "walkable",
+        "right": "walkable"
+      },
+      {
+        "up": "walkable",
+        "down": "walkable",
+        "left": "walkable",
+        "right": "walkable"
+      },
+      {
+        "up": "walkable",
+        "down": "walkable",
+        "left": "walkable",
+        "right": "walkable"
+      }
+    ]
+  },
+  "acceptance": {
+    "a1_ram_derived_non_unknown_walkability": true,
+    "a2_jev_escalations_lte_1_of_5": true,
+    "a2_teacher_escalations_zero": true,
+    "a2_wall_time_below_14_4_seconds": true,
+    "a3_fail_closed_projection_bytes": "tests/test_world_facts_projection.py::test_empty_world_facts_preserve_projection_bytes"
+  },
+  "verification": {
+    "red_proof": "3 selected PERF-3 follow-up tests failed before implementation, then passed",
+    "targeted": "214 passed, 5 skipped",
+    "full_suite": "4254 passed, 14 skipped",
+    "mypy": "Success: no issues found in 66 source files",
+    "ruff": "All checks passed"
+  }
+}
