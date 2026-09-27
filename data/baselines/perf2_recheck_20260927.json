@@ -1,0 +1,77 @@
+{
+  "generated_at_utc": "2026-09-27T05:52:49Z",
+  "source_run": "perf2_recheck_final_20260927_005242",
+  "command": "./venv/bin/python -m cProfile -o /tmp/perf2_recheck_final.prof cron_runner.py --run-id perf2_recheck_final_20260927_005242 --cycles 5 --boot-state skip",
+  "runtime": {
+    "cprofile_total_seconds": 6.996712
+  },
+  "events": {
+    "decision_cycles": 5,
+    "world_memory_retrieval": {
+      "count": 5,
+      "cycles": [1, 2, 3, 4, 5],
+      "fact_counts": [3, 3, 3, 3, 3],
+      "map_key": "/world/map/0"
+    },
+    "raw_jev_topology_gap": {
+      "count": 5,
+      "sufficient_state": [0.22, 0.27, 0.32, 0.27, 0.3],
+      "missing_classes": [
+        "map_topology",
+        "map_topology",
+        "map_topology",
+        "map_topology",
+        "map_topology"
+      ]
+    },
+    "effective_escalations": {
+      "count": 0,
+      "cycles": [],
+      "missing_classes": ["none", "none", "none", "none", "none"],
+      "reason": "map_topology_resolved_by_rom"
+    },
+    "teacher_calls": {
+      "count": 0,
+      "request_patch_profile_matches": 0
+    }
+  },
+  "top_cumulative_calls": [
+    {
+      "function": "src/core/jev_client.py:decide",
+      "calls": 5,
+      "cumulative_seconds": 1.535756
+    },
+    {
+      "function": "teacher request_patch",
+      "calls": 0,
+      "cumulative_seconds": 0.0
+    }
+  ],
+  "comparison_to_perf2_cold_decomp_20260926": {
+    "before": {
+      "cprofile_total_seconds": 14.4,
+      "effective_escalations": 5,
+      "teacher_calls": 1,
+      "teacher_request_patch_seconds": 9.68,
+      "sufficient_state_range": [0.15, 0.19]
+    },
+    "after": {
+      "cprofile_total_seconds": 6.996712,
+      "effective_escalations": 0,
+      "teacher_calls": 0,
+      "teacher_request_patch_seconds": 0.0,
+      "sufficient_state_range": [0.22, 0.32]
+    }
+  },
+  "findings": [
+    "MEM-PROJ reached JEV on every cycle, but bare keys and block-level unknowns were not usable topology; raw JEV continued to report map_topology below the unchanged 0.50 floor.",
+    "The fix renders newest recalled records as bounded factual content and adds exact Gen I ROM collision truth for adjacent tiles plus a 5x5 local collision grid.",
+    "When a recalled current-map fact and complete ROM collision evidence agree, the stale model-reported map_topology gap remains preserved in raw_distribution but is reconciled to effective missing_class=none without a teacher handoff.",
+    "SUFFICIENCY_FLOOR remains unchanged."
+  ],
+  "artifacts": {
+    "profile": "/tmp/perf2_recheck_final.prof",
+    "stdout": "/tmp/perf2_recheck_final_20260927_005242.log",
+    "run_log": "cron_logs/run_perf2_recheck_final_20260927_005242.jsonl"
+  }
+}

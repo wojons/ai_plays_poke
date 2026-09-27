@@ -188,6 +188,11 @@ BLOCK_SYMBOLS: dict[str, str] = {
 _MAP_COUNT = 248
 _PTR_TABLE = 0x01AE  # Map header pointer table (ROM offset)
 _BANK_TABLE = 0xC23D  # Map header bank table (ROM offset)
+_TILESET_HEADER_TABLE = (
+    51134  # 12-byte entries: bank, block ptr, gfx ptr, collision ptr
+)
+_TILESET_HEADER_SIZE = 12
+_BLOCK_TILE_WIDTH = 4
 
 
 class _MapDB:
@@ -276,6 +281,60 @@ class _MapDB:
         if not (0 <= x < w and 0 <= y < h):
             return None
         return info["block_data"][y * w + x]  # type: ignore[no-any-return]
+
+    def tile_walkability(self, map_id: int, tile_x: int, tile_y: int) -> bool | None:
+        """Return Gen I collision truth for one world tile.
+
+        Each map block is a 4x4 raw-tile metatile containing four 2x2 player
+        quadrants. Gen I tests the bottom-left raw tile of the destination
+        quadrant against the active tileset's collision-id list.
+        """
+        info = self.get_map(map_id)
+        if info is None:
+            return None
+        width, height = int(info["width"]), int(info["height"])
+        if not (0 <= tile_x < width * 2 and 0 <= tile_y < height * 2):
+            return None
+
+        tileset = int(info["tileset"])
+        header = _TILESET_HEADER_TABLE + tileset * _TILESET_HEADER_SIZE
+        if header + 7 > len(self._rom):
+            return None
+        bank = self._rom[header]
+        block_ptr = self._read_u16(self._rom, header + 1)
+        collision_ptr = self._read_u16(self._rom, header + 5)
+        block_base = self._rom_offset(block_ptr, bank)
+        collision_offset = (
+            collision_ptr
+            if collision_ptr < 0x4000
+            else self._rom_offset(collision_ptr, bank)
+        )
+        if block_base >= len(self._rom) or collision_offset >= len(self._rom):
+            return None
+
+        walkable_tiles: set[int] = set()
+        while collision_offset < len(self._rom):
+            raw_tile = self._rom[collision_offset]
+            collision_offset += 1
+            if raw_tile == 0xFF:
+                break
+            walkable_tiles.add(raw_tile)
+        else:
+            return None
+
+        block_x, block_y = tile_x // 2, tile_y // 2
+        block_id = info["block_data"][block_y * width + block_x]
+        raw_x = (tile_x % 2) * 2
+        raw_y = (tile_y % 2) * 2 + 1
+        raw_offset = (
+            block_base
+            + int(block_id) * (_BLOCK_TILE_WIDTH**2)
+            + raw_y * _BLOCK_TILE_WIDTH
+            + raw_x
+        )
+        if raw_offset >= len(self._rom):
+            return None
+        return self._rom[raw_offset] in walkable_tiles
 
     # ── Block classification ─────────────────────────────────────────
 
@@ -1188,6 +1247,43 @@ class RAMReader:
 
         return result
 
+    def adjacent_walkability(self) -> dict[str, str]:
+        """Return ROM collision truth for the four adjacent world tiles."""
+        map_id = self.current_map_id()
+        tile_x, tile_y = self.player_tile_x(), self.player_tile_y()
+        offsets = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
+        result: dict[str, str] = {}
+        for direction, (dx, dy) in offsets.items():
+            walkable = self._mapdb.tile_walkability(map_id, tile_x + dx, tile_y + dy)
+            result[direction] = (
+                "walkable"
+                if walkable is True
+                else "blocked"
+                if walkable is False
+                else "unknown"
+            )
+        return result
+
+    def build_collision_grid(self, radius: int = 2) -> str:
+        """Render exact ROM collision data around the player at world-tile scale."""
+        map_id = self.current_map_id()
+        player_x, player_y = self.player_tile_x(), self.player_tile_y()
+        rows: list[str] = []
+        for dy in range(-radius, radius + 1):
+            cells: list[str] = []
+            for dx in range(-radius, radius + 1):
+                if dx == 0 and dy == 0:
+                    cells.append("O")
+                    continue
+                walkable = self._mapdb.tile_walkability(
+                    map_id, player_x + dx, player_y + dy
+                )
+                cells.append(
+                    "." if walkable is True else "#" if walkable is False else "?"
+                )
+            rows.append("".join(cells))
+        return "\n".join(rows)
+
     def _pokemon_name(self, species_id: int) -> str:
         """Look up a Pokémon species name by internal ID.
 
@@ -1236,10 +1332,18 @@ class RAMReader:
             php, pmaxhp = php_le, pmax_le
         plevel = self.read_u8(ADDR_BATTLE_MON_LEVEL)
         # Stats are BE u16 like maxHP — swap to LE-canonical for consumers
-        patk = (self.read_u16(ADDR_BATTLE_MON_ATTACK) >> 8) | ((self.read_u16(ADDR_BATTLE_MON_ATTACK) & 0xFF) << 8)
-        pdef = (self.read_u16(ADDR_BATTLE_MON_DEFENSE) >> 8) | ((self.read_u16(ADDR_BATTLE_MON_DEFENSE) & 0xFF) << 8)
-        pspd = (self.read_u16(ADDR_BATTLE_MON_SPEED) >> 8) | ((self.read_u16(ADDR_BATTLE_MON_SPEED) & 0xFF) << 8)
-        pspc = (self.read_u16(ADDR_BATTLE_MON_SPECIAL) >> 8) | ((self.read_u16(ADDR_BATTLE_MON_SPECIAL) & 0xFF) << 8)
+        patk = (self.read_u16(ADDR_BATTLE_MON_ATTACK) >> 8) | (
+            (self.read_u16(ADDR_BATTLE_MON_ATTACK) & 0xFF) << 8
+        )
+        pdef = (self.read_u16(ADDR_BATTLE_MON_DEFENSE) >> 8) | (
+            (self.read_u16(ADDR_BATTLE_MON_DEFENSE) & 0xFF) << 8
+        )
+        pspd = (self.read_u16(ADDR_BATTLE_MON_SPEED) >> 8) | (
+            (self.read_u16(ADDR_BATTLE_MON_SPEED) & 0xFF) << 8
+        )
+        pspc = (self.read_u16(ADDR_BATTLE_MON_SPECIAL) >> 8) | (
+            (self.read_u16(ADDR_BATTLE_MON_SPECIAL) & 0xFF) << 8
+        )
         pstatus = self.read_u8(ADDR_BATTLE_MON_STATUS)
         ptype1 = self.read_u8(ADDR_BATTLE_MON_TYPE1)
         ptype2 = self.read_u8(ADDR_BATTLE_MON_TYPE2)
@@ -1277,11 +1381,7 @@ class RAMReader:
 
         return {
             "battle_type": (
-                "trainer"
-                if is_trainer
-                else "wild"
-                if battle_code == 1
-                else "unknown"
+                "trainer" if is_trainer else "wild" if battle_code == 1 else "unknown"
             ),
             "player": {
                 "name": self._pokemon_name(pspecies),
@@ -1525,6 +1625,8 @@ class RAMReader:
             "party_count": self.party_count(),
             "first_party_species": self.first_party_species_hint(),
             "adjacent": {},
+            "adjacent_walkability": {},
+            "collision_grid": "",
             "minimap": "",
             "overworld_grid": "",
             "visible_exits": [],
@@ -1567,6 +1669,8 @@ class RAMReader:
             obs["suggested_action"] = "enter a name and press START"
         elif st == SCREEN_OVERWORLD:
             obs["adjacent"] = self.adjacent_blocks()
+            obs["adjacent_walkability"] = self.adjacent_walkability()
+            obs["collision_grid"] = self.build_collision_grid(radius=2)
             obs["minimap"] = self.build_minimap(radius=2)
             obs["overworld_grid"] = self.render_overworld()
             obs["render"] = self.render_overworld()

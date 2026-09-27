@@ -1307,6 +1307,32 @@ def _jev_outcome_fields(decision: dict[str, Any]) -> dict[str, Any]:
     return fields
 
 
+def _map_topology_resolved(obs: dict[str, Any], world_facts: list[str] | None) -> bool:
+    """Whether current ROM evidence closes a recalled map-topology gap."""
+    map_id = obs.get("map_id")
+    if not isinstance(map_id, int) or not world_facts:
+        return False
+    map_prefix = f"/world/map/{map_id}:"
+    if not any(fact.startswith(map_prefix) for fact in world_facts):
+        return False
+
+    walkability = obs.get("adjacent_walkability")
+    if not isinstance(walkability, dict):
+        return False
+    required = {"up", "down", "left", "right"}
+    if set(walkability) < required or any(
+        walkability[direction] not in {"walkable", "blocked"} for direction in required
+    ):
+        return False
+
+    collision_grid = obs.get("collision_grid")
+    return (
+        isinstance(collision_grid, str)
+        and bool(collision_grid.strip())
+        and "?" not in collision_grid
+    )
+
+
 def _jev_overworld_decision(
     obs: dict[str, Any],
     *,
@@ -1360,6 +1386,23 @@ def _jev_overworld_decision(
             projection,
             last_action_failed=last_action_changed_state is False,
         )
+        reason = decision.get("escalate_reason")
+        topology_gap = (
+            isinstance(reason, str)
+            and (
+                reason.startswith("insufficient_state")
+                or reason.startswith("missing_class=map_topology")
+            )
+            and decision.get("missing_class") == "map_topology"
+        )
+        if topology_gap and _map_topology_resolved(obs, world_facts):
+            # JEV repeatedly self-reported this gap after the projection carried
+            # both the recalled map and exact ROM collision truth. Preserve the
+            # raw answer but reconcile the effective gate with deterministic data.
+            decision["reported_missing_class"] = "map_topology"
+            decision["missing_class"] = "none"
+            decision["escalate"] = False
+            decision["escalate_reason"] = "map_topology_resolved_by_rom"
     except Exception as exc:  # noqa: BLE001 - fail closed, but never silently
         # A raising tier must not kill the cycle AND must not hide itself: the
         # run keeps playing through the controller, and the transport outcome
@@ -2694,6 +2737,52 @@ def _append_run_event(
     log_file.flush()
 
 
+def _world_fact_text(record: dict[str, Any]) -> str:
+    """Render one recalled world record as bounded factual projection text."""
+    key = str(record.get("key") or "world/fact")
+    text = str(record.get("embedding_text") or "").strip()
+    attributes = record.get("attributes")
+    if not isinstance(attributes, dict):
+        return f"{key}: {text}" if text else key
+
+    parts = [text] if text else []
+    player_tile = attributes.get("player_tile")
+    if isinstance(player_tile, dict):
+        x, y = player_tile.get("x"), player_tile.get("y")
+        if isinstance(x, int) and isinstance(y, int):
+            parts.append(f"tile={x},{y}")
+
+    direction_labels = (("up", "U"), ("down", "D"), ("left", "L"), ("right", "R"))
+    for field, label in (
+        ("adjacent_walkability", "walkability"),
+        ("adjacent_tiles", "terrain"),
+    ):
+        values = attributes.get(field)
+        if isinstance(values, dict) and values:
+            rendered = ",".join(
+                f"{short}:{values[direction]}"
+                for direction, short in direction_labels
+                if direction in values
+                and (
+                    field != "adjacent_tiles"
+                    or str(values[direction]).lower() not in {"unknown", "void"}
+                )
+            )
+            if rendered:
+                parts.append(f"{label}={rendered}")
+
+    collision_grid = attributes.get("local_collision_grid")
+    if isinstance(collision_grid, str) and collision_grid.strip():
+        parts.append(f"local_collision={collision_grid.strip().replace(chr(10), '/')}")
+
+    exits = attributes.get("visible_exits")
+    if isinstance(exits, list):
+        parts.append(
+            f"exits={','.join(str(item) for item in exits) if exits else 'none'}"
+        )
+    return f"{key}: {'; '.join(parts)}" if parts else key
+
+
 def _populate_world_memory(
     *,
     observation: dict[str, Any],
@@ -2736,7 +2825,7 @@ def _populate_world_memory(
             *_dbc.recall(
                 key=map_key,
                 namespace=WORLD_MEMORY_NAMESPACE,
-                limit=1,
+                limit=8,
             ),
             *_dbc.recall(
                 key_prefix=object_prefix,
@@ -2747,9 +2836,16 @@ def _populate_world_memory(
         recalled_by_key: dict[str, dict[str, Any]] = {}
         for record in recalled:
             key = record.get("key")
-            if isinstance(key, str) and key not in recalled_by_key:
+            if not isinstance(key, str):
+                continue
+            current = recalled_by_key.get(key)
+            if current is None or str(record.get("created_at") or "") > str(
+                current.get("created_at") or ""
+            ):
                 recalled_by_key[key] = record
-        retrieved_facts = list(recalled_by_key)
+        retrieved_facts = [
+            _world_fact_text(record) for record in recalled_by_key.values()
+        ]
         if recalled_by_key:
             retrieval_event = {
                 "cycle": cycle,
@@ -2800,6 +2896,10 @@ def _populate_world_memory(
                 "map_tileset": observation.get("map_tileset"),
                 "visible_exits": list(observation.get("visible_exits") or []),
                 "adjacent_tiles": dict(observation.get("adjacent") or {}),
+                "adjacent_walkability": dict(
+                    observation.get("adjacent_walkability") or {}
+                ),
+                "local_collision_grid": str(observation.get("collision_grid") or ""),
             },
             "embedding_text": (
                 f"Observed {map_name} (map {typed_map_id}) at tile "

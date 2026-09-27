@@ -145,11 +145,31 @@ def build(
     lines.append(f"SCREEN: {st}")
 
     # ── topology: this is the section Jev said was missing ──────────────────
-    lines.append("TOPOLOGY (what is adjacent to the player right now):")
-    lines.append(_adjacent_line(obs.get("adjacent") or {}))
+    walkability = obs.get("adjacent_walkability") or {}
+    lines.append("TOPOLOGY (ROM collision truth for the next move):")
+    lines.append(_adjacent_line(walkability or obs.get("adjacent") or {}))
+    if walkability:
+        terrain = {
+            direction: value
+            for direction, value in (obs.get("adjacent") or {}).items()
+            if str(value).lower() not in {"unknown", "void"}
+        }
+        if terrain:
+            lines.append(
+                "ADJACENT TERRAIN (appearance only; collision above is authoritative):"
+            )
+            lines.append(_adjacent_line(terrain))
+
+    collision_grid = obs.get("collision_grid") or ""
+    if collision_grid:
+        lines.append(
+            "LOCAL COLLISION MAP (O=player, .=walkable, #=blocked, ?=unknown):"
+        )
+        for ln in _cap(collision_grid, MAX_MINIMAP_CHARS).splitlines():
+            lines.append("  " + ln)
 
     grid = obs.get("minimap") or obs.get("overworld_grid") or ""
-    if grid:
+    if grid and not collision_grid:
         lines.append("LOCAL MAP (O=player, . floor, # blocked):")
         for ln in _cap(grid, MAX_MINIMAP_CHARS).splitlines():
             lines.append("  " + ln)

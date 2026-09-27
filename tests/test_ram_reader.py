@@ -325,6 +325,30 @@ class TestMapDBClassifyBlock:
         assert db.classify_block(0x10, 99) == "unknown"
 
 
+class TestMapDBTileWalkability:
+    def test_decodes_tileset_collision_from_rom(self) -> None:
+        rom = bytearray(_make_rom_bytes())
+        tileset_id = 4
+        header = 51134 + tileset_id * 12
+        rom[header] = 2
+        rom[header + 1 : header + 3] = (0x4200).to_bytes(2, "little")
+        rom[header + 5 : header + 7] = (0x1800).to_bytes(2, "little")
+        rom[0x1800:0x1802] = bytes((0x2A, 0xFF))
+
+        # Map tile (4,4) occupies the top-left quadrant of block id 0x12.
+        # Gen I samples the bottom-left raw tile within that 2x2 quadrant.
+        raw_tile_offset = 0x8200 + 0x12 * 16 + 4
+        rom[raw_tile_offset] = 0x2A
+        db = _MapDB.from_bytes(bytes(rom))
+
+        assert db.tile_walkability(0, 4, 4) is True
+
+        rom[raw_tile_offset] = 0x2B
+        db = _MapDB.from_bytes(bytes(rom))
+        assert db.tile_walkability(0, 4, 4) is False
+        assert db.tile_walkability(0, -1, 4) is None
+
+
 # ── RAMReader tests (mock emulator + mock _MapDB) ────────────────────────
 
 
@@ -675,6 +699,50 @@ class TestRAMReaderAdjacentBlocks:
             assert adj["down"] == "floor"
             assert adj["left"] == "wall"
             assert adj["right"] == "floor"
+
+    def test_adjacent_walkability_uses_world_tile_collision(
+        self, mock_emu: MagicMock
+    ) -> None:
+        _MEMORY[0xD361] = 8  # world tile y=8
+        _MEMORY[0xD362] = 12  # world tile x=12
+
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            answers = {
+                (0, 12, 7): True,
+                (0, 12, 9): False,
+                (0, 11, 8): None,
+                (0, 13, 8): True,
+            }
+            mock_db.tile_walkability.side_effect = lambda map_id, x, y: answers[
+                (map_id, x, y)
+            ]
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.adjacent_walkability() == {
+                "up": "walkable",
+                "down": "blocked",
+                "left": "unknown",
+                "right": "walkable",
+            }
+
+    def test_collision_grid_maps_each_world_tile(self, mock_emu: MagicMock) -> None:
+        _MEMORY[0xD361] = 8
+        _MEMORY[0xD362] = 12
+
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+            mock_db = MagicMock()
+            mock_db.tile_walkability.return_value = True
+            mock_mapdb_cls.return_value = mock_db
+
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+            assert reader.build_collision_grid(radius=1) == "...\n.O.\n..."
+            assert mock_db.tile_walkability.call_count == 8
 
 
 class TestRAMReaderBuildMinimap:
@@ -1909,9 +1977,9 @@ class TestRenderMenu:
 
         lines = output.split("\n")
         # Verify arrow appears on the [2] line specifically
-        assert any(
-            "→" in line and "[2]" in line for line in lines
-        ), "Expected → marker on item 2"
+        assert any("→" in line and "[2]" in line for line in lines), (
+            "Expected → marker on item 2"
+        )
 
     def test_includes_navigation_hint(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCF88] = 1
@@ -2162,9 +2230,9 @@ class TestRenderNameEntry:
 
         assert "Keyboard:" in output
         lines = output.split("\n")
-        assert any(
-            "A B C D E F G H I" in line for line in lines
-        ), f"Expected uppercase row, got lines: {lines}"
+        assert any("A B C D E F G H I" in line for line in lines), (
+            f"Expected uppercase row, got lines: {lines}"
+        )
 
     def test_navigation_hint(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xCC47] = 1
