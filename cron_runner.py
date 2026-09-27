@@ -1314,6 +1314,7 @@ def _jev_overworld_decision(
     visited: dict[tuple[int, int], int] | None = None,
     recent_events: list[dict[str, Any]] | None = None,
     recent_decisions: list[dict[str, Any]] | None = None,
+    world_facts: list[str] | None = None,
     last_action: str = "",
     last_action_changed_state: bool | None = None,
     teacher_api_client: Any = None,
@@ -1343,6 +1344,8 @@ def _jev_overworld_decision(
     ``missing_class`` and ``raw_distribution`` (the full answer distribution).
     """
     try:
+        if world_facts:
+            safe_print(f"  [MEM-WORLD] {len(world_facts)} facts -> JEV projection")
         projection = state_projection.build(
             obs,
             goal=goal,
@@ -1351,6 +1354,7 @@ def _jev_overworld_decision(
             last_action=last_action,
             last_action_changed_state=last_action_changed_state,
             mechanics=state_projection.DEFAULT_MECHANICS,
+            extra_facts=world_facts or None,
         )
         decision = jev_client.decide(
             projection,
@@ -2698,13 +2702,13 @@ def _populate_world_memory(
     results: list[dict[str, Any]],
     log_file: TextIO,
     written_keys: set[str],
-) -> None:
+) -> list[str]:
     """Retrieve current-map facts, then persist newly observed world facts.
 
-    Retrieval deliberately runs before writes.  Therefore a retrieval event for
+    Retrieval deliberately runs before writes. Therefore a retrieval event for
     cycle N can only contain a fact that was already in DuckBrain when cycle N
-    started; facts first written by this run on cycle N-1 become observable on
-    the next cycle without entering the JEV projection (MEM-PROJ owns that).
+    started; facts first written by this run on cycle N-1 become available to
+    the JEV projection on the next cycle.
     """
     map_id = observation.get("map_id")
     player_tile_x = observation.get("player_tile_x")
@@ -2714,7 +2718,7 @@ def _populate_world_memory(
         or not isinstance(player_tile_x, int)
         or not isinstance(player_tile_y, int)
     ):
-        return
+        return []
 
     typed_map_id = map_id
     typed_tile_x = player_tile_x
@@ -2726,6 +2730,7 @@ def _populate_world_memory(
 
     from src.core import duckbrain_client as _dbc
 
+    retrieved_facts: list[str] = []
     try:
         recalled = [
             *_dbc.recall(
@@ -2744,6 +2749,7 @@ def _populate_world_memory(
             key = record.get("key")
             if isinstance(key, str) and key not in recalled_by_key:
                 recalled_by_key[key] = record
+        retrieved_facts = list(recalled_by_key)
         if recalled_by_key:
             retrieval_event = {
                 "cycle": cycle,
@@ -2760,6 +2766,7 @@ def _populate_world_memory(
                 f"{len(recalled_by_key)} fact(s): {', '.join(recalled_by_key)}"
             )
     except Exception as exc:  # memory must not stop gameplay
+        retrieved_facts = []
         _append_run_event(
             {
                 "cycle": cycle,
@@ -2882,6 +2889,8 @@ def _populate_world_memory(
                 log_file=log_file,
             )
             safe_print(f"  [MEM-WORLD] write failed for {key}: {exc}")
+
+    return retrieved_facts
 
 
 def _apply_agent_memory_outputs(
@@ -4050,8 +4059,8 @@ def main() -> None:
 
             # S2 world memory: retrieve facts already present at cycle start,
             # then persist this observation. The ordering makes next-cycle use
-            # observable and keeps MEM-PROJ's projection wiring out of scope.
-            _populate_world_memory(
+            # observable in the JEV projection.
+            _world_facts = _populate_world_memory(
                 observation=patch_data,
                 run_id=run_id,
                 cycle=cycle + 1,
@@ -4386,6 +4395,7 @@ def main() -> None:
                     visited=_tile_visits,
                     recent_events=results,
                     recent_decisions=_recent_decisions,
+                    world_facts=_world_facts,
                     last_action=_last_direction or "",
                     # PRD v3 §3.2 trigger 1 (failure): a DIRECTION press that
                     # left the player on the same (map, tile) changed nothing,
