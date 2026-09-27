@@ -36,7 +36,19 @@ class FakeGameDatabase:
         pass
 
 
-@pytest.fixture(scope="module")
+TEST_API_KEY = "unit-test-dashboard-key"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def _api_key_env():
+    """All dashboard tests run with an explicitly configured PTP_API_KEY."""
+    import src.dashboard.main as dashboard_main
+
+    with patch.object(dashboard_main, "API_KEY", TEST_API_KEY):
+        yield
+
+
+@pytest.fixture
 def client():
     """TestClient with patched deps — imported once per module."""
     with patch("src.dashboard.main.ScreenshotManager", FakeScreenshotManager):
@@ -48,7 +60,66 @@ def client():
 @pytest.fixture
 def auth():
     """Default auth headers."""
-    return {"x-api-key": "ptp-secret-key-12345"}
+    return {"x-api-key": TEST_API_KEY}
+
+
+class TestFailClosedAuth:
+    """PTP_API_KEY unset => every request fails closed with 401."""
+
+    def test_unset_key_rejects_old_default_key(self, monkeypatch):
+        import src.dashboard.main as dashboard_main
+
+        monkeypatch.delenv("PTP_API_KEY", raising=False)
+        with patch.object(dashboard_main, "API_KEY", None):
+            client = TestClient(dashboard_main.app)
+            # The old committed default key must NOT authenticate anymore.
+            resp = client.get(
+                "/status", headers={"x-api-key": "ptp" + "-secret-key-12345"}
+            )
+            assert resp.status_code == 401
+
+    def test_unset_key_rejects_missing_header(self, monkeypatch):
+        import src.dashboard.main as dashboard_main
+
+        monkeypatch.delenv("PTP_API_KEY", raising=False)
+        with patch.object(dashboard_main, "API_KEY", None):
+            client = TestClient(dashboard_main.app)
+            assert client.get("/status").status_code == 401
+            assert client.get("/metrics").status_code == 401
+
+    def test_unset_key_rejects_empty_header(self, monkeypatch):
+        import src.dashboard.main as dashboard_main
+
+        monkeypatch.delenv("PTP_API_KEY", raising=False)
+        with patch.object(dashboard_main, "API_KEY", None):
+            client = TestClient(dashboard_main.app)
+            assert client.get("/status", headers={"x-api-key": ""}).status_code == 401
+
+    def test_configured_key_authenticates(self):
+        client = TestClient(__import__("src.dashboard.main", fromlist=["app"]).app)
+        assert (
+            client.get("/status", headers={"x-api-key": TEST_API_KEY}).status_code
+            == 200
+        )
+
+    def test_startup_does_not_print_the_api_key(self, capsys):
+        """The ``__main__`` block must not echo the key to stdout."""
+        runpy = __import__("runpy")
+        import src.dashboard as dashboard_pkg
+
+        with patch.dict(
+            "sys.modules",
+            {"uvicorn": type(sys)("fake_uvicorn")},
+        ):
+            fake_uvicorn = sys.modules["uvicorn"]
+            fake_uvicorn.run = lambda *a, **k: None
+            runpy.run_path(
+                str(Path(dashboard_pkg.__file__).parent / "main.py"),
+                run_name="__main__",
+            )
+        out = capsys.readouterr().out
+        assert "API Key" not in out
+        assert TEST_API_KEY not in out
 
 
 # ── DashboardSession Unit Tests ─────────────────────────────────────────

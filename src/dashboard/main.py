@@ -34,7 +34,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from src.db.database import GameDatabase
 from src.core.screenshot_manager import ScreenshotManager
 
-API_KEY = os.getenv("PTP_API_KEY", "ptp-secret-key-12345")
+API_KEY = os.getenv("PTP_API_KEY")
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 INDEX_HTML_PATH = STATIC_DIR / "index.html"
@@ -50,7 +50,9 @@ def render_index_html(api_key: str) -> str:
     carries no key and a deployment can rotate ``PTP_API_KEY`` without editing
     HTML. ``static/index.html`` is written to degrade to an empty key when it is
     opened straight from disk (uninjected), which leaves authenticated calls at
-    401 rather than falling back to a committed default.
+    401. Auth is fail-closed: when ``PTP_API_KEY`` is unset, ``verify_api_key``
+    rejects every request (including an empty header) rather than falling back
+    to any default credential.
     """
     html = INDEX_HTML_PATH.read_text(encoding="utf-8")
     bootstrap = f"<script>window.ENV = {json.dumps({'PTP_API_KEY': api_key})};</script>"
@@ -61,8 +63,10 @@ sessions: Dict[str, Dict[str, Any]] = {}
 connection_manager: Dict[str, WebSocket] = {}
 
 
-def verify_api_key(x_api_key: str = Header(None)) -> bool:
-    if x_api_key != API_KEY:
+def verify_api_key(x_api_key: Optional[str] = Header(None)) -> bool:
+    # Fail closed: with no key configured, every request (including a missing
+    # header, which would otherwise compare equal to None) is rejected.
+    if not API_KEY or x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API key")
     return True
 
@@ -204,12 +208,12 @@ class DashboardSession:
             "ticks_per_second": round(avg_tick_rate, 2),
             "total_ticks": self.state["tick_count"],
             "total_commands": total_commands,
-            "commands_per_minute": round(total_commands / (elapsed / 60), 2)
-            if elapsed > 0
-            else 0,
-            "success_rate": round(success_count / total_commands, 4)
-            if total_commands > 0
-            else 1.0,
+            "commands_per_minute": (
+                round(total_commands / (elapsed / 60), 2) if elapsed > 0 else 0
+            ),
+            "success_rate": (
+                round(success_count / total_commands, 4) if total_commands > 0 else 1.0
+            ),
             "avg_confidence": round(avg_confidence, 4),
             "total_cost_estimate": round(total_cost, 6),
             "elapsed_seconds": round(elapsed, 2),
@@ -234,7 +238,7 @@ def get_session(session_id: str = "default") -> DashboardSession:
 
 @app.get("/")
 async def root() -> HTMLResponse:
-    return HTMLResponse(render_index_html(API_KEY))
+    return HTMLResponse(render_index_html(API_KEY or ""))
 
 
 @app.get("/status")
@@ -505,10 +509,9 @@ if __name__ == "__main__":
     import uvicorn
 
     port = int(os.getenv("PTP_DASHBOARD_PORT", "8000"))
-    host = os.getenv("PTP_DASHBOARD_HOST", "0.0.0.0")
+    host = os.getenv("PTP_DASHBOARD_HOST", "127.0.0.1")
 
     print(f"Starting PTP-01X Dashboard on {host}:{port}")
-    print(f"API Key: {API_KEY}")
     print(f"Documentation: http://{host}:{port}/api/docs")
 
     uvicorn.run(app, host=host, port=port)
