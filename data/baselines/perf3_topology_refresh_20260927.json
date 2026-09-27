@@ -1,0 +1,117 @@
+{
+  "row": "PERF-3",
+  "generated_at": "2026-09-27T06:50:39.666710+00:00",
+  "harness": {
+    "python": ".venv/bin/python",
+    "pytest": ".venv/bin/python -m pytest tests/ -x -q -> 4235 passed, 14 skipped",
+    "runs": [
+      "cron_runner.py --run-id perffix_t256 --cycles 5 --boot-state skip (cProfile, matches perfcold_t254)",
+      "cron_runner.py --run-id perffix_t257 --cycles 5 --boot-state data/boot.state"
+    ],
+    "baseline_pre_fix": {
+      "run": "perfcold_t254 (2026-09-26, pre-PERF-2-gate tree)",
+      "map_topology_escalations": 5,
+      "cycles": 5
+    }
+  },
+  "runs": [
+    {
+      "log": "cron_logs/run_perffix_t256.jsonl",
+      "cycles": 5,
+      "escalated": 0,
+      "map_topology_escalations": 0,
+      "live_rom_topology_refresh_facts": 5,
+      "teacher_escalations": {
+        "count": 0,
+        "improved": 0
+      },
+      "run_autonomy": {
+        "run_id": "perffix_t256",
+        "event": "run_autonomy",
+        "decisions_total": 5,
+        "jev_answered": 5,
+        "escalated": 0,
+        "autonomy_ratio": 1.0,
+        "escalation_rate_by_missing_class": {},
+        "jev_transport_failures": 0,
+        "jev_transport_failure_rate": 0.0,
+        "degraded": false,
+        "teacher_escalations": {
+          "count": 0,
+          "improved": 0
+        },
+        "decision_mode": "jev",
+        "decision_mode_family": "system1+system2",
+        "handoff_policy": {
+          "families": [
+            "confidence",
+            "failure",
+            "gap"
+          ],
+          "classes": null,
+          "confidence": 0.5,
+          "ambiguity": 0.4,
+          "teacher_max_per_episode": null
+        },
+        "handoff_trigger_counts": {
+          "other": 5
+        },
+        "handoff_blocked": 5
+      },
+      "cprofile_total_seconds": 3.97
+    },
+    {
+      "log": "cron_logs/run_perffix_t257.jsonl",
+      "cycles": 5,
+      "escalated": 1,
+      "map_topology_escalations": 0,
+      "live_rom_topology_refresh_facts": 5,
+      "teacher_escalations": {
+        "count": 1,
+        "improved": 1
+      },
+      "run_autonomy": {
+        "run_id": "perffix_t257",
+        "event": "run_autonomy",
+        "decisions_total": 5,
+        "jev_answered": 5,
+        "escalated": 1,
+        "autonomy_ratio": 1.0,
+        "escalation_rate_by_missing_class": {
+          "none": 1.0
+        },
+        "jev_transport_failures": 0,
+        "jev_transport_failure_rate": 0.0,
+        "degraded": false,
+        "teacher_escalations": {
+          "count": 1,
+          "improved": 1
+        },
+        "decision_mode": "jev",
+        "decision_mode_family": "system1+system2",
+        "handoff_policy": {
+          "families": [
+            "confidence",
+            "failure",
+            "gap"
+          ],
+          "classes": null,
+          "confidence": 0.5,
+          "ambiguity": 0.4,
+          "teacher_max_per_episode": null
+        },
+        "handoff_trigger_counts": {
+          "gap": 1,
+          "other": 4
+        },
+        "handoff_blocked": 4
+      },
+      "cprofile_total_seconds": 7.92
+    }
+  ],
+  "unit_tests": {
+    "file": "tests/test_world_topology_refresh.py",
+    "cases": 13,
+    "red_proof": "11/13 fail against the pre-fix cron_runner (git HEAD) in a detached control worktree; the 2 passes are the fail-closed guard and the already-landed PERF-2 gate path"
+  }
+}

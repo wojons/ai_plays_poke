@@ -2737,8 +2737,98 @@ def _append_run_event(
     log_file.flush()
 
 
-def _world_fact_text(record: dict[str, Any]) -> str:
-    """Render one recalled world record as bounded factual projection text."""
+# Walkability values the JEV projection treats as ROM-resolved. Anything else
+# ("unknown", "void", "", None) is absence of knowledge, not a fact about the
+# tile, so it is never rendered into the projection: a recalled record stays in
+# DuckBrain for the rest of the run, and memory answering "unknown" forever is
+# what kept JEV re-reporting map_topology on already-mapped tiles.
+_KNOWN_WALKABILITY: frozenset[str] = frozenset({"walkable", "blocked"})
+
+_WALK_DIRECTION_LABELS: tuple[tuple[str, str], ...] = (
+    ("up", "U"),
+    ("down", "D"),
+    ("left", "L"),
+    ("right", "R"),
+)
+
+
+def _known_walkability(values: Any) -> dict[str, str]:
+    """Return the ROM-resolved subset of a walkability mapping, normalized."""
+    if not isinstance(values, dict):
+        return {}
+    return {
+        str(direction): str(value).lower()
+        for direction, value in values.items()
+        if str(value).lower() in _KNOWN_WALKABILITY
+    }
+
+
+def _walkability_text(values: dict[str, str]) -> str:
+    """Render a walkability mapping in a fixed direction order."""
+    return ",".join(
+        f"{short}:{values[direction]}"
+        for direction, short in _WALK_DIRECTION_LABELS
+        if direction in values
+    )
+
+
+def _record_tile(attributes: dict[str, Any]) -> tuple[int, int] | None:
+    """Return the tile a recalled map record was observed at, when typed."""
+    tile = attributes.get("player_tile")
+    if not isinstance(tile, dict):
+        return None
+    x, y = tile.get("x"), tile.get("y")
+    if isinstance(x, int) and isinstance(y, int):
+        return (x, y)
+    return None
+
+
+def _fresh_topology_fact(observation: dict[str, Any]) -> str | None:
+    """Render live ROM collision truth for the CURRENT map/tile as a fact.
+
+    A memory record is written once and replayed for the rest of the run, so it
+    can serve "unknown" walkability (or an older tile's truth) indefinitely.
+    This fact is rebuilt from the live RAM read every cycle and carries the
+    ``/world/map/<id>:`` key shape, so an already-mapped tile presents one
+    unambiguous walkability per direction and a freshly entered map is
+    resolvable on its first cycle (retrieval runs before writes, so a new map
+    has no recalled record yet).
+
+    Returns ``None`` unless the live read resolved all four directions: a
+    partial read must never masquerade as fresh truth.
+    """
+    map_id = observation.get("map_id")
+    if not isinstance(map_id, int) or map_id < 0:
+        return None
+    walkability = _known_walkability(observation.get("adjacent_walkability"))
+    if set(walkability) < {"up", "down", "left", "right"}:
+        return None
+    parts = ["live ROM collision truth (this cycle)"]
+    tile_x = observation.get("player_tile_x")
+    tile_y = observation.get("player_tile_y")
+    if isinstance(tile_x, int) and isinstance(tile_y, int):
+        parts.append(f"tile={tile_x},{tile_y}")
+    parts.append(f"walkability={_walkability_text(walkability)}")
+    return f"/world/map/{map_id}: " + "; ".join(parts)
+
+
+def _world_fact_text(
+    record: dict[str, Any],
+    *,
+    fresh_walkability: dict[str, str] | None = None,
+    fresh_tile: tuple[int, int] | None = None,
+    fresh_collision_grid: str | None = None,
+) -> str:
+    """Render one recalled world record as bounded factual projection text.
+
+    A recalled record is a snapshot: its ``adjacent_walkability`` may be
+    "unknown" for the rest of the run. Only ROM-resolved directions are
+    rendered, so stale memory can never contradict the live ROM truth in the
+    same projection; when the record is for the tile the player is standing on
+    right now, the live ROM read for that tile outranks the stored one. A
+    record for a different tile keeps its own known values and never borrows
+    the current tile's (that would misattribute truth to the wrong tile).
+    """
     key = str(record.get("key") or "world/fact")
     text = str(record.get("embedding_text") or "").strip()
     attributes = record.get("attributes")
@@ -2752,26 +2842,26 @@ def _world_fact_text(record: dict[str, Any]) -> str:
         if isinstance(x, int) and isinstance(y, int):
             parts.append(f"tile={x},{y}")
 
-    direction_labels = (("up", "U"), ("down", "D"), ("left", "L"), ("right", "R"))
-    for field, label in (
-        ("adjacent_walkability", "walkability"),
-        ("adjacent_tiles", "terrain"),
-    ):
-        values = attributes.get(field)
-        if isinstance(values, dict) and values:
-            rendered = ",".join(
-                f"{short}:{values[direction]}"
-                for direction, short in direction_labels
-                if direction in values
-                and (
-                    field != "adjacent_tiles"
-                    or str(values[direction]).lower() not in {"unknown", "void"}
-                )
-            )
-            if rendered:
-                parts.append(f"{label}={rendered}")
-
+    walkability = _known_walkability(attributes.get("adjacent_walkability"))
     collision_grid = attributes.get("local_collision_grid")
+    if fresh_tile is not None and _record_tile(attributes) == fresh_tile:
+        walkability.update(_known_walkability(fresh_walkability))
+        if isinstance(fresh_collision_grid, str) and fresh_collision_grid.strip():
+            collision_grid = fresh_collision_grid
+    if walkability:
+        parts.append(f"walkability={_walkability_text(walkability)}")
+
+    terrain = attributes.get("adjacent_tiles")
+    if isinstance(terrain, dict) and terrain:
+        rendered_terrain = ",".join(
+            f"{short}:{terrain[direction]}"
+            for direction, short in _WALK_DIRECTION_LABELS
+            if direction in terrain
+            and str(terrain[direction]).lower() not in {"unknown", "void"}
+        )
+        if rendered_terrain:
+            parts.append(f"terrain={rendered_terrain}")
+
     if isinstance(collision_grid, str) and collision_grid.strip():
         parts.append(f"local_collision={collision_grid.strip().replace(chr(10), '/')}")
 
@@ -2819,6 +2909,10 @@ def _populate_world_memory(
 
     from src.core import duckbrain_client as _dbc
 
+    fresh_walkability = _known_walkability(observation.get("adjacent_walkability"))
+    fresh_grid = observation.get("collision_grid")
+    fresh_topology = _fresh_topology_fact(observation)
+
     retrieved_facts: list[str] = []
     try:
         recalled = [
@@ -2844,8 +2938,40 @@ def _populate_world_memory(
             ):
                 recalled_by_key[key] = record
         retrieved_facts = [
-            _world_fact_text(record) for record in recalled_by_key.values()
+            _world_fact_text(
+                record,
+                fresh_walkability=fresh_walkability,
+                fresh_tile=(typed_tile_x, typed_tile_y),
+                fresh_collision_grid=(
+                    fresh_grid if isinstance(fresh_grid, str) else None
+                ),
+            )
+            for record in recalled_by_key.values()
         ]
+        if fresh_topology is not None:
+            # Live ROM collision truth leads the supplied facts: memory is a
+            # snapshot from whenever it was written, the collision read is this
+            # cycle's. It also gives a freshly entered map (retrieval runs
+            # before writes, so it has no recalled record yet) a factual
+            # topology entry instead of leaving the projection with none.
+            _append_run_event(
+                {
+                    "cycle": cycle,
+                    "event": "world_memory_topology_refresh",
+                    "namespace": WORLD_MEMORY_NAMESPACE,
+                    "map_id": typed_map_id,
+                    "map_name": map_name,
+                    "tile": {"x": typed_tile_x, "y": typed_tile_y},
+                    "walkability": dict(fresh_walkability),
+                    "fact": fresh_topology,
+                },
+                results=results,
+                log_file=log_file,
+            )
+            retrieved_facts.insert(0, fresh_topology)
+            safe_print(
+                f"  [MEM-WORLD] cycle {cycle} live ROM topology fact -> JEV projection"
+            )
         if recalled_by_key:
             retrieval_event = {
                 "cycle": cycle,
@@ -2875,6 +3001,12 @@ def _populate_world_memory(
             log_file=log_file,
         )
         safe_print(f"  [MEM-WORLD] retrieval failed: {exc}")
+
+    # Fail-closed contract (MEM-PROJ T3): a failed retrieval supplies NO facts,
+    # so the projection keeps its previous bytes. The live ROM topology fact is
+    # deliberately withheld here too - "retrieval failed" must stay observable
+    # as an empty fact list rather than being masked by a partially-populated
+    # projection.
 
     evidence = {
         "run_id": run_id,

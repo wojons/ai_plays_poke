@@ -115,6 +115,10 @@ def test_retrieved_world_facts_reach_jev_projection(
 
     assert facts == [
         (
+            "/world/map/0: live ROM collision truth (this cycle); tile=6,6; "
+            "walkability=U:blocked,D:walkable,L:walkable,R:blocked"
+        ),
+        (
             "/world/map/0: Observed Pallet Town; tile=6,6; "
             "walkability=U:blocked,D:walkable,L:walkable,R:blocked; "
             "terrain=U:wall,D:floor,L:grass,R:object; "
@@ -126,7 +130,7 @@ def test_retrieved_world_facts_reach_jev_projection(
     assert "SUPPLIED FACTS:" in projections[0]
     assert "walkability=U:blocked,D:walkable,L:walkable,R:blocked" in projections[0]
     assert "/world/object/0/2_3: Pallet Town block (2,3) is grass" in projections[0]
-    assert "[MEM-WORLD] 2 facts -> JEV projection" in capsys.readouterr().out
+    assert "[MEM-WORLD] 3 facts -> JEV projection" in capsys.readouterr().out
 
 
 def test_projection_distinguishes_walkability_from_terrain() -> None:
