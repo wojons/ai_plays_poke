@@ -732,6 +732,7 @@ class TestRAMReaderAdjacentBlocks:
     def test_collision_grid_maps_each_world_tile(self, mock_emu: MagicMock) -> None:
         _MEMORY[0xD361] = 8
         _MEMORY[0xD362] = 12
+        _MEMORY[0xC109] = 0x00  # facing down → the player's own cell shows ↓
 
         from src.core.ram_reader import RAMReader
 
@@ -741,7 +742,8 @@ class TestRAMReaderAdjacentBlocks:
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
-            assert reader.build_collision_grid(radius=1) == "...\n.O.\n..."
+            # The player's cell carries the facing arrow, not a bare "O".
+            assert reader.build_collision_grid(radius=1) == "...\n.↓.\n..."
             assert mock_db.tile_walkability.call_count == 8
 
 
@@ -1142,13 +1144,16 @@ class TestRenderOverworld:
             ]
             assert len(grid_lines) == 5
 
-            # Row index 2 (dy=0) → center row, has @
+            # Row index 2 (dy=0) → centre row: the player's own cell shows the
+            # facing arrow, so one glyph carries position AND direction.
             center = grid_lines[2].split()
-            assert center[2] == "@"
+            assert center[2] == "↓"
 
-            # Row index 3 (dy=+1) has ↓ at col 2
+            # Row index 3 (dy=+1) is the cell the player faces: it keeps its
+            # TRUE contents. (2,3) is floor, so it reads "." — the arrow must
+            # never appear here, or it masks whatever is in front of the player.
             down = grid_lines[3].split()
-            assert down[2] == "↓"
+            assert down[2] == "."
 
             # Check some classified blocks
             # Row 0 (dy=-2): block_data[0] = 0x0F floor = .
@@ -1171,7 +1176,11 @@ class TestRenderOverworld:
             block_data[3 * w + 4] = 0x32  # tree
             # Grass at (7,3) → gy=3, gx=7 → dy=-2, dx=+1 → grid[0][3]
             block_data[3 * w + 7] = 0x01  # grass
-            # Sign at (6,6) → gy=6, gx=6 → dy=+1, dx=0 → grid[3][2] (but arrow takes priority)
+            # Sign at (6,6) → gy=6, gx=6 → dy=+1, dx=0 → grid[3][2].
+            # NOTE: the block itself was never set here before, so this test
+            # passed only because the facing arrow overwrote the (empty) cell.
+            block_data[6 * w + 6] = 0x60  # signpost (object)
+            # It must be VISIBLE: the cell in front keeps its true contents.
 
             mock_db.get_map.return_value = {
                 "tileset": 0,
@@ -1197,16 +1206,18 @@ class TestRenderOverworld:
             ]
 
             center = grid_lines[2].split()
-            assert center[2] == "@"
+            assert center[2] == "↓"
 
             # Top row (dy=-2, gy=3): gx=4→tree=T, gx=5→floor=., gx=6→floor=., gx=7→grass=G, gx=8→floor=.
             top = grid_lines[0].split()
             assert top[0] == "T"  # tree at (4,3)
             assert top[3] == "G"  # grass at (7,3)
 
-            # Arrow below player
+            # REGRESSION: the sign directly below the player is now visible as
+            # "S". It used to be overwritten by the facing arrow, which hid the
+            # one object the player is standing next to.
             down = grid_lines[3].split()
-            assert down[2] == "↓"
+            assert down[2] == "S"
 
     def test_facing_arrows(self, mock_emu: MagicMock) -> None:
         """Each facing direction shows the correct arrow."""
@@ -1248,18 +1259,23 @@ class TestRenderOverworld:
                     and not line.startswith("Legend")
                 ]
 
+                # The arrow sits on the PLAYER's OWN cell (centre), not on the
+                # cell in front of them.
                 center = grid_lines[2].split()
-                assert center[2] == "@", f"Facing {facing_name}: @ not at center"
+                assert center[2] == expected_arrow, (
+                    f"Facing {facing_name}: expected {expected_arrow} at the player's own cell"
+                )
 
-                # Arrow should be in adjacent cell in facing direction
+                # The cell being faced must show real contents (floor here),
+                # never the arrow — otherwise it masks whatever is in front.
                 if facing_byte == 0x00:  # down → row 3, col 2
-                    assert grid_lines[3].split()[2] == expected_arrow
+                    assert grid_lines[3].split()[2] == "."
                 elif facing_byte == 0x04:  # up → row 1, col 2
-                    assert grid_lines[1].split()[2] == expected_arrow
+                    assert grid_lines[1].split()[2] == "."
                 elif facing_byte == 0x08:  # left → row 2, col 1
-                    assert grid_lines[2].split()[1] == expected_arrow
+                    assert grid_lines[2].split()[1] == "."
                 elif facing_byte == 0x0C:  # right → row 2, col 3
-                    assert grid_lines[2].split()[3] == expected_arrow
+                    assert grid_lines[2].split()[3] == "."
 
     def test_unknown_map(self, mock_emu: MagicMock) -> None:
         from src.core.ram_reader import RAMReader
@@ -1348,7 +1364,9 @@ class TestRenderOverworld:
             obs = reader.observe()
             assert "overworld_grid" in obs
             assert "Map:" in obs["overworld_grid"]
-            assert "@" in obs["overworld_grid"]
+            # The player's cell renders a facing arrow (position + direction in
+            # one glyph) rather than a bare "@".
+            assert any(a in obs["overworld_grid"] for a in "↑↓←→")
 
 
 # ── read_battle_state tests ─────────────────────────────────────────────

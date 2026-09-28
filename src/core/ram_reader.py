@@ -1134,8 +1134,10 @@ class RAMReader:
         """Render a compact 5×5 text grid using single-letter symbols.
 
         Centres the grid on the player's block position (wXCoord-4, wYCoord-4).
-        The player is shown as ``@`` and the block the player faces is an arrow
-        (``↑↓←→``). Out-of-bounds cells are ``?``.
+        The player's own cell carries the facing arrow (``↑↓←→``), so a single
+        glyph states both position and direction. The cell the player faces is
+        left showing its true contents, so an object directly in front is never
+        masked by the marker. Out-of-bounds cells are ``?``.
 
         Example output::
 
@@ -1143,9 +1145,9 @@ class RAMReader:
             Pos: (5,4) Facing: South ↓
 
              .  .  .  G  G
-             .  .  @  G  G
+             .  .  .  G  G
              .  .  ↓  .  .
-             B  B  .  S  .
+             B  B  S  .  .
              .  .  .  .  .
         """
         mid = self.current_map_id()
@@ -1160,6 +1162,10 @@ class RAMReader:
         facing = self.player_facing()
         mname = self.current_map_name()
         arrow = FACING_ARROWS.get(facing, "?")
+        # The player's own cell carries the arrow, so one glyph states both
+        # position and direction. Unknown facing falls back to @ so the player
+        # is never invisible (and the legend stays truthful).
+        player_glyph = arrow if arrow != "?" else "@"
 
         lines = [
             f"Map: {mname} ({w}×{h})",
@@ -1173,19 +1179,12 @@ class RAMReader:
             for dx in range(-2, 3):
                 gx, gy = px + dx, py + dy
 
-                # Player's own cell
+                # Player's own cell: the arrow carries BOTH position and facing,
+                # so the cell the player faces keeps its true contents — an
+                # object directly in front (TV, sign, item) stays visible
+                # instead of being masked by a second marker.
                 if dx == 0 and dy == 0:
-                    row_parts.append("@")
-                    continue
-
-                # Cell the player is facing
-                if (
-                    (dx == 0 and dy == -1 and facing == "up")
-                    or (dx == 0 and dy == 1 and facing == "down")
-                    or (dx == -1 and dy == 0 and facing == "left")
-                    or (dx == 1 and dy == 0 and facing == "right")
-                ):
-                    row_parts.append(arrow)
+                    row_parts.append(player_glyph)
                     continue
 
                 # Out of bounds
@@ -1210,7 +1209,7 @@ class RAMReader:
             "B=wall ",
             "S=sign/object ",
             "D=door ",
-            "@=you",
+            "↑↓←→=you+facing",
         ]
         lines.append("".join(legend_parts))
         return "\n".join(lines)
@@ -1265,15 +1264,21 @@ class RAMReader:
         return result
 
     def build_collision_grid(self, radius: int = 2) -> str:
-        """Render exact ROM collision data around the player at world-tile scale."""
+        """Render exact ROM collision data around the player at world-tile scale.
+
+        The player's own cell carries the facing arrow (``↑↓←→``), so the grid
+        states position and direction in a single glyph and never overwrites a
+        neighbouring cell to say where the player is looking.
+        """
         map_id = self.current_map_id()
         player_x, player_y = self.player_tile_x(), self.player_tile_y()
+        player_glyph = FACING_ARROWS.get(self.player_facing(), "O")
         rows: list[str] = []
         for dy in range(-radius, radius + 1):
             cells: list[str] = []
             for dx in range(-radius, radius + 1):
                 if dx == 0 and dy == 0:
-                    cells.append("O")
+                    cells.append(player_glyph)
                     continue
                 walkable = self._mapdb.tile_walkability(
                     map_id, player_x + dx, player_y + dy

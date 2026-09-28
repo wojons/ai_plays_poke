@@ -144,7 +144,7 @@ def test_projection_distinguishes_walkability_from_terrain() -> None:
     )
     assert "UP=wall DOWN=floor LEFT=grass RIGHT=object" in projection
     assert (
-        "LOCAL COLLISION MAP (O=player, .=walkable, #=blocked, ?=unknown):"
+        "LOCAL COLLISION MAP (↑↓←→=you+facing, .=walkable, #=blocked, ?=unknown):"
         in projection
     )
     assert "  ###\n  .O#\n  ..." in projection

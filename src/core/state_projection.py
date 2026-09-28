@@ -163,14 +163,14 @@ def build(
     collision_grid = obs.get("collision_grid") or ""
     if collision_grid:
         lines.append(
-            "LOCAL COLLISION MAP (O=player, .=walkable, #=blocked, ?=unknown):"
+            "LOCAL COLLISION MAP (↑↓←→=you+facing, .=walkable, #=blocked, ?=unknown):"
         )
         for ln in _cap(collision_grid, MAX_MINIMAP_CHARS).splitlines():
             lines.append("  " + ln)
 
     grid = obs.get("minimap") or obs.get("overworld_grid") or ""
     if grid and not collision_grid:
-        lines.append("LOCAL MAP (O=player, . floor, # blocked):")
+        lines.append("LOCAL MAP (↑↓←→=you+facing, . floor, # blocked):")
         for ln in _cap(grid, MAX_MINIMAP_CHARS).splitlines():
             lines.append("  " + ln)
 

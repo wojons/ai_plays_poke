@@ -129,10 +129,17 @@ def main() -> int:
         ],
     )
     ap.add_argument("args", nargs="*")
+    ap.add_argument(
+        "--frames",
+        type=int,
+        default=5,
+        help="how many frames to hold the button (5 = one deliberate tap; the "
+             "title screen needs ~30)",
+    )
     a = ap.parse_args()
     req: dict[str, Any] = {}
     if a.cmd == "press":
-        req = {"cmd": "press", "buttons": [x.upper() for x in a.args]}
+        req = {"cmd": "press", "buttons": [x.upper() for x in a.args], "frames": a.frames}
     elif a.cmd == "step":
         req = {"cmd": "step", "n": int(a.args[0]) if a.args else 30}
     elif a.cmd == "frame":

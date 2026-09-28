@@ -65,7 +65,8 @@ class Game:
         self.goal = os.environ.get(
             "AIPP_PLAY_GOAL", "Explore and make progress; the operator is watching."
         )
-        self.visited: dict[str, int] = {}
+        self.visited: dict[tuple[int, int], int] = {}
+        self._visited_map_id: int | None = None
         self.events: list[str] = []
         self.last_action = ""
         self.last_changed: bool | None = None
@@ -86,10 +87,16 @@ class Game:
             mechanics=self.state_projection.DEFAULT_MECHANICS,
             extra_facts=None,
         )
-        key = (
-            f"{obs.get('map_id')}:{obs.get('player_tile_x')},{obs.get('player_tile_y')}"
-        )
-        self.visited[key] = self.visited.get(key, 0) + 1
+        # The projection renders visited tiles as ``tuple(tile)``, so the key
+        # must be an (x, y) tuple — a joined string key gets iterated into
+        # characters. Reset on a map change so counts are per-map, not merged.
+        mid = obs.get("map_id")
+        if mid != self._visited_map_id:
+            self.visited = {}
+            self._visited_map_id = mid
+        ptx, pty = obs.get("player_tile_x"), obs.get("player_tile_y")
+        if isinstance(ptx, int) and isinstance(pty, int):
+            self.visited[(ptx, pty)] = self.visited.get((ptx, pty), 0) + 1
         return {
             "ok": True,
             "cycle": self.cycles,
@@ -188,6 +195,10 @@ class Game:
         p = FRAME_DIR / f"{label}.png"
         Image.fromarray(arr).save(p)
         return {"ok": True, "frame": str(p), "size": list(arr.shape[:2][::-1])}
+
+    def raw(self) -> dict:
+        """The full observation dict, unfiltered — so nothing available is hidden."""
+        return {"ok": True, "obs": self.reader.observe()}
 
     def pause(self) -> dict:
         self.paused = True
@@ -311,6 +322,8 @@ def handle(conn, game: Game, token: str, log):
                 rep = game.load(str(req.get("slot", "slot1")))
             elif cmd == "frame":
                 rep = game.frame(str(req.get("label", "now")))
+            elif cmd == "raw":
+                rep = game.raw()
             elif cmd == "pause":
                 rep = game.pause()
             elif cmd == "resume":
