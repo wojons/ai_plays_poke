@@ -367,3 +367,4 @@
 {"ts": null, "event": null, "id": 324, "summary": null, "timestamp": "2026-09-27T22:25:18.897578+00:00", "event_type": "task_created", "task_id": "REV-2", "actor": "foreman", "detail": "{\"id\":\"REV-2\",\"status\":\"pending\"}"}
 {"ts": null, "event": null, "id": 325, "summary": null, "timestamp": "2026-09-27T22:25:18.916389+00:00", "event_type": "task_created", "task_id": "REV-3", "actor": "foreman", "detail": "{\"id\":\"REV-3\",\"status\":\"pending\"}"}
 {"ts": null, "event": null, "id": 326, "summary": null, "timestamp": "2026-09-28T01:24:26.169576+00:00", "event_type": "task_created", "task_id": "BT-053-ROLLOUT-2026-09-28", "actor": "foreman", "detail": "{\"id\":\"BT-053-ROLLOUT-2026-09-28\",\"status\":\"complete\"}"}
+{"ts": null, "event": null, "id": 327, "summary": null, "timestamp": "2026-09-28T18:42:07.98621+00:00", "event_type": "task_updated", "task_id": "REPORT-1", "actor": "foreman", "detail": "{\"status\":\"failed\"}"}
