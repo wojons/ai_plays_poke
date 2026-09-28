@@ -69,13 +69,15 @@ def today() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
-# Default is computed at call time (today()) rather than import time: a
-# hardcoded date made every report after that date write to a stale filename
-# and broke the test contract `base1_control_{today()}.json` (CI red since
-# 2026-09-28). The env override is still honored.
-OUTPUT_PATH = os.environ.get(
-    "BASE1_OUTPUT_PATH", f"data/baselines/base1_control_{today()}.json"
-)
+def output_path() -> str:
+    """Artifact path, computed at CALL time so a long-lived process that
+    imports the module before UTC midnight and reports after it still writes
+    the run date (a module-level default froze the date at import time)."""
+    return os.environ.get(
+        "BASE1_OUTPUT_PATH", f"data/baselines/base1_control_{today()}.json"
+    )
+
+
 EPISODE_TIMEOUT_S = 1800  # same guard as long_run.py / dist1_episodes.py
 
 
@@ -521,7 +523,7 @@ def cmd_report(episode_log: Path) -> int:
     }
     if mode_seen - {report_mode}:
         log(f"WARN: decision_mode_log values {sorted(mode_seen)} != '{report_mode}'")
-    out = REPO / OUTPUT_PATH
+    out = REPO / output_path()
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(artifact, indent=2) + "\n")
     log(f"artifact -> {out.relative_to(REPO)}")
