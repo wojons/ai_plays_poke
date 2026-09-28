@@ -63,18 +63,24 @@ EPISODES = 5
 EPISODE_CYCLES = 5
 DECISION_MODE = os.environ.get("BASE1_DECISION_MODE", "jev")
 RUN_ID_TAG = os.environ.get("BASE1_RUN_ID_TAG", "base1")
+
+
+def today() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+
+# Default is computed at call time (today()) rather than import time: a
+# hardcoded date made every report after that date write to a stale filename
+# and broke the test contract `base1_control_{today()}.json` (CI red since
+# 2026-09-28). The env override is still honored.
 OUTPUT_PATH = os.environ.get(
-    "BASE1_OUTPUT_PATH", "data/baselines/base1_control_2026-09-27.json"
+    "BASE1_OUTPUT_PATH", f"data/baselines/base1_control_{today()}.json"
 )
 EPISODE_TIMEOUT_S = 1800  # same guard as long_run.py / dist1_episodes.py
 
 
 def now() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def today() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
 def log(msg: str) -> None:
