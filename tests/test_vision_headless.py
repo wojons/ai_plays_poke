@@ -283,7 +283,11 @@ class TestVisionClientEncoding:
         buf = io.BytesIO(decoded)
         pil_img = Image.open(buf)
         assert pil_img.format == "PNG"
-        assert pil_img.size == (160, 144)
+        # Contract changed 2026-09-28: small frames are now upscaled before sending.
+        # This assertion used to be (160, 144) - the pass-through that sent every Game
+        # Boy frame to the model at native size and made it report 0 unknown cells on a
+        # frame that is 49% pure black. See UPSCALE_FACTOR in src/core/vision.py.
+        assert pil_img.size == (960, 864)
 
     def test_encode_blank_image(self) -> None:
         img = _make_blank_rgb(144, 160)
@@ -292,9 +296,15 @@ class TestVisionClientEncoding:
         buf = io.BytesIO(decoded)
         pil_img = Image.open(buf)
         np_img = np.array(pil_img.convert("RGB"))
-        assert np_img.shape == (144, 160, 3)
-        # Verify all pixels match (minus compression artefacts — PNG is lossless)
-        assert np.array_equal(np_img, img)
+        # Upscaled by UPSCALE_FACTOR - contract changed 2026-09-28, see above.
+        assert np_img.shape == (144 * 6, 160 * 6, 3)
+        # PNG is lossless and LANCZOS on a constant colour is exact, so after the resize
+        # the image must still be that same flat colour. (The fixture's colour is
+        # [64, 128, 192] - three DIFFERENT channel values - so this is checked per
+        # channel and against the source pixel, not with min == max.)
+        assert tuple(np_img[0, 0]) == tuple(img[0, 0])
+        assert np_img.std(axis=(0, 1)).max() == 0
+        assert np.array_equal(np_img, np.broadcast_to(img[0, 0], np_img.shape))
 
     def test_encode_wide_image_resizes(self) -> None:
         """Images wider than 1024 px should be resized."""

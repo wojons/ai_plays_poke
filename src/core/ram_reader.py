@@ -1214,6 +1214,93 @@ class RAMReader:
         lines.append("".join(legend_parts))
         return "\n".join(lines)
 
+    def render_tile_grid(self, cols: int = 10, rows: int = 9) -> str:
+        """Render the game's own display grid, aligned with the vision blueprint.
+
+        The screen is 160x144 px and the game counts positions in 16 px units, so the
+        display is 10 cells across by 9 down. This renders that same window, centred on
+        the player's tile, using symbols from docs/specs/SPEC_spatial_blueprint.md so
+        the output can be compared cell-for-cell with the vision model's grid:
+
+        * ``.``  walkable — from ROM collision truth, never from a terrain label
+        * ``B``  blocked and not an object
+        * ``1``-``9``  blocked object, numbered, described in the legend below
+        * ``←↑↓→``  the player's own cell, carrying facing
+        * ``?``  outside the map, or a cell whose walkability is unknown
+
+        Walkability is the primary signal on purpose. The hand-written tileset tables
+        classify blocks by appearance and have been wrong in both directions; the ROM
+        collision table has matched what actually happens when a button is pressed.
+        """
+        mid = self.current_map_id()
+        info = self._mapdb.get_map(mid)
+        if info is None:
+            return f"[No map data for map {mid:#04x}]"
+
+        bw, bh = int(info["width"]), int(info["height"])
+        tw, th = bw * 2, bh * 2  # the 16 px cell grid is 2 per block each way
+        tileset = int(info["tileset"])
+        block_data = info["block_data"]
+        tx, ty = self.player_tile_x(), self.player_tile_y()
+        facing = self.player_facing()
+        arrow = FACING_ARROWS.get(facing, "?")
+        glyph = arrow if arrow != "?" else "@"
+
+        ox, oy = tx - cols // 2, ty - rows // 2
+        object_numbers: dict[int, int] = {}
+        legend_objects: list[str] = []
+        grid_rows: list[str] = []
+        unknown = 0
+
+        for r in range(rows):
+            row = ""
+            for c in range(cols):
+                cx, cy = ox + c, oy + r
+                if not (0 <= cx < tw and 0 <= cy < th):
+                    row += "?"
+                    unknown += 1
+                    continue
+                if (cx, cy) == (tx, ty):
+                    row += glyph
+                    continue
+                walkable = self._mapdb.tile_walkability(mid, cx, cy)
+                if walkable is None:
+                    row += "?"
+                    unknown += 1
+                elif walkable:
+                    row += "."
+                else:
+                    bid = int(block_data[(cy // 2) * bw + (cx // 2)])
+                    if self._mapdb.classify_block(bid, tileset) == "object":
+                        if bid not in object_numbers:
+                            object_numbers[bid] = len(object_numbers) + 1
+                            n = object_numbers[bid]
+                            tag = str(n) if n <= 9 else chr(ord("A") + n - 10)
+                            legend_objects.append(
+                                f"  {tag} = object (unnamed, block {bid:#04x})"
+                            )
+                        n = object_numbers[bid]
+                        row += str(n) if n <= 9 else chr(ord("A") + n - 10)
+                    else:
+                        row += "B"
+            grid_rows.append(row)
+
+        head = [
+            f"Map: {self.current_map_name()} ({bw}×{bh} blocks, {tw}×{th} cells)",
+            f"Pos: ({tx},{ty}) Facing: {facing.capitalize()} {arrow}",
+            "",
+        ]
+        body = [f"  {r}" for r in grid_rows]
+        tail = [
+            "",
+            "Legend: .=floor B=blocked ?=unknown(off-map) ←↑↓→=you",
+        ]
+        if legend_objects:
+            tail.append("Objects:")
+            tail.extend(legend_objects)
+        tail.append(f"Unknown cells: {unknown}")
+        return "\n".join(head + body + tail)
+
     def adjacent_blocks(self) -> dict[str, str]:
         """What's adjacent to the player in each cardinal direction.
 

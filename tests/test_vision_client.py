@@ -47,14 +47,26 @@ class TestEncodeImage:
         # PNG magic bytes
         assert decoded[:8] == b"\x89PNG\r\n\x1a\n"
 
-    def test_encode_small_image_stays_same_size(self) -> None:
-        """Small images (e.g. 160×240) pass through without resize."""
+    def test_encode_small_image_is_upscaled(self) -> None:
+        """Small frames ARE resized now (contract changed 2026-09-28).
+
+        This test previously asserted a 160x144 frame passed through untouched. That
+        pass-through was the defect: the encoder only ever downscaled, so every Game Boy
+        frame reached the model at native size. Measured with one frame and the same
+        prompt, changing only the scaling:
+
+          1x    -> 0 unknown cells reported, on a frame that is 49% pure black
+          6x    -> 42, matching a pixel-counted mask
+
+        New contract: upscale small frames with LANCZOS, cap at MAX_IMAGE_WIDTH.
+        See TestEncodeImageScaling in test_vision.py for the full measurement.
+        """
         img = _make_rgb_array(144, 160)
         result = VisionClient._encode_image(img)
-        # Verify the decoded PNG has the right dimensions
         decoded = base64.b64decode(result)
         pil = Image.open(io.BytesIO(decoded))
-        assert pil.size == (160, 144)
+        assert pil.size == (960, 864)
+        assert pil.size != (160, 144)
 
     def test_encode_different_shapes(self) -> None:
         """GB 144×160 and GBA 160×240 both work."""

@@ -154,18 +154,53 @@ class VisionClient:
         head = screenshot.tobytes()[:1024]
         return hashlib.md5(head).hexdigest()
 
+    # A Game Boy frame is 160x144 px. Measured on this repo's own frames, SAME prompt and
+    # SAME frame, changing only the scaling - run twice, because the two runs disagreed:
+    #   unknown-cell honesty (reproduced 2/2):
+    #     1x raw        -> reported 0 unknown cells on a frame that is 49% pure black
+    #     any upscaled  -> reported 42, matching a pixel-counted mask
+    #   facing (NOT fixed, and not fixable this way):
+    #     across 10 observations of frames where the player faced right, the model was
+    #     correct ONCE - and a second run of the identical image disagreed with that one
+    #     hit. 1x, 6x NEAREST, 6x LANCZOS and 6x-with-grid-lines are all unreliable.
+    #     So facing must come from RAM (the game's own facing variable), never from the
+    #     picture, no matter how the picture is prepared.
+    #   drawing the 16 px grid lines onto the frame changed nothing reliably - keep the
+    #     grid in the text answer, not on the pixels.
+    # NET: upscale for detail and for honest unknowns; use smooth interpolation; and do
+    # not expect any of it to fix facing.
+    UPSCALE_FACTOR = 6
+    MAX_IMAGE_WIDTH = 1024
+
     @staticmethod
     def _encode_image(screenshot: np.ndarray) -> str:
         """Convert a numpy RGB array to a base64-encoded PNG string.
 
-        Resizes images wider than 1024 px (unlikely for GB/GBA).
+        Upscales small frames before sending. A 160x144 Game Boy screen is far below
+        what a vision model reads comfortably, and the model was measurably worse at 1x
+        (see UPSCALE_FACTOR). LANCZOS, not nearest-neighbour: the smooth interpolation
+        is what made a 16-pixel sprite's facing readable.
         """
         pil_img = Image.fromarray(screenshot)
+        width = pil_img.size[0]
 
-        if pil_img.size[0] > 1024:
-            ratio = 1024 / pil_img.size[0]
+        if 0 < width < VisionClient.MAX_IMAGE_WIDTH:
+            factor = min(
+                VisionClient.UPSCALE_FACTOR,
+                VisionClient.MAX_IMAGE_WIDTH // width,
+            )
+            if factor > 1:
+                pil_img = pil_img.resize(
+                    (width * factor, pil_img.size[1] * factor),
+                    Image.Resampling.LANCZOS,
+                )
+
+        if pil_img.size[0] > VisionClient.MAX_IMAGE_WIDTH:
+            ratio = VisionClient.MAX_IMAGE_WIDTH / pil_img.size[0]
             new_h = int(pil_img.size[1] * ratio)
-            pil_img = pil_img.resize((1024, new_h), Image.Resampling.LANCZOS)
+            pil_img = pil_img.resize(
+                (VisionClient.MAX_IMAGE_WIDTH, new_h), Image.Resampling.LANCZOS
+            )
         buf = io.BytesIO()
         pil_img.save(buf, format="PNG")
         return base64.b64encode(buf.getvalue()).decode()

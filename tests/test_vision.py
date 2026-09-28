@@ -638,3 +638,63 @@ class TestVisionIntegration:
         assert mock_result["screen_type"] in ["overworld", "battle", "menu", "dialog"]
         assert 0.0 <= mock_result["confidence"] <= 1.0  # type: ignore
         assert mock_result["confidence"] >= 0.80  # type: ignore
+
+
+class TestEncodeImageScaling:
+    """``_encode_image`` must upscale small frames before they are sent.
+
+    A Game Boy screen is 160x144 px, far below what a vision model reads comfortably.
+    Measured on real frames (same prompt, same frame, only the scaling changed): at 1x
+    the model reported 0 unknown cells on a frame that is 49% pure black; at 6x it
+    reported 42, matching a pixel-counted mask. These tests pin the geometry, not the
+    model's behaviour (which is not deterministic).
+    """
+
+    @staticmethod
+    def _decode(payload: str) -> Image.Image:
+        import base64
+        import io
+
+        return Image.open(io.BytesIO(base64.b64decode(payload)))
+
+    @staticmethod
+    def _frame(width: int, height: int) -> np.ndarray:
+        return np.zeros((height, width, 3), dtype=np.uint8)
+
+    def test_a_game_boy_frame_is_upscaled(self) -> None:
+        """The literal measured size, not a re-derivation of my own constant.
+
+        A Game Boy frame must leave here at 960x864. Asserting ``160 * UPSCALE_FACTOR``
+        would pass even if the factor changed; asserting the measured number means a
+        change to the factor fails this test and forces a conscious decision - which is
+        correct, because the factor is only justified by the measurement behind it.
+        """
+        from src.core.vision import VisionClient
+
+        img = self._decode(VisionClient._encode_image(self._frame(160, 144)))
+        assert img.size == (960, 864)
+
+    def test_upscaling_is_never_reported_at_one_to_one(self) -> None:
+        """Guards the actual bug: a small frame sent at its native size."""
+        from src.core.vision import VisionClient
+
+        img = self._decode(VisionClient._encode_image(self._frame(160, 144)))
+        assert img.size != (160, 144)
+
+    def test_the_cap_is_respected_for_a_wide_image(self) -> None:
+        from src.core.vision import VisionClient
+
+        img = self._decode(VisionClient._encode_image(self._frame(2000, 100)))
+        assert img.size[0] == VisionClient.MAX_IMAGE_WIDTH
+
+    def test_an_image_already_at_the_cap_is_left_alone(self) -> None:
+        from src.core.vision import VisionClient
+
+        img = self._decode(VisionClient._encode_image(self._frame(640, 480)))
+        assert img.size == (640, 480)
+
+    def test_the_aspect_ratio_survives_the_upscale(self) -> None:
+        from src.core.vision import VisionClient
+
+        img = self._decode(VisionClient._encode_image(self._frame(160, 144)))
+        assert img.size[0] / img.size[1] == pytest.approx(160 / 144)
