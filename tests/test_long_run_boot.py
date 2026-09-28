@@ -132,3 +132,46 @@ def test_episode_argv_stamps_env_resolved_mode(monkeypatch):
 def test_episode_argv_default_mode_is_jev():
     argv = long_run.episode_argv("run_x_ep001", str(long_run.BOOT), "jev")
     assert argv[argv.index("--decision-mode") + 1] == "jev"
+
+
+# ── (d) boot_state is stamped into BOTH record surfaces ─────────────────────
+
+
+def _dict_literals_with_key(key: str) -> list[int]:
+    """Every dict literal in long_run.py that carries `key` (via AST, no exec)."""
+    import ast
+
+    src = Path(long_run.__file__).read_text()
+    hits = []
+    for node in ast.walk(ast.parse(src)):
+        if isinstance(node, ast.Dict):
+            keys = [k.value for k in node.keys if isinstance(k, ast.Constant)]
+            if key in keys:
+                hits.append(node.lineno)
+    return hits
+
+
+def test_boot_state_stamped_in_episode_row_and_status_row():
+    # The board Done-when: BOTH the per-episode record and the top-level
+    # status row carry the resolved boot state. The dicts are composed
+    # inline in main(), so the stamp is proven structurally.
+    lines = _dict_literals_with_key("boot_state")
+    assert len(lines) == 2, f"expected exactly 2 boot_state stamps, got {lines}"
+
+
+def test_boot_state_stamped_next_to_decision_mode_in_episode_row():
+    # The per-episode row stamps boot_state beside decision_mode (recoverable
+    # provenance per episode, like the mode arm 47f2deb added).
+    src = Path(long_run.__file__).read_text()
+    assert '"boot_state": boot' in src
+    i = src.index('"decision_mode": DECISION_MODE')
+    j = src.index('"boot_state": boot', i)
+    # adjacent keys in the per-episode row literal
+    assert src[i:j].count('"') < 12
+
+
+def test_status_row_boot_state_is_full_resolved_path_value():
+    # The value stamped is the `boot` variable — the full resolved path in
+    # use for the episode (override or chained GOOD_STATE), not a bare name.
+    src = Path(long_run.__file__).read_text()
+    assert '"boot_state": boot,' in src

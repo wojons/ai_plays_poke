@@ -488,6 +488,7 @@ def main() -> int:
             "episode": ep,
             "run_id": rid,
             "decision_mode": DECISION_MODE,
+            "boot_state": boot,
             "exit_code": rc,
             "duration_s": round(dur, 1),
             "decisions": s["decisions"],
@@ -515,6 +516,7 @@ def main() -> int:
 
         status = {
             "run_id": RUN_ID,
+            "boot_state": boot,
             "updated": now(),
             "goal": GOAL,
             "ladder": LADDER,
