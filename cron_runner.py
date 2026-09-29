@@ -3701,6 +3701,17 @@ def _boot_memory_prompt(boot: BootMemory) -> str:
     return boot.text if boot.has_content else ""
 
 
+def controller_key() -> str | None:
+    """Return the controller key the runner would construct, or ``None``.
+
+    Mirrors ``OpenRouterClient.__init__`` (``api_key or
+    os.environ["OPENROUTER_API_KEY"]``) so preflight can validate the same
+    key the run will use. Never prints the key itself.
+    """
+    key = os.environ.get("OPENROUTER_API_KEY")
+    return key or None
+
+
 def _run_jev_preflight(
     *,
     decision_mode: str,
@@ -3726,6 +3737,21 @@ def _run_jev_preflight(
             "component": "jev",
             "status": "skipped",
             "reason": "--skip-preflight",
+        }
+    elif controller_key() is None:
+        # The run would construct OpenRouterClient() later and crash with a
+        # generic ValueError; fail here, during preflight, with the truthful
+        # controller-key message instead of a stub path.
+        row = {
+            "run_id": current_run_id,
+            "event": "preflight",
+            "component": "controller",
+            "status": "auth_failure",
+            "key_name": "OPENROUTER_API_KEY",
+            "error": (
+                "controller key OPENROUTER_API_KEY is not set — set it in "
+                "the clone's .env or the environment before running"
+            ),
         }
     else:
         outcome = jev_client.preflight(timeout=15)
