@@ -5,12 +5,13 @@ from __future__ import annotations
 import io
 import json
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
 
 import pytest
 
 import cron_runner
-from src.core import jev_client, teacher_client
+from src.core import jev_client, jev_scenarios, teacher_client
 
 
 _TYPED_PATCH: dict[str, Any] = {
@@ -549,3 +550,214 @@ def test_overworld_teacher_failure_degrades_to_normal_jev_decision(
     assert len(results) == 1
     assert results[0]["ok"] is False
     assert results[0]["error"] == "teacher offline"
+
+
+def _promote_test_patch(artifact_path: Path, *, applies_when: str) -> dict[str, Any]:
+    patch = {**deepcopy(_TYPED_PATCH), "applies_when": applies_when}
+    return jev_scenarios.promote_teacher_record(
+        {
+            "ok": True,
+            "improved": True,
+            "patch": patch,
+        },
+        missing_class="map_topology",
+        knowledge_layer="LEARNING",
+        run_id="teacher-run-17",
+        cycle=8,
+        artifact_path=artifact_path,
+    )
+
+
+def test_ac7_promotion_writes_versioned_evidence_artifact(tmp_path: Path) -> None:
+    artifact_path = tmp_path / "promoted-patches.json"
+
+    promoted = _promote_test_patch(artifact_path, applies_when="Pallet Town")
+
+    artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+    assert artifact["$schema"] == "jev_promoted_patches.schema.json"
+    assert artifact["schema_version"] == 1
+    assert artifact["scenarios"] == [promoted]
+    assert promoted["knowledge_layer"] == "LEARNING"
+    assert promoted["missing_class"] == "map_topology"
+    assert promoted["missing_facts"] == _TYPED_PATCH["missing_facts"]
+    assert promoted["fact_source"] == _TYPED_PATCH["fact_source"]
+    assert promoted["instruction_patch"] == _TYPED_PATCH["instruction_patch"]
+    assert promoted["applies_when"] == "Pallet Town"
+    assert promoted["confidence"] == _TYPED_PATCH["confidence"]
+    assert promoted["evidence"] == [{"run_id": "teacher-run-17", "cycle": 8}]
+    assert jev_scenarios.load_scenarios(artifact_path) == [promoted]
+
+
+def test_checked_scenario_artifact_contains_real_run_evidence() -> None:
+    scenarios = jev_scenarios.load_scenarios(cron_runner.DEFAULT_JEV_SCENARIO_PATH)
+
+    assert scenarios
+    assert scenarios[0]["missing_class"] == "object_purpose"
+    assert scenarios[0]["evidence"] == [{"run_id": "t243_e2e", "cycle": 1}]
+
+
+def test_ac7_failed_or_unimproved_teacher_record_is_not_promoted(
+    tmp_path: Path,
+) -> None:
+    artifact_path = tmp_path / "promoted-patches.json"
+
+    with pytest.raises(ValueError, match="successful, improved"):
+        jev_scenarios.promote_teacher_record(
+            {"ok": False, "improved": False, "patch": deepcopy(_TYPED_PATCH)},
+            missing_class="map_topology",
+            knowledge_layer="LEARNING",
+            run_id="teacher-run-17",
+            cycle=8,
+            artifact_path=artifact_path,
+        )
+
+    assert not artifact_path.exists()
+
+
+def test_ac7_later_matching_decision_uses_patch_without_teacher_escalation(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    artifact_path = tmp_path / "promoted-patches.json"
+    promoted = _promote_test_patch(artifact_path, applies_when="Pallet Town")
+    initial_raw = {
+        "next_action": {"choice": "RIGHT", "distribution": {"RIGHT": 0.51}},
+        "missing_class": {
+            "choice": "map_topology",
+            "distribution": {"map_topology": 0.88},
+        },
+    }
+    post_raw = {
+        "next_action": {"choice": "DOWN", "distribution": {"DOWN": 0.91}},
+        "missing_class": {"choice": "none", "distribution": {"none": 0.94}},
+    }
+    ask_calls: list[dict[str, Any]] = []
+
+    def fake_ask(state: str, **kwargs: Any) -> dict[str, Any]:
+        ask_calls.append({"state": state, **kwargs})
+        if len(ask_calls) == 1:
+            return {
+                "ok": True,
+                "next_action": "RIGHT",
+                "sufficient_state": 0.22,
+                "missing_class": "map_topology",
+                "action_confidence": 0.4,
+                "ambiguity": 0.8,
+                "raw": initial_raw,
+            }
+        assert (
+            promoted["instruction_patch"]
+            in kwargs["questions"]["next_action"]["instructions"]
+        )
+        return {
+            "ok": True,
+            "next_action": "DOWN",
+            "sufficient_state": 0.91,
+            "missing_class": "none",
+            "action_confidence": 0.91,
+            "ambiguity": 0.1,
+            "raw": post_raw,
+        }
+
+    monkeypatch.setattr(jev_client, "ask", fake_ask)
+    monkeypatch.setattr(
+        teacher_client,
+        "request_patch",
+        lambda **_kwargs: pytest.fail(
+            "a promoted scenario must avoid the teacher call"
+        ),
+    )
+
+    decision = cron_runner._jev_overworld_decision(
+        {"map_name": "Pallet Town"},
+        teacher_api_client=object(),
+        teacher_model="test/reasoning-teacher",
+        escalated_classes=set(),
+        scenario_path=artifact_path,
+    )
+
+    assert len(ask_calls) == 2
+    assert decision["plan"] == ["DOWN"]
+    assert decision["escalated"] is False
+    assert decision["missing_class"] == "none"
+    assert decision["reported_missing_class"] == "map_topology"
+    assert decision["raw_distribution"] == initial_raw
+    assert decision["scenario_post_distribution"] == post_raw
+    assert decision["scenario_patch_id"] == promoted["id"]
+    assert decision["scenario_patch_evidence"] == promoted["evidence"]
+
+    counters = cron_runner._autonomy_counters([decision])
+    assert counters["escalated"] == 0
+    assert counters["escalation_rate_by_missing_class"] == {"map_topology": 0.0}
+
+
+@pytest.mark.parametrize(
+    ("reported_class", "state"),
+    [
+        ("object_purpose", "MAP: Pallet Town"),
+        ("map_topology", "MAP: Viridian City"),
+    ],
+)
+def test_ac7_nonmatching_class_or_applies_when_does_not_consume_patch(
+    monkeypatch: Any,
+    tmp_path: Path,
+    reported_class: str,
+    state: str,
+) -> None:
+    artifact_path = tmp_path / "promoted-patches.json"
+    _promote_test_patch(artifact_path, applies_when="Pallet Town")
+    calls = 0
+
+    def fake_ask(_state: str, **_kwargs: Any) -> dict[str, Any]:
+        nonlocal calls
+        calls += 1
+        return {
+            "ok": True,
+            "next_action": "RIGHT",
+            "sufficient_state": 0.22,
+            "missing_class": reported_class,
+            "action_confidence": 0.4,
+            "ambiguity": 0.8,
+            "raw": {"missing_class": {"choice": reported_class}},
+        }
+
+    monkeypatch.setattr(jev_client, "ask", fake_ask)
+
+    decision = jev_client.decide(state, scenario_path=artifact_path)
+
+    assert calls == 1
+    assert decision["escalate"] is True
+    assert "scenario_patch_id" not in decision
+
+
+def test_ac7_missing_artifact_preserves_single_ask_path(
+    monkeypatch: Any, tmp_path: Path
+) -> None:
+    calls: list[dict[str, Any]] = []
+    answer = {
+        "ok": True,
+        "next_action": "RIGHT",
+        "sufficient_state": 0.91,
+        "missing_class": "none",
+        "action_confidence": 0.91,
+        "ambiguity": 0.1,
+        "raw": {"next_action": {"choice": "RIGHT"}},
+    }
+
+    def fake_ask(_state: str, **kwargs: Any) -> dict[str, Any]:
+        calls.append(kwargs)
+        return deepcopy(answer)
+
+    monkeypatch.setattr(jev_client, "ask", fake_ask)
+
+    decision = jev_client.decide(
+        "MAP: Pallet Town",
+        scenario_path=tmp_path / "does-not-exist.json",
+    )
+
+    assert len(calls) == 1
+    assert calls[0]["questions"] is None
+    assert decision == {
+        **answer,
+        "escalate": False,
+        "escalate_reason": "jev_confident",
+    }

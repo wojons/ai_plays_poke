@@ -706,6 +706,12 @@ from src.core.tools import execute_tool_call
 from src.core import jev_client
 from src.core import state_projection
 
+# Repository-owned, schema-versioned teacher promotions. Missing files load as
+# an empty set, preserving the pre-JEV-3 decision path in unseeded checkouts.
+DEFAULT_JEV_SCENARIO_PATH = (
+    Path(__file__).resolve().parent / "config" / "jev_promoted_patches.json"
+)
+
 # ── Config ──────────────────────────────────────────────────────────
 # ROM / DEFAULT_BOOT_STATE / CYCLES / USE_RAM_READER are defined at the
 # top of the file (before the heavy imports) so the --dry-run precheck
@@ -1428,6 +1434,7 @@ def _jev_overworld_decision(
     escalated_classes: set[str] | None = None,
     handoff_policy: dict[str, Any] | None = None,
     teacher_budget: dict[str, int] | None = None,
+    scenario_path: str | Path | None = None,
 ) -> dict[str, Any]:
     """Ask the JEV tier for this overworld cycle's plan (PRD v3 stages 5-6).
 
@@ -1461,6 +1468,7 @@ def _jev_overworld_decision(
         decision = jev_client.decide(
             projection,
             last_action_failed=last_action_changed_state is False,
+            scenario_path=scenario_path,
         )
         reason = decision.get("escalate_reason")
         topology_gap = (
@@ -1605,7 +1613,14 @@ def _jev_overworld_decision(
         "jev_answered": True,
         "escalated": escalate,
         "missing_class": initial_decision.get("missing_class"),
+        "reported_missing_class": initial_decision.get("reported_missing_class"),
+        # Preserve the first JEV answer in raw_distribution. When a promoted
+        # scenario re-asks JEV, the effective answer is a separate field.
         "raw_distribution": decision.get("raw"),
+        "scenario_post_distribution": decision.get("scenario_post_raw"),
+        "scenario_patch_id": decision.get("scenario_patch_id"),
+        "scenario_patch_evidence": decision.get("scenario_patch_evidence"),
+        "scenario_patch_applied": bool(decision.get("scenario_patch_applied", False)),
         "jev_escalate_reason": reason if isinstance(reason, str) else None,
         "jev_projection_chars": len(projection),
         # Handoff provenance: which trigger fired, whether the run's policy let
@@ -2403,6 +2418,7 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     jev_transport_failures = 0
     jev_errors: list[str] = []
     escalated_by_class: Counter[str | None] = Counter()
+    scenario_resolved_classes: set[str] = set()
     handoff_triggers: Counter[str] = Counter()
     handoff_blocked = 0
 
@@ -2425,6 +2441,9 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
             handoff_triggers[trigger] += 1
         if row.get("handoff_allowed") is False:
             handoff_blocked += 1
+        reported_class = row.get("reported_missing_class")
+        if row.get("scenario_patch_applied") and isinstance(reported_class, str):
+            scenario_resolved_classes.add(reported_class)
         if row.get("escalated"):
             escalated += 1
             missing_class = row.get("missing_class")
@@ -2443,6 +2462,10 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         if escalated
         else {}
     )
+    # AC-7's zero is evidence-bearing rather than fabricated: only a decision
+    # row that actually consulted a matching scenario can add its class here.
+    for resolved_class in sorted(scenario_resolved_classes):
+        rates.setdefault(resolved_class, 0.0)
     raw_jev_failure_rate = (
         jev_transport_failures / decisions_total if decisions_total else 0.0
     )
@@ -4902,6 +4925,7 @@ def main() -> None:
                     escalated_classes=_teacher_escalated_classes,
                     handoff_policy=HANDOFF_POLICY,
                     teacher_budget=_teacher_budget,
+                    scenario_path=DEFAULT_JEV_SCENARIO_PATH,
                 )
                 if isinstance(_jev_attempt, dict):
                     raw_targets = _jev_attempt.get("teacher_memory_targets")
@@ -5122,7 +5146,16 @@ def main() -> None:
                     "missing_class": (
                         _missing_class if isinstance(_missing_class, str) else None
                     ),
+                    "reported_missing_class": decision.get("reported_missing_class"),
                     "raw_distribution": decision.get("raw_distribution"),
+                    "scenario_post_distribution": decision.get(
+                        "scenario_post_distribution"
+                    ),
+                    "scenario_patch_id": decision.get("scenario_patch_id"),
+                    "scenario_patch_evidence": decision.get("scenario_patch_evidence"),
+                    "scenario_patch_applied": bool(
+                        decision.get("scenario_patch_applied", False)
+                    ),
                     # Handoff provenance (M3/M5): which trigger fired, whether
                     # this run's policy allowed it, and why not when it did not.
                     "handoff_trigger": decision.get("handoff_trigger"),

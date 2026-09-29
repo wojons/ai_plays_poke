@@ -1,0 +1,26 @@
+{
+  "$schema": "jev_promoted_patches.schema.json",
+  "schema_version": 1,
+  "scenarios": [
+    {
+      "id": "object-purpose-f9f0146f9950",
+      "knowledge_layer": "LEARNING",
+      "missing_class": "object_purpose",
+      "missing_facts": [
+        "purpose of the adjacent object at (5,4) when interacted with"
+      ],
+      "fact_source": [
+        "must-interact"
+      ],
+      "instruction_patch": "treat its purpose as unknown, press A to interact, then classify the resulting text or state change before selecting movement toward the goal",
+      "applies_when": "player is adjacent to an unidentified object or NPC and facing it",
+      "confidence": 0.9,
+      "evidence": [
+        {
+          "run_id": "t243_e2e",
+          "cycle": 1
+        }
+      ]
+    }
+  ]
+}

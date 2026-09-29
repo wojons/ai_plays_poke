@@ -31,6 +31,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from src.core import jev_scenarios
+
 ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
 MODEL = "typesafe/jev-1.13"
 
@@ -595,9 +597,45 @@ def decide(
     last_action_failed: bool = False,
     act_phase: bool = False,
     questions: dict[str, Any] | None = None,
+    scenario_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Full cycle: ask Jev, then apply the gate. No LLM is called here."""
-    d = ask(state, in_battle=in_battle, questions=questions)
+    """Ask JEV, consult a matching promoted scenario, then apply the gate.
+
+    Without ``scenario_path`` (or when the artifact is absent/nonmatching), this
+    is the original one-ask path. A match re-asks JEV with the promoted
+    instruction before the escalation gate runs. The initial answer remains the
+    raw evidence and the patched answer is stored separately.
+    """
+    base_questions = (
+        questions if questions is not None else _questions(in_battle=in_battle)
+    )
+    initial = ask(state, in_battle=in_battle, questions=questions)
+    d = initial
+    missing_class = initial.get("missing_class")
+    scenario = (
+        jev_scenarios.find_matching_scenario(
+            scenario_path,
+            missing_class=missing_class,
+            context=state,
+        )
+        if initial.get("ok") and isinstance(missing_class, str)
+        else None
+    )
+    if scenario is not None:
+        post = ask(
+            state,
+            in_battle=in_battle,
+            questions=apply_patch(base_questions, scenario),
+        )
+        post_raw = post.get("raw")
+        d = post
+        d["reported_missing_class"] = missing_class
+        d["raw"] = initial.get("raw")
+        d["scenario_post_raw"] = post_raw
+        d["scenario_patch_id"] = scenario["id"]
+        d["scenario_patch_evidence"] = deepcopy(scenario["evidence"])
+        d["scenario_patch_applied"] = True
+
     esc, why = should_escalate(
         d, last_action_failed=last_action_failed, act_phase=act_phase
     )

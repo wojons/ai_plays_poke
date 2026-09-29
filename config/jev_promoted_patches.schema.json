@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "jev_promoted_patches.schema.json",
+  "title": "JEV promoted teacher patches",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "scenarios"],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "knowledge_layer",
+          "missing_class",
+          "missing_facts",
+          "fact_source",
+          "instruction_patch",
+          "applies_when",
+          "confidence",
+          "evidence"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "knowledge_layer": {
+            "enum": ["MECHANICS", "LEARNING"]
+          },
+          "missing_class": {
+            "type": "string",
+            "minLength": 1
+          },
+          "missing_facts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "fact_source": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "instruction_patch": {
+            "type": "string",
+            "minLength": 1
+          },
+          "applies_when": {
+            "type": "string",
+            "minLength": 1
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["run_id", "cycle"],
+              "properties": {
+                "run_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "cycle": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

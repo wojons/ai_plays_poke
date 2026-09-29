@@ -104,6 +104,12 @@ confidence
 
 The patch is applied, **JEV is re-asked**, and if it is now confident it continues. Patches are versioned in git with `evidence: [run_id, cycle]`, so the same gap never escalates twice.
 
+#### 3.3.1 Promoted-scenario artifact contract (JEV-3)
+
+Durable teacher knowledge lives in `config/jev_promoted_patches.json`, validated by the explicit JSON Schema at `config/jev_promoted_patches.schema.json` (`schema_version: 1`). Each scenario records a stable id, `knowledge_layer` (`MECHANICS` or `LEARNING`), `missing_class`, `missing_facts`, `fact_source`, `instruction_patch`, `applies_when`, `confidence`, and one or more evidence objects `{run_id, cycle}`. The checked artifact starts with the successful `object_purpose` repair observed at `{run_id: t243_e2e, cycle: 1}`. `src/core/jev_scenarios.py` performs explicit promotion only for a successful, improved teacher record whose caller supplies that evidence; failed patches are refused.
+
+At runtime `src/core/jev_client.py` matches the current reported missing class and the `applies_when` clause before the escalation gate. `always` is explicit; any other condition must occur as a normalized case-insensitive substring of the exact state projection. A match patches `next_action.instructions` and re-asks JEV before teacher escalation is considered. The first JEV distribution and `reported_missing_class` remain in the decision row, while `scenario_post_distribution`, scenario id, and scenario evidence carry the result of the consultation. An absent or empty artifact preserves the pre-JEV-3 path.
+
 ### 3.4 Two live proofs
 
 **Proof 1 — supplying the missing fact restores JEV's ability to decide** (same state, one fact added):
@@ -139,8 +145,8 @@ Every stage marked **PROVEN** (measured on live hardware) or **NOT BUILT**.
 | 4 | **Boot memory injection** | DuckBrain → MECHANICS/SAVE/RUNS-INDEX/LEARNING blocks in the prompt | **PROVEN** (MEM-2; cross-run proof: run B logged `[MEM] boot injection: 322 chars` carrying run A's party) |
 | 5 | **Tier-1 decision** | projection → typed answers + confidence | **PROVEN** (`src/core/jev_client.py`, live, model build pinned) |
 | 6 | **Hand-back gate** | decision + last-action result → escalate / execute | **PROVEN** (3 triggers, live) |
-| 7 | **Teacher escalation** | distributions + missing_class + events + DuckBrain → typed state patch | **NOT BUILT** |
-| 8 | **Patch promotion** | patch → versioned scenario file w/ evidence → re-ask JEV | **NOT BUILT** |
+| 7 | **Teacher escalation** | distributions + missing_class + events + DuckBrain → typed state patch | **PROVEN** (`src/core/teacher_client.py`, AC-6 regression pair) |
+| 8 | **Patch promotion** | patch → versioned scenario file w/ evidence → re-ask JEV | **PROVEN** (`config/jev_promoted_patches*.json`, `src/core/jev_scenarios.py`, AC-7 decision-path regression) |
 | 9 | Action execution | chosen action → emulator input | **PROVEN** |
 | 10 | End-of-run recorder | RAM truth → `/game/save/*` + run summary | **PROVEN** (MEM-1) |
 | 11 | Autonomy reporting | counters → run log + report | **PARTIAL** (counters exist; `autonomy_ratio` not yet emitted) |
