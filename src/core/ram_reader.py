@@ -1218,22 +1218,28 @@ class RAMReader:
         lines.append("".join(legend_parts))
         return "\n".join(lines)
 
-    def render_tile_grid(self, cols: int = 9, rows: int = 9) -> str:
+    def render_tile_grid(self, cols: int = 10, rows: int = 9) -> str:
         """Render the game's own display grid, aligned with the vision blueprint.
 
-        The window is ODD on both axes (9x9) so the player sits in the middle cell.
+        The window IS the screen: 160x144 px at 16 px per game cell = **10 wide by 9
+        tall**. Vision sees that whole screen, so RAM has to describe the same window or
+        the two can never be compared cell-for-cell. An earlier 9-wide window was chosen
+        to make the player land in a middle cell, and it was wrong for exactly that
+        reason: it dropped a column, so a frame showing four wall cells either side of
+        the player came back as two on one side and three on the other.
 
-        Measured: the camera centres the player on the PIXEL (80,72), and the screen is
-        160x144 px with 16 px tiles. 144/16 = 9 - odd, so there is a real middle row and
-        the sprite lands in it exactly. 160/16 = 10 - even, so the horizontal centre falls
-        BETWEEN cells and the sprite straddles two of them, leaving the grid origin
-        ambiguous (this caused a real off-by-one column). A 9-wide window centred on the
-        player's tile has no such ambiguity and aligns with the game's own tiles.
+        The origin is anchored by the player's MEASURED position on the screen
+        (``player_screen_px``, the sprite's pixel box), not by ``cols // 2``. The screen
+        is even (10) wide, so the horizontal centre falls between cells and the player
+        sits at column 4, not 5 - guessing the midpoint shifts the window by a column.
 
         Symbols follow docs/specs/SPEC_spatial_blueprint.md, so the output can be
         compared cell-for-cell with the vision model's grid:
 
         * ``.``  walkable — from ROM collision truth, never from a terrain label
+        * ``G``  tall grass — walkable, but stepping in can trigger an encounter
+        * ``W``  water — impassable on foot
+        * ``T``  tree, ``D`` doorway/opening, ``M`` message/menu panel
         * ``B``  blocked and not an object
         * ``1``-``9``  blocked object, numbered, described in the legend below
         * ``←↑↓→``  the player's own cell, carrying facing
@@ -1257,7 +1263,16 @@ class RAMReader:
         arrow = FACING_ARROWS.get(facing, "?")
         glyph = arrow if arrow != "?" else "@"
 
-        ox, oy = tx - cols // 2, ty - rows // 2
+        # Anchor the window to the SCREEN, using the player's measured position on it.
+        # cols // 2 would be 5 on a 10-wide screen, but the player sits at column 4
+        # (measured from the sprite's pixel box at x=64). Guessing the midpoint is what
+        # silently dropped the right-hand column.
+        scr = self.player_screen_px()
+        if scr is not None and scr[0] is not None and scr[1] is not None:
+            scx, scy = int(scr[0]) // 16, int(scr[1]) // 16
+        else:
+            scx, scy = cols // 2, rows // 2
+        ox, oy = tx - scx, ty - scy
         object_numbers: dict[int, int] = {}
         legend_objects: list[str] = []
         grid_rows: list[str] = []

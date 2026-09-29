@@ -12,15 +12,20 @@ map of it. Return ONLY a JSON object. No prose, no markdown fences.
 ## The geometry of the image — measured on real frames, not assumed
 
 - The screen is **160 x 144 pixels**, and the game's own coordinate unit is **16 x 16
-  pixels**, so the screen shows about 10 cells across by 9 down.
-- **The camera keeps the player centred on the pixel** (measured: moving the player one
-  tile moves the map exactly one tile and the sprite does not move at all). So the player
-  is always at the centre of the screen, and the black areas are where the map *ends*,
-  not a camera clamp.
-- **Report a 9 x 9 window centred on the player.** Not 10 wide. 9 is odd, so the player
-  is the *middle cell* and every cell has an unambiguous position; a 10-wide grid puts
-  the player on the boundary between two columns and there is no right answer for where
-  the grid starts. Use an odd count on both axes.
+  pixels**, so the screen shows exactly **10 cells across by 9 down**.
+- **Report a 10 x 9 window — the whole screen.** That is what you are looking at, and the
+  RAM channel describes the same window, so the two can be compared cell for cell. Do NOT
+  drop the tenth column: on a frame with four wall cells to the left of the player and
+  four to the right, a 9-wide grid reports two on one side and three on the other, which
+  is worse than useless because it looks plausible.
+- The screen is **even** (10) wide, so its centre falls *between* two columns. The player
+  is the **5th cell from the left** (column index 4): four cells to the left, five to the
+  right. Count from the left edge of the screen and keep that position fixed.
+- Do **not** assume the map is centred on the player. Where the player sits on screen
+  depends on how close the map's edge is, not on a camera rule — a "the player is always
+  centred" assumption was measured once in one room and is wrong; it only appeared true
+  because repeating floor art aligns with itself when the map shifts by exactly one tile.
+  Read the cells that are actually on screen.
 
 
 ## How to draw each cell — one character per block
@@ -45,6 +50,27 @@ map of it. Return ONLY a JSON object. No prose, no markdown fences.
   Exactly one cell has an arrow.
 - `?` — **anything you cannot positively identify.** Black areas. Anything cut off at the
   screen edge. Anything you are not sure about.
+
+### Grass and water are drawn alike in monochrome — decide by these cues, not by "it looks wavy"
+
+Both use repeating wavy marks, which is exactly why this gets confused. Asked for a whole grid,
+the model has called **tall grass "W" (water)** on the route out of Pallet Town. Split them like
+this:
+
+- **Tall grass (`G`)** — many **separate upright tufts**: little scallop / check-mark / clump
+  shapes standing on their own, with gaps and ground showing between them. **No shoreline.** It
+  usually sits **inside walkable land**, often fenced or hedged around (bushes, trees, a rail),
+  and the ground around it is ordinary turf.
+- **Water (`W`)** — a **broad, continuous field of flat ripple marks**, not upright tufts. Look
+  for a **shore or bank edge**: a light strip, a rim, a transition tile, a cliff, or the map's
+  border. Water is generally a large connected body, not a small fenced patch.
+
+Rule of thumb: **bounded by hedge or fence, sitting in land → `G`. Bordered by a shore/bank, or
+a big open expanse → `W`.**
+
+This matters more than a naming slip: `W` means "impassable", `G` means "walkable but risky". Call
+grass water and you tell the agent it cannot use the one safe place to train; call water grass and
+you walk it into a wall.
 
 ### Use the game's own tile size — the artwork lies to you
 

@@ -8,6 +8,7 @@ real .gb file is needed.
 from __future__ import annotations
 
 import pytest
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from src.core.ram_reader import _MapDB
@@ -2388,3 +2389,100 @@ class TestObserveExtended:
         assert obs["menu_items"] == []
         # render should NOT include menu section
         assert "📋" not in obs["render"]
+
+
+class TestRenderTileGrid:
+    """The window IS the screen: 10 game cells wide by 9 tall (160x144 px at 16 px).
+
+    Both defects pinned here were found by a person looking at a real frame, not by a
+    test, and both produced output that looked entirely plausible:
+
+    * A 9-wide window dropped the tenth column. A frame that really shows four blocked
+      cells to the left of the player and four to the right came back with two on one
+      side and three on the other.
+    * The origin was computed as ``cols // 2``. On an even-width screen that is 5, but
+      the player sits at column 4 - measured from the sprite's pixel box (x=64).
+    """
+
+    def _reader(
+        self,
+        mock_emu: MagicMock,
+        monkeypatch: pytest.MonkeyPatch,
+        screen_px: list[int],
+        tile: tuple[int, int] = (8, 8),
+    ) -> Any:
+        from src.core.ram_reader import RAMReader
+
+        with patch("src.core.ram_reader._MapDB") as mapdb_cls:
+            db = mapdb_cls.return_value
+            db.get_map.return_value = {
+                "width": 8,
+                "height": 8,
+                "tileset": 4,
+                "block_data": [0x0F] * 64,
+            }
+            # A corridor: the player's own column is the only walkable lane, so every
+            # other cell in the row renders as blocked (B).
+            db.tile_walkability.side_effect = lambda _mid, x, _y: x == tile[0]
+            db.classify_block.return_value = "wall"
+            reader = RAMReader(mock_emu, "/fake/rom.gb")
+
+        monkeypatch.setattr(reader, "current_map_id", lambda: 0)
+        monkeypatch.setattr(reader, "current_map_name", lambda: "Test Town")
+        monkeypatch.setattr(reader, "player_tile_x", lambda: tile[0])
+        monkeypatch.setattr(reader, "player_tile_y", lambda: tile[1])
+        monkeypatch.setattr(reader, "player_facing", lambda: "up")
+        monkeypatch.setattr(reader, "player_screen_px", lambda: screen_px)
+        return reader
+
+    def _grid(self, reader: Any) -> list[str]:
+        text = reader.render_tile_grid()
+        return [ln.strip() for ln in text.splitlines() if len(ln.strip()) == 10][:9]
+
+    def test_window_is_the_whole_screen(
+        self, mock_emu: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Ten cells across by nine down - the screen, not a centred odd window."""
+        rows = self._grid(self._reader(mock_emu, monkeypatch, [64, 60]))
+        assert len(rows) == 9, f"expected 9 rows (144 px / 16), got {len(rows)}"
+        assert all(len(r) == 10 for r in rows), (
+            "expected 10 cells per row (160 px / 16)"
+        )
+
+    def test_player_column_comes_from_the_measured_sprite_position(
+        self, mock_emu: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The anchor is the measurement, not ``cols // 2``.
+
+        This is the regression that dropped the column: a guessed midpoint is 5 on a
+        10-wide screen, but the sprite box says the player is at column 4.
+        """
+        row = self._grid(self._reader(mock_emu, monkeypatch, [64, 60]))[3]
+        assert row.index("↑") == 4, (
+            f"sprite at x=64 px is column 4, got {row.index('↑')}"
+        )
+
+        # Move the sprite to x=96 px and the glyph must follow it, which a hardcoded
+        # midpoint could not do.
+        row2 = self._grid(self._reader(mock_emu, monkeypatch, [96, 60]))[3]
+        assert row2.index("↑") == 6, (
+            f"sprite at x=96 px is column 6, got {row2.index('↑')}"
+        )
+
+    def test_a_corridor_reports_four_blocked_cells_each_side(
+        self, mock_emu: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The exact shape that exposed the width bug: four blocked cells either side.
+
+        On the real frame the player stands in a lane with four wall cells to the left
+        and four to the right. The 9-wide window reported two on one side and three on
+        the other, because it had dropped the tenth column.
+        """
+        row = self._grid(self._reader(mock_emu, monkeypatch, [64, 60]))[3]
+        assert row[:4] == "BBBB", (
+            f"expected four blocked cells left of the player: {row}"
+        )
+        assert "↑" in row, f"player glyph missing from the row: {row}"
+        # Everything right of the player is blocked here too, so the row is B*4 + glyph
+        # + blocked cells, with no column missing.
+        assert row == "BBBB↑BBBBB", f"unexpected row layout: {row}"
