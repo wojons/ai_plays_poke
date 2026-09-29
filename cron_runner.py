@@ -963,25 +963,45 @@ def _select_starter_from_menu(
         },
         sort_keys=True,
     )
-    decision = jev_client.decide(
-        state,
-        act_phase=True,
-        questions=questions,
-    )
+    # BENCH-1: in the pure-LLM benchmark mode the fast tier is never
+    # consulted — the gate below fails closed (no ball is accepted, the
+    # caller's own fallback flow decides) and the row stamps WHY it is null
+    # instead of a bare transport failure.
+    llm_blocked = _llm_mode_fast_tier_blocked()
+    if llm_blocked:
+        decision: dict[str, Any] = {"ok": False, "error": "llm benchmark mode"}
+    else:
+        decision = jev_client.decide(
+            state,
+            act_phase=True,
+            questions=questions,
+        )
     raw_choice = decision.get("next_action")
     choice = raw_choice.upper() if isinstance(raw_choice, str) else None
     valid_choice = choice if choice in STARTER_BALL_X else None
     if decision_out is not None:
+        # Same transport-evidence convention as the battle gate: a blocked ask
+        # stamps ``jev_ok=None`` (no attempt), never a transport failure.
+        _jev_outcome = (
+            {"jev_ok": None} if llm_blocked else _jev_outcome_fields(decision)
+        )
         decision_out.update(
             {
                 "phase": "STARTER",
                 "starter_choice": valid_choice,
                 "visible_species": visible_species,
                 "raw_distribution": decision.get("raw"),
-                "jev_answered": bool(decision.get("ok") and valid_choice),
+                "jev_answered": bool(
+                    not llm_blocked and decision.get("ok") and valid_choice
+                ),
                 "escalated": bool(decision.get("escalate", False)),
                 "missing_class": decision.get("missing_class"),
-                **_jev_outcome_fields(decision),
+                "jev_blocked_reason": (
+                    f"decision_mode={DECISION_MODE} (fast tier not consulted)"
+                    if llm_blocked
+                    else None
+                ),
+                **_jev_outcome,
             }
         )
     if valid_choice is None or not decision.get("ok"):
@@ -1602,6 +1622,18 @@ def _jev_overworld_decision(
     }
 
 
+def _llm_mode_fast_tier_blocked() -> bool:
+    """Whether the pure-LLM benchmark mode is active (fast tier must not ask).
+
+    One predicate for EVERY direct fast-tier call site: ``_jev_or_none`` gates
+    the overworld path, and battle recovery / starter selection call this
+    directly. In ``system2`` (``llm``) a benchmark run must spend no JEV
+    budget anywhere — a leak at any site stamps ``jev_answered=True`` into a
+    benchmark-labelled log and silently contaminates the arm being measured.
+    """
+    return current_mode_family() == MODE_SYSTEM2
+
+
 def _jev_or_none(*args: Any, **kwargs: Any) -> dict[str, Any] | None:
     """Return a fast-tier decision, or None in the pure-LLM benchmark mode.
 
@@ -1611,7 +1643,7 @@ def _jev_or_none(*args: Any, **kwargs: Any) -> dict[str, Any] | None:
     ``system1+system2`` this is a transparent pass-through; the difference
     between those two is the handoff policy, applied inside.
     """
-    if current_mode_family() == MODE_SYSTEM2:
+    if _llm_mode_fast_tier_blocked():
         return None
     return _jev_overworld_decision(*args, **kwargs)
 
@@ -1639,19 +1671,33 @@ def _escalating_recovery(
     Battles bypass every generic rung. Loading a checkpoint can erase the
     encounter, START/B/direction recovery is not a legal turn, and blind A-mash
     can choose an unintended move. Ask JEV against the live battle state and
-    translate its battle vocabulary choice into the corresponding tool call.
+    translate its battle vocabulary choice into the corresponding tool call —
+    except in the pure-LLM benchmark mode, where the fast tier is never
+    consulted (BENCH-1: the benchmark arm must not be contaminated) and the
+    RAM fallback below decides the battle fail-closed.
     """
     if _is_battle_game_state(game_state):
         assert game_state is not None
-        decision = jev_client.decide(
-            json.dumps(game_state, default=str, sort_keys=True),
-            in_battle=True,
-            act_phase=True,
-        )
+        llm_blocked = _llm_mode_fast_tier_blocked()
+        if llm_blocked:
+            decision: dict[str, Any] = {"ok": False, "error": "llm benchmark mode"}
+        else:
+            decision = jev_client.decide(
+                json.dumps(game_state, default=str, sort_keys=True),
+                in_battle=True,
+                act_phase=True,
+            )
         raw_action = decision.get("next_action")
         action = raw_action.upper() if isinstance(raw_action, str) else None
         jev_action = action if action in BATTLE_ACTIONS else None
         battle_action = jev_action or _battle_fallback_action(game_state)
+        # Transport evidence follows the overworld convention: a blocked ask
+        # stamps ``jev_ok=None`` (no attempt was made), NOT ``False`` — a
+        # False would count as a JEV transport failure and could trip the
+        # degradation gate on a mode that never touches the tier.
+        _jev_outcome = (
+            {"jev_ok": None} if llm_blocked else _jev_outcome_fields(decision)
+        )
         if decision_out is not None:
             decision_out.update(
                 {
@@ -1663,10 +1709,17 @@ def _escalating_recovery(
                         else None
                     ),
                     "raw_distribution": decision.get("raw"),
-                    "jev_answered": bool(decision.get("ok") and jev_action),
+                    "jev_answered": bool(
+                        not llm_blocked and decision.get("ok") and jev_action
+                    ),
                     "escalated": bool(decision.get("escalate", False)),
                     "missing_class": decision.get("missing_class"),
-                    **_jev_outcome_fields(decision),
+                    "jev_blocked_reason": (
+                        f"decision_mode={DECISION_MODE} (fast tier not consulted)"
+                        if llm_blocked
+                        else None
+                    ),
+                    **_jev_outcome,
                 }
             )
         if battle_action is None:
