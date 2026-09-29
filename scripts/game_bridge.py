@@ -46,6 +46,18 @@ FRAME_DIR = REPO / "play_frames"
 BUTTONS = {"a", "b", "start", "select", "up", "down", "left", "right"}
 
 
+def _safe_grid(reader, cols: int = 10, rows: int = 9) -> str:
+    """The reader's display grid, or an empty string rather than an exception.
+
+    observe() is the bridge's hot path. A tile or graphics lookup problem must not take the whole
+    observation down and leave the console with nothing to show.
+    """
+    try:
+        return reader.render_tile_grid(cols, rows)
+    except Exception:  # noqa: BLE001
+        return ""
+
+
 class Game:
     """One persistent emulator + reader, the same objects the game loop uses."""
 
@@ -112,6 +124,16 @@ class Game:
             "visible_exits": obs.get("visible_exits"),
             "projection_chars": len(proj),
             "obs_keys": sorted(obs.keys()),
+            # The reader's own display grid at the geometry the SCREEN actually is: 160x144 px at
+            # 16 px per game cell = 10 wide by 9 tall, anchored on the player's measured pixel box
+            # (the player sits at column 4, not 5 - the midpoint falls between cells on an even
+            # width). render_tile_grid has existed for a while but nothing called it, so the console
+            # was re-deriving a 5x5 window out of the projection text instead - which meant the RAM
+            # panel and the vision grid were describing different windows and every cell comparison
+            # was meaningless. Guards stay on: a grid failure must not take observe() down.
+            "grid": _safe_grid(self.reader),
+            "grid_cols": 10,
+            "grid_rows": 9,
         }
 
     # ---- acting ------------------------------------------------------
@@ -197,8 +219,21 @@ class Game:
         return {"ok": True, "frame": str(p), "size": list(arr.shape[:2][::-1])}
 
     def raw(self) -> dict:
-        """The full observation dict, unfiltered — so nothing available is hidden."""
-        return {"ok": True, "obs": self.reader.observe()}
+        """The full observation dict, unfiltered — so nothing available is hidden.
+
+        Also carries the reader's display grid at the screen's true geometry: 160x144 px at 16 px
+        per cell = 10 wide by 9 tall. ``overworld_grid`` INSIDE the observation is a narrower 5x5
+        window, and that is what the console was drawing - a RAM panel 5 cells wide sitting next to
+        a vision grid asked to describe the whole screen, so the two described different windows and
+        every cell of the comparison was against the wrong cell.
+        """
+        return {
+            "ok": True,
+            "obs": self.reader.observe(),
+            "grid": _safe_grid(self.reader),
+            "grid_cols": 10,
+            "grid_rows": 9,
+        }
 
     def pause(self) -> dict:
         self.paused = True
