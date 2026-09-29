@@ -43,8 +43,9 @@ ROM = Path(
 )
 PROMPT = REPO / "prompts/exploration/vision_map_blueprint.md"
 OUTDIR = Path("/tmp/perception")
-COLS = ROWS = 9
-PLAYER_CELL = (4, 4)
+COLS, ROWS = 10, 9  # the screen in game cells: 160/16 x 144/16
+CELL = 16  # one game cell in pixels
+PLAYER_CELL = (4, 3)  # where the player sits on screen, measured from the sprite box
 
 
 # ── live state ────────────────────────────────────────────────────────────────
@@ -126,15 +127,21 @@ def vision_grid(png: Path) -> tuple[list[str], dict[str, Any]]:
 
 
 def pixel_mask(png: Path) -> list[str]:
-    """'?' where the cell is mostly black, using the PLAYER-CENTRED cell geometry."""
+    """'?' where the cell is mostly black, on the screen's OWN absolute cell grid.
+
+    The window is the whole screen (10 x 9 cells of 16 px), so cell (r, c) is simply the
+    pixel box (c*16, r*16). No player anchor: the screen is fixed, and the player's cell is
+    wherever their sprite box lands in it. An earlier version centred on the player with a
+    +72 px offset, which is half a tile - it shifted every cell by half a cell and was part
+    of why the two channels looked like they disagreed at the edges.
+    """
     im = Image.open(png).convert("L")
     out = []
     for r in range(ROWS):
         row = ""
         for c in range(COLS):
-            x0 = 72 + (c - PLAYER_CELL[0]) * 16
-            y0 = 64 + (r - PLAYER_CELL[1]) * 16
-            box = im.crop((max(0, x0), max(0, y0), max(0, x0) + 16, max(0, y0) + 16))
+            x0, y0 = c * CELL, r * CELL
+            box = im.crop((x0, y0, x0 + CELL, y0 + CELL))
             hist = box.histogram()
             total = sum(hist) or 1
             row += "?" if sum(hist[:60]) / total >= 0.55 else "."
