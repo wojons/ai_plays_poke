@@ -28,6 +28,7 @@ import time
 import urllib.error
 import urllib.request
 from copy import deepcopy
+from pathlib import Path
 from typing import Any
 
 ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
@@ -211,16 +212,29 @@ def _read_env(path: str, names: tuple[str, ...]) -> list[tuple[str, str]]:
     return out
 
 
+def _repo_dotenv() -> Path:
+    """The clone's own ``.env`` (src/core/ → repo root), never a fixed home."""
+    return Path(__file__).resolve().parent.parent.parent / ".env"
+
+
 def load_keys() -> list[tuple[str, str]]:
-    """Project key first (dedicated), then the shared Jev key. Values never logged."""
+    """Clone-local ``.env`` first, then the process environment.
+
+    The project key (``OPENROUTER_API_KEY``) is the dedicated controller key;
+    ``OR_JEV`` is the shared Jev key. Values are never logged.
+    """
     keys: list[tuple[str, str]] = []
-    for path, names in (
-        ("/home/kara/ai_plays_poke/.env", ("OPENROUTER_API_KEY",)),
-        (os.path.expanduser("~/.hermes/.env"), ("OR_JEV", "OPENROUTER_API_KEY")),
-    ):
-        for k, v in _read_env(path, names):
-            if (k, v) not in keys:
-                keys.append((k, v))
+    for name in ("OPENROUTER_API_KEY", "OR_JEV", "OPENROUTER_API_KEY"):
+        # The repo .env is read per-name so it wins over the ambient HOME
+        # fallback in _read_env's second source; environment variables always
+        # participate (never stripped, so OR_JEV from the env keeps working).
+        for source in (
+            _read_env(str(_repo_dotenv()), (name,)),
+            [(name, os.environ[name])] if name in os.environ else [],
+        ):
+            for k, v in source:
+                if (k, v) not in keys:
+                    keys.append((k, v))
     return keys
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+import json
 from typing import Any
 
 import pytest
@@ -188,3 +189,99 @@ def test_battle_recovery_executes_jev_action_and_records_distribution(
 def test_battle_recovery_has_no_select_move_one_signature() -> None:
     source = inspect.getsource(cron_runner._escalating_recovery)
     assert '{"move_number": 1}' not in source
+
+
+# ── REV-4: dehardcoded key loading + controller-key preflight ──────────────
+
+
+def test_load_keys_reads_clone_local_dotenv(tmp_path, monkeypatch):
+    """The clone's own .env (resolved from the module, not a fixed home)."""
+    repo_dotenv = tmp_path / ".env"
+    repo_dotenv.write_text('OPENROUTER_API_KEY="sk-from-repo-env"\nOR_JEV=jev-file\n')
+    monkeypatch.setattr(jev_client, "_repo_dotenv", lambda: repo_dotenv)
+    for name in ("OPENROUTER_API_KEY", "OR_JEV"):
+        monkeypatch.delenv(name, raising=False)
+
+    keys = jev_client.load_keys()
+
+    assert ("OPENROUTER_API_KEY", "sk-from-repo-env") in keys
+    assert ("OR_JEV", "jev-file") in keys
+    # No hardcoded home path in the loader's source.
+    assert "/home/kara" not in inspect.getsource(jev_client.load_keys)
+
+
+def test_load_keys_reads_process_environment(tmp_path, monkeypatch):
+    """OR_JEV from the environment keeps working (and no file read needed)."""
+    monkeypatch.setattr(
+        jev_client, "_repo_dotenv", lambda: tmp_path / "does-not-exist.env"
+    )
+    monkeypatch.setenv("OR_JEV", "jev-env")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+
+    assert jev_client.load_keys() == [("OR_JEV", "jev-env")]
+
+
+def test_load_keys_never_reads_a_decoy_home(tmp_path, monkeypatch):
+    """The loader must not consult HOME-based paths for its keys."""
+    decoy = tmp_path / "decoy.env"
+    decoy.write_text("OPENROUTER_API_KEY=sk-decoy-home\nOR_JEV=jev-decoy\n")
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(
+        jev_client, "_repo_dotenv", lambda: tmp_path / "absent.env"
+    )
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("OR_JEV", raising=False)
+
+    assert jev_client.load_keys() == []
+
+
+def test_keyless_preflight_fails_with_controller_key_message(tmp_path, monkeypatch):
+    """A keyless run fails during preflight, naming the controller key."""
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(
+        jev_client, "_repo_dotenv", lambda: tmp_path / "absent.env"
+    )
+    for name in ("OPENROUTER_API_KEY", "OR_JEV"):
+        monkeypatch.delenv(name, raising=False)
+    # The JEV probe itself must never run when the controller key is missing.
+    asked = []
+    monkeypatch.setattr(
+        jev_client, "preflight", lambda **kw: asked.append(kw) or {"status": "pass"}
+    )
+    log_path = tmp_path / "run.jsonl"
+
+    row = cron_runner._run_jev_preflight(
+        decision_mode=cron_runner.MODE_SYSTEM1,
+        skip_preflight=False,
+        current_run_id="rev4",
+        current_log_path=log_path,
+    )
+
+    assert row["status"] == "auth_failure"
+    assert row["key_name"] == "OPENROUTER_API_KEY"
+    assert "OPENROUTER_API_KEY" in row["error"]
+    assert "not set" in row["error"]
+    assert asked == []  # no network probe, no stub path invented
+    assert log_path.exists()
+    persisted = json.loads(log_path.read_text())
+    assert persisted["component"] == "controller"
+
+
+def test_keyful_preflight_still_probes_jev(tmp_path, monkeypatch):
+    """The controller-key gate only fires when the key is genuinely absent."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-present")
+    monkeypatch.setattr(
+        jev_client,
+        "preflight",
+        lambda **kw: {"status": "pass", "ok": True, "key_name": "OPENROUTER_API_KEY"},
+    )
+    log_path = tmp_path / "run.jsonl"
+
+    row = cron_runner._run_jev_preflight(
+        decision_mode=cron_runner.MODE_SYSTEM1,
+        skip_preflight=False,
+        current_run_id="rev4b",
+        current_log_path=log_path,
+    )
+
+    assert row["status"] == "pass"
