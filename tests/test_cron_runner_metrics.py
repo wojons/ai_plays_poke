@@ -67,7 +67,7 @@ class TestResolveBootState:
 
 
 class TestFormatSummary:
-    """Final summary line: lock-rate fraction + distinct tiles (GAP-028)."""
+    """Final summary line: lock-rate, distinct tiles, and movement progress."""
 
     def test_includes_lock_rate_and_tiles(self) -> None:
         s = cron_runner._format_summary("run1", 20, {"overworld"}, 5, 20, 3)
@@ -75,6 +75,24 @@ class TestFormatSummary:
         assert "lock-rate: 5/20 cycles" in s
         assert "25%" in s
         assert "distinct tiles: 3" in s
+        assert "movement-progress: 0/0 comparable cycles changed tile (0%)" in s
+
+    def test_treadmill_actions_do_not_count_as_movement_progress(self) -> None:
+        s = cron_runner._format_summary(
+            "treadmill",
+            5,
+            {"overworld"},
+            0,
+            5,
+            1,
+            real_decisions=5,
+            movement_progress_cycles=0,
+            movement_observed_cycles=4,
+        )
+
+        assert "Done. 5 actions." in s
+        assert "real_decisions=5" in s
+        assert "movement-progress: 0/4 comparable cycles changed tile (0%)" in s
 
     def test_zero_lock_rate(self) -> None:
         s = cron_runner._format_summary("run2", 10, {"overworld"}, 0, 10, 1)
@@ -89,6 +107,34 @@ class TestFormatSummary:
         s = cron_runner._format_summary("run4", 5, {"overworld"}, 5, 5, 1)
         assert "lock-rate: 5/5 cycles" in s
         assert "100%" in s
+
+
+class TestMovementProgressDelta:
+    """Per-cycle RAM tile changes are movement, decisions are not."""
+
+    def test_counts_only_comparable_cycle_tile_changes(self) -> None:
+        tiles = [
+            (40, 6, 4),
+            (40, 6, 4),
+            (40, 6, 4),
+            (40, 6, 5),
+            (40, 6, 5),
+        ]
+        progress_cycles = 0
+        observed_cycles = 0
+        previous = None
+
+        for current in tiles:
+            progress, observed = cron_runner._movement_progress_delta(current, previous)
+            progress_cycles += progress
+            observed_cycles += observed
+            previous = current
+
+        assert (progress_cycles, observed_cycles) == (1, 4)
+
+    def test_missing_tile_does_not_create_a_comparison(self) -> None:
+        assert cron_runner._movement_progress_delta(None, (40, 6, 4)) == (0, 0)
+        assert cron_runner._movement_progress_delta((40, 6, 4), None) == (0, 0)
 
 
 class TestDryRun:

@@ -829,6 +829,21 @@ def _track_same_tile(
     return current_tile, 1
 
 
+def _movement_progress_delta(
+    current_tile: tuple[int, int, int] | None,
+    last_tile: tuple[int, int, int] | None,
+) -> tuple[int, int]:
+    """Return changed/observable counts for one consecutive cycle pair.
+
+    A decision or button press is not movement. Only two consecutive valid RAM
+    tile observations create a comparable cycle, and only a changed map/tile
+    tuple counts as movement progress.
+    """
+    if current_tile is None or last_tile is None:
+        return 0, 0
+    return (int(current_tile != last_tile), 1)
+
+
 def _tile_lock_reason(tile: tuple[int, int, int] | None, same_tile_count: int) -> str:
     """Return the recovery reason for a tile streak at the configured limit."""
     if tile is None or same_tile_count < MAX_SAME_TILE_CYCLES:
@@ -2516,6 +2531,8 @@ def _format_summary(
     fallback_decisions: int = 0,
     autonomy: dict[str, Any] | None = None,
     teacher: dict[str, int] | None = None,
+    movement_progress_cycles: int = 0,
+    movement_observed_cycles: int = 0,
 ) -> str:
     """Format the final summary line, including the per-run lock-rate.
 
@@ -2526,9 +2543,15 @@ def _format_summary(
 
     ``autonomy`` (JEV-1) is the block from ``_autonomy_counters`` and is
     appended after the GAP-053 counters. The GAP-053 computation and wording
-    are unchanged.
+    are unchanged. ``movement_progress_cycles`` (DF-USE-1) is separately
+    derived from consecutive RAM tile observations, never from decisions.
     """
     lock_rate = lock_warn_cycles / total_cycles
+    movement_rate = (
+        movement_progress_cycles / movement_observed_cycles
+        if movement_observed_cycles
+        else 0.0
+    )
     teacher_tail = ""
     if teacher and _as_int(teacher.get("count")):
         teacher_tail = (
@@ -2544,6 +2567,9 @@ def _format_summary(
         f"fallback_decisions={fallback_decisions} "
         f"{_format_autonomy_tail(autonomy)}"
         f"{teacher_tail}"
+        f" | movement-progress: {movement_progress_cycles}/"
+        f"{movement_observed_cycles} comparable cycles changed tile "
+        f"({movement_rate:.0%})"
     )
 
 
@@ -2636,6 +2662,20 @@ def _record_run_memory(
         }
         if "distinct_tiles" in extra:
             summary_attributes["distinct_tiles"] = int(extra["distinct_tiles"])
+        if "movement_progress_cycles" in extra or "movement_observed_cycles" in extra:
+            movement_progress_cycles = int(extra.get("movement_progress_cycles", 0))
+            movement_observed_cycles = int(extra.get("movement_observed_cycles", 0))
+            summary_attributes.update(
+                {
+                    "movement_progress_cycles": movement_progress_cycles,
+                    "movement_observed_cycles": movement_observed_cycles,
+                    "movement_progress_rate": round(
+                        movement_progress_cycles / movement_observed_cycles, 4
+                    )
+                    if movement_observed_cycles
+                    else 0.0,
+                }
+            )
         if "summary" in extra:
             summary_attributes["summary"] = str(extra["summary"])
 
@@ -4290,9 +4330,11 @@ def main() -> None:
     _starter_milestone_emitted = False
     _failed_flee_attempts = 0
 
-    # ── Per-run metrics (GAP-028) ──────────────────────────────────
+    # ── Per-run metrics (GAP-028, DF-USE-1) ───────────────────────
     _dir_lock_warn_cycles = 0  # cycles with >=1 direction-lock warning
     _visited_tiles: set[tuple[int, int, int]] = set()  # (map_id, x, y) seen
+    _movement_progress_cycles = 0  # comparable cycles whose RAM tile changed
+    _movement_observed_cycles = 0  # cycles with current + previous RAM tiles
     # JEV projection cross-cycle material (DF-JEV-1, PRD v3 §3.4): how many
     # times each tile of the CURRENT map has been stood on. Repeat counts are
     # the projection's stuck signal, so they are reset on a map change.
@@ -4434,6 +4476,11 @@ def main() -> None:
                 _tile_visits[_tile_visits_key] = (
                     _tile_visits.get(_tile_visits_key, 0) + 1
                 )
+            _progress_delta, _observed_delta = _movement_progress_delta(
+                current_tile, _last_tile
+            )
+            _movement_progress_cycles += _progress_delta
+            _movement_observed_cycles += _observed_delta
             _last_tile, _same_tile_count = _track_same_tile(
                 current_tile, _last_tile, _same_tile_count
             )
@@ -5579,6 +5626,8 @@ def main() -> None:
         fallback_decisions=fallback_decisions,
         autonomy=autonomy,
         teacher=teacher_summary,
+        movement_progress_cycles=_movement_progress_cycles,
+        movement_observed_cycles=_movement_observed_cycles,
     )
     safe_print(f"\n{final_summary}")
     safe_print(f"Log: {log_path}")
@@ -5593,6 +5642,8 @@ def main() -> None:
             extra={
                 "n_actions": len(results),
                 "distinct_tiles": len(_visited_tiles),
+                "movement_progress_cycles": _movement_progress_cycles,
+                "movement_observed_cycles": _movement_observed_cycles,
                 "log_path": str(log_path),
                 "summary": final_summary,
             },

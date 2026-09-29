@@ -327,7 +327,10 @@ def test_teacher_event_rows_do_not_change_autonomy_decision_population() -> None
         autonomy=counters,
         teacher=teacher,
     )
-    assert summary.endswith("teacher=1 escalations (1 improved)")
+    assert "teacher=1 escalations (1 improved)" in summary
+    assert summary.endswith(
+        "| movement-progress: 0/0 comparable cycles changed tile (0%)"
+    )
 
 
 def test_reasoning_budget_exhaustion_retries_once_and_names_failure() -> None:

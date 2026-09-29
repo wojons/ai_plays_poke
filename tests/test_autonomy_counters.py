@@ -303,9 +303,8 @@ def test_summary_line_appends_autonomy_after_the_gap053_counters() -> None:
         autonomy=block,
     )
 
-    assert line.endswith(
-        "| real_decisions=7 fallback_decisions=0 autonomy=3/7 (2 escalated)"
-    )
+    assert "| real_decisions=7 fallback_decisions=0 autonomy=3/7 (2 escalated)" in line
+    assert line.endswith("| movement-progress: 0/0 comparable cycles changed tile (0%)")
     # The legacy prefix is untouched.
     assert line.startswith("[jev1-run] Done. 20 actions. Screens: {'overworld'} ")
 
@@ -318,4 +317,5 @@ def test_summary_line_prints_na_when_the_run_made_no_decisions() -> None:
     )
 
     assert "real_decisions=0 fallback_decisions=0" in line
-    assert line.endswith("autonomy=n/a (0 decisions, 0 escalated)")
+    assert "autonomy=n/a (0 decisions, 0 escalated)" in line
+    assert line.endswith("| movement-progress: 0/0 comparable cycles changed tile (0%)")

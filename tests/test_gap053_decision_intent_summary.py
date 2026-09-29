@@ -146,10 +146,12 @@ def test_summary_line_appends_decision_counts_and_keeps_legacy_shape() -> None:
         "| distinct tiles: 3 "
     )
     assert "| real_decisions=14 fallback_decisions=6" in line
-    # JEV-1 appends the autonomy tail after the GAP-053 counters.
-    assert line.endswith(
-        "| real_decisions=14 fallback_decisions=6 autonomy=14/20 (6 escalated)"
+    # JEV-1 keeps the autonomy tail after the GAP-053 counters; DF-USE-1
+    # appends movement progress without changing the historical text before it.
+    assert (
+        "| real_decisions=14 fallback_decisions=6 autonomy=14/20 (6 escalated)" in line
     )
+    assert line.endswith("| movement-progress: 0/0 comparable cycles changed tile (0%)")
 
 
 def test_dead_key_run_summary_prints_zero_real_decisions() -> None:
@@ -209,10 +211,20 @@ def test_record_run_memory_summary_attributes_carry_decision_counts(
         {"cycle": 4, "event": "memory_note", "note": "Oak talks a lot."},
     ]
 
-    cron_runner._record_run_memory("gap053-run", results)
+    cron_runner._record_run_memory(
+        "gap053-run",
+        results,
+        extra={
+            "movement_progress_cycles": 0,
+            "movement_observed_cycles": 3,
+        },
+    )
 
     summary = {w["key"]: w for w in writes}["/game/runs/gap053-run/summary"]
     attributes = summary["attributes"]
     assert attributes["real_decisions"] == 1
     assert attributes["fallback_decisions"] == 2
     assert attributes["n_actions"] == sum(bool(row.get("action")) for row in results)
+    assert attributes["movement_progress_cycles"] == 0
+    assert attributes["movement_observed_cycles"] == 3
+    assert attributes["movement_progress_rate"] == 0.0
