@@ -1214,13 +1214,20 @@ class RAMReader:
         lines.append("".join(legend_parts))
         return "\n".join(lines)
 
-    def render_tile_grid(self, cols: int = 10, rows: int = 9) -> str:
+    def render_tile_grid(self, cols: int = 9, rows: int = 9) -> str:
         """Render the game's own display grid, aligned with the vision blueprint.
 
-        The screen is 160x144 px and the game counts positions in 16 px units, so the
-        display is 10 cells across by 9 down. This renders that same window, centred on
-        the player's tile, using symbols from docs/specs/SPEC_spatial_blueprint.md so
-        the output can be compared cell-for-cell with the vision model's grid:
+        The window is ODD on both axes (9x9) so the player sits in the middle cell.
+
+        Measured: the camera centres the player on the PIXEL (80,72), and the screen is
+        160x144 px with 16 px tiles. 144/16 = 9 - odd, so there is a real middle row and
+        the sprite lands in it exactly. 160/16 = 10 - even, so the horizontal centre falls
+        BETWEEN cells and the sprite straddles two of them, leaving the grid origin
+        ambiguous (this caused a real off-by-one column). A 9-wide window centred on the
+        player's tile has no such ambiguity and aligns with the game's own tiles.
+
+        Symbols follow docs/specs/SPEC_spatial_blueprint.md, so the output can be
+        compared cell-for-cell with the vision model's grid:
 
         * ``.``  walkable — from ROM collision truth, never from a terrain label
         * ``B``  blocked and not an object

@@ -11,20 +11,16 @@ map of it. Return ONLY a JSON object. No prose, no markdown fences.
 
 ## The geometry of the image — measured on real frames, not assumed
 
-- The image is exactly **160 x 144 pixels**: the whole Game Boy screen, edge to edge.
-- The game's own coordinate unit is **16 x 16 pixels** (this is the unit the game counts
-  positions in). So the screen is **10 cells across by 9 cells down**.
-- Below that, the artwork repeats every **8 x 8 pixels** — do not use 8 px as your cell,
-  use the game's 16 px unit, or your grid will be twice as wide as it should be.
-- The player's sprite is **16 x 16 pixels** — exactly one cell.
-- **The map is often SMALLER than the screen.** When it is, the camera stops scrolling and
-  the leftover screen area is filled with **black**. When the map is larger than the
-  screen the camera keeps the player centred while it can.
-- So: **never assume the player is centred.** Find the sprite and report where it actually
-  is. On a small map it will be off-centre and there will be black around it.
-
-Draw the grid over the whole screen: **10 columns by 9 rows**. Report it at that size every
-time, so the same frame always produces the same shape of answer.
+- The screen is **160 x 144 pixels**, and the game's own coordinate unit is **16 x 16
+  pixels**, so the screen shows about 10 cells across by 9 down.
+- **The camera keeps the player centred on the pixel** (measured: moving the player one
+  tile moves the map exactly one tile and the sprite does not move at all). So the player
+  is always at the centre of the screen, and the black areas are where the map *ends*,
+  not a camera clamp.
+- **Report a 9 x 9 window centred on the player.** Not 10 wide. 9 is odd, so the player
+  is the *middle cell* and every cell has an unambiguous position; a 10-wide grid puts
+  the player on the boundary between two columns and there is no right answer for where
+  the grid starts. Use an odd count on both axes.
 
 
 ## How to draw each cell — one character per block
@@ -81,17 +77,17 @@ Count the rows and columns. Read your own grid back and confirm: every black reg
 ```
 {
   "space": "<room name if the screen names it, else null>",
-  "width": 10,
+  "width": 9,
   "height": 9,
-  "player_cell": [<column>, <row>],
+  "player_cell": [4, 4],
   "facing": "up|down|left|right",
-  "grid": ["<row 0, 10 chars>", "...", "<row 8, 10 chars>"],
+  "grid": ["<row 0, 9 chars>", "...", "<row 8, 9 chars>"],
   "legend": {"1": "television"},
   "undetermined_cells": <count of '?' cells>,
   "confidence": <0.0-1.0>
 }
 ```
 
-`grid` must have exactly **9** strings, each exactly **10** characters, using only
-`. B ? ↑ ↓ ← →` and digits. The cell at `player_cell` must contain the arrow. Every cell
-of black is `?`.
+`grid` must have exactly **9** strings, each exactly **9** characters**, using only
+`. B ? ↑ ↓ ← →` and digits. The player is the **middle cell, (4,4)** — that is the whole
+point of the odd size. Every cell of black is `?`.
