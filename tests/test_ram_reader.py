@@ -73,6 +73,90 @@ def _make_rom_bytes(
     return bytes(rom)
 
 
+def _make_pallet_terrain_rom() -> bytes:
+    """Build a ROM-shaped Pallet fixture from Gen I behavior data.
+
+    The fixture preserves the important distinction from the real Pallet map:
+    block 0x01 is plain ground (raw tile 0x23), while block 0x0B is grass
+    (the tileset header's grass tile 0x52).  The legacy block-id table reversed
+    that relationship.
+    """
+    import struct
+
+    rom = bytearray(512 * 1024)
+
+    # Map 0: 4x4 blocks, tileset 0, no connections, object data at 0x4180.
+    struct.pack_into("<H", rom, 0x01AE, 0x4100)
+    rom[0xC23D] = 1
+    rom[0x4100] = 0
+    rom[0x4101] = 4
+    rom[0x4102] = 4
+    struct.pack_into("<H", rom, 0x4103, 0x4120)
+    rom[0x4109] = 0
+    struct.pack_into("<H", rom, 0x410A, 0x4180)
+
+    blocks = [0x01] * 16
+    blocks[0] = 0x02  # water and cuttable-tree behavior cells
+    blocks[4] = 0x03  # source/target pair for a downward ledge
+    blocks[13] = 0x0B  # grass at cells x=2..3, y=6..7
+    rom[0x4120 : 0x4120 + len(blocks)] = bytes(blocks)
+
+    # Object data: one warp/door at (2,1), one fixed background object at (3,1).
+    rom[0x4180:0x418C] = bytes(
+        (
+            0x00,  # border block
+            0x01,  # warp count
+            0x01,
+            0x02,
+            0x00,
+            0x25,
+            0x01,  # background-event count
+            0x01,
+            0x03,
+            0x01,
+            0x00,  # object-event count
+            0x00,
+        )
+    )
+
+    # Tileset 0 header: block data in bank 2, collision data in bank 0,
+    # grass tile 0x52, water+flower animation behavior.
+    header = 51134
+    rom[header] = 2
+    rom[header + 1 : header + 3] = (0x4200).to_bytes(2, "little")
+    rom[header + 5 : header + 7] = (0x1800).to_bytes(2, "little")
+    rom[header + 7 : header + 10] = b"\xff\xff\xff"
+    rom[header + 10] = 0x52
+    rom[header + 11] = 2
+    rom[0x1800:0x1806] = bytes((0x14, 0x23, 0x2C, 0x52, 0x1B, 0xFF))
+
+    block_base = 0x8200
+
+    def put_block(block_id: int, raw_tiles: list[int]) -> None:
+        assert len(raw_tiles) == 16
+        start = block_base + block_id * 16
+        rom[start : start + 16] = bytes(raw_tiles)
+
+    put_block(0x01, [0x23] * 16)
+    put_block(0x0B, [0x52] * 16)
+
+    behavior_block = [0x30] * 16
+    # Top-left player cell is water; top-right has the Cut-recognized tree tile
+    # in the same lower-left raw-tile slot used by movement behavior.
+    for row in (0, 1):
+        for col in (0, 1):
+            behavior_block[row * 4 + col] = 0x14
+    behavior_block[1 * 4 + 2] = 0x3D
+    put_block(0x02, behavior_block)
+
+    ledge_block = [0x30] * 16
+    ledge_block[1 * 4] = 0x2C  # standing tile above the ledge
+    ledge_block[3 * 4] = 0x37  # downward ledge destination tile
+    put_block(0x03, ledge_block)
+
+    return bytes(rom)
+
+
 # ── RAMReader fixture ─────────────────────────────────────────────────────
 
 
@@ -1011,6 +1095,10 @@ class TestRAMReaderObserve:
 
 
 class TestMapDBClassifyTileset0:
+    @pytest.fixture
+    def db(self) -> _MapDB:
+        return _MapDB.from_bytes(_make_pallet_terrain_rom())
+
     def test_from_bytes(self) -> None:
         """_MapDB.from_bytes() creates a working instance."""
         from src.core.ram_reader import _MapDB
@@ -1020,64 +1108,22 @@ class TestMapDBClassifyTileset0:
         assert db._cache == {}
         assert db._rom == b"\x00" * 512 * 1024
 
-    def test_grass_blocks(self) -> None:
-        from src.core.ram_reader import _MapDB
+    def test_terrain_comes_from_rom_behavior(self, db: _MapDB) -> None:
+        """Every semantic label is backed by a Gen I behavior surface."""
+        assert db.tile_terrain(0, 5, 6) == "floor"  # Pallet spawn/fly coordinate
+        assert db.tile_terrain(0, 2, 6) == "grass"  # header grass tile 0x52
+        assert db.tile_terrain(0, 0, 0) == "water"  # water-behavior tile 0x14
+        assert db.tile_terrain(0, 1, 0) == "tree"  # Cut-recognized tile 0x3D
+        assert db.tile_terrain(0, 0, 3) == "ledge"  # behavior pair 0x2C -> 0x37
+        assert db.tile_terrain(0, 2, 1) == "door"  # map warp event
+        assert db.tile_terrain(0, 3, 1) == "object"  # fixed background event
 
-        db = _MapDB.__new__(_MapDB)
-        assert db.classify_block(0x00, 0) == "grass"
-        assert db.classify_block(0x01, 0) == "grass"
-        assert db.classify_block(0x02, 0) == "grass"
-        assert db.classify_block(0x03, 0) == "grass"
-
-    def test_floor_blocks(self) -> None:
-        from src.core.ram_reader import _MapDB
-
-        db = _MapDB.__new__(_MapDB)
-        assert db.classify_block(0x0F, 0) == "floor"
-        assert db.classify_block(0x10, 0) == "floor"
-        assert db.classify_block(0x0C, 0) == "floor"
-
-    def test_tree_blocks(self) -> None:
-        from src.core.ram_reader import _MapDB
-
-        db = _MapDB.__new__(_MapDB)
-        assert db.classify_block(0x32, 0) == "tree"
-        assert db.classify_block(0x33, 0) == "tree"
-        assert db.classify_block(0x3E, 0) == "tree"
-
-    def test_water_blocks(self) -> None:
-        from src.core.ram_reader import _MapDB
-
-        db = _MapDB.__new__(_MapDB)
-        assert db.classify_block(0x2B, 0) == "water"
-        assert db.classify_block(0x48, 0) == "water"
-
-    def test_wall_blocks(self) -> None:
-        from src.core.ram_reader import _MapDB
-
-        db = _MapDB.__new__(_MapDB)
-        assert db.classify_block(0x14, 0) == "wall"
-        assert db.classify_block(0x1A, 0) == "wall"
-        assert db.classify_block(0x1F, 0) == "wall"
-        assert db.classify_block(0x50, 0) == "wall"  # fence
-
-    def test_door_blocks(self) -> None:
-        from src.core.ram_reader import _MapDB
-
-        db = _MapDB.__new__(_MapDB)
-        assert db.classify_block(0x5C, 0) == "door"
-
-    def test_object_blocks(self) -> None:
-        from src.core.ram_reader import _MapDB
-
-        db = _MapDB.__new__(_MapDB)
-        assert db.classify_block(0x60, 0) == "object"  # signpost
-
-    def test_unknown_block(self) -> None:
-        from src.core.ram_reader import _MapDB
-
-        db = _MapDB.__new__(_MapDB)
-        assert db.classify_block(0xFF, 0) == "unknown"
+    def test_block_summary_does_not_reintroduce_block_id_guess(
+        self, db: _MapDB
+    ) -> None:
+        """Legacy block 0x01 is plain; actual all-grass block 0x0B is grass."""
+        assert db.classify_block(0x01, 0) == "floor"
+        assert db.classify_block(0x0B, 0) == "grass"
 
 
 # ── render_overworld tests ──────────────────────────────────────────────
@@ -1167,21 +1213,22 @@ class TestRenderOverworld:
         _MEMORY[0xD362] = 12  # tile x=12 → block x=6
         _MEMORY[0xC109] = 0x00  # facing down
 
-        from src.core.ram_reader import RAMReader, _MapDB as RealMapDB
+        from src.core.ram_reader import RAMReader
 
         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
             mock_db = MagicMock()
             w, h = 10, 9
             block_data = [0x0F] * (w * h)
-            # Tree at (4,3) → gy=3, gx=4 → dy=-2, dx=-2 → grid[0][0]
-            block_data[3 * w + 4] = 0x32  # tree
-            # Grass at (7,3) → gy=3, gx=7 → dy=-2, dx=+1 → grid[0][3]
-            block_data[3 * w + 7] = 0x01  # grass
-            # Sign at (6,6) → gy=6, gx=6 → dy=+1, dx=0 → grid[3][2].
-            # NOTE: the block itself was never set here before, so this test
-            # passed only because the facing arrow overwrote the (empty) cell.
-            block_data[6 * w + 6] = 0x60  # signpost (object)
-            # It must be VISIBLE: the cell in front keeps its true contents.
+            # Outdoor terrain is supplied by the ROM behavior seam, not inferred
+            # from these arbitrary block IDs.
+            terrain = {
+                (4, 3): "tree",
+                (7, 3): "grass",
+                (6, 6): "object",
+            }
+            mock_db.block_terrain.side_effect = lambda _map_id, x, y: terrain.get(
+                (x, y), "floor"
+            )
 
             mock_db.get_map.return_value = {
                 "tileset": 0,
@@ -1189,8 +1236,6 @@ class TestRenderOverworld:
                 "height": h,
                 "block_data": block_data,
             }
-            real_db = RealMapDB.__new__(RealMapDB)
-            mock_db.classify_block.side_effect = real_db.classify_block
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
@@ -2438,6 +2483,27 @@ class TestRenderTileGrid:
     def _grid(self, reader: Any) -> list[str]:
         text = reader.render_tile_grid()
         return [ln.strip() for ln in text.splitlines() if len(ln.strip()) == 10][:9]
+
+    def test_pallet_plain_ground_is_not_grass(
+        self, mock_emu: MagicMock, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Pallet (5,6) is plain ground; only 0x52 grass-texture cells are G."""
+        reader = self._reader(
+            mock_emu,
+            monkeypatch,
+            [64, 60],
+            tile=(4, 6),
+        )
+        reader._mapdb = _MapDB.from_bytes(_make_pallet_terrain_rom())
+
+        # Put the player one cell left of Pallet's canonical (5,6) fly/spawn
+        # coordinate so the renderer exposes that cell instead of masking it
+        # with the facing arrow.
+        row = self._grid(reader)[3]
+        assert row == "..GG↑...??"
+        assert row[5] == "."
+        assert [i for i, glyph in enumerate(row) if glyph == "G"] == [2, 3]
+        assert reader._mapdb.tile_terrain(0, 5, 6) == "floor"
 
     def test_window_is_the_whole_screen(
         self, mock_emu: MagicMock, monkeypatch: pytest.MonkeyPatch

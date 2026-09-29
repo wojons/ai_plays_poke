@@ -198,6 +198,26 @@ _TILESET_HEADER_TABLE = (
 _TILESET_HEADER_SIZE = 12
 _BLOCK_TILE_WIDTH = 4
 
+# Outdoor semantic tiles from the Gen I engine's behavior tables, not from
+# visual guesses about block IDs.  The active grass tile remains ROM data in
+# each tileset header.  These constants are the behavior IDs used by
+# pret/pokered's doors.asm, cut.asm, wild_encounters.asm, and ledge_tiles.asm.
+_OVERWORLD_TILESET = 0
+_WATER_TILE = 0x14
+_OVERWORLD_DOOR_TILES = frozenset((0x1B, 0x58))
+_OVERWORLD_CUT_TREE_TILE = 0x3D
+# (delta from standing cell to ledge cell, standing raw tile, ledge raw tile)
+_OVERWORLD_LEDGE_TRANSITIONS = (
+    ((0, 1), 0x2C, 0x37),
+    ((0, 1), 0x39, 0x36),
+    ((0, 1), 0x39, 0x37),
+    ((-1, 0), 0x2C, 0x27),
+    ((-1, 0), 0x39, 0x27),
+    ((1, 0), 0x2C, 0x0D),
+    ((1, 0), 0x2C, 0x1D),
+    ((1, 0), 0x39, 0x0D),
+)
+
 
 class _MapDB:
     """Parse Pokémon Red/Blue ROM to provide map block data on demand."""
@@ -205,6 +225,7 @@ class _MapDB:
     def __init__(self, rom_path: str | Path) -> None:
         self._rom = Path(rom_path).read_bytes()
         self._cache: dict[int, dict[str, Any]] = {}
+        self._tileset_cache: dict[int, dict[str, Any] | None] = {}
 
     @classmethod
     def from_bytes(cls, rom_bytes: bytes) -> _MapDB:
@@ -212,6 +233,7 @@ class _MapDB:
         self = cls.__new__(cls)
         self._rom = rom_bytes
         self._cache = {}
+        self._tileset_cache = {}
         return self
 
     # ── ROM helpers ──────────────────────────────────────────────────
@@ -229,6 +251,48 @@ class _MapDB:
         if bank == 0:
             return ptr
         return bank * 0x4000 + (ptr - 0x4000)
+
+    def _parse_map_events(
+        self, header_offset: int, bank: int
+    ) -> tuple[set[tuple[int, int]], set[tuple[int, int]]]:
+        """Read warp and fixed background-object coordinates from map object data."""
+        empty: tuple[set[tuple[int, int]], set[tuple[int, int]]] = (set(), set())
+        if header_offset + 10 > len(self._rom):
+            return empty
+
+        # The object pointer follows one 11-byte record for each connection bit.
+        connections = self._rom[header_offset + 9] & 0x0F
+        object_ptr_offset = header_offset + 10 + connections.bit_count() * 11
+        if object_ptr_offset + 2 > len(self._rom):
+            return empty
+        object_ptr = self._read_u16(self._rom, object_ptr_offset)
+        object_offset = self._rom_offset(object_ptr, bank)
+        if object_ptr == 0 or object_offset + 2 > len(self._rom):
+            return empty
+
+        cursor = object_offset + 1  # skip border block
+        warp_count = self._rom[cursor]
+        cursor += 1
+        if cursor + warp_count * 4 > len(self._rom):
+            return empty
+        warps: set[tuple[int, int]] = set()
+        for _ in range(warp_count):
+            y, x = self._rom[cursor], self._rom[cursor + 1]
+            warps.add((x, y))
+            cursor += 4
+
+        if cursor >= len(self._rom):
+            return warps, set()
+        background_count = self._rom[cursor]
+        cursor += 1
+        if cursor + background_count * 3 > len(self._rom):
+            return warps, set()
+        background_objects: set[tuple[int, int]] = set()
+        for _ in range(background_count):
+            y, x = self._rom[cursor], self._rom[cursor + 1]
+            background_objects.add((x, y))
+            cursor += 3
+        return warps, background_objects
 
     # ── Map header parsing ───────────────────────────────────────────
 
@@ -263,11 +327,14 @@ class _MapDB:
                 idx = y * width + x
                 block_data.append(self._rom[block_roff + idx])
 
+        warps, background_objects = self._parse_map_events(roff, bank)
         result: dict[str, Any] = {
             "tileset": tileset,
             "width": width,
             "height": height,
             "block_data": block_data,  # flat list, row-major
+            "warps": warps,
+            "background_objects": background_objects,
         }
         self._cache[map_id] = result
         return result
@@ -286,23 +353,17 @@ class _MapDB:
             return None
         return info["block_data"][y * w + x]  # type: ignore[no-any-return]
 
-    def tile_walkability(self, map_id: int, tile_x: int, tile_y: int) -> bool | None:
-        """Return Gen I collision truth for one world tile.
+    def _tileset_behavior(self, tileset: int) -> dict[str, Any] | None:
+        """Return ROM-backed block/collision/grass data for one tileset."""
+        cache = getattr(self, "_tileset_cache", None)
+        if cache is None:
+            cache = self._tileset_cache = {}
+        if tileset in cache:
+            return cache[tileset]
 
-        Each map block is a 4x4 raw-tile metatile containing four 2x2 player
-        quadrants. Gen I tests the bottom-left raw tile of the destination
-        quadrant against the active tileset's collision-id list.
-        """
-        info = self.get_map(map_id)
-        if info is None:
-            return None
-        width, height = int(info["width"]), int(info["height"])
-        if not (0 <= tile_x < width * 2 and 0 <= tile_y < height * 2):
-            return None
-
-        tileset = int(info["tileset"])
         header = _TILESET_HEADER_TABLE + tileset * _TILESET_HEADER_SIZE
-        if header + 7 > len(self._rom):
+        if header < 0 or header + _TILESET_HEADER_SIZE > len(self._rom):
+            cache[tileset] = None
             return None
         bank = self._rom[header]
         block_ptr = self._read_u16(self._rom, header + 1)
@@ -314,6 +375,7 @@ class _MapDB:
             else self._rom_offset(collision_ptr, bank)
         )
         if block_base >= len(self._rom) or collision_offset >= len(self._rom):
+            cache[tileset] = None
             return None
 
         walkable_tiles: set[int] = set()
@@ -324,21 +386,151 @@ class _MapDB:
                 break
             walkable_tiles.add(raw_tile)
         else:
+            cache[tileset] = None
             return None
 
-        block_x, block_y = tile_x // 2, tile_y // 2
-        block_id = info["block_data"][block_y * width + block_x]
-        raw_x = (tile_x % 2) * 2
-        raw_y = (tile_y % 2) * 2 + 1
-        raw_offset = (
-            block_base
-            + int(block_id) * (_BLOCK_TILE_WIDTH**2)
-            + raw_y * _BLOCK_TILE_WIDTH
-            + raw_x
-        )
-        if raw_offset >= len(self._rom):
+        behavior: dict[str, Any] = {
+            "block_base": block_base,
+            "walkable_tiles": walkable_tiles,
+            "grass_tile": self._rom[header + 10],
+        }
+        cache[tileset] = behavior
+        return behavior
+
+    def _block_quadrant_tiles(
+        self, block_id: int, tileset: int, quadrant_x: int, quadrant_y: int
+    ) -> tuple[int, int, int, int] | None:
+        """Return TL, TR, BL, BR raw tiles for one 2x2 player cell."""
+        if quadrant_x not in (0, 1) or quadrant_y not in (0, 1):
             return None
-        return self._rom[raw_offset] in walkable_tiles
+        behavior = self._tileset_behavior(tileset)
+        if behavior is None:
+            return None
+        raw_x, raw_y = quadrant_x * 2, quadrant_y * 2
+        start = int(behavior["block_base"]) + block_id * (_BLOCK_TILE_WIDTH**2)
+        offsets = (
+            start + raw_y * _BLOCK_TILE_WIDTH + raw_x,
+            start + raw_y * _BLOCK_TILE_WIDTH + raw_x + 1,
+            start + (raw_y + 1) * _BLOCK_TILE_WIDTH + raw_x,
+            start + (raw_y + 1) * _BLOCK_TILE_WIDTH + raw_x + 1,
+        )
+        if offsets[-1] >= len(self._rom):
+            return None
+        return tuple(self._rom[offset] for offset in offsets)  # type: ignore[return-value]
+
+    def _map_quadrant_tiles(
+        self, map_id: int, tile_x: int, tile_y: int
+    ) -> tuple[int, int, int, int] | None:
+        info = self.get_map(map_id)
+        if info is None:
+            return None
+        width, height = int(info["width"]), int(info["height"])
+        if not (0 <= tile_x < width * 2 and 0 <= tile_y < height * 2):
+            return None
+        block_id = int(info["block_data"][(tile_y // 2) * width + tile_x // 2])
+        return self._block_quadrant_tiles(
+            block_id, int(info["tileset"]), tile_x % 2, tile_y % 2
+        )
+
+    def tile_walkability(self, map_id: int, tile_x: int, tile_y: int) -> bool | None:
+        """Return Gen I collision truth for one world tile.
+
+        Each map block is a 4x4 raw-tile metatile containing four 2x2 player
+        quadrants. Gen I tests the bottom-left raw tile of the destination
+        quadrant against the active tileset's collision-id list.
+        """
+        info = self.get_map(map_id)
+        raw_tiles = self._map_quadrant_tiles(map_id, tile_x, tile_y)
+        if info is None or raw_tiles is None:
+            return None
+        behavior = self._tileset_behavior(int(info["tileset"]))
+        if behavior is None:
+            return None
+        return raw_tiles[2] in behavior["walkable_tiles"]
+
+    def _is_outdoor_ledge(
+        self, map_id: int, tile_x: int, tile_y: int, movement_tile: int
+    ) -> bool:
+        """Match the ROM's directional standing-tile → ledge-tile behavior pairs."""
+        for (dx, dy), standing_tile, ledge_tile in _OVERWORLD_LEDGE_TRANSITIONS:
+            if movement_tile != ledge_tile:
+                continue
+            source = self._map_quadrant_tiles(map_id, tile_x - dx, tile_y - dy)
+            if source is not None and source[2] == standing_tile:
+                return True
+        return False
+
+    def _terrain_from_raw(
+        self,
+        tileset: int,
+        raw_tiles: tuple[int, int, int, int],
+        behavior: dict[str, Any],
+        walkable: bool,
+    ) -> str:
+        """Classify one cell from the raw tiles the game itself consults."""
+        movement_tile = raw_tiles[2]
+        encounter_tile = raw_tiles[3]
+        if tileset == _OVERWORLD_TILESET:
+            if movement_tile in _OVERWORLD_DOOR_TILES:
+                return "door"
+            if movement_tile == _OVERWORLD_CUT_TREE_TILE:
+                return "tree"
+            grass_tile = int(behavior["grass_tile"])
+            if grass_tile != 0xFF and encounter_tile == grass_tile:
+                return "grass"
+            if encounter_tile == _WATER_TILE:
+                return "water"
+        return "floor" if walkable else "wall"
+
+    def tile_terrain(self, map_id: int, tile_x: int, tile_y: int) -> str | None:
+        """Return behavior-backed terrain for one 16x16 world cell.
+
+        Grass uses the tileset header byte read by the encounter engine. Water,
+        cuttable trees, doors, and ledges use the raw-tile behavior IDs consulted
+        by their corresponding Gen I engine routines. Warps and fixed background
+        objects come from this map's ROM object data.
+        """
+        info = self.get_map(map_id)
+        raw_tiles = self._map_quadrant_tiles(map_id, tile_x, tile_y)
+        if info is None or raw_tiles is None:
+            return None
+        point = (tile_x, tile_y)
+        if point in info.get("background_objects", set()):
+            return "object"
+        if point in info.get("warps", set()):
+            return "door"
+
+        tileset = int(info["tileset"])
+        behavior = self._tileset_behavior(tileset)
+        walkable = self.tile_walkability(map_id, tile_x, tile_y)
+        if behavior is None or walkable is None:
+            return None
+        if tileset == _OVERWORLD_TILESET and self._is_outdoor_ledge(
+            map_id, tile_x, tile_y, raw_tiles[2]
+        ):
+            return "ledge"
+        return self._terrain_from_raw(tileset, raw_tiles, behavior, walkable)
+
+    @staticmethod
+    def _summarize_terrain(cells: list[str]) -> str:
+        """Collapse four cell labels without painting partial grass as all grass."""
+        if not cells:
+            return "unknown"
+        if len(set(cells)) == 1:
+            return cells[0]
+        for semantic in ("object", "door", "tree", "ledge"):
+            if semantic in cells:
+                return semantic
+        return "unknown"
+
+    def block_terrain(self, map_id: int, block_x: int, block_y: int) -> str:
+        """Summarize one map block from its four behavior-classified cells."""
+        cells = [
+            self.tile_terrain(map_id, block_x * 2 + dx, block_y * 2 + dy)
+            for dy in range(2)
+            for dx in range(2)
+        ]
+        return self._summarize_terrain([cell for cell in cells if cell is not None])
 
     # ── Block classification ─────────────────────────────────────────
 
@@ -387,72 +579,35 @@ class _MapDB:
         0x0F: "floor",  # main house floor
     }
 
-    # Known block → classification for tileset 0 (outdoor: towns, routes)
-    # Source: pret/pokered disassembly block sets
-    _TILESET0_CLASSES: dict[int, str] = {
-        # Tall grass
-        0x00: "grass",
-        0x01: "grass",
-        0x02: "grass",
-        0x03: "grass",
-        # Path / floor (plain ground)
-        0x0C: "floor",
-        0x0D: "floor",
-        0x0E: "floor",
-        0x0F: "floor",
-        0x10: "floor",
-        0x11: "floor",
-        # Building walls / roof pieces
-        0x14: "wall",
-        0x15: "wall",
-        0x16: "wall",
-        0x17: "wall",
-        0x18: "wall",
-        0x19: "wall",
-        0x1A: "wall",
-        0x1B: "wall",
-        0x1C: "wall",
-        0x1D: "wall",
-        0x1E: "wall",
-        0x1F: "wall",
-        # Water
-        0x2B: "water",
-        0x2C: "water",
-        0x48: "water",
-        0x49: "water",
-        # Trees
-        0x32: "tree",
-        0x33: "tree",
-        0x34: "tree",
-        0x35: "tree",
-        0x3E: "tree",
-        0x3F: "tree",
-        # Ledge
-        0x4A: "ledge",
-        0x4B: "ledge",
-        0x4C: "ledge",
-        0x4D: "ledge",
-        0x4E: "ledge",
-        0x4F: "ledge",
-        # Signposts / objects
-        0x60: "object",
-        0x61: "object",
-        # Doors / entrances
-        0x5C: "door",
-        0x5D: "door",
-        # Fences / hedges
-        0x50: "wall",
-        0x51: "wall",
-        0x52: "wall",
-        0x53: "wall",
-    }
+    def _classify_outdoor_block(self, block_id: int) -> str:
+        """Summarize an outdoor block from ROM raw-tile behavior."""
+        behavior = self._tileset_behavior(_OVERWORLD_TILESET)
+        if behavior is None:
+            return "unknown"
+        cells: list[str] = []
+        for quadrant_y in range(2):
+            for quadrant_x in range(2):
+                raw_tiles = self._block_quadrant_tiles(
+                    block_id, _OVERWORLD_TILESET, quadrant_x, quadrant_y
+                )
+                if raw_tiles is None:
+                    return "unknown"
+                cells.append(
+                    self._terrain_from_raw(
+                        _OVERWORLD_TILESET,
+                        raw_tiles,
+                        behavior,
+                        raw_tiles[2] in behavior["walkable_tiles"],
+                    )
+                )
+        return self._summarize_terrain(cells)
 
     def classify_block(self, block_id: int, tileset: int) -> str:
         """Classify a block ID as floor/wall/stairs/etc. for the given tileset."""
         if tileset == 4:
             return self._TILESET4_CLASSES.get(block_id, "unknown")
-        if tileset == 0:
-            return self._TILESET0_CLASSES.get(block_id, "unknown")
+        if tileset == _OVERWORLD_TILESET:
+            return self._classify_outdoor_block(block_id)
         if tileset == 5:
             # Indoor lab (Oak's Lab) — floor block is 0x05, not 0x0F
             return self._TILESET5_CLASSES.get(block_id, "unknown")
@@ -1127,8 +1282,11 @@ class RAMReader:
                 if x == px and y == py:
                     row_parts.append(BLOCK_SYMBOLS["player"])
                 else:
-                    block_id = block_data[y * w + x]
-                    classification = self._mapdb.classify_block(block_id, tileset)
+                    if tileset == _OVERWORLD_TILESET:
+                        classification = self._mapdb.block_terrain(mid, x, y)
+                    else:
+                        block_id = block_data[y * w + x]
+                        classification = self._mapdb.classify_block(block_id, tileset)
                     row_parts.append(BLOCK_SYMBOLS.get(classification, "??"))
             lines.append("".join(row_parts))
 
@@ -1196,9 +1354,13 @@ class RAMReader:
                     row_parts.append("?")
                     continue
 
-                # Classify the block and map to a single letter
-                block_id = block_data[gy * w + gx]
-                classification = self._mapdb.classify_block(block_id, tileset)
+                # Outdoor blocks are summaries of four behavior-classified cells;
+                # indoor tilesets retain their existing tables.
+                if tileset == _OVERWORLD_TILESET:
+                    classification = self._mapdb.block_terrain(mid, gx, gy)
+                else:
+                    block_id = block_data[gy * w + gx]
+                    classification = self._mapdb.classify_block(block_id, tileset)
                 row_parts.append(CLASS_SYMBOLS.get(classification, "?"))
 
             lines.append(" ".join(row_parts))
@@ -1291,8 +1453,11 @@ class RAMReader:
                     continue
                 walkable = self._mapdb.tile_walkability(mid, cx, cy)
                 bid = int(block_data[(cy // 2) * bw + (cx // 2)])
-                cls = self._mapdb.classify_block(bid, tileset)
-                if walkable is None:
+                if tileset == _OVERWORLD_TILESET:
+                    cls = self._mapdb.tile_terrain(mid, cx, cy)
+                else:
+                    cls = self._mapdb.classify_block(bid, tileset)
+                if walkable is None or cls is None:
                     row += "?"
                     unknown += 1
                 elif cls == "water":
@@ -1303,8 +1468,15 @@ class RAMReader:
                     # WALKABLE, but never a bare '.': stepping in can trigger an encounter.
                     # A hazard, not an obstacle - the distinction the agent needs.
                     row += "G"
+                elif cls == "door":
+                    row += "D"
                 elif walkable:
-                    row += "D" if self._is_doorway(mid, cx, cy) else "."
+                    row += (
+                        "D"
+                        if tileset != _OVERWORLD_TILESET
+                        and self._is_doorway(mid, cx, cy)
+                        else "."
+                    )
                 elif cls == "tree":
                     row += "T"
                 elif cls == "object":
