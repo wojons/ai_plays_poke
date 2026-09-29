@@ -908,3 +908,26 @@ tasks:
   status: complete
   created_at: '2026-09-27T13:47:26.258632+00:00'
   completed_at: '2026-09-27T14:37:34.077285+00:00'
+- id: PERCEPT-2
+  title: derive outdoor terrain labels from ROM behavior
+  criteria:
+  - Pallet Town plain ground is not classified as grass; grass labels remain tied
+    to authoritative ROM behavior; regression test proves the distinction
+  status: complete
+  created_at: '2026-09-29T07:58:54.041135+00:00'
+  completed_at: '2026-09-29T08:38:34.822788+00:00'
+- id: BENCH-1
+  title: Publish the LLM-core benchmark
+  criteria:
+  - One command regenerates a side-by-side llm-vs-jev comparison from logs, and benchmark-labelled
+    runs fail closed if jev_answered is true.
+  status: in_progress
+  created_at: '2026-09-29T09:01:06.046635+00:00'
+- id: DF-USE-1
+  title: Add movement progress observable to run summary
+  criteria:
+  - Final run summary reports movement progress beyond total distinct tiles, with
+    regression coverage proving treadmill behavior is visible
+  status: complete
+  created_at: '2026-09-29T16:20:37.804476+00:00'
+  completed_at: '2026-09-29T16:42:07.887340+00:00'
