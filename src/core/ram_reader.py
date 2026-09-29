@@ -94,6 +94,10 @@ ADDR_MOVE_NUM = 0xCC85  # wMoveNum
 
 # NPC / interaction state
 ADDR_SPRITE_STATE_DATA = 0xC100  # wSpriteStateData1 (16 sprites × 16 bytes)
+# Player (sprite 0) position ON SCREEN, in pixels, within that table. The reader already
+# reads this table for facing (+9); these are the screen-coordinate slots.
+ADDR_SPRITE_SCREEN_Y = ADDR_SPRITE_STATE_DATA + 4
+ADDR_SPRITE_SCREEN_X = ADDR_SPRITE_STATE_DATA + 6
 
 # Menu state
 ADDR_TOP_MENU_ITEM_Y = 0xCC24  # wTopMenuItemY
@@ -1271,25 +1275,35 @@ class RAMReader:
                     row += glyph
                     continue
                 walkable = self._mapdb.tile_walkability(mid, cx, cy)
+                bid = int(block_data[(cy // 2) * bw + (cx // 2)])
+                cls = self._mapdb.classify_block(bid, tileset)
                 if walkable is None:
                     row += "?"
                     unknown += 1
+                elif cls == "water":
+                    # Not plain floor and not "blocked wall" either: water changes the rules.
+                    # Impassable on foot now, crossable later, so it keeps its own symbol.
+                    row += "W"
+                elif cls == "grass":
+                    # WALKABLE, but never a bare '.': stepping in can trigger an encounter.
+                    # A hazard, not an obstacle - the distinction the agent needs.
+                    row += "G"
                 elif walkable:
-                    row += "."
-                else:
-                    bid = int(block_data[(cy // 2) * bw + (cx // 2)])
-                    if self._mapdb.classify_block(bid, tileset) == "object":
-                        if bid not in object_numbers:
-                            object_numbers[bid] = len(object_numbers) + 1
-                            n = object_numbers[bid]
-                            tag = str(n) if n <= 9 else chr(ord("A") + n - 10)
-                            legend_objects.append(
-                                f"  {tag} = object (unnamed, block {bid:#04x})"
-                            )
+                    row += "D" if self._is_doorway(mid, cx, cy) else "."
+                elif cls == "tree":
+                    row += "T"
+                elif cls == "object":
+                    if bid not in object_numbers:
+                        object_numbers[bid] = len(object_numbers) + 1
                         n = object_numbers[bid]
-                        row += str(n) if n <= 9 else chr(ord("A") + n - 10)
-                    else:
-                        row += "B"
+                        tag = str(n) if n <= 9 else chr(ord("A") + n - 10)
+                        legend_objects.append(
+                            f"  {tag} = object (unnamed, block {bid:#04x})"
+                        )
+                    n = object_numbers[bid]
+                    row += str(n) if n <= 9 else chr(ord("A") + n - 10)
+                else:
+                    row += "B"
             grid_rows.append(row)
 
         head = [
@@ -1300,13 +1314,59 @@ class RAMReader:
         body = [f"  {r}" for r in grid_rows]
         tail = [
             "",
-            "Legend: .=floor B=blocked ?=unknown(off-map) ←↑↓→=you",
+            "Legend: .=floor G=grass(tall,hazard) W=water T=tree D=doorway/opening "
+            "B=blocked N=person ?=unknown(off-map) ←↑↓→=you",
         ]
         if legend_objects:
             tail.append("Objects:")
             tail.extend(legend_objects)
         tail.append(f"Unknown cells: {unknown}")
         return "\n".join(head + body + tail)
+
+    def _is_doorway(self, map_id: int, x: int, y: int) -> bool:
+        """True when a walkable cell sits in a GAP IN A WALL - a doorway or an opening.
+
+        Derived from collision truth alone, so this is a geometric observation rather than
+        the game's own door data (the ROM's warp/behaviour tables are not parsed here yet).
+        A doorway in a wall run looks like: walkable, with blocked cells on BOTH sides of
+        one axis. Named 'doorway' and not 'door' for exactly that reason.
+
+        Bane flagged the case this fixes: in Pallet Town outside the player's house the
+        collision data reads `##.##` with a single walkable cell between the two blocked
+        runs - the house's own door - and the renderer showed it as a bare '.' with nothing
+        to say it was walkable for a reason.
+        """
+        w = self._mapdb.tile_walkability
+        horizontal = w(map_id, x - 1, y) is False and w(map_id, x + 1, y) is False
+        vertical = w(map_id, x, y - 1) is False and w(map_id, x, y + 1) is False
+        return horizontal or vertical
+
+    def player_screen_px(self) -> tuple[int, int] | None:
+        """Where the player sprite sits ON SCREEN, in pixels: (x, y) or None.
+
+        READ, never inferred. This is what removes the grid-alignment guesswork: the window
+        origin becomes player_tile - (screen_px // 16), so the grid no longer needs the
+        assumption that the camera keeps the player centred. That assumption was tested in
+        a second space and broke (Oak's Lab: RAM reported 71 unknown cells against vision's
+        41 because the player-centred window ran off the map edge), and the measurement
+        that first appeared to support it was confounded by the floor's 16 px repeating
+        pattern.
+
+        NOT YET VERIFIED against a frame. The sprite is drawn with an origin offset, so the
+        value here is the raw table entry, not a top-left corner. Treat as unconfirmed until
+        checked: render a 16 px grid at 80-shifted values and confirm a distinctive object
+        lands where it looks. Returns None when the value is out of range for a 160x144
+        screen, so a wrong layout assumption shows up as 'unknown' instead of a
+        plausible-looking number.
+        """
+        try:
+            x = self.read_u8(ADDR_SPRITE_SCREEN_X)
+            y = self.read_u8(ADDR_SPRITE_SCREEN_Y)
+        except Exception:  # noqa: BLE001 - no emulator attached is a normal case
+            return None
+        if 0 <= x <= 176 and 0 <= y <= 176:
+            return (x, y)
+        return None
 
     def adjacent_blocks(self) -> dict[str, str]:
         """What's adjacent to the player in each cardinal direction.
@@ -1715,6 +1775,9 @@ class RAMReader:
         obs: dict[str, Any] = {
             "result": st,
             "player_facing": facing,
+            # where the sprite is ON SCREEN (px) - lets the map window be aligned to the
+            # real camera instead of assuming the player is centred. None if unavailable.
+            "player_screen_px": self.player_screen_px(),
             "player_x": px,
             "player_y": py,
             "player_tile_x": ptx,

@@ -25,15 +25,35 @@ map of it. Return ONLY a JSON object. No prose, no markdown fences.
 
 ## How to draw each cell — one character per block
 
-- `.` — **floor you can positively see**. Walkable ground: plain tiles, patterned tiles,
-  carpet... **Different floor types are still floor and always `.`**. Only use `.` when
-  you can actually see floor tiles there.
+- `.` — **plain floor with no special behaviour.** Carpet, tile, a doorway threshold: all
+  `.`, because stepping there does nothing. Only use `.` when you can actually see floor
+  there.
 - `B` — **blocking structure**: wall, fence, counter, or furniture that stands in the way.
+- `G` — **tall grass.** It is WALKABLE, but it is not plain floor, so it is never `.`:
+  stepping into it can trigger a wild encounter. It is a hazard, not an obstacle.
+- `W` — **water.** Impassable on foot. Never `.`, even when it looks easy to cross.
+- `T` — **tree / foliage** (blocks movement, not walkable).
+- `M` — **message, dialogue or menu panel.** This is UI on top of the map, not terrain.
+  Use `M` for the whole panel, whatever text it shows — it is NOT `?`, because you can see
+  it perfectly well, and it is not `.`, because it is not ground.
+- `N` — **another person.** An NPC is a sprite, not terrain. Give the person their own
+  cell(s). If a person is visible anywhere on the map, at least one cell must be `N`.
+- `$` — **something real that you cannot name yet.** Use `$` when you can see there is a
+  thing with meaning but you cannot tell what it is. `$` says "there is something here we
+  have not identified"; `?` says "we cannot see this cell at all". Do not confuse them.
 - `↑` `↓` `←` `→` — **the player**, in the player's own cell, pointing where they face.
   Exactly one cell has an arrow.
-- `?` — **anything you cannot positively identify.** Black areas. Dark areas. Anything
-  cut off at the screen edge. Anything hidden behind a text box. Anything you are not
-  sure about.
+- `?` — **anything you cannot positively identify.** Black areas. Anything cut off at the
+  screen edge. Anything you are not sure about.
+
+### Use the game's own tile size — the artwork lies to you
+
+The artwork **repeats every 8 pixels**, but the game counts positions in **16-pixel tiles**.
+If you use 8 px as your cell, your grid comes out **twice as wide as it should be**: a path
+two tiles wide becomes a one-tile gap, and every distance is wrong. This has already
+happened — on a tall-grass frame the walkable path was drawn one cell wide when it is
+measurably two. **The player sprite is exactly one tile wide: use it as your ruler.** A gap
+the same width as the player is ONE cell. A gap twice the player's width is TWO cells.
 
 ## `?` is the DEFAULT, and this matters most
 
@@ -88,6 +108,6 @@ Count the rows and columns. Read your own grid back and confirm: every black reg
 }
 ```
 
-`grid` must have exactly **9** strings, each exactly **9** characters**, using only
-`. B ? ↑ ↓ ← →` and digits. The player is the **middle cell, (4,4)** — that is the whole
-point of the odd size. Every cell of black is `?`.
+`grid` must have exactly **9** strings, each exactly **9** characters, using only
+`. B G W T M N $ ? ↑ ↓ ← →` and digits. The player is the **middle cell, (4,4)** — that is
+the whole point of the odd size. Every cell of black is `?`.

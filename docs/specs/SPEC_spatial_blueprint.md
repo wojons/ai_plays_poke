@@ -47,10 +47,9 @@ Objects:
 
 ### Symbol rules
 
-1. **`.` = floor, without exception.** Every walkable ground surface renders as `.` —
-   plain tile, patterned tile, carpet, grass, sand, doorway threshold, the mat inside a
-   door. The agent must never need to learn a new symbol because a room has new carpet.
-   *Different floor types are still floor.*
+1. **`.` = plain floor, with no special behaviour.** Carpet, tile, the mat inside a door —
+   all `.`, because stepping on them never does anything. *When a floor's TYPE changes what
+   happens, it is no longer plain floor and gets its own symbol (rule 8).*
 2. **`B` = blocking structure.** Walls, fences, counters, and furniture that stops
    movement. Appearance only — see rule 6.
 3. **`←↑↓→` = the player**, drawn at the player's own cell. The arrow carries both
@@ -73,6 +72,30 @@ Objects:
    dimensions and the same origin, so cell `(i,j)` in one can be compared directly with
    cell `(i,j)` in the other. Any disagreement is then a **finding**, not a formatting
    difference.
+8. **Terrain that CHANGES THE RULES gets its own symbol.** This is the one exception to
+   rule 1, and it exists because a plain `.` throws away the only thing that matters about
+   these cells: what happens when you step on them.
+
+   | Symbol | Meaning | Walkable | Why it is not `.` |
+   |---|---|---|---|
+   | `.` | plain floor | yes | stepping there does nothing |
+   | `G` | tall grass | **yes** | walkable, but entering can trigger a wild encounter — a *hazard*, not an obstacle |
+   | `W` | water | no | impassable by walking |
+   | `$` | a thing we know is a thing, not yet identified | varies | we can see there is something with meaning and we do not know it yet — a distinct promise to come back and name it, kept separate from `?` (which means we cannot see the cell at all) |
+   | `M` | message / menu panel | no | UI covering the map: readable text is not terrain, and calling it `?` is wrong because we can see it perfectly well |
+   | `N` | another person | no | an NPC is a *sprite*, not a map tile — it blocks, it moves, and it can be talked to. Trees/foliage continue to use `T` |
+
+   `G` and `W` are the two that matter most: they are the same to a collision check and
+   opposite to a strategy. Grass is the cheapest place in the game to gain levels and one
+   of the easiest ways to lose a run; water is a wall you will later be able to cross.
+
+   **Keep the tile size honest when drawing them.** The artwork *repeats every 8 px*, and
+   the game's own unit is 16 px. A grid drawn at 8 px is exactly twice as wide as it should
+   be, which turns a 2-tile-wide path into a 1-tile-wide path and makes every distance
+   wrong. This is not hypothetical: on the tall-grass frame of 2026-09-28 the model drew a
+   single-cell gap for a path that is measurably two tiles wide, because the 8 px grass
+   texture was taken as the cell.
+
 
 ### Object naming
 
