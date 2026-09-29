@@ -34,6 +34,27 @@ python3 cron_runner.py --run-id <label> --cycles <N>
 ### Legacy: src/game_loop.py (Historical)
 > **⚠️ Deprecated** - Use `cron_runner.py` instead. The legacy path has known issues with vision pipeline and requires PYTHONPATH manipulation.
 
+### RAM-map viewer: ram_map_server.py (Manual debugging)
+
+Start the live RAM-map viewer from the repository root:
+
+```bash
+source .venv/bin/activate
+python3 ram_map_server.py
+# Open http://localhost:8099/
+```
+
+This is an interactive viewer, not a read-only dashboard. `GET /` (and
+`/index.html`) serves the viewer controls, and `GET /data.json` reads the current RAM
+state only. Viewer buttons send `POST /input` requests that drive the server's live
+emulator. For example, send `{"button":"a"}`; `buttons` or `combo` lists and a
+positive integer `frames` are also supported. Valid buttons are `a`, `b`, `up`, `down`,
+`left`, `right`, `start`, and `select`; invalid payloads return `400` without applying
+input.
+
+> **Safety:** `POST /input` changes emulator state. The server listens on all interfaces
+> without authentication, so keep port 8099 private and do not use untrusted clients.
+
 ## Run Commands
 
 ### Basic Autonomous Run

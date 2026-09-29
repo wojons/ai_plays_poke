@@ -140,6 +140,28 @@ Open `web/index.html` in a browser to run a live Game Boy emulator with RAM stat
 
 The overlay shows player position, current map, screen type, and party Pokémon — the same data the Python RAM reader extracts.
 
+### RAM-map viewer (Python)
+
+`ram_map_server.py` starts a separate live RAM-map viewer on
+`http://localhost:8099/`:
+
+```bash
+source .venv/bin/activate
+python3 ram_map_server.py
+```
+
+This viewer is interactive, not read-only. `GET /` (or `/index.html`) serves the
+controls, while `GET /data.json` only reads the current emulator state. The page polls
+that read endpoint every second. Its buttons send `POST /input` JSON requests, such as
+`{"button":"up"}`, which drive the live emulator. The endpoint also accepts a
+`buttons` or `combo` list and an optional positive integer `frames`; it accepts only
+`a`, `b`, `up`, `down`, `left`, `right`, `start`, and `select`. Invalid payloads return
+`400` without applying input.
+
+> **Safety:** `POST /input` changes the emulator state. The server binds to all network
+> interfaces and has no authentication, so do not expose port 8099 or use it with
+> untrusted clients.
+
 ## Quick Start (working path)
 
 The primary working entry point for autonomous gameplay is `cron_runner.py` — an E2E runner
