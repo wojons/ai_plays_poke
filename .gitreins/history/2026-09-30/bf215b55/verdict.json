@@ -1,0 +1,113 @@
+{
+  "task_id": "LOAD-BRIDGE-1",
+  "task_title": "Bound aipp-bridge connection concurrency",
+  "task_criteria": [
+    "Name and reproduce the request path causing the thread leak; replace the unbounded per-connection daemon thread model with bounded concurrency and clean shutdown; add a soak/watchdog verification showing the thread count remains bounded; document the incident and preserve loopback/token security."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "82027184365c161e74d36069db1ad11274c8efa8",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260930T115329.838647Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4377 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [468433 chars omitted \u2014 5157 line(s)] \u2026\ntest_bench_pathfinding_find_path               931.0897 (1.02)           3,166.0311 (1.0)           1,228.7637 (1.21)            729.6128 (1.0)             961.0085 (1.03)           152.4750 (13.93)         1;1  813,826.1101 (0.83)          9           1\ntest_bench_vision_pipeline_validate          9,616.9533 (10.56)      2,617,435.9955 (826.72)       10,816.1252 (10.62)        15,321.2056 (21.00)        10,538.9627 (11.31)          540.9820 (49.44)     41;1159   92,454.5510 (0.09)      29654           1\ntest_bench_ram_reader_observe            3,174,557.9327 (>1000.0)  177,201,102.9534 (>1000.0)   4,775,557.8370 (>1000.0)  13,702,512.2278 (>1000.0)   3,476,727.9867 (>1000.0)    152,399.7635 (>1000.0)      2;45      209.3996 (0.00)        287           1\ntest_bench_vision_pipeline_process      64,889,595.9603 (>1000.0)   90,990,306.9260 (>1000.0)  72,251,633.1339 (>1000.0)   7,288,497.0386 (>1000.0)  70,574,342.5060 (>1000.0)  9,175,279.9926 (>1000.0)       3;1       13.8405 (0.00)         14           1\n--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4363 passed, 14 skipped in 304.37s (0:05:04) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260930T115329.838647Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Name and reproduce the request path causing the thread leak; replace the unbounded per-connection daemon thread model with bounded concurrency and clean shutdown; add a soak/watchdog verification showing the thread count remains bounded; document the incident and preserve loopback/token security.: All sub-requirements verified. (1) NAMED+REPRODUCED: docs/bridge-thread-incident-2026-09-30.md names the path (console GET /api/stream -> build_state() -> line-delimited {\"cmd\":\"raw\"} retry; 1018 R-state threads, loadavg 1015.9 peak) and tests/test_game_bridge.py::test_console_raw_retry_path_is_bounded_and_game_access_is_serialized reproduces it with 12 concurrent raw retries. (2) BOUNDED CONCURRENCY: scripts/game_bridge.py serve() (line 418) replaced per-connection daemon threads with a fixed worker set (DEFAULT_MAX_WORKERS=4, line 53) + bounded queue.Queue(maxsize=max_workers) (line 444); full queue answers {\"ok\":false,\"error\":\"server busy\"} (line 519). (3) CLEAN SHUTDOWN: SIGINT/SIGTERM handlers set stop_event; serve() drains queue, closes active connections, joins workers within SHUTDOWN_JOIN_TIMEOUT=5.0 (lines 530-552). (4) SOAK/WATCHDOG: scripts/verify_game_bridge_concurrency.py reads /proc/<pid>/status Threads and fails if > workers+1; ran `./.venv/bin/python scripts/verify_game_bridge_concurrency.py --duration 5 --workers 4 --concurrency 4` -> EXIT=0, 'PASS: requests=472 duration_s=5 max_child_threads=5 ceiling=5 workers=4 concurrency=4'. (5) TESTS: `./.venv/bin/python -m pytest tests/test_game_bridge.py -q` -> '3 passed in 1.31s'. (6) SECURITY PRESERVED: bind 127.0.0.1 only (line 482), secrets.compare_digest token gate (line 392), token file 0600 + min-length check in main, one-request-per-connection preserved (test asserts 1 response for 2 pipelined requests). (7) DOCUMENTED: incident doc plus board events.jsonl task_completed (commit 640476c).\nThe aipp-bridge thread leak is named, reproduced, fixed with bounded workers + clean shutdown, verified by a passing soak/watchdog and 3 passing tests, documented, and loopback/token security is preserved.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Name and reproduce the request path causing the thread leak; replace the unbounded per-connection daemon thread model with bounded concurrency and clean shutdown; add a soak/watchdog verification showing the thread count remains bounded; document the incident and preserve loopback/token security.: All sub-requirements verified. (1) NAMED+REPRODUCED: docs/bridge-thread-incident-2026-09-30.md names the path (console GET /api/stream -> build_state() -> line-delimited {\"cmd\":\"raw\"} retry; 1018 R-state threads, loadavg 1015.9 peak) and tests/test_game_bridge.py::test_console_raw_retry_path_is_bounded_and_game_access_is_serialized reproduces it with 12 concurrent raw retries. (2) BOUNDED CONCURRENCY: scripts/game_bridge.py serve() (line 418) replaced per-connection daemon threads with a fixed worker set (DEFAULT_MAX_WORKERS=4, line 53) + bounded queue.Queue(maxsize=max_workers) (line 444); full queue answers {\"ok\":false,\"error\":\"server busy\"} (line 519). (3) CLEAN SHUTDOWN: SIGINT/SIGTERM handlers set stop_event; serve() drains queue, closes active connections, joins workers within SHUTDOWN_JOIN_TIMEOUT=5.0 (lines 530-552). (4) SOAK/WATCHDOG: scripts/verify_game_bridge_concurrency.py reads /proc/<pid>/status Threads and fails if > workers+1; ran `./.venv/bin/python scripts/verify_game_bridge_concurrency.py --duration 5 --workers 4 --concurrency 4` -> EXIT=0, 'PASS: requests=472 duration_s=5 max_child_threads=5 ceiling=5 workers=4 concurrency=4'. (5) TESTS: `./.venv/bin/python -m pytest tests/test_game_bridge.py -q` -> '3 passed in 1.31s'. (6) SECURITY PRESERVED: bind 127.0.0.1 only (line 482), secrets.compare_digest token gate (line 392), token file 0600 + min-length check in main, one-request-per-connection preserved (test asserts 1 response for 2 pipelined requests). (7) DOCUMENTED: incident doc plus board events.jsonl task_completed (commit 640476c).\nThe aipp-bridge thread leak is named, reproduced, fixed with bounded workers + clean shutdown, verified by a passing soak/watchdog and 3 passing tests, documented, and loopback/token security is preserved.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Name and reproduce the request path causing the thread leak; replace the unbounded per-connection daemon thread model with bounded concurrency and clean shutdown; add a soak/watchdog verification showing the thread count remains bounded; document the incident and preserve loopback/token security.",
+                "status": "PASS",
+                "detail": "All sub-requirements verified. (1) NAMED+REPRODUCED: docs/bridge-thread-incident-2026-09-30.md names the path (console GET /api/stream -> build_state() -> line-delimited {\"cmd\":\"raw\"} retry; 1018 R-state threads, loadavg 1015.9 peak) and tests/test_game_bridge.py::test_console_raw_retry_path_is_bounded_and_game_access_is_serialized reproduces it with 12 concurrent raw retries. (2) BOUNDED CONCURRENCY: scripts/game_bridge.py serve() (line 418) replaced per-connection daemon threads with a fixed worker set (DEFAULT_MAX_WORKERS=4, line 53) + bounded queue.Queue(maxsize=max_workers) (line 444); full queue answers {\"ok\":false,\"error\":\"server busy\"} (line 519). (3) CLEAN SHUTDOWN: SIGINT/SIGTERM handlers set stop_event; serve() drains queue, closes active connections, joins workers within SHUTDOWN_JOIN_TIMEOUT=5.0 (lines 530-552). (4) SOAK/WATCHDOG: scripts/verify_game_bridge_concurrency.py reads /proc/<pid>/status Threads and fails if > workers+1; ran `./.venv/bin/python scripts/verify_game_bridge_concurrency.py --duration 5 --workers 4 --concurrency 4` -> EXIT=0, 'PASS: requests=472 duration_s=5 max_child_threads=5 ceiling=5 workers=4 concurrency=4'. (5) TESTS: `./.venv/bin/python -m pytest tests/test_game_bridge.py -q` -> '3 passed in 1.31s'. (6) SECURITY PRESERVED: bind 127.0.0.1 only (line 482), secrets.compare_digest token gate (line 392), token file 0600 + min-length check in main, one-request-per-connection preserved (test asserts 1 response for 2 pipelined requests). (7) DOCUMENTED: incident doc plus board events.jsonl task_completed (commit 640476c).",
+                "resolution_probability": 0.0
+              }
+            ],
+            "summary": "The aipp-bridge thread leak is named, reproduced, fixed with bounded workers + clean shutdown, verified by a passing soak/watchdog and 3 passing tests, documented, and loopback/token security is preserved."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: LOAD-BRIDGE-1\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Name and reproduce the request path causing the thread leak; replace the unbounded per-connection daemon thread model with bounded concurrency and clean shutdown; add a soak/watchdog verification showing the thread count remains bounded; document the incident and preserve loopback/token security.: All sub-requirements verified. (1) NAMED+REPRODUCED: docs/bridge-thread-incident-2026-09-30.md names the path (console GET /api/stream -> build_state() -> line-delimited {\"cmd\":\"raw\"} retry; 1018 R-state threads, loadavg 1015.9 peak) and tests/test_game_bridge.py::test_console_raw_retry_path_is_bounded_and_game_access_is_serialized reproduces it with 12 concurrent raw retries. (2) BOUNDED CONCURRENCY: scripts/game_bridge.py serve() (line 418) replaced per-connection daemon threads with a fixed worker set (DEFAULT_MAX_WORKERS=4, line 53) + bounded queue.Queue(maxsize=max_workers) (line 444); full queue answers {\"ok\":false,\"error\":\"server busy\"} (line 519). (3) CLEAN SHUTDOWN: SIGINT/SIGTERM handlers set stop_event; serve() drains queue, closes active connections, joins workers within SHUTDOWN_JOIN_TIMEOUT=5.0 (lines 530-552). (4) SOAK/WATCHDOG: scripts/verify_game_bridge_concurrency.py reads /proc/<pid>/status Threads and fails if > workers+1; ran `./.venv/bin/python scripts/verify_game_bridge_concurrency.py --duration 5 --workers 4 --concurrency 4` -> EXIT=0, 'PASS: requests=472 duration_s=5 max_child_threads=5 ceiling=5 workers=4 concurrency=4'. (5) TESTS: `./.venv/bin/python -m pytest tests/test_game_bridge.py -q` -> '3 passed in 1.31s'. (6) SECURITY PRESERVED: bind 127.0.0.1 only (line 482), secrets.compare_digest token gate (line 392), token file 0600 + min-length check in main, one-request-per-connection preserved (test asserts 1 response for 2 pipelined requests). (7) DOCUMENTED: incident doc plus board events.jsonl task_completed (commit 640476c).\nThe aipp-bridge thread leak is named, reproduced, fixed with bounded workers + clean shutdown, verified by a passing soak/watchdog and 3 passing tests, documented, and loopback/token security is preserved.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-30T12:02:51.814727",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-30T12:02:51.859714+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 26506,
+        "truncated": false,
+        "source": "git show 82027184365c"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 169,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "LOAD-BRIDGE-1"
+  }
+}
