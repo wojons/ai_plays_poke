@@ -1,0 +1,51 @@
+commit 53a8dab911d4447699c48fe076f2a550a3648b00
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Mon Sep 28 15:57:21 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Mon Sep 28 15:57:21 2026 -0500
+
+    fix(base1): resolve artifact OUTPUT_PATH at call time, not import time
+    
+    INT-CI-BOOT-1 triage: CI runs 36424220919/36424593205 (12:48Z) failed on tests/test_base1_baseline.py::test_writes_artifact_with_five_episodes — module froze base1_control_2026-09-27.json while the test contract is base1_control_{today()}.json. 6a85f2c fixed the date but still evaluates the default once at import; any process importing the module before UTC midnight and reporting after it writes yesterday's filename. Replace the constant with output_path() (env override BASE1_OUTPUT_PATH still honored, resolved per call). Focused gate: tests/test_base1_baseline.py 22 passed; ruff check+format, mypy clean.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ scripts/run_base1_baseline.py | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/scripts/run_base1_baseline.py b/scripts/run_base1_baseline.py
+index 26574f7..a2b0dfe 100644
+--- a/scripts/run_base1_baseline.py
++++ b/scripts/run_base1_baseline.py
+@@ -69,13 +69,15 @@ def today() -> str:
+     return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+ 
+ 
+-# Default is computed at call time (today()) rather than import time: a
+-# hardcoded date made every report after that date write to a stale filename
+-# and broke the test contract `base1_control_{today()}.json` (CI red since
+-# 2026-09-28). The env override is still honored.
+-OUTPUT_PATH = os.environ.get(
+-    "BASE1_OUTPUT_PATH", f"data/baselines/base1_control_{today()}.json"
+-)
++def output_path() -> str:
++    """Artifact path, computed at CALL time so a long-lived process that
++    imports the module before UTC midnight and reports after it still writes
++    the run date (a module-level default froze the date at import time)."""
++    return os.environ.get(
++        "BASE1_OUTPUT_PATH", f"data/baselines/base1_control_{today()}.json"
++    )
++
++
+ EPISODE_TIMEOUT_S = 1800  # same guard as long_run.py / dist1_episodes.py
+ 
+ 
+@@ -521,7 +523,7 @@ def cmd_report(episode_log: Path) -> int:
+     }
+     if mode_seen - {report_mode}:
+         log(f"WARN: decision_mode_log values {sorted(mode_seen)} != '{report_mode}'")
+-    out = REPO / OUTPUT_PATH
++    out = REPO / output_path()
+     out.parent.mkdir(parents=True, exist_ok=True)
+     out.write_text(json.dumps(artifact, indent=2) + "\n")
+     log(f"artifact -> {out.relative_to(REPO)}")

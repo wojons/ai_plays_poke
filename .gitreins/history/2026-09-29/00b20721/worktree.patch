@@ -1,0 +1,28 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 2861878..f0fb9fd 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -921,8 +921,9 @@ tasks:
+   criteria:
+   - One command regenerates a side-by-side llm-vs-jev comparison from logs, and benchmark-labelled
+     runs fail closed if jev_answered is true.
+-  status: in_progress
++  status: complete
+   created_at: '2026-09-29T09:01:06.046635+00:00'
++  completed_at: '2026-09-29T22:14:00.104699+00:00'
+ - id: DF-USE-1
+   title: Add movement progress observable to run summary
+   criteria:
+@@ -931,3 +932,12 @@ tasks:
+   status: complete
+   created_at: '2026-09-29T16:20:37.804476+00:00'
+   completed_at: '2026-09-29T16:42:07.887340+00:00'
++- id: DOC-1
++  title: Clarify interactive RAM-map viewer docs
++  criteria:
++  - README.md and skills/ai-plays-poke-usage/SKILL.md accurately describe interactive
++    POST /input alongside read-only RAM-state GET; documentation no longer claims
++    viewer is read-only
++  status: complete
++  created_at: '2026-09-29T23:25:58.941228+00:00'
++  completed_at: '2026-09-29T23:34:26.706558+00:00'

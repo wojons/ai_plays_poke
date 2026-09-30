@@ -1,0 +1,113 @@
+{
+  "task_id": "BOOT-1",
+  "task_title": "long-run default boot state = measured Pallet Town baseline + explicit decision-mode passthrough",
+  "task_criteria": [
+    "worker completes the board row acceptance criteria; full suite green on merged main"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "a200bfaf081e1607aeb95e476607003181c9a244",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T222510.779585Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4313 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [461126 chars omitted \u2014 5093 line(s)] \u2026\ntest_bench_pathfinding_find_path               540.9820 (1.04)           2,223.9983 (1.0)             729.9900 (1.0)             420.1870 (1.47)            590.9824 (1.0)             75.0006 (1.0)           1;3  1,369,881.7106 (1.0)          15           1\ntest_bench_vision_pipeline_validate          6,171.0016 (11.85)         74,548.0065 (33.52)         7,631.5831 (10.45)         1,657.8239 (5.81)          7,193.0117 (12.17)          590.9824 (7.88)    3298;3662    131,034.4112 (0.10)      26604           1\ntest_bench_ram_reader_observe            1,110,504.9634 (>1000.0)  186,638,874.0018 (>1000.0)   2,464,260.0832 (>1000.0)  12,392,018.2913 (>1000.0)   1,365,097.0068 (>1000.0)    504,020.2523 (>1000.0)      3;13        405.8013 (0.00)        511           1\ntest_bench_vision_pipeline_process      41,764,463.9965 (>1000.0)   72,365,547.0065 (>1000.0)  51,553,791.3677 (>1000.0)   7,681,997.8123 (>1000.0)  49,567,895.5049 (>1000.0)  9,002,110.0477 (>1000.0)       4;2         19.3972 (0.00)         22           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4299 passed, 14 skipped in 266.34s (0:04:26) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T223931.380668Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 worker completes the board row acceptance criteria; full suite green on merged main: Full suite IS green on merged main: `./.venv/bin/pytest tests/ -q` => '4299 passed, 14 skipped in 275.05s' (0 failed), and the work is merged+pushed (8e870a8 merge of wt/BOOT-1, 47f2deb fix; origin/main==HEAD). But the board row BOOT-1 Done-when is only partially met. Done-when requires: 'the driver takes the boot state and the decision mode as explicit arguments (or env with a loud default) AND STAMPS BOTH INTO THE RUN'S STATUS ROW AND PER-EPISODE RECORDS'. Met: BOOT default = data/baselines/base-1_boot.state (Pallet Town) at scripts/long_run.py:50; resolve_boot_state() env override at :126; resolve_decision_mode()/DECISION_MODE at :132/:165; episode_argv() stamps --boot-state and --decision-mode at :147; per-episode row stamps decision_mode at :490. NOT met: boot_state is stamped NOWHERE \u2014 `grep '\"boot' scripts/long_run.py` returns nothing; the per-episode row dict (long_run.py:486-511) has keys at,episode,run_id,decision_mode,exit_code,... with no boot field; the status row dict (long_run.py:516-547) has keys run_id,updated,goal,ladder,goal_achieved,elapsed_min,duration_target_min,episodes,totals,degraded,degradation,maps_visited,top_missing_classes,last_episode,episode_log,consecutive_identical,loop_warnings \u2014 stamping NEITHER boot_state NOR decision_mode at top level. cron_runner.py's own run row (cron_runner.py:2468-2469) likewise stamps decision_mode/decision_mode_family but no boot_state. So the boot state \u2014 the central subject of the task \u2014 is not recoverable from any run record, and the 'stamps BOTH into the run's status row and per-episode records' requirement is unmet. tests/test_long_run_boot.py (14 passed) only asserts the default path, env override, and argv stamping; it has no test asserting boot_state is stamped into the status row or episode records.\nFull suite is green on merged main (4299 passed/14 skipped) and the Pallet Town default + decision-mode argv passthrough landed, but the board row's requirement to stamp BOTH boot state and decision mode into the run's status row and per-episode records is unmet \u2014 boot_state is recorded nowhere.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 worker completes the board row acceptance criteria; full suite green on merged main: Full suite IS green on merged main: `./.venv/bin/pytest tests/ -q` => '4299 passed, 14 skipped in 275.05s' (0 failed), and the work is merged+pushed (8e870a8 merge of wt/BOOT-1, 47f2deb fix; origin/main==HEAD). But the board row BOOT-1 Done-when is only partially met. Done-when requires: 'the driver takes the boot state and the decision mode as explicit arguments (or env with a loud default) AND STAMPS BOTH INTO THE RUN'S STATUS ROW AND PER-EPISODE RECORDS'. Met: BOOT default = data/baselines/base-1_boot.state (Pallet Town) at scripts/long_run.py:50; resolve_boot_state() env override at :126; resolve_decision_mode()/DECISION_MODE at :132/:165; episode_argv() stamps --boot-state and --decision-mode at :147; per-episode row stamps decision_mode at :490. NOT met: boot_state is stamped NOWHERE \u2014 `grep '\"boot' scripts/long_run.py` returns nothing; the per-episode row dict (long_run.py:486-511) has keys at,episode,run_id,decision_mode,exit_code,... with no boot field; the status row dict (long_run.py:516-547) has keys run_id,updated,goal,ladder,goal_achieved,elapsed_min,duration_target_min,episodes,totals,degraded,degradation,maps_visited,top_missing_classes,last_episode,episode_log,consecutive_identical,loop_warnings \u2014 stamping NEITHER boot_state NOR decision_mode at top level. cron_runner.py's own run row (cron_runner.py:2468-2469) likewise stamps decision_mode/decision_mode_family but no boot_state. So the boot state \u2014 the central subject of the task \u2014 is not recoverable from any run record, and the 'stamps BOTH into the run's status row and per-episode records' requirement is unmet. tests/test_long_run_boot.py (14 passed) only asserts the default path, env override, and argv stamping; it has no test asserting boot_state is stamped into the status row or episode records.\nFull suite is green on merged main (4299 passed/14 skipped) and the Pallet Town default + decision-mode argv passthrough landed, but the board row's requirement to stamp BOTH boot state and decision mode into the run's status row and per-episode records is unmet \u2014 boot_state is recorded nowhere.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "worker completes the board row acceptance criteria; full suite green on merged main",
+                "status": "FAIL",
+                "detail": "Full suite IS green on merged main: `./.venv/bin/pytest tests/ -q` => '4299 passed, 14 skipped in 275.05s' (0 failed), and the work is merged+pushed (8e870a8 merge of wt/BOOT-1, 47f2deb fix; origin/main==HEAD). But the board row BOOT-1 Done-when is only partially met. Done-when requires: 'the driver takes the boot state and the decision mode as explicit arguments (or env with a loud default) AND STAMPS BOTH INTO THE RUN'S STATUS ROW AND PER-EPISODE RECORDS'. Met: BOOT default = data/baselines/base-1_boot.state (Pallet Town) at scripts/long_run.py:50; resolve_boot_state() env override at :126; resolve_decision_mode()/DECISION_MODE at :132/:165; episode_argv() stamps --boot-state and --decision-mode at :147; per-episode row stamps decision_mode at :490. NOT met: boot_state is stamped NOWHERE \u2014 `grep '\"boot' scripts/long_run.py` returns nothing; the per-episode row dict (long_run.py:486-511) has keys at,episode,run_id,decision_mode,exit_code,... with no boot field; the status row dict (long_run.py:516-547) has keys run_id,updated,goal,ladder,goal_achieved,elapsed_min,duration_target_min,episodes,totals,degraded,degradation,maps_visited,top_missing_classes,last_episode,episode_log,consecutive_identical,loop_warnings \u2014 stamping NEITHER boot_state NOR decision_mode at top level. cron_runner.py's own run row (cron_runner.py:2468-2469) likewise stamps decision_mode/decision_mode_family but no boot_state. So the boot state \u2014 the central subject of the task \u2014 is not recoverable from any run record, and the 'stamps BOTH into the run's status row and per-episode records' requirement is unmet. tests/test_long_run_boot.py (14 passed) only asserts the default path, env override, and argv stamping; it has no test asserting boot_state is stamped into the status row or episode records.",
+                "resolution_probability": 0.34
+              }
+            ],
+            "summary": "Full suite is green on merged main (4299 passed/14 skipped) and the Pallet Town default + decision-mode argv passthrough landed, but the board row's requirement to stamp BOTH boot state and decision mode into the run's status row and per-episode records is unmet \u2014 boot_state is recorded nowhere."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: BOOT-1\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 worker completes the board row acceptance criteria; full suite green on merged main: Full suite IS green on merged main: `./.venv/bin/pytest tests/ -q` => '4299 passed, 14 skipped in 275.05s' (0 failed), and the work is merged+pushed (8e870a8 merge of wt/BOOT-1, 47f2deb fix; origin/main==HEAD). But the board row BOOT-1 Done-when is only partially met. Done-when requires: 'the driver takes the boot state and the decision mode as explicit arguments (or env with a loud default) AND STAMPS BOTH INTO THE RUN'S STATUS ROW AND PER-EPISODE RECORDS'. Met: BOOT default = data/baselines/base-1_boot.state (Pallet Town) at scripts/long_run.py:50; resolve_boot_state() env override at :126; resolve_decision_mode()/DECISION_MODE at :132/:165; episode_argv() stamps --boot-state and --decision-mode at :147; per-episode row stamps decision_mode at :490. NOT met: boot_state is stamped NOWHERE \u2014 `grep '\"boot' scripts/long_run.py` returns nothing; the per-episode row dict (long_run.py:486-511) has keys at,episode,run_id,decision_mode,exit_code,... with no boot field; the status row dict (long_run.py:516-547) has keys run_id,updated,goal,ladder,goal_achieved,elapsed_min,duration_target_min,episodes,totals,degraded,degradation,maps_visited,top_missing_classes,last_episode,episode_log,consecutive_identical,loop_warnings \u2014 stamping NEITHER boot_state NOR decision_mode at top level. cron_runner.py's own run row (cron_runner.py:2468-2469) likewise stamps decision_mode/decision_mode_family but no boot_state. So the boot state \u2014 the central subject of the task \u2014 is not recoverable from any run record, and the 'stamps BOTH into the run's status row and per-episode records' requirement is unmet. tests/test_long_run_boot.py (14 passed) only asserts the default path, env override, and argv stamping; it has no test asserting boot_state is stamped into the status row or episode records.\nFull suite is green on merged main (4299 passed/14 skipped) and the Pallet Town default + decision-mode argv passthrough landed, but the board row's requirement to stamp BOTH boot state and decision mode into the run's status row and per-episode records is unmet \u2014 boot_state is recorded nowhere.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-27T22:55:13.869419",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-27T22:55:13.907922+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 21935,
+        "truncated": false,
+        "source": "git show a200bfaf081e"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 20418,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "BOOT-1"
+  }
+}

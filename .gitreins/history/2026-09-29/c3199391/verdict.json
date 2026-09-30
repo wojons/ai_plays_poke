@@ -1,0 +1,113 @@
+{
+  "task_id": "DF-USE-1",
+  "task_title": "Add movement progress observable to run summary",
+  "task_criteria": [
+    "Final run summary reports movement progress beyond total distinct tiles, with regression coverage proving treadmill behavior is visible"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "e400f056b69cf8b216b4cbd1d6f262fe43e5fdda",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T165531.257265Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4327 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [462731 chars omitted \u2014 5107 line(s)] \u2026\ntest_bench_pathfinding_find_path               530.9703 (1.18)           2,714.9799 (1.0)             787.5407 (1.53)            604.5782 (1.67)            561.0054 (1.14)           117.5358 (3.92)           1;2  1,269,775.6492 (0.65)         13           1\ntest_bench_vision_pipeline_validate          6,491.9586 (14.43)         60,711.9873 (22.36)         7,646.0002 (14.83)         1,958.0297 (5.42)          6,972.9867 (14.20)          531.9598 (17.75)    5065;6235    130,787.3370 (0.07)      36323           1\ntest_bench_ram_reader_observe            1,966,441.9815 (>1000.0)  190,503,660.9969 (>1000.0)   3,536,045.9367 (>1000.0)  12,788,584.1038 (>1000.0)   2,330,184.5067 (>1000.0)    419,256.0446 (>1000.0)       3;61        282.8018 (0.00)        486           1\ntest_bench_vision_pipeline_process      35,351,545.9574 (>1000.0)   47,172,383.0560 (>1000.0)  39,259,322.1728 (>1000.0)   3,090,011.6239 (>1000.0)  39,536,133.5250 (>1000.0)  4,987,165.0408 (>1000.0)       10;0         25.4717 (0.00)         22           1\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4313 passed, 14 skipped in 317.22s (0:05:17) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T165531.257265Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Final run summary reports movement progress beyond total distinct tiles, with regression coverage proving treadmill behavior is visible: cron_runner.py:2570-2572 appends ' | movement-progress: {movement_progress_cycles}/{movement_observed_cycles} comparable cycles changed tile ({movement_rate:.0%})' to _format_summary, alongside the pre-existing '| distinct tiles: {distinct_tiles}' at cron_runner.py:2565 \u2014 a new observable beyond distinct tiles. The metric is derived from consecutive RAM tile observations via _movement_progress_delta (cron_runner.py:832-843: returns (0,0) if either tile is None, else (int(current_tile != last_tile), 1)), explicitly never from decisions/actions. Wired end-to-end: counters initialized at cron_runner.py:4336-4337, accumulated per cycle at cron_runner.py:4479-4483, passed to _format_summary at cron_runner.py:5629-5630, and persisted via _record_run_memory extra at cron_runner.py:5645-5646 (attributes movement_progress_cycles / movement_observed_cycles / movement_progress_rate written at cron_runner.py:2665-2677). Regression coverage proving treadmill behavior is visible: tests/test_cron_runner_metrics.py:80-95 test_treadmill_actions_do_not_count_as_movement_progress (5 real decisions, 0 tile changes -> asserts 'movement-progress: 0/4 comparable cycles changed tile (0%)'); TestMovementProgressDelta tests/test_cron_runner_metrics.py:111-137 prove only consecutive valid tile observations create a comparable cycle and only a changed tuple counts; tests/test_gap053_decision_intent_summary.py:228-230 assert the persisted attributes. TEST EVIDENCE: ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_teacher_escalation.py -q --tb=short => '95 passed in 0.89s' (exit 0); focused -k 'Movement or movement or treadmill or summary' => '10 passed, 50 deselected in 0.83s' (exit 0); full suite ./.venv/bin/pytest tests/ -q --tb=line => '4313 passed, 14 skipped in 231.66s' (exit 0).\nThe final run summary now reports a movement-progress observable derived from consecutive RAM tile changes (not decisions) alongside distinct tiles, with passing regression tests proving treadmill behavior (actions without tile change) is visible.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Final run summary reports movement progress beyond total distinct tiles, with regression coverage proving treadmill behavior is visible: cron_runner.py:2570-2572 appends ' | movement-progress: {movement_progress_cycles}/{movement_observed_cycles} comparable cycles changed tile ({movement_rate:.0%})' to _format_summary, alongside the pre-existing '| distinct tiles: {distinct_tiles}' at cron_runner.py:2565 \u2014 a new observable beyond distinct tiles. The metric is derived from consecutive RAM tile observations via _movement_progress_delta (cron_runner.py:832-843: returns (0,0) if either tile is None, else (int(current_tile != last_tile), 1)), explicitly never from decisions/actions. Wired end-to-end: counters initialized at cron_runner.py:4336-4337, accumulated per cycle at cron_runner.py:4479-4483, passed to _format_summary at cron_runner.py:5629-5630, and persisted via _record_run_memory extra at cron_runner.py:5645-5646 (attributes movement_progress_cycles / movement_observed_cycles / movement_progress_rate written at cron_runner.py:2665-2677). Regression coverage proving treadmill behavior is visible: tests/test_cron_runner_metrics.py:80-95 test_treadmill_actions_do_not_count_as_movement_progress (5 real decisions, 0 tile changes -> asserts 'movement-progress: 0/4 comparable cycles changed tile (0%)'); TestMovementProgressDelta tests/test_cron_runner_metrics.py:111-137 prove only consecutive valid tile observations create a comparable cycle and only a changed tuple counts; tests/test_gap053_decision_intent_summary.py:228-230 assert the persisted attributes. TEST EVIDENCE: ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_teacher_escalation.py -q --tb=short => '95 passed in 0.89s' (exit 0); focused -k 'Movement or movement or treadmill or summary' => '10 passed, 50 deselected in 0.83s' (exit 0); full suite ./.venv/bin/pytest tests/ -q --tb=line => '4313 passed, 14 skipped in 231.66s' (exit 0).\nThe final run summary now reports a movement-progress observable derived from consecutive RAM tile changes (not decisions) alongside distinct tiles, with passing regression tests proving treadmill behavior (actions without tile change) is visible.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Final run summary reports movement progress beyond total distinct tiles, with regression coverage proving treadmill behavior is visible",
+                "status": "PASS",
+                "detail": "cron_runner.py:2570-2572 appends ' | movement-progress: {movement_progress_cycles}/{movement_observed_cycles} comparable cycles changed tile ({movement_rate:.0%})' to _format_summary, alongside the pre-existing '| distinct tiles: {distinct_tiles}' at cron_runner.py:2565 \u2014 a new observable beyond distinct tiles. The metric is derived from consecutive RAM tile observations via _movement_progress_delta (cron_runner.py:832-843: returns (0,0) if either tile is None, else (int(current_tile != last_tile), 1)), explicitly never from decisions/actions. Wired end-to-end: counters initialized at cron_runner.py:4336-4337, accumulated per cycle at cron_runner.py:4479-4483, passed to _format_summary at cron_runner.py:5629-5630, and persisted via _record_run_memory extra at cron_runner.py:5645-5646 (attributes movement_progress_cycles / movement_observed_cycles / movement_progress_rate written at cron_runner.py:2665-2677). Regression coverage proving treadmill behavior is visible: tests/test_cron_runner_metrics.py:80-95 test_treadmill_actions_do_not_count_as_movement_progress (5 real decisions, 0 tile changes -> asserts 'movement-progress: 0/4 comparable cycles changed tile (0%)'); TestMovementProgressDelta tests/test_cron_runner_metrics.py:111-137 prove only consecutive valid tile observations create a comparable cycle and only a changed tuple counts; tests/test_gap053_decision_intent_summary.py:228-230 assert the persisted attributes. TEST EVIDENCE: ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_teacher_escalation.py -q --tb=short => '95 passed in 0.89s' (exit 0); focused -k 'Movement or movement or treadmill or summary' => '10 passed, 50 deselected in 0.83s' (exit 0); full suite ./.venv/bin/pytest tests/ -q --tb=line => '4313 passed, 14 skipped in 231.66s' (exit 0).",
+                "resolution_probability": 0.52
+              }
+            ],
+            "summary": "The final run summary now reports a movement-progress observable derived from consecutive RAM tile changes (not decisions) alongside distinct tiles, with passing regression tests proving treadmill behavior (actions without tile change) is visible."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-USE-1\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Final run summary reports movement progress beyond total distinct tiles, with regression coverage proving treadmill behavior is visible: cron_runner.py:2570-2572 appends ' | movement-progress: {movement_progress_cycles}/{movement_observed_cycles} comparable cycles changed tile ({movement_rate:.0%})' to _format_summary, alongside the pre-existing '| distinct tiles: {distinct_tiles}' at cron_runner.py:2565 \u2014 a new observable beyond distinct tiles. The metric is derived from consecutive RAM tile observations via _movement_progress_delta (cron_runner.py:832-843: returns (0,0) if either tile is None, else (int(current_tile != last_tile), 1)), explicitly never from decisions/actions. Wired end-to-end: counters initialized at cron_runner.py:4336-4337, accumulated per cycle at cron_runner.py:4479-4483, passed to _format_summary at cron_runner.py:5629-5630, and persisted via _record_run_memory extra at cron_runner.py:5645-5646 (attributes movement_progress_cycles / movement_observed_cycles / movement_progress_rate written at cron_runner.py:2665-2677). Regression coverage proving treadmill behavior is visible: tests/test_cron_runner_metrics.py:80-95 test_treadmill_actions_do_not_count_as_movement_progress (5 real decisions, 0 tile changes -> asserts 'movement-progress: 0/4 comparable cycles changed tile (0%)'); TestMovementProgressDelta tests/test_cron_runner_metrics.py:111-137 prove only consecutive valid tile observations create a comparable cycle and only a changed tuple counts; tests/test_gap053_decision_intent_summary.py:228-230 assert the persisted attributes. TEST EVIDENCE: ./.venv/bin/pytest tests/test_cron_runner_metrics.py tests/test_autonomy_counters.py tests/test_gap053_decision_intent_summary.py tests/test_teacher_escalation.py -q --tb=short => '95 passed in 0.89s' (exit 0); focused -k 'Movement or movement or treadmill or summary' => '10 passed, 50 deselected in 0.83s' (exit 0); full suite ./.venv/bin/pytest tests/ -q --tb=line => '4313 passed, 14 skipped in 231.66s' (exit 0).\nThe final run summary now reports a movement-progress observable derived from consecutive RAM tile changes (not decisions) alongside distinct tiles, with passing regression tests proving treadmill behavior (actions without tile change) is visible.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-29T17:11:25.008034",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-29T17:11:25.035000+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 2361,
+        "truncated": false,
+        "source": "git show e400f056b69c"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 18571,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-USE-1"
+  }
+}

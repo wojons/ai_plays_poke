@@ -1,0 +1,120 @@
+{
+  "task_id": "PERCEPT-NPC-TERRAIN",
+  "task_title": "Sprite layer: NPCs render as N and sprite cells block movement",
+  "task_criteria": [
+    "Given a fabricated sprite table with a person inside the visible window, at least one grid cell renders as N and sits at the derived (col,row) while sprite 0 derives to the reader's own player cell; a state with no other sprite yields zero N cells; a cell occupied by a sprite reads blocked in the adjoining-walkability verdict while the same cell reads walkable with the sprite absent; existing tests stay green."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "f451727dc41870552873e455d056c799b5f8e4ac",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260928T231750.574903Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n12:47AM INF scanned ~322887678 bytes (322.89 MB) in 14.8s\n12:47AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 92842 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260928T231750.574903Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4324 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [462255 chars omitted \u2014 5104 line(s)] \u2026\ntest_bench_pathfinding_find_path               500.9933 (1.11)           1,833.0174 (1.0)             617.2793 (1.25)           307.9303 (3.21)            536.0052 (1.09)            50.0004 (2.50)          1;2  1,620,012.1817 (0.80)         18           1\ntest_bench_vision_pipeline_validate          5,609.9962 (12.47)         55,212.0036 (30.12)         6,504.7369 (13.19)        1,156.7507 (12.07)         6,172.0493 (12.57)          409.9566 (20.47)   3245;3467    153,734.1189 (0.08)      36297           1\ntest_bench_ram_reader_observe              996,295.0135 (>1000.0)  146,106,261.0033 (>1000.0)   1,753,195.9852 (>1000.0)  8,660,048.0054 (>1000.0)   1,156,632.4974 (>1000.0)     48,153.9755 (>1000.0)     3;127        570.3869 (0.00)        716           1\ntest_bench_vision_pipeline_process      34,262,517.0015 (>1000.0)   39,911,831.0306 (>1000.0)  35,914,678.2214 (>1000.0)  1,355,579.7922 (>1000.0)  35,845,157.9814 (>1000.0)  1,366,485.7688 (>1000.0)       6;2         27.8438 (0.00)         27           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4310 passed, 14 skipped in 215.33s (0:03:35) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260928T231750.574903Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 Given a fabricated sprite table with a person inside the visible window, at least one grid cell renders as N and sits at the derived (col,row) while sprite 0 derives to the reader's own player cell; a state with no other sprite yields zero N cells; a cell occupied by a sprite reads blocked in the adjoining-walkability verdict while the same cell reads walkable with the sprite absent; existing tests stay green.: No sprite/NPC layer was implemented. render_tile_grid (src/core/ram_reader.py:1221-1340) has a cell loop at lines 1283-1325 whose only branches are: off-map '?', player glyph, walkable-None '?', water 'W', grass 'G', walkable 'D'/'.', tree 'T', object '1'-'9', else 'B' \u2014 there is NO branch that emits 'N' and no read of the sprite table (only ADDR_SPRITE_STATE_DATA+9 for facing at line 955 and the active flag at line 1017). The legend at line 1333 advertises 'N=person' but nothing ever produces that glyph, so the fabricated-sprite-table case cannot render an N at a derived (col,row). grep for sprite_table|sprite_cells|npc_cells|blocked_by_sprite|sprite_block across src/ and tests/ returns nothing. adjacent_walkability (src/core/ram_reader.py:1417-1435) consults only self._mapdb.tile_walkability(map_id, tile_x+dx, tile_y+dy) with no sprite-occupancy subtraction, so a sprite-occupied cell still reads 'walkable' \u2014 the exact silent-failure the task asks to fix. No test fabricates a sprite table or asserts N cells / sprite blocking: grep 'sprite' in tests/test_ram_reader.py hits only the player_screen_px column tests (lines 2404, 2452-2469) and the sprite-active byte at line 110. The board entry PERCEPT-5 in .coding-hermes/board/tasks.jsonl:190 is still status 'pending' and describes this work as NEEDED ('FIX: subtract occupied sprite cells from walkability before reporting it'). Existing tests do stay green: ./.venv/bin/pytest tests/test_ram_reader.py -q => '155 passed in 0.21s', exit_code 0 \u2014 but that only satisfies the last clause of the criterion, not the sprite-rendering or sprite-blocking behaviour.\nThe sprite layer is entirely absent \u2014 render_tile_grid never emits 'N' and adjacent_walkability never accounts for sprite occupancy, so only the 'existing tests stay green' clause is met.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 Given a fabricated sprite table with a person inside the visible window, at least one grid cell renders as N and sits at the derived (col,row) while sprite 0 derives to the reader's own player cell; a state with no other sprite yields zero N cells; a cell occupied by a sprite reads blocked in the adjoining-walkability verdict while the same cell reads walkable with the sprite absent; existing tests stay green.: No sprite/NPC layer was implemented. render_tile_grid (src/core/ram_reader.py:1221-1340) has a cell loop at lines 1283-1325 whose only branches are: off-map '?', player glyph, walkable-None '?', water 'W', grass 'G', walkable 'D'/'.', tree 'T', object '1'-'9', else 'B' \u2014 there is NO branch that emits 'N' and no read of the sprite table (only ADDR_SPRITE_STATE_DATA+9 for facing at line 955 and the active flag at line 1017). The legend at line 1333 advertises 'N=person' but nothing ever produces that glyph, so the fabricated-sprite-table case cannot render an N at a derived (col,row). grep for sprite_table|sprite_cells|npc_cells|blocked_by_sprite|sprite_block across src/ and tests/ returns nothing. adjacent_walkability (src/core/ram_reader.py:1417-1435) consults only self._mapdb.tile_walkability(map_id, tile_x+dx, tile_y+dy) with no sprite-occupancy subtraction, so a sprite-occupied cell still reads 'walkable' \u2014 the exact silent-failure the task asks to fix. No test fabricates a sprite table or asserts N cells / sprite blocking: grep 'sprite' in tests/test_ram_reader.py hits only the player_screen_px column tests (lines 2404, 2452-2469) and the sprite-active byte at line 110. The board entry PERCEPT-5 in .coding-hermes/board/tasks.jsonl:190 is still status 'pending' and describes this work as NEEDED ('FIX: subtract occupied sprite cells from walkability before reporting it'). Existing tests do stay green: ./.venv/bin/pytest tests/test_ram_reader.py -q => '155 passed in 0.21s', exit_code 0 \u2014 but that only satisfies the last clause of the criterion, not the sprite-rendering or sprite-blocking behaviour.\nThe sprite layer is entirely absent \u2014 render_tile_grid never emits 'N' and adjacent_walkability never accounts for sprite occupancy, so only the 'existing tests stay green' clause is met.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "Given a fabricated sprite table with a person inside the visible window, at least one grid cell renders as N and sits at the derived (col,row) while sprite 0 derives to the reader's own player cell; a state with no other sprite yields zero N cells; a cell occupied by a sprite reads blocked in the adjoining-walkability verdict while the same cell reads walkable with the sprite absent; existing tests stay green.",
+                "status": "FAIL",
+                "detail": "No sprite/NPC layer was implemented. render_tile_grid (src/core/ram_reader.py:1221-1340) has a cell loop at lines 1283-1325 whose only branches are: off-map '?', player glyph, walkable-None '?', water 'W', grass 'G', walkable 'D'/'.', tree 'T', object '1'-'9', else 'B' \u2014 there is NO branch that emits 'N' and no read of the sprite table (only ADDR_SPRITE_STATE_DATA+9 for facing at line 955 and the active flag at line 1017). The legend at line 1333 advertises 'N=person' but nothing ever produces that glyph, so the fabricated-sprite-table case cannot render an N at a derived (col,row). grep for sprite_table|sprite_cells|npc_cells|blocked_by_sprite|sprite_block across src/ and tests/ returns nothing. adjacent_walkability (src/core/ram_reader.py:1417-1435) consults only self._mapdb.tile_walkability(map_id, tile_x+dx, tile_y+dy) with no sprite-occupancy subtraction, so a sprite-occupied cell still reads 'walkable' \u2014 the exact silent-failure the task asks to fix. No test fabricates a sprite table or asserts N cells / sprite blocking: grep 'sprite' in tests/test_ram_reader.py hits only the player_screen_px column tests (lines 2404, 2452-2469) and the sprite-active byte at line 110. The board entry PERCEPT-5 in .coding-hermes/board/tasks.jsonl:190 is still status 'pending' and describes this work as NEEDED ('FIX: subtract occupied sprite cells from walkability before reporting it'). Existing tests do stay green: ./.venv/bin/pytest tests/test_ram_reader.py -q => '155 passed in 0.21s', exit_code 0 \u2014 but that only satisfies the last clause of the criterion, not the sprite-rendering or sprite-blocking behaviour.",
+                "resolution_probability": 0.09
+              }
+            ],
+            "summary": "The sprite layer is entirely absent \u2014 render_tile_grid never emits 'N' and adjacent_walkability never accounts for sprite occupancy, so only the 'existing tests stay green' clause is met."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: PERCEPT-NPC-TERRAIN\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 Given a fabricated sprite table with a person inside the visible window, at least one grid cell renders as N and sits at the derived (col,row) while sprite 0 derives to the reader's own player cell; a state with no other sprite yields zero N cells; a cell occupied by a sprite reads blocked in the adjoining-walkability verdict while the same cell reads walkable with the sprite absent; existing tests stay green.: No sprite/NPC layer was implemented. render_tile_grid (src/core/ram_reader.py:1221-1340) has a cell loop at lines 1283-1325 whose only branches are: off-map '?', player glyph, walkable-None '?', water 'W', grass 'G', walkable 'D'/'.', tree 'T', object '1'-'9', else 'B' \u2014 there is NO branch that emits 'N' and no read of the sprite table (only ADDR_SPRITE_STATE_DATA+9 for facing at line 955 and the active flag at line 1017). The legend at line 1333 advertises 'N=person' but nothing ever produces that glyph, so the fabricated-sprite-table case cannot render an N at a derived (col,row). grep for sprite_table|sprite_cells|npc_cells|blocked_by_sprite|sprite_block across src/ and tests/ returns nothing. adjacent_walkability (src/core/ram_reader.py:1417-1435) consults only self._mapdb.tile_walkability(map_id, tile_x+dx, tile_y+dy) with no sprite-occupancy subtraction, so a sprite-occupied cell still reads 'walkable' \u2014 the exact silent-failure the task asks to fix. No test fabricates a sprite table or asserts N cells / sprite blocking: grep 'sprite' in tests/test_ram_reader.py hits only the player_screen_px column tests (lines 2404, 2452-2469) and the sprite-active byte at line 110. The board entry PERCEPT-5 in .coding-hermes/board/tasks.jsonl:190 is still status 'pending' and describes this work as NEEDED ('FIX: subtract occupied sprite cells from walkability before reporting it'). Existing tests do stay green: ./.venv/bin/pytest tests/test_ram_reader.py -q => '155 passed in 0.21s', exit_code 0 \u2014 but that only satisfies the last clause of the criterion, not the sprite-rendering or sprite-blocking behaviour.\nThe sprite layer is entirely absent \u2014 render_tile_grid never emits 'N' and adjacent_walkability never accounts for sprite occupancy, so only the 'existing tests stay green' clause is met.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-29T05:53:16.745025",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-29T05:53:16.768981+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 14535,
+        "truncated": false,
+        "source": "git show f451727dc418"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 22081,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "PERCEPT-NPC-TERRAIN"
+  }
+}

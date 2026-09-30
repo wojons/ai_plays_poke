@@ -1,0 +1,28 @@
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index d704760..71bc84f 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -373,3 +373,4 @@
+ {"ts": null, "event": null, "id": 330, "summary": null, "timestamp": "2026-09-28T21:13:23.922871+00:00", "event_type": "task_completed", "task_id": "INT-CI-BOOT-1", "actor": "foreman", "detail": "{\"tick\": \"ai-plays-poke-2026-09-28-20-49-51\", \"commit\": \"53a8dab\", \"verdict\": \"e9cb08d6 tier1 PASS (tier2 skipped per long-tier rule)\", \"guard\": \"focused tests/test_base1_baseline.py 22 passed; ruff clean; mypy clean\", \"push\": \"8203d84..53a8dab rev-list 0\", \"note\": \"foreman-direct single-file fix; root cause module-level OUTPUT_PATH froze date at import\"}"}
+ {"ts": null, "event": null, "id": 331, "summary": null, "timestamp": "2026-09-28T21:13:23.922882+00:00", "event_type": "task_verified", "task_id": "INT-CI-BOOT-1", "actor": "foreman", "detail": "{\"tick\": \"ai-plays-poke-2026-09-28-20-49-51\", \"verdict_artifact\": \".gitreins/history/2026-09-28/e9cb08d6/verdict.json\", \"passed\": true}"}
+ {"ts": null, "event": null, "id": 332, "summary": null, "timestamp": "2026-09-28T21:13:23.922888+00:00", "event_type": "audit", "task_id": "", "actor": "foreman", "detail": "{\"tick\": \"ai-plays-poke-2026-09-28-20-49-51\", \"discovery\": \"CI triage: last failure was 36424220919/36424593205 (12:48Z); runs through 36468299501 green; INT-CI-BOOT-1 root-caused+fixed foreman-direct in same tick\", \"serial_path\": \"wave not composed: remaining P1s (BENCH-1, AGENT-1, CH-NAV, CH-OBJ, RELEASE-001, ARM-1) are multi-day builds or owner decisions with no independent small task set\", \"gitleaks_scan\": \"verdict artifact scanned pre-commit: 0 secret-shaped strings\"}"}
++{"ts": null, "event": null, "id": 333, "summary": null, "timestamp": "2026-09-28T22:56:06.366165+00:00", "event_type": "task_created", "task_id": "REV-4", "actor": "foreman", "detail": "{\"id\":\"REV-4\",\"status\":\"pending\"}"}
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index e4bcf2c..49d89d5 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -908,3 +908,14 @@ tasks:
+   status: complete
+   created_at: '2026-09-27T13:47:26.258632+00:00'
+   completed_at: '2026-09-27T14:37:34.077285+00:00'
++- id: INT-CI-BOOT-1
++  title: 'Harden OUTPUT_PATH: compute the base1 artifact path at call time, not module
++    import'
++  criteria:
++  - cmd_report writes to data/baselines/base1_control_{today()}.json computed at call
++    time; a process that imports the module before UTC midnight and reports after
++    it cannot write yesterday's filename; BASE1_OUTPUT_PATH override still honored;
++    focused tests/test_base1_baseline.py green
++  status: complete
++  created_at: '2026-09-28T20:55:53.481491+00:00'
++  completed_at: '2026-09-28T21:06:10.235091+00:00'

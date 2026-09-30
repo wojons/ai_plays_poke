@@ -1,0 +1,81 @@
+commit 10a9d3c50e5389e537539d8ded31ca90712ee561
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Tue Sep 29 01:15:30 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Tue Sep 29 01:15:30 2026 -0500
+
+    chore(board): close recovered ai-plays-poke wave
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ .../waves/ai-plays-poke-2026-09-29-04-42-35.json   | 62 ++++++++++++++++++++++
+ 1 file changed, 62 insertions(+)
+
+diff --git a/.coding-hermes/waves/ai-plays-poke-2026-09-29-04-42-35.json b/.coding-hermes/waves/ai-plays-poke-2026-09-29-04-42-35.json
+new file mode 100644
+index 0000000..6217acb
+--- /dev/null
++++ b/.coding-hermes/waves/ai-plays-poke-2026-09-29-04-42-35.json
+@@ -0,0 +1,62 @@
++{
++  "tick_id": "ai-plays-poke-2026-09-29-04-42-35",
++  "created_at": "2026-09-28T23:58:00-05:00",
++  "base_sha": "20b443e",
++  "budget": 2,
++  "status": "finished",
++  "legs": [
++    {
++      "task_id": "PERCEPT-NPC-TERRAIN",
++      "board_rows": [
++        "PERCEPT-3",
++        "PERCEPT-5"
++      ],
++      "worktree": "~/worktrees/ai_plays_poke-PERCEPT-NPC-TERRAIN",
++      "branch": "wt/PERCEPT-NPC-TERRAIN",
++      "worker_model": "glm-5.3-flash",
++      "worker_provider": "xkiro",
++      "base_sha": "20b443e"
++    },
++    {
++      "task_id": "REV-4",
++      "board_rows": [
++        "REV-4"
++      ],
++      "worktree": "~/worktrees/ai_plays_poke-REV-4",
++      "branch": "wt/REV-4",
++      "worker_model": "glm-5.3-flash",
++      "worker_provider": "xkiro",
++      "base_sha": "20b443e"
++    }
++  ],
++  "excluded": [
++    {
++      "task_id": "BENCH-1",
++      "reason": "already implemented on unmerged worker branch wt/BENCH-1 (e876b36, 7 files, +1981); merge-then-verify instead of a new worker"
++    },
++    {
++      "task_id": "ARM-1 / DECIDE-1",
++      "reason": "owner decisions, not worker-dispatchable"
++    },
++    {
++      "task_id": "REV-1",
++      "reason": "needs a documented no-key stub path decision; paired-advisory only inside the REV-4 leg, not a separate leg"
++    },
++    {
++      "task_id": "E2E-001 / NEVER-DONE",
++      "reason": "perpetual fixtures"
++    }
++  ],
++  "finished_at": "2026-09-29T01:15:00-05:00",
++  "recovery": {
++    "PERCEPT-NPC-TERRAIN": {
++      "result": "merged",
++      "commit": "bbffe0a",
++      "gates": "4317 passed, 15 skipped; ruff clean; mypy clean; CI success 36508297457"
++    },
++    "REV-4": {
++      "result": "failed",
++      "reason": "worker stalled twice with no edits or commit; preserved fixup worktree/branch as evidence"
++    }
++  }
++}

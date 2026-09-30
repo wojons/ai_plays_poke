@@ -1,0 +1,86 @@
+{
+  "task_id": "BOOT-1",
+  "task_title": "long-run default boot state = measured Pallet Town baseline + explicit decision-mode passthrough",
+  "task_criteria": [
+    "worker completes the board row acceptance criteria; full suite green on merged main"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "310c5f398f7dbbb622e4146f1f0394b956710458",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 tests: FAIL (tests/test_base1_baseline.py::TestCmdReport::test_writes_artifact_with_five_episodes [first fa\n  \u2717 secrets: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T224836.989708Z.log"
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4316 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [34927 chars omitted \u2014 378 line(s)] \u2026\ntests/test_base1_baseline.py::TestSummariseEpisodes::test_maps_visited_deduped_and_sorted PASSED [  9%]\ntests/test_base1_baseline.py::TestSummariseEpisodes::test_completion_counts PASSED [  9%]\ntests/test_base1_baseline.py::TestCmdReport::test_refuses_to_write_a_thin_baseline PASSED [  9%]\ntests/test_base1_baseline.py::TestCmdReport::test_writes_artifact_with_five_episodes FAILED [  9%]\n\n=================================== FAILURES ===================================\n____________ TestCmdReport.test_writes_artifact_with_five_episodes _____________\ntests/test_base1_baseline.py:260: in test_writes_artifact_with_five_episodes\n    assert out.exists()\nE   AssertionError: assert False\nE    +  where False = exists()\nE    +    where exists = PosixPath('/tmp/pytest-of-kara/pytest-17019/test_writes_artifact_with_five0/data/baselines/base1_control_2026-09-28.json').exists\n----------------------------- Captured stdout call -----------------------------\n[07:49:06] artifact -> data/baselines/base1_control_2026-09-27.json\n[07:49:06]   episodes=5 decisions=25 escalations_jev=20 teacher=5 transitions=0 esc/transition=None wall_mean=33.0s\n=========================== short test summary info ============================\nFAILED tests/test_base1_baseline.py::TestCmdReport::test_writes_artifact_with_five_episodes\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 399 passed in 27.09s ========================\n",
+          "error": "",
+          "data": {
+            "exit_code": 1,
+            "pytest_outcome": {
+              "kind": "failed",
+              "detail": "1 failure(s); first: tests/test_base1_baseline.py::TestCmdReport::test_writes_artifact_with_five_episodes",
+              "first_failing_test": "tests/test_base1_baseline.py::TestCmdReport::test_writes_artifact_with_five_episodes",
+              "failures": 1,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T224836.989708Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    }
+  },
+  "summary": "Judge Result: BOOT-1\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 tests: FAIL (tests/test_base1_baseline.py::TestCmdReport::test_writes_artifact_with_five_episodes [first fa\n  \u2717 secrets: Command timed out\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-28T12:50:39.185271",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-28T12:50:39.297722+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 596,
+        "truncated": false,
+        "source": "git show 310c5f398f7d"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 21913,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "BOOT-1"
+  }
+}

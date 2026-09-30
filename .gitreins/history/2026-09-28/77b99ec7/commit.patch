@@ -1,0 +1,14 @@
+commit 310c5f398f7dbbb622e4146f1f0394b956710458
+Merge: a200bfa 05ae4c7
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Mon Sep 28 07:48:29 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Mon Sep 28 07:48:29 2026 -0500
+
+    Merge wt/BOOT-1: stamp boot_state into long-run records (BOOT-1 closeout)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ scripts/long_run.py         |  2 ++
+ tests/test_long_run_boot.py | 43 +++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 45 insertions(+)

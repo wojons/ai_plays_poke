@@ -1,0 +1,120 @@
+{
+  "task_id": "E2E-001",
+  "task_title": "Run the recurring E2E acceptance battery",
+  "task_criteria": [
+    "Execute a fresh 80-cycle gameplay run with the repo's watchdog recipe; verify exit 0, RSS remains bounded through any battles, HSM spam is zero, starter/route milestones are reported, and write the run evidence without modifying board files"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "56bab1577fa079460b5f2094b04abdb58f4fa2c8",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T055853.168235Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n2:16AM INF scanned ~323662817 bytes (323.66 MB) in 13s\n2:16AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 93000 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T055853.168235Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4329 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [462707 chars omitted \u2014 5109 line(s)] \u2026\ntest_bench_pathfinding_find_path               450.0034 (1.09)           2,223.9983 (1.0)             599.8914 (1.31)           410.9478 (2.16)            486.0049 (1.08)            50.0004 (2.50)          1;3  1,666,968.4237 (0.76)         18           1\ntest_bench_vision_pipeline_validate          5,741.0216 (13.97)         86,290.0051 (38.80)         6,354.0870 (13.88)          801.2462 (4.22)          6,252.0267 (13.89)          239.9902 (11.99)    852;1646    157,379.0214 (0.07)      37967           1\ntest_bench_ram_reader_observe              942,395.0105 (>1000.0)  161,937,249.0095 (>1000.0)   1,780,316.5569 (>1000.0)  9,040,531.0488 (>1000.0)   1,127,067.0220 (>1000.0)     87,907.9744 (>1000.0)     4;166        561.6979 (0.00)        983           1\ntest_bench_vision_pipeline_process      33,943,955.9611 (>1000.0)   36,751,995.9691 (>1000.0)  34,923,434.8958 (>1000.0)    714,698.5631 (>1000.0)  34,731,164.0508 (>1000.0)  1,044,406.7884 (>1000.0)       6;0         28.6341 (0.00)         29           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4315 passed, 14 skipped in 227.93s (0:03:47) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T055853.168235Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Execute a fresh 80-cycle gameplay run with the repo's watchdog recipe; verify exit 0, RSS remains bounded through any battles, HSM spam is zero, starter/route milestones are reported, and write the run evidence without modifying board files: Fresh run cron_logs/run_e2e001_20260929_0208.jsonl (Sep 29 02:10) via cron_runner.py --run-id e2e001_20260929_0208 --cycles 80. Watchdog recipe (kill >2.5GB, 10s /proc poll) is the repo's documented recipe (sitrep_prd_2026-08-04-t87.md:14, t82:14, t77:14); watchdog.txt shows threshold_gb=2.5, poll_seconds=10, runner_pid=2091783, runner_exit_code=0, peak_rss_kb=84644 (82MB), watchdog_fired=0. Exit 0 confirmed: runner.log:433 'Done. 189 actions', 0 traceback/exception/error matches. 80 cycles: 80/80 cycle lines in runner.log, 80 unique cycle numbers (1-80) in JSONL. RSS bounded through battle: trainer battle cycles 9-12 (runner.log:57 [BATTLE-START] trainer, :79 battle_end); rss.tsv flat 80-82MB across the battle window vs 2560MB threshold. HSM spam zero: 0 'Invalid transition attempted' in both runner.log and JSONL. Starter milestone reported: JSONL cycle 1 starter_picked party_count=1 Charmander, runner.log:11 [STARTER-PICKED]; route milestone honestly reported as NOT observed (all 155 map_name rows = Oak's Lab; 'Route 1' appears only in goal text). Evidence written: cron_logs/e2e001_20260929_0208_evidence.md (02:13) plus runner.log/rss.tsv/watchdog.txt/analysis.txt. Board files unmodified: .coding-hermes/board/*.jsonl mtimes 01:29-01:33 (before run at 02:08-02:12), git status clean for .coding-hermes/.\nFresh 80-cycle watchdog run completed with exit 0, flat 82MB RSS through a trainer battle, zero HSM spam, starter milestone reported (route honestly reported as not reached), and evidence written without touching board files.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Execute a fresh 80-cycle gameplay run with the repo's watchdog recipe; verify exit 0, RSS remains bounded through any battles, HSM spam is zero, starter/route milestones are reported, and write the run evidence without modifying board files: Fresh run cron_logs/run_e2e001_20260929_0208.jsonl (Sep 29 02:10) via cron_runner.py --run-id e2e001_20260929_0208 --cycles 80. Watchdog recipe (kill >2.5GB, 10s /proc poll) is the repo's documented recipe (sitrep_prd_2026-08-04-t87.md:14, t82:14, t77:14); watchdog.txt shows threshold_gb=2.5, poll_seconds=10, runner_pid=2091783, runner_exit_code=0, peak_rss_kb=84644 (82MB), watchdog_fired=0. Exit 0 confirmed: runner.log:433 'Done. 189 actions', 0 traceback/exception/error matches. 80 cycles: 80/80 cycle lines in runner.log, 80 unique cycle numbers (1-80) in JSONL. RSS bounded through battle: trainer battle cycles 9-12 (runner.log:57 [BATTLE-START] trainer, :79 battle_end); rss.tsv flat 80-82MB across the battle window vs 2560MB threshold. HSM spam zero: 0 'Invalid transition attempted' in both runner.log and JSONL. Starter milestone reported: JSONL cycle 1 starter_picked party_count=1 Charmander, runner.log:11 [STARTER-PICKED]; route milestone honestly reported as NOT observed (all 155 map_name rows = Oak's Lab; 'Route 1' appears only in goal text). Evidence written: cron_logs/e2e001_20260929_0208_evidence.md (02:13) plus runner.log/rss.tsv/watchdog.txt/analysis.txt. Board files unmodified: .coding-hermes/board/*.jsonl mtimes 01:29-01:33 (before run at 02:08-02:12), git status clean for .coding-hermes/.\nFresh 80-cycle watchdog run completed with exit 0, flat 82MB RSS through a trainer battle, zero HSM spam, starter milestone reported (route honestly reported as not reached), and evidence written without touching board files.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Execute a fresh 80-cycle gameplay run with the repo's watchdog recipe; verify exit 0, RSS remains bounded through any battles, HSM spam is zero, starter/route milestones are reported, and write the run evidence without modifying board files",
+                "status": "PASS",
+                "detail": "Fresh run cron_logs/run_e2e001_20260929_0208.jsonl (Sep 29 02:10) via cron_runner.py --run-id e2e001_20260929_0208 --cycles 80. Watchdog recipe (kill >2.5GB, 10s /proc poll) is the repo's documented recipe (sitrep_prd_2026-08-04-t87.md:14, t82:14, t77:14); watchdog.txt shows threshold_gb=2.5, poll_seconds=10, runner_pid=2091783, runner_exit_code=0, peak_rss_kb=84644 (82MB), watchdog_fired=0. Exit 0 confirmed: runner.log:433 'Done. 189 actions', 0 traceback/exception/error matches. 80 cycles: 80/80 cycle lines in runner.log, 80 unique cycle numbers (1-80) in JSONL. RSS bounded through battle: trainer battle cycles 9-12 (runner.log:57 [BATTLE-START] trainer, :79 battle_end); rss.tsv flat 80-82MB across the battle window vs 2560MB threshold. HSM spam zero: 0 'Invalid transition attempted' in both runner.log and JSONL. Starter milestone reported: JSONL cycle 1 starter_picked party_count=1 Charmander, runner.log:11 [STARTER-PICKED]; route milestone honestly reported as NOT observed (all 155 map_name rows = Oak's Lab; 'Route 1' appears only in goal text). Evidence written: cron_logs/e2e001_20260929_0208_evidence.md (02:13) plus runner.log/rss.tsv/watchdog.txt/analysis.txt. Board files unmodified: .coding-hermes/board/*.jsonl mtimes 01:29-01:33 (before run at 02:08-02:12), git status clean for .coding-hermes/.",
+                "resolution_probability": 0.17
+              }
+            ],
+            "summary": "Fresh 80-cycle watchdog run completed with exit 0, flat 82MB RSS through a trainer battle, zero HSM spam, starter milestone reported (route honestly reported as not reached), and evidence written without touching board files."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: E2E-001\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Execute a fresh 80-cycle gameplay run with the repo's watchdog recipe; verify exit 0, RSS remains bounded through any battles, HSM spam is zero, starter/route milestones are reported, and write the run evidence without modifying board files: Fresh run cron_logs/run_e2e001_20260929_0208.jsonl (Sep 29 02:10) via cron_runner.py --run-id e2e001_20260929_0208 --cycles 80. Watchdog recipe (kill >2.5GB, 10s /proc poll) is the repo's documented recipe (sitrep_prd_2026-08-04-t87.md:14, t82:14, t77:14); watchdog.txt shows threshold_gb=2.5, poll_seconds=10, runner_pid=2091783, runner_exit_code=0, peak_rss_kb=84644 (82MB), watchdog_fired=0. Exit 0 confirmed: runner.log:433 'Done. 189 actions', 0 traceback/exception/error matches. 80 cycles: 80/80 cycle lines in runner.log, 80 unique cycle numbers (1-80) in JSONL. RSS bounded through battle: trainer battle cycles 9-12 (runner.log:57 [BATTLE-START] trainer, :79 battle_end); rss.tsv flat 80-82MB across the battle window vs 2560MB threshold. HSM spam zero: 0 'Invalid transition attempted' in both runner.log and JSONL. Starter milestone reported: JSONL cycle 1 starter_picked party_count=1 Charmander, runner.log:11 [STARTER-PICKED]; route milestone honestly reported as NOT observed (all 155 map_name rows = Oak's Lab; 'Route 1' appears only in goal text). Evidence written: cron_logs/e2e001_20260929_0208_evidence.md (02:13) plus runner.log/rss.tsv/watchdog.txt/analysis.txt. Board files unmodified: .coding-hermes/board/*.jsonl mtimes 01:29-01:33 (before run at 02:08-02:12), git status clean for .coding-hermes/.\nFresh 80-cycle watchdog run completed with exit 0, flat 82MB RSS through a trainer battle, zero HSM spam, starter milestone reported (route honestly reported as not reached), and evidence written without touching board files.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-29T07:21:51.921143",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-29T07:21:51.945754+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 33771,
+        "truncated": false,
+        "source": "git show 56bab1577fa0"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 748,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "E2E-001"
+  }
+}

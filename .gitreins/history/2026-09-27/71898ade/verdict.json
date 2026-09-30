@@ -1,0 +1,120 @@
+{
+  "task_id": "PERF-4",
+  "task_title": "PERF-4",
+  "task_criteria": [
+    "worker completes the board row acceptance criteria; full suite green on merged main"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "38434a41dfa343cd47ad6d6d6d104950d1344ff0",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T202456.846798Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:09PM INF scanned ~317599756 bytes (317.60 MB) in 15.3s\n4:09PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 91568 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T202456.846798Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4295 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [459525 chars omitted \u2014 5075 line(s)] \u2026\ntest_bench_pathfinding_find_path               510.9468 (1.04)           2,404.9659 (1.0)             680.6496 (1.26)            451.0520 (3.34)            550.9937 (1.04)            62.5150 (2.09)          1;2  1,469,184.7946 (0.79)         17           1\ntest_bench_vision_pipeline_validate          5,991.0235 (12.20)         24,153.9674 (10.04)         6,819.9035 (12.61)         1,120.1151 (8.30)          6,432.0047 (12.11)          559.9577 (18.68)   3591;3780    146,629.6411 (0.08)      39943           1\ntest_bench_ram_reader_observe            1,042,218.9953 (>1000.0)  178,548,441.9670 (>1000.0)   2,090,409.1400 (>1000.0)  10,490,611.5253 (>1000.0)   1,280,369.9938 (>1000.0)    319,781.2330 (>1000.0)      4;35        478.3753 (0.00)        887           1\ntest_bench_vision_pipeline_process      37,898,510.9855 (>1000.0)   45,986,559.9987 (>1000.0)  40,901,567.9257 (>1000.0)   2,079,815.6627 (>1000.0)  40,656,996.5126 (>1000.0)  2,759,927.9420 (>1000.0)       7;0         24.4489 (0.00)         26           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4281 passed, 14 skipped in 258.55s (0:04:18) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260927T202456.846798Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 worker completes the board row acceptance criteria; full suite green on merged main: Board row PERF-4 (.coding-hermes/board/tasks.jsonl:160) requires lazy-loading the anthropic SDK + deferring the StateWindow import, with a green suite on merged main. All sub-criteria verified: (1) src/core/ai_client.py:43-57 defines `_load_anthropic()`; consumers call it at :443 (ClaudeClient.__init__) and :1282 (GameAIManager.__init__); no module-level `from anthropic import Anthropic` remains. (2) cron_runner.py:5395-5397 has the function-level `from src.core.state_window import (StateWindow,)` at the single construction site, removed from module level (was line 701). (3) Import proof: `./.venv/bin/python -X importtime -c \"import src.core.state_window\"` -> ZERO anthropic lines, state_window cumulative 148,727us (~149ms) vs ~592ms baseline; `import cron_runner` also shows 0 anthropic lines. (4) Correctness preserved: cron_logs/run_perftick_lazy_3.jsonl and run_perftick_lazy4_test.jsonl show decisions_total=5, jev_answered=5, escalated=0, autonomy_ratio=1.0 (5/5), degraded=false. (5) Minimal diff: commit 77990e5 touches only 2 files (+23/-9), no decision logic/prompt/JEV changes. (6) FULL SUITE GREEN on merged main: `./.venv/bin/pytest -x --tb=short -q` -> '4281 passed, 14 skipped in 235.94s', exit_code 0, zero failures. (7) ruff: 'All checks passed!' (exit 0); mypy: 'Success: no issues found in 66 source files'. (8) Commit 77990e5 is an ancestor of HEAD on branch main (git merge-base --is-ancestor YES). LSP diagnostics: 0 findings.\nPERF-4's board-row acceptance criteria are fully met \u2014 lazy anthropic load and deferred StateWindow import landed in commit 77990e5 on main, import-time proof shows anthropic gone from the tree, decision behavior is unchanged (5/5 autonomy), and the full suite is green (4281 passed, 14 skipped).",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 worker completes the board row acceptance criteria; full suite green on merged main: Board row PERF-4 (.coding-hermes/board/tasks.jsonl:160) requires lazy-loading the anthropic SDK + deferring the StateWindow import, with a green suite on merged main. All sub-criteria verified: (1) src/core/ai_client.py:43-57 defines `_load_anthropic()`; consumers call it at :443 (ClaudeClient.__init__) and :1282 (GameAIManager.__init__); no module-level `from anthropic import Anthropic` remains. (2) cron_runner.py:5395-5397 has the function-level `from src.core.state_window import (StateWindow,)` at the single construction site, removed from module level (was line 701). (3) Import proof: `./.venv/bin/python -X importtime -c \"import src.core.state_window\"` -> ZERO anthropic lines, state_window cumulative 148,727us (~149ms) vs ~592ms baseline; `import cron_runner` also shows 0 anthropic lines. (4) Correctness preserved: cron_logs/run_perftick_lazy_3.jsonl and run_perftick_lazy4_test.jsonl show decisions_total=5, jev_answered=5, escalated=0, autonomy_ratio=1.0 (5/5), degraded=false. (5) Minimal diff: commit 77990e5 touches only 2 files (+23/-9), no decision logic/prompt/JEV changes. (6) FULL SUITE GREEN on merged main: `./.venv/bin/pytest -x --tb=short -q` -> '4281 passed, 14 skipped in 235.94s', exit_code 0, zero failures. (7) ruff: 'All checks passed!' (exit 0); mypy: 'Success: no issues found in 66 source files'. (8) Commit 77990e5 is an ancestor of HEAD on branch main (git merge-base --is-ancestor YES). LSP diagnostics: 0 findings.\nPERF-4's board-row acceptance criteria are fully met \u2014 lazy anthropic load and deferred StateWindow import landed in commit 77990e5 on main, import-time proof shows anthropic gone from the tree, decision behavior is unchanged (5/5 autonomy), and the full suite is green (4281 passed, 14 skipped).",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "worker completes the board row acceptance criteria; full suite green on merged main",
+                "status": "PASS",
+                "detail": "Board row PERF-4 (.coding-hermes/board/tasks.jsonl:160) requires lazy-loading the anthropic SDK + deferring the StateWindow import, with a green suite on merged main. All sub-criteria verified: (1) src/core/ai_client.py:43-57 defines `_load_anthropic()`; consumers call it at :443 (ClaudeClient.__init__) and :1282 (GameAIManager.__init__); no module-level `from anthropic import Anthropic` remains. (2) cron_runner.py:5395-5397 has the function-level `from src.core.state_window import (StateWindow,)` at the single construction site, removed from module level (was line 701). (3) Import proof: `./.venv/bin/python -X importtime -c \"import src.core.state_window\"` -> ZERO anthropic lines, state_window cumulative 148,727us (~149ms) vs ~592ms baseline; `import cron_runner` also shows 0 anthropic lines. (4) Correctness preserved: cron_logs/run_perftick_lazy_3.jsonl and run_perftick_lazy4_test.jsonl show decisions_total=5, jev_answered=5, escalated=0, autonomy_ratio=1.0 (5/5), degraded=false. (5) Minimal diff: commit 77990e5 touches only 2 files (+23/-9), no decision logic/prompt/JEV changes. (6) FULL SUITE GREEN on merged main: `./.venv/bin/pytest -x --tb=short -q` -> '4281 passed, 14 skipped in 235.94s', exit_code 0, zero failures. (7) ruff: 'All checks passed!' (exit 0); mypy: 'Success: no issues found in 66 source files'. (8) Commit 77990e5 is an ancestor of HEAD on branch main (git merge-base --is-ancestor YES). LSP diagnostics: 0 findings.",
+                "resolution_probability": 0.37
+              }
+            ],
+            "summary": "PERF-4's board-row acceptance criteria are fully met \u2014 lazy anthropic load and deferred StateWindow import landed in commit 77990e5 on main, import-time proof shows anthropic gone from the tree, decision behavior is unchanged (5/5 autonomy), and the full suite is green (4281 passed, 14 skipped)."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: PERF-4\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 worker completes the board row acceptance criteria; full suite green on merged main: Board row PERF-4 (.coding-hermes/board/tasks.jsonl:160) requires lazy-loading the anthropic SDK + deferring the StateWindow import, with a green suite on merged main. All sub-criteria verified: (1) src/core/ai_client.py:43-57 defines `_load_anthropic()`; consumers call it at :443 (ClaudeClient.__init__) and :1282 (GameAIManager.__init__); no module-level `from anthropic import Anthropic` remains. (2) cron_runner.py:5395-5397 has the function-level `from src.core.state_window import (StateWindow,)` at the single construction site, removed from module level (was line 701). (3) Import proof: `./.venv/bin/python -X importtime -c \"import src.core.state_window\"` -> ZERO anthropic lines, state_window cumulative 148,727us (~149ms) vs ~592ms baseline; `import cron_runner` also shows 0 anthropic lines. (4) Correctness preserved: cron_logs/run_perftick_lazy_3.jsonl and run_perftick_lazy4_test.jsonl show decisions_total=5, jev_answered=5, escalated=0, autonomy_ratio=1.0 (5/5), degraded=false. (5) Minimal diff: commit 77990e5 touches only 2 files (+23/-9), no decision logic/prompt/JEV changes. (6) FULL SUITE GREEN on merged main: `./.venv/bin/pytest -x --tb=short -q` -> '4281 passed, 14 skipped in 235.94s', exit_code 0, zero failures. (7) ruff: 'All checks passed!' (exit 0); mypy: 'Success: no issues found in 66 source files'. (8) Commit 77990e5 is an ancestor of HEAD on branch main (git merge-base --is-ancestor YES). LSP diagnostics: 0 findings.\nPERF-4's board-row acceptance criteria are fully met \u2014 lazy anthropic load and deferred StateWindow import landed in commit 77990e5 on main, import-time proof shows anthropic gone from the tree, decision behavior is unchanged (5/5 autonomy), and the full suite is green (4281 passed, 14 skipped).\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-27T21:24:37.582621",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-27T21:24:37.654299+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 34480,
+        "truncated": false,
+        "source": "git show 38434a41dfa3"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 981,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "PERF-4"
+  }
+}

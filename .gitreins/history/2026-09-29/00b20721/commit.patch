@@ -1,0 +1,79 @@
+commit 2131d79ff11d14e3f51ce218bfeb6b4ef64302fe
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Tue Sep 29 18:33:34 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Tue Sep 29 18:33:34 2026 -0500
+
+    docs: clarify interactive RAM-map viewer (DOC-1)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ README.md                           | 22 ++++++++++++++++++++++
+ skills/ai-plays-poke-usage/SKILL.md | 21 +++++++++++++++++++++
+ 2 files changed, 43 insertions(+)
+
+diff --git a/README.md b/README.md
+index 28b1d4d..dfabec2 100644
+--- a/README.md
++++ b/README.md
+@@ -140,6 +140,28 @@ Open `web/index.html` in a browser to run a live Game Boy emulator with RAM stat
+ 
+ The overlay shows player position, current map, screen type, and party Pokémon — the same data the Python RAM reader extracts.
+ 
++### RAM-map viewer (Python)
++
++`ram_map_server.py` starts a separate live RAM-map viewer on
++`http://localhost:8099/`:
++
++```bash
++source .venv/bin/activate
++python3 ram_map_server.py
++```
++
++This viewer is interactive, not read-only. `GET /` (or `/index.html`) serves the
++controls, while `GET /data.json` only reads the current emulator state. The page polls
++that read endpoint every second. Its buttons send `POST /input` JSON requests, such as
++`{"button":"up"}`, which drive the live emulator. The endpoint also accepts a
++`buttons` or `combo` list and an optional positive integer `frames`; it accepts only
++`a`, `b`, `up`, `down`, `left`, `right`, `start`, and `select`. Invalid payloads return
++`400` without applying input.
++
++> **Safety:** `POST /input` changes the emulator state. The server binds to all network
++> interfaces and has no authentication, so do not expose port 8099 or use it with
++> untrusted clients.
++
+ ## Quick Start (working path)
+ 
+ The primary working entry point for autonomous gameplay is `cron_runner.py` — an E2E runner
+diff --git a/skills/ai-plays-poke-usage/SKILL.md b/skills/ai-plays-poke-usage/SKILL.md
+index d88518f..71d964f 100644
+--- a/skills/ai-plays-poke-usage/SKILL.md
++++ b/skills/ai-plays-poke-usage/SKILL.md
+@@ -34,6 +34,27 @@ python3 cron_runner.py --run-id <label> --cycles <N>
+ ### Legacy: src/game_loop.py (Historical)
+ > **⚠️ Deprecated** - Use `cron_runner.py` instead. The legacy path has known issues with vision pipeline and requires PYTHONPATH manipulation.
+ 
++### RAM-map viewer: ram_map_server.py (Manual debugging)
++
++Start the live RAM-map viewer from the repository root:
++
++```bash
++source .venv/bin/activate
++python3 ram_map_server.py
++# Open http://localhost:8099/
++```
++
++This is an interactive viewer, not a read-only dashboard. `GET /` (and
++`/index.html`) serves the viewer controls, and `GET /data.json` reads the current RAM
++state only. Viewer buttons send `POST /input` requests that drive the server's live
++emulator. For example, send `{"button":"a"}`; `buttons` or `combo` lists and a
++positive integer `frames` are also supported. Valid buttons are `a`, `b`, `up`, `down`,
++`left`, `right`, `start`, and `select`; invalid payloads return `400` without applying
++input.
++
++> **Safety:** `POST /input` changes emulator state. The server listens on all interfaces
++> without authentication, so keep port 8099 private and do not use untrusted clients.
++
+ ## Run Commands
+ 
+ ### Basic Autonomous Run

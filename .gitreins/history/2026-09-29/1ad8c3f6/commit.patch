@@ -1,0 +1,845 @@
+commit f5b423334760478a53402f5cb55f620cdda0801d
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Tue Sep 29 16:37:26 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Tue Sep 29 16:37:26 2026 -0500
+
+    feat(jev): JEV-3 promote teacher patches
+    
+    Add a versioned scenario artifact with explicit evidence, wire matching promoted patches into the JEV decision path while preserving raw evidence, and add AC-7 regression coverage.
+    
+    Tests: 21 teacher escalation tests; 28 combined world-facts and teacher tests; ruff; mypy.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ config/jev_promoted_patches.json        |  26 ++++
+ config/jev_promoted_patches.schema.json |  93 +++++++++++++
+ cron_runner.py                          |  33 +++++
+ docs/api/cron_runner.md                 |  10 +-
+ docs/prd/PRD_v3_jev_duckbrain.md        |  10 +-
+ src/core/jev_client.py                  |  42 +++++-
+ src/core/jev_scenarios.py               | 238 ++++++++++++++++++++++++++++++++
+ tests/test_teacher_escalation.py        | 214 +++++++++++++++++++++++++++-
+ 8 files changed, 658 insertions(+), 8 deletions(-)
+
+diff --git a/config/jev_promoted_patches.json b/config/jev_promoted_patches.json
+new file mode 100644
+index 0000000..c75dfe1
+--- /dev/null
++++ b/config/jev_promoted_patches.json
+@@ -0,0 +1,26 @@
++{
++  "$schema": "jev_promoted_patches.schema.json",
++  "schema_version": 1,
++  "scenarios": [
++    {
++      "id": "object-purpose-f9f0146f9950",
++      "knowledge_layer": "LEARNING",
++      "missing_class": "object_purpose",
++      "missing_facts": [
++        "purpose of the adjacent object at (5,4) when interacted with"
++      ],
++      "fact_source": [
++        "must-interact"
++      ],
++      "instruction_patch": "treat its purpose as unknown, press A to interact, then classify the resulting text or state change before selecting movement toward the goal",
++      "applies_when": "player is adjacent to an unidentified object or NPC and facing it",
++      "confidence": 0.9,
++      "evidence": [
++        {
++          "run_id": "t243_e2e",
++          "cycle": 1
++        }
++      ]
++    }
++  ]
++}
+diff --git a/config/jev_promoted_patches.schema.json b/config/jev_promoted_patches.schema.json
+new file mode 100644
+index 0000000..1da9caf
+--- /dev/null
++++ b/config/jev_promoted_patches.schema.json
+@@ -0,0 +1,93 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "jev_promoted_patches.schema.json",
++  "title": "JEV promoted teacher patches",
++  "type": "object",
++  "additionalProperties": false,
++  "required": ["schema_version", "scenarios"],
++  "properties": {
++    "$schema": {
++      "type": "string"
++    },
++    "schema_version": {
++      "const": 1
++    },
++    "scenarios": {
++      "type": "array",
++      "items": {
++        "type": "object",
++        "additionalProperties": false,
++        "required": [
++          "id",
++          "knowledge_layer",
++          "missing_class",
++          "missing_facts",
++          "fact_source",
++          "instruction_patch",
++          "applies_when",
++          "confidence",
++          "evidence"
++        ],
++        "properties": {
++          "id": {
++            "type": "string",
++            "minLength": 1
++          },
++          "knowledge_layer": {
++            "enum": ["MECHANICS", "LEARNING"]
++          },
++          "missing_class": {
++            "type": "string",
++            "minLength": 1
++          },
++          "missing_facts": {
++            "type": "array",
++            "items": {
++              "type": "string",
++              "minLength": 1
++            }
++          },
++          "fact_source": {
++            "type": "array",
++            "items": {
++              "type": "string",
++              "minLength": 1
++            }
++          },
++          "instruction_patch": {
++            "type": "string",
++            "minLength": 1
++          },
++          "applies_when": {
++            "type": "string",
++            "minLength": 1
++          },
++          "confidence": {
++            "type": "number",
++            "minimum": 0,
++            "maximum": 1
++          },
++          "evidence": {
++            "type": "array",
++            "minItems": 1,
++            "items": {
++              "type": "object",
++              "additionalProperties": false,
++              "required": ["run_id", "cycle"],
++              "properties": {
++                "run_id": {
++                  "type": "string",
++                  "minLength": 1
++                },
++                "cycle": {
++                  "type": "integer",
++                  "minimum": 1
++                }
++              }
++            }
++          }
++        }
++      }
++    }
++  }
++}
+diff --git a/cron_runner.py b/cron_runner.py
+index 8bcbb54..ca474fc 100644
+--- a/cron_runner.py
++++ b/cron_runner.py
+@@ -706,6 +706,12 @@ from src.core.tools import execute_tool_call
+ from src.core import jev_client
+ from src.core import state_projection
+ 
++# Repository-owned, schema-versioned teacher promotions. Missing files load as
++# an empty set, preserving the pre-JEV-3 decision path in unseeded checkouts.
++DEFAULT_JEV_SCENARIO_PATH = (
++    Path(__file__).resolve().parent / "config" / "jev_promoted_patches.json"
++)
++
+ # ── Config ──────────────────────────────────────────────────────────
+ # ROM / DEFAULT_BOOT_STATE / CYCLES / USE_RAM_READER are defined at the
+ # top of the file (before the heavy imports) so the --dry-run precheck
+@@ -1428,6 +1434,7 @@ def _jev_overworld_decision(
+     escalated_classes: set[str] | None = None,
+     handoff_policy: dict[str, Any] | None = None,
+     teacher_budget: dict[str, int] | None = None,
++    scenario_path: str | Path | None = None,
+ ) -> dict[str, Any]:
+     """Ask the JEV tier for this overworld cycle's plan (PRD v3 stages 5-6).
+ 
+@@ -1461,6 +1468,7 @@ def _jev_overworld_decision(
+         decision = jev_client.decide(
+             projection,
+             last_action_failed=last_action_changed_state is False,
++            scenario_path=scenario_path,
+         )
+         reason = decision.get("escalate_reason")
+         topology_gap = (
+@@ -1605,7 +1613,14 @@ def _jev_overworld_decision(
+         "jev_answered": True,
+         "escalated": escalate,
+         "missing_class": initial_decision.get("missing_class"),
++        "reported_missing_class": initial_decision.get("reported_missing_class"),
++        # Preserve the first JEV answer in raw_distribution. When a promoted
++        # scenario re-asks JEV, the effective answer is a separate field.
+         "raw_distribution": decision.get("raw"),
++        "scenario_post_distribution": decision.get("scenario_post_raw"),
++        "scenario_patch_id": decision.get("scenario_patch_id"),
++        "scenario_patch_evidence": decision.get("scenario_patch_evidence"),
++        "scenario_patch_applied": bool(decision.get("scenario_patch_applied", False)),
+         "jev_escalate_reason": reason if isinstance(reason, str) else None,
+         "jev_projection_chars": len(projection),
+         # Handoff provenance: which trigger fired, whether the run's policy let
+@@ -2403,6 +2418,7 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
+     jev_transport_failures = 0
+     jev_errors: list[str] = []
+     escalated_by_class: Counter[str | None] = Counter()
++    scenario_resolved_classes: set[str] = set()
+     handoff_triggers: Counter[str] = Counter()
+     handoff_blocked = 0
+ 
+@@ -2425,6 +2441,9 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
+             handoff_triggers[trigger] += 1
+         if row.get("handoff_allowed") is False:
+             handoff_blocked += 1
++        reported_class = row.get("reported_missing_class")
++        if row.get("scenario_patch_applied") and isinstance(reported_class, str):
++            scenario_resolved_classes.add(reported_class)
+         if row.get("escalated"):
+             escalated += 1
+             missing_class = row.get("missing_class")
+@@ -2443,6 +2462,10 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
+         if escalated
+         else {}
+     )
++    # AC-7's zero is evidence-bearing rather than fabricated: only a decision
++    # row that actually consulted a matching scenario can add its class here.
++    for resolved_class in sorted(scenario_resolved_classes):
++        rates.setdefault(resolved_class, 0.0)
+     raw_jev_failure_rate = (
+         jev_transport_failures / decisions_total if decisions_total else 0.0
+     )
+@@ -4902,6 +4925,7 @@ def main() -> None:
+                     escalated_classes=_teacher_escalated_classes,
+                     handoff_policy=HANDOFF_POLICY,
+                     teacher_budget=_teacher_budget,
++                    scenario_path=DEFAULT_JEV_SCENARIO_PATH,
+                 )
+                 if isinstance(_jev_attempt, dict):
+                     raw_targets = _jev_attempt.get("teacher_memory_targets")
+@@ -5122,7 +5146,16 @@ def main() -> None:
+                     "missing_class": (
+                         _missing_class if isinstance(_missing_class, str) else None
+                     ),
++                    "reported_missing_class": decision.get("reported_missing_class"),
+                     "raw_distribution": decision.get("raw_distribution"),
++                    "scenario_post_distribution": decision.get(
++                        "scenario_post_distribution"
++                    ),
++                    "scenario_patch_id": decision.get("scenario_patch_id"),
++                    "scenario_patch_evidence": decision.get("scenario_patch_evidence"),
++                    "scenario_patch_applied": bool(
++                        decision.get("scenario_patch_applied", False)
++                    ),
+                     # Handoff provenance (M3/M5): which trigger fired, whether
+                     # this run's policy allowed it, and why not when it did not.
+                     "handoff_trigger": decision.get("handoff_trigger"),
+diff --git a/docs/api/cron_runner.md b/docs/api/cron_runner.md
+index f957499..f7a9ec3 100644
+--- a/docs/api/cron_runner.md
++++ b/docs/api/cron_runner.md
+@@ -222,9 +222,13 @@ jq -c 'select(.event == "run_autonomy" or .event == "run_degradation")' cron_log
+ | `decision_mode` | `str` | Exact `--decision-mode` spelling used for an overworld row (`jev`, `llm`, `system1`, `system2`, `system1+system2`, or `hybrid`). The spelling is preserved for log compatibility. |
+ | `decision_mode_family` | `str` | Branchable family: `system1`, `system2`, or `system1+system2`. |
+ | `jev_answered` | `bool` | True only when the JEV request was `ok` **and** produced a valid action in that path's vocabulary. For starter selection this means a valid species; for battle recovery it means a valid battle action. A healthy transport response with an unusable choice is false and falls back rather than inventing an action. |
+-| `escalated` | `bool` | True when the initial JEV decision requested a handoff and the active handoff policy allowed it. A policy-blocked trigger is false; inspect `handoff_trigger`, `handoff_allowed`, and `handoff_blocked_reason` to distinguish “no trigger” from “trigger blocked.” Teacher calls have their own `teacher_escalation` rows and the run-level `teacher_escalations` count. |
+-| `missing_class` | `str \| null` | Missing-information class reported by the initial JEV decision (for example `map_topology` or `object_purpose`). The overworld writer keeps strings only and normalizes other values to `null`; it is most useful when a gap handoff fired. |
+-| `raw_distribution` | `object \| null` | The complete JEV `raw` answer object, including each answer's selected value and distribution—not only the winning action. On an overworld controller fallback this is normally `null`; transport evidence is retained separately in `jev_ok` / `jev_error`. On a normal StateWindow battle row it is telemetry from `_observe_battle_decision()`. |
++| `escalated` | `bool` | True when the effective JEV decision (after any promoted-scenario re-ask) requested a handoff and the active handoff policy allowed it. A matching patch that resolves the class therefore records false without hiding the initial evidence. A policy-blocked trigger is false; inspect `handoff_trigger`, `handoff_allowed`, and `handoff_blocked_reason` to distinguish “no trigger” from “trigger blocked.” Teacher calls have their own `teacher_escalation` rows and the run-level `teacher_escalations` count. |
++| `missing_class` | `str \| null` | Effective missing-information class after any promoted-scenario re-ask (for example `none` when the patch resolved the gap). The overworld writer keeps strings only and normalizes other values to `null`. |
++| `reported_missing_class` | `str \| null` | Original class reported by JEV before a matching promoted scenario was applied. This preserves the raw gap evidence used by AC-7's class counter. |
++| `raw_distribution` | `object \| null` | The complete **initial** JEV `raw` answer object, including each answer's selected value and distribution—not only the winning action. A promoted-scenario re-ask never overwrites this evidence. On an overworld controller fallback this is normally `null`; transport evidence is retained separately in `jev_ok` / `jev_error`. |
++| `scenario_post_distribution` | `object \| null` | Effective JEV answer after a promoted scenario patched `next_action.instructions`; `null` when no scenario matched. |
++| `scenario_patch_id` / `scenario_patch_evidence` | `str \| null` / `list \| null` | Stable scenario id and its `{run_id, cycle}` evidence from `config/jev_promoted_patches.json`. |
++| `scenario_patch_applied` | `bool` | True only when a matching class + `applies_when` condition was consulted on this decision path. Only these rows can contribute a `0.0` patched-class entry to `escalation_rate_by_missing_class`. |
+ | `jev_ok` | `bool \| null` | JEV transport/parse outcome. `true` means an answer payload arrived, not necessarily that its choice was usable. `false` counts as a transport failure. `null` means the pure-System-Two path intentionally made no JEV attempt. |
+ | `jev_error` | `str` | Present only when `jev_ok` is false. The error is converted to text and truncated to 200 characters. |
+ 
+diff --git a/docs/prd/PRD_v3_jev_duckbrain.md b/docs/prd/PRD_v3_jev_duckbrain.md
+index fe8fe89..01ad4fb 100644
+--- a/docs/prd/PRD_v3_jev_duckbrain.md
++++ b/docs/prd/PRD_v3_jev_duckbrain.md
+@@ -104,6 +104,12 @@ confidence
+ 
+ The patch is applied, **JEV is re-asked**, and if it is now confident it continues. Patches are versioned in git with `evidence: [run_id, cycle]`, so the same gap never escalates twice.
+ 
++#### 3.3.1 Promoted-scenario artifact contract (JEV-3)
++
++Durable teacher knowledge lives in `config/jev_promoted_patches.json`, validated by the explicit JSON Schema at `config/jev_promoted_patches.schema.json` (`schema_version: 1`). Each scenario records a stable id, `knowledge_layer` (`MECHANICS` or `LEARNING`), `missing_class`, `missing_facts`, `fact_source`, `instruction_patch`, `applies_when`, `confidence`, and one or more evidence objects `{run_id, cycle}`. The checked artifact starts with the successful `object_purpose` repair observed at `{run_id: t243_e2e, cycle: 1}`. `src/core/jev_scenarios.py` performs explicit promotion only for a successful, improved teacher record whose caller supplies that evidence; failed patches are refused.
++
++At runtime `src/core/jev_client.py` matches the current reported missing class and the `applies_when` clause before the escalation gate. `always` is explicit; any other condition must occur as a normalized case-insensitive substring of the exact state projection. A match patches `next_action.instructions` and re-asks JEV before teacher escalation is considered. The first JEV distribution and `reported_missing_class` remain in the decision row, while `scenario_post_distribution`, scenario id, and scenario evidence carry the result of the consultation. An absent or empty artifact preserves the pre-JEV-3 path.
++
+ ### 3.4 Two live proofs
+ 
+ **Proof 1 — supplying the missing fact restores JEV's ability to decide** (same state, one fact added):
+@@ -139,8 +145,8 @@ Every stage marked **PROVEN** (measured on live hardware) or **NOT BUILT**.
+ | 4 | **Boot memory injection** | DuckBrain → MECHANICS/SAVE/RUNS-INDEX/LEARNING blocks in the prompt | **PROVEN** (MEM-2; cross-run proof: run B logged `[MEM] boot injection: 322 chars` carrying run A's party) |
+ | 5 | **Tier-1 decision** | projection → typed answers + confidence | **PROVEN** (`src/core/jev_client.py`, live, model build pinned) |
+ | 6 | **Hand-back gate** | decision + last-action result → escalate / execute | **PROVEN** (3 triggers, live) |
+-| 7 | **Teacher escalation** | distributions + missing_class + events + DuckBrain → typed state patch | **NOT BUILT** |
+-| 8 | **Patch promotion** | patch → versioned scenario file w/ evidence → re-ask JEV | **NOT BUILT** |
++| 7 | **Teacher escalation** | distributions + missing_class + events + DuckBrain → typed state patch | **PROVEN** (`src/core/teacher_client.py`, AC-6 regression pair) |
++| 8 | **Patch promotion** | patch → versioned scenario file w/ evidence → re-ask JEV | **PROVEN** (`config/jev_promoted_patches*.json`, `src/core/jev_scenarios.py`, AC-7 decision-path regression) |
+ | 9 | Action execution | chosen action → emulator input | **PROVEN** |
+ | 10 | End-of-run recorder | RAM truth → `/game/save/*` + run summary | **PROVEN** (MEM-1) |
+ | 11 | Autonomy reporting | counters → run log + report | **PARTIAL** (counters exist; `autonomy_ratio` not yet emitted) |
+diff --git a/src/core/jev_client.py b/src/core/jev_client.py
+index 032f128..a74d47e 100644
+--- a/src/core/jev_client.py
++++ b/src/core/jev_client.py
+@@ -31,6 +31,8 @@ from copy import deepcopy
+ from pathlib import Path
+ from typing import Any
+ 
++from src.core import jev_scenarios
++
+ ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
+ MODEL = "typesafe/jev-1.13"
+ 
+@@ -595,9 +597,45 @@ def decide(
+     last_action_failed: bool = False,
+     act_phase: bool = False,
+     questions: dict[str, Any] | None = None,
++    scenario_path: str | Path | None = None,
+ ) -> dict[str, Any]:
+-    """Full cycle: ask Jev, then apply the gate. No LLM is called here."""
+-    d = ask(state, in_battle=in_battle, questions=questions)
++    """Ask JEV, consult a matching promoted scenario, then apply the gate.
++
++    Without ``scenario_path`` (or when the artifact is absent/nonmatching), this
++    is the original one-ask path. A match re-asks JEV with the promoted
++    instruction before the escalation gate runs. The initial answer remains the
++    raw evidence and the patched answer is stored separately.
++    """
++    base_questions = (
++        questions if questions is not None else _questions(in_battle=in_battle)
++    )
++    initial = ask(state, in_battle=in_battle, questions=questions)
++    d = initial
++    missing_class = initial.get("missing_class")
++    scenario = (
++        jev_scenarios.find_matching_scenario(
++            scenario_path,
++            missing_class=missing_class,
++            context=state,
++        )
++        if initial.get("ok") and isinstance(missing_class, str)
++        else None
++    )
++    if scenario is not None:
++        post = ask(
++            state,
++            in_battle=in_battle,
++            questions=apply_patch(base_questions, scenario),
++        )
++        post_raw = post.get("raw")
++        d = post
++        d["reported_missing_class"] = missing_class
++        d["raw"] = initial.get("raw")
++        d["scenario_post_raw"] = post_raw
++        d["scenario_patch_id"] = scenario["id"]
++        d["scenario_patch_evidence"] = deepcopy(scenario["evidence"])
++        d["scenario_patch_applied"] = True
++
+     esc, why = should_escalate(
+         d, last_action_failed=last_action_failed, act_phase=act_phase
+     )
+diff --git a/src/core/jev_scenarios.py b/src/core/jev_scenarios.py
+new file mode 100644
+index 0000000..8521472
+--- /dev/null
++++ b/src/core/jev_scenarios.py
+@@ -0,0 +1,238 @@
++"""Versioned JEV teacher-patch scenarios (PRD v3 stage 8 / AC-7).
++
++Promotion is an explicit, offline action. Gameplay only reads the repository-owned
++artifact and never writes DuckBrain data, secrets, or arbitrary teacher failures.
++"""
++
++from __future__ import annotations
++
++import hashlib
++import json
++import re
++from pathlib import Path
++from typing import Any
++
++SCHEMA_VERSION = 1
++SCHEMA_FILENAME = "jev_promoted_patches.schema.json"
++KNOWLEDGE_LAYERS = frozenset({"MECHANICS", "LEARNING"})
++
++
++def _normalized_text(value: str) -> str:
++    return " ".join(value.casefold().split())
++
++
++def _string_list(value: Any, field_name: str) -> list[str]:
++    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
++        raise ValueError(f"{field_name} must be a list of strings")
++    return [item.strip() for item in value if item.strip()]
++
++
++def _validate_evidence(value: Any) -> list[dict[str, Any]]:
++    if not isinstance(value, list) or not value:
++        raise ValueError("evidence must be a non-empty list")
++    evidence: list[dict[str, Any]] = []
++    for item in value:
++        if not isinstance(item, dict):
++            raise ValueError("evidence entries must be objects")
++        if set(item) != {"run_id", "cycle"}:
++            raise ValueError("evidence entries require only run_id and cycle")
++        run_id = item.get("run_id")
++        cycle = item.get("cycle")
++        if not isinstance(run_id, str) or not run_id.strip():
++            raise ValueError("evidence run_id must be a non-empty string")
++        if isinstance(cycle, bool) or not isinstance(cycle, int) or cycle < 1:
++            raise ValueError("evidence cycle must be a positive integer")
++        evidence.append({"run_id": run_id.strip(), "cycle": cycle})
++    return evidence
++
++
++def _validate_scenario(value: Any) -> dict[str, Any]:
++    if not isinstance(value, dict):
++        raise ValueError("scenario entries must be objects")
++    expected_fields = {
++        "id",
++        "knowledge_layer",
++        "missing_class",
++        "missing_facts",
++        "fact_source",
++        "instruction_patch",
++        "applies_when",
++        "confidence",
++        "evidence",
++    }
++    if set(value) != expected_fields:
++        raise ValueError("scenario fields do not match schema version 1")
++    scenario_id = value.get("id")
++    missing_class = value.get("missing_class")
++    knowledge_layer = value.get("knowledge_layer")
++    instruction_patch = value.get("instruction_patch")
++    applies_when = value.get("applies_when")
++    confidence = value.get("confidence")
++    if not isinstance(scenario_id, str) or not scenario_id.strip():
++        raise ValueError("scenario id must be a non-empty string")
++    if not isinstance(missing_class, str) or not missing_class.strip():
++        raise ValueError("missing_class must be a non-empty string")
++    if knowledge_layer not in KNOWLEDGE_LAYERS:
++        raise ValueError("knowledge_layer must be MECHANICS or LEARNING")
++    if not isinstance(instruction_patch, str) or not instruction_patch.strip():
++        raise ValueError("instruction_patch must be a non-empty string")
++    if not isinstance(applies_when, str) or not applies_when.strip():
++        raise ValueError("applies_when must be a non-empty string")
++    if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
++        raise ValueError("confidence must be a number from 0 to 1")
++    confidence = float(confidence)
++    if not 0.0 <= confidence <= 1.0:
++        raise ValueError("confidence must be a number from 0 to 1")
++    return {
++        "id": scenario_id.strip(),
++        "knowledge_layer": knowledge_layer,
++        "missing_class": missing_class.strip(),
++        "missing_facts": _string_list(value.get("missing_facts"), "missing_facts"),
++        "fact_source": _string_list(value.get("fact_source"), "fact_source"),
++        "instruction_patch": instruction_patch.strip(),
++        "applies_when": applies_when.strip(),
++        "confidence": confidence,
++        "evidence": _validate_evidence(value.get("evidence")),
++    }
++
++
++def load_scenarios(artifact_path: str | Path | None) -> list[dict[str, Any]]:
++    """Load and validate a scenario artifact; an absent path means no scenarios."""
++    if artifact_path is None:
++        return []
++    path = Path(artifact_path)
++    if not path.is_file():
++        return []
++    payload = json.loads(path.read_text(encoding="utf-8"))
++    if not isinstance(payload, dict) or payload.get("schema_version") != SCHEMA_VERSION:
++        raise ValueError(f"scenario artifact schema_version must be {SCHEMA_VERSION}")
++    if not set(payload) <= {"$schema", "schema_version", "scenarios"}:
++        raise ValueError("scenario artifact fields do not match schema version 1")
++    scenarios = payload.get("scenarios")
++    if not isinstance(scenarios, list):
++        raise ValueError("scenario artifact scenarios must be a list")
++    validated = [_validate_scenario(scenario) for scenario in scenarios]
++    ids = [scenario["id"] for scenario in validated]
++    if len(ids) != len(set(ids)):
++        raise ValueError("scenario ids must be unique")
++    return validated
++
++
++def scenario_matches(
++    scenario: dict[str, Any], *, missing_class: str, context: str
++) -> bool:
++    """Match class plus a conservative, deterministic ``applies_when`` clause.
++
++    ``always`` is explicit. Every other clause must occur as a normalized,
++    case-insensitive substring of the exact state projection. This deliberately
++    avoids treating free-form teacher prose as executable code.
++    """
++    if scenario.get("missing_class") != missing_class:
++        return False
++    applies_when = scenario.get("applies_when")
++    if not isinstance(applies_when, str):
++        return False
++    condition = _normalized_text(applies_when)
++    return condition == "always" or bool(
++        condition and condition in _normalized_text(context)
++    )
++
++
++def find_matching_scenario(
++    artifact_path: str | Path | None, *, missing_class: str, context: str
++) -> dict[str, Any] | None:
++    """Return the first versioned scenario matching the current decision gap."""
++    for scenario in load_scenarios(artifact_path):
++        if scenario_matches(scenario, missing_class=missing_class, context=context):
++            return scenario
++    return None
++
++
++def _scenario_id(missing_class: str, applies_when: str, instruction_patch: str) -> str:
++    fingerprint = json.dumps(
++        [missing_class, applies_when, instruction_patch],
++        ensure_ascii=True,
++        separators=(",", ":"),
++    ).encode("utf-8")
++    slug = re.sub(r"[^a-z0-9]+", "-", missing_class.casefold()).strip("-")
++    return f"{slug}-{hashlib.sha256(fingerprint).hexdigest()[:12]}"
++
++
++def promote_teacher_record(
++    record: dict[str, Any],
++    *,
++    missing_class: str,
++    knowledge_layer: str,
++    run_id: str,
++    cycle: int,
++    artifact_path: str | Path,
++) -> dict[str, Any]:
++    """Explicitly promote one successful teacher record into the artifact.
++
++    Evidence comes only from the caller. Re-promoting the same patch appends a
++    distinct evidence pair instead of creating a duplicate scenario.
++    """
++    if not record.get("ok") or not record.get("improved"):
++        raise ValueError("only a successful, improved teacher record can be promoted")
++    patch = record.get("patch")
++    if not isinstance(patch, dict) or not patch.get("ok"):
++        raise ValueError("teacher record must contain a successful patch")
++    if not isinstance(missing_class, str) or not missing_class.strip():
++        raise ValueError("missing_class must be supplied by the caller")
++    if knowledge_layer not in KNOWLEDGE_LAYERS:
++        raise ValueError("knowledge_layer must be MECHANICS or LEARNING")
++    if not isinstance(run_id, str) or not run_id.strip():
++        raise ValueError("run_id must be supplied by the caller")
++    if isinstance(cycle, bool) or not isinstance(cycle, int) or cycle < 1:
++        raise ValueError("cycle must be a positive integer supplied by the caller")
++
++    instruction = patch.get("instruction_patch")
++    condition = patch.get("applies_when")
++    if not isinstance(instruction, str) or not instruction.strip():
++        raise ValueError("successful patch has no instruction_patch")
++    if not isinstance(condition, str) or not condition.strip():
++        raise ValueError("successful patch has no applies_when condition")
++    confidence = patch.get("confidence")
++    entry = _validate_scenario(
++        {
++            "id": _scenario_id(missing_class, condition, instruction),
++            "knowledge_layer": knowledge_layer,
++            "missing_class": missing_class,
++            "missing_facts": patch.get("missing_facts"),
++            "fact_source": patch.get("fact_source"),
++            "instruction_patch": instruction,
++            "applies_when": condition,
++            "confidence": confidence,
++            "evidence": [{"run_id": run_id, "cycle": cycle}],
++        }
++    )
++
++    path = Path(artifact_path)
++    scenarios = load_scenarios(path)
++    existing = next((item for item in scenarios if item["id"] == entry["id"]), None)
++    if existing is None:
++        scenarios.append(entry)
++        promoted = entry
++    else:
++        evidence = entry["evidence"][0]
++        if evidence not in existing["evidence"]:
++            existing["evidence"].append(evidence)
++        promoted = existing
++
++    path.parent.mkdir(parents=True, exist_ok=True)
++    temp_path = path.with_name(f".{path.name}.tmp")
++    temp_path.write_text(
++        json.dumps(
++            {
++                "$schema": SCHEMA_FILENAME,
++                "schema_version": SCHEMA_VERSION,
++                "scenarios": scenarios,
++            },
++            indent=2,
++            sort_keys=True,
++        )
++        + "\n",
++        encoding="utf-8",
++    )
++    temp_path.replace(path)
++    return promoted
+diff --git a/tests/test_teacher_escalation.py b/tests/test_teacher_escalation.py
+index 7e45129..0bc8e83 100644
+--- a/tests/test_teacher_escalation.py
++++ b/tests/test_teacher_escalation.py
+@@ -5,12 +5,13 @@ from __future__ import annotations
+ import io
+ import json
+ from copy import deepcopy
++from pathlib import Path
+ from typing import Any
+ 
+ import pytest
+ 
+ import cron_runner
+-from src.core import jev_client, teacher_client
++from src.core import jev_client, jev_scenarios, teacher_client
+ 
+ 
+ _TYPED_PATCH: dict[str, Any] = {
+@@ -549,3 +550,214 @@ def test_overworld_teacher_failure_degrades_to_normal_jev_decision(
+     assert len(results) == 1
+     assert results[0]["ok"] is False
+     assert results[0]["error"] == "teacher offline"
++
++
++def _promote_test_patch(artifact_path: Path, *, applies_when: str) -> dict[str, Any]:
++    patch = {**deepcopy(_TYPED_PATCH), "applies_when": applies_when}
++    return jev_scenarios.promote_teacher_record(
++        {
++            "ok": True,
++            "improved": True,
++            "patch": patch,
++        },
++        missing_class="map_topology",
++        knowledge_layer="LEARNING",
++        run_id="teacher-run-17",
++        cycle=8,
++        artifact_path=artifact_path,
++    )
++
++
++def test_ac7_promotion_writes_versioned_evidence_artifact(tmp_path: Path) -> None:
++    artifact_path = tmp_path / "promoted-patches.json"
++
++    promoted = _promote_test_patch(artifact_path, applies_when="Pallet Town")
++
++    artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
++    assert artifact["$schema"] == "jev_promoted_patches.schema.json"
++    assert artifact["schema_version"] == 1
++    assert artifact["scenarios"] == [promoted]
++    assert promoted["knowledge_layer"] == "LEARNING"
++    assert promoted["missing_class"] == "map_topology"
++    assert promoted["missing_facts"] == _TYPED_PATCH["missing_facts"]
++    assert promoted["fact_source"] == _TYPED_PATCH["fact_source"]
++    assert promoted["instruction_patch"] == _TYPED_PATCH["instruction_patch"]
++    assert promoted["applies_when"] == "Pallet Town"
++    assert promoted["confidence"] == _TYPED_PATCH["confidence"]
++    assert promoted["evidence"] == [{"run_id": "teacher-run-17", "cycle": 8}]
++    assert jev_scenarios.load_scenarios(artifact_path) == [promoted]
++
++
++def test_checked_scenario_artifact_contains_real_run_evidence() -> None:
++    scenarios = jev_scenarios.load_scenarios(cron_runner.DEFAULT_JEV_SCENARIO_PATH)
++
++    assert scenarios
++    assert scenarios[0]["missing_class"] == "object_purpose"
++    assert scenarios[0]["evidence"] == [{"run_id": "t243_e2e", "cycle": 1}]
++
++
++def test_ac7_failed_or_unimproved_teacher_record_is_not_promoted(
++    tmp_path: Path,
++) -> None:
++    artifact_path = tmp_path / "promoted-patches.json"
++
++    with pytest.raises(ValueError, match="successful, improved"):
++        jev_scenarios.promote_teacher_record(
++            {"ok": False, "improved": False, "patch": deepcopy(_TYPED_PATCH)},
++            missing_class="map_topology",
++            knowledge_layer="LEARNING",
++            run_id="teacher-run-17",
++            cycle=8,
++            artifact_path=artifact_path,
++        )
++
++    assert not artifact_path.exists()
++
++
++def test_ac7_later_matching_decision_uses_patch_without_teacher_escalation(
++    monkeypatch: Any, tmp_path: Path
++) -> None:
++    artifact_path = tmp_path / "promoted-patches.json"
++    promoted = _promote_test_patch(artifact_path, applies_when="Pallet Town")
++    initial_raw = {
++        "next_action": {"choice": "RIGHT", "distribution": {"RIGHT": 0.51}},
++        "missing_class": {
++            "choice": "map_topology",
++            "distribution": {"map_topology": 0.88},
++        },
++    }
++    post_raw = {
++        "next_action": {"choice": "DOWN", "distribution": {"DOWN": 0.91}},
++        "missing_class": {"choice": "none", "distribution": {"none": 0.94}},
++    }
++    ask_calls: list[dict[str, Any]] = []
++
++    def fake_ask(state: str, **kwargs: Any) -> dict[str, Any]:
++        ask_calls.append({"state": state, **kwargs})
++        if len(ask_calls) == 1:
++            return {
++                "ok": True,
++                "next_action": "RIGHT",
++                "sufficient_state": 0.22,
++                "missing_class": "map_topology",
++                "action_confidence": 0.4,
++                "ambiguity": 0.8,
++                "raw": initial_raw,
++            }
++        assert (
++            promoted["instruction_patch"]
++            in kwargs["questions"]["next_action"]["instructions"]
++        )
++        return {
++            "ok": True,
++            "next_action": "DOWN",
++            "sufficient_state": 0.91,
++            "missing_class": "none",
++            "action_confidence": 0.91,
++            "ambiguity": 0.1,
++            "raw": post_raw,
++        }
++
++    monkeypatch.setattr(jev_client, "ask", fake_ask)
++    monkeypatch.setattr(
++        teacher_client,
++        "request_patch",
++        lambda **_kwargs: pytest.fail(
++            "a promoted scenario must avoid the teacher call"
++        ),
++    )
++
++    decision = cron_runner._jev_overworld_decision(
++        {"map_name": "Pallet Town"},
++        teacher_api_client=object(),
++        teacher_model="test/reasoning-teacher",
++        escalated_classes=set(),
++        scenario_path=artifact_path,
++    )
++
++    assert len(ask_calls) == 2
++    assert decision["plan"] == ["DOWN"]
++    assert decision["escalated"] is False
++    assert decision["missing_class"] == "none"
++    assert decision["reported_missing_class"] == "map_topology"
++    assert decision["raw_distribution"] == initial_raw
++    assert decision["scenario_post_distribution"] == post_raw
++    assert decision["scenario_patch_id"] == promoted["id"]
++    assert decision["scenario_patch_evidence"] == promoted["evidence"]
++
++    counters = cron_runner._autonomy_counters([decision])
++    assert counters["escalated"] == 0
++    assert counters["escalation_rate_by_missing_class"] == {"map_topology": 0.0}
++
++
++@pytest.mark.parametrize(
++    ("reported_class", "state"),
++    [
++        ("object_purpose", "MAP: Pallet Town"),
++        ("map_topology", "MAP: Viridian City"),
++    ],
++)
++def test_ac7_nonmatching_class_or_applies_when_does_not_consume_patch(
++    monkeypatch: Any,
++    tmp_path: Path,
++    reported_class: str,
++    state: str,
++) -> None:
++    artifact_path = tmp_path / "promoted-patches.json"
++    _promote_test_patch(artifact_path, applies_when="Pallet Town")
++    calls = 0
++
++    def fake_ask(_state: str, **_kwargs: Any) -> dict[str, Any]:
++        nonlocal calls
++        calls += 1
++        return {
++            "ok": True,
++            "next_action": "RIGHT",
++            "sufficient_state": 0.22,
++            "missing_class": reported_class,
++            "action_confidence": 0.4,
++            "ambiguity": 0.8,
++            "raw": {"missing_class": {"choice": reported_class}},
++        }
++
++    monkeypatch.setattr(jev_client, "ask", fake_ask)
++
++    decision = jev_client.decide(state, scenario_path=artifact_path)
++
++    assert calls == 1
++    assert decision["escalate"] is True
++    assert "scenario_patch_id" not in decision
++
++
++def test_ac7_missing_artifact_preserves_single_ask_path(
++    monkeypatch: Any, tmp_path: Path
++) -> None:
++    calls: list[dict[str, Any]] = []
++    answer = {
++        "ok": True,
++        "next_action": "RIGHT",
++        "sufficient_state": 0.91,
++        "missing_class": "none",
++        "action_confidence": 0.91,
++        "ambiguity": 0.1,
++        "raw": {"next_action": {"choice": "RIGHT"}},
++    }
++
++    def fake_ask(_state: str, **kwargs: Any) -> dict[str, Any]:
++        calls.append(kwargs)
++        return deepcopy(answer)
++
++    monkeypatch.setattr(jev_client, "ask", fake_ask)
++
++    decision = jev_client.decide(
++        "MAP: Pallet Town",
++        scenario_path=tmp_path / "does-not-exist.json",
++    )
++
++    assert len(calls) == 1
++    assert calls[0]["questions"] is None
++    assert decision == {
++        **answer,
++        "escalate": False,
++        "escalate_reason": "jev_confident",
++    }

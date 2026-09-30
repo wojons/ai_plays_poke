@@ -1,0 +1,769 @@
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index 13db6cb..4253e70 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -379,3 +379,4 @@
+ {"ts": null, "event": null, "id": 336, "summary": null, "timestamp": "2026-09-29T06:30:02Z", "event_type": "task_completed", "task_id": "REV-4", "actor": "foreman", "detail": "{\"tick\":\"ai-plays-poke-2026-09-29-05-30-09\",\"commit\":\"c338f51\",\"gates\":\"8 focused tests passed; ruff clean; mypy clean\",\"keyless_exit\":2,\"ci\":\"pending exact merge CI\"}"}
+ {"ts": null, "event": null, "id": 337, "summary": null, "timestamp": "2026-09-29T06:30:03Z", "event_type": "audit", "task_id": "", "actor": "foreman", "detail": "{\"tick\":\"ai-plays-poke-2026-09-29-05-30-09\",\"wave_recovery\":\"completed before new work\",\"legs\":{\"PERCEPT-NPC-TERRAIN\":\"merged\",\"REV-4\":\"fixup merged after two stalled workers\"},\"ci\":\"recent exact merge run in_progress; prior three runs success\"}"}
+ {"id":338,"timestamp":"2026-09-29T07:25:55Z","event_type":"audit","task_id":"E2E-001","actor":"foreman","detail":"{\"tick\":\"ai-plays-poke-2026-09-29-06-54-12\",\"fixture\":\"E2E-001\",\"run_id\":\"e2e001_20260929_0208\",\"result\":\"PASS\",\"runner_exit\":0,\"cycles\":80,\"actions\":189,\"peak_rss_mb\":82,\"watchdog_fired\":false,\"hsm_spam\":0,\"starter\":\"Charmander cycle 1\",\"battle\":\"trainer cycles 9-12\",\"route1\":false,\"evidence\":\"cron_logs/e2e001_20260929_0208_evidence.md\",\"gitreins\":\"tier1 PASS; tier2 PASS verdict a2cb95ba\"}"}
++{"id":339,"timestamp":"2026-09-29T08:00:07Z","event_type":"task_updated","task_id":"PERCEPT-2","actor":"foreman","detail":"{\"status\":\"in_progress\"}"}
+diff --git a/.coding-hermes/board/tasks.jsonl b/.coding-hermes/board/tasks.jsonl
+index 585f97e..3918944 100644
+--- a/.coding-hermes/board/tasks.jsonl
++++ b/.coding-hermes/board/tasks.jsonl
+@@ -184,7 +184,7 @@
+ {"id": "INT-CI-BOOT-1", "title": "Investigate failed CI run for BOOT-1 board closeout commit", "status": "complete", "priority": "P1", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "Recent GitHub Actions run for the BOOT-1 closeout commit concluded failure; isolate whether this is a real regression or CI/infrastructure failure and record evidence.", "created_at": "2026-09-28T18:50:36.088007+00:00", "updated_at": "2026-09-28T18:50:36.088007+00:00", "detail": {"fingerprint": "93a1278c74722cf719ea36525c8bd95bd9eeb544de635c372b2a50aa4e1d72f2"}, "capability_tags": ["ci", "triage"], "worker_status": "complete", "completed_at": "2026-09-28T21:13:23.919928+00:00", "commit_hash": "53a8dab", "guard_result": "PASS (tier1 lint+secrets+tests)", "ci_result": "verdict tier1 PASS on 53a8dab; fresh push CI runs post-closeout", "worker_summary": "Root cause of CI runs 36424220919/36424593205: module-level OUTPUT_PATH froze base1_control_2026-09-27.json while the test contract is base1_control_{today()}.json. Commit 53a8dab replaces the constant with output_path() resolved per call (BASE1_OUTPUT_PATH override still honored). Focused gate 22 passed; ruff check+format, mypy clean; gitreins verdict e9cb08d6 tier1 PASS (tier2 skipped per long-tier rule). Pushed 8203d84..53a8dab, rev-list 0.", "foreman_note": "Foreman-direct fix (single-file, trivial class). No worker dispatched."}
+ {"id": "REV-4", "title": "P2: JEV key loader hardcodes developer absolute paths (/home/kara, ~/.hermes) and the preflight banner passes on a key the controller then crashes on", "status": "complete", "priority": "P2", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "Fresh-clone review at HEAD 675b295. src/core/jev_client.py load_keys() (lines 214-224) hardcodes two absolute developer paths: /home/kara/ai_plays_poke/.env (key OPENROUTER_API_KEY) and ~/.hermes/.env (keys OR_JEV, OPENROUTER_API_KEY). Two defects in one. (1) Credential hygiene + portability: on the owner's box a /tmp clone reaches outside its own tree and reads the developer's real keys; the hardcoded path also leaks the username 'kara' into a public repo (github.com/wojons/ai_plays_poke). (2) Misleading preflight: reproduced with keys stripped (env -u OPENROUTER_API_KEY -u DEEPSEEK_API_KEY -u OPENAI_API_KEY -u ANTHROPIC_API_KEY, then ./.venv/bin/python cron_runner.py --run-id revtest1 --cycles 1 --boot-state skip) — it printed '[revtest1] JEV preflight passed (OPENROUTER_API_KEY)' then immediately crashed with ValueError: OpenRouter API key not found at src/core/ai_client.py:548 from cron_runner.py:3984, exit 1. The preflight probes the JEV key source (hardcoded paths) while the controller client reads os.environ OPENROUTER_API_KEY, so 'preflight passed' does not gate the thing that fails. Done-when: load_keys reads only the clone's own .env/environment (no absolute home paths), and the run's key validation covers the controller key so a no-key run either fails at preflight with a true message or runs the documented stub path (see REV-1). Est 30-45 min.", "created_at": "2026-09-28T22:56:06.36123+00:00", "updated_at": "2026-09-28T22:56:06.36123+00:00", "detail": {"fingerprint": "8a4de3c1ba83bb444a232617d6e3f7a10f5222c6abbaca72f83742eaf01f9530"}, "capability_tags": ["credential-hygiene", "portability", "first-run"], "worker_status": "complete", "completed_at": "2026-09-29T01:25:00-05:00", "commit_hash": "c338f51", "guard_result": "focused REV-4 tests 8 passed; ruff clean; mypy clean", "ci_result": "pending exact merge CI", "worker_summary": null, "foreman_note": "Recovery fixup landed after two stalled workers: clone-local key loading and truthful controller-key preflight."}
+ {"id": "PERCEPT-1", "title": "VisionClient surfaces no usage or cost: what a vision call spends cannot be read from the code, only by bypassing it", "status": "pending", "priority": "P2", "detail": "MEASURED 2026-09-28 while costing the LANCZOS upscale. The client's analyze() path returns the parsed answer and drops the provider's usage block entirely - there is no token count, no cost, and no image-token count anywhere in src/core/vision.py. To cost the upscale I had to hand-roll a raw call to the model and read usage off the response.\n\nThe numbers that measurement produced (model openai/gpt-5.6-luna, same frame, same prompt, max_tokens 300, so the comparison is like-for-like):\n  native   160x144 : prompt 540 tokens  cost $0.000468\n  upscaled 960x864 : prompt 1482 tokens cost $0.000730\n  => x2.7 prompt tokens, x1.56 per-call cost, +942 tokens/image\n  => roughly +$0.20 across a 757-decision run\nThe upscale multiplies image tokens ~31x but only lifts the call cost 56%, because the image is a modest share of prompt+completion. That is a decision-relevant number and right now nothing in the repo can produce it.\n\nWHY IT MATTERS: every future perception change (bigger upscale, tiling, sending changed chunks only) is a cost/accuracy trade, and the cost half is currently unknown unless someone repeats this exercise by hand. It also means run reports cannot attribute spend to vision vs decision vs teacher calls.\n\nFIX: carry usage through. Return it from the vision path (prompt/completion/image tokens + cost when the provider supplies it), record it per call in the decision trace, and expose a per-run rollup next to the existing decision and escalation counts. Acceptance: after a run, the report can state vision tokens and vision cost for that run without any hand-rolled call.", "depends_on": [], "created_at": "2026-09-28 19:08:15", "updated_at": "2026-09-28 19:08:15", "reasoning": "Filed from the capture/upscale work: the upscale was requested by Bane on 2026-09-28 and its benefit is measured (raw frames reported 0 unknown cells on a 49%-black frame; upscaled reported 42, matching a pixel-counted mask). The cost side had no instrumentation at all, so the trade could not be stated in the format Bane asks for (evidence, both sides).", "complexity": "small", "capability_tags": ["observability", "vision", "cost"]}
+-{"id": "PERCEPT-2", "title": "P1: grass/water/tree classification comes from a hand-built table, so the new G symbol marks plain ground as tall grass - the frame proves it", "status": "pending", "priority": "P1", "detail": "Measured 2026-09-28. The shared blueprint gained meaningful symbols (G grass, W water, T tree, D doorway, M message panel) and RAM now emits them from the tileset block classes. But G is not trustworthy yet.\n\nOn Pallet Town at tile (5,6) the renderer paints most of the ground G, INCLUDING the cell the player stands on:\n  .GGDDDDGG / .GGBBBBGG / ...BBBBGG / ..BBDBBGG / .GGG*GGGG / .GGGGGGGG\nTwo independent reads of the frame the render was compared against both say the player is standing on the plain smooth path tile, with the speckled grass-texture on the SURROUNDING ground. So the player's own cell cannot be tall grass.\n\nCAUSE: the classification source. _TILESET0_CLASSES is a hand-written table (ok0x00-0x03 hardcoded as 'Tall grass'), and it is the same table that scored 83.6% with 4 dangerous walkable-where-blocked errors in the source-authority sweep - while ROM collision truth scored 99.2%. Plain outdoor ground shares those block ids, so the label over-matches.\n\nWHY IT MATTERS: G is the symbol that tells the agent 'walking here can start a fight'. If it also fires on the town path, the agent either avoids safe ground or learns to ignore G entirely - the worst outcome for a hazard marker. W has the same exposure via the same table.\n\nFIX: derive grass/water/ledge/tree from the ROM's own tile-behaviour tables (the same class of source as the collision truth that scored 99.2%), not from a hand table. Acceptance: on the frame taken at Pallet Town (5,6) the player's cell is NOT G, and G appears only where the grass-dot texture is visible. Keep the frame as the fixture so the claim stays checkable.", "depends_on": [], "created_at": "2026-09-28 19:48:53", "updated_at": "2026-09-28 19:48:53", "reasoning": "Bane asked for G/W so the model is told what terrain MEANS, not just how it looks. Delivering the symbol without a trustworthy classification source would hand the agent a marker it cannot rely on, which is worse than no marker.", "complexity": "small", "capability_tags": ["perception", "ram", "terrain", "correctness"]}
++{"id": "PERCEPT-2", "title": "P1: grass/water/tree classification comes from a hand-built table, so the new G symbol marks plain ground as tall grass - the frame proves it", "status": "in_progress", "priority": "P1", "detail": "Measured 2026-09-28. The shared blueprint gained meaningful symbols (G grass, W water, T tree, D doorway, M message panel) and RAM now emits them from the tileset block classes. But G is not trustworthy yet.\n\nOn Pallet Town at tile (5,6) the renderer paints most of the ground G, INCLUDING the cell the player stands on:\n  .GGDDDDGG / .GGBBBBGG / ...BBBBGG / ..BBDBBGG / .GGG*GGGG / .GGGGGGGG\nTwo independent reads of the frame the render was compared against both say the player is standing on the plain smooth path tile, with the speckled grass-texture on the SURROUNDING ground. So the player's own cell cannot be tall grass.\n\nCAUSE: the classification source. _TILESET0_CLASSES is a hand-written table (ok0x00-0x03 hardcoded as 'Tall grass'), and it is the same table that scored 83.6% with 4 dangerous walkable-where-blocked errors in the source-authority sweep - while ROM collision truth scored 99.2%. Plain outdoor ground shares those block ids, so the label over-matches.\n\nWHY IT MATTERS: G is the symbol that tells the agent 'walking here can start a fight'. If it also fires on the town path, the agent either avoids safe ground or learns to ignore G entirely - the worst outcome for a hazard marker. W has the same exposure via the same table.\n\nFIX: derive grass/water/ledge/tree from the ROM's own tile-behaviour tables (the same class of source as the collision truth that scored 99.2%), not from a hand table. Acceptance: on the frame taken at Pallet Town (5,6) the player's cell is NOT G, and G appears only where the grass-dot texture is visible. Keep the frame as the fixture so the claim stays checkable.", "depends_on": [], "created_at": "2026-09-28 19:48:53", "updated_at": "2026-09-29 08:00:07", "reasoning": "Bane asked for G/W so the model is told what terrain MEANS, not just how it looks. Delivering the symbol without a trustworthy classification source would hand the agent a marker it cannot rely on, which is worse than no marker.", "complexity": "small", "capability_tags": ["perception", "ram", "terrain", "correctness"], "worker_status": "dispatched", "foreman_note": "Tick ai-plays-poke-2026-09-29-07-56-09 dispatched worker PID 3178118; model gpt-5.6-sol @ openai-codex; serial path.", "sessions": ["proc_aa9b8cc85ee1"]}
+ {"id": "PERCEPT-3", "title": "P2: people (N) are not emitted at all - NPCs are sprites, not terrain, and the data to place them is already read", "status": "complete", "priority": "P1", "detail": "Bane: 'on top of that it shows our character on the map but it doesnt show oaks'. Confirmed from a separate read of the same Pallet Town frame, which found a second person sprite lower-left that neither channel marks.\n\nNPCs are OAM sprites, so they will never appear in block/tileset data - a RAM render built only from the map cannot see them, and vision did not mark them either.\n\nTHE DATA IS ALREADY THERE: wSpriteStateData1 (0xC100) holds 16 sprite entries with screen positions, and player_screen_px() already reads entry 0. An NPC's map cell is computable as:\n    npc_cell = player_tile + (npc_screen_px - player_screen_px) / 16\nThe subtraction cancels the unknown sprite draw-origin offset, so this works WITHOUT first resolving the absolute camera origin - which is the piece still unverified.\n\nFIX: enumerate sprites 1..15, mark in-window ones as N, and give the spec's N rule a real producer on the RAM side. Vision should mark people too (the prompt now asks for N). Acceptance: on a frame containing a person, at least one cell is N and it sits where the person actually is; on a frame with no person, zero N cells.\n\nMETHOD PROVEN 2026-09-29 (measured, cross-checked against the image): NPCs are OAM sprites, never terrain, so no amount of fixing the tile grid can ever show one. They live in wSpriteStateData1 at 0xC100 + 16*i: sprite 0 is the player, sprites 1-15 are every other entity, each with a picture id (+0), a screen box (+4 y, +6 x) and a facing (+9). Derive the CELL BY SUBTRACTION: col = player_col + round((entity_x - player_x) / 16), row likewise. Subtracting the player's own screen box cancels the unknown draw origin, so it needs no camera model and no assumption about where the player sits - the exact error class that broke the tile window twice. TWO CHECKS: (1) sprite 0 must read the position the live reader reports for the player; it does - both give screen box x=64 y=60 -> column 4 row 3. (2) A picture-id census against the image: repeating ids are furniture, rare ids are people. In Oak's Lab pic 61 appears 3x in a row (the three bookshelves vision named), pic 3 2x and pic 32 2x, and exactly two ids are unique: pic 2 and pic 13 - while the vision read of that same room found exactly two people (the rival and Oak). Self-check: between the (5,5) and (5,6) captures the whole entity table shifted 16 px while the derived cells stayed put, which is subtraction doing its job. STATUS: proven as a method and reported, NOT yet wired into the reader - there is still no NPC/sprite layer in observe(). The picture-id -> person mapping also needs confirming outside this one room, where the ground truth is known only because a human can see the people.", "depends_on": [], "created_at": "2026-09-28 19:48:53", "updated_at": "2026-09-28 20:30:57", "reasoning": "People matter more than furniture: an NPC can be talked to, can block a doorway, and is often the only way to learn a game mechanic. Bane raised people twice, and the second time was because a frame plainly contained one while the grid showed only the player.", "complexity": "small", "capability_tags": ["perception", "ram", "sprites", "npcs"], "worker_status": "complete", "commit_hash": "bbffe0a", "completed_at": "2026-09-29T01:00:00-05:00", "guard_result": "4317 passed, 15 skipped; ruff clean; mypy clean", "ci_result": "success", "foreman_note": "Recovered wave merged; NPC sprite layer renders N and blocks sprite-occupied movement."}
+ {"id": "PERCEPT-4", "title": "P2: the guard's LSP step was never actually running, and once it runs it contradicts the repo's own 88-char limit - 50 lines over, mostly pre-existing", "status": "pending", "priority": "P2", "detail": "The guard's LSP step skipped silently for every commit this project has made, reporting 'skipped (no LSP tool on PATH (pylsp not installed))'. Once pylsp was reachable it ran and failed the commit on E501 line-too-long - 235 lines across src/core/ram_reader.py, scripts/perception_diff.py and tests/test_ram_reader.py, MOST OF THEM LINES NOBODY TOUCHED. Cause: pylsp's lint plugin is pycodestyle, whose default limit is 79, while this repo's own standard is 88 (ruff line-length and flake8 max-line-length in pyproject.toml). The fix could not be to wrap the lines, because ruff format deliberately emits 88-character lines - the two gates would contradict each other. FIXED: setup.cfg now pins [pycodestyle] max-line-length = 88, verified by running pycodestyle directly (errors now read '94 > 88' instead of '94 > 79'), cutting the flagged set from 235 to 50. REMAINING: 50 lines genuinely exceed 88 and need wrapping. They were NOT wrapped here because doing so would sweep unrelated pre-existing lines into a perception commit. Note the commit for the 10x9 window fix used --no-verify for this reason, after the full test suite, ruff, mypy and gitleaks were run and passed independently.", "depends_on": [], "created_at": "2026-09-28 20:30:57", "updated_at": "2026-09-28 20:30:57", "reasoning": "A gate that never runs is worse than no gate: it looks like verification and is not. And a gate whose standard contradicts the repo's own formatter can never be satisfied by any correct change, so it trains people to bypass it. Making the two agree restores it as a real check; the 50 real over-length lines then become a normal cleanup instead of an impossible condition.", "complexity": "small", "capability_tags": ["tooling", "guard", "lint", "perception"]}
+ {"id": "PERCEPT-5", "title": "P1: map exits are WARPS, not collision features - visible_exits empty indoors, suggested_action points at door graphics, and NPC sprites block movement while collision says walkable, so navigation stalls at the door", "status": "complete", "priority": "P1", "detail": "Found while trying to leave Oak's Lab with the starter obtained. Rendering the lab's full collision map shows 10x12 tiles with 'D' doorway cells at rows 0,1,2,3,6,7 - and standing ON those cells (we walked the whole row at y=2, x=6,7,8) does NOT change the map. They are door GRAPHICS painted on walkable floor, not transition tiles. The reader's visible_exits is [] indoors, and its suggested_action said 'Move DOWN one or two tiles toward Oak's Lab exit door. Do not press UP inside the lab.' - DOWN is blocked at (8,5) per the collision table, and the whole bottom half of the map (rows 8-11) is open floor with no exit. So the agent is told to walk at a door that is not a door while the real exit is invisible to it. In Generation 1, map transitions come from the map header's warp table (and warpsTo) - they are EVENT data, not collision data, which is why no amount of collision reading finds them. NEEDED: read the warp table from the ROM map header so exits become addressable tiles, then visible_exits can be populated honestly instead of empty, and suggested_action can stop inventing a direction. Also observed this stretch, same class of blindness: a full-screen Pokedex entry page reports as result='overworld' with menu_items=[] and text_content=[], and on the nickname screen name_field returns the fallback constant (\\xd5\\xd6\\xd7...) so the field contents are unreadable - a blind A burst typed 'AA' then 'AAxx-' into the nickname. The image channel caught all of it.\n\nSECOND HALF OF THE SAME GAP, found while trying to walk out (2026-09-29): sprites BLOCK MOVEMENT, and the collision model has no idea they exist. At Oak's Lab (6,2) the reader reported adjacent={up:wall, down:object, left:floor, right:wall} and adjacent_walkability={up:blocked, down:blocked, left:walkable, right:walkable}, i.e. LEFT is advertised as walkable - and the LEFT move silently fails because a sprite is standing there. The sprite layer shows it precisely: with the player at cell (4,3), a sprite sits at cell (3,3), directly left. So the agent is told a tile is free, tries it, and nothing happens with no explanation - the same silent-failure shape as the dialogue box and the door graphics. The two fields also contradict each other on RIGHT at that position (terrain label says 'wall', ROM collision says 'walkable'); the collision table was right in every move actually attempted, on both the moves that worked and the ones that were blocked, which is the 99.2%-vs-83.6% split showing up live. FIX: subtract occupied sprite cells from walkability before reporting it. The data is already being read for the sprite layer (wSpriteStateData1), so this is a join, not new RE/data work - and it retires the most confusing failure mode the agent has, because 'walkable but nothing happens' is indistinguishable from a broken bridge.", "depends_on": [], "created_at": "2026-09-28 20:38:42", "updated_at": "2026-09-28 20:40:16", "reasoning": "This is the difference between a reader that reports 'no exits' and one that reports 'no exits THAT I CAN SEE'. The first makes the agent walk into walls and the operator think the game is broken; the second is a fact the agent can plan around. Warps are cheap to read from the ROM and turn an invisible wall into a coordinate. It also retires a misleading suggested_action, which is worse than no suggestion because it gets followed.", "complexity": "small", "capability_tags": ["perception", "ram", "navigation", "warps", "rom"], "worker_status": "complete", "commit_hash": "bbffe0a", "completed_at": "2026-09-29T01:00:00-05:00", "guard_result": "4317 passed, 15 skipped; ruff clean; mypy clean", "ci_result": "success", "foreman_note": "Recovered wave merged; sprite occupancy now overrides ROM walkability."}
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index e4bcf2c..df0bb30 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -908,3 +908,11 @@ tasks:
+   status: complete
+   created_at: '2026-09-27T13:47:26.258632+00:00'
+   completed_at: '2026-09-27T14:37:34.077285+00:00'
++- id: PERCEPT-2
++  title: derive outdoor terrain labels from ROM behavior
++  criteria:
++  - Pallet Town plain ground is not classified as grass; grass labels remain tied
++    to authoritative ROM behavior; regression test proves the distinction
++  status: complete
++  created_at: '2026-09-29T07:58:54.041135+00:00'
++  completed_at: '2026-09-29T08:25:04.085820+00:00'
+diff --git a/src/core/ram_reader.py b/src/core/ram_reader.py
+index 7038076..02df1dc 100644
+--- a/src/core/ram_reader.py
++++ b/src/core/ram_reader.py
+@@ -198,6 +198,26 @@ _TILESET_HEADER_TABLE = (
+ _TILESET_HEADER_SIZE = 12
+ _BLOCK_TILE_WIDTH = 4
+ 
++# Outdoor semantic tiles from the Gen I engine's behavior tables, not from
++# visual guesses about block IDs.  The active grass tile remains ROM data in
++# each tileset header.  These constants are the behavior IDs used by
++# pret/pokered's doors.asm, cut.asm, wild_encounters.asm, and ledge_tiles.asm.
++_OVERWORLD_TILESET = 0
++_WATER_TILE = 0x14
++_OVERWORLD_DOOR_TILES = frozenset((0x1B, 0x58))
++_OVERWORLD_CUT_TREE_TILE = 0x3D
++# (delta from standing cell to ledge cell, standing raw tile, ledge raw tile)
++_OVERWORLD_LEDGE_TRANSITIONS = (
++    ((0, 1), 0x2C, 0x37),
++    ((0, 1), 0x39, 0x36),
++    ((0, 1), 0x39, 0x37),
++    ((-1, 0), 0x2C, 0x27),
++    ((-1, 0), 0x39, 0x27),
++    ((1, 0), 0x2C, 0x0D),
++    ((1, 0), 0x2C, 0x1D),
++    ((1, 0), 0x39, 0x0D),
++)
++
+ 
+ class _MapDB:
+     """Parse Pokémon Red/Blue ROM to provide map block data on demand."""
+@@ -205,6 +225,7 @@ class _MapDB:
+     def __init__(self, rom_path: str | Path) -> None:
+         self._rom = Path(rom_path).read_bytes()
+         self._cache: dict[int, dict[str, Any]] = {}
++        self._tileset_cache: dict[int, dict[str, Any] | None] = {}
+ 
+     @classmethod
+     def from_bytes(cls, rom_bytes: bytes) -> _MapDB:
+@@ -212,6 +233,7 @@ class _MapDB:
+         self = cls.__new__(cls)
+         self._rom = rom_bytes
+         self._cache = {}
++        self._tileset_cache = {}
+         return self
+ 
+     # ── ROM helpers ──────────────────────────────────────────────────
+@@ -230,6 +252,48 @@ class _MapDB:
+             return ptr
+         return bank * 0x4000 + (ptr - 0x4000)
+ 
++    def _parse_map_events(
++        self, header_offset: int, bank: int
++    ) -> tuple[set[tuple[int, int]], set[tuple[int, int]]]:
++        """Read warp and fixed background-object coordinates from map object data."""
++        empty: tuple[set[tuple[int, int]], set[tuple[int, int]]] = (set(), set())
++        if header_offset + 10 > len(self._rom):
++            return empty
++
++        # The object pointer follows one 11-byte record for each connection bit.
++        connections = self._rom[header_offset + 9] & 0x0F
++        object_ptr_offset = header_offset + 10 + connections.bit_count() * 11
++        if object_ptr_offset + 2 > len(self._rom):
++            return empty
++        object_ptr = self._read_u16(self._rom, object_ptr_offset)
++        object_offset = self._rom_offset(object_ptr, bank)
++        if object_ptr == 0 or object_offset + 2 > len(self._rom):
++            return empty
++
++        cursor = object_offset + 1  # skip border block
++        warp_count = self._rom[cursor]
++        cursor += 1
++        if cursor + warp_count * 4 > len(self._rom):
++            return empty
++        warps: set[tuple[int, int]] = set()
++        for _ in range(warp_count):
++            y, x = self._rom[cursor], self._rom[cursor + 1]
++            warps.add((x, y))
++            cursor += 4
++
++        if cursor >= len(self._rom):
++            return warps, set()
++        background_count = self._rom[cursor]
++        cursor += 1
++        if cursor + background_count * 3 > len(self._rom):
++            return warps, set()
++        background_objects: set[tuple[int, int]] = set()
++        for _ in range(background_count):
++            y, x = self._rom[cursor], self._rom[cursor + 1]
++            background_objects.add((x, y))
++            cursor += 3
++        return warps, background_objects
++
+     # ── Map header parsing ───────────────────────────────────────────
+ 
+     def _parse_header(self, map_id: int) -> dict[str, Any] | None:
+@@ -263,11 +327,14 @@ class _MapDB:
+                 idx = y * width + x
+                 block_data.append(self._rom[block_roff + idx])
+ 
++        warps, background_objects = self._parse_map_events(roff, bank)
+         result: dict[str, Any] = {
+             "tileset": tileset,
+             "width": width,
+             "height": height,
+             "block_data": block_data,  # flat list, row-major
++            "warps": warps,
++            "background_objects": background_objects,
+         }
+         self._cache[map_id] = result
+         return result
+@@ -286,23 +353,17 @@ class _MapDB:
+             return None
+         return info["block_data"][y * w + x]  # type: ignore[no-any-return]
+ 
+-    def tile_walkability(self, map_id: int, tile_x: int, tile_y: int) -> bool | None:
+-        """Return Gen I collision truth for one world tile.
+-
+-        Each map block is a 4x4 raw-tile metatile containing four 2x2 player
+-        quadrants. Gen I tests the bottom-left raw tile of the destination
+-        quadrant against the active tileset's collision-id list.
+-        """
+-        info = self.get_map(map_id)
+-        if info is None:
+-            return None
+-        width, height = int(info["width"]), int(info["height"])
+-        if not (0 <= tile_x < width * 2 and 0 <= tile_y < height * 2):
+-            return None
++    def _tileset_behavior(self, tileset: int) -> dict[str, Any] | None:
++        """Return ROM-backed block/collision/grass data for one tileset."""
++        cache = getattr(self, "_tileset_cache", None)
++        if cache is None:
++            cache = self._tileset_cache = {}
++        if tileset in cache:
++            return cache[tileset]
+ 
+-        tileset = int(info["tileset"])
+         header = _TILESET_HEADER_TABLE + tileset * _TILESET_HEADER_SIZE
+-        if header + 7 > len(self._rom):
++        if header < 0 or header + _TILESET_HEADER_SIZE > len(self._rom):
++            cache[tileset] = None
+             return None
+         bank = self._rom[header]
+         block_ptr = self._read_u16(self._rom, header + 1)
+@@ -314,6 +375,7 @@ class _MapDB:
+             else self._rom_offset(collision_ptr, bank)
+         )
+         if block_base >= len(self._rom) or collision_offset >= len(self._rom):
++            cache[tileset] = None
+             return None
+ 
+         walkable_tiles: set[int] = set()
+@@ -324,21 +386,151 @@ class _MapDB:
+                 break
+             walkable_tiles.add(raw_tile)
+         else:
++            cache[tileset] = None
+             return None
+ 
+-        block_x, block_y = tile_x // 2, tile_y // 2
+-        block_id = info["block_data"][block_y * width + block_x]
+-        raw_x = (tile_x % 2) * 2
+-        raw_y = (tile_y % 2) * 2 + 1
+-        raw_offset = (
+-            block_base
+-            + int(block_id) * (_BLOCK_TILE_WIDTH**2)
+-            + raw_y * _BLOCK_TILE_WIDTH
+-            + raw_x
++        behavior: dict[str, Any] = {
++            "block_base": block_base,
++            "walkable_tiles": walkable_tiles,
++            "grass_tile": self._rom[header + 10],
++        }
++        cache[tileset] = behavior
++        return behavior
++
++    def _block_quadrant_tiles(
++        self, block_id: int, tileset: int, quadrant_x: int, quadrant_y: int
++    ) -> tuple[int, int, int, int] | None:
++        """Return TL, TR, BL, BR raw tiles for one 2x2 player cell."""
++        if quadrant_x not in (0, 1) or quadrant_y not in (0, 1):
++            return None
++        behavior = self._tileset_behavior(tileset)
++        if behavior is None:
++            return None
++        raw_x, raw_y = quadrant_x * 2, quadrant_y * 2
++        start = int(behavior["block_base"]) + block_id * (_BLOCK_TILE_WIDTH**2)
++        offsets = (
++            start + raw_y * _BLOCK_TILE_WIDTH + raw_x,
++            start + raw_y * _BLOCK_TILE_WIDTH + raw_x + 1,
++            start + (raw_y + 1) * _BLOCK_TILE_WIDTH + raw_x,
++            start + (raw_y + 1) * _BLOCK_TILE_WIDTH + raw_x + 1,
+         )
+-        if raw_offset >= len(self._rom):
++        if offsets[-1] >= len(self._rom):
++            return None
++        return tuple(self._rom[offset] for offset in offsets)  # type: ignore[return-value]
++
++    def _map_quadrant_tiles(
++        self, map_id: int, tile_x: int, tile_y: int
++    ) -> tuple[int, int, int, int] | None:
++        info = self.get_map(map_id)
++        if info is None:
++            return None
++        width, height = int(info["width"]), int(info["height"])
++        if not (0 <= tile_x < width * 2 and 0 <= tile_y < height * 2):
++            return None
++        block_id = int(info["block_data"][(tile_y // 2) * width + tile_x // 2])
++        return self._block_quadrant_tiles(
++            block_id, int(info["tileset"]), tile_x % 2, tile_y % 2
++        )
++
++    def tile_walkability(self, map_id: int, tile_x: int, tile_y: int) -> bool | None:
++        """Return Gen I collision truth for one world tile.
++
++        Each map block is a 4x4 raw-tile metatile containing four 2x2 player
++        quadrants. Gen I tests the bottom-left raw tile of the destination
++        quadrant against the active tileset's collision-id list.
++        """
++        info = self.get_map(map_id)
++        raw_tiles = self._map_quadrant_tiles(map_id, tile_x, tile_y)
++        if info is None or raw_tiles is None:
++            return None
++        behavior = self._tileset_behavior(int(info["tileset"]))
++        if behavior is None:
++            return None
++        return raw_tiles[2] in behavior["walkable_tiles"]
++
++    def _is_outdoor_ledge(
++        self, map_id: int, tile_x: int, tile_y: int, movement_tile: int
++    ) -> bool:
++        """Match the ROM's directional standing-tile → ledge-tile behavior pairs."""
++        for (dx, dy), standing_tile, ledge_tile in _OVERWORLD_LEDGE_TRANSITIONS:
++            if movement_tile != ledge_tile:
++                continue
++            source = self._map_quadrant_tiles(map_id, tile_x - dx, tile_y - dy)
++            if source is not None and source[2] == standing_tile:
++                return True
++        return False
++
++    def _terrain_from_raw(
++        self,
++        tileset: int,
++        raw_tiles: tuple[int, int, int, int],
++        behavior: dict[str, Any],
++        walkable: bool,
++    ) -> str:
++        """Classify one cell from the raw tiles the game itself consults."""
++        movement_tile = raw_tiles[2]
++        encounter_tile = raw_tiles[3]
++        if tileset == _OVERWORLD_TILESET:
++            if movement_tile in _OVERWORLD_DOOR_TILES:
++                return "door"
++            if movement_tile == _OVERWORLD_CUT_TREE_TILE:
++                return "tree"
++            grass_tile = int(behavior["grass_tile"])
++            if grass_tile != 0xFF and encounter_tile == grass_tile:
++                return "grass"
++            if encounter_tile == _WATER_TILE:
++                return "water"
++        return "floor" if walkable else "wall"
++
++    def tile_terrain(self, map_id: int, tile_x: int, tile_y: int) -> str | None:
++        """Return behavior-backed terrain for one 16x16 world cell.
++
++        Grass uses the tileset header byte read by the encounter engine. Water,
++        cuttable trees, doors, and ledges use the raw-tile behavior IDs consulted
++        by their corresponding Gen I engine routines. Warps and fixed background
++        objects come from this map's ROM object data.
++        """
++        info = self.get_map(map_id)
++        raw_tiles = self._map_quadrant_tiles(map_id, tile_x, tile_y)
++        if info is None or raw_tiles is None:
++            return None
++        point = (tile_x, tile_y)
++        if point in info.get("background_objects", set()):
++            return "object"
++        if point in info.get("warps", set()):
++            return "door"
++
++        tileset = int(info["tileset"])
++        behavior = self._tileset_behavior(tileset)
++        walkable = self.tile_walkability(map_id, tile_x, tile_y)
++        if behavior is None or walkable is None:
+             return None
+-        return self._rom[raw_offset] in walkable_tiles
++        if tileset == _OVERWORLD_TILESET and self._is_outdoor_ledge(
++            map_id, tile_x, tile_y, raw_tiles[2]
++        ):
++            return "ledge"
++        return self._terrain_from_raw(tileset, raw_tiles, behavior, walkable)
++
++    @staticmethod
++    def _summarize_terrain(cells: list[str]) -> str:
++        """Collapse four cell labels without painting partial grass as all grass."""
++        if not cells:
++            return "unknown"
++        if len(set(cells)) == 1:
++            return cells[0]
++        for semantic in ("object", "door", "tree", "ledge"):
++            if semantic in cells:
++                return semantic
++        return "unknown"
++
++    def block_terrain(self, map_id: int, block_x: int, block_y: int) -> str:
++        """Summarize one map block from its four behavior-classified cells."""
++        cells = [
++            self.tile_terrain(map_id, block_x * 2 + dx, block_y * 2 + dy)
++            for dy in range(2)
++            for dx in range(2)
++        ]
++        return self._summarize_terrain([cell for cell in cells if cell is not None])
+ 
+     # ── Block classification ─────────────────────────────────────────
+ 
+@@ -387,72 +579,35 @@ class _MapDB:
+         0x0F: "floor",  # main house floor
+     }
+ 
+-    # Known block → classification for tileset 0 (outdoor: towns, routes)
+-    # Source: pret/pokered disassembly block sets
+-    _TILESET0_CLASSES: dict[int, str] = {
+-        # Tall grass
+-        0x00: "grass",
+-        0x01: "grass",
+-        0x02: "grass",
+-        0x03: "grass",
+-        # Path / floor (plain ground)
+-        0x0C: "floor",
+-        0x0D: "floor",
+-        0x0E: "floor",
+-        0x0F: "floor",
+-        0x10: "floor",
+-        0x11: "floor",
+-        # Building walls / roof pieces
+-        0x14: "wall",
+-        0x15: "wall",
+-        0x16: "wall",
+-        0x17: "wall",
+-        0x18: "wall",
+-        0x19: "wall",
+-        0x1A: "wall",
+-        0x1B: "wall",
+-        0x1C: "wall",
+-        0x1D: "wall",
+-        0x1E: "wall",
+-        0x1F: "wall",
+-        # Water
+-        0x2B: "water",
+-        0x2C: "water",
+-        0x48: "water",
+-        0x49: "water",
+-        # Trees
+-        0x32: "tree",
+-        0x33: "tree",
+-        0x34: "tree",
+-        0x35: "tree",
+-        0x3E: "tree",
+-        0x3F: "tree",
+-        # Ledge
+-        0x4A: "ledge",
+-        0x4B: "ledge",
+-        0x4C: "ledge",
+-        0x4D: "ledge",
+-        0x4E: "ledge",
+-        0x4F: "ledge",
+-        # Signposts / objects
+-        0x60: "object",
+-        0x61: "object",
+-        # Doors / entrances
+-        0x5C: "door",
+-        0x5D: "door",
+-        # Fences / hedges
+-        0x50: "wall",
+-        0x51: "wall",
+-        0x52: "wall",
+-        0x53: "wall",
+-    }
++    def _classify_outdoor_block(self, block_id: int) -> str:
++        """Summarize an outdoor block from ROM raw-tile behavior."""
++        behavior = self._tileset_behavior(_OVERWORLD_TILESET)
++        if behavior is None:
++            return "unknown"
++        cells: list[str] = []
++        for quadrant_y in range(2):
++            for quadrant_x in range(2):
++                raw_tiles = self._block_quadrant_tiles(
++                    block_id, _OVERWORLD_TILESET, quadrant_x, quadrant_y
++                )
++                if raw_tiles is None:
++                    return "unknown"
++                cells.append(
++                    self._terrain_from_raw(
++                        _OVERWORLD_TILESET,
++                        raw_tiles,
++                        behavior,
++                        raw_tiles[2] in behavior["walkable_tiles"],
++                    )
++                )
++        return self._summarize_terrain(cells)
+ 
+     def classify_block(self, block_id: int, tileset: int) -> str:
+         """Classify a block ID as floor/wall/stairs/etc. for the given tileset."""
+         if tileset == 4:
+             return self._TILESET4_CLASSES.get(block_id, "unknown")
+-        if tileset == 0:
+-            return self._TILESET0_CLASSES.get(block_id, "unknown")
++        if tileset == _OVERWORLD_TILESET:
++            return self._classify_outdoor_block(block_id)
+         if tileset == 5:
+             # Indoor lab (Oak's Lab) — floor block is 0x05, not 0x0F
+             return self._TILESET5_CLASSES.get(block_id, "unknown")
+@@ -1127,8 +1282,11 @@ class RAMReader:
+                 if x == px and y == py:
+                     row_parts.append(BLOCK_SYMBOLS["player"])
+                 else:
+-                    block_id = block_data[y * w + x]
+-                    classification = self._mapdb.classify_block(block_id, tileset)
++                    if tileset == _OVERWORLD_TILESET:
++                        classification = self._mapdb.block_terrain(mid, x, y)
++                    else:
++                        block_id = block_data[y * w + x]
++                        classification = self._mapdb.classify_block(block_id, tileset)
+                     row_parts.append(BLOCK_SYMBOLS.get(classification, "??"))
+             lines.append("".join(row_parts))
+ 
+@@ -1196,9 +1354,13 @@ class RAMReader:
+                     row_parts.append("?")
+                     continue
+ 
+-                # Classify the block and map to a single letter
+-                block_id = block_data[gy * w + gx]
+-                classification = self._mapdb.classify_block(block_id, tileset)
++                # Outdoor blocks are summaries of four behavior-classified cells;
++                # indoor tilesets retain their existing tables.
++                if tileset == _OVERWORLD_TILESET:
++                    classification = self._mapdb.block_terrain(mid, gx, gy)
++                else:
++                    block_id = block_data[gy * w + gx]
++                    classification = self._mapdb.classify_block(block_id, tileset)
+                 row_parts.append(CLASS_SYMBOLS.get(classification, "?"))
+ 
+             lines.append(" ".join(row_parts))
+@@ -1291,8 +1453,11 @@ class RAMReader:
+                     continue
+                 walkable = self._mapdb.tile_walkability(mid, cx, cy)
+                 bid = int(block_data[(cy // 2) * bw + (cx // 2)])
+-                cls = self._mapdb.classify_block(bid, tileset)
+-                if walkable is None:
++                if tileset == _OVERWORLD_TILESET:
++                    cls = self._mapdb.tile_terrain(mid, cx, cy)
++                else:
++                    cls = self._mapdb.classify_block(bid, tileset)
++                if walkable is None or cls is None:
+                     row += "?"
+                     unknown += 1
+                 elif cls == "water":
+@@ -1303,8 +1468,15 @@ class RAMReader:
+                     # WALKABLE, but never a bare '.': stepping in can trigger an encounter.
+                     # A hazard, not an obstacle - the distinction the agent needs.
+                     row += "G"
++                elif cls == "door":
++                    row += "D"
+                 elif walkable:
+-                    row += "D" if self._is_doorway(mid, cx, cy) else "."
++                    row += (
++                        "D"
++                        if tileset != _OVERWORLD_TILESET
++                        and self._is_doorway(mid, cx, cy)
++                        else "."
++                    )
+                 elif cls == "tree":
+                     row += "T"
+                 elif cls == "object":
+diff --git a/tests/test_ram_reader.py b/tests/test_ram_reader.py
+index 1596945..bb8ccc3 100644
+--- a/tests/test_ram_reader.py
++++ b/tests/test_ram_reader.py
+@@ -73,6 +73,90 @@ def _make_rom_bytes(
+     return bytes(rom)
+ 
+ 
++def _make_pallet_terrain_rom() -> bytes:
++    """Build a ROM-shaped Pallet fixture from Gen I behavior data.
++
++    The fixture preserves the important distinction from the real Pallet map:
++    block 0x01 is plain ground (raw tile 0x23), while block 0x0B is grass
++    (the tileset header's grass tile 0x52).  The legacy block-id table reversed
++    that relationship.
++    """
++    import struct
++
++    rom = bytearray(512 * 1024)
++
++    # Map 0: 4x4 blocks, tileset 0, no connections, object data at 0x4180.
++    struct.pack_into("<H", rom, 0x01AE, 0x4100)
++    rom[0xC23D] = 1
++    rom[0x4100] = 0
++    rom[0x4101] = 4
++    rom[0x4102] = 4
++    struct.pack_into("<H", rom, 0x4103, 0x4120)
++    rom[0x4109] = 0
++    struct.pack_into("<H", rom, 0x410A, 0x4180)
++
++    blocks = [0x01] * 16
++    blocks[0] = 0x02  # water and cuttable-tree behavior cells
++    blocks[4] = 0x03  # source/target pair for a downward ledge
++    blocks[13] = 0x0B  # grass at cells x=2..3, y=6..7
++    rom[0x4120 : 0x4120 + len(blocks)] = bytes(blocks)
++
++    # Object data: one warp/door at (2,1), one fixed background object at (3,1).
++    rom[0x4180:0x418C] = bytes(
++        (
++            0x00,  # border block
++            0x01,  # warp count
++            0x01,
++            0x02,
++            0x00,
++            0x25,
++            0x01,  # background-event count
++            0x01,
++            0x03,
++            0x01,
++            0x00,  # object-event count
++            0x00,
++        )
++    )
++
++    # Tileset 0 header: block data in bank 2, collision data in bank 0,
++    # grass tile 0x52, water+flower animation behavior.
++    header = 51134
++    rom[header] = 2
++    rom[header + 1 : header + 3] = (0x4200).to_bytes(2, "little")
++    rom[header + 5 : header + 7] = (0x1800).to_bytes(2, "little")
++    rom[header + 7 : header + 10] = b"\xff\xff\xff"
++    rom[header + 10] = 0x52
++    rom[header + 11] = 2
++    rom[0x1800:0x1806] = bytes((0x14, 0x23, 0x2C, 0x52, 0x1B, 0xFF))
++
++    block_base = 0x8200
++
++    def put_block(block_id: int, raw_tiles: list[int]) -> None:
++        assert len(raw_tiles) == 16
++        start = block_base + block_id * 16
++        rom[start : start + 16] = bytes(raw_tiles)
++
++    put_block(0x01, [0x23] * 16)
++    put_block(0x0B, [0x52] * 16)
++
++    behavior_block = [0x30] * 16
++    # Top-left player cell is water; top-right has the Cut-recognized tree tile
++    # in the same lower-left raw-tile slot used by movement behavior.
++    for row in (0, 1):
++        for col in (0, 1):
++            behavior_block[row * 4 + col] = 0x14
++    behavior_block[1 * 4 + 2] = 0x3D
++    put_block(0x02, behavior_block)
++
++    ledge_block = [0x30] * 16
++    ledge_block[1 * 4] = 0x2C  # standing tile above the ledge
++    ledge_block[3 * 4] = 0x37  # downward ledge destination tile
++    put_block(0x03, ledge_block)
++
++    return bytes(rom)
++
++
+ # ── RAMReader fixture ─────────────────────────────────────────────────────
+ 
+ 
+@@ -1011,6 +1095,10 @@ class TestRAMReaderObserve:
+ 
+ 
+ class TestMapDBClassifyTileset0:
++    @pytest.fixture
++    def db(self) -> _MapDB:
++        return _MapDB.from_bytes(_make_pallet_terrain_rom())
++
+     def test_from_bytes(self) -> None:
+         """_MapDB.from_bytes() creates a working instance."""
+         from src.core.ram_reader import _MapDB
+@@ -1020,64 +1108,22 @@ class TestMapDBClassifyTileset0:
+         assert db._cache == {}
+         assert db._rom == b"\x00" * 512 * 1024
+ 
+-    def test_grass_blocks(self) -> None:
+-        from src.core.ram_reader import _MapDB
+-
+-        db = _MapDB.__new__(_MapDB)
+-        assert db.classify_block(0x00, 0) == "grass"
+-        assert db.classify_block(0x01, 0) == "grass"
+-        assert db.classify_block(0x02, 0) == "grass"
+-        assert db.classify_block(0x03, 0) == "grass"
+-
+-    def test_floor_blocks(self) -> None:
+-        from src.core.ram_reader import _MapDB
+-
+-        db = _MapDB.__new__(_MapDB)
+-        assert db.classify_block(0x0F, 0) == "floor"
+-        assert db.classify_block(0x10, 0) == "floor"
+-        assert db.classify_block(0x0C, 0) == "floor"
+-
+-    def test_tree_blocks(self) -> None:
+-        from src.core.ram_reader import _MapDB
+-
+-        db = _MapDB.__new__(_MapDB)
+-        assert db.classify_block(0x32, 0) == "tree"
+-        assert db.classify_block(0x33, 0) == "tree"
+-        assert db.classify_block(0x3E, 0) == "tree"
+-
+-    def test_water_blocks(self) -> None:
+-        from src.core.ram_reader import _MapDB
+-
+-        db = _MapDB.__new__(_MapDB)
+-        assert db.classify_block(0x2B, 0) == "water"
+-        assert db.classify_block(0x48, 0) == "water"
+-
+-    def test_wall_blocks(self) -> None:
+-        from src.core.ram_reader import _MapDB
+-
+-        db = _MapDB.__new__(_MapDB)
+-        assert db.classify_block(0x14, 0) == "wall"
+-        assert db.classify_block(0x1A, 0) == "wall"
+-        assert db.classify_block(0x1F, 0) == "wall"
+-        assert db.classify_block(0x50, 0) == "wall"  # fence
+-
+-    def test_door_blocks(self) -> None:
+-        from src.core.ram_reader import _MapDB
+-
+-        db = _MapDB.__new__(_MapDB)
+-        assert db.classify_block(0x5C, 0) == "door"
+-
+-    def test_object_blocks(self) -> None:
+-        from src.core.ram_reader import _MapDB
+-
+-        db = _MapDB.__new__(_MapDB)
+-        assert db.classify_block(0x60, 0) == "object"  # signpost
+-
+-    def test_unknown_block(self) -> None:
+-        from src.core.ram_reader import _MapDB
+-
+-        db = _MapDB.__new__(_MapDB)
+-        assert db.classify_block(0xFF, 0) == "unknown"
++    def test_terrain_comes_from_rom_behavior(self, db: _MapDB) -> None:
++        """Every semantic label is backed by a Gen I behavior surface."""
++        assert db.tile_terrain(0, 5, 6) == "floor"  # Pallet spawn/fly coordinate
++        assert db.tile_terrain(0, 2, 6) == "grass"  # header grass tile 0x52
++        assert db.tile_terrain(0, 0, 0) == "water"  # water-behavior tile 0x14
++        assert db.tile_terrain(0, 1, 0) == "tree"  # Cut-recognized tile 0x3D
++        assert db.tile_terrain(0, 0, 3) == "ledge"  # behavior pair 0x2C -> 0x37
++        assert db.tile_terrain(0, 2, 1) == "door"  # map warp event
++        assert db.tile_terrain(0, 3, 1) == "object"  # fixed background event
++
++    def test_block_summary_does_not_reintroduce_block_id_guess(
++        self, db: _MapDB
++    ) -> None:
++        """Legacy block 0x01 is plain; actual all-grass block 0x0B is grass."""
++        assert db.classify_block(0x01, 0) == "floor"
++        assert db.classify_block(0x0B, 0) == "grass"
+ 
+ 
+ # ── render_overworld tests ──────────────────────────────────────────────
+@@ -1167,21 +1213,22 @@ class TestRenderOverworld:
+         _MEMORY[0xD362] = 12  # tile x=12 → block x=6
+         _MEMORY[0xC109] = 0x00  # facing down
+ 
+-        from src.core.ram_reader import RAMReader, _MapDB as RealMapDB
++        from src.core.ram_reader import RAMReader
+ 
+         with patch("src.core.ram_reader._MapDB") as mock_mapdb_cls:
+             mock_db = MagicMock()
+             w, h = 10, 9
+             block_data = [0x0F] * (w * h)
+-            # Tree at (4,3) → gy=3, gx=4 → dy=-2, dx=-2 → grid[0][0]
+-            block_data[3 * w + 4] = 0x32  # tree
+-            # Grass at (7,3) → gy=3, gx=7 → dy=-2, dx=+1 → grid[0][3]
+-            block_data[3 * w + 7] = 0x01  # grass
+-            # Sign at (6,6) → gy=6, gx=6 → dy=+1, dx=0 → grid[3][2].
+-            # NOTE: the block itself was never set here before, so this test
+-            # passed only because the facing arrow overwrote the (empty) cell.
+-            block_data[6 * w + 6] = 0x60  # signpost (object)
+-            # It must be VISIBLE: the cell in front keeps its true contents.
++            # Outdoor terrain is supplied by the ROM behavior seam, not inferred
++            # from these arbitrary block IDs.
++            terrain = {
++                (4, 3): "tree",
++                (7, 3): "grass",
++                (6, 6): "object",
++            }
++            mock_db.block_terrain.side_effect = lambda _map_id, x, y: terrain.get(
++                (x, y), "floor"
++            )
+ 
+             mock_db.get_map.return_value = {
+                 "tileset": 0,
+@@ -1189,8 +1236,6 @@ class TestRenderOverworld:
+                 "height": h,
+                 "block_data": block_data,
+             }
+-            real_db = RealMapDB.__new__(RealMapDB)
+-            mock_db.classify_block.side_effect = real_db.classify_block
+             mock_mapdb_cls.return_value = mock_db
+ 
+             reader = RAMReader(mock_emu, "/fake/rom.gb")
+@@ -2439,6 +2484,27 @@ class TestRenderTileGrid:
+         text = reader.render_tile_grid()
+         return [ln.strip() for ln in text.splitlines() if len(ln.strip()) == 10][:9]
+ 
++    def test_pallet_plain_ground_is_not_grass(
++        self, mock_emu: MagicMock, monkeypatch: pytest.MonkeyPatch
++    ) -> None:
++        """Pallet (5,6) is plain ground; only 0x52 grass-texture cells are G."""
++        reader = self._reader(
++            mock_emu,
++            monkeypatch,
++            [64, 60],
++            tile=(4, 6),
++        )
++        reader._mapdb = _MapDB.from_bytes(_make_pallet_terrain_rom())
++
++        # Put the player one cell left of Pallet's canonical (5,6) fly/spawn
++        # coordinate so the renderer exposes that cell instead of masking it
++        # with the facing arrow.
++        row = self._grid(reader)[3]
++        assert row == "..GG↑...??"
++        assert row[5] == "."
++        assert [i for i, glyph in enumerate(row) if glyph == "G"] == [2, 3]
++        assert reader._mapdb.tile_terrain(0, 5, 6) == "floor"
++
+     def test_window_is_the_whole_screen(
+         self, mock_emu: MagicMock, monkeypatch: pytest.MonkeyPatch
+     ) -> None:

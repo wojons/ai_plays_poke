@@ -1,0 +1,453 @@
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index e7a3e62..e8f76d9 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -362,3 +362,4 @@
+ {"id": 321, "ts": "2026-09-27 21:35:00", "event": "task_completed", "actor": "foreman", "summary": "T263 wave tick ai-plays-poke-2026-09-27-20-18-55: 3-wave dispatch REVIEW-2/REVIEW-3/PERF-4 (worktrees wt/*, base f4d51a4) all merged to main and pushed (c91b33e, c9d3142 + f4d51a4 long_run goal-hold fix committed foreman-direct). Full suite 4285 passed/14 skipped on merged main; ruff+mypy clean; gitreins verdicts: PERF-4 tier2 PASS (71898ade), REVIEW-3 completed (verdict artifact cut by GITR-JUDGE-001-style tier2 watcher hang kill; work verified live), REVIEW-2 worker gates green. BOARD-HYG-1 defect2 fixed (QA-AI-PLAYS-POKE-10 status open->pending). CI was green 3/3 at tick start; check post-push runs."}
+ {"ts": "2026-09-27 21:37:12", "event": "milestone", "id": "LLM-HOLD-1", "summary": "GOAL-1 COMPLETE — first verified hold of Viridian City. long_0927_llm2 ep028 read 'Viridian City' at cycles 21-30 consecutively and ended the episode there, so the goal is met under the corrected HOLD rule (f4d51a4). Pure-LLM arm throughout: 757 decisions, 6 escalations, 0 teacher calls, no JEV in the path. The 2026-09-26 JEV-hybrid run went 480 episodes without reaching Viridian. Caveat carried, not buried: this proves the ladder is climbable, NOT that the route is efficient — ~49 episodes across two segments, and the agent still enters Viridian at c2 and backs out for ~19 cycles before committing."}
+ {"id": 322, "ts": "2026-09-27 22:10:00", "event": "task_pick", "actor": "foreman", "task": "BOOT-1", "summary": "Wave tick ai-plays-poke-2026-09-27-21-43-32: recovery of the 20-18-55 wave done first (all 3 legs already merged in T263; gates re-verified ruff/mypy/PASS judge; 9 wt worktrees+branches removed; manifest closed). New wave budget 9, composed 2 independent legs: BOOT-1 (wt/BOOT-1, worktree ai-plays-poke-BOOT-1, glm-5.3-flash@xkiro) and REPORT-1 (wt/REPORT-1, worktree ai-plays-poke-REPORT-1, glm-5.3-flash@xkiro, target is host script ~/.hermes/scripts/aipp_hourly_facts.py). DOC-1 excluded: premise stale ('read-only GET' no longer exists in repo or usage skill)."}
++{"ts": "2026-09-27 22:06:16", "event": "note", "id": "SETTLE-1", "summary": "PLAYED THE GAME, FILED WHAT IT TAUGHT. Wired a session-scoped bridge that serves the exact state_projection text the decision model receives, then pressed buttons through it. The first thing playing taught me was that my own bridge was sampling mid-step: an 8-frame wait reported DOWN (walkable) as no-change and then UP (blocked) as a downward move. Polling until the player stops moving measured the real walk at 14 frames and the blocked press at 2 — and showed the AGENT is correct where I was wrong (cron_runner.py:720-721,5,036-5,037 use PRESS_FRAMES=5 + STEP_FORWARD=15). Filed SETTLE-1 for the residue: 15 is one frame above the measured settle, so a longer animation (ledge/stairs/door/surf) could silently invert the state_changed signal the loop reads — a candidate contributor to DIST-1's 41% direction-locking and the 8 episodes stuck in Red's House 1F. Filed PLAY-1 to keep the bridge and pin its access model: loopback only, token required, off by default, never a global tool."}
+diff --git a/.coding-hermes/board/tasks.jsonl b/.coding-hermes/board/tasks.jsonl
+index ad2785c..61532a1 100644
+--- a/.coding-hermes/board/tasks.jsonl
++++ b/.coding-hermes/board/tasks.jsonl
+@@ -177,3 +177,5 @@
+ {"id": "BOOT-1", "title": "P1: the long-run driver's default boot state is a DIFFERENT map position than every measured baseline", "status": "in_progress", "priority": "P1", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "long_run.py:47 hardcodes BOOT = data/boot.state. Probed with the project's own validator (long_run.probe_state): data/boot.state reads map 'Oak's Lab' (id 40) while data/baselines/base-1_boot.state reads 'Pallet Town' (id 0, md5 81e4ec4e8d1b62002bc78f619c5fc79c) — and Pallet Town is the state CTRL-WIN, DIST-1 and BASE-1 were all measured on. So a run launched the obvious way starts ~a whole map earlier and is silently incomparable to every number in data/baselines/, which is exactly the class of error that makes two runs look different for reasons that are not the agent. Compounding it: long_run.py passes no decision-mode flag to cron_runner.py (it invokes only --run-id, --cycles, --boot-state), so the arm a run used exists only in an ambient env var and is not recoverable from the run's own record. Worked around today by seeding long_run/<RUN_ID>_good.state from the canonical state and setting AIPP_DECISION_MODE explicitly — but that is operator discipline, not a property of the driver. Done-when: the driver takes the boot state and the decision mode as explicit arguments (or env with a loud default) and stamps BOTH into the run's status row and per-episode records, so a run cannot be launched from an unintended state or in an unrecorded arm.", "created_at": "2026-09-27T21:06:10.988705+00:00", "worktree": "/home/kara/worktrees/ai-plays-poke-BOOT-1", "branch": "wt/BOOT-1", "worker_model": "glm-5.3-flash", "worker_provider": "xkiro"}
+ {"id": "EFF-1", "title": "P2: autonomy is 1.00 but the agent burned 8 episodes inside Red's House 1F — measure efficiency, not just escalation", "status": "pending", "priority": "P2", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "The pure-LLM run long_0927_llm posted 594 decisions with 0 escalations and 0 errors, and the honest autonomy ratio reads 1.00 — while per-episode final maps show ep001-ep008 ALL ended in 'Red's House 1F', the starting house. Eight episodes (about 19 minutes) to walk out of a two-room building, with every decision counted as an unaided success. The autonomy metric is blind to this: a loop that re-decides the same wrong thing scores exactly as well as efficient progress. DIST-1 saw the mirror image (controller reaches Route 1 then wanders back; held only 4/6) and reported direction-locking at 41% of cycles. Done-when: runs report cycle-efficiency (decisions per map transition, and repeated-state/backtrack rate) alongside autonomy, so 'decided unaided' cannot be reported without 'and moved': the S0 baseline's 786.1 escalations-per-transition is the number this must be compared against.", "created_at": "2026-09-27T21:06:10.988705+00:00"}
+ {"id": "LLM-HOLD-1", "title": "GOAL-1 verified complete — pure-LLM arm HELD Viridian City for 10 cycles at an episode end", "status": "complete", "priority": "P1", "complexity": 1, "depends_on": [], "blocks": ["ARM-1"], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "VERIFIED 2026-09-27. The ladder is complete under HOLD semantics: the agent left Pallet Town, crossed Route 1, entered Viridian City and STAYED there to the end of an episode. EVIDENCE (raw run log, not a flag): cron_logs/run_long_0927_llm2_ep028.jsonl reads map_name 'Viridian City' at cycles 2, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 — a one-cycle glimpse at c2, then TEN CONSECUTIVE CYCLES from c21 through the episode end (c30), so final_map = 'Viridian City'. Run tally: long_0927_llm2, 28 episodes, 72.9 min, 757 decisions, 6 escalations, 0 teacher calls. The prior segment (long_0927_llm, 21 episodes, 49.9 min) had ZERO episodes ending in Viridian City — its 'goal' fired on the c2 glimpse and halted a 4h window at 54 min, which is why the goal rule was changed to a hold (f4d51a4) before this result could be claimed. COMPARISON, same canonical boot state (Pallet Town, md5 81e4ec4e): the JEV hybrid over 480 episodes on 2026-09-26 reached Route 1 ONCE around episode 202 (and only because OR_JEV was 403-ing) and never reached Viridian City. This is the first verified completion of GOAL-1. WHAT IT DOES NOT CLAIM: efficiency. It took roughly 49 episodes across two segments to get here, and the agent enters Viridian at c2 and leaves again for ~19 cycles before committing (EFF-1 tracks this). One error was tallied in totals; it did not surface in any episode log's error field, so it is unlocated rather than explained.", "created_at": "2026-09-27T21:37:12.417208+00:00"}
++{"id": "SETTLE-1", "title": "P2: verify the 15-frame step settle across terrain — 1 frame of margin, and a mid-step sample silently inverts state_changed", "status": "pending", "priority": "P2", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "Found by playing the game through the new bridge rather than reading the loop. Pressing DOWN (ROM: walkable) with an 8-frame wait returned state_changed=False and the player did not appear to move; the NEXT press (UP, ROM: blocked) then reported state_changed=True with the tile moving y+1, i.e. DOWNWARD. That is the mid-step sample: the step started by the previous press completes during the following press's wait, so each press's state_changed is read against the wrong frame and can invert a blocked direction into a move. Re-running with a poll-until-is_moving()-is-false settle measured the walk completing in 14 frames, while the genuinely blocked UP settled in 2 (no walk ever started). So the code under test is NOT at fault: cron_runner.py:720-721 sets PRESS_FRAMES=5 + STEP_FORWARD=15 with the comment 'settle without triggering D-pad key repeat', applied in the main loop at :5036-5037, and 15 frames covers a 14-frame walk. My bridge's 8-frame wait was the bug and is fixed (scripts/ dropped to poll is_moving() with a 40x2 frame cap, settle reported back in the response). THE RESIDUAL RISK, which is why this row exists: 15 is exactly 1 frame above the measured settle on Pallet Town grass. Any longer transition animation — a ledge hop, stairs, a door warp, surf — could exceed 15 frames, and the failure mode is silent and plausible: the loop reads a real move as a failed one (or vice versa) and its blocked-direction logic goes wrong. That is a candidate contributor to the direction-locking DIST-1 logged at 41% of cycles and to the 8 episodes spent inside Red's House 1F. Done-when: settle time is measured on at least a ledge, a stairway and a door transition; STEP_FORWARD is either confirmed with real margin on each, or replaced by polling is_moving() so the wait adapts to the animation instead of assuming it.", "created_at": "2026-09-27T22:06:16.943492+00:00"}
++{"id": "PLAY-1", "title": "P2: keep the session-scoped live-play bridge — it is how a human and the agent can inspect the model's real input together", "status": "pending", "priority": "P2", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "New surface, added because reviewing the model's judgement from outside its inputs was guesswork. scripts/game_bridge.py boots one emulator and serves the SAME text the decision model receives — RAMReader.observe() (src/core/ram_reader.py:1604) rendered by state_projection.build() (src/core/state_projection.py:102) with the same DEFAULT_MECHANICS and the same cross-cycle material — over loopback, and applies button presses. scripts/play.py is the client. VERIFIED LIVE: observe returns the identical 1233-character projection (GAME/MAP/PLAYER TILE/PARTY/SCREEN/TOPOLOGY from ROM collision truth/ADJACENT TERRAIN/LOCAL COLLISION MAP/VISIBLE EXITS/TILES VISITED/RECENT EVENTS/GOAL/MECHANICS); press moves the player and reports before/after; save and load work; frame capture writes a PNG. Cross-checked against the pixels: the captured frame shows a large building directly north of the player, which is exactly why the ROM reports UP=blocked — text and image agree. ACCESS MODEL, and it must stay this way: off by default; NOT a Hermes plugin and nothing autostarts it, so no other session inherits it; binds 127.0.0.1 only; refuses to boot without a token file; refuses a token file that is group- or world-readable; every request must carry the token and is compared with secrets.compare_digest. Verified the negative: a request with no token returns {\"ok\": false, \"error\": \"unauthorized\"}. Enabling is per session — mint ~/.hermes/aipp_bridge/session.token (0600), start the bridge, done; revoke by killing the process and deleting the token. Done-when: the enable/revoke steps are written into the repo docs, and the bridge is referenced from the agentic-harness spec as the operator's input-side inspection tool. Explicitly NOT done-when-it-would-be-tempting: this must never become a public or globally-available tool surface.", "created_at": "2026-09-27T22:06:16.943492+00:00"}
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index e4bcf2c..bfe4a08 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -908,3 +908,43 @@ tasks:
+   status: complete
+   created_at: '2026-09-27T13:47:26.258632+00:00'
+   completed_at: '2026-09-27T14:37:34.077285+00:00'
++- id: REVIEW-2
++  title: REVIEW-2
++  criteria:
++  - worker completes the board row acceptance criteria; full suite green on merged
++    main
++  status: complete
++  created_at: '2026-09-27T20:25:16.915260+00:00'
++  completed_at: '2026-09-27T21:45:10.952640+00:00'
++- id: REVIEW-3
++  title: REVIEW-3
++  criteria:
++  - worker completes the board row acceptance criteria; full suite green on merged
++    main
++  status: complete
++  created_at: '2026-09-27T20:25:17.252829+00:00'
++  completed_at: '2026-09-27T21:24:38.593480+00:00'
++- id: PERF-4
++  title: PERF-4
++  criteria:
++  - worker completes the board row acceptance criteria; full suite green on merged
++    main
++  status: complete
++  created_at: '2026-09-27T20:25:17.601940+00:00'
++  completed_at: '2026-09-27T21:08:49.933459+00:00'
++- id: BOOT-1
++  title: long-run default boot state = measured Pallet Town baseline + explicit decision-mode
++    passthrough
++  criteria:
++  - worker completes the board row acceptance criteria; full suite green on merged
++    main
++  status: in_progress
++  created_at: '2026-09-27T21:49:49.635918+00:00'
++- id: REPORT-1
++  title: hourly report names the actual decision actor and stops inventing ladder
++    blockers
++  criteria:
++  - report output names the active arm from decision_mode and presents the ladder
++    as display-only; verified against a real llm-mode run
++  status: in_progress
++  created_at: '2026-09-27T21:49:49.825592+00:00'
+diff --git a/scripts/game_bridge.py b/scripts/game_bridge.py
+new file mode 100644
+index 0000000..9bb086e
+--- /dev/null
++++ b/scripts/game_bridge.py
+@@ -0,0 +1,266 @@
++#!/usr/bin/env python3
++"""ai-plays-poke game bridge: let a human+agent play the live game, cycle by cycle.
++
++WHY THIS EXISTS
++    The decision model sees a bounded text projection of a live RAM snapshot and
++    answers with a button plan. To review its judgement from the inside, the
++    operator needs the SAME text, not a paraphrase. This bridge boots one
++    emulator, keeps it alive, and serves exactly the projection and observation
++    the game loop builds:
++
++        obs        = RAMReader.observe()                 (src/core/ram_reader.py:1604)
++        projection = state_projection.build(obs, ...)    (src/core/state_projection.py:102)
++
++    Same call, same mechanics list, same cross-cycle material, so what this
++    prints is what the model was given.
++
++ACCESS MODEL (deliberate)
++    Off by default. Nothing autostarts it and it is not a Hermes plugin, so a
++    session does not inherit it. It refuses to boot without a token file, binds
++    loopback ONLY, and every request must carry the token. A session that has no
++    token simply cannot talk to it. Enable per session, revoke by killing the
++    process and deleting the token.
++
++USAGE
++    python3 scripts/game_bridge.py --token-file <path> [--port N] [--boot-state P]
++    python3 scripts/play.py observe            # via the client
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import os
++import secrets
++import socket
++import sys
++import threading
++import time
++from pathlib import Path
++
++REPO = Path(__file__).resolve().parent.parent
++sys.path.insert(0, str(REPO))
++
++ROM = REPO / "data" / "rom" / "Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
++FRAME_DIR = REPO / "play_frames"
++BUTTONS = {"a", "b", "start", "select", "up", "down", "left", "right"}
++
++
++class Game:
++    """One persistent emulator + reader, the same objects the game loop uses."""
++
++    def __init__(self, boot_state: str | None) -> None:
++        from src.core.emulator import Emulator
++        from src.core.ram_reader import RAMReader
++        from src.core import state_projection
++
++        self.state_projection = state_projection
++        self.emu = Emulator(str(ROM))
++        self.reader = RAMReader(self.emu, str(ROM))
++        self.boot_state = boot_state
++        if boot_state and boot_state != "skip":
++            self.emu.load_state(str(boot_state))
++            self.emu.tick(30)
++        # cross-cycle material the game loop owns (kept so the text matches)
++        self.goal = os.environ.get(
++            "AIPP_PLAY_GOAL", "Explore and make progress; the operator is watching."
++        )
++        self.visited: dict[str, int] = {}
++        self.events: list[str] = []
++        self.last_action = ""
++        self.last_changed: bool | None = None
++        self.cycles = 0
++        FRAME_DIR.mkdir(exist_ok=True)
++
++    # ---- observation -------------------------------------------------
++    def observe(self) -> dict:
++        obs = self.reader.observe()
++        proj = self.state_projection.build(
++            obs,
++            goal=self.goal,
++            visited=self.visited,
++            recent_events=self.events[-12:],
++            last_action=self.last_action,
++            last_action_changed_state=self.last_changed,
++            mechanics=self.state_projection.DEFAULT_MECHANICS,
++            extra_facts=None,
++        )
++        key = f"{obs.get('map_id')}:{obs.get('player_tile_x')},{obs.get('player_tile_y')}"
++        self.visited[key] = self.visited.get(key, 0) + 1
++        return {
++            "ok": True,
++            "cycle": self.cycles,
++            "projection": proj,
++            "map_name": obs.get("map_name"),
++            "map_id": obs.get("map_id"),
++            "screen": obs.get("result"),
++            "player": [obs.get("player_tile_x"), obs.get("player_tile_y")],
++            "facing": obs.get("player_facing"),
++            "party": obs.get("party_count"),
++            "species": obs.get("first_party_species"),
++            "adjacent_walkability": obs.get("adjacent_walkability"),
++            "visible_exits": obs.get("visible_exits"),
++            "projection_chars": len(proj),
++            "obs_keys": sorted(obs.keys()),
++        }
++
++    # ---- acting ------------------------------------------------------
++    def press(self, buttons: list[str], frames: int = 5) -> dict:
++        bad = [b for b in buttons if b.lower() not in BUTTONS]
++        if bad:
++            return {"ok": False, "error": f"unknown buttons {bad}; valid {sorted(BUTTONS)}"}
++        before = self.reader.current_map_name(), self.reader.player_tile_x(), self.reader.player_tile_y()
++        settled: list[int] = []
++        for b in buttons:
++            self.emu.press_button(b.lower(), frames=frames)
++            # Gen 1 walk steps take ~16 frames and the tile coordinate updates
++            # part-way through the animation, so sampling immediately reports a
++            # half-finished step: `state_changed` then lags one press behind and
++            # a blocked direction can look like a move. Hold the sample until the
++            # player stops moving, exactly as a human holds the d-pad. Found by
++            # pressing DOWN (walkable) -> no change, then UP -> a downward move.
++            waited = 0
++            for _ in range(40):
++                self.emu.tick(2)
++                waited += 2
++                if not self.reader.is_moving():
++                    break
++            settled.append(waited)
++        after = self.reader.current_map_name(), self.reader.player_tile_x(), self.reader.player_tile_y()
++        self.cycles += len(buttons)
++        self.last_action = "+".join(b.upper() for b in buttons)
++        self.last_changed = after != before
++        self.events.append(f"cycle {self.cycles}: pressed {self.last_action} -> moved={self.last_changed}")
++        out = self.observe()
++        out["pressed"] = [b.upper() for b in buttons]
++        out["state_changed"] = self.last_changed
++        out["before"] = list(before)
++        out["after"] = list(after)
++        out["settled_frames"] = settled
++        return out
++
++    def step(self, n: int) -> dict:
++        self.emu.tick(n)
++        self.cycles += 1
++        self.events.append(f"cycle {self.cycles}: waited {n} frames")
++        return self.observe()
++
++    def save(self, slot: str) -> dict:
++        p = REPO / "play_states" / f"{slot}.state"
++        p.parent.mkdir(exist_ok=True)
++        self.emu.save_state(str(p))
++        return {"ok": True, "saved": str(p), "bytes": p.stat().st_size}
++
++    def load(self, slot: str) -> dict:
++        p = REPO / "play_states" / f"{slot}.state"
++        if not p.exists():
++            return {"ok": False, "error": f"no such state {p}"}
++        self.emu.load_state(str(p))
++        self.emu.tick(20)
++        return self.observe()
++
++    def frame(self, label: str = "now") -> dict:
++        from PIL import Image
++
++        arr = self.emu.capture()
++        p = FRAME_DIR / f"{label}.png"
++        Image.fromarray(arr).save(p)
++        return {"ok": True, "frame": str(p), "size": list(arr.shape[:2][::-1])}
++
++    def health(self) -> dict:
++        return {"ok": True, "rom": str(ROM), "boot_state": self.boot_state,
++                "goal": self.goal, "cycles": self.cycles,
++                "map": self.reader.current_map_name()}
++
++
++def serve(game: Game, token: str, port: int, log):
++    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
++    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
++    srv.bind(("127.0.0.1", port))          # loopback only, never 0.0.0.0
++    srv.listen(16)
++    log(f"listening on 127.0.0.1:{port} (loopback only); token required on every request")
++    while True:
++        conn, _ = srv.accept()
++        threading.Thread(target=handle, args=(conn, game, token, log), daemon=True).start()
++
++
++def handle(conn, game: Game, token: str, log):
++    with conn:
++        conn.settimeout(180)
++        buf = b""
++        try:
++            while b"\n" not in buf:
++                chunk = conn.recv(65536)
++                if not chunk:
++                    return
++                buf += chunk
++            line = buf.split(b"\n", 1)[0].decode()
++            req = json.loads(line)
++            if not secrets.compare_digest(str(req.get("token", "")), token):
++                conn.sendall((json.dumps({"ok": False, "error": "unauthorized"}) + "\n").encode())
++                log("REJECTED unauthorized request")
++                return
++            cmd = req.get("cmd")
++            if cmd == "health":
++                rep = game.health()
++            elif cmd == "observe":
++                rep = game.observe()
++            elif cmd == "press":
++                rep = game.press(req.get("buttons") or [], int(req.get("frames", 5)))
++            elif cmd == "step":
++                rep = game.step(int(req.get("n", 30)))
++            elif cmd == "save":
++                rep = game.save(str(req.get("slot", "slot1")))
++            elif cmd == "load":
++                rep = game.load(str(req.get("slot", "slot1")))
++            elif cmd == "frame":
++                rep = game.frame(str(req.get("label", "now")))
++            elif cmd == "goal":
++                game.goal = str(req.get("text") or game.goal)
++                rep = {"ok": True, "goal": game.goal}
++            else:
++                rep = {"ok": False, "error": f"unknown cmd {cmd!r}"}
++        except Exception as e:  # noqa: BLE001 - a bridge must not die on one bad request
++            rep = {"ok": False, "error": f"{type(e).__name__}: {e}"}
++        try:
++            conn.sendall((json.dumps(rep) + "\n").encode())
++        except Exception:
++            pass
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser()
++    ap.add_argument("--token-file", required=True,
++                    help="file holding the per-session token; must exist and be 0600")
++    ap.add_argument("--port", type=int, default=8770)
++    ap.add_argument("--boot-state", default=str(REPO / "data" / "baselines" / "base-1_boot.state"))
++    ap.add_argument("--log", default="/tmp/aipp_bridge.log")
++    a = ap.parse_args()
++
++    tf = Path(a.token_file)
++    if not tf.exists():
++        print(f"refusing to start: no token file at {tf}")
++        return 2
++    mode = tf.stat().st_mode & 0o777
++    if mode & 0o077:
++        print(f"refusing to start: {tf} mode {oct(mode)} is group/world readable (want 0600)")
++        return 2
++    token = tf.read_text().strip()
++    if len(token) < 24:
++        print("refusing to start: token too short")
++        return 2
++
++    def log(m: str) -> None:
++        line = f"[{time.strftime('%H:%M:%S')}] {m}"
++        print(line, flush=True)
++        with open(a.log, "a") as fh:
++            fh.write(line + "\n")
++
++    log(f"booting emulator, boot_state={a.boot_state}")
++    game = Game(a.boot_state)
++    log(f"ready: map={game.reader.current_map_name()} screen={game.reader.screen_type()}")
++    serve(game, token, a.port, log)
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/play.py b/scripts/play.py
+new file mode 100644
+index 0000000..533053a
+--- /dev/null
++++ b/scripts/play.py
+@@ -0,0 +1,108 @@
++#!/usr/bin/env python3
++"""Client for the ai-plays-poke game bridge.
++
++Reads the session token from $AIPP_BRIDGE_TOKEN_FILE (or --token-file), sends one
++command, and prints the state in a form an agent can read directly.
++
++    python3 scripts/play.py observe
++    python3 scripts/play.py press UP UP UP
++    python3 scripts/play.py step 30
++    python3 scripts/play.py frame step007
++    python3 scripts/play.py save checkpoint1
++    python3 scripts/play.py load checkpoint1
++    python3 scripts/play.py goal "walk north out of Pallet Town"
++    python3 scripts/play.py health
++
++The bridge is loopback-only and every request carries the session token, so this
++works only while a bridge is running for THIS session and this process can read
++the token file.
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import os
++import socket
++import sys
++from pathlib import Path
++
++DEFAULT_TOKEN_FILE = Path.home() / ".hermes" / "aipp_bridge" / "session.token"
++PORT = int(os.environ.get("AIPP_BRIDGE_PORT", "8770"))
++
++
++def call(req: dict) -> dict:
++    tf = Path(os.environ.get("AIPP_BRIDGE_TOKEN_FILE", str(DEFAULT_TOKEN_FILE)))
++    if not tf.exists():
++        return {"ok": False, "error": f"no session token at {tf} — the bridge is off for this session"}
++    req["token"] = tf.read_text().strip()
++    s = socket.create_connection(("127.0.0.1", PORT), timeout=180)
++    with s:
++        s.sendall((json.dumps(req) + "\n").encode())
++        buf = b""
++        while b"\n" not in buf:
++            chunk = s.recv(65536)
++            if not chunk:
++                break
++            buf += chunk
++    return json.loads(buf.split(b"\n", 1)[0].decode())
++
++
++def render(r: dict) -> str:
++    if not r.get("ok"):
++        return f"ERROR: {r.get('error')}"
++    out = []
++    if "map_name" in r:
++        out.append(f"MAP: {r.get('map_name')} (id {r.get('map_id')})   "
++                   f"SCREEN: {r.get('screen')}   TILE: {r.get('player')}   FACING: {r.get('facing')}")
++        out.append(f"PARTY: {r.get('party')} ({r.get('species')})   cycle: {r.get('cycle')}")
++        if "pressed" in r:
++            out.append(f"PRESSED: {' '.join(r['pressed'])}   state_changed: {r.get('state_changed')}")
++            out.append(f"  before {r.get('before')} -> after {r.get('after')}")
++            if r.get("settled_frames"):
++                out.append(f"  settled after {r['settled_frames']} frames (waiting for the walk to finish)")
++        adj = r.get("adjacent_walkability")
++        if adj:
++            out.append(f"ADJACENT WALKABILITY: {adj}")
++        ex = r.get("visible_exits")
++        if ex:
++            out.append(f"VISIBLE EXITS: {ex}")
++        if r.get("projection"):
++            out.append("")
++            out.append(f"--- what the model sees ({r.get('projection_chars')} chars) ---")
++            out.append(r["projection"])
++            out.append("--- end projection ---")
++    if "frame" in r:
++        out.append(f"FRAME: {r['frame']}")
++    if "saved" in r:
++        out.append(f"SAVED: {r['saved']} ({r['bytes']} bytes)")
++    if "goal" in r:
++        out.append(f"GOAL: {r['goal']}")
++    if r.get("rom"):
++        out.append(f"BRIDGE UP · rom={r['rom']} boot={r.get('boot_state')} "
++                   f"cycles={r.get('cycles')} map={r.get('map')}")
++    return "\n".join(out)
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser()
++    ap.add_argument("cmd", choices=["observe", "press", "step", "frame", "save", "load", "goal", "health"])
++    ap.add_argument("args", nargs="*")
++    a = ap.parse_args()
++    if a.cmd == "press":
++        req = {"cmd": "press", "buttons": [x.upper() for x in a.args]}
++    elif a.cmd == "step":
++        req = {"cmd": "step", "n": int(a.args[0]) if a.args else 30}
++    elif a.cmd == "frame":
++        req = {"cmd": "frame", "label": a.args[0] if a.args else "now"}
++    elif a.cmd in ("save", "load"):
++        req = {"cmd": a.cmd, "slot": a.args[0] if a.args else "slot1"}
++    elif a.cmd == "goal":
++        req = {"cmd": "goal", "text": " ".join(a.args)}
++    else:
++        req = {"cmd": a.cmd}
++    print(render(call(req)))
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())

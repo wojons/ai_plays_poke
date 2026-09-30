@@ -1,0 +1,121 @@
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index e7a3e62..8bfe6c1 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -362,3 +362,7 @@
+ {"id": 321, "ts": "2026-09-27 21:35:00", "event": "task_completed", "actor": "foreman", "summary": "T263 wave tick ai-plays-poke-2026-09-27-20-18-55: 3-wave dispatch REVIEW-2/REVIEW-3/PERF-4 (worktrees wt/*, base f4d51a4) all merged to main and pushed (c91b33e, c9d3142 + f4d51a4 long_run goal-hold fix committed foreman-direct). Full suite 4285 passed/14 skipped on merged main; ruff+mypy clean; gitreins verdicts: PERF-4 tier2 PASS (71898ade), REVIEW-3 completed (verdict artifact cut by GITR-JUDGE-001-style tier2 watcher hang kill; work verified live), REVIEW-2 worker gates green. BOARD-HYG-1 defect2 fixed (QA-AI-PLAYS-POKE-10 status open->pending). CI was green 3/3 at tick start; check post-push runs."}
+ {"ts": "2026-09-27 21:37:12", "event": "milestone", "id": "LLM-HOLD-1", "summary": "GOAL-1 COMPLETE — first verified hold of Viridian City. long_0927_llm2 ep028 read 'Viridian City' at cycles 21-30 consecutively and ended the episode there, so the goal is met under the corrected HOLD rule (f4d51a4). Pure-LLM arm throughout: 757 decisions, 6 escalations, 0 teacher calls, no JEV in the path. The 2026-09-26 JEV-hybrid run went 480 episodes without reaching Viridian. Caveat carried, not buried: this proves the ladder is climbable, NOT that the route is efficient — ~49 episodes across two segments, and the agent still enters Viridian at c2 and backs out for ~19 cycles before committing."}
+ {"id": 322, "ts": "2026-09-27 22:10:00", "event": "task_pick", "actor": "foreman", "task": "BOOT-1", "summary": "Wave tick ai-plays-poke-2026-09-27-21-43-32: recovery of the 20-18-55 wave done first (all 3 legs already merged in T263; gates re-verified ruff/mypy/PASS judge; 9 wt worktrees+branches removed; manifest closed). New wave budget 9, composed 2 independent legs: BOOT-1 (wt/BOOT-1, worktree ai-plays-poke-BOOT-1, glm-5.3-flash@xkiro) and REPORT-1 (wt/REPORT-1, worktree ai-plays-poke-REPORT-1, glm-5.3-flash@xkiro, target is host script ~/.hermes/scripts/aipp_hourly_facts.py). DOC-1 excluded: premise stale ('read-only GET' no longer exists in repo or usage skill)."}
++{"ts": "2026-09-27 22:06:16", "event": "note", "id": "SETTLE-1", "summary": "PLAYED THE GAME, FILED WHAT IT TAUGHT. Wired a session-scoped bridge that serves the exact state_projection text the decision model receives, then pressed buttons through it. The first thing playing taught me was that my own bridge was sampling mid-step: an 8-frame wait reported DOWN (walkable) as no-change and then UP (blocked) as a downward move. Polling until the player stops moving measured the real walk at 14 frames and the blocked press at 2 — and showed the AGENT is correct where I was wrong (cron_runner.py:720-721,5,036-5,037 use PRESS_FRAMES=5 + STEP_FORWARD=15). Filed SETTLE-1 for the residue: 15 is one frame above the measured settle, so a longer animation (ledge/stairs/door/surf) could silently invert the state_changed signal the loop reads — a candidate contributor to DIST-1's 41% direction-locking and the 8 episodes stuck in Red's House 1F. Filed PLAY-1 to keep the bridge and pin its access model: loopback only, token required, off by default, never a global tool."}
++{"ts": null, "event": null, "id": 323, "summary": null, "timestamp": "2026-09-27T22:25:13.906318+00:00", "event_type": "task_created", "task_id": "REV-1", "actor": "foreman", "detail": "{\"id\":\"REV-1\",\"status\":\"pending\"}"}
++{"ts": null, "event": null, "id": 324, "summary": null, "timestamp": "2026-09-27T22:25:18.897578+00:00", "event_type": "task_created", "task_id": "REV-2", "actor": "foreman", "detail": "{\"id\":\"REV-2\",\"status\":\"pending\"}"}
++{"ts": null, "event": null, "id": 325, "summary": null, "timestamp": "2026-09-27T22:25:18.916389+00:00", "event_type": "task_created", "task_id": "REV-3", "actor": "foreman", "detail": "{\"id\":\"REV-3\",\"status\":\"pending\"}"}
+diff --git a/.coding-hermes/board/tasks.jsonl b/.coding-hermes/board/tasks.jsonl
+index ad2785c..622268c 100644
+--- a/.coding-hermes/board/tasks.jsonl
++++ b/.coding-hermes/board/tasks.jsonl
+@@ -177,3 +177,8 @@
+ {"id": "BOOT-1", "title": "P1: the long-run driver's default boot state is a DIFFERENT map position than every measured baseline", "status": "in_progress", "priority": "P1", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "long_run.py:47 hardcodes BOOT = data/boot.state. Probed with the project's own validator (long_run.probe_state): data/boot.state reads map 'Oak's Lab' (id 40) while data/baselines/base-1_boot.state reads 'Pallet Town' (id 0, md5 81e4ec4e8d1b62002bc78f619c5fc79c) — and Pallet Town is the state CTRL-WIN, DIST-1 and BASE-1 were all measured on. So a run launched the obvious way starts ~a whole map earlier and is silently incomparable to every number in data/baselines/, which is exactly the class of error that makes two runs look different for reasons that are not the agent. Compounding it: long_run.py passes no decision-mode flag to cron_runner.py (it invokes only --run-id, --cycles, --boot-state), so the arm a run used exists only in an ambient env var and is not recoverable from the run's own record. Worked around today by seeding long_run/<RUN_ID>_good.state from the canonical state and setting AIPP_DECISION_MODE explicitly — but that is operator discipline, not a property of the driver. Done-when: the driver takes the boot state and the decision mode as explicit arguments (or env with a loud default) and stamps BOTH into the run's status row and per-episode records, so a run cannot be launched from an unintended state or in an unrecorded arm.", "created_at": "2026-09-27T21:06:10.988705+00:00", "worktree": "/home/kara/worktrees/ai-plays-poke-BOOT-1", "branch": "wt/BOOT-1", "worker_model": "glm-5.3-flash", "worker_provider": "xkiro"}
+ {"id": "EFF-1", "title": "P2: autonomy is 1.00 but the agent burned 8 episodes inside Red's House 1F — measure efficiency, not just escalation", "status": "pending", "priority": "P2", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "The pure-LLM run long_0927_llm posted 594 decisions with 0 escalations and 0 errors, and the honest autonomy ratio reads 1.00 — while per-episode final maps show ep001-ep008 ALL ended in 'Red's House 1F', the starting house. Eight episodes (about 19 minutes) to walk out of a two-room building, with every decision counted as an unaided success. The autonomy metric is blind to this: a loop that re-decides the same wrong thing scores exactly as well as efficient progress. DIST-1 saw the mirror image (controller reaches Route 1 then wanders back; held only 4/6) and reported direction-locking at 41% of cycles. Done-when: runs report cycle-efficiency (decisions per map transition, and repeated-state/backtrack rate) alongside autonomy, so 'decided unaided' cannot be reported without 'and moved': the S0 baseline's 786.1 escalations-per-transition is the number this must be compared against.", "created_at": "2026-09-27T21:06:10.988705+00:00"}
+ {"id": "LLM-HOLD-1", "title": "GOAL-1 verified complete — pure-LLM arm HELD Viridian City for 10 cycles at an episode end", "status": "complete", "priority": "P1", "complexity": 1, "depends_on": [], "blocks": ["ARM-1"], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "VERIFIED 2026-09-27. The ladder is complete under HOLD semantics: the agent left Pallet Town, crossed Route 1, entered Viridian City and STAYED there to the end of an episode. EVIDENCE (raw run log, not a flag): cron_logs/run_long_0927_llm2_ep028.jsonl reads map_name 'Viridian City' at cycles 2, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 — a one-cycle glimpse at c2, then TEN CONSECUTIVE CYCLES from c21 through the episode end (c30), so final_map = 'Viridian City'. Run tally: long_0927_llm2, 28 episodes, 72.9 min, 757 decisions, 6 escalations, 0 teacher calls. The prior segment (long_0927_llm, 21 episodes, 49.9 min) had ZERO episodes ending in Viridian City — its 'goal' fired on the c2 glimpse and halted a 4h window at 54 min, which is why the goal rule was changed to a hold (f4d51a4) before this result could be claimed. COMPARISON, same canonical boot state (Pallet Town, md5 81e4ec4e): the JEV hybrid over 480 episodes on 2026-09-26 reached Route 1 ONCE around episode 202 (and only because OR_JEV was 403-ing) and never reached Viridian City. This is the first verified completion of GOAL-1. WHAT IT DOES NOT CLAIM: efficiency. It took roughly 49 episodes across two segments to get here, and the agent enters Viridian at c2 and leaves again for ~19 cycles before committing (EFF-1 tracks this). One error was tallied in totals; it did not surface in any episode log's error field, so it is unlocated rather than explained.", "created_at": "2026-09-27T21:37:12.417208+00:00"}
++{"id": "SETTLE-1", "title": "P2: verify the 15-frame step settle across terrain — 1 frame of margin, and a mid-step sample silently inverts state_changed", "status": "pending", "priority": "P2", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "Found by playing the game through the new bridge rather than reading the loop. Pressing DOWN (ROM: walkable) with an 8-frame wait returned state_changed=False and the player did not appear to move; the NEXT press (UP, ROM: blocked) then reported state_changed=True with the tile moving y+1, i.e. DOWNWARD. That is the mid-step sample: the step started by the previous press completes during the following press's wait, so each press's state_changed is read against the wrong frame and can invert a blocked direction into a move. Re-running with a poll-until-is_moving()-is-false settle measured the walk completing in 14 frames, while the genuinely blocked UP settled in 2 (no walk ever started). So the code under test is NOT at fault: cron_runner.py:720-721 sets PRESS_FRAMES=5 + STEP_FORWARD=15 with the comment 'settle without triggering D-pad key repeat', applied in the main loop at :5036-5037, and 15 frames covers a 14-frame walk. My bridge's 8-frame wait was the bug and is fixed (scripts/ dropped to poll is_moving() with a 40x2 frame cap, settle reported back in the response). THE RESIDUAL RISK, which is why this row exists: 15 is exactly 1 frame above the measured settle on Pallet Town grass. Any longer transition animation — a ledge hop, stairs, a door warp, surf — could exceed 15 frames, and the failure mode is silent and plausible: the loop reads a real move as a failed one (or vice versa) and its blocked-direction logic goes wrong. That is a candidate contributor to the direction-locking DIST-1 logged at 41% of cycles and to the 8 episodes spent inside Red's House 1F. Done-when: settle time is measured on at least a ledge, a stairway and a door transition; STEP_FORWARD is either confirmed with real margin on each, or replaced by polling is_moving() so the wait adapts to the animation instead of assuming it.", "created_at": "2026-09-27T22:06:16.943492+00:00"}
++{"id": "PLAY-1", "title": "P2: keep the session-scoped live-play bridge — it is how a human and the agent can inspect the model's real input together", "status": "pending", "priority": "P2", "complexity": 2, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "New surface, added because reviewing the model's judgement from outside its inputs was guesswork. scripts/game_bridge.py boots one emulator and serves the SAME text the decision model receives — RAMReader.observe() (src/core/ram_reader.py:1604) rendered by state_projection.build() (src/core/state_projection.py:102) with the same DEFAULT_MECHANICS and the same cross-cycle material — over loopback, and applies button presses. scripts/play.py is the client. VERIFIED LIVE: observe returns the identical 1233-character projection (GAME/MAP/PLAYER TILE/PARTY/SCREEN/TOPOLOGY from ROM collision truth/ADJACENT TERRAIN/LOCAL COLLISION MAP/VISIBLE EXITS/TILES VISITED/RECENT EVENTS/GOAL/MECHANICS); press moves the player and reports before/after; save and load work; frame capture writes a PNG. Cross-checked against the pixels: the captured frame shows a large building directly north of the player, which is exactly why the ROM reports UP=blocked — text and image agree. ACCESS MODEL, and it must stay this way: off by default; NOT a Hermes plugin and nothing autostarts it, so no other session inherits it; binds 127.0.0.1 only; refuses to boot without a token file; refuses a token file that is group- or world-readable; every request must carry the token and is compared with secrets.compare_digest. Verified the negative: a request with no token returns {\"ok\": false, \"error\": \"unauthorized\"}. Enabling is per session — mint ~/.hermes/aipp_bridge/session.token (0600), start the bridge, done; revoke by killing the process and deleting the token. Done-when: the enable/revoke steps are written into the repo docs, and the bridge is referenced from the agentic-harness spec as the operator's input-side inspection tool. Explicitly NOT done-when-it-would-be-tempting: this must never become a public or globally-available tool surface.", "created_at": "2026-09-27T22:06:16.943492+00:00"}
++{"id": "REV-1", "title": "cron_runner has no no-key/stub path — fresh-clone first run crashes with unhandled ValueError", "status": "pending", "priority": "P2", "complexity": 3, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "cron_runner.py (the README sole recommended entry point) has no no-key or stub path. A fresh clone with no OPENROUTER_API_KEY crashes: ValueError OpenRouter API key not found, raised at src/core/ai_client.py line 548 from cron_runner.py line 3984, exit 1, AFTER printing Booting from checkpoint and Starting run banners. README lines 448-455 and .env.example both promise stub mode when no key is set, but that stub path exists only in the legacy src/game_loop.py path, not cron_runner. Verified live: clone at 1668362, no .env, python3 cron_runner.py --cycles 3 -> crash. With a present-but-invalid key the run degrades gracefully (teacher 401 falls back to JEV action), so the gap is specifically the absent-key path.", "created_at": "2026-09-27T22:25:13.899717+00:00", "updated_at": "2026-09-27T22:25:13.899717+00:00", "detail": {"fingerprint": "2307d7a060d51d0a998f9ada8d1a24682a4eb8d9155da266dffe208c1966099c"}}
++{"id": "REV-2", "title": "Runtime dependency manifest drift: pyproject.toml omits numpy/Pillow/opencv/fastapi/uvicorn/websockets/psutil/requests", "status": "pending", "priority": "P2", "complexity": 3, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "Runtime dependency manifests drift. pyproject.toml [project].dependencies (10 packages) omits numpy, Pillow, opencv-python, fastapi, uvicorn, websockets, psutil, and requests, all imported at runtime (cron_runner imports numpy at module level). requirements.txt (14 packages) carries them but omits openai, streamlit, pandas, matplotlib that pyproject declares. test_requirements_parity.py asserts only DEV-extras parity; runtime parity is untested. pip install . (the modern front door) yields a runner that crashes on import with ModuleNotFoundError numpy. A drift test covering runtime deps would close the gap.", "created_at": "2026-09-27T22:25:18.891532+00:00", "updated_at": "2026-09-27T22:25:18.891532+00:00", "detail": {"fingerprint": "aefba5358ffa3ff583265b1a43acb159c3c0e375f0d62fa590821f46b8b61ed0"}}
++{"id": "REV-3", "title": "README How to Test numbers are stale (test count and fast-tier timing)", "status": "pending", "priority": "P3", "complexity": 3, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "README How to Test numbers are stale. Claims ~3878 passed / 8 skipped in ~65-90s for the fast tier; measured 4229 passed / 8 skipped / 62 deselected in 189.95s at HEAD 1668362. Minor, but the README is the first-run contract.", "created_at": "2026-09-27T22:25:18.911408+00:00", "updated_at": "2026-09-27T22:25:18.911408+00:00", "detail": {"fingerprint": "94471ef81cc43c7418c953a81c1f4f75778d326dca7b3788054a4a830b079487"}}
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index e4bcf2c..e546c12 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -908,3 +908,44 @@ tasks:
+   status: complete
+   created_at: '2026-09-27T13:47:26.258632+00:00'
+   completed_at: '2026-09-27T14:37:34.077285+00:00'
++- id: REVIEW-2
++  title: REVIEW-2
++  criteria:
++  - worker completes the board row acceptance criteria; full suite green on merged
++    main
++  status: complete
++  created_at: '2026-09-27T20:25:16.915260+00:00'
++  completed_at: '2026-09-27T21:45:10.952640+00:00'
++- id: REVIEW-3
++  title: REVIEW-3
++  criteria:
++  - worker completes the board row acceptance criteria; full suite green on merged
++    main
++  status: complete
++  created_at: '2026-09-27T20:25:17.252829+00:00'
++  completed_at: '2026-09-27T21:24:38.593480+00:00'
++- id: PERF-4
++  title: PERF-4
++  criteria:
++  - worker completes the board row acceptance criteria; full suite green on merged
++    main
++  status: complete
++  created_at: '2026-09-27T20:25:17.601940+00:00'
++  completed_at: '2026-09-27T21:08:49.933459+00:00'
++- id: BOOT-1
++  title: long-run default boot state = measured Pallet Town baseline + explicit decision-mode
++    passthrough
++  criteria:
++  - worker completes the board row acceptance criteria; full suite green on merged
++    main
++  status: complete
++  created_at: '2026-09-27T21:49:49.635918+00:00'
++  completed_at: '2026-09-27T22:37:09.834664+00:00'
++- id: REPORT-1
++  title: hourly report names the actual decision actor and stops inventing ladder
++    blockers
++  criteria:
++  - report output names the active arm from decision_mode and presents the ladder
++    as display-only; verified against a real llm-mode run
++  status: in_progress
++  created_at: '2026-09-27T21:49:49.825592+00:00'
+diff --git a/scripts/game_bridge.py b/scripts/game_bridge.py
+index a547ee6..b906271 100644
+--- a/scripts/game_bridge.py
++++ b/scripts/game_bridge.py
+@@ -189,6 +189,10 @@ class Game:
+         Image.fromarray(arr).save(p)
+         return {"ok": True, "frame": str(p), "size": list(arr.shape[:2][::-1])}
+ 
++    def raw(self) -> dict:
++        """The full observation dict, unfiltered — so nothing available is hidden."""
++        return {"ok": True, "obs": self.reader.observe()}
++
+     def pause(self) -> dict:
+         self.paused = True
+         return {"ok": True, "paused": True}
+@@ -311,6 +315,8 @@ def handle(conn, game: Game, token: str, log):
+                 rep = game.load(str(req.get("slot", "slot1")))
+             elif cmd == "frame":
+                 rep = game.frame(str(req.get("label", "now")))
++            elif cmd == "raw":
++                rep = game.raw()
+             elif cmd == "pause":
+                 rep = game.pause()
+             elif cmd == "resume":
+diff --git a/scripts/play.py b/scripts/play.py
+index 4f690a9..3a731f9 100644
+--- a/scripts/play.py
++++ b/scripts/play.py
+@@ -129,10 +129,17 @@ def main() -> int:
+         ],
+     )
+     ap.add_argument("args", nargs="*")
++    ap.add_argument(
++        "--frames",
++        type=int,
++        default=5,
++        help="how many frames to hold the button (5 = one deliberate tap; the "
++             "title screen needs ~30)",
++    )
+     a = ap.parse_args()
+     req: dict[str, Any] = {}
+     if a.cmd == "press":
+-        req = {"cmd": "press", "buttons": [x.upper() for x in a.args]}
++        req = {"cmd": "press", "buttons": [x.upper() for x in a.args], "frames": a.frames}
+     elif a.cmd == "step":
+         req = {"cmd": "step", "n": int(a.args[0]) if a.args else 30}
+     elif a.cmd == "frame":

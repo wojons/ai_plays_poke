@@ -1,0 +1,17 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index e4bcf2c..ef4beb1 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -908,3 +908,12 @@ tasks:
+   status: complete
+   created_at: '2026-09-27T13:47:26.258632+00:00'
+   completed_at: '2026-09-27T14:37:34.077285+00:00'
++- id: E2E-001
++  title: Run the recurring E2E acceptance battery
++  criteria:
++  - Execute a fresh 80-cycle gameplay run with the repo's watchdog recipe; verify
++    exit 0, RSS remains bounded through any battles, HSM spam is zero, starter/route
++    milestones are reported, and write the run evidence without modifying board files
++  status: complete
++  created_at: '2026-09-29T06:57:54.042444+00:00'
++  completed_at: '2026-09-29T07:16:46.938904+00:00'

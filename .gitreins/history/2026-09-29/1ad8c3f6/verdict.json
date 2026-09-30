@@ -1,0 +1,113 @@
+{
+  "task_id": "JEV-3",
+  "task_title": "Promote teacher patches to versioned scenario evidence",
+  "task_criteria": [
+    "A promoted teacher patch is stored in a versioned scenario file with evidence [run_id, cycle], is consulted by the JEV decision path on later matching situations, and a regression test proves the patched class escalation rate is zero without removing raw evidence."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "f5b423334760478a53402f5cb55f620cdda0801d",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T213550.127892Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4373 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [468024 chars omitted \u2014 5153 line(s)] \u2026\ntest_bench_pathfinding_small_grid              661.0062 (1.18)           5,329.9591 (2.36)            832.7783 (1.07)           136.2104 (1.0)             821.0191 (1.34)            29.9769 (1.0)        32;105  1,200,799.8174 (0.94)       1421           1\ntest_bench_vision_pipeline_validate          6,001.0352 (10.70)         29,685.0340 (13.17)         7,061.6016 (9.06)         1,077.1402 (7.91)          6,761.9840 (11.07)          700.9949 (23.38)   3244;3172    141,610.9348 (0.11)      38186           1\ntest_bench_ram_reader_observe            1,902,953.0231 (>1000.0)  145,757,363.0032 (>1000.0)   2,840,649.6526 (>1000.0)  8,957,754.2315 (>1000.0)   2,147,223.0146 (>1000.0)    228,941.4988 (>1000.0)      2;42        352.0321 (0.00)        468           1\ntest_bench_vision_pipeline_process      35,359,415.9824 (>1000.0)   42,188,026.9423 (>1000.0)  38,545,038.1630 (>1000.0)  1,472,868.2581 (>1000.0)  38,568,974.0069 (>1000.0)  1,094,900.0134 (>1000.0)       6;4         25.9437 (0.00)         24           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4359 passed, 14 skipped in 223.75s (0:03:43) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T213550.127892Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 A promoted teacher patch is stored in a versioned scenario file with evidence [run_id, cycle], is consulted by the JEV decision path on later matching situations, and a regression test proves the patched class escalation rate is zero without removing raw evidence.: Versioned scenario file: config/jev_promoted_patches.json (tracked in git) carries \"$schema\":\"jev_promoted_patches.schema.json\" and \"schema_version\":1, validated against config/jev_promoted_patches.schema.json (JSON Schema draft 2020-12); loader src/core/jev_scenarios.py:load_scenarios rejects any other schema_version. Evidence [run_id, cycle]: artifact scenario evidence == [{\"run_id\":\"t243_e2e\",\"cycle\":1}]; _validate_evidence enforces exactly {run_id, cycle} with a positive-int cycle, and promote_teacher_record(record, missing_class, knowledge_layer, run_id, cycle, artifact_path) writes caller-supplied evidence (src/core/jev_scenarios.py). Consulted by JEV decision path: src/core/jev_client.py:decide() takes scenario_path, calls jev_scenarios.find_matching_scenario(scenario_path, missing_class, context=state) and re-asks with apply_patch; cron_runner.py:4928 passes scenario_path=DEFAULT_JEV_SCENARIO_PATH (cron_runner.py:711) in the real overworld path, forwarded via _jev_overworld_decision (cron_runner.py:1437,1471). Regression test: tests/test_teacher_escalation.py:617 test_ac7_later_matching_decision_uses_patch_without_teacher_escalation asserts counters[\"escalated\"]==0 and counters[\"escalation_rate_by_missing_class\"]=={\"map_topology\":0.0} (cron_runner.py:2470-2472 rates.setdefault(resolved_class,0.0)), while preserving raw evidence via decision[\"raw_distribution\"]==initial_raw (line 683), scenario_post_distribution==post_raw (684), scenario_patch_evidence==promoted[\"evidence\"] (686). Mutation testing confirms sensitivity: setting raw_distribution to scenario_post_raw FAILS the test, and removing rates.setdefault(resolved_class,0.0) FAILS the test. Test run: ./.venv/bin/pytest tests/test_teacher_escalation.py -q => 21 passed in 0.37s; broader run of teacher/world_facts/autonomy/cron_metrics/jev403/jev4 => 124 passed. mypy: 'Success: no issues found in 2 source files'; ruff: 'All checks passed!'; LSP diagnostics: 0.\nJEV-3 is fully implemented: a schema-versioned promoted-patch artifact with [run_id, cycle] evidence is consulted by the JEV decision path, and a mutation-sensitive regression test proves zero escalation rate for the patched class while preserving raw evidence.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 A promoted teacher patch is stored in a versioned scenario file with evidence [run_id, cycle], is consulted by the JEV decision path on later matching situations, and a regression test proves the patched class escalation rate is zero without removing raw evidence.: Versioned scenario file: config/jev_promoted_patches.json (tracked in git) carries \"$schema\":\"jev_promoted_patches.schema.json\" and \"schema_version\":1, validated against config/jev_promoted_patches.schema.json (JSON Schema draft 2020-12); loader src/core/jev_scenarios.py:load_scenarios rejects any other schema_version. Evidence [run_id, cycle]: artifact scenario evidence == [{\"run_id\":\"t243_e2e\",\"cycle\":1}]; _validate_evidence enforces exactly {run_id, cycle} with a positive-int cycle, and promote_teacher_record(record, missing_class, knowledge_layer, run_id, cycle, artifact_path) writes caller-supplied evidence (src/core/jev_scenarios.py). Consulted by JEV decision path: src/core/jev_client.py:decide() takes scenario_path, calls jev_scenarios.find_matching_scenario(scenario_path, missing_class, context=state) and re-asks with apply_patch; cron_runner.py:4928 passes scenario_path=DEFAULT_JEV_SCENARIO_PATH (cron_runner.py:711) in the real overworld path, forwarded via _jev_overworld_decision (cron_runner.py:1437,1471). Regression test: tests/test_teacher_escalation.py:617 test_ac7_later_matching_decision_uses_patch_without_teacher_escalation asserts counters[\"escalated\"]==0 and counters[\"escalation_rate_by_missing_class\"]=={\"map_topology\":0.0} (cron_runner.py:2470-2472 rates.setdefault(resolved_class,0.0)), while preserving raw evidence via decision[\"raw_distribution\"]==initial_raw (line 683), scenario_post_distribution==post_raw (684), scenario_patch_evidence==promoted[\"evidence\"] (686). Mutation testing confirms sensitivity: setting raw_distribution to scenario_post_raw FAILS the test, and removing rates.setdefault(resolved_class,0.0) FAILS the test. Test run: ./.venv/bin/pytest tests/test_teacher_escalation.py -q => 21 passed in 0.37s; broader run of teacher/world_facts/autonomy/cron_metrics/jev403/jev4 => 124 passed. mypy: 'Success: no issues found in 2 source files'; ruff: 'All checks passed!'; LSP diagnostics: 0.\nJEV-3 is fully implemented: a schema-versioned promoted-patch artifact with [run_id, cycle] evidence is consulted by the JEV decision path, and a mutation-sensitive regression test proves zero escalation rate for the patched class while preserving raw evidence.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "A promoted teacher patch is stored in a versioned scenario file with evidence [run_id, cycle], is consulted by the JEV decision path on later matching situations, and a regression test proves the patched class escalation rate is zero without removing raw evidence.",
+                "status": "PASS",
+                "detail": "Versioned scenario file: config/jev_promoted_patches.json (tracked in git) carries \"$schema\":\"jev_promoted_patches.schema.json\" and \"schema_version\":1, validated against config/jev_promoted_patches.schema.json (JSON Schema draft 2020-12); loader src/core/jev_scenarios.py:load_scenarios rejects any other schema_version. Evidence [run_id, cycle]: artifact scenario evidence == [{\"run_id\":\"t243_e2e\",\"cycle\":1}]; _validate_evidence enforces exactly {run_id, cycle} with a positive-int cycle, and promote_teacher_record(record, missing_class, knowledge_layer, run_id, cycle, artifact_path) writes caller-supplied evidence (src/core/jev_scenarios.py). Consulted by JEV decision path: src/core/jev_client.py:decide() takes scenario_path, calls jev_scenarios.find_matching_scenario(scenario_path, missing_class, context=state) and re-asks with apply_patch; cron_runner.py:4928 passes scenario_path=DEFAULT_JEV_SCENARIO_PATH (cron_runner.py:711) in the real overworld path, forwarded via _jev_overworld_decision (cron_runner.py:1437,1471). Regression test: tests/test_teacher_escalation.py:617 test_ac7_later_matching_decision_uses_patch_without_teacher_escalation asserts counters[\"escalated\"]==0 and counters[\"escalation_rate_by_missing_class\"]=={\"map_topology\":0.0} (cron_runner.py:2470-2472 rates.setdefault(resolved_class,0.0)), while preserving raw evidence via decision[\"raw_distribution\"]==initial_raw (line 683), scenario_post_distribution==post_raw (684), scenario_patch_evidence==promoted[\"evidence\"] (686). Mutation testing confirms sensitivity: setting raw_distribution to scenario_post_raw FAILS the test, and removing rates.setdefault(resolved_class,0.0) FAILS the test. Test run: ./.venv/bin/pytest tests/test_teacher_escalation.py -q => 21 passed in 0.37s; broader run of teacher/world_facts/autonomy/cron_metrics/jev403/jev4 => 124 passed. mypy: 'Success: no issues found in 2 source files'; ruff: 'All checks passed!'; LSP diagnostics: 0.",
+                "resolution_probability": 0.31
+              }
+            ],
+            "summary": "JEV-3 is fully implemented: a schema-versioned promoted-patch artifact with [run_id, cycle] evidence is consulted by the JEV decision path, and a mutation-sensitive regression test proves zero escalation rate for the patched class while preserving raw evidence."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: JEV-3\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 A promoted teacher patch is stored in a versioned scenario file with evidence [run_id, cycle], is consulted by the JEV decision path on later matching situations, and a regression test proves the patched class escalation rate is zero without removing raw evidence.: Versioned scenario file: config/jev_promoted_patches.json (tracked in git) carries \"$schema\":\"jev_promoted_patches.schema.json\" and \"schema_version\":1, validated against config/jev_promoted_patches.schema.json (JSON Schema draft 2020-12); loader src/core/jev_scenarios.py:load_scenarios rejects any other schema_version. Evidence [run_id, cycle]: artifact scenario evidence == [{\"run_id\":\"t243_e2e\",\"cycle\":1}]; _validate_evidence enforces exactly {run_id, cycle} with a positive-int cycle, and promote_teacher_record(record, missing_class, knowledge_layer, run_id, cycle, artifact_path) writes caller-supplied evidence (src/core/jev_scenarios.py). Consulted by JEV decision path: src/core/jev_client.py:decide() takes scenario_path, calls jev_scenarios.find_matching_scenario(scenario_path, missing_class, context=state) and re-asks with apply_patch; cron_runner.py:4928 passes scenario_path=DEFAULT_JEV_SCENARIO_PATH (cron_runner.py:711) in the real overworld path, forwarded via _jev_overworld_decision (cron_runner.py:1437,1471). Regression test: tests/test_teacher_escalation.py:617 test_ac7_later_matching_decision_uses_patch_without_teacher_escalation asserts counters[\"escalated\"]==0 and counters[\"escalation_rate_by_missing_class\"]=={\"map_topology\":0.0} (cron_runner.py:2470-2472 rates.setdefault(resolved_class,0.0)), while preserving raw evidence via decision[\"raw_distribution\"]==initial_raw (line 683), scenario_post_distribution==post_raw (684), scenario_patch_evidence==promoted[\"evidence\"] (686). Mutation testing confirms sensitivity: setting raw_distribution to scenario_post_raw FAILS the test, and removing rates.setdefault(resolved_class,0.0) FAILS the test. Test run: ./.venv/bin/pytest tests/test_teacher_escalation.py -q => 21 passed in 0.37s; broader run of teacher/world_facts/autonomy/cron_metrics/jev403/jev4 => 124 passed. mypy: 'Success: no issues found in 2 source files'; ruff: 'All checks passed!'; LSP diagnostics: 0.\nJEV-3 is fully implemented: a schema-versioned promoted-patch artifact with [run_id, cycle] evidence is consulted by the JEV decision path, and a mutation-sensitive regression test proves zero escalation rate for the patched class while preserving raw evidence.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-09-29T21:53:27.714102",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-29T21:53:27.747377+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 38335,
+        "truncated": false,
+        "source": "git show f5b423334760"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 28684,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "JEV-3"
+  }
+}

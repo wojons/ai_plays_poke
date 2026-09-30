@@ -1,0 +1,121 @@
+{
+  "task_id": "DOC-1",
+  "task_title": "Clarify interactive RAM-map viewer docs",
+  "task_criteria": [
+    "README.md and skills/ai-plays-poke-usage/SKILL.md accurately describe interactive POST /input alongside read-only RAM-state GET; documentation no longer claims viewer is read-only"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "becfb31ce8f21e19eee51e1194812648224230fe",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T232526.045948Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n6:26PM INF scanned ~324064268 bytes (324.06 MB) in 15.5s\n6:26PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 93604 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T232526.045948Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4373 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [468028 chars omitted \u2014 5153 line(s)] \u2026\ntest_bench_pathfinding_find_path               500.0038 (1.06)           2,032.9608 (1.0)             633.9526 (1.23)            356.3380 (2.58)            520.9586 (1.02)            69.9656 (3.49)          1;3  1,577,405.0730 (0.82)         18           1\ntest_bench_vision_pipeline_validate          5,178.9684 (11.00)        468,126.0325 (230.27)        6,852.9335 (13.25)         4,108.4266 (29.78)         6,532.0637 (12.78)          489.9921 (24.47)   1010;3162    145,922.9112 (0.08)      40659           1\ntest_bench_ram_reader_observe            1,722,134.9990 (>1000.0)  143,688,807.9625 (>1000.0)   2,926,598.9770 (>1000.0)  10,493,546.4417 (>1000.0)   2,055,722.0560 (>1000.0)    140,852.4404 (>1000.0)      3;62        341.6936 (0.00)        489           1\ntest_bench_vision_pipeline_process      33,940,628.9859 (>1000.0)   42,557,067.0050 (>1000.0)  35,871,147.2169 (>1000.0)   1,842,550.2832 (>1000.0)  35,445,353.0163 (>1000.0)  1,537,573.7858 (>1000.0)       4;2         27.8776 (0.00)         27           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4359 passed, 14 skipped in 210.26s (0:03:30) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T232526.045948Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 README.md and skills/ai-plays-poke-usage/SKILL.md accurately describe interactive POST /input alongside read-only RAM-state GET; documentation no longer claims viewer is read-only: README.md:151-163 adds a 'RAM-map viewer (Python)' section stating 'This viewer is interactive, not read-only. GET / (or /index.html) serves the controls, while GET /data.json only reads the current emulator state. The page polls that read endpoint every second. Its buttons send POST /input JSON requests, such as {\"button\":\"up\"}... accepts a buttons or combo list and an optional positive integer frames; it accepts only a, b, up, down, left, right, start, and select. Invalid payloads return 400'. SKILL.md:44-56 mirrors this ('This is an interactive viewer, not a read-only dashboard... GET /data.json reads the current RAM state only. Viewer buttons send POST /input requests...'). Every claim matches ram_map_server.py: do_GET handles /data.json (line 197) and / or /index.html (line 204); the injected poll script uses setInterval(...,1000) (line 209); do_POST handles /input (line 220); handle_input accepts button/buttons/combo plus frames (lines 150-163); VALID_BUTTONS = {a,b,up,down,left,right,start,select} (line 30); invalid payloads return 400 (lines 148,157,164,169); server binds HTTPServer((\"0.0.0.0\", 8099)) with no auth (line 251), matching the safety notes. grep -rn 'read-only|read only|readonly' over both docs returns only the two explicit negations ('not read-only', 'not a read-only dashboard') \u2014 no lingering read-only claim. Docs-only change; no test suite applies. [resolution 0.24; README.md, skills/ai-plays-poke-usage/SKILL.md]\nBoth README.md and SKILL.md now accurately document the interactive POST /input endpoint alongside the read-only GET /data.json state endpoint, matching ram_map_server.py, with no remaining read-only claims.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 README.md and skills/ai-plays-poke-usage/SKILL.md accurately describe interactive POST /input alongside read-only RAM-state GET; documentation no longer claims viewer is read-only: README.md:151-163 adds a 'RAM-map viewer (Python)' section stating 'This viewer is interactive, not read-only. GET / (or /index.html) serves the controls, while GET /data.json only reads the current emulator state. The page polls that read endpoint every second. Its buttons send POST /input JSON requests, such as {\"button\":\"up\"}... accepts a buttons or combo list and an optional positive integer frames; it accepts only a, b, up, down, left, right, start, and select. Invalid payloads return 400'. SKILL.md:44-56 mirrors this ('This is an interactive viewer, not a read-only dashboard... GET /data.json reads the current RAM state only. Viewer buttons send POST /input requests...'). Every claim matches ram_map_server.py: do_GET handles /data.json (line 197) and / or /index.html (line 204); the injected poll script uses setInterval(...,1000) (line 209); do_POST handles /input (line 220); handle_input accepts button/buttons/combo plus frames (lines 150-163); VALID_BUTTONS = {a,b,up,down,left,right,start,select} (line 30); invalid payloads return 400 (lines 148,157,164,169); server binds HTTPServer((\"0.0.0.0\", 8099)) with no auth (line 251), matching the safety notes. grep -rn 'read-only|read only|readonly' over both docs returns only the two explicit negations ('not read-only', 'not a read-only dashboard') \u2014 no lingering read-only claim. Docs-only change; no test suite applies. [resolution 0.24; README.md, skills/ai-plays-poke-usage/SKILL.md]\nBoth README.md and SKILL.md now accurately document the interactive POST /input endpoint alongside the read-only GET /data.json state endpoint, matching ram_map_server.py, with no remaining read-only claims.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "README.md and skills/ai-plays-poke-usage/SKILL.md accurately describe interactive POST /input alongside read-only RAM-state GET; documentation no longer claims viewer is read-only",
+                "status": "PASS",
+                "detail": "README.md:151-163 adds a 'RAM-map viewer (Python)' section stating 'This viewer is interactive, not read-only. GET / (or /index.html) serves the controls, while GET /data.json only reads the current emulator state. The page polls that read endpoint every second. Its buttons send POST /input JSON requests, such as {\"button\":\"up\"}... accepts a buttons or combo list and an optional positive integer frames; it accepts only a, b, up, down, left, right, start, and select. Invalid payloads return 400'. SKILL.md:44-56 mirrors this ('This is an interactive viewer, not a read-only dashboard... GET /data.json reads the current RAM state only. Viewer buttons send POST /input requests...'). Every claim matches ram_map_server.py: do_GET handles /data.json (line 197) and / or /index.html (line 204); the injected poll script uses setInterval(...,1000) (line 209); do_POST handles /input (line 220); handle_input accepts button/buttons/combo plus frames (lines 150-163); VALID_BUTTONS = {a,b,up,down,left,right,start,select} (line 30); invalid payloads return 400 (lines 148,157,164,169); server binds HTTPServer((\"0.0.0.0\", 8099)) with no auth (line 251), matching the safety notes. grep -rn 'read-only|read only|readonly' over both docs returns only the two explicit negations ('not read-only', 'not a read-only dashboard') \u2014 no lingering read-only claim. Docs-only change; no test suite applies. [resolution 0.24; README.md, skills/ai-plays-poke-usage/SKILL.md]",
+                "resolution_probability": 0.24,
+                "cited_path": "README.md, skills/ai-plays-poke-usage/SKILL.md"
+              }
+            ],
+            "summary": "Both README.md and SKILL.md now accurately document the interactive POST /input endpoint alongside the read-only GET /data.json state endpoint, matching ram_map_server.py, with no remaining read-only claims."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DOC-1\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 README.md and skills/ai-plays-poke-usage/SKILL.md accurately describe interactive POST /input alongside read-only RAM-state GET; documentation no longer claims viewer is read-only: README.md:151-163 adds a 'RAM-map viewer (Python)' section stating 'This viewer is interactive, not read-only. GET / (or /index.html) serves the controls, while GET /data.json only reads the current emulator state. The page polls that read endpoint every second. Its buttons send POST /input JSON requests, such as {\"button\":\"up\"}... accepts a buttons or combo list and an optional positive integer frames; it accepts only a, b, up, down, left, right, start, and select. Invalid payloads return 400'. SKILL.md:44-56 mirrors this ('This is an interactive viewer, not a read-only dashboard... GET /data.json reads the current RAM state only. Viewer buttons send POST /input requests...'). Every claim matches ram_map_server.py: do_GET handles /data.json (line 197) and / or /index.html (line 204); the injected poll script uses setInterval(...,1000) (line 209); do_POST handles /input (line 220); handle_input accepts button/buttons/combo plus frames (lines 150-163); VALID_BUTTONS = {a,b,up,down,left,right,start,select} (line 30); invalid payloads return 400 (lines 148,157,164,169); server binds HTTPServer((\"0.0.0.0\", 8099)) with no auth (line 251), matching the safety notes. grep -rn 'read-only|read only|readonly' over both docs returns only the two explicit negations ('not read-only', 'not a read-only dashboard') \u2014 no lingering read-only claim. Docs-only change; no test suite applies. [resolution 0.24; README.md, skills/ai-plays-poke-usage/SKILL.md]\nBoth README.md and SKILL.md now accurately document the interactive POST /input endpoint alongside the read-only GET /data.json state endpoint, matching ram_map_server.py, with no remaining read-only claims.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-29T23:31:17.976463",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-29T23:31:18.003645+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 3515,
+        "truncated": false,
+        "source": "git show becfb31ce8f2"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 3920,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-1"
+  }
+}

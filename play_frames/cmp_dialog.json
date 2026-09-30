@@ -1,0 +1,33 @@
+{
+ "obs": {
+  "result": "dialog",
+  "player_facing": "up",
+  "player_x": 1,
+  "player_y": 3,
+  "player_tile_x": 3,
+  "player_tile_y": 6,
+  "map_id": 38,
+  "map_name": "Red's House 2F",
+  "party_count": 0,
+  "first_party_species": null,
+  "adjacent": {},
+  "adjacent_walkability": {},
+  "collision_grid": "",
+  "minimap": "",
+  "overworld_grid": "",
+  "visible_exits": [],
+  "text_content": [
+   "\\xd5\\xd6\\xd7\\xd8\\xd9\\xda\\xdb\\xdc\\xdd\\xde\\xdf    12345"
+  ],
+  "menu_items": [],
+  "keyboard_grid": {},
+  "name_field": "",
+  "suggested_action": "advance the dialogue",
+  "render": "\ud83d\udcac DIALOG (Press A to continue):\n  \"\\xd5\\xd6\\xd7\\xd8\\xd9\\xda\\xdb\\xdc\\xdd\\xde\\xdf    12345\"",
+  "battle_state": {},
+  "menu_state": {},
+  "map_dimensions": "4\u00d74",
+  "map_tileset": 4
+ },
+ "projection": "GAME: Pokemon Blue (Gen 1)\nMAP: Red's House 2F (id 38) [4\u00d74, tileset 4]\nPLAYER TILE: (3,6)  facing up\nPARTY: empty (no Pokemon yet)\nSCREEN: dialog\nTOPOLOGY (ROM collision truth for the next move):\n  (no adjacency data)\nVISIBLE EXITS: (none adjacent)\nSCREEN CONTENT:\n  \ud83d\udcac DIALOG (Press A to continue):\n    \"\\xd5\\xd6\\xd7\\xd8\\xd9\\xda\\xdb\\xdc\\xdd\\xde\\xdf    12345\"\nTILES VISITED THIS RUN (tile xCount, * = now):\n  (3, 7)x29 (3, 6)*x6 (2, 7)x3\nRECENT EVENTS (oldest first):\n  cycle 15: pressed START -> moved=False\n  cycle 16: waited 90 frames\n  cycle 17: pressed B -> moved=False\n  cycle 18: waited 90 frames\n  cycle 19: pressed UP -> moved=True\n  cycle 20: waited 60 frames\n  cycle 21: pressed A -> moved=False\n  cycle 22: waited 90 frames\nLAST ACTION: A \u2014 changed nothing (blocked or rejected)\nGOAL: Explore and make progress; the operator is watching.\nMECHANICS (game rules, no story):\n  - Interacting with an object or NPC requires standing next to it and facing it, then pressing A. You cannot interact diagonally.\n  - A text box advances one page per A press. A prompt with YES/NO is answered with A (yes) or B (no). Pressing B also cancels most menus.\n  - Objects on top of tables/desks are usually reachable by standing directly below them and pressing A, not by walking onto the table.\n  - If several consecutive actions produce no state change, the player is blocked in that direction; a different direction or an A press is required."
+}

@@ -1,0 +1,15 @@
+commit c338f51c1e0667bf27127de97246fe0343a993ea
+Merge: 10a9d3c 19e387e
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Tue Sep 29 01:24:18 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Tue Sep 29 01:24:18 2026 -0500
+
+    Merge branch 'wt/REV-4-FIX2'
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ cron_runner.py                  | 26 +++++++++++
+ src/core/jev_client.py          | 30 +++++++++----
+ tests/test_jev4_dehardcoding.py | 97 +++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 145 insertions(+), 8 deletions(-)

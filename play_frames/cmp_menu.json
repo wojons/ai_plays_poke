@@ -1,0 +1,43 @@
+{
+ "obs": {
+  "result": "overworld",
+  "player_facing": "right",
+  "player_x": 1,
+  "player_y": 3,
+  "player_tile_x": 3,
+  "player_tile_y": 7,
+  "map_id": 38,
+  "map_name": "Red's House 2F",
+  "party_count": 0,
+  "first_party_species": null,
+  "adjacent": {
+   "up": "stairs",
+   "down": "void",
+   "left": "wall",
+   "right": "floor"
+  },
+  "adjacent_walkability": {
+   "up": "walkable",
+   "down": "unknown",
+   "left": "walkable",
+   "right": "walkable"
+  },
+  "collision_grid": "..#..\n.....\n..\u2192..\n?????\n?????",
+  "minimap": "\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\u00b7\n\u00b7\u00b7\u21e9\u21e9\u00b7\u00b7\u00b7\u00b7\n\u2588\u2588PP\u00b7\u00b7\u25c8\u25c8",
+  "overworld_grid": "Map: Red's House 2F (4\u00d74)\nPos: (1,3) Facing: Right \u2192\n\n? . . . .\n? . D . .\n? B \u2192 . S\n? ? ? ? ?\n? ? ? ? ?\n\nLegend: .=floor G=grass T=tree W=water B=wall S=sign/object D=door \u2191\u2193\u2190\u2192=you+facing",
+  "visible_exits": [
+   "up"
+  ],
+  "text_content": [],
+  "menu_items": [],
+  "keyboard_grid": {},
+  "name_field": "",
+  "suggested_action": "explore: exits at up",
+  "render": "Map: Red's House 2F (4\u00d74)\nPos: (1,3) Facing: Right \u2192\n\n? . . . .\n? . D . .\n? B \u2192 . S\n? ? ? ? ?\n? ? ? ? ?\n\nLegend: .=floor G=grass T=tree W=water B=wall S=sign/object D=door \u2191\u2193\u2190\u2192=you+facing",
+  "battle_state": {},
+  "menu_state": {},
+  "map_dimensions": "4\u00d74",
+  "map_tileset": 4
+ },
+ "projection": "GAME: Pokemon Blue (Gen 1)\nMAP: Red's House 2F (id 38) [4\u00d74, tileset 4]\nPLAYER TILE: (3,7)  facing right\nPARTY: empty (no Pokemon yet)\nSCREEN: overworld\nTOPOLOGY (ROM collision truth for the next move):\n  UP=walkable DOWN=unknown LEFT=walkable RIGHT=walkable\nADJACENT TERRAIN (appearance only; collision above is authoritative):\n  UP=stairs LEFT=wall RIGHT=floor\nLOCAL COLLISION MAP (\u2191\u2193\u2190\u2192=you+facing, .=walkable, #=blocked, ?=unknown):\n  ..#..\n  .....\n  ..\u2192..\n  ?????\n  ?????\nVISIBLE EXITS: up\nTILES VISITED THIS RUN (tile xCount, * = now):\n  (3, 7)*x26 (2, 7)x3 (3, 6)x2\nRECENT EVENTS (oldest first):\n  cycle 11: pressed  -> moved=False\n  cycle 12: waited 30 frames\n  cycle 12: pressed  -> moved=False\n  cycle 13: waited 30 frames\n  cycle 13: pressed  -> moved=False\n  cycle 14: waited 30 frames\n  cycle 15: pressed START -> moved=False\n  cycle 16: waited 90 frames\nLAST ACTION: START \u2014 changed nothing (blocked or rejected)\nGOAL: Explore and make progress; the operator is watching.\nMECHANICS (game rules, no story):\n  - Interacting with an object or NPC requires standing next to it and facing it, then pressing A. You cannot interact diagonally.\n  - A text box advances one page per A press. A prompt with YES/NO is answered with A (yes) or B (no). Pressing B also cancels most menus.\n  - Objects on top of tables/desks are usually reachable by standing directly below them and pressing A, not by walking onto the table.\n  - If several consecutive actions produce no state change, the player is blocked in that direction; a different direction or an A press is required."
+}

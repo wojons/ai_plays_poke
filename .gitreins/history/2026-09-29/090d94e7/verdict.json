@@ -1,0 +1,120 @@
+{
+  "task_id": "PERCEPT-2",
+  "task_title": "derive outdoor terrain labels from ROM behavior",
+  "task_criteria": [
+    "Pallet Town plain ground is not classified as grass; grass labels remain tied to authoritative ROM behavior; regression test proves the distinction"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "056e99bf7e28d235364ed51f928bfe3606e41810",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T081855.758434Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n3:25AM INF scanned ~323692455 bytes (323.69 MB) in 18.5s\n3:25AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 93062 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T081855.758434Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4324 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [462344 chars omitted \u2014 5104 line(s)] \u2026\ntest_bench_pathfinding_find_path               461.0047 (1.07)           2,084.0089 (1.0)             594.9534 (1.25)           373.9902 (2.98)            500.4986 (1.06)          50.0586 (2.50)          1;2  1,680,803.8032 (0.80)         18           1\ntest_bench_vision_pipeline_validate          5,139.0380 (11.92)         87,512.0168 (41.99)         6,123.8397 (12.82)        1,109.1798 (8.83)          6,061.0473 (12.87)        381.0273 (19.03)   1331;1756    163,296.2391 (0.08)      43912           1\ntest_bench_ram_reader_observe            1,680,292.0145 (>1000.0)  141,747,971.0071 (>1000.0)   2,733,924.4454 (>1000.0)  9,721,660.8247 (>1000.0)   1,949,840.5163 (>1000.0)   80,978.9635 (>1000.0)      3;91        365.7746 (0.00)        530           1\ntest_bench_vision_pipeline_process      34,301,808.0457 (>1000.0)   35,906,539.9971 (>1000.0)  35,151,844.8873 (>1000.0)    432,125.0082 (>1000.0)  35,101,549.0014 (>1000.0)  728,321.4800 (>1000.0)      10;0         28.4480 (0.00)         27           1\n-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4310 passed, 14 skipped in 206.25s (0:03:26) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20260929T081855.758434Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Pallet Town plain ground is not classified as grass; grass labels remain tied to authoritative ROM behavior; regression test proves the distinction: Bug fixed: old code (git show HEAD:src/core/ram_reader.py:392-397) had _TILESET0_CLASSES mapping block 0x01 -> 'grass', misclassifying Pallet plain ground. New code removes that table and derives outdoor terrain from ROM behavior via tile_terrain()/_terrain_from_raw() (src/core/ram_reader.py:462-514). Grass is tied to authoritative ROM behavior: _tileset_behavior() reads the grass_tile byte from the tileset header at header+10 (ram_reader.py:395) and _terrain_from_raw compares the encounter raw tile against it (ram_reader.py:478-480); verified live grass_tile byte = 0x52. Regression tests exist and pass: tests/test_ram_reader.py:2487 test_pallet_plain_ground_is_not_grass (asserts grid row '..GG\u2191...??' and tile_terrain(0,5,6)=='floor'), :1111 test_terrain_comes_from_rom_behavior, :1121 test_block_summary_does_not_reintroduce_block_id_guess (classify_block(0x01,0)=='floor', classify_block(0x0B,0)=='grass'). NON-VACUOUS PROOF: running the 3 new tests against the OLD implementation (git show HEAD:src/core/ram_reader.py) made all 3 FAIL, including 'assert GG..\u2191GGG?? == ..GG\u2191...??' for test_pallet_plain_ground_is_not_grass \u2014 proving the old code painted plain ground as grass; file restored, diff clean. Test run: `./.venv/bin/pytest tests/test_ram_reader.py -q` -> 150 passed in 0.18s (exit 0); targeted 3 tests -> 3 passed. LSP diagnostics: 0.\nPallet plain ground is now correctly classified as floor (not grass) via ROM-behavior-derived terrain, with non-vacuous regression tests that fail against the old block-ID table and pass against the new code.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Pallet Town plain ground is not classified as grass; grass labels remain tied to authoritative ROM behavior; regression test proves the distinction: Bug fixed: old code (git show HEAD:src/core/ram_reader.py:392-397) had _TILESET0_CLASSES mapping block 0x01 -> 'grass', misclassifying Pallet plain ground. New code removes that table and derives outdoor terrain from ROM behavior via tile_terrain()/_terrain_from_raw() (src/core/ram_reader.py:462-514). Grass is tied to authoritative ROM behavior: _tileset_behavior() reads the grass_tile byte from the tileset header at header+10 (ram_reader.py:395) and _terrain_from_raw compares the encounter raw tile against it (ram_reader.py:478-480); verified live grass_tile byte = 0x52. Regression tests exist and pass: tests/test_ram_reader.py:2487 test_pallet_plain_ground_is_not_grass (asserts grid row '..GG\u2191...??' and tile_terrain(0,5,6)=='floor'), :1111 test_terrain_comes_from_rom_behavior, :1121 test_block_summary_does_not_reintroduce_block_id_guess (classify_block(0x01,0)=='floor', classify_block(0x0B,0)=='grass'). NON-VACUOUS PROOF: running the 3 new tests against the OLD implementation (git show HEAD:src/core/ram_reader.py) made all 3 FAIL, including 'assert GG..\u2191GGG?? == ..GG\u2191...??' for test_pallet_plain_ground_is_not_grass \u2014 proving the old code painted plain ground as grass; file restored, diff clean. Test run: `./.venv/bin/pytest tests/test_ram_reader.py -q` -> 150 passed in 0.18s (exit 0); targeted 3 tests -> 3 passed. LSP diagnostics: 0.\nPallet plain ground is now correctly classified as floor (not grass) via ROM-behavior-derived terrain, with non-vacuous regression tests that fail against the old block-ID table and pass against the new code.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Pallet Town plain ground is not classified as grass; grass labels remain tied to authoritative ROM behavior; regression test proves the distinction",
+                "status": "PASS",
+                "detail": "Bug fixed: old code (git show HEAD:src/core/ram_reader.py:392-397) had _TILESET0_CLASSES mapping block 0x01 -> 'grass', misclassifying Pallet plain ground. New code removes that table and derives outdoor terrain from ROM behavior via tile_terrain()/_terrain_from_raw() (src/core/ram_reader.py:462-514). Grass is tied to authoritative ROM behavior: _tileset_behavior() reads the grass_tile byte from the tileset header at header+10 (ram_reader.py:395) and _terrain_from_raw compares the encounter raw tile against it (ram_reader.py:478-480); verified live grass_tile byte = 0x52. Regression tests exist and pass: tests/test_ram_reader.py:2487 test_pallet_plain_ground_is_not_grass (asserts grid row '..GG\u2191...??' and tile_terrain(0,5,6)=='floor'), :1111 test_terrain_comes_from_rom_behavior, :1121 test_block_summary_does_not_reintroduce_block_id_guess (classify_block(0x01,0)=='floor', classify_block(0x0B,0)=='grass'). NON-VACUOUS PROOF: running the 3 new tests against the OLD implementation (git show HEAD:src/core/ram_reader.py) made all 3 FAIL, including 'assert GG..\u2191GGG?? == ..GG\u2191...??' for test_pallet_plain_ground_is_not_grass \u2014 proving the old code painted plain ground as grass; file restored, diff clean. Test run: `./.venv/bin/pytest tests/test_ram_reader.py -q` -> 150 passed in 0.18s (exit 0); targeted 3 tests -> 3 passed. LSP diagnostics: 0.",
+                "resolution_probability": 0.25
+              }
+            ],
+            "summary": "Pallet plain ground is now correctly classified as floor (not grass) via ROM-behavior-derived terrain, with non-vacuous regression tests that fail against the old block-ID table and pass against the new code."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: PERCEPT-2\n\nStage tier1: PASS\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: ============================= test session starts ==============================\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Pallet Town plain ground is not classified as grass; grass labels remain tied to authoritative ROM behavior; regression test proves the distinction: Bug fixed: old code (git show HEAD:src/core/ram_reader.py:392-397) had _TILESET0_CLASSES mapping block 0x01 -> 'grass', misclassifying Pallet plain ground. New code removes that table and derives outdoor terrain from ROM behavior via tile_terrain()/_terrain_from_raw() (src/core/ram_reader.py:462-514). Grass is tied to authoritative ROM behavior: _tileset_behavior() reads the grass_tile byte from the tileset header at header+10 (ram_reader.py:395) and _terrain_from_raw compares the encounter raw tile against it (ram_reader.py:478-480); verified live grass_tile byte = 0x52. Regression tests exist and pass: tests/test_ram_reader.py:2487 test_pallet_plain_ground_is_not_grass (asserts grid row '..GG\u2191...??' and tile_terrain(0,5,6)=='floor'), :1111 test_terrain_comes_from_rom_behavior, :1121 test_block_summary_does_not_reintroduce_block_id_guess (classify_block(0x01,0)=='floor', classify_block(0x0B,0)=='grass'). NON-VACUOUS PROOF: running the 3 new tests against the OLD implementation (git show HEAD:src/core/ram_reader.py) made all 3 FAIL, including 'assert GG..\u2191GGG?? == ..GG\u2191...??' for test_pallet_plain_ground_is_not_grass \u2014 proving the old code painted plain ground as grass; file restored, diff clean. Test run: `./.venv/bin/pytest tests/test_ram_reader.py -q` -> 150 passed in 0.18s (exit 0); targeted 3 tests -> 3 passed. LSP diagnostics: 0.\nPallet plain ground is now correctly classified as floor (not grass) via ROM-behavior-derived terrain, with non-vacuous regression tests that fail against the old block-ID table and pass against the new code.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-09-29T08:30:33.745765",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-09-29T08:30:33.776287+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 14134,
+        "truncated": false,
+        "source": "git show 056e99bf7e28"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 52875,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "PERCEPT-2"
+  }
+}

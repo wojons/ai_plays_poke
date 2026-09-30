@@ -1,0 +1,19 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index e4bcf2c..49d89d5 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -908,3 +908,14 @@ tasks:
+   status: complete
+   created_at: '2026-09-27T13:47:26.258632+00:00'
+   completed_at: '2026-09-27T14:37:34.077285+00:00'
++- id: INT-CI-BOOT-1
++  title: 'Harden OUTPUT_PATH: compute the base1 artifact path at call time, not module
++    import'
++  criteria:
++  - cmd_report writes to data/baselines/base1_control_{today()}.json computed at call
++    time; a process that imports the module before UTC midnight and reports after
++    it cannot write yesterday's filename; BASE1_OUTPUT_PATH override still honored;
++    focused tests/test_base1_baseline.py green
++  status: complete
++  created_at: '2026-09-28T20:55:53.481491+00:00'
++  completed_at: '2026-09-28T21:06:10.235091+00:00'
