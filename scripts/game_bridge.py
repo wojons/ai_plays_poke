@@ -37,6 +37,10 @@ import sys
 import threading
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.core.ram_reader import RAMReader
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -46,7 +50,7 @@ FRAME_DIR = REPO / "play_frames"
 BUTTONS = {"a", "b", "start", "select", "up", "down", "left", "right"}
 
 
-def _safe_grid(reader, cols: int = 10, rows: int = 9) -> str:
+def _safe_grid(reader: RAMReader, cols: int = 10, rows: int = 9) -> str:
     """The reader's display grid, or an empty string rather than an exception.
 
     observe() is the bridge's hot path. A tile or graphics lookup problem must not take the whole
