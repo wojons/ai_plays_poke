@@ -13,6 +13,7 @@ Scoring is against the reader's RAM grid, cell by cell. Stated plainly: the RAM 
 not truth - its terrain labels measured 83.6% against ROM collision. So the score answers 'reads the
 screen the way the reader does', which is the property a cell-by-cell verdict depends on.
 """
+
 from __future__ import annotations
 
 import base64
@@ -24,6 +25,8 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+from PIL import Image
 
 HOME = Path.home()
 C = "http://127.0.0.1:8899"
@@ -49,22 +52,28 @@ if la[0] > 40 and os.environ.get("AIPP_IGNORE_LOAD") != "1":
     raise SystemExit(0)
 if la[0] > 40:
     # Accuracy is unaffected by local load: the model runs remotely, only the wall-clock is noise.
-    print("  box is busy - TREAT THE LATENCY COLUMN AS NOISE, the match % is still valid")
+    print(
+        "  box is busy - TREAT THE LATENCY COLUMN AS NOISE, the match % is still valid"
+    )
 
 # frame, with a retry and a size check (an empty image is what caused the earlier 400s)
 png = b""
 for attempt in range(6):
     try:
-        with urllib.request.urlopen(f"{C}/api/frame.png?t={time.time()}", timeout=30) as r:
+        with urllib.request.urlopen(
+            f"{C}/api/frame.png?t={time.time()}", timeout=30
+        ) as r:
             png = r.read()
     except Exception:
         png = b""
     if len(png) > 500:
         break
-    print(f"  frame attempt {attempt+1}: only {len(png)} bytes, retrying")
+    print(f"  frame attempt {attempt + 1}: only {len(png)} bytes, retrying")
     time.sleep(1.5)
 if len(png) < 500:
-    raise SystemExit(f"could not get a real frame (last {len(png)} bytes) - bridge likely starved")
+    raise SystemExit(
+        f"could not get a real frame (last {len(png)} bytes) - bridge likely starved"
+    )
 
 with urllib.request.urlopen(f"{C}/api/state", timeout=30) as r:
     st = json.loads(r.read())
@@ -73,24 +82,32 @@ print(f"frame {len(png)} bytes; reference grid {len(ram)}x{len(ram[0]) if ram el
 for row in ram:
     print("   ", row)
 
-from PIL import Image
 im = Image.open(io.BytesIO(png)).convert("RGB")
 scale = min(6, max(1, 1024 // max(im.size)))
-big = im.resize((im.width * scale, im.height * scale), Image.LANCZOS)
+big = im.resize((im.width * scale, im.height * scale), Image.Resampling.LANCZOS)
 buf = io.BytesIO()
 big.save(buf, format="PNG")
 png_sent = buf.getvalue()
 b64 = base64.b64encode(png_sent).decode()
-print(f"sent upscaled x{scale} -> {big.size[0]}x{big.size[1]} ({len(png_sent)} bytes)", flush=True)
+print(
+    f"sent upscaled x{scale} -> {big.size[0]}x{big.size[1]} ({len(png_sent)} bytes)",
+    flush=True,
+)
 
-PROMPT = ("Report this Game Boy screen as a grid of 10 columns by 9 rows. One character per cell: "
-          ". floor you can walk on, B blocking structure or furniture, T tree, G tall grass, W water, "
-          "D doorway, N another person, ? unknown, and use an arrow for the player's own cell. "
-          "Answer with 9 lines of exactly 10 characters, nothing else.")
+PROMPT = (
+    "Report this Game Boy screen as a grid of 10 columns by 9 rows. One character per cell: "
+    ". floor you can walk on, B blocking structure or furniture, T tree, G tall grass, W water, "
+    "D doorway, N another person, ? unknown, and use an arrow for the player's own cell. "
+    "Answer with 9 lines of exactly 10 characters, nothing else."
+)
 GRIDCHARS = set(".BGWTDN $?0123456789\u2190\u2191\u2193\u2192")
-MODELS = ["amazon/nova-lite-v1", "qwen/qwen3-vl-32b-instruct",
-          "mistralai/mistral-small-3.2-24b-instruct", "openai/gpt-4o-mini",
-          "anthropic/claude-haiku-4.5"]
+MODELS = [
+    "amazon/nova-lite-v1",
+    "qwen/qwen3-vl-32b-instruct",
+    "mistralai/mistral-small-3.2-24b-instruct",
+    "openai/gpt-4o-mini",
+    "anthropic/claude-haiku-4.5",
+]
 
 
 def parse(text: str) -> list[str]:
@@ -119,13 +136,29 @@ def score(grid: list[str]) -> tuple[int, int]:
 print("\n=== accuracy vs speed, same upscaled frame ===", flush=True)
 out = []
 for model in MODELS:
-    body = json.dumps({"model": model, "max_tokens": 300,
-                       "messages": [{"role": "user", "content": [
-                           {"type": "text", "text": PROMPT},
-                           {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64}"}}]}]}).encode()
-    req = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions", data=body,
-                                 headers={"Authorization": f"Bearer {KEY}",
-                                          "Content-Type": "application/json"})
+    body = json.dumps(
+        {
+            "model": model,
+            "max_tokens": 300,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": PROMPT},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{b64}"},
+                        },
+                    ],
+                }
+            ],
+        }
+    ).encode()
+    req = urllib.request.Request(
+        "https://openrouter.ai/api/v1/chat/completions",
+        data=body,
+        headers={"Authorization": f"Bearer {KEY}", "Content-Type": "application/json"},
+    )
     t0 = time.time()
     try:
         with urllib.request.urlopen(req, timeout=120) as r:
@@ -134,9 +167,14 @@ for model in MODELS:
         grid = parse(d["choices"][0]["message"].get("content"))
         n, m = score(grid)
         pct = 100 * m / n if n else 0
-        out.append((pct, dt, model, n, d.get("usage", {}).get("completion_tokens"), grid))
-        print(f"  {model:44s} {dt:5.2f}s  match {pct:5.1f}%  ({m}/{n} cells)  "
-              f"toks={d.get('usage', {}).get('completion_tokens')}", flush=True)
+        out.append(
+            (pct, dt, model, n, d.get("usage", {}).get("completion_tokens"), grid)
+        )
+        print(
+            f"  {model:44s} {dt:5.2f}s  match {pct:5.1f}%  ({m}/{n} cells)  "
+            f"toks={d.get('usage', {}).get('completion_tokens')}",
+            flush=True,
+        )
         for line in grid[:3]:
             print(f"        {line}", flush=True)
     except urllib.error.HTTPError as e:
@@ -147,4 +185,4 @@ for model in MODELS:
 print("\n=== ranked: accuracy first, speed beside it ===")
 for pct, dt, model, n, toks, _ in sorted(out, key=lambda x: (-x[0], x[1])):
     print(f"  {pct:5.1f}%  {dt:5.2f}s  {model:44s} cells={n} toks={toks}")
-print(f"\n  reference grid for comparison:\n    " + "\n    ".join(ram))
+print("\n  reference grid for comparison:\n    " + "\n    ".join(ram))

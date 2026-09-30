@@ -12,17 +12,19 @@ So measure both, and report the speed and the tokens next to them, not instead o
 The old model is a reasoning model: it needs a big ceiling or it burns its whole budget thinking and
 returns an empty string with no error. That is not slowness, it is a trap, so give it room.
 """
+
 from __future__ import annotations
 
 import base64
 import io
 import json
-import os
 import re
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+from PIL import Image
 
 HOME = Path.home()
 C = "http://127.0.0.1:8899"
@@ -45,7 +47,9 @@ SYN_KEY = env("SYNTHETIC_API_KEY", HOME / ".hermes/.env")
 png = b""
 for _ in range(8):
     try:
-        with urllib.request.urlopen(f"{C}/api/frame.png?t={time.time()}", timeout=30) as r:
+        with urllib.request.urlopen(
+            f"{C}/api/frame.png?t={time.time()}", timeout=30
+        ) as r:
             png = r.read()
     except Exception:
         png = b""
@@ -61,10 +65,9 @@ print(f"frame {len(png)} bytes; reader's grid {len(ram)}x{len(ram[0])}")
 for row in ram:
     print("   ", row)
 
-from PIL import Image
 im = Image.open(io.BytesIO(png)).convert("RGB")
 scale = min(6, max(1, 1024 // max(im.size)))
-im = im.resize((im.width * scale, im.height * scale), Image.LANCZOS)
+im = im.resize((im.width * scale, im.height * scale), Image.Resampling.LANCZOS)
 buf = io.BytesIO()
 im.save(buf, format="PNG")
 b64 = base64.b64encode(buf.getvalue()).decode()
@@ -81,9 +84,24 @@ PROMPT = (
 )
 
 MODELS = [
-    ("openai/gpt-4o-mini", "https://openrouter.ai/api/v1/chat/completions", OR_KEY, 512),
-    ("amazon/nova-lite-v1", "https://openrouter.ai/api/v1/chat/completions", OR_KEY, 512),
-    ("syn:large:vision (Kimi K3)", "https://api.synthetic.new/v1/chat/completions", SYN_KEY, 65536),
+    (
+        "openai/gpt-4o-mini",
+        "https://openrouter.ai/api/v1/chat/completions",
+        OR_KEY,
+        512,
+    ),
+    (
+        "amazon/nova-lite-v1",
+        "https://openrouter.ai/api/v1/chat/completions",
+        OR_KEY,
+        512,
+    ),
+    (
+        "syn:large:vision (Kimi K3)",
+        "https://api.synthetic.new/v1/chat/completions",
+        SYN_KEY,
+        65536,
+    ),
 ]
 GRIDCHARS = set(".BGWTDN $?0123456789<>^v\u2190\u2191\u2193\u2192")
 
@@ -105,13 +123,29 @@ for label, url, key, ceiling in MODELS:
     if not key:
         print(f"{label}: no key, skipped")
         continue
-    body = json.dumps({"model": label.split(" (")[0], "max_tokens": ceiling,
-                       "messages": [{"role": "user", "content": [
-                           {"type": "text", "text": PROMPT},
-                           {"type": "image_url",
-                            "image_url": {"url": f"data:image/png;base64,{b64}"}}]}]}).encode()
-    req = urllib.request.Request(url, data=body, headers={
-        "Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+    body = json.dumps(
+        {
+            "model": label.split(" (")[0],
+            "max_tokens": ceiling,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": PROMPT},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{b64}"},
+                        },
+                    ],
+                }
+            ],
+        }
+    ).encode()
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+    )
     t0 = time.time()
     print(f"--- {label} ---", flush=True)
     try:
@@ -127,15 +161,22 @@ for label, url, key, ceiling in MODELS:
             for j in range(min(len(grid[i]), len(ram[i]))):
                 n += 1
                 m += grid[i][j] == ram[i][j]
-        print(f"  {dt:.2f}s   tokens in={u.get('prompt_tokens')} out={u.get('completion_tokens')}"
-              f"   grid rows={len(grid)}   match={100*m/n if n else 0:.1f}%")
+        print(
+            f"  {dt:.2f}s   tokens in={u.get('prompt_tokens')} out={u.get('completion_tokens')}"
+            f"   grid rows={len(grid)}   match={100 * m / n if n else 0:.1f}%"
+        )
         for row in grid:
             print("     ", row)
         # the people section, verbatim - this is the part that needs real understanding
         pm = re.search(r"PEOPLE\s*:?\s*(.*)", text, re.S | re.I)
-        print("  PEOPLE answer:", (pm.group(1).strip()[:400] if pm else "(no PEOPLE section)"))
+        print(
+            "  PEOPLE answer:",
+            (pm.group(1).strip()[:400] if pm else "(no PEOPLE section)"),
+        )
     except urllib.error.HTTPError as e:
-        print(f"  HTTP {e.code} after {time.time()-t0:.1f}s: {e.read().decode()[:200]}")
+        print(
+            f"  HTTP {e.code} after {time.time() - t0:.1f}s: {e.read().decode()[:200]}"
+        )
     except Exception as e:
-        print(f"  {type(e).__name__} after {time.time()-t0:.1f}s: {str(e)[:150]}")
+        print(f"  {type(e).__name__} after {time.time() - t0:.1f}s: {str(e)[:150]}")
     print(flush=True)

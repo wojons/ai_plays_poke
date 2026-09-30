@@ -31,13 +31,15 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import queue
 import secrets
+import signal
 import socket
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
     from src.core.ram_reader import RAMReader
@@ -48,6 +50,10 @@ sys.path.insert(0, str(REPO))
 ROM = REPO / "data" / "rom" / "Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 FRAME_DIR = REPO / "play_frames"
 BUTTONS = {"a", "b", "start", "select", "up", "down", "left", "right"}
+DEFAULT_MAX_WORKERS = 4
+DEFAULT_REQUEST_TIMEOUT = 30.0
+MAX_REQUEST_BYTES = 1024 * 1024
+SHUTDOWN_JOIN_TIMEOUT = 5.0
 
 
 def _safe_grid(reader: RAMReader, cols: int = 10, rows: int = 9) -> str:
@@ -302,24 +308,74 @@ class Game:
         }
 
 
-def serve(game: Game, token: str, port: int, log):
-    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    srv.bind(("127.0.0.1", port))  # loopback only, never 0.0.0.0
-    srv.listen(16)
-    log(
-        f"listening on 127.0.0.1:{port} (loopback only); token required on every request"
-    )
-    while True:
-        conn, _ = srv.accept()
-        threading.Thread(
-            target=handle, args=(conn, game, token, log), daemon=True
-        ).start()
+def _dispatch(req: dict, game: Game) -> dict:
+    """Dispatch exactly one authenticated request while the caller owns the Game lock."""
+    cmd = req.get("cmd")
+    if cmd == "health":
+        return game.health()
+    if cmd == "observe":
+        return game.observe()
+    if cmd == "press":
+        return game.press(
+            req.get("buttons") or [],
+            int(req.get("frames", 5)),
+            bool(req.get("settle", True)),
+        )
+    if cmd == "step":
+        if game.paused:
+            return {
+                "ok": False,
+                "error": "paused — call resume first",
+                "paused": True,
+            }
+        return game.step(int(req.get("n", 30)))
+    if cmd == "save":
+        return game.save(str(req.get("slot", "slot1")))
+    if cmd == "load":
+        return game.load(str(req.get("slot", "slot1")))
+    if cmd == "frame":
+        return game.frame(str(req.get("label", "now")))
+    if cmd == "raw":
+        return game.raw()
+    if cmd == "pause":
+        return game.pause()
+    if cmd == "resume":
+        return game.resume()
+    if cmd == "list_saves":
+        return game.list_saves()
+    if cmd == "delete_save":
+        return game.delete_save(str(req.get("slot", "")))
+    if cmd == "reset":
+        return game.reset()
+    if cmd == "goal":
+        game.goal = str(req.get("text") or game.goal)
+        return {"ok": True, "goal": game.goal}
+    return {"ok": False, "error": f"unknown cmd {cmd!r}"}
 
 
-def handle(conn, game: Game, token: str, log):
+def _send_json(conn: socket.socket, payload: dict) -> None:
+    conn.sendall((json.dumps(payload) + "\n").encode())
+
+
+def handle(
+    conn: socket.socket,
+    game: Game,
+    token: str,
+    log: Callable[[str], None],
+    *,
+    game_lock: threading.Lock | None = None,
+    stop_event: threading.Event | None = None,
+    request_timeout: float = DEFAULT_REQUEST_TIMEOUT,
+) -> None:
+    """Read and answer one line-delimited request, then close the connection.
+
+    Socket parsing may happen on several fixed workers, but every Game operation is
+    serialized. PyBoy, RAMReader, and the bridge's cross-cycle state are one mutable
+    unit and are not safe to enter concurrently.
+    """
+    stop = stop_event or threading.Event()
     with conn:
-        conn.settimeout(180)
+        conn.settimeout(request_timeout)
         buf = b""
         try:
             while b"\n" not in buf:
@@ -327,63 +383,173 @@ def handle(conn, game: Game, token: str, log):
                 if not chunk:
                     return
                 buf += chunk
+                if len(buf) > MAX_REQUEST_BYTES:
+                    raise ValueError(f"request exceeds {MAX_REQUEST_BYTES} bytes")
             line = buf.split(b"\n", 1)[0].decode()
             req = json.loads(line)
+            if not isinstance(req, dict):
+                raise ValueError("request must be a JSON object")
             if not secrets.compare_digest(str(req.get("token", "")), token):
-                conn.sendall(
-                    (json.dumps({"ok": False, "error": "unauthorized"}) + "\n").encode()
-                )
+                _send_json(conn, {"ok": False, "error": "unauthorized"})
                 log("REJECTED unauthorized request")
                 return
-            cmd = req.get("cmd")
-            if cmd == "health":
-                rep = game.health()
-            elif cmd == "observe":
-                rep = game.observe()
-            elif cmd == "press":
-                rep = game.press(
-                    req.get("buttons") or [],
-                    int(req.get("frames", 5)),
-                    bool(req.get("settle", True)),
-                )
-            elif cmd == "step":
-                if game.paused:
-                    rep = {
-                        "ok": False,
-                        "error": "paused — call resume first",
-                        "paused": True,
-                    }
-                else:
-                    rep = game.step(int(req.get("n", 30)))
-            elif cmd == "save":
-                rep = game.save(str(req.get("slot", "slot1")))
-            elif cmd == "load":
-                rep = game.load(str(req.get("slot", "slot1")))
-            elif cmd == "frame":
-                rep = game.frame(str(req.get("label", "now")))
-            elif cmd == "raw":
-                rep = game.raw()
-            elif cmd == "pause":
-                rep = game.pause()
-            elif cmd == "resume":
-                rep = game.resume()
-            elif cmd == "list_saves":
-                rep = game.list_saves()
-            elif cmd == "delete_save":
-                rep = game.delete_save(str(req.get("slot", "")))
-            elif cmd == "reset":
-                rep = game.reset()
-            elif cmd == "goal":
-                game.goal = str(req.get("text") or game.goal)
-                rep = {"ok": True, "goal": game.goal}
+
+            acquired = False
+            lock = game_lock or threading.Lock()
+            while not stop.is_set():
+                acquired = lock.acquire(timeout=0.1)
+                if acquired:
+                    break
+            if not acquired:
+                rep = {"ok": False, "error": "server shutting down"}
             else:
-                rep = {"ok": False, "error": f"unknown cmd {cmd!r}"}
+                try:
+                    rep = _dispatch(req, game)
+                finally:
+                    lock.release()
         except Exception as e:  # noqa: BLE001 - a bridge must not die on one bad request
             rep = {"ok": False, "error": f"{type(e).__name__}: {e}"}
         try:
-            conn.sendall((json.dumps(rep) + "\n").encode())
+            _send_json(conn, rep)
         except Exception:
             pass
+
+
+def serve(
+    game: Game,
+    token: str,
+    port: int,
+    log: Callable[[str], None],
+    *,
+    max_workers: int = DEFAULT_MAX_WORKERS,
+    request_timeout: float = DEFAULT_REQUEST_TIMEOUT,
+    stop_event: threading.Event | None = None,
+    on_ready: Callable[[int], None] | None = None,
+) -> None:
+    """Serve with a fixed worker set and a bounded pending-connection queue.
+
+    The incident path was the console's ``GET /api/stream`` loop, which repeatedly
+    opens line-delimited ``{"cmd": "raw"}`` connections. When one Game call stopped
+    completing, console retries reached this accept loop and the old implementation
+    created one more daemon thread for every retry. The fixed workers below make the
+    connection/thread boundary explicit and the shared ``game_lock`` keeps all Game
+    access serial.
+    """
+    if max_workers < 1:
+        raise ValueError("max_workers must be at least 1")
+    if request_timeout <= 0:
+        raise ValueError("request_timeout must be positive")
+
+    stop = stop_event or threading.Event()
+    pending: queue.Queue[socket.socket] = queue.Queue(maxsize=max_workers)
+    game_lock = threading.Lock()
+    active_lock = threading.Lock()
+    active: set[socket.socket] = set()
+    instance = f"{id(stop):x}"
+
+    def worker() -> None:
+        while True:
+            try:
+                conn = pending.get(timeout=0.1)
+            except queue.Empty:
+                if stop.is_set():
+                    return
+                continue
+            try:
+                if stop.is_set():
+                    conn.close()
+                    continue
+                with active_lock:
+                    active.add(conn)
+                try:
+                    handle(
+                        conn,
+                        game,
+                        token,
+                        log,
+                        game_lock=game_lock,
+                        stop_event=stop,
+                        request_timeout=request_timeout,
+                    )
+                finally:
+                    with active_lock:
+                        active.discard(conn)
+            finally:
+                pending.task_done()
+
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    srv.bind(("127.0.0.1", port))  # loopback only, never 0.0.0.0
+    srv.listen(max_workers)
+    srv.settimeout(0.2)
+    workers = [
+        threading.Thread(
+            target=worker,
+            name=f"aipp-bridge-worker-{instance}-{index}",
+            daemon=True,
+        )
+        for index in range(max_workers)
+    ]
+    for thread in workers:
+        thread.start()
+
+    bound_port = int(srv.getsockname()[1])
+    log(
+        f"listening on 127.0.0.1:{bound_port} (loopback only); token required; "
+        f"workers={max_workers}; pending={max_workers}"
+    )
+    if on_ready is not None:
+        on_ready(bound_port)
+
+    try:
+        while not stop.is_set():
+            try:
+                conn, _ = srv.accept()
+            except socket.timeout:
+                continue
+            except OSError:
+                if stop.is_set():
+                    break
+                raise
+            try:
+                pending.put_nowait(conn)
+            except queue.Full:
+                try:
+                    conn.settimeout(1.0)
+                    _send_json(conn, {"ok": False, "error": "server busy"})
+                except OSError:
+                    pass
+                finally:
+                    conn.close()
+    finally:
+        stop.set()
+        srv.close()
+
+        while True:
+            try:
+                queued = pending.get_nowait()
+            except queue.Empty:
+                break
+            queued.close()
+            pending.task_done()
+
+        with active_lock:
+            open_connections = list(active)
+        for conn in open_connections:
+            try:
+                conn.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
+            conn.close()
+
+        deadline = time.monotonic() + SHUTDOWN_JOIN_TIMEOUT
+        for thread in workers:
+            thread.join(timeout=max(0.0, deadline - time.monotonic()))
+        still_running = [thread.name for thread in workers if thread.is_alive()]
+        if still_running:
+            log(f"shutdown timed out waiting for workers: {still_running}")
+        else:
+            log("shutdown complete; all bridge workers joined")
 
 
 def main() -> int:
@@ -394,6 +560,18 @@ def main() -> int:
         help="file holding the per-session token; must exist and be 0600",
     )
     ap.add_argument("--port", type=int, default=8770)
+    ap.add_argument(
+        "--max-workers",
+        type=int,
+        default=DEFAULT_MAX_WORKERS,
+        help="fixed bridge worker-thread ceiling (pending queue has the same bound)",
+    )
+    ap.add_argument(
+        "--request-timeout",
+        type=float,
+        default=DEFAULT_REQUEST_TIMEOUT,
+        help="seconds allowed to receive one newline-terminated request",
+    )
     ap.add_argument(
         "--boot-state", default=str(REPO / "data" / "baselines" / "base-1_boot.state")
     )
@@ -426,7 +604,30 @@ def main() -> int:
     log(
         f"ready: map={game.reader.current_map_name()} screen={game.reader.screen_type()}"
     )
-    serve(game, token, a.port, log)
+
+    stop = threading.Event()
+
+    def request_stop(signum: int, _frame: object) -> None:
+        log(f"shutdown requested by signal {signum}")
+        stop.set()
+
+    signal.signal(signal.SIGINT, request_stop)
+    signal.signal(signal.SIGTERM, request_stop)
+    try:
+        serve(
+            game,
+            token,
+            a.port,
+            log,
+            max_workers=a.max_workers,
+            request_timeout=a.request_timeout,
+            stop_event=stop,
+        )
+    finally:
+        try:
+            game.emu.stop()
+        except Exception as e:  # noqa: BLE001 - shutdown remains best-effort
+            log(f"emulator shutdown warning: {type(e).__name__}: {e}")
     return 0
 
 
