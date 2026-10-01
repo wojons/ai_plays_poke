@@ -414,6 +414,20 @@
       "reason": "Battle-menu transport: taps the button selected by the higher-level JEV/tool action while navigating a known menu layout."
     },
     {
+      "file": "src/core/agentic_loop.py",
+      "context": "_tool_result",
+      "button": "direction",
+      "call": "press_button(direction, frames=5)",
+      "reason": "Agentic tool transport: enacts the walk direction supplied by the model's chosen tool call; no action is selected here."
+    },
+    {
+      "file": "src/core/agentic_loop.py",
+      "context": "_tool_result",
+      "button": "a",
+      "call": "press_button('a', frames=5)",
+      "reason": "Agentic tool transport: performs the interaction requested by the model's chosen tool call; no action is selected here."
+    },
+    {
       "file": "src/game_loop.py",
       "context": "GameLoop._run_boot_progression",
       "button": "button",
