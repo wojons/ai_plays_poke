@@ -282,9 +282,12 @@ def evaluate_evidence(
     runner_failure_count_ok = (
         isinstance(runner_failure_count, int) and runner_failure_count >= 0
     )
+    runner_failure_count_value = (
+        runner_failure_count if runner_failure_count_ok else None
+    )
     total_api_failures = (
-        structured_failure_count + runner_failure_count
-        if runner_failure_count_ok
+        structured_failure_count + runner_failure_count_value
+        if runner_failure_count_value is not None
         else None
     )
     api_ok = runner_failure_count_ok and total_api_failures == 0

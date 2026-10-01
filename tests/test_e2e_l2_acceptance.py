@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -90,9 +91,9 @@ def _previous_pass(run_id: str = "e2e002_20260930_235959_cd34") -> dict:
     }
 
 
-def _evaluate(tmp_path: Path, **overrides) -> dict:
+def _evaluate(tmp_path: Path, **overrides: Any) -> dict[str, Any]:
     review, replay = _artifacts(tmp_path)
-    args = {
+    args: dict[str, Any] = {
         "manifest": _manifest(),
         "rows": _rows(),
         "duckbrain_summary": _duckbrain_summary(),
@@ -237,12 +238,17 @@ def test_peak_rss_is_kb_converted_to_mb_and_cap_is_fail_closed(tmp_path: Path) -
     assert result["single_run_pass"] is False
 
 
+def _record_write(writes: list[dict[str, Any]], kwargs: dict[str, Any]) -> str:
+    writes.append(kwargs)
+    return "memory-id"
+
+
 def test_publish_ladder_score_merges_existing_summary_attributes(monkeypatch) -> None:
     writes: list[dict] = []
     monkeypatch.setattr(
         e2e.duckbrain_client,
         "remember",
-        lambda **kwargs: writes.append(kwargs) or "memory-id",
+        lambda **kwargs: _record_write(writes, kwargs),
     )
     existing = _duckbrain_summary()
     result = {
