@@ -955,9 +955,32 @@ class TestPlanEntryRowShape:
         assert "decision = {**_jev_attempt, **_jev_outcome}" in hit
         assert "_decision_pipeline = JEV_PIPELINE" in hit
 
-        miss = [ast.unparse(stmt) for stmt in node.orelse]
-        assert "_decision_pipeline = pipeline_name" in miss
-        assert any("controller_plan(" in stmt for stmt in miss)
+        # JEV miss: the controller path is nested behind the DECISION_MODE
+        # switch (agentic mode runs the tool loop; classic mode calls
+        # controller_plan), so walk the whole miss subtree structurally.
+        miss_tree = ast.Module(body=node.orelse, type_ignores=[])
+        mode_switches = [
+            sub
+            for sub in ast.walk(miss_tree)
+            if isinstance(sub, ast.If)
+            and ast.unparse(sub.test) == "DECISION_MODE == 'agentic'"
+        ]
+        assert len(mode_switches) == 1, (
+            "expected one `if DECISION_MODE == 'agentic':` inside the JEV "
+            f"miss, found {len(mode_switches)}"
+        )
+        mode_switch = mode_switches[0]
+
+        agentic = [ast.unparse(stmt) for stmt in mode_switch.body]
+        assert "_decision_pipeline = 'agentic_tools'" in agentic
+        assert any("run_agentic_cycle(" in stmt for stmt in agentic)
+
+        classic = [ast.unparse(stmt) for stmt in mode_switch.orelse]
+        assert "_decision_pipeline = pipeline_name" in classic
+        assert any("controller_plan(" in stmt for stmt in classic)
+
+        miss_top = [ast.unparse(stmt) for stmt in node.orelse]
+        assert "decision.update(_jev_outcome)" in miss_top
 
 
 class TestAutonomyRatioFromRealRows:
