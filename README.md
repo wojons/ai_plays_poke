@@ -168,6 +168,15 @@ The primary working entry point for autonomous gameplay is `cron_runner.py` — 
 that reads game state directly from emulator RAM (free, instant) and uses LLM calls only for
 game decisions.
 
+Before running the first setup command:
+
+- ROM files are not bundled. You must own the game and supply your own legally obtained dump
+  of a compatible Pokémon Blue ROM at
+  `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb`.
+- `OPENROUTER_API_KEY` is required for real AI decisions.
+- `DEEPSEEK_API_KEY` is an optional fallback provider key for DeepSeek models; when it is set,
+  those models route directly to DeepSeek instead of OpenRouter.
+
 ```bash
 # 1. Create virtual environment
 python3 -m venv .venv
@@ -180,9 +189,10 @@ pip install -r requirements.txt
 # You must own the game. Place your own dump at this exact path:
 # data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb
 
-# 4. Set up API key
+# 4. Set up API keys
 cp .env.example .env
-# Edit .env — add your OPENROUTER_API_KEY
+# Edit .env — OPENROUTER_API_KEY is required for real AI decisions.
+# DEEPSEEK_API_KEY is optional fallback for DeepSeek models.
 
 # 5. Run (example: 80 AI decision cycles)
 python3 cron_runner.py --run-id demo1 --cycles 80
