@@ -2088,8 +2088,9 @@ def _record_recent_decision(
         raw_action = ", ".join(str(item) for item in raw_plan)
 
     raw_cycle = event.get("cycle")
+    cycle: int = raw_cycle if isinstance(raw_cycle, int) else 0
     turn = {
-        "cycle": raw_cycle if isinstance(raw_cycle, int) else 0,
+        "cycle": cycle,
         "screen": _compact_recent_text(
             event.get("screen") or event.get("state"), "unknown"
         ),
@@ -2101,7 +2102,7 @@ def _record_recent_decision(
     del history[:-RECENT_DECISION_LIMIT]
     if agent_context is not None:
         agent_context.record(
-            cycle=turn["cycle"],
+            cycle=cycle,
             decision=turn["intent"],
             action=turn["action"],
             result=turn["outcome"],
