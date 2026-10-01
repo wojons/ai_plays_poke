@@ -179,11 +179,12 @@ code writes, and marks the rest design-only.*
 they are independent; memory wiring is hot because the design is fresh.
 
 ### R4 — Run-shape redesign (the instrument)
-- `E2E-001` becomes: 80-cycle narrative run from `boot.state` (not the battle
-  checkpoint), scored on the L2 gate. Keep a separate 20-cycle smoke if gates demand
-  it.
-- Board row for the E2E fixture updated to carry the ladder scoring, so the foreman
-  stops reporting exit-0 as progress.
+- `E2E-002` is the 80-cycle narrative run from `boot.state` (not the battle
+  checkpoint), scored on the L2 gate by `scripts/evaluate_e2e_l2.py`.
+- `E2E-001` remains a separate 20-cycle smoke only. Its exit status cannot support an
+  L2 claim.
+- The L2 score requires two distinct complete E2E-002 passes, so the foreman cannot
+  report exit-0 or one lucky run as progress. See `docs/e2e-l2-acceptance.md`.
 
 ### R5 — Bench hygiene (bounded, per slop doctrine)
 - Freeze (hand-fix or close, no re-dispatch): DEPS-004 (4 rejects), GAP-045 (3
@@ -202,8 +203,10 @@ evidence** (phantom-green rule).
 
 ## 5. L2 acceptance criteria (the gate, verbatim)
 
-One run, `--boot-state data/boot.state --cycles 80` (NO battle checkpoint), fresh
-run-id, live key:
+Each of two independently identified runs uses
+`--boot-state data/boot.state --cycles 80` (NO battle checkpoint), a fresh run-id,
+and a live key. One complete run is only an L2 candidate; the L2 claim requires both
+runs to pass:
 
 1. Agent reads intro/dialog and **writes ≥1 note or goal itself** (memory_note /
    memory_goal event in the jsonl, verifiable in DuckBrain).
