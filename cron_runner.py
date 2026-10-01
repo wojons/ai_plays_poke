@@ -127,6 +127,9 @@ DECISION_MODE_ALIASES: dict[str, str] = {
     "hybrid": MODE_HYBRID,
     "jev": MODE_HYBRID,  # historical: fast tier WITH the teacher on call
     "llm": MODE_SYSTEM2,  # historical: the pure-LLM benchmark
+    # Explicit opt-in model→tool loop.  It is System-Two for routing purposes,
+    # but keeps its own spelling in every decision row for benchmark clarity.
+    "agentic": MODE_SYSTEM2,
 }
 DECISION_MODES = tuple(DECISION_MODE_ALIASES)
 
@@ -705,6 +708,12 @@ from src.core.frame_cache import FrameCache
 from src.core.tools import execute_tool_call
 from src.core import jev_client
 from src.core import state_projection
+from src.core.agentic_loop import (
+    BoundedAgentContext,
+    DuckBrainAgentMemory,
+    ModelResearchDelegate,
+    run_agentic_cycle,
+)
 
 # Repository-owned, schema-versioned teacher promotions. Missing files load as
 # an empty set, preserving the pre-JEV-3 decision path in unseeded checkouts.
@@ -2069,6 +2078,8 @@ def _record_recent_decision(
     event: dict[str, Any],
     *,
     outcome: str,
+    agent_context: BoundedAgentContext | None = None,
+    text_facts: list[Any] | None = None,
 ) -> dict[str, Any]:
     """Append one cheap decision summary and enforce the per-run window bound."""
     raw_plan = event.get("plan")
@@ -2088,6 +2099,14 @@ def _record_recent_decision(
     }
     history.append(turn)
     del history[:-RECENT_DECISION_LIMIT]
+    if agent_context is not None:
+        agent_context.record(
+            cycle=turn["cycle"],
+            decision=turn["intent"],
+            action=turn["action"],
+            result=turn["outcome"],
+            text_facts=text_facts,
+        )
     return turn
 
 
@@ -2116,6 +2135,7 @@ def controller_plan(
     boot_memory: str = "",
     model: str | None = None,
     recent_decisions: list[dict[str, Any]] | None = None,
+    running_summary: str = "",
 ) -> dict[str, Any]:
     """Controller model (Luna via OpenRouter) outputs a movement PLAN.
 
@@ -2131,6 +2151,9 @@ def controller_plan(
     ``recent_decisions`` (S3) is the bounded, per-run prior-turn window. It
     rides in the user message because it changes every cycle, while the system
     prompt remains stable instructions plus boot memory.
+
+    ``running_summary`` holds the capped compact form of turns that rolled out
+    of that window. It is empty for legacy/direct callers.
 
     When `screenshot` is provided, the live game frame is attached as an
     image so Luna can use its own vision to see the screen.
@@ -2253,6 +2276,8 @@ def controller_plan(
     )
     recent_ctx = _recent_decisions_block(recent_decisions or [])
     msg += memory_ctx
+    if running_summary:
+        msg += f"\nEARLIER TURN SUMMARY (capped):\n{running_summary[:1200]}\n"
     if recent_ctx:
         msg += f"\n{recent_ctx}\n"
     msg += "\nOutput a movement plan (max {max_actions} actions). JSON only.\n".format(
@@ -3967,7 +3992,8 @@ def _main_parser() -> argparse.ArgumentParser:
             "Who decides each cycle. 'system1': the fast System-One tier "
             "decides EVERY cycle and never hands back. 'system2' (alias 'llm'): "
             "the controller decides EVERY cycle and the fast tier is never "
-            "called — the pure-LLM benchmark. 'system1+system2' (alias 'jev', "
+            "called — the pure-LLM benchmark. 'agentic': the explicit opt-in "
+            "bounded model-tool loop (also System-Two). 'system1+system2' (alias 'jev', "
             "the default): the fast tier decides and hands back to the "
             "reasoning teacher when a trigger fires and --handoff allows it. "
             "Overrides the AIPP_DECISION_MODE / CRON_DECISION_MODE env vars."
@@ -4433,6 +4459,9 @@ def main() -> None:
     # S3 context is deliberately run-local: cheap scalar summaries survive the
     # cycle loop, but a new main() invocation starts with no prior turns.
     _recent_decisions: list[dict[str, Any]] = []
+    _agent_context = BoundedAgentContext()
+    _agent_memory = DuckBrainAgentMemory()
+    _research_delegate = ModelResearchDelegate(controller_client, controller_model)
 
     # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
     # Built ONCE here (not per cycle) from the four DuckBrain layers
@@ -4957,26 +4986,53 @@ def main() -> None:
                 else:
                     # ── Step 2b: controller outputs the movement PLAN ──
                     # from the spatial description (JEV miss / unavailable).
-                    decision = controller_plan(
-                        controller_client,
-                        patch_data,
-                        _last_direction or "",
-                        _last_result,
-                        blocked_dir=_same_dir or "",
-                        blocked_count=_same_dir_count,
-                        max_actions=CART_STEPS,
-                        screenshot=_vision_frame,  # None on cache hit → no image cost
-                        frame_ref=_frame_ref,  # UUID text ref on cache hit
-                        goal=_mem_goal,
-                        notes=" | ".join(_mem_notes[:6])[:300],
-                        last_dialog=_last_dialog_text,
-                        study_result=_pending_study_result,
-                        boot_memory=_boot_memory,  # MEM-2: built once at boot
-                        recent_decisions=_recent_decisions,
-                        model=controller_model,  # GAP-052: flag/env-resolved
-                    )
+                    if DECISION_MODE == "agentic":
+                        agentic_result = run_agentic_cycle(
+                            client=controller_client,
+                            emulator=emu,
+                            observe=(
+                                ram_reader.observe
+                                if USE_RAM_READER
+                                else lambda: dict(patch_data)
+                            ),
+                            projection=patch_data,
+                            context=_agent_context,
+                            memory=_agent_memory,
+                            delegate=_research_delegate,
+                            model=controller_model,
+                            cycle=cycle + 1,
+                            decision_mode=DECISION_MODE,
+                            decision_mode_family=current_mode_family(),
+                        )
+                        decision = agentic_result.decision
+                        for tool_event in agentic_result.events:
+                            results.append(tool_event)
+                            log_file.write(json.dumps(tool_event, default=str) + "\n")
+                        if agentic_result.events:
+                            log_file.flush()
+                        _decision_pipeline = "agentic_tools"
+                    else:
+                        decision = controller_plan(
+                            controller_client,
+                            patch_data,
+                            _last_direction or "",
+                            _last_result,
+                            blocked_dir=_same_dir or "",
+                            blocked_count=_same_dir_count,
+                            max_actions=CART_STEPS,
+                            screenshot=_vision_frame,  # None on cache hit → no image cost
+                            frame_ref=_frame_ref,  # UUID text ref on cache hit
+                            goal=_mem_goal,
+                            notes=" | ".join(_mem_notes[:6])[:300],
+                            last_dialog=_last_dialog_text,
+                            study_result=_pending_study_result,
+                            boot_memory=_boot_memory,  # MEM-2: built once at boot
+                            recent_decisions=_recent_decisions,
+                            running_summary=_agent_context.summary,
+                            model=controller_model,  # GAP-052: flag/env-resolved
+                        )
+                        _decision_pipeline = pipeline_name
                     decision.update(_jev_outcome)
-                    _decision_pipeline = pipeline_name
                 # Study result is injected once, then cleared
                 _pending_study_result = ""
                 plan = decision.get("plan", ["A"])
@@ -5064,7 +5120,11 @@ def main() -> None:
                     _same_plan_count = 0
                 _last_plan_sig = _plan_sig
                 _last_pos_key = _pos_key
-                if _same_plan_count >= 2:
+                _agentic_tool_cycle = bool(
+                    DECISION_MODE == "agentic"
+                    and int(decision.get("agentic_tool_calls", 0)) > 0
+                )
+                if _same_plan_count >= 2 and not _agentic_tool_cycle:
                     _alt = _GIVEUP_SEQUENCE[_same_plan_count % len(_GIVEUP_SEQUENCE)]
                     plan = [_alt, "A"]
                     safe_print(
@@ -5109,7 +5169,7 @@ def main() -> None:
                 # rotate real inputs — walk, open menu, back out. The
                 # injected presses can also RESET a stuck state, which
                 # re-enables normal recovery on later cycles.
-                if _gave_up:
+                if _gave_up and not _agentic_tool_cycle:
                     plan = [_GIVEUP_SEQUENCE[cycle % len(_GIVEUP_SEQUENCE)]]
                     safe_print(
                         f"  [GIVEUP-WALK] injecting {plan} (post-exhaustion rotation)"
@@ -5132,6 +5192,10 @@ def main() -> None:
                     # historical value so existing logs stay comparable (M6);
                     # this field is the branchable one.
                     "decision_mode_family": current_mode_family(),
+                    "agentic_tools_enabled": DECISION_MODE == "agentic",
+                    "agentic_tool_calls": int(decision.get("agentic_tool_calls", 0)),
+                    "context_evidence": _agent_context.evidence(),
+                    "context_snapshot": _agent_context.render(),
                     "plan": plan,
                     "intent": intent,
                     # JEV-1 (PRD v3 AC-1): every decision row carries the
@@ -5237,6 +5301,12 @@ def main() -> None:
                     _recent_decisions,
                     plan_entry,
                     outcome=_last_result,
+                    agent_context=_agent_context,
+                    text_facts=(
+                        patch_data.get("text_content")
+                        or patch_data.get("text_lines")
+                        or []
+                    ),
                 )
 
                 elapsed = time.time() - t0
