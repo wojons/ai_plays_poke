@@ -2240,11 +2240,11 @@ def controller_plan(
             "- Use note/goal/study when you learn something — memory is how you win.\n"
             "- NEVER guess: read text, note what it says, act on it.\n"
             "TOOL FILING (where each output field is filed):\n"
-            '- "study" → mechanics knowledge under /game/mechanics/* '
-            "(the game itself; survives save resets).\n"
-            '- "note" → this run\'s lessons + the save-state quests '
-            "(an in-run observation).\n"
-            '- "goal" → the save-state quests (your current intent).\n'
+            '- "study" → reads the requested key; found content is copied to '
+            "/game/mechanics/* (the game itself; survives save resets).\n"
+            '- "note" → /notes/overworld-<cycle>, this run\'s lessons, and '
+            "/game/learning/<navigation|battle|strategy>.\n"
+            '- "goal" → /goals/current + this run\'s lessons (your current intent).\n'
         )
     )
 
@@ -3390,6 +3390,80 @@ def _populate_world_memory(
     return retrieved_facts
 
 
+# DF-AIPP-3 category mapping for the two durable knowledge layers. Agent notes
+# mentioning combat vocabulary are battle lessons; location/direction vocabulary
+# (or a named map) is navigation; everything else is cross-run strategy. Studied
+# records use the four canonical mechanics keys consumed by the boot reader.
+_BATTLE_MEMORY_TERMS: tuple[str, ...] = (
+    "battle",
+    "fight",
+    "attack",
+    "damage",
+    "faint",
+    "opponent",
+    "enemy",
+    "switch",
+    "type advantage",
+    "move-selection",
+)
+_NAVIGATION_MEMORY_TERMS: tuple[str, ...] = (
+    "route",
+    "path",
+    "north",
+    "south",
+    "east",
+    "west",
+    "door",
+    "exit",
+    "stairs",
+    "map",
+    "town",
+    "city",
+    "lab",
+    "house",
+    "location",
+    "walk",
+)
+_MENU_MEMORY_TERMS: tuple[str, ...] = (
+    "menu",
+    "inventory",
+    "item",
+    "party",
+    "select",
+    "cursor",
+)
+_TEXT_MEMORY_TERMS: tuple[str, ...] = (
+    "text",
+    "dialog",
+    "read",
+    "npc",
+    "talk",
+)
+
+
+def _learning_category(note: str, map_name: str) -> str:
+    """Map a note to navigation, battle, or strategy for durable learning."""
+    note_text = note.lower()
+    if any(term in note_text for term in _BATTLE_MEMORY_TERMS):
+        return "battle"
+    navigation_text = f"{note_text} {map_name.lower()}"
+    if any(term in navigation_text for term in _NAVIGATION_MEMORY_TERMS):
+        return "navigation"
+    return "strategy"
+
+
+def _mechanics_category(study_key: str, content: str) -> str:
+    """Map studied content to a canonical mechanics key read during boot."""
+    studied = f"{study_key} {content}".lower()
+    if any(term in studied for term in _BATTLE_MEMORY_TERMS):
+        return "battle"
+    if any(term in studied for term in _MENU_MEMORY_TERMS):
+        return "menus"
+    if any(term in studied for term in _TEXT_MEMORY_TERMS):
+        return "text"
+    return "controls"
+
+
 def _apply_agent_memory_outputs(
     *,
     decision: dict[str, Any],
@@ -3430,7 +3504,25 @@ def _apply_agent_memory_outputs(
                     "cycle": cycle,
                 },
                 embedding_text=_mem_note[:300],
+                namespace="pokemon-global",
             )
+            learning_category = _learning_category(_mem_note, map_name)
+            try:
+                _dbc.remember(
+                    key=f"/game/learning/{learning_category}",
+                    domain="game/learning",
+                    attributes={
+                        "fact": _mem_note[:300],
+                        "category": learning_category,
+                        "source": "agent-note",
+                        "map": map_name,
+                        "cycle": cycle,
+                    },
+                    embedding_text=_mem_note[:300],
+                    namespace="pokemon-global",
+                )
+            except Exception as learning_error:
+                safe_print(f"  [MEM] learning mirror failed: {learning_error}")
             mem_notes.insert(0, f"[{map_name}] {_mem_note[:120]}")
             mem_notes = mem_notes[:6]
             safe_print(f"  [MEM] note: {_mem_note[:80]}")
@@ -3471,7 +3563,27 @@ def _apply_agent_memory_outputs(
                     or _attrs.get("goal")
                     or _rec.get("embedding_text", "")
                 )
-                pending_study_result = f"{_rec.get('key')}: {str(_body)[:250]}"
+                studied_content = str(_body).strip()[:300]
+                pending_study_result = f"{_rec.get('key')}: {studied_content[:250]}"
+                if studied_content:
+                    mechanics_category = _mechanics_category(
+                        _mem_study_key, studied_content
+                    )
+                    try:
+                        _dbc.remember(
+                            key=f"/game/mechanics/{mechanics_category}",
+                            domain="game/mechanics",
+                            attributes={
+                                "fact": studied_content,
+                                "source": "agent-study",
+                                "source_key": _mem_study_key,
+                                "cycle": cycle,
+                            },
+                            embedding_text=studied_content,
+                            namespace="pokemon-global",
+                        )
+                    except Exception as mechanics_error:
+                        safe_print(f"  [MEM] mechanics write failed: {mechanics_error}")
             else:
                 pending_study_result = (
                     f"(nothing at {_mem_study_key} — you haven't "

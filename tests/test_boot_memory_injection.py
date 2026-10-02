@@ -290,6 +290,9 @@ def test_prompt_includes_blocks_only_when_nontrivial() -> None:
     # The tool-filing lines are the one unconditional prompt addition.
     assert "TOOL FILING" in plain
     assert "/game/mechanics/*" in plain
+    assert "/game/learning/<navigation|battle|strategy>" in plain
+    assert "/goals/current" in plain
+    assert "save-state quests" not in plain
     assert "BOOT MEMORY" not in plain
 
     boot = cron_runner.BootMemory(

@@ -72,6 +72,40 @@ def test_run_cycle_memory_events_land_in_results_and_log(tmp_path) -> None:
     assert results[1]["goal"] == "Reach Route 1."
 
 
+def test_note_is_mirrored_to_navigation_learning(monkeypatch, tmp_path) -> None:
+    """An agent navigation note also populates the cross-run learning layer."""
+    writes = _capture_writes(monkeypatch)
+    results: list[dict[str, Any]] = []
+    log_path = tmp_path / "run_note.jsonl"
+
+    with log_path.open("w+", encoding="utf-8") as log_file:
+        cron_runner._apply_agent_memory_outputs(
+            decision={"note": "The Route 1 path continues north to Viridian City."},
+            results=results,
+            log_file=log_file,
+            cycle=8,
+            map_name="Route 1",
+            mem_goal="",
+            mem_notes=[],
+            pending_study_result="",
+        )
+
+    by_key = _writes_by_key(writes)
+    assert by_key["/notes/overworld-8"]["attributes"]["fact"] == (
+        "The Route 1 path continues north to Viridian City."
+    )
+    learning = by_key["/game/learning/navigation"]
+    assert learning["domain"] == "game/learning"
+    assert learning["namespace"] == "pokemon-global"
+    assert learning["attributes"] == {
+        "fact": "The Route 1 path continues north to Viridian City.",
+        "category": "navigation",
+        "source": "agent-note",
+        "map": "Route 1",
+        "cycle": 8,
+    }
+
+
 def test_study_event_lands_in_results(monkeypatch, tmp_path) -> None:
     """A study lookup is a run event too (the ladder counts memory_study)."""
     _capture_writes(monkeypatch)
@@ -95,6 +129,45 @@ def test_study_event_lands_in_results(monkeypatch, tmp_path) -> None:
     assert [row["event"] for row in results] == ["memory_study"]
     assert results[0]["key"] == "/notes/overworld-3"
     assert logged == results
+
+
+def test_study_writes_studied_content_to_mechanics(monkeypatch, tmp_path) -> None:
+    """A successful study lookup promotes its content into mechanics memory."""
+    writes = _capture_writes(monkeypatch)
+    monkeypatch.setattr(
+        duckbrain_client,
+        "get",
+        lambda **kwargs: {
+            "key": kwargs["key"],
+            "attributes": {"fact": "FIGHT opens the move-selection menu."},
+        },
+    )
+    results: list[dict[str, Any]] = []
+    log_path = tmp_path / "run_study_mechanics.jsonl"
+
+    with log_path.open("w+", encoding="utf-8") as log_file:
+        _, _, pending = cron_runner._apply_agent_memory_outputs(
+            decision={"study": "/guides/how-battles-work"},
+            results=results,
+            log_file=log_file,
+            cycle=9,
+            map_name="Oak's Lab",
+            mem_goal="",
+            mem_notes=[],
+            pending_study_result="",
+        )
+
+    assert "FIGHT opens the move-selection menu." in pending
+    by_key = _writes_by_key(writes)
+    mechanics = by_key["/game/mechanics/battle"]
+    assert mechanics["domain"] == "game/mechanics"
+    assert mechanics["namespace"] == "pokemon-global"
+    assert mechanics["attributes"] == {
+        "fact": "FIGHT opens the move-selection menu.",
+        "source": "agent-study",
+        "source_key": "/guides/how-battles-work",
+        "cycle": 9,
+    }
 
 
 def test_failed_memory_write_records_no_event(monkeypatch, tmp_path) -> None:
