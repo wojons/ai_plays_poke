@@ -991,3 +991,14 @@ tasks:
     correct and the focused test plus repository gates pass.
   status: in_progress
   created_at: '2026-10-01T20:51:46.793657+00:00'
+- id: VIS-PEOPLE-1
+  title: People-identification prompt with sprite-cell-scored measurement
+  criteria:
+  - 'A dedicated people-identification prompt exists (terse style per VIS-ALIGN-1
+    lesson), it names each visible person with a cell and a distinguishing feature,
+    and it is scored against the reader''s RAM sprite table across a multi-frame set
+    with the failure rate reported honestly (no whole-grid cell-match gaming). Evidence:
+    a measurement script or doc capturing prompt, frames, model answers, sprite-cell
+    ground truth, and per-frame pass/fail.'
+  status: in_progress
+  created_at: '2026-10-02T03:07:46.880870+00:00'
