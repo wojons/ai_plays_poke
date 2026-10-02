@@ -14,7 +14,7 @@ tqdm>=4.0
 PyYAML>=6.0
 
 # OpenCV for image processing (screenshot_manager.py, game_loop.py)
-opencv-python>=4.8.0
+opencv-python-headless>=4.8.0
 
 # Observability Dashboard
 fastapi>=0.104.0
