@@ -1,0 +1,43 @@
+commit 293faf80bfd5362336ed3167313c211be684758a
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Fri Oct 2 04:41:26 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Fri Oct 2 04:41:26 2026 -0500
+
+    fix(deps): add 8 missing runtime deps to pyproject.toml (REV-2)
+    
+    pyproject [project].dependencies omitted requests, numpy, Pillow,
+    opencv-python-headless, psutil, fastapi, uvicorn, websockets — all
+    imported by tracked runtime code (src/, web_viewer.py, ram_map_server.py,
+    cron_runner) and pinned in requirements.txt. A pip install -e . consumer
+    got ModuleNotFoundError at import. Dev extras already carried opencv/
+    psutil/fastapi (b11aebf) but runtime installs following pyproject alone
+    were broken.
+    
+    Verified: fresh uv venv (py3.11) + `uv pip install -e .` resolves and all
+    9 runtime modules import cleanly.
+    
+    Closes REV-2 (ai-plays-poke board tick 2026-10-02-09-28-39)
+---
+ pyproject.toml | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 950e529..534f0ff 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -19,6 +19,14 @@ dependencies = [
+     "streamlit>=1.0",
+     "pandas>=2.0",
+     "matplotlib>=3.0",
++    "requests>=2.31.0",
++    "numpy>=1.24.0",
++    "Pillow>=10.0.0",
++    "opencv-python-headless>=4.8.0",
++    "psutil>=5.9.0",
++    "fastapi>=0.104.0",
++    "uvicorn>=0.24.0",
++    "websockets>=12.0",
+ ]
+ 
+ [project.optional-dependencies]

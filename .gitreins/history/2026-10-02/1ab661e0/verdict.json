@@ -1,0 +1,111 @@
+{
+  "task_id": "REV-2",
+  "task_title": "Runtime dependency manifest drift: pyproject.toml omits runtime deps",
+  "task_criteria": [
+    "pyproject.toml [project].dependencies includes requests, numpy, Pillow, opencv-python-headless, psutil, fastapi, uvicorn, websockets with version bounds matching requirements.txt; pip install -e . in a fresh venv resolves without missing modules"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "293faf80bfd5362336ed3167313c211be684758a",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:41AM INF scanned ~325324498 bytes (325.32 MB) in 12.2s\n4:41AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94282 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 pyproject.toml [project].dependencies includes requests, numpy, Pillow, opencv-python-headless, psutil, fastapi, uvicorn, websockets with version bounds matching requirements.txt; pip install -e . in a fresh venv resolves without missing modules: pyproject.toml lines 11-28 [project].dependencies contains all 8 required packages with bounds EXACTLY matching requirements.txt (verified programmatically, all MATCH=True): requests>=2.31.0, numpy>=1.24.0, Pillow>=10.0.0, opencv-python-headless>=4.8.0, psutil>=5.9.0, fastapi>=0.104.0, uvicorn>=0.24.0, websockets>=12.0. Fresh venv test: `python3 -m venv /tmp/rev2venv && /tmp/rev2venv/bin/pip install -e .` exited 0 with 'Successfully installed ... Pillow-12.3.0 ... fastapi-0.142.2 ... numpy-2.4.6 ... opencv-python-headless-5.0.0.93 ... psutil-7.2.2 ... requests-2.34.2 ... uvicorn-0.54.0 ... websockets-16.1.1 ... ptp-01x-pokemon-ai-0.1.0'. Import check in that venv returned ALL_IMPORTS_OK (requests, numpy, PIL, cv2, psutil, fastapi, uvicorn, websockets all import). tests/test_requirements_parity.py: 4 passed in 0.03s; full suite `./.venv/bin/pytest -x --tb=short` showed 0 FAILED/ERROR. [resolution 0.34; pyproject.toml]\npyproject.toml declares all 8 runtime deps with version bounds identical to requirements.txt, and pip install -e . in a fresh venv resolves and imports every module successfully.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 pyproject.toml [project].dependencies includes requests, numpy, Pillow, opencv-python-headless, psutil, fastapi, uvicorn, websockets with version bounds matching requirements.txt; pip install -e . in a fresh venv resolves without missing modules: pyproject.toml lines 11-28 [project].dependencies contains all 8 required packages with bounds EXACTLY matching requirements.txt (verified programmatically, all MATCH=True): requests>=2.31.0, numpy>=1.24.0, Pillow>=10.0.0, opencv-python-headless>=4.8.0, psutil>=5.9.0, fastapi>=0.104.0, uvicorn>=0.24.0, websockets>=12.0. Fresh venv test: `python3 -m venv /tmp/rev2venv && /tmp/rev2venv/bin/pip install -e .` exited 0 with 'Successfully installed ... Pillow-12.3.0 ... fastapi-0.142.2 ... numpy-2.4.6 ... opencv-python-headless-5.0.0.93 ... psutil-7.2.2 ... requests-2.34.2 ... uvicorn-0.54.0 ... websockets-16.1.1 ... ptp-01x-pokemon-ai-0.1.0'. Import check in that venv returned ALL_IMPORTS_OK (requests, numpy, PIL, cv2, psutil, fastapi, uvicorn, websockets all import). tests/test_requirements_parity.py: 4 passed in 0.03s; full suite `./.venv/bin/pytest -x --tb=short` showed 0 FAILED/ERROR. [resolution 0.34; pyproject.toml]\npyproject.toml declares all 8 runtime deps with version bounds identical to requirements.txt, and pip install -e . in a fresh venv resolves and imports every module successfully.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "pyproject.toml [project].dependencies includes requests, numpy, Pillow, opencv-python-headless, psutil, fastapi, uvicorn, websockets with version bounds matching requirements.txt; pip install -e . in a fresh venv resolves without missing modules",
+                "status": "PASS",
+                "detail": "pyproject.toml lines 11-28 [project].dependencies contains all 8 required packages with bounds EXACTLY matching requirements.txt (verified programmatically, all MATCH=True): requests>=2.31.0, numpy>=1.24.0, Pillow>=10.0.0, opencv-python-headless>=4.8.0, psutil>=5.9.0, fastapi>=0.104.0, uvicorn>=0.24.0, websockets>=12.0. Fresh venv test: `python3 -m venv /tmp/rev2venv && /tmp/rev2venv/bin/pip install -e .` exited 0 with 'Successfully installed ... Pillow-12.3.0 ... fastapi-0.142.2 ... numpy-2.4.6 ... opencv-python-headless-5.0.0.93 ... psutil-7.2.2 ... requests-2.34.2 ... uvicorn-0.54.0 ... websockets-16.1.1 ... ptp-01x-pokemon-ai-0.1.0'. Import check in that venv returned ALL_IMPORTS_OK (requests, numpy, PIL, cv2, psutil, fastapi, uvicorn, websockets all import). tests/test_requirements_parity.py: 4 passed in 0.03s; full suite `./.venv/bin/pytest -x --tb=short` showed 0 FAILED/ERROR. [resolution 0.34; pyproject.toml]",
+                "resolution_probability": 0.34,
+                "cited_path": "pyproject.toml"
+              }
+            ],
+            "summary": "pyproject.toml declares all 8 runtime deps with version bounds identical to requirements.txt, and pip install -e . in a fresh venv resolves and imports every module successfully."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: REV-2\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 pyproject.toml [project].dependencies includes requests, numpy, Pillow, opencv-python-headless, psutil, fastapi, uvicorn, websockets with version bounds matching requirements.txt; pip install -e . in a fresh venv resolves without missing modules: pyproject.toml lines 11-28 [project].dependencies contains all 8 required packages with bounds EXACTLY matching requirements.txt (verified programmatically, all MATCH=True): requests>=2.31.0, numpy>=1.24.0, Pillow>=10.0.0, opencv-python-headless>=4.8.0, psutil>=5.9.0, fastapi>=0.104.0, uvicorn>=0.24.0, websockets>=12.0. Fresh venv test: `python3 -m venv /tmp/rev2venv && /tmp/rev2venv/bin/pip install -e .` exited 0 with 'Successfully installed ... Pillow-12.3.0 ... fastapi-0.142.2 ... numpy-2.4.6 ... opencv-python-headless-5.0.0.93 ... psutil-7.2.2 ... requests-2.34.2 ... uvicorn-0.54.0 ... websockets-16.1.1 ... ptp-01x-pokemon-ai-0.1.0'. Import check in that venv returned ALL_IMPORTS_OK (requests, numpy, PIL, cv2, psutil, fastapi, uvicorn, websockets all import). tests/test_requirements_parity.py: 4 passed in 0.03s; full suite `./.venv/bin/pytest -x --tb=short` showed 0 FAILED/ERROR. [resolution 0.34; pyproject.toml]\npyproject.toml declares all 8 runtime deps with version bounds identical to requirements.txt, and pip install -e . in a fresh venv resolves and imports every module successfully.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-02T10:28:17.821178",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-02T10:28:17.841763+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 1538,
+        "truncated": false,
+        "source": "git show 293faf80bfd5"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 17410,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "REV-2"
+  }
+}
