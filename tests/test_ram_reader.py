@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 
 from src.core.ram_reader import _MapDB
 
-# ── helpers ────────────────────────────────────────────────────────────────
+# ── helpers ──
 
 
 def _make_rom_bytes(
@@ -157,7 +157,7 @@ def _make_pallet_terrain_rom() -> bytes:
     return bytes(rom)
 
 
-# ── RAMReader fixture ─────────────────────────────────────────────────────
+# ── RAMReader fixture ──
 
 
 @pytest.fixture
@@ -202,7 +202,7 @@ def _reset_memory() -> None:
     _set_default_memory()
 
 
-# ── _MapDB tests ──────────────────────────────────────────────────────────
+# ── _MapDB tests ──
 
 
 class TestMapDBReadU8:
@@ -305,7 +305,8 @@ class TestMapDBParseHeader:
         # 16640 + 12 = 16652 which IS < 49741 -> header is reachable
         # So this test needs a larger offset. Let's use a pointer that
         # maps to an offset > ROM size.
-        # Pointer 0xC000 with bank=3: offset = 3*0x4000 + (0xC000-0x4000) = 0x14000 = 81920
+        # Pointer 0xC000 with bank=3: offset = 3*0x4000 + (0xC000-0x4000) = 0x14000 =
+        # 81920
         struct.pack_into("<H", rom, _PTR_TABLE, 0xC000)
         rom[_BANK_TABLE] = 3
         # 81920 + 12 = 81932 > 49741 -> None expected
@@ -434,7 +435,7 @@ class TestMapDBTileWalkability:
         assert db.tile_walkability(0, -1, 4) is None
 
 
-# ── RAMReader tests (mock emulator + mock _MapDB) ────────────────────────
+# ── RAMReader tests (mock emulator + mock _MapDB) ──
 
 
 class TestRAMReaderInit:
@@ -1091,7 +1092,7 @@ class TestRAMReaderObserve:
             assert "explore" in obs["suggested_action"]
 
 
-# ── Tileset 0 classification tests ──────────────────────────────────────
+# ── Tileset 0 classification tests ──
 
 
 class TestMapDBClassifyTileset0:
@@ -1126,7 +1127,7 @@ class TestMapDBClassifyTileset0:
         assert db.classify_block(0x0B, 0) == "grass"
 
 
-# ── render_overworld tests ──────────────────────────────────────────────
+# ── render_overworld tests ──
 
 
 class TestRenderOverworld:
@@ -1254,7 +1255,8 @@ class TestRenderOverworld:
             center = grid_lines[2].split()
             assert center[2] == "↓"
 
-            # Top row (dy=-2, gy=3): gx=4→tree=T, gx=5→floor=., gx=6→floor=., gx=7→grass=G, gx=8→floor=.
+            # Top row (dy=-2, gy=3): gx=4→tree=T, gx=5→floor=., gx=6→floor=.,
+            # gx=7→grass=G, gx=8→floor=.
             top = grid_lines[0].split()
             assert top[0] == "T"  # tree at (4,3)
             assert top[3] == "G"  # grass at (7,3)
@@ -1309,7 +1311,8 @@ class TestRenderOverworld:
                 # cell in front of them.
                 center = grid_lines[2].split()
                 assert center[2] == expected_arrow, (
-                    f"Facing {facing_name}: expected {expected_arrow} at the player's own cell"
+                    f"Facing {facing_name}: expected {expected_arrow} at the "
+                    "player's own cell"
                 )
 
                 # The cell being faced must show real contents (floor here),
@@ -1415,7 +1418,7 @@ class TestRenderOverworld:
             assert any(a in obs["overworld_grid"] for a in "↑↓←→")
 
 
-# ── read_battle_state tests ─────────────────────────────────────────────
+# ── read_battle_state tests ──
 
 
 class TestReadBattleState:
@@ -1659,7 +1662,7 @@ class TestReadBattleState:
             assert reader.read_battle_state()["enemy"]["type"] == "Poison/Ground"
 
 
-# ── render_battle tests ────────────────────────────────────────────────
+# ── render_battle tests ──
 
 
 class TestRenderBattle:
@@ -1761,7 +1764,7 @@ class TestRenderBattle:
         assert "RUN" in output
 
 
-# ── read_dialog_text tests ─────────────────────────────────────────────
+# ── read_dialog_text tests ──
 
 
 class TestReadDialogText:
@@ -1867,7 +1870,7 @@ class TestReadDialogText:
         assert len(text) > 0
 
 
-# ── render_dialog tests ───────────────────────────────────────────────
+# ── render_dialog tests ──
 
 
 class TestRenderDialog:
@@ -1923,7 +1926,7 @@ class TestRenderDialog:
         assert '"' in output
 
 
-# ── read_menu_state tests ─────────────────────────────────────────────
+# ── read_menu_state tests ──
 
 
 class TestReadMenuState:
@@ -1994,11 +1997,12 @@ class TestReadMenuState:
             state = reader.read_menu_state()
 
         assert state["menu_id"] == 5
-        # max_item == 0 with the guard: num_items = max_item+1 if max_item>0 else 0 → 0
+        # max_item == 0 with the guard: num_items = max_item+1 if max_item>0 else 0 →
+        # 0
         assert state["num_items"] == 0
 
 
-# ── render_menu tests ────────────────────────────────────────────────
+# ── render_menu tests ──
 
 
 class TestRenderMenu:
@@ -2071,7 +2075,7 @@ class TestRenderMenu:
         assert "[1]" not in output
 
 
-# ── read_name_entry tests ────────────────────────────────────────────
+# ── read_name_entry tests ──
 
 
 class TestReadNameEntry:
@@ -2213,7 +2217,7 @@ class TestReadNameEntry:
             assert len(row) == 9
 
 
-# ── render_name_entry tests ────────────────────────────────────────
+# ── render_name_entry tests ──
 
 
 class TestRenderNameEntry:
@@ -2310,7 +2314,7 @@ class TestRenderNameEntry:
         assert "START" in output
 
 
-# ── observe() extended coverage for new fields ──────────────────────
+# ── observe() extended coverage for new fields ──
 
 
 class TestObserveExtended:

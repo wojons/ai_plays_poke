@@ -20,7 +20,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-# ── WRAM addresses (Pokémon Red/Blue) ────────────────────────────────────
+# ── WRAM addresses (Pokémon Red/Blue) ──
 
 # Player state
 ADDR_Y_COORD = 0xD361  # wYCoord — player Y on map (in blocks)
@@ -123,7 +123,7 @@ ADDR_NAMING_LETTER = 0xCC4F  # wNamingScreenLetter
 # (from Data Crystal notes)
 ADDR_OVERWORLD_MAP_BASE = 0xC6E8
 
-# ── Facing direction decode ──────────────────────────────────────────────
+# ── Facing direction decode ──
 
 FACING_DIRECTIONS: dict[int, str] = {
     0x00: "down",
@@ -155,7 +155,7 @@ CLASS_SYMBOLS: dict[str, str] = {
     "void": "?",
 }
 
-# ── Screen type constants ────────────────────────────────────────────────
+# ── Screen type constants ──
 
 SCREEN_OVERWORLD = "overworld"
 SCREEN_DIALOG = "dialog"
@@ -165,7 +165,7 @@ SCREEN_TITLE = "title"
 SCREEN_NAME_ENTRY = "name_entry"
 SCREEN_UNKNOWN = "unknown"
 
-# ── Block classification (symbols for the minimap) ───────────────────────
+# ── Block classification (symbols for the minimap) ──
 
 # These are guesses based on observation; refined as the AI explores.
 # Known block types per tileset will be learned over time.
@@ -186,7 +186,7 @@ BLOCK_SYMBOLS: dict[str, str] = {
 }
 
 
-# ── ROM map database ─────────────────────────────────────────────────────
+# ── ROM map database ──
 
 # Pokémon Red/Blue ROM layout (from Data Crystal)
 _MAP_COUNT = 248
@@ -236,7 +236,7 @@ class _MapDB:
         self._tileset_cache = {}
         return self
 
-    # ── ROM helpers ──────────────────────────────────────────────────
+    # ── ROM helpers ──
 
     @staticmethod
     def _read_u16(data: bytes, offset: int) -> int:
@@ -294,7 +294,7 @@ class _MapDB:
             cursor += 3
         return warps, background_objects
 
-    # ── Map header parsing ───────────────────────────────────────────
+    # ── Map header parsing ──
 
     def _parse_header(self, map_id: int) -> dict[str, Any] | None:
         """Parse the map header for *map_id* and return block data + metadata."""
@@ -416,7 +416,9 @@ class _MapDB:
         )
         if offsets[-1] >= len(self._rom):
             return None
-        return tuple(self._rom[offset] for offset in offsets)  # type: ignore[return-value]
+        return tuple(
+            self._rom[offset] for offset in offsets
+        )  # type: ignore[return-value]
 
     def _map_quadrant_tiles(
         self, map_id: int, tile_x: int, tile_y: int
@@ -532,7 +534,7 @@ class _MapDB:
         ]
         return self._summarize_terrain([cell for cell in cells if cell is not None])
 
-    # ── Block classification ─────────────────────────────────────────
+    # ── Block classification ──
 
     # Known block → classification for tileset 4 (indoor: Red's House, etc.)
     # These are empirically determined; expanded as the AI explores.
@@ -620,7 +622,7 @@ class _MapDB:
         return "unknown"
 
 
-# ── Pokémon species names (index → name, Gen 1 1-indexed) ────────────────
+# ── Pokémon species names (index → name, Gen 1 1-indexed) ──
 
 # Gen 1 uses internal species IDs in wPartySpecies. These three non-Pokédex
 # values are the only species possible during the 0→1 starter transition.
@@ -783,7 +785,7 @@ POKEMON_NAMES: dict[int, str] = {
     185: "MissingNo.",
 }
 
-# ── Move names (index → name, Gen 1) ───────────────────────────────────
+# ── Move names (index → name, Gen 1) ──
 
 MOVE_NAMES: dict[int, str] = {
     1: "Pound",
@@ -953,7 +955,7 @@ MOVE_NAMES: dict[int, str] = {
     165: "Struggle",
 }
 
-# ── Type names (index → name, Gen 1) ───────────────────────────────────
+# ── Type names (index → name, Gen 1) ──
 
 TYPE_NAMES: dict[int, str] = {
     0: "Normal",
@@ -973,7 +975,7 @@ TYPE_NAMES: dict[int, str] = {
     26: "Dragon",
 }
 
-# ── Text decode ────────────────────────────────────────────────────────
+# ── Text decode ──
 
 
 def _decode_text(data: bytes, offset: int, max_len: int = 20) -> str:
@@ -1067,7 +1069,7 @@ MAP_NAMES: dict[int, str] = {
 }
 
 
-# ── RAMReader ─────────────────────────────────────────────────────────────
+# ── RAMReader ──
 
 
 class RAMReader:
@@ -1080,7 +1082,7 @@ class RAMReader:
         self._emu = emulator
         self._mapdb = _MapDB(rom_path)
 
-    # ── Low-level memory reads ───────────────────────────────────────
+    # ── Low-level memory reads ──
 
     def read_u8(self, addr: int) -> int:
         return self._emu.read_u8(addr)  # type: ignore[no-any-return]
@@ -1088,7 +1090,7 @@ class RAMReader:
     def read_u16(self, addr: int) -> int:
         return self._emu.read_u16(addr)  # type: ignore[no-any-return]
 
-    # ── Player state ────────────────────────────────────────────────
+    # ── Player state ──
 
     def player_x(self) -> int:
         """Player X in 2×2 map-block coordinates."""
@@ -1148,7 +1150,7 @@ class RAMReader:
         species_id = self.read_u8(ADDR_PARTY_SPECIES)
         return STARTER_SPECIES_NAMES.get(species_id)
 
-    # ── Screen type ──────────────────────────────────────────────────
+    # ── Screen type ──
 
     def screen_type(self) -> str:
         battle = self.read_u8(ADDR_IS_IN_BATTLE)
@@ -1226,7 +1228,7 @@ class RAMReader:
             and all(tile == 0x7A for tile in bottom[1:-1])
         )
 
-    # ── Map / minimap ────────────────────────────────────────────────
+    # ── Map / minimap ──
 
     def _get_map_info(self) -> dict[str, Any] | None:
         """Get parsed map data for the current map."""
@@ -1461,11 +1463,14 @@ class RAMReader:
                     row += "?"
                     unknown += 1
                 elif cls == "water":
-                    # Not plain floor and not "blocked wall" either: water changes the rules.
-                    # Impassable on foot now, crossable later, so it keeps its own symbol.
+                    # Not plain floor and not "blocked wall" either: water changes the
+                    # rules.
+                    # Impassable on foot now, crossable later, so it keeps its own
+                    # symbol.
                     row += "W"
                 elif cls == "grass":
-                    # WALKABLE, but never a bare '.': stepping in can trigger an encounter.
+                    # WALKABLE, but never a bare '.': stepping in can trigger an
+                    # encounter.
                     # A hazard, not an obstacle - the distinction the agent needs.
                     row += "G"
                 elif cls == "door":
@@ -1513,14 +1518,18 @@ class RAMReader:
     def _is_doorway(self, map_id: int, x: int, y: int) -> bool:
         """True when a walkable cell sits in a GAP IN A WALL - a doorway or an opening.
 
-        Derived from collision truth alone, so this is a geometric observation rather than
-        the game's own door data (the ROM's warp/behaviour tables are not parsed here yet).
-        A doorway in a wall run looks like: walkable, with blocked cells on BOTH sides of
+        Derived from collision truth alone, so this is a geometric observation\
+ rather than
+        the game's own door data (the ROM's warp/behaviour tables are not parsed\
+ here yet).
+        A doorway in a wall run looks like: walkable, with blocked cells on BOTH\
+ sides of
         one axis. Named 'doorway' and not 'door' for exactly that reason.
 
         Bane flagged the case this fixes: in Pallet Town outside the player's house the
         collision data reads `##.##` with a single walkable cell between the two blocked
-        runs - the house's own door - and the renderer showed it as a bare '.' with nothing
+        runs - the house's own door - and the renderer showed it as a bare '.'\
+ with nothing
         to say it was walkable for a reason.
         """
         w = self._mapdb.tile_walkability
@@ -1531,17 +1540,23 @@ class RAMReader:
     def player_screen_px(self) -> tuple[int, int] | None:
         """Where the player sprite sits ON SCREEN, in pixels: (x, y) or None.
 
-        READ, never inferred. This is what removes the grid-alignment guesswork: the window
+        READ, never inferred. This is what removes the grid-alignment guesswork:\
+ the window
         origin becomes player_tile - (screen_px // 16), so the grid no longer needs the
-        assumption that the camera keeps the player centred. That assumption was tested in
-        a second space and broke (Oak's Lab: RAM reported 71 unknown cells against vision's
+        assumption that the camera keeps the player centred. That assumption was\
+ tested in
+        a second space and broke (Oak's Lab: RAM reported 71 unknown cells\
+ against vision's
         41 because the player-centred window ran off the map edge), and the measurement
         that first appeared to support it was confounded by the floor's 16 px repeating
         pattern.
 
-        NOT YET VERIFIED against a frame. The sprite is drawn with an origin offset, so the
-        value here is the raw table entry, not a top-left corner. Treat as unconfirmed until
-        checked: render a 16 px grid at 80-shifted values and confirm a distinctive object
+        NOT YET VERIFIED against a frame. The sprite is drawn with an origin\
+ offset, so the
+        value here is the raw table entry, not a top-left corner. Treat as\
+ unconfirmed until
+        checked: render a 16 px grid at 80-shifted values and confirm a\
+ distinctive object
         lands where it looks. Returns None when the value is out of range for a 160x144
         screen, so a wrong layout assumption shows up as 'unknown' instead of a
         plausible-looking number.
@@ -1652,10 +1667,11 @@ class RAMReader:
         """Look up a type name by internal ID."""
         return TYPE_NAMES.get(type_id, f"Type#{type_id}")
 
-    # ── Battle state ──────────────────────────────────────────────────
+    # ── Battle state ──
 
     def read_battle_state(self) -> dict[str, Any]:
-        """Read full battle state from RAM. Returns structured dict for LLM consumption."""
+        """Read full battle state from RAM. Returns structured dict for LLM\
+ consumption."""
         # wIsInBattle is the opponent discriminator (1=wild, 2=trainer).
         # wBattleType is a separate mode flag (normal/old-man/Safari); using
         # wBattleType mislabeled T77's rival fight as wild and invited futile
@@ -1772,17 +1788,22 @@ class RAMReader:
         )
 
         return (
-            f"⚔ BATTLE: {'Trainer' if bs['battle_type'] == 'trainer' else 'Wild'} {e['name']}\n"
-            f"  Your {p['name']} Lv{p['level']} | HP:{p['hp_pct']}% ({p['hp']}/{p['max_hp']}) | {p['type']}\n"
-            f"  Enemy {e['name']} Lv{e['level']} | HP:{e['hp_pct']}% ({e['hp']}/{e['max_hp']}) | {e['type']}\n"
+            f"⚔ BATTLE: "
+            f"{'Trainer' if bs['battle_type'] == 'trainer' else 'Wild'} "
+            f"{e['name']}\n"
+            f"  Your {p['name']} Lv{p['level']} | HP:{p['hp_pct']}% "
+            f"({p['hp']}/{p['max_hp']}) | {p['type']}\n"
+            f"  Enemy {e['name']} Lv{e['level']} | HP:{e['hp_pct']}% "
+            f"({e['hp']}/{e['max_hp']}) | {e['type']}\n"
             f"  Moves: {moves_str or 'None'}\n"
             f"  Options: FIGHT BAG PKMN RUN"
         )
 
-    # ── Dialog / text ─────────────────────────────────────────────────
+    # ── Dialog / text ──
 
     def read_dialog_text(self) -> str:
-        """Read the current text box content from RAM (wStringBuffer + surrounding area)."""
+        """Read the current text box content from RAM (wStringBuffer +\
+ surrounding area)."""
         # Build a buffer from consecutive u8 reads at the text region
         buf = bytes(self.read_u8(ADDR_STRING_BUFFER + i) for i in range(60))
         text = _decode_text(buf, 0, 20)
@@ -1800,7 +1821,7 @@ class RAMReader:
         hint = " (Yes/No choice expected)" if yn_detected else " (Press A to continue)"
         return f'💬 DIALOG{hint}:\n  "{text}"'
 
-    # ── Menu state ─────────────────────────────────────────────────────
+    # ── Menu state ──
 
     def read_menu_state(self) -> dict[str, Any]:
         """Read current menu state from RAM. Returns empty menu if none active."""
@@ -1844,7 +1865,7 @@ class RAMReader:
         lines.append("  Use UP/DOWN to navigate, A to select, B to cancel")
         return "\n".join(lines)
 
-    # ── Name entry ─────────────────────────────────────────────────────
+    # ── Name entry ──
 
     def read_name_entry(self) -> dict[str, Any]:
         """Read name entry screen state from RAM."""
@@ -1896,31 +1917,55 @@ class RAMReader:
 
         return (
             f'⌨ NAME ENTRY: "{ne["name_so_far"]}" ({ne["length"]} chars)\n'
-            f"  Case: {ne['case']} | {'READY to submit' if ne['ready_to_submit'] else 'still editing'}\n"
+            f"  Case: {ne['case']} | "
+            f"{'READY to submit' if ne['ready_to_submit'] else 'still editing'}\n"
             f"  Keyboard:\n{grid_str}\n"
             f"  Use D-pad to move cursor, A to select letter, START to confirm"
         )
 
-    # ── Map-specific gameplay hints ───────────────────────────────────
+    # ── Map-specific gameplay hints ──
     # Maps the player has no way of knowing where exits are.
     # These hints give minimal guidance so the controller can make
     # informed decisions instead of walking into walls.
     _MAP_HINTS: dict[str, str] = {
-        "Pallet Town": "North exit is centered near tile x=10. From the house door, move DOWN first (UP re-enters the house), align with x=10, then move UP to Route 1 and trigger Professor Oak.",
-        "Oak's Lab": "Exit through the bottom-center door near tile x=5, y=6. Move DOWN toward it and continue DOWN through the doorway; do not press UP inside the lab.",
-        "Red's House 2F": "From the bedroom spawn, the collision-verified path to the stairs is RIGHT, UP, UP, UP, RIGHT.",
-        "Red's House 1F": "From the upstairs warp, the collision-verified exit path is DOWN, DOWN, DOWN, LEFT, LEFT, DOWN.",
+        "Pallet Town": (
+            "North exit is centered near tile x=10. From the house door, move "
+            "DOWN first (UP re-enters the house), align with x=10, then move UP "
+            "to Route 1 and trigger Professor Oak."
+        ),
+        "Oak's Lab": (
+            "Exit through the bottom-center door near tile x=5, y=6. Move DOWN "
+            "toward it and continue DOWN through the doorway; do not press UP "
+            "inside the lab."
+        ),
+        "Red's House 2F": (
+            "From the bedroom spawn, the collision-verified path to the stairs "
+            "is RIGHT, UP, UP, UP, RIGHT."
+        ),
+        "Red's House 1F": (
+            "From the upstairs warp, the collision-verified exit path is DOWN, "
+            "DOWN, DOWN, LEFT, LEFT, DOWN."
+        ),
         "Viridian City": "Viridian City. Exit north to Route 2, south to Route 1.",
-        "Route 1": "Route 1. North to Viridian City, south to Pallet Town. Grass has wild Pokémon.",
-        "Route 2": "Route 2. North to Pewter City (through forest), south to Viridian City.",
+        "Route 1": (
+            "Route 1. North to Viridian City, south to Pallet Town. Grass has "
+            "wild Pokémon."
+        ),
+        "Route 2": (
+            "Route 2. North to Pewter City (through forest), south to Viridian "
+            "City."
+        ),
         "Pewter City": "Pewter City. Exit east to Route 3. Gym is in the northeast.",
     }
 
     _STUCK_HINTS: list[str] = [
-        "You just pressed the same direction repeatedly and didn't move — try a different direction.",
-        "You've been pressing A on a wall — try a direction (UP/DOWN/LEFT/RIGHT) instead.",
+        "You just pressed the same direction repeatedly and didn't move — try "
+        "a different direction.",
+        "You've been pressing A on a wall — try a direction "
+        "(UP/DOWN/LEFT/RIGHT) instead.",
         "Try all four directions. One of them leads to an exit.",
-        "If you're in a building, look for stairs (usually DOWN). If outside, try NORTH.",
+        "If you're in a building, look for stairs (usually DOWN). If outside, "
+        "try NORTH.",
     ]
 
     def _suggested_map_action(self, map_name: str) -> str:
@@ -1929,22 +1974,46 @@ class RAMReader:
             tile_x = self.player_tile_x()
             tile_y = self.player_tile_y()
             if tile_y <= 6 and tile_x <= 6:
-                return "Move DOWN away from the house door before turning toward Route 1. Do not press UP here; it re-enters the house."
+                return (
+                    "Move DOWN away from the house door before turning toward "
+                    "Route 1. Do not press UP here; it re-enters the house."
+                )
             if tile_x < 9:
-                return "Move RIGHT only until aligned with Pallet Town's north exit near tile x=10."
+                return (
+                    "Move RIGHT only until aligned with Pallet Town's north "
+                    "exit near tile x=10."
+                )
             if tile_x > 11:
-                return "Move LEFT only until aligned with Pallet Town's north exit near tile x=10."
-            return "Move UP only toward Route 1. At the north map edge, keep moving UP to trigger Professor Oak."
+                return (
+                    "Move LEFT only until aligned with Pallet Town's north "
+                    "exit near tile x=10."
+                )
+            return (
+                "Move UP only toward Route 1. At the north map edge, keep moving "
+                "UP to trigger Professor Oak."
+            )
         if map_name == "Oak's Lab":
             tile_x = self.player_tile_x()
             tile_y = self.player_tile_y()
             if tile_y < 5:
-                return "Move DOWN one or two tiles toward Oak's Lab exit door. Do not press UP inside the lab."
+                return (
+                    "Move DOWN one or two tiles toward Oak's Lab exit door. Do "
+                    "not press UP inside the lab."
+                )
             if tile_x < 5:
-                return "Move RIGHT one tile to align with Oak's Lab exit door near tile x=5. Do not press UP."
+                return (
+                    "Move RIGHT one tile to align with Oak's Lab exit door near "
+                    "tile x=5. Do not press UP."
+                )
             if tile_x > 5:
-                return "Move LEFT one tile to align with Oak's Lab exit door near tile x=5. Do not press UP."
-            return "Move DOWN through the door, then continue DOWN out of Oak's Lab to trigger the rival battle. Do not press UP."
+                return (
+                    "Move LEFT one tile to align with Oak's Lab exit door near "
+                    "tile x=5. Do not press UP."
+                )
+            return (
+                "Move DOWN through the door, then continue DOWN out of Oak's Lab "
+                "to trigger the rival battle. Do not press UP."
+            )
         return self._MAP_HINTS.get(map_name, "")
 
     def observe(self) -> dict[str, Any]:
@@ -1963,7 +2032,8 @@ class RAMReader:
             "result": st,
             "player_facing": facing,
             # where the sprite is ON SCREEN (px) - lets the map window be aligned to the
-            # real camera instead of assuming the player is centred. None if unavailable.
+            # real camera instead of assuming the player is centred. None if
+            # unavailable.
             "player_screen_px": self.player_screen_px(),
             "player_x": px,
             "player_y": py,
@@ -2041,7 +2111,8 @@ class RAMReader:
         if menu_data["num_items"] > 0:
             obs["menu_state"] = menu_data
             obs["menu_items"] = [f"Item {i}" for i in range(menu_data["num_items"])]
-            # If we're in menu mode but screen_type says overworld, we're in start/menu overlay
+            # If we're in menu mode but screen_type says overworld, we're in start/menu
+            # overlay
             if st == SCREEN_OVERWORLD and menu_data["num_items"] >= 2:
                 obs["render"] = obs.get("render", "") + "\n" + self.render_menu()
 

@@ -39,7 +39,8 @@ from src.core.ram_reader import RAMReader  # noqa: E402
 from vision_blueprint_probe import parse_json  # noqa: E402
 
 ROM = Path(
-    "/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
+    "/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) "
+    "(SGB Enhanced).gb"
 )
 PROMPT = REPO / "prompts/exploration/vision_map_blueprint.md"
 OUTDIR = Path("/tmp/perception")
@@ -48,7 +49,7 @@ CELL = 16  # one game cell in pixels
 PLAYER_CELL = (4, 3)  # where the player sits on screen, measured from the sprite box
 
 
-# ── live state ────────────────────────────────────────────────────────────────
+# ── live state ──
 def obs() -> dict[str, Any]:
     tok = Path.home().joinpath(".hermes/aipp_bridge/session.token").read_text().strip()
     s = socket.create_connection(("127.0.0.1", 8770), timeout=30)
@@ -71,7 +72,7 @@ def capture(label: str) -> Path:
     return Path(r["frame"])
 
 
-# ── the two channels ──────────────────────────────────────────────────────────
+# ── the two channels ──
 def ram_grid(o: dict[str, Any]) -> str:
     r = RAMReader(emulator=None, rom_path=str(ROM))
     r.player_tile_x = lambda: int(o["player_tile_x"])  # type: ignore[method-assign]
@@ -97,7 +98,8 @@ def vision_grid(png: Path) -> tuple[list[str], dict[str, Any]]:
     body = {
         "model": "openai/gpt-5.6-luna",
         # 9000 to match vision_blueprint_probe.py. This model burns ~4500 output tokens
-        # REASONING before it emits the JSON, so a 1500 cap truncates the answer away and
+        # REASONING before it emits the JSON, so a 1500 cap truncates the answer away
+        # and
         # parse_json gets nothing - which is exactly what happened on the first run.
         "max_tokens": 9000,
         "messages": [
@@ -130,9 +132,12 @@ def pixel_mask(png: Path) -> list[str]:
     """'?' where the cell is mostly black, on the screen's OWN absolute cell grid.
 
     The window is the whole screen (10 x 9 cells of 16 px), so cell (r, c) is simply the
-    pixel box (c*16, r*16). No player anchor: the screen is fixed, and the player's cell is
-    wherever their sprite box lands in it. An earlier version centred on the player with a
-    +72 px offset, which is half a tile - it shifted every cell by half a cell and was part
+    pixel box (c*16, r*16). No player anchor: the screen is fixed, and the\
+ player's cell is
+    wherever their sprite box lands in it. An earlier version centred on the\
+ player with a
+    +72 px offset, which is half a tile - it shifted every cell by half a cell\
+ and was part
     of why the two channels looked like they disagreed at the edges.
     """
     im = Image.open(png).convert("L")
@@ -149,7 +154,7 @@ def pixel_mask(png: Path) -> list[str]:
     return out
 
 
-# ── comparison ────────────────────────────────────────────────────────────────
+# ── comparison ──
 def cls_ram(ch: str) -> str:
     if ch == "?":
         return "off-map"
@@ -167,7 +172,8 @@ def cls_vis(ch: str) -> str:
         return "unknown"
     if ch in "←↑↓→":
         return "player"
-    # 'B' means blocking in the vision blueprint too - the model CAN report blocked cells,
+    # 'B' means blocking in the vision blueprint too - the model CAN report blocked
+    # cells,
     # and the first version of this classifier scored them as floor, inventing conflicts
     # where the two channels actually agreed.
     if ch == "B":
@@ -180,8 +186,10 @@ def cls_vis(ch: str) -> str:
 def verdict(a: str, b: str, ra: str, rb: str) -> str:
     """Classify one cell. Compares the ARROW GLYPH, not just the class.
 
-    The first version mapped both channels' arrows to the same class 'player', so a frame
-    where RAM said the player faced up and vision said down scored as 'agree'. Bane caught
+    The first version mapped both channels' arrows to the same class 'player',\
+ so a frame
+    where RAM said the player faced up and vision said down scored as 'agree'.\
+ Bane caught
     it: the verdict showed a match while the directions disagreed. Facing is exactly the
     field we know vision is unreliable on, so a silent pass there is the worst kind.
     """
@@ -235,7 +243,8 @@ def main() -> int:
             if v.startswith("CONFLICT") or v in ("check", "FACING-MISMATCH"):
                 dx, dy = c - PLAYER_CELL[0], r - PLAYER_CELL[1]
                 findings.append(
-                    f"  ({dx:+d},{dy:+d}) rel to player: RAM={a}({ram[r][c]}) vision={b}({vis[r][c]})"
+                    f"  ({dx:+d},{dy:+d}) rel to player: "
+                    f"RAM={a}({ram[r][c]}) vision={b}({vis[r][c]})"
                 )
         print(f" {r}   {ram[r]}   {vis[r]}   {' '.join(c[:4] for c in cells)}")
 
