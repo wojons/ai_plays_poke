@@ -391,7 +391,8 @@ runs/test_001/
 ### Running All Tests
 ```bash
 # Run all tests in parallel (recommended — the ~14s figure is parallel-only,
-# measured with pytest-xdist: 3940 passed / 14 skipped on a fresh checkout)
+# measured with pytest-xdist: 4405 collected / 62 heavy-deselected; exact pass
+# counts drift as tests are added — check the run summary, not this comment)
 .venv/bin/python -m pytest tests/ -n auto -v
 
 # Run all tests serially (same suite takes ~210s / ~3.5 min — only if xdist is unavailable)
@@ -422,8 +423,9 @@ runs/test_001/
 ### Test Categories
 ```bash
 # Fast tier (recommended for day-to-day work) — unit tests only.
-# Completes in ~65–90s on a fresh checkout (~3878 passed / 8 skipped,
-# ~62–66 deselected). Excludes @pytest.mark.heavy tests — the same set as
+# Serial wall time ~190s on an unloaded box (measured 189.95s, 2026-09-27;
+# ~65–90s if pytest-xdist parallelizes it). ~4343 collected / 62 deselected;
+# pass counts drift as tests are added — check the run summary. Excludes @pytest.mark.heavy tests — the same set as
 # @pytest.mark.integration (game-loop component flows) and
 # @pytest.mark.slow (network retry/backoff, memory & performance
 # benchmarks), which all carry the heavy mark too.

@@ -1,0 +1,103 @@
+{
+  "task_id": "QA-AI-PLAYS-POKE-10",
+  "task_title": "Fix fresh-install blocker: opencv-python needs libGL",
+  "task_criteria": [
+    "requirements.txt and requirements-dev.txt pin opencv-python-headless instead of opencv-python; ruff+compileall pass; pytest collect-only completes on the venv"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "14a1a62a8c4d6f953bc9ca4321c96d0742b860a3",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 requirements.txt and requirements-dev.txt pin opencv-python-headless instead of opencv-python; ruff+compileall pass; pytest collect-only completes on the venv: requirements.txt:17 = 'opencv-python-headless>=4.8.0' and requirements-dev.txt:10 = 'opencv-python-headless>=4.8.0' (commit c54de6c swapped both from opencv-python; pyproject.toml:32 synced in b11aebf). grep -rnE 'opencv-python([^-]|$)' over requirements.txt/requirements-dev.txt/pyproject.toml/uv.lock returned no matches (exit 1). Fresh runs on .venv: `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> exit 0, 'All checks passed!'; `./.venv/bin/python -m compileall -q src/ cron_runner.py` -> exit 0, no output; `./.venv/bin/pytest --collect-only -q` -> exit 0, '4403 tests collected in 1.42s'. cv2 imports in the venv (5.0.0) with no libGL error, and tests/test_requirements_parity.py passes 4/4. LSP diagnostics: 0 findings.\nBoth requirements files (and pyproject) pin opencv-python-headless with no non-headless opencv-python remaining, and ruff, compileall, and pytest --collect-only all pass on the venv.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 requirements.txt and requirements-dev.txt pin opencv-python-headless instead of opencv-python; ruff+compileall pass; pytest collect-only completes on the venv: requirements.txt:17 = 'opencv-python-headless>=4.8.0' and requirements-dev.txt:10 = 'opencv-python-headless>=4.8.0' (commit c54de6c swapped both from opencv-python; pyproject.toml:32 synced in b11aebf). grep -rnE 'opencv-python([^-]|$)' over requirements.txt/requirements-dev.txt/pyproject.toml/uv.lock returned no matches (exit 1). Fresh runs on .venv: `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> exit 0, 'All checks passed!'; `./.venv/bin/python -m compileall -q src/ cron_runner.py` -> exit 0, no output; `./.venv/bin/pytest --collect-only -q` -> exit 0, '4403 tests collected in 1.42s'. cv2 imports in the venv (5.0.0) with no libGL error, and tests/test_requirements_parity.py passes 4/4. LSP diagnostics: 0 findings.\nBoth requirements files (and pyproject) pin opencv-python-headless with no non-headless opencv-python remaining, and ruff, compileall, and pytest --collect-only all pass on the venv.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "requirements.txt and requirements-dev.txt pin opencv-python-headless instead of opencv-python; ruff+compileall pass; pytest collect-only completes on the venv",
+                "status": "PASS",
+                "detail": "requirements.txt:17 = 'opencv-python-headless>=4.8.0' and requirements-dev.txt:10 = 'opencv-python-headless>=4.8.0' (commit c54de6c swapped both from opencv-python; pyproject.toml:32 synced in b11aebf). grep -rnE 'opencv-python([^-]|$)' over requirements.txt/requirements-dev.txt/pyproject.toml/uv.lock returned no matches (exit 1). Fresh runs on .venv: `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> exit 0, 'All checks passed!'; `./.venv/bin/python -m compileall -q src/ cron_runner.py` -> exit 0, no output; `./.venv/bin/pytest --collect-only -q` -> exit 0, '4403 tests collected in 1.42s'. cv2 imports in the venv (5.0.0) with no libGL error, and tests/test_requirements_parity.py passes 4/4. LSP diagnostics: 0 findings.",
+                "resolution_probability": 0.36
+              }
+            ],
+            "summary": "Both requirements files (and pyproject) pin opencv-python-headless with no non-headless opencv-python remaining, and ruff, compileall, and pytest --collect-only all pass on the venv."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: QA-AI-PLAYS-POKE-10\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 requirements.txt and requirements-dev.txt pin opencv-python-headless instead of opencv-python; ruff+compileall pass; pytest collect-only completes on the venv: requirements.txt:17 = 'opencv-python-headless>=4.8.0' and requirements-dev.txt:10 = 'opencv-python-headless>=4.8.0' (commit c54de6c swapped both from opencv-python; pyproject.toml:32 synced in b11aebf). grep -rnE 'opencv-python([^-]|$)' over requirements.txt/requirements-dev.txt/pyproject.toml/uv.lock returned no matches (exit 1). Fresh runs on .venv: `./.venv/bin/ruff check src/ tests/ cron_runner.py` -> exit 0, 'All checks passed!'; `./.venv/bin/python -m compileall -q src/ cron_runner.py` -> exit 0, no output; `./.venv/bin/pytest --collect-only -q` -> exit 0, '4403 tests collected in 1.42s'. cv2 imports in the venv (5.0.0) with no libGL error, and tests/test_requirements_parity.py passes 4/4. LSP diagnostics: 0 findings.\nBoth requirements files (and pyproject) pin opencv-python-headless with no non-headless opencv-python remaining, and ruff, compileall, and pytest --collect-only all pass on the venv.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-02T09:32:48.889915",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-02T09:32:48.917407+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 23984,
+        "truncated": false,
+        "source": "git show 14a1a62a8c4d"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 858,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "QA-AI-PLAYS-POKE-10"
+  }
+}

@@ -1,0 +1,19 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 7624486..261e828 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1011,3 +1011,11 @@ tasks:
+   status: complete
+   created_at: '2026-10-02T07:46:28.944974+00:00'
+   completed_at: '2026-10-02T07:55:54.074448+00:00'
++- id: QA-AI-PLAYS-POKE-10
++  title: 'Fix fresh-install blocker: opencv-python needs libGL'
++  criteria:
++  - requirements.txt and requirements-dev.txt pin opencv-python-headless instead of
++    opencv-python; ruff+compileall pass; pytest collect-only completes on the venv
++  status: complete
++  created_at: '2026-10-02T08:51:59.496357+00:00'
++  completed_at: '2026-10-02T08:57:55.461333+00:00'
+diff --git a/play_frames/console.png b/play_frames/console.png
+index 24a7d0e..b9ac3a4 100644
+Binary files a/play_frames/console.png and b/play_frames/console.png differ

@@ -1,0 +1,15 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 2db334c..790b387 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1000,5 +1000,6 @@ tasks:
+     with the failure rate reported honestly (no whole-grid cell-match gaming). Evidence:
+     a measurement script or doc capturing prompt, frames, model answers, sprite-cell
+     ground truth, and per-frame pass/fail.'
+-  status: in_progress
++  status: complete
+   created_at: '2026-10-02T03:07:46.880870+00:00'
++  completed_at: '2026-10-02T04:49:04.426783+00:00'
+diff --git a/play_frames/console.png b/play_frames/console.png
+index 24a7d0e..3cb2c44 100644
+Binary files a/play_frames/console.png and b/play_frames/console.png differ

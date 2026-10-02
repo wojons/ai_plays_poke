@@ -1,0 +1,61 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 0907019..9c77918 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1028,3 +1028,27 @@ tasks:
+   status: complete
+   created_at: '2026-10-02T09:33:36.390206+00:00'
+   completed_at: '2026-10-02T09:41:35.587463+00:00'
++- id: QA-CONSOLE-3
++  title: Wire console QA tools to an unattended runner
++  criteria:
++  - Runner starts console if down, runs test_controls+test_pass, fails loudly on non-200/ignored
++    toggle, explicitly skips movement buttons
++  status: complete
++  created_at: '2026-10-02T10:52:47.884736+00:00'
++  completed_at: '2026-10-02T11:32:04.878248+00:00'
++- id: DF-AIPP-3
++  title: Write /game/mechanics on study + mirror notes to /game/learning
++  criteria:
++  - Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt
++    matches code; unit tests prove both writes
++  status: complete
++  created_at: '2026-10-02T10:52:50.638055+00:00'
++  completed_at: '2026-10-02T12:39:28.524001+00:00'
++- id: GAP-056
++  title: Bound worst test-suite subprocess offender
++  criteria:
++  - Worst offender fixed with bounded waves or session fixture; before/after number
++    proven; full coverage preserved; no skips
++  status: complete
++  created_at: '2026-10-02T10:52:49.976055+00:00'
++  completed_at: '2026-10-02T12:03:52.585363+00:00'
+diff --git a/README.md b/README.md
+index 6289dd2..8c5d73d 100644
+--- a/README.md
++++ b/README.md
+@@ -391,7 +391,8 @@ runs/test_001/
+ ### Running All Tests
+ ```bash
+ # Run all tests in parallel (recommended — the ~14s figure is parallel-only,
+-# measured with pytest-xdist: 3940 passed / 14 skipped on a fresh checkout)
++# measured with pytest-xdist: 4405 collected / 62 heavy-deselected; exact pass
++# counts drift as tests are added — check the run summary, not this comment)
+ .venv/bin/python -m pytest tests/ -n auto -v
+ 
+ # Run all tests serially (same suite takes ~210s / ~3.5 min — only if xdist is unavailable)
+@@ -422,8 +423,9 @@ runs/test_001/
+ ### Test Categories
+ ```bash
+ # Fast tier (recommended for day-to-day work) — unit tests only.
+-# Completes in ~65–90s on a fresh checkout (~3878 passed / 8 skipped,
+-# ~62–66 deselected). Excludes @pytest.mark.heavy tests — the same set as
++# Serial wall time ~190s on an unloaded box (measured 189.95s, 2026-09-27;
++# ~65–90s if pytest-xdist parallelizes it). ~4343 collected / 62 deselected;
++# pass counts drift as tests are added — check the run summary. Excludes @pytest.mark.heavy tests — the same set as
+ # @pytest.mark.integration (game-loop component flows) and
+ # @pytest.mark.slow (network retry/backoff, memory & performance
+ # benchmarks), which all carry the heavy mark too.
+diff --git a/play_frames/console.png b/play_frames/console.png
+index 24a7d0e..fbfba01 100644
+Binary files a/play_frames/console.png and b/play_frames/console.png differ

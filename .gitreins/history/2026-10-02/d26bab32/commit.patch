@@ -1,0 +1,275 @@
+commit 3dcaccfe8e7096c8ce21718c09dbe499d8c1c8dd
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Fri Oct 2 06:03:32 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Fri Oct 2 06:23:53 2026 -0500
+
+    feat(memory): write /game/mechanics on study + mirror notes to /game/learning (DF-AIPP-3)
+---
+ cron_runner.py                      | 124 ++++++++++++++++++++++++++++++++++--
+ tests/test_agent_memory_events.py   |  73 +++++++++++++++++++++
+ tests/test_boot_memory_injection.py |   3 +
+ 3 files changed, 194 insertions(+), 6 deletions(-)
+
+diff --git a/cron_runner.py b/cron_runner.py
+index 6130c36..6840521 100644
+--- a/cron_runner.py
++++ b/cron_runner.py
+@@ -2240,11 +2240,11 @@ def controller_plan(
+             "- Use note/goal/study when you learn something — memory is how you win.\n"
+             "- NEVER guess: read text, note what it says, act on it.\n"
+             "TOOL FILING (where each output field is filed):\n"
+-            '- "study" → mechanics knowledge under /game/mechanics/* '
+-            "(the game itself; survives save resets).\n"
+-            '- "note" → this run\'s lessons + the save-state quests '
+-            "(an in-run observation).\n"
+-            '- "goal" → the save-state quests (your current intent).\n'
++            '- "study" → reads the requested key; found content is copied to '
++            "/game/mechanics/* (the game itself; survives save resets).\n"
++            '- "note" → /notes/overworld-<cycle>, this run\'s lessons, and '
++            "/game/learning/<navigation|battle|strategy>.\n"
++            '- "goal" → /goals/current + this run\'s lessons (your current intent).\n'
+         )
+     )
+ 
+@@ -3390,6 +3390,80 @@ def _populate_world_memory(
+     return retrieved_facts
+ 
+ 
++# DF-AIPP-3 category mapping for the two durable knowledge layers. Agent notes
++# mentioning combat vocabulary are battle lessons; location/direction vocabulary
++# (or a named map) is navigation; everything else is cross-run strategy. Studied
++# records use the four canonical mechanics keys consumed by the boot reader.
++_BATTLE_MEMORY_TERMS: tuple[str, ...] = (
++    "battle",
++    "fight",
++    "attack",
++    "damage",
++    "faint",
++    "opponent",
++    "enemy",
++    "switch",
++    "type advantage",
++    "move-selection",
++)
++_NAVIGATION_MEMORY_TERMS: tuple[str, ...] = (
++    "route",
++    "path",
++    "north",
++    "south",
++    "east",
++    "west",
++    "door",
++    "exit",
++    "stairs",
++    "map",
++    "town",
++    "city",
++    "lab",
++    "house",
++    "location",
++    "walk",
++)
++_MENU_MEMORY_TERMS: tuple[str, ...] = (
++    "menu",
++    "inventory",
++    "item",
++    "party",
++    "select",
++    "cursor",
++)
++_TEXT_MEMORY_TERMS: tuple[str, ...] = (
++    "text",
++    "dialog",
++    "read",
++    "npc",
++    "talk",
++)
++
++
++def _learning_category(note: str, map_name: str) -> str:
++    """Map a note to navigation, battle, or strategy for durable learning."""
++    note_text = note.lower()
++    if any(term in note_text for term in _BATTLE_MEMORY_TERMS):
++        return "battle"
++    navigation_text = f"{note_text} {map_name.lower()}"
++    if any(term in navigation_text for term in _NAVIGATION_MEMORY_TERMS):
++        return "navigation"
++    return "strategy"
++
++
++def _mechanics_category(study_key: str, content: str) -> str:
++    """Map studied content to a canonical mechanics key read during boot."""
++    studied = f"{study_key} {content}".lower()
++    if any(term in studied for term in _BATTLE_MEMORY_TERMS):
++        return "battle"
++    if any(term in studied for term in _MENU_MEMORY_TERMS):
++        return "menus"
++    if any(term in studied for term in _TEXT_MEMORY_TERMS):
++        return "text"
++    return "controls"
++
++
+ def _apply_agent_memory_outputs(
+     *,
+     decision: dict[str, Any],
+@@ -3430,7 +3504,25 @@ def _apply_agent_memory_outputs(
+                     "cycle": cycle,
+                 },
+                 embedding_text=_mem_note[:300],
++                namespace="pokemon-global",
+             )
++            learning_category = _learning_category(_mem_note, map_name)
++            try:
++                _dbc.remember(
++                    key=f"/game/learning/{learning_category}",
++                    domain="game/learning",
++                    attributes={
++                        "fact": _mem_note[:300],
++                        "category": learning_category,
++                        "source": "agent-note",
++                        "map": map_name,
++                        "cycle": cycle,
++                    },
++                    embedding_text=_mem_note[:300],
++                    namespace="pokemon-global",
++                )
++            except Exception as learning_error:
++                safe_print(f"  [MEM] learning mirror failed: {learning_error}")
+             mem_notes.insert(0, f"[{map_name}] {_mem_note[:120]}")
+             mem_notes = mem_notes[:6]
+             safe_print(f"  [MEM] note: {_mem_note[:80]}")
+@@ -3471,7 +3563,27 @@ def _apply_agent_memory_outputs(
+                     or _attrs.get("goal")
+                     or _rec.get("embedding_text", "")
+                 )
+-                pending_study_result = f"{_rec.get('key')}: {str(_body)[:250]}"
++                studied_content = str(_body).strip()[:300]
++                pending_study_result = f"{_rec.get('key')}: {studied_content[:250]}"
++                if studied_content:
++                    mechanics_category = _mechanics_category(
++                        _mem_study_key, studied_content
++                    )
++                    try:
++                        _dbc.remember(
++                            key=f"/game/mechanics/{mechanics_category}",
++                            domain="game/mechanics",
++                            attributes={
++                                "fact": studied_content,
++                                "source": "agent-study",
++                                "source_key": _mem_study_key,
++                                "cycle": cycle,
++                            },
++                            embedding_text=studied_content,
++                            namespace="pokemon-global",
++                        )
++                    except Exception as mechanics_error:
++                        safe_print(f"  [MEM] mechanics write failed: {mechanics_error}")
+             else:
+                 pending_study_result = (
+                     f"(nothing at {_mem_study_key} — you haven't "
+diff --git a/tests/test_agent_memory_events.py b/tests/test_agent_memory_events.py
+index 8f40d66..761f32e 100644
+--- a/tests/test_agent_memory_events.py
++++ b/tests/test_agent_memory_events.py
+@@ -72,6 +72,40 @@ def test_run_cycle_memory_events_land_in_results_and_log(tmp_path) -> None:
+     assert results[1]["goal"] == "Reach Route 1."
+ 
+ 
++def test_note_is_mirrored_to_navigation_learning(monkeypatch, tmp_path) -> None:
++    """An agent navigation note also populates the cross-run learning layer."""
++    writes = _capture_writes(monkeypatch)
++    results: list[dict[str, Any]] = []
++    log_path = tmp_path / "run_note.jsonl"
++
++    with log_path.open("w+", encoding="utf-8") as log_file:
++        cron_runner._apply_agent_memory_outputs(
++            decision={"note": "The Route 1 path continues north to Viridian City."},
++            results=results,
++            log_file=log_file,
++            cycle=8,
++            map_name="Route 1",
++            mem_goal="",
++            mem_notes=[],
++            pending_study_result="",
++        )
++
++    by_key = _writes_by_key(writes)
++    assert by_key["/notes/overworld-8"]["attributes"]["fact"] == (
++        "The Route 1 path continues north to Viridian City."
++    )
++    learning = by_key["/game/learning/navigation"]
++    assert learning["domain"] == "game/learning"
++    assert learning["namespace"] == "pokemon-global"
++    assert learning["attributes"] == {
++        "fact": "The Route 1 path continues north to Viridian City.",
++        "category": "navigation",
++        "source": "agent-note",
++        "map": "Route 1",
++        "cycle": 8,
++    }
++
++
+ def test_study_event_lands_in_results(monkeypatch, tmp_path) -> None:
+     """A study lookup is a run event too (the ladder counts memory_study)."""
+     _capture_writes(monkeypatch)
+@@ -97,6 +131,45 @@ def test_study_event_lands_in_results(monkeypatch, tmp_path) -> None:
+     assert logged == results
+ 
+ 
++def test_study_writes_studied_content_to_mechanics(monkeypatch, tmp_path) -> None:
++    """A successful study lookup promotes its content into mechanics memory."""
++    writes = _capture_writes(monkeypatch)
++    monkeypatch.setattr(
++        duckbrain_client,
++        "get",
++        lambda **kwargs: {
++            "key": kwargs["key"],
++            "attributes": {"fact": "FIGHT opens the move-selection menu."},
++        },
++    )
++    results: list[dict[str, Any]] = []
++    log_path = tmp_path / "run_study_mechanics.jsonl"
++
++    with log_path.open("w+", encoding="utf-8") as log_file:
++        _, _, pending = cron_runner._apply_agent_memory_outputs(
++            decision={"study": "/guides/how-battles-work"},
++            results=results,
++            log_file=log_file,
++            cycle=9,
++            map_name="Oak's Lab",
++            mem_goal="",
++            mem_notes=[],
++            pending_study_result="",
++        )
++
++    assert "FIGHT opens the move-selection menu." in pending
++    by_key = _writes_by_key(writes)
++    mechanics = by_key["/game/mechanics/battle"]
++    assert mechanics["domain"] == "game/mechanics"
++    assert mechanics["namespace"] == "pokemon-global"
++    assert mechanics["attributes"] == {
++        "fact": "FIGHT opens the move-selection menu.",
++        "source": "agent-study",
++        "source_key": "/guides/how-battles-work",
++        "cycle": 9,
++    }
++
++
+ def test_failed_memory_write_records_no_event(monkeypatch, tmp_path) -> None:
+     """A failed DuckBrain write still records no event — unchanged by the fix.
+ 
+diff --git a/tests/test_boot_memory_injection.py b/tests/test_boot_memory_injection.py
+index 64acd2b..fcb42ee 100644
+--- a/tests/test_boot_memory_injection.py
++++ b/tests/test_boot_memory_injection.py
+@@ -290,6 +290,9 @@ def test_prompt_includes_blocks_only_when_nontrivial() -> None:
+     # The tool-filing lines are the one unconditional prompt addition.
+     assert "TOOL FILING" in plain
+     assert "/game/mechanics/*" in plain
++    assert "/game/learning/<navigation|battle|strategy>" in plain
++    assert "/goals/current" in plain
++    assert "save-state quests" not in plain
+     assert "BOOT MEMORY" not in plain
+ 
+     boot = cron_runner.BootMemory(

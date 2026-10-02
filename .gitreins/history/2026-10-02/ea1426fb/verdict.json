@@ -1,0 +1,109 @@
+{
+  "task_id": "DF-AIPP-3",
+  "task_title": "Write /game/mechanics on study + mirror notes to /game/learning",
+  "task_criteria": [
+    "Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt matches code; unit tests prove both writes"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "e9e90ac181293de8ff0070bb000d21c8dc34ba2b",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n7:39AM INF scanned ~325367415 bytes (325.37 MB) in 14.6s\n7:39AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94358 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt matches code; unit tests prove both writes: Criterion 1: Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt matches code; unit tests prove both writes.\n\nIMPLEMENTATION (commit 3dcaccf):\n- cron_runner.py:3569-3586: study path writes /game/mechanics/{category} via _dbc.remember(domain=\"game/mechanics\", namespace=\"pokemon-global\", attributes={fact, source:\"agent-study\", source_key, cycle})\n- cron_runner.py:3509-3527: note path mirrors to /game/learning/{category} via _dbc.remember(domain=\"game/learning\", namespace=\"pokemon-global\")\n- cron_runner.py:3444-3462: _learning_category -> navigation|battle|strategy; _mechanics_category -> battle|menus|text|controls\n- cron_runner.py:3618-3632: BOOT_MECHANICS_KEYS = /game/mechanics/{controls,menus,battle,text}; BOOT_LEARNING_KEYS = /game/learning/{battle,navigation,strategy,self} \u2014 categories written match keys read\n- cron_runner.py:2243-2247: prompt TOOL FILING lines match code (study->/game/mechanics/*, note->/game/learning/<navigation|battle|strategy>)\n\nTESTS: tests/test_agent_memory_events.py::test_study_writes_studied_content_to_mechanics (line 134) asserts /game/mechanics/battle write; ::test_note_is_mirrored_to_navigation_learning (line 75) asserts /game/learning/navigation write. tests/test_boot_memory_injection.py::test_prompt_includes_blocks_only_when_nontrivial asserts prompt strings.\nTargeted run: 16 passed in 0.96s (exit 0).\nFull suite: running in background.\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt matches code; unit tests prove both writes: Criterion 1: Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt matches code; unit tests prove both writes.\n\nIMPLEMENTATION (commit 3dcaccf):\n- cron_runner.py:3569-3586: study path writes /game/mechanics/{category} via _dbc.remember(domain=\"game/mechanics\", namespace=\"pokemon-global\", attributes={fact, source:\"agent-study\", source_key, cycle})\n- cron_runner.py:3509-3527: note path mirrors to /game/learning/{category} via _dbc.remember(domain=\"game/learning\", namespace=\"pokemon-global\")\n- cron_runner.py:3444-3462: _learning_category -> navigation|battle|strategy; _mechanics_category -> battle|menus|text|controls\n- cron_runner.py:3618-3632: BOOT_MECHANICS_KEYS = /game/mechanics/{controls,menus,battle,text}; BOOT_LEARNING_KEYS = /game/learning/{battle,navigation,strategy,self} \u2014 categories written match keys read\n- cron_runner.py:2243-2247: prompt TOOL FILING lines match code (study->/game/mechanics/*, note->/game/learning/<navigation|battle|strategy>)\n\nTESTS: tests/test_agent_memory_events.py::test_study_writes_studied_content_to_mechanics (line 134) asserts /game/mechanics/battle write; ::test_note_is_mirrored_to_navigation_learning (line 75) asserts /game/learning/navigation write. tests/test_boot_memory_injection.py::test_prompt_includes_blocks_only_when_nontrivial asserts prompt strings.\nTargeted run: 16 passed in 0.96s (exit 0).\nFull suite: running in background.\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt matches code; unit tests prove both writes",
+                "status": "FAIL",
+                "detail": "Criterion 1: Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt matches code; unit tests prove both writes.\n\nIMPLEMENTATION (commit 3dcaccf):\n- cron_runner.py:3569-3586: study path writes /game/mechanics/{category} via _dbc.remember(domain=\"game/mechanics\", namespace=\"pokemon-global\", attributes={fact, source:\"agent-study\", source_key, cycle})\n- cron_runner.py:3509-3527: note path mirrors to /game/learning/{category} via _dbc.remember(domain=\"game/learning\", namespace=\"pokemon-global\")\n- cron_runner.py:3444-3462: _learning_category -> navigation|battle|strategy; _mechanics_category -> battle|menus|text|controls\n- cron_runner.py:3618-3632: BOOT_MECHANICS_KEYS = /game/mechanics/{controls,menus,battle,text}; BOOT_LEARNING_KEYS = /game/learning/{battle,navigation,strategy,self} \u2014 categories written match keys read\n- cron_runner.py:2243-2247: prompt TOOL FILING lines match code (study->/game/mechanics/*, note->/game/learning/<navigation|battle|strategy>)\n\nTESTS: tests/test_agent_memory_events.py::test_study_writes_studied_content_to_mechanics (line 134) asserts /game/mechanics/battle write; ::test_note_is_mirrored_to_navigation_learning (line 75) asserts /game/learning/navigation write. tests/test_boot_memory_injection.py::test_prompt_includes_blocks_only_when_nontrivial asserts prompt strings.\nTargeted run: 16 passed in 0.96s (exit 0).\nFull suite: running in background."
+              }
+            ],
+            "summary": "Partial verdict \u2014 evaluation hit resource cap before all criteria verified"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-AIPP-3\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt matches code; unit tests prove both writes: Criterion 1: Study writes mechanics key; notes mirrored to /game/learning/<cat>; boot prompt matches code; unit tests prove both writes.\n\nIMPLEMENTATION (commit 3dcaccf):\n- cron_runner.py:3569-3586: study path writes /game/mechanics/{category} via _dbc.remember(domain=\"game/mechanics\", namespace=\"pokemon-global\", attributes={fact, source:\"agent-study\", source_key, cycle})\n- cron_runner.py:3509-3527: note path mirrors to /game/learning/{category} via _dbc.remember(domain=\"game/learning\", namespace=\"pokemon-global\")\n- cron_runner.py:3444-3462: _learning_category -> navigation|battle|strategy; _mechanics_category -> battle|menus|text|controls\n- cron_runner.py:3618-3632: BOOT_MECHANICS_KEYS = /game/mechanics/{controls,menus,battle,text}; BOOT_LEARNING_KEYS = /game/learning/{battle,navigation,strategy,self} \u2014 categories written match keys read\n- cron_runner.py:2243-2247: prompt TOOL FILING lines match code (study->/game/mechanics/*, note->/game/learning/<navigation|battle|strategy>)\n\nTESTS: tests/test_agent_memory_events.py::test_study_writes_studied_content_to_mechanics (line 134) asserts /game/mechanics/battle write; ::test_note_is_mirrored_to_navigation_learning (line 75) asserts /game/learning/navigation write. tests/test_boot_memory_injection.py::test_prompt_includes_blocks_only_when_nontrivial asserts prompt strings.\nTargeted run: 16 passed in 0.96s (exit 0).\nFull suite: running in background.\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-02T13:41:07.910446",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-02T13:41:07.934115+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 47303,
+        "truncated": false,
+        "source": "git show e9e90ac18129"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 2876,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-AIPP-3"
+  }
+}

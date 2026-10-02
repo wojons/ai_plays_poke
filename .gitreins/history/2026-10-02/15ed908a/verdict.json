@@ -1,0 +1,103 @@
+{
+  "task_id": "QA-CONSOLE-3",
+  "task_title": "Wire console QA tools to an unattended runner",
+  "task_criteria": [
+    "Runner starts console if down, runs test_controls+test_pass, fails loudly on non-200/ignored toggle, explicitly skips movement buttons"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "3dcaccfe8e7096c8ce21718c09dbe499d8c1c8dd",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Runner starts console if down, runs test_controls+test_pass, fails loudly on non-200/ignored toggle, explicitly skips movement buttons: tools/console/run_qa.py (commit 7c9ea78) satisfies all four parts. (1) Starts console if down: _ensure_console() (lines 83-107) checks GET /api/health via _healthy(), runs `systemctl --user start aipp-console.service`, and polls 30s. (2) Runs both tools: main() calls _run_tool(TOOLS/'test_controls.py') and _run_tool(TOOLS/'test_pass.py', block_movement=True). (3) Fails loudly: executed _validate_control_results with a 500 stub -> ['GET /api/state returned HTTP 500, expected 200']; executed _toggle_round_trips with an ignored toggle -> 4 failure strings ('POST /api/live ignored on=False: echo=None, state=False'); main() prints FAIL lines and returns 1. (4) Skips movement: _movement_safe_urlopen blocks /api/press, _movement_safe_run blocks the save-state restore, and _validate_pass_results prints 'SKIP | <name> [movement changes game state]' for the 3 MOVEMENT_RESULTS (proven: returned [] with all 3 movement rows marked FAIL). Dry-run executed: `.venv/bin/python tools/console/run_qa.py --dry-run` -> exit 0, output 'SKIP: movement button request blocked; unattended QA must not change game state' and 'PASS: unattended movement skip path is active'. Contracts confirmed: test_controls.py exposes CHECKS (line 61) + call (line 24); test_pass.py exposes RESULTS (line 26) with the 3 movement result names (lines 215/222/326). No pytest test for the runner exists, but the criterion text does not require one and behavior was verified by direct execution.\nThe unattended console QA runner is fully wired: it health-checks/starts the console, runs test_controls and test_pass, fails loudly on non-200 or ignored toggles, and explicitly blocks/skips movement buttons \u2014 all verified by execution.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Runner starts console if down, runs test_controls+test_pass, fails loudly on non-200/ignored toggle, explicitly skips movement buttons: tools/console/run_qa.py (commit 7c9ea78) satisfies all four parts. (1) Starts console if down: _ensure_console() (lines 83-107) checks GET /api/health via _healthy(), runs `systemctl --user start aipp-console.service`, and polls 30s. (2) Runs both tools: main() calls _run_tool(TOOLS/'test_controls.py') and _run_tool(TOOLS/'test_pass.py', block_movement=True). (3) Fails loudly: executed _validate_control_results with a 500 stub -> ['GET /api/state returned HTTP 500, expected 200']; executed _toggle_round_trips with an ignored toggle -> 4 failure strings ('POST /api/live ignored on=False: echo=None, state=False'); main() prints FAIL lines and returns 1. (4) Skips movement: _movement_safe_urlopen blocks /api/press, _movement_safe_run blocks the save-state restore, and _validate_pass_results prints 'SKIP | <name> [movement changes game state]' for the 3 MOVEMENT_RESULTS (proven: returned [] with all 3 movement rows marked FAIL). Dry-run executed: `.venv/bin/python tools/console/run_qa.py --dry-run` -> exit 0, output 'SKIP: movement button request blocked; unattended QA must not change game state' and 'PASS: unattended movement skip path is active'. Contracts confirmed: test_controls.py exposes CHECKS (line 61) + call (line 24); test_pass.py exposes RESULTS (line 26) with the 3 movement result names (lines 215/222/326). No pytest test for the runner exists, but the criterion text does not require one and behavior was verified by direct execution.\nThe unattended console QA runner is fully wired: it health-checks/starts the console, runs test_controls and test_pass, fails loudly on non-200 or ignored toggles, and explicitly blocks/skips movement buttons \u2014 all verified by execution.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Runner starts console if down, runs test_controls+test_pass, fails loudly on non-200/ignored toggle, explicitly skips movement buttons",
+                "status": "PASS",
+                "detail": "tools/console/run_qa.py (commit 7c9ea78) satisfies all four parts. (1) Starts console if down: _ensure_console() (lines 83-107) checks GET /api/health via _healthy(), runs `systemctl --user start aipp-console.service`, and polls 30s. (2) Runs both tools: main() calls _run_tool(TOOLS/'test_controls.py') and _run_tool(TOOLS/'test_pass.py', block_movement=True). (3) Fails loudly: executed _validate_control_results with a 500 stub -> ['GET /api/state returned HTTP 500, expected 200']; executed _toggle_round_trips with an ignored toggle -> 4 failure strings ('POST /api/live ignored on=False: echo=None, state=False'); main() prints FAIL lines and returns 1. (4) Skips movement: _movement_safe_urlopen blocks /api/press, _movement_safe_run blocks the save-state restore, and _validate_pass_results prints 'SKIP | <name> [movement changes game state]' for the 3 MOVEMENT_RESULTS (proven: returned [] with all 3 movement rows marked FAIL). Dry-run executed: `.venv/bin/python tools/console/run_qa.py --dry-run` -> exit 0, output 'SKIP: movement button request blocked; unattended QA must not change game state' and 'PASS: unattended movement skip path is active'. Contracts confirmed: test_controls.py exposes CHECKS (line 61) + call (line 24); test_pass.py exposes RESULTS (line 26) with the 3 movement result names (lines 215/222/326). No pytest test for the runner exists, but the criterion text does not require one and behavior was verified by direct execution.",
+                "resolution_probability": 0.19
+              }
+            ],
+            "summary": "The unattended console QA runner is fully wired: it health-checks/starts the console, runs test_controls and test_pass, fails loudly on non-200 or ignored toggles, and explicitly blocks/skips movement buttons \u2014 all verified by execution."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: QA-CONSOLE-3\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 secrets: Command timed out\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Runner starts console if down, runs test_controls+test_pass, fails loudly on non-200/ignored toggle, explicitly skips movement buttons: tools/console/run_qa.py (commit 7c9ea78) satisfies all four parts. (1) Starts console if down: _ensure_console() (lines 83-107) checks GET /api/health via _healthy(), runs `systemctl --user start aipp-console.service`, and polls 30s. (2) Runs both tools: main() calls _run_tool(TOOLS/'test_controls.py') and _run_tool(TOOLS/'test_pass.py', block_movement=True). (3) Fails loudly: executed _validate_control_results with a 500 stub -> ['GET /api/state returned HTTP 500, expected 200']; executed _toggle_round_trips with an ignored toggle -> 4 failure strings ('POST /api/live ignored on=False: echo=None, state=False'); main() prints FAIL lines and returns 1. (4) Skips movement: _movement_safe_urlopen blocks /api/press, _movement_safe_run blocks the save-state restore, and _validate_pass_results prints 'SKIP | <name> [movement changes game state]' for the 3 MOVEMENT_RESULTS (proven: returned [] with all 3 movement rows marked FAIL). Dry-run executed: `.venv/bin/python tools/console/run_qa.py --dry-run` -> exit 0, output 'SKIP: movement button request blocked; unattended QA must not change game state' and 'PASS: unattended movement skip path is active'. Contracts confirmed: test_controls.py exposes CHECKS (line 61) + call (line 24); test_pass.py exposes RESULTS (line 26) with the 3 movement result names (lines 215/222/326). No pytest test for the runner exists, but the criterion text does not require one and behavior was verified by direct execution.\nThe unattended console QA runner is fully wired: it health-checks/starts the console, runs test_controls and test_pass, fails loudly on non-200 or ignored toggles, and explicitly blocks/skips movement buttons \u2014 all verified by execution.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-02T12:03:52.185547",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-02T12:03:52.208672+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 10698,
+        "truncated": false,
+        "source": "git show 3dcaccfe8e70"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 49237,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "QA-CONSOLE-3"
+  }
+}

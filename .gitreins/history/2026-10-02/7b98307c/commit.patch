@@ -1,0 +1,16 @@
+commit 9a054bb364804a03954ac33439c229e8a7017e3e
+Merge: d35a8f2 a4946ce
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Thu Oct 1 23:48:47 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Thu Oct 1 23:48:47 2026 -0500
+
+    merge: VIS-PEOPLE-1 people-identification prompt + sprite-cell-scored probe
+    
+    Gates: focused tests 5/5, ruff clean, mypy clean (guard static_analysis on worktree), secrets clean; full suite env-infeasible locally (stopped 36 pct green) - CI is the full-suite gate. tick: ai-plays-poke-foreman-2026-10-02-03-04-24
+
+ docs/vision_people_findings.md    |  61 ++++
+ prompts/vision_people.md          |   6 +
+ scripts/vision_people_probe.py    | 590 ++++++++++++++++++++++++++++++++++++++
+ tests/test_vision_people_probe.py | 111 +++++++
+ 4 files changed, 768 insertions(+)

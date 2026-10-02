@@ -1,0 +1,102 @@
+{
+  "task_id": "E2E-001-T265",
+  "task_title": "E2E-001 recurring acceptance run (tick 265)",
+  "task_criteria": [
+    "80-cycle live run completes with runner exit 0; measured peak RSS (ps sampling) reported and below 300MB; HSM spam 0; run JSONL and evidence written to cron_logs/"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "f8fe2d095396fe259bb746fd573f5ff9223cff7f",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n2:58AM INF scanned ~325287863 bytes (325.29 MB) in 15.3s\n2:58AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94245 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 80-cycle live run completes with runner exit 0; measured peak RSS (ps sampling) reported and below 300MB; HSM spam 0; run JSONL and evidence written to cron_logs/: 80-cycle run verified: cron_logs/run_e2e001_t265.jsonl has all cycles 1-80 (80 cycle rows) plus a terminal run_autonomy row (decisions_total=80, jev_answered=80, autonomy_ratio=1.0); /tmp/ai_plays_poke_t265_run.log ends with '[e2e001_t265] Done. 187 actions...' and frame-cache save, with 0 tracebacks \u2014 run_autonomy/Done are emitted at the end of main() (cron_runner.py:5754-5800), so exit 0. RSS measured via genuine ps sampling: /tmp/ai_plays_poke_t265_e2e.sh runs `ps -o rss= -p $PID` every 10s and captures RC=$?; /tmp/ai_plays_poke_t265_rss.txt holds 4 samples [15468,84016,85128,86496] KB \u2192 peak 86496KB = 84.5MB < 300MB. HSM spam = 0: grep 'Invalid transition attempted' (src/core/state_machine.py:636) returns 0 in both the JSONL and the run log. Artifacts present in cron_logs/: run_e2e001_t265.jsonl (728351 bytes) and e2e001_20261002_t265_evidence.md (1646 bytes). Focused tests pass: ./.venv/bin/pytest tests/test_e2e_l2_acceptance.py tests/test_cron_runner_metrics.py -q => 72 passed in 0.51s.\nThe 80-cycle E2E-001 tick-265 run is fully evidenced: exit 0, ps-sampled peak RSS 84.5MB (<300MB), HSM spam 0, and both JSONL and evidence artifacts written to cron_logs/.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 80-cycle live run completes with runner exit 0; measured peak RSS (ps sampling) reported and below 300MB; HSM spam 0; run JSONL and evidence written to cron_logs/: 80-cycle run verified: cron_logs/run_e2e001_t265.jsonl has all cycles 1-80 (80 cycle rows) plus a terminal run_autonomy row (decisions_total=80, jev_answered=80, autonomy_ratio=1.0); /tmp/ai_plays_poke_t265_run.log ends with '[e2e001_t265] Done. 187 actions...' and frame-cache save, with 0 tracebacks \u2014 run_autonomy/Done are emitted at the end of main() (cron_runner.py:5754-5800), so exit 0. RSS measured via genuine ps sampling: /tmp/ai_plays_poke_t265_e2e.sh runs `ps -o rss= -p $PID` every 10s and captures RC=$?; /tmp/ai_plays_poke_t265_rss.txt holds 4 samples [15468,84016,85128,86496] KB \u2192 peak 86496KB = 84.5MB < 300MB. HSM spam = 0: grep 'Invalid transition attempted' (src/core/state_machine.py:636) returns 0 in both the JSONL and the run log. Artifacts present in cron_logs/: run_e2e001_t265.jsonl (728351 bytes) and e2e001_20261002_t265_evidence.md (1646 bytes). Focused tests pass: ./.venv/bin/pytest tests/test_e2e_l2_acceptance.py tests/test_cron_runner_metrics.py -q => 72 passed in 0.51s.\nThe 80-cycle E2E-001 tick-265 run is fully evidenced: exit 0, ps-sampled peak RSS 84.5MB (<300MB), HSM spam 0, and both JSONL and evidence artifacts written to cron_logs/.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "80-cycle live run completes with runner exit 0; measured peak RSS (ps sampling) reported and below 300MB; HSM spam 0; run JSONL and evidence written to cron_logs/",
+                "status": "PASS",
+                "detail": "80-cycle run verified: cron_logs/run_e2e001_t265.jsonl has all cycles 1-80 (80 cycle rows) plus a terminal run_autonomy row (decisions_total=80, jev_answered=80, autonomy_ratio=1.0); /tmp/ai_plays_poke_t265_run.log ends with '[e2e001_t265] Done. 187 actions...' and frame-cache save, with 0 tracebacks \u2014 run_autonomy/Done are emitted at the end of main() (cron_runner.py:5754-5800), so exit 0. RSS measured via genuine ps sampling: /tmp/ai_plays_poke_t265_e2e.sh runs `ps -o rss= -p $PID` every 10s and captures RC=$?; /tmp/ai_plays_poke_t265_rss.txt holds 4 samples [15468,84016,85128,86496] KB \u2192 peak 86496KB = 84.5MB < 300MB. HSM spam = 0: grep 'Invalid transition attempted' (src/core/state_machine.py:636) returns 0 in both the JSONL and the run log. Artifacts present in cron_logs/: run_e2e001_t265.jsonl (728351 bytes) and e2e001_20261002_t265_evidence.md (1646 bytes). Focused tests pass: ./.venv/bin/pytest tests/test_e2e_l2_acceptance.py tests/test_cron_runner_metrics.py -q => 72 passed in 0.51s.",
+                "resolution_probability": 0.11
+              }
+            ],
+            "summary": "The 80-cycle E2E-001 tick-265 run is fully evidenced: exit 0, ps-sampled peak RSS 84.5MB (<300MB), HSM spam 0, and both JSONL and evidence artifacts written to cron_logs/."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: E2E-001-T265\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 80-cycle live run completes with runner exit 0; measured peak RSS (ps sampling) reported and below 300MB; HSM spam 0; run JSONL and evidence written to cron_logs/: 80-cycle run verified: cron_logs/run_e2e001_t265.jsonl has all cycles 1-80 (80 cycle rows) plus a terminal run_autonomy row (decisions_total=80, jev_answered=80, autonomy_ratio=1.0); /tmp/ai_plays_poke_t265_run.log ends with '[e2e001_t265] Done. 187 actions...' and frame-cache save, with 0 tracebacks \u2014 run_autonomy/Done are emitted at the end of main() (cron_runner.py:5754-5800), so exit 0. RSS measured via genuine ps sampling: /tmp/ai_plays_poke_t265_e2e.sh runs `ps -o rss= -p $PID` every 10s and captures RC=$?; /tmp/ai_plays_poke_t265_rss.txt holds 4 samples [15468,84016,85128,86496] KB \u2192 peak 86496KB = 84.5MB < 300MB. HSM spam = 0: grep 'Invalid transition attempted' (src/core/state_machine.py:636) returns 0 in both the JSONL and the run log. Artifacts present in cron_logs/: run_e2e001_t265.jsonl (728351 bytes) and e2e001_20261002_t265_evidence.md (1646 bytes). Focused tests pass: ./.venv/bin/pytest tests/test_e2e_l2_acceptance.py tests/test_cron_runner_metrics.py -q => 72 passed in 0.51s.\nThe 80-cycle E2E-001 tick-265 run is fully evidenced: exit 0, ps-sampled peak RSS 84.5MB (<300MB), HSM spam 0, and both JSONL and evidence artifacts written to cron_logs/.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-02T08:30:16.868622",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-02T08:30:16.894458+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 16518,
+        "truncated": false,
+        "source": "git show f8fe2d095396"
+      }
+    ],
+    "task_id": "E2E-001-T265"
+  }
+}

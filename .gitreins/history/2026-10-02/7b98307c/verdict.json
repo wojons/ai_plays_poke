@@ -1,0 +1,110 @@
+{
+  "task_id": "VIS-PEOPLE-1",
+  "task_title": "People-identification prompt with sprite-cell-scored measurement",
+  "task_criteria": [
+    "A dedicated people-identification prompt exists (terse style per VIS-ALIGN-1 lesson), it names each visible person with a cell and a distinguishing feature, and it is scored against the reader's RAM sprite table across a multi-frame set with the failure rate reported honestly (no whole-grid cell-match gaming). Evidence: a measurement script or doc capturing prompt, frames, model answers, sprite-cell ground truth, and per-frame pass/fail."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "9a054bb364804a03954ac33439c229e8a7017e3e",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n11:49PM INF scanned ~324419485 bytes (324.42 MB) in 15.7s\n11:49PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94152 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 A dedicated people-identification prompt exists (terse style per VIS-ALIGN-1 lesson), it names each visible person with a cell and a distinguishing feature, and it is scored against the reader's RAM sprite table across a multi-frame set with the failure rate reported honestly (no whole-grid cell-match gaming). Evidence: a measurement script or doc capturing prompt, frames, model answers, sprite-cell ground truth, and per-frame pass/fail.: Dedicated terse prompt at prompts/vision_people.md (6 lines, matching VIS-ALIGN-1 lesson that terse wording moves agreement 30+ points): 'Identify every visible non-player person in the 9x9 window with the player at cell (4,3)' returning {\"people\":[{\"name\":\"girl\",\"cell\":[1,4],\"feature\":\"facing up\"}]} \u2014 names each person with a cell and a distinguishing feature. Scored against the reader's RAM sprite table: scripts/vision_people_probe.py visible_people() reads wSpriteStateData1 at SPRITE_TABLE=0xC100 (16 records x 16 bytes), excludes player slot 0, filters non-person sprites (NON_PERSON_SPRITES 0x05/0x09/0x38/0x3C) and still objects (>=FIRST_STILL_SPRITE 0x3D), and computes player-relative 9x9 cells. Multi-frame set: docs/vision_people_findings.md runs 3 frames (start, pallet_outside_house_20260929, slot1) via repeated --slot args. Failure rate reported honestly: 'frames failed: 2/3 (66.7% failure rate)', 'RAM person cells matched: 1/5'. No whole-grid gaming: score_predictions() scores exact sprite-cell presence only (docstring 'Score only sprite-cell presence'), and print_results() emits 'score basis: exact RAM sprite cells only; no whole-grid percentage'. Evidence doc captures prompt, frames, model answers (openai/gpt-4o-mini), sprite-cell ground truth, and per-frame CORRECT/MISS with failure lines. Tests: venv/bin/python -m pytest tests/test_vision_people_probe.py -v => '5 passed in 0.56s' (exit 0), covering visible_people RAM-cell extraction, parse validation, wrong-cell/missed/hallucinated scoring, and diagnostic-only facing conflicts.\nThe terse people-identification prompt, RAM sprite-table scoring probe, multi-frame measurement doc with an honest 66.7% failure rate, and 5 passing focused tests all satisfy the criterion.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 A dedicated people-identification prompt exists (terse style per VIS-ALIGN-1 lesson), it names each visible person with a cell and a distinguishing feature, and it is scored against the reader's RAM sprite table across a multi-frame set with the failure rate reported honestly (no whole-grid cell-match gaming). Evidence: a measurement script or doc capturing prompt, frames, model answers, sprite-cell ground truth, and per-frame pass/fail.: Dedicated terse prompt at prompts/vision_people.md (6 lines, matching VIS-ALIGN-1 lesson that terse wording moves agreement 30+ points): 'Identify every visible non-player person in the 9x9 window with the player at cell (4,3)' returning {\"people\":[{\"name\":\"girl\",\"cell\":[1,4],\"feature\":\"facing up\"}]} \u2014 names each person with a cell and a distinguishing feature. Scored against the reader's RAM sprite table: scripts/vision_people_probe.py visible_people() reads wSpriteStateData1 at SPRITE_TABLE=0xC100 (16 records x 16 bytes), excludes player slot 0, filters non-person sprites (NON_PERSON_SPRITES 0x05/0x09/0x38/0x3C) and still objects (>=FIRST_STILL_SPRITE 0x3D), and computes player-relative 9x9 cells. Multi-frame set: docs/vision_people_findings.md runs 3 frames (start, pallet_outside_house_20260929, slot1) via repeated --slot args. Failure rate reported honestly: 'frames failed: 2/3 (66.7% failure rate)', 'RAM person cells matched: 1/5'. No whole-grid gaming: score_predictions() scores exact sprite-cell presence only (docstring 'Score only sprite-cell presence'), and print_results() emits 'score basis: exact RAM sprite cells only; no whole-grid percentage'. Evidence doc captures prompt, frames, model answers (openai/gpt-4o-mini), sprite-cell ground truth, and per-frame CORRECT/MISS with failure lines. Tests: venv/bin/python -m pytest tests/test_vision_people_probe.py -v => '5 passed in 0.56s' (exit 0), covering visible_people RAM-cell extraction, parse validation, wrong-cell/missed/hallucinated scoring, and diagnostic-only facing conflicts.\nThe terse people-identification prompt, RAM sprite-table scoring probe, multi-frame measurement doc with an honest 66.7% failure rate, and 5 passing focused tests all satisfy the criterion.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "A dedicated people-identification prompt exists (terse style per VIS-ALIGN-1 lesson), it names each visible person with a cell and a distinguishing feature, and it is scored against the reader's RAM sprite table across a multi-frame set with the failure rate reported honestly (no whole-grid cell-match gaming). Evidence: a measurement script or doc capturing prompt, frames, model answers, sprite-cell ground truth, and per-frame pass/fail.",
+                "status": "PASS",
+                "detail": "Dedicated terse prompt at prompts/vision_people.md (6 lines, matching VIS-ALIGN-1 lesson that terse wording moves agreement 30+ points): 'Identify every visible non-player person in the 9x9 window with the player at cell (4,3)' returning {\"people\":[{\"name\":\"girl\",\"cell\":[1,4],\"feature\":\"facing up\"}]} \u2014 names each person with a cell and a distinguishing feature. Scored against the reader's RAM sprite table: scripts/vision_people_probe.py visible_people() reads wSpriteStateData1 at SPRITE_TABLE=0xC100 (16 records x 16 bytes), excludes player slot 0, filters non-person sprites (NON_PERSON_SPRITES 0x05/0x09/0x38/0x3C) and still objects (>=FIRST_STILL_SPRITE 0x3D), and computes player-relative 9x9 cells. Multi-frame set: docs/vision_people_findings.md runs 3 frames (start, pallet_outside_house_20260929, slot1) via repeated --slot args. Failure rate reported honestly: 'frames failed: 2/3 (66.7% failure rate)', 'RAM person cells matched: 1/5'. No whole-grid gaming: score_predictions() scores exact sprite-cell presence only (docstring 'Score only sprite-cell presence'), and print_results() emits 'score basis: exact RAM sprite cells only; no whole-grid percentage'. Evidence doc captures prompt, frames, model answers (openai/gpt-4o-mini), sprite-cell ground truth, and per-frame CORRECT/MISS with failure lines. Tests: venv/bin/python -m pytest tests/test_vision_people_probe.py -v => '5 passed in 0.56s' (exit 0), covering visible_people RAM-cell extraction, parse validation, wrong-cell/missed/hallucinated scoring, and diagnostic-only facing conflicts.",
+                "resolution_probability": 0.09
+              }
+            ],
+            "summary": "The terse people-identification prompt, RAM sprite-table scoring probe, multi-frame measurement doc with an honest 66.7% failure rate, and 5 passing focused tests all satisfy the criterion."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: VIS-PEOPLE-1\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 A dedicated people-identification prompt exists (terse style per VIS-ALIGN-1 lesson), it names each visible person with a cell and a distinguishing feature, and it is scored against the reader's RAM sprite table across a multi-frame set with the failure rate reported honestly (no whole-grid cell-match gaming). Evidence: a measurement script or doc capturing prompt, frames, model answers, sprite-cell ground truth, and per-frame pass/fail.: Dedicated terse prompt at prompts/vision_people.md (6 lines, matching VIS-ALIGN-1 lesson that terse wording moves agreement 30+ points): 'Identify every visible non-player person in the 9x9 window with the player at cell (4,3)' returning {\"people\":[{\"name\":\"girl\",\"cell\":[1,4],\"feature\":\"facing up\"}]} \u2014 names each person with a cell and a distinguishing feature. Scored against the reader's RAM sprite table: scripts/vision_people_probe.py visible_people() reads wSpriteStateData1 at SPRITE_TABLE=0xC100 (16 records x 16 bytes), excludes player slot 0, filters non-person sprites (NON_PERSON_SPRITES 0x05/0x09/0x38/0x3C) and still objects (>=FIRST_STILL_SPRITE 0x3D), and computes player-relative 9x9 cells. Multi-frame set: docs/vision_people_findings.md runs 3 frames (start, pallet_outside_house_20260929, slot1) via repeated --slot args. Failure rate reported honestly: 'frames failed: 2/3 (66.7% failure rate)', 'RAM person cells matched: 1/5'. No whole-grid gaming: score_predictions() scores exact sprite-cell presence only (docstring 'Score only sprite-cell presence'), and print_results() emits 'score basis: exact RAM sprite cells only; no whole-grid percentage'. Evidence doc captures prompt, frames, model answers (openai/gpt-4o-mini), sprite-cell ground truth, and per-frame CORRECT/MISS with failure lines. Tests: venv/bin/python -m pytest tests/test_vision_people_probe.py -v => '5 passed in 0.56s' (exit 0), covering visible_people RAM-cell extraction, parse validation, wrong-cell/missed/hallucinated scoring, and diagnostic-only facing conflicts.\nThe terse people-identification prompt, RAM sprite-table scoring probe, multi-frame measurement doc with an honest 66.7% failure rate, and 5 passing focused tests all satisfy the criterion.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-02T05:20:41.773172",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-02T05:20:41.789268+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 883,
+        "truncated": false,
+        "source": "git show 9a054bb36480"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 705,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "VIS-PEOPLE-1"
+  }
+}
