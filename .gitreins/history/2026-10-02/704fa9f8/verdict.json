@@ -1,0 +1,110 @@
+{
+  "task_id": "RELEASE-001",
+  "task_title": "Release prep: canonical version, release script, docs",
+  "task_criteria": [
+    "pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "637f6d4a975071ea4cbbf81582451397bf064bff",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n11:37AM INF scanned ~325438371 bytes (325.44 MB) in 18s\n11:37AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94409 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut: pyproject.toml:7 version=\"1.0.0\"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__=\"1.0.0\"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.\nAll release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut: pyproject.toml:7 version=\"1.0.0\"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__=\"1.0.0\"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.\nAll release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut",
+                "status": "PASS",
+                "detail": "pyproject.toml:7 version=\"1.0.0\"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__=\"1.0.0\"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.",
+                "resolution_probability": 0.0
+              }
+            ],
+            "summary": "All release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: RELEASE-001\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut: pyproject.toml:7 version=\"1.0.0\"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__=\"1.0.0\"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.\nAll release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-02T17:09:03.773058",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-02T17:09:03.798518+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 23964,
+        "truncated": false,
+        "source": "git show 637f6d4a9750"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 806,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "RELEASE-001"
+  }
+}

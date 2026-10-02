@@ -1,0 +1,12 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-02-10-44-23",
+  "wave_budget": 4,
+  "workers": [
+    {"task": "QA-CONSOLE-3", "worktree": "/home/kara/worktrees/ai-plays-poke-QA-CONSOLE-3", "branch": "wt/QA-CONSOLE-3", "model": "gpt-5.6-sol", "provider": "openai-codex"},
+    {"task": "GAP-056", "worktree": "/home/kara/worktrees/ai-plays-poke-GAP-056", "branch": "wt/GAP-056", "model": "gpt-5.6-sol", "provider": "openai-codex"},
+    {"task": "DF-AIPP-3", "worktree": "/home/kara/worktrees/ai-plays-poke-DF-AIPP-3", "branch": "wt/DF-AIPP-3", "model": "gpt-5.6-sol", "provider": "openai-codex"}
+  ],
+  "foreman_direct": [{"task": "REV-3", "scope": "README.md only"}],
+  "closed_no_code": [{"task": "PERF-5", "reason": "stale premise: PERF-4 complete (77990e5); anthropic lazy-loaded; state_window import 209ms at HEAD"}],
+  "created": "2026-10-02T05:52:00-05:00"
+}

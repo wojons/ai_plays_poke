@@ -1040,3 +1040,21 @@ tasks:
   status: complete
   created_at: '2026-10-02T15:11:54.546435+00:00'
   completed_at: '2026-10-02T15:54:25.499442+00:00'
+- id: RELEASE-001
+  title: 'Release prep: canonical version, release script, docs'
+  criteria:
+  - pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard
+    __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned
+    release-check script exists and exits 0; version-consistency test green; no tag
+    or GitHub Release is cut
+  status: complete
+  created_at: '2026-10-02T16:28:39.557812+00:00'
+  completed_at: '2026-10-02T16:37:10.561002+00:00'
+- id: E2E-001-T270
+  title: 'E2E fixture run T270: 80-cycle live pipeline health check'
+  criteria:
+  - cron_runner exit 0 with 80 real decisions, autonomy ratio 1.0, measured peak RSS
+    < 300MB via ps sampling, zero invalid-transition spam, starter picked
+  status: complete
+  created_at: '2026-10-02T21:17:26.221078+00:00'
+  completed_at: '2026-10-02T21:22:46.973594+00:00'

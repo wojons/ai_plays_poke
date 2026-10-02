@@ -1,0 +1,103 @@
+{
+  "task_id": "PERCEPT-4",
+  "task_title": "Wrap 51 over-length lines (>88) in ram_reader/perception_diff/test_ram_reader to restore the commit-time guard",
+  "task_criteria": [
+    "awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow)"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "aaf915c24484317f25251d088243fc3d16f2e54d",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n10:56AM INF scanned ~325413344 bytes (325.41 MB) in 14.1s\n10:56AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94392 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow): Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]\nAll five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow): Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]\nAll five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow)",
+                "status": "PASS",
+                "detail": "Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]",
+                "resolution_probability": 0.36,
+                "cited_path": "src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py"
+              }
+            ],
+            "summary": "All five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: PERCEPT-4\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow): Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]\nAll five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-02T16:28:21.386170",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-02T16:28:21.415565+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 27804,
+        "truncated": false,
+        "source": "git show aaf915c24484"
+      }
+    ],
+    "task_id": "PERCEPT-4"
+  }
+}

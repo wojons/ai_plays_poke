@@ -1,0 +1,18 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 29da097..7959b99 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1040,3 +1040,13 @@ tasks:
+   status: complete
+   created_at: '2026-10-02T15:11:54.546435+00:00'
+   completed_at: '2026-10-02T15:54:25.499442+00:00'
++- id: RELEASE-001
++  title: 'Release prep: canonical version, release script, docs'
++  criteria:
++  - pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard
++    __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned
++    release-check script exists and exits 0; version-consistency test green; no tag
++    or GitHub Release is cut
++  status: complete
++  created_at: '2026-10-02T16:28:39.557812+00:00'
++  completed_at: '2026-10-02T16:37:10.561002+00:00'
