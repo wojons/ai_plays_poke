@@ -1,0 +1,113 @@
+{
+  "task_id": "INT-CI-AGENT-ASSIST",
+  "task_title": "Declare new agentic press_button assist sites",
+  "task_criteria": [
+    "assist inventory guard passes with both agentic_loop press_button sites declared, preserving model-chosen tool calls"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "4e31006fcac51489ff10054b66c4b41eb8c1d999",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 tests: FAIL (tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree [first failing id])\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261001T172846.689768Z.log"
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4398 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [32507 chars omitted \u2014 355 line(s)] \u2026\ntests/test_ai_client.py::TestOpenRouterClientVisionResponse::test_get_vision_response PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterClientTextResponse::test_get_text_response PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterClientSendToolRequest::test_send_tool_request PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterAuthHeader::test_chat_completion_sends_auth_header PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterAuthHeader::test_send_vision_request_sends_auth_header PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterAuthHeader::test_aimodelclient_prefers_openrouter_key PASSED [  8%]\ntests/test_ai_client.py::TestGameAIManagerAnalyzeScreenshotNoneHP::test_null_hp_uses_sanitized_values PASSED [  8%]\ntests/test_ai_client.py::TestGameAIManagerAnalyzeScreenshotNoneHP::test_none_vision_response_does_not_crash PASSED [  8%]\ntests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree FAILED [  8%]\n\n=================================== FAILURES ===================================\n______________________ test_guard_passes_on_current_tree _______________________\ntests/test_assist_inventory_guard.py:34: in test_guard_passes_on_current_tree\n    assert result == 0\nE   assert 1 == 0\n=========================== short test summary info ============================\nFAILED tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 381 passed in 20.23s ========================\n",
+          "error": "",
+          "data": {
+            "exit_code": 1,
+            "pytest_outcome": {
+              "kind": "failed",
+              "detail": "1 failure(s); first: tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree",
+              "first_failing_test": "tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree",
+              "failures": 1,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261001T172846.689768Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n2:27PM INF scanned ~324372537 bytes (324.37 MB) in 12.3s\n2:27PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94115 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261001T172846.689768Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n\nEvaluator error: LLM call failed: provider returned no choices: {'message': 'We were unable to start processing your request within the 900-second timeout limit. Please try again later.'}",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n\nEvaluator error: LLM call failed: provider returned no choices: {'message': 'We were unable to start processing your request within the 900-second timeout limit. Please try again later.'}",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [],
+            "summary": "Evaluator error: LLM call failed: provider returned no choices: {'message': 'We were unable to start processing your request within the 900-second timeout limit. Please try again later.'}"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: INT-CI-AGENT-ASSIST\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 tests: FAIL (tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree [first failing id])\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n\nStage tier2: FAIL\n  INCOMPLETE\n\nEvaluator error: LLM call failed: provider returned no choices: {'message': 'We were unable to start processing your request within the 900-second timeout limit. Please try again later.'}\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-01T19:44:57.230900",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-01T19:44:57.250098+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 1606,
+        "truncated": false,
+        "source": "git show 4e31006fcac5"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 11678,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "INT-CI-AGENT-ASSIST"
+  }
+}

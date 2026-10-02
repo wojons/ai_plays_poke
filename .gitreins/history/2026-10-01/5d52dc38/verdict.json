@@ -1,0 +1,83 @@
+{
+  "task_id": "AGENT-1",
+  "task_title": "Implement agentic context, model-chosen tools, and bounded delegation",
+  "task_criteria": [
+    "Implement the AGENT-1 acceptance criteria in the board row: bounded rolling context, real model-chosen tool calls with visible failures, bounded research delegation persisted and consumed later, cost/mode bounds, and run evidence."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "0698914b3af29bcf368a85143074734d3ef15fb4",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261001T043248.108510Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n10:41AM INF scanned ~324304345 bytes (324.30 MB) in 12.2s\n10:41AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94067 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261001T043248.108510Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    }
+  },
+  "summary": "Judge Result: AGENT-1\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-01T16:10:57.378791",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-01T16:10:57.401720+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 13713,
+        "truncated": false,
+        "source": "git show 0698914b3af2"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 22539,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "AGENT-1"
+  }
+}

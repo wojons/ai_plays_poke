@@ -959,3 +959,35 @@ tasks:
   status: complete
   created_at: '2026-09-30T10:21:12.640407+00:00'
   completed_at: '2026-09-30T11:54:57.525994+00:00'
+- id: E2E-001
+  title: Run recurring E2E gameplay fixture
+  criteria:
+  - Execute the 80-cycle E2E fixture with RSS watchdog; verify exit 0, no HSM spam,
+    stable memory, starter selection, battle behavior, and record evidence without
+    claiming unrun progression.
+  status: in_progress
+  created_at: '2026-10-01T07:45:52.066526+00:00'
+- id: AGENT-1
+  title: Give the agent an agentic context window, tool calls, and bounded delegation
+  criteria:
+  - Bounded rolling context, real model-chosen tool calls, and bounded delegated research
+    consumed in a later cycle; preserve legacy modes and tests
+  status: complete
+  created_at: '2026-10-01T17:01:45.525999+00:00'
+  completed_at: '2026-10-01T17:31:08.824425+00:00'
+- id: INT-CI-AGENT-ASSIST
+  title: Declare new agentic press_button assist sites
+  criteria:
+  - assist inventory guard passes with both agentic_loop press_button sites declared,
+    preserving model-chosen tool calls
+  status: complete
+  created_at: '2026-10-01T19:14:06.694802+00:00'
+  completed_at: '2026-10-01T19:27:28.776510+00:00'
+- id: INT-CI-CRON-PIPELINE-1
+  title: Fix CI source-inspection pipeline assertion
+  criteria:
+  - The exact-head CI test suite passes all but the TestPlanEntryRowShape JEV miss
+    assertion; update implementation or test so the pipeline assignment contract is
+    correct and the focused test plus repository gates pass.
+  status: in_progress
+  created_at: '2026-10-01T20:51:46.793657+00:00'

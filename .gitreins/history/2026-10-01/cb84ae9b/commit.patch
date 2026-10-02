@@ -1,0 +1,38 @@
+commit 4e31006fcac51489ff10054b66c4b41eb8c1d999
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Thu Oct 1 14:27:17 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Thu Oct 1 14:27:17 2026 -0500
+
+    fix(ci): declare agentic tool assist sites — INT-CI-AGENT-ASSIST.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ config/assist_inventory.json | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/config/assist_inventory.json b/config/assist_inventory.json
+index 35da804..0d1e676 100644
+--- a/config/assist_inventory.json
++++ b/config/assist_inventory.json
+@@ -413,6 +413,20 @@
+       "call": "press_button(button, frames=frames)",
+       "reason": "Battle-menu transport: taps the button selected by the higher-level JEV/tool action while navigating a known menu layout."
+     },
++    {
++      "file": "src/core/agentic_loop.py",
++      "context": "_tool_result",
++      "button": "direction",
++      "call": "press_button(direction, frames=5)",
++      "reason": "Agentic tool transport: enacts the walk direction supplied by the model's chosen tool call; no action is selected here."
++    },
++    {
++      "file": "src/core/agentic_loop.py",
++      "context": "_tool_result",
++      "button": "a",
++      "call": "press_button('a', frames=5)",
++      "reason": "Agentic tool transport: performs the interaction requested by the model's chosen tool call; no action is selected here."
++    },
+     {
+       "file": "src/game_loop.py",
+       "context": "GameLoop._run_boot_progression",

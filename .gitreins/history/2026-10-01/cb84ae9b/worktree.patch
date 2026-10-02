@@ -1,0 +1,59 @@
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index 28cac48..9359f47 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -431,3 +431,8 @@
+ {"event_type":"qa_verification","actor":"qa-cron","tick":"ai-plays-poke-qa-2026-10-01-16-45-57","ts":"2026-10-01T17:36:00Z","task_id":"QA-AI-PLAYS-POKE-14","note":"VERIFIED FIXED at HEAD 0698914: .venv/bin/mypy scripts/game_bridge.py --ignore-missing-imports exits 0 (Success, 1 source file). scripts/ is now also covered by CI mypy (workflow line 81: mypy --explicit-package-bases src/ scripts/, landed via INT-CI-MYPY-DUP-1 3f2e9bf) — both acceptance criteria 1 and 3 hold. Row can be closed."}
+ {"event_type":"task_created","actor":"foreman","tick":null,"ts":null,"task_id":"INT-CI-AGENT-ASSIST","note":null,"id":386,"timestamp":"2026-10-01T17:34:39.3632+00:00","detail":"{\"id\":\"INT-CI-AGENT-ASSIST\",\"status\":\"pending\"}"}
+ {"event_type":"task_completed","actor":"foreman","tick":null,"ts":null,"task_id":"AGENT-1","note":null,"id":387,"timestamp":"2026-10-01T17:34:56.212843+00:00","detail":"{\"status\":\"complete\"}"}
++{"id":388,"event_type":"task_dispatched","task_id":"INT-CI-AGENT-ASSIST","actor":"foreman","detail":"{\"tick\":\"ai-plays-poke-2026-10-01-19-12-16\",\"worker_model\":\"glm-5.3-flash\",\"worker_provider\":\"zai-glm-default\",\"path\":\"serial\",\"base_sha\":\"137f8e0\",\"worktree\":\"/home/kara/worktrees/ai-plays-poke-INT-CI-AGENT-ASSIST\",\"branch\":\"wt/INT-CI-AGENT-ASSIST\"}"}
++{"id": 389, "event_type": "task_completed", "task_id": "INT-CI-AGENT-ASSIST", "actor": "foreman", "detail": "{\"tick\": \"ai-plays-poke-2026-10-01-19-12-16\", \"commit\": \"4e31006fcac51489ff10054b66c4b41eb8c1d999\", \"worker\": \"glm-5.3-flash @ zai-glm-default\", \"verification\": \"assist inventory guard PASS; focused pytest 3 passed; ruff check PASS; compileall PASS; JSON parse PASS\", \"gitreins\": \"task complete invoked; Tier 2 evaluation remains running/unavailable at tick close\", \"push\": \"origin/main parity 0\", \"ci\": \"latest 3 pre-existing runs failure; CI follow-up INT-CI-AGENT-ASSIST-CI filed\"}"}
++{"id": 390, "event_type": "task_created", "task_id": "INT-CI-AGENT-ASSIST-CI", "actor": "foreman", "detail": "{\"title\": \"CI follow-up: inspect recent failures after agentic assist inventory fix\", \"status\": \"pending\", \"reason\": \"Recent gh run list at tick close shows three failures before commit 4e31006; inspect exact-head CI and close if superseded or fix remaining failure\"}"}
++{"id": 391, "event_type": "task_completed", "task_id": "INT-CI-AGENT-ASSIST", "actor": "foreman", "detail": "{\"status\":\"complete\"}", "timestamp": "2026-10-01T19:36:01.658587+00:00"}
++{"id": 392, "event_type": "task_created", "task_id": "INT-CI-AGENT-ASSIST-CI", "actor": "foreman", "detail": "{\"id\":\"INT-CI-AGENT-ASSIST-CI\",\"status\":\"pending\"}", "timestamp": "2026-10-01T19:37:10.261968+00:00"}
+diff --git a/.coding-hermes/board/tasks.jsonl b/.coding-hermes/board/tasks.jsonl
+index 4bcc388..f26dbaa 100644
+--- a/.coding-hermes/board/tasks.jsonl
++++ b/.coding-hermes/board/tasks.jsonl
+@@ -207,4 +207,5 @@
+ {"id": "PYTYP-2604", "title": "Annotate Python functions in ai_plays_poke: 1788 functions lack a return type, 2434 args unannotated (ruff ANN total 3812)", "status": "pending", "priority": "P2", "complexity": 3, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": null, "capability_tags": [], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": [], "lines_added": 0, "lines_removed": 0, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": null, "blocked_reason": null, "review_notes": null, "created_at": "2026-10-01T04:18:49Z", "updated_at": "2026-10-01T04:18:49Z", "blocked_since": null, "detail": {"fingerprint": "fb6029eaec0927d941e0839712c16720e579bc8f16e9e3abb4fe4a848d265912", "evidence": [{"run_id":"typing:6c37f154a6af26c1","ts":"2026-10-01T04:18:49Z"}]}}
+ {"id": "PYSEC-AI-PLAYS-POKE-20261001", "title": "Security hazards that are not test-assert noise — injection, TLS, subprocess, hardcoded secrets in ai_plays_poke: 240 violations, top rules S108:113,PT018:22,S310:21", "status": "pending", "priority": "P2", "complexity": 3, "depends_on": [], "blocks": [], "primary_model": null, "primary_provider": null, "fallback_model": null, "fallback_provider": null, "reasoning": "python-rule-audit --family security generated 2026-09-30T23:19:45-0500. ai_plays_poke is in scope as the workdir of enabled lane ai-plays-poke. Reported count 240; top rules S108:113, PT018:22, S310:21. Destination is the ai_plays_poke board.", "capability_tags": ["python", "security"], "worker_status": "pending", "dispatched_at": null, "completed_at": null, "attempts": 0, "exit_code": null, "commit_hash": null, "files_changed": [], "lines_added": 0, "lines_removed": 0, "guard_result": null, "ci_result": null, "worker_summary": null, "foreman_note": null, "blocked_reason": null, "review_notes": null, "created_at": "2026-10-01T04:21:35Z", "updated_at": "2026-10-01T04:21:35Z", "blocked_since": null, "detail": {"fingerprint": "fa92f72208be498cdcc1f3a1e73ef67164294748b9610327546ae864a1e9c90c", "evidence": [{"run_id":"security:00f7b64d7ab4c187","ts":"2026-10-01T04:21:35Z"}]}}
+ {"id":"QA-AI-PLAYS-POKE-15","title":"[P2] fresh-install native suite is unrunnable on a clean machine: opencv-python import dies libGL.so.1 at collection — no setup step or doc installs the system libGL dependency","priority":"P2","status":"pending","reasoning":"QA battery 2026-10-01 (tick ai-plays-poke-qa-2026-10-01-16-45-57, agent 81d22918 bunker-mvp, HEAD 0698914, evidence /tmp/bunker-qa-evidence-20261001T164657Z-2622518.jsonl). Native leg rc=1 at COLLECTION: tests/test_core_game_loop.py:24 from src.core.game_loop import GameLoop -> import cv2 -> ImportError: libGL.so.1: cannot open shared object file (pytest stopped after 1 error, 643 collected / 1 error, 3.41s). Same error in chaos-resource under the 3G cap (1 error in 1.47s) - ONE root cause, both cells. Dev-box contrast at same HEAD: .venv/bin/python -c import cv2 succeeds (host has system libGL); mypy --explicit-package-bases src/ scripts/ = 0 issues in 82 files. requirements.txt pins opencv-python>=4.8.0 but no script/CI step/doc installs libgl1 (CI installs only SDL2 for PyBoy). Consequence: a fresh clone per docs cannot run ANY test that transitively imports cv2, and -x makes the whole suite abort at collection. Fix direction: install libgl1 in CI + setup doc line (apt-get install -y libgl1 or switch to opencv-python-headless which does not need libGL), plus verify pytest still stops sanely.","review_notes":"Repro: fresh agent, native.log lines 8-33 verbatim ImportError libGL.so.1. chaos-corruption + chaos-errorpath were UNVERIFIED/INFO this cycle (no start command detected) - separate entrypoint gap, not this defect. ci-pass act leg ALSO failed at Type check (mypy) 22.2s (recurrence of QA-AI-PLAYS-POKE-11, annotated separately).","created_at":"2026-10-01T17:30:00Z","tick":"ai-plays-poke-qa-2026-10-01-16-45-57","source":"qa-foreman","complexity":1,"capability_tags":["qa","fresh-machine","opencv","system-deps"],"depends_on":[]}
+-{"id":"INT-CI-AGENT-ASSIST","title":"CI guard fails after AGENT-1: assist inventory missing two model-chosen press_button sites","priority":"P1","status":"pending","reasoning":"Exact CI run 36899776184 at HEAD 142a972 failed tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree: src/core/agentic_loop.py added two NEW press_button call sites not declared in config/assist_inventory.json. Fix the guard contract additively or route through the declared tool seam; preserve real model-chosen tool calls.","review_notes":null,"created_at":"2026-10-01T17:34:39Z","source":null,"complexity":2,"capability_tags":["ci","guard","agentic-loop"],"depends_on":[],"updated_at":"2026-10-01T17:34:39Z","detail":{"fingerprint":"6a210759f16fb21f8963029abd1754d78833a6da3695cfffa5b11078fb8b2a18"}}
++{"id":"INT-CI-AGENT-ASSIST","title":"CI guard fails after AGENT-1: assist inventory missing two model-chosen press_button sites","priority":"P1","status":"complete","reasoning":"Exact CI run 36899776184 at HEAD 142a972 failed tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree: src/core/agentic_loop.py added two NEW press_button call sites not declared in config/assist_inventory.json. Fix the guard contract additively or route through the declared tool seam; preserve real model-chosen tool calls.","review_notes":null,"created_at":"2026-10-01T17:34:39Z","source":null,"complexity":2,"capability_tags":["ci","guard","agentic-loop"],"depends_on":[],"updated_at":"2026-10-01T19:36:01Z","detail":{"fingerprint":"6a210759f16fb21f8963029abd1754d78833a6da3695cfffa5b11078fb8b2a18"},"worker_status":"complete","commit_hash":"4e31006fcac51489ff10054b66c4b41eb8c1d999","guard_result":"PASS","ci_result":"RED","worker_summary":"Worker committed 4e31006; guard inventory PASS, focused pytest 3 passed, ruff and compileall passed; exact-head CI is in progress; recent prior CI failures filed as INT-CI-AGENT-ASSIST-CI.","foreman_note":"Tick ai-plays-poke-2026-10-01-19-12-16: merged and pushed 4e31006; origin/main parity 0."}
++{"id":"INT-CI-AGENT-ASSIST-CI","title":"CI follow-up: inspect recent failures after agentic assist inventory fix","priority":"P1","status":"pending","reasoning":"Recent gh run list at tick close showed three failures before commit 4e31006; inspect exact-head CI and close if superseded or fix remaining failure.","review_notes":null,"created_at":"2026-10-01T19:37:10Z","source":null,"complexity":2,"capability_tags":["ci","guard","agentic-loop"],"depends_on":[],"updated_at":"2026-10-01T19:37:10Z","detail":{"fingerprint":"1d09f3bca0157952904b23a9bac198d50efb4314d609c4e9543f71948effb9a9"},"worker_status":"pending","commit_hash":null,"guard_result":null,"ci_result":null,"worker_summary":null,"foreman_note":null}
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 14916a5..713402c 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -959,3 +959,27 @@ tasks:
+   status: complete
+   created_at: '2026-09-30T10:21:12.640407+00:00'
+   completed_at: '2026-09-30T11:54:57.525994+00:00'
++- id: E2E-001
++  title: Run recurring E2E gameplay fixture
++  criteria:
++  - Execute the 80-cycle E2E fixture with RSS watchdog; verify exit 0, no HSM spam,
++    stable memory, starter selection, battle behavior, and record evidence without
++    claiming unrun progression.
++  status: in_progress
++  created_at: '2026-10-01T07:45:52.066526+00:00'
++- id: AGENT-1
++  title: Give the agent an agentic context window, tool calls, and bounded delegation
++  criteria:
++  - Bounded rolling context, real model-chosen tool calls, and bounded delegated research
++    consumed in a later cycle; preserve legacy modes and tests
++  status: complete
++  created_at: '2026-10-01T17:01:45.525999+00:00'
++  completed_at: '2026-10-01T17:31:08.824425+00:00'
++- id: INT-CI-AGENT-ASSIST
++  title: Declare new agentic press_button assist sites
++  criteria:
++  - assist inventory guard passes with both agentic_loop press_button sites declared,
++    preserving model-chosen tool calls
++  status: complete
++  created_at: '2026-10-01T19:14:06.694802+00:00'
++  completed_at: '2026-10-01T19:27:28.776510+00:00'
+diff --git a/play_frames/console.png b/play_frames/console.png
+index 3cb2c44..e429205 100644
+Binary files a/play_frames/console.png and b/play_frames/console.png differ

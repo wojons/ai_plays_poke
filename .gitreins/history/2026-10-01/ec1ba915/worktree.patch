@@ -1,0 +1,27 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 14916a5..29e1d15 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -959,3 +959,19 @@ tasks:
+   status: complete
+   created_at: '2026-09-30T10:21:12.640407+00:00'
+   completed_at: '2026-09-30T11:54:57.525994+00:00'
++- id: E2E-001
++  title: Run recurring E2E gameplay fixture
++  criteria:
++  - Execute the 80-cycle E2E fixture with RSS watchdog; verify exit 0, no HSM spam,
++    stable memory, starter selection, battle behavior, and record evidence without
++    claiming unrun progression.
++  status: in_progress
++  created_at: '2026-10-01T07:45:52.066526+00:00'
++- id: AGENT-1
++  title: Give the agent an agentic context window, tool calls, and bounded delegation
++  criteria:
++  - Bounded rolling context, real model-chosen tool calls, and bounded delegated research
++    consumed in a later cycle; preserve legacy modes and tests
++  status: complete
++  created_at: '2026-10-01T17:01:45.525999+00:00'
++  completed_at: '2026-10-01T17:31:08.824425+00:00'
+diff --git a/play_frames/console.png b/play_frames/console.png
+index 3cb2c44..e429205 100644
+Binary files a/play_frames/console.png and b/play_frames/console.png differ
