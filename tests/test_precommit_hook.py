@@ -1,6 +1,7 @@
 import os
-import subprocess
 from pathlib import Path
+import shutil
+import subprocess
 
 import pytest
 
@@ -19,9 +20,11 @@ def _run(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-@pytest.fixture
-def hook_repo(tmp_path: Path) -> tuple[Path, Path]:
-    repo = tmp_path / "repo"
+@pytest.fixture(scope="module")
+def hook_repo_template(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
+    """Build the immutable git fixture once; tests receive private copies."""
+    root = tmp_path_factory.mktemp("hook-repo-template")
+    repo = root / "repo"
     repo.mkdir()
     _run("git", "init", "-q", cwd=repo)
     _run("git", "config", "user.name", "Guard Test", cwd=repo)
@@ -36,7 +39,7 @@ def hook_repo(tmp_path: Path) -> tuple[Path, Path]:
     gitreins_dir.mkdir()
     (gitreins_dir / "config.yaml").write_text("guards: {}\n", encoding="utf-8")
 
-    bin_dir = tmp_path / "bin"
+    bin_dir = root / "bin"
     bin_dir.mkdir()
     fake_gitreins = bin_dir / "gitreins"
     fake_gitreins.write_text(
@@ -46,6 +49,17 @@ def hook_repo(tmp_path: Path) -> tuple[Path, Path]:
         encoding="utf-8",
     )
     fake_gitreins.chmod(0o755)
+    return repo, bin_dir
+
+
+@pytest.fixture
+def hook_repo(
+    hook_repo_template: tuple[Path, Path], tmp_path: Path
+) -> tuple[Path, Path]:
+    """Copy the prebuilt repository so each test keeps mutation isolation."""
+    template_repo, bin_dir = hook_repo_template
+    repo = tmp_path / "repo"
+    shutil.copytree(template_repo, repo)
     return repo, bin_dir
 
 
