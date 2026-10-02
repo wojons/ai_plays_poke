@@ -1028,3 +1028,15 @@ tasks:
   status: complete
   created_at: '2026-10-02T09:33:36.390206+00:00'
   completed_at: '2026-10-02T09:41:35.587463+00:00'
+- id: PERCEPT-4
+  title: Wrap 51 over-length lines (>88) in ram_reader/perception_diff/test_ram_reader
+    to restore the commit-time guard
+  criteria:
+  - awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py
+    counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/
+    tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports
+    0 errors; no string literals, ROM addresses, or test assertions semantically changed
+    (pure reflow)
+  status: complete
+  created_at: '2026-10-02T15:11:54.546435+00:00'
+  completed_at: '2026-10-02T15:54:25.499442+00:00'
