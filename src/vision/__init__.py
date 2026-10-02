@@ -9,11 +9,13 @@ Provides comprehensive visual analysis capabilities including:
 - Location detection
 """
 
-from .pipeline import VisionPipeline
-from .ocr import OCREngine
-from .sprite import SpriteRecognizer
+from src import __version__ as __version__
+
 from .battle import BattleAnalyzer
 from .location import LocationDetector
+from .ocr import OCREngine
+from .pipeline import VisionPipeline
+from .sprite import SpriteRecognizer
 
 __all__ = [
     "VisionPipeline",
@@ -22,5 +24,3 @@ __all__ = [
     "BattleAnalyzer",
     "LocationDetector",
 ]
-
-__version__ = "1.0.0"

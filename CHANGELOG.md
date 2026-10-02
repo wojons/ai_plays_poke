@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Added a RAM-reader-first gameplay pipeline for fast, zero-cost state extraction.
+- Added `cron_runner.py` boot-state checkpoints and setup preflight validation.
+- Hardened `game_bridge.py` with bounded workers and serialized emulator access.
+- Persisted RAM-derived save and run summaries, with prior memory injected at boot.
+
 ## [1.0.0] - 2025-12-31
 
 ### Added

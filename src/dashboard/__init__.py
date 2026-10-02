@@ -5,4 +5,4 @@ Real-time monitoring and control interface for the Pokémon AI system.
 Provides FastAPI server with REST endpoints and WebSocket streaming.
 """
 
-__version__ = "1.0.0"
+from src import __version__ as __version__

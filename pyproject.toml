@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ptp-01x-pokemon-ai"
-version = "0.1.0"
+version = "1.0.0"
 description = "PTP-01X Autonomous Pokemon AI Benchmarking System"
 readme = "README.md"
 requires-python = ">=3.10"
