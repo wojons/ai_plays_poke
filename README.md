@@ -391,7 +391,7 @@ runs/test_001/
 ### Running All Tests
 ```bash
 # Run all tests in parallel (recommended — the ~14s figure is parallel-only,
-# measured with pytest-xdist: 4405 collected / 62 heavy-deselected; exact pass
+# measured with pytest-xdist: 4416 collected / 62 heavy-deselected; exact pass
 # counts drift as tests are added — check the run summary, not this comment)
 .venv/bin/python -m pytest tests/ -n auto -v
 
@@ -424,7 +424,7 @@ runs/test_001/
 ```bash
 # Fast tier (recommended for day-to-day work) — unit tests only.
 # Serial wall time ~190s on an unloaded box (measured 189.95s, 2026-09-27;
-# ~65–90s if pytest-xdist parallelizes it). ~4343 collected / 62 deselected;
+# ~65–90s if pytest-xdist parallelizes it). ~4354 collected / 62 deselected;
 # pass counts drift as tests are added — check the run summary. Excludes @pytest.mark.heavy tests — the same set as
 # @pytest.mark.integration (game-loop component flows) and
 # @pytest.mark.slow (network retry/backoff, memory & performance
