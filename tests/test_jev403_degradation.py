@@ -14,6 +14,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import cron_runner
+from src.core import emulator as emulator_module
 from scripts import long_run
 from src.core import jev_client
 
@@ -329,9 +330,14 @@ class TestMainPreflightGate:
 
         monkeypatch.chdir(tmp_path)
         log_dir = tmp_path / "logs"
+        # cron_runner keeps heavy imports (incl. ai_client's .env loader)
+        # behind main() now, so a clean env no longer inherits the repo .env;
+        # the fake preflight below replaces the loader's job, so pin the
+        # controller key explicitly.
+        monkeypatch.setenv("OPENROUTER_API_KEY", "test-controller-key")
         monkeypatch.setattr(cron_runner, "LOG_DIR", log_dir)
         monkeypatch.setattr(jev_client, "preflight", preflight)
-        monkeypatch.setattr(cron_runner, "Emulator", stop_emulator)
+        monkeypatch.setattr(emulator_module, "Emulator", stop_emulator)
         monkeypatch.setattr(sys, "argv", ["cron_runner.py", "--run-id", "gate", *argv])
         with pytest.raises(_StopAtEmulator):
             cron_runner.main()
@@ -410,6 +416,8 @@ class TestMainPreflightGate:
 
         monkeypatch.chdir(tmp_path)
         log_dir = tmp_path / "logs"
+        # Same lazy-import .env consideration as _stop_before_boot above.
+        monkeypatch.setenv("OPENROUTER_API_KEY", "test-controller-key")
         monkeypatch.setattr(cron_runner, "LOG_DIR", log_dir)
         monkeypatch.setattr(
             jev_client,
@@ -421,7 +429,7 @@ class TestMainPreflightGate:
                 "error": "OR_JEV: HTTP 403 RBAC: access denied",
             },
         )
-        monkeypatch.setattr(cron_runner, "Emulator", emulator)
+        monkeypatch.setattr(emulator_module, "Emulator", emulator)
         monkeypatch.setattr(
             sys,
             "argv",
