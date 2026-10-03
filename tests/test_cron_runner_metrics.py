@@ -1041,3 +1041,30 @@ class TestAutonomyRatioFromRealRows:
             parsed["jev_answered"] / parsed["decisions_total"], 4
         )
         assert parsed["escalation_rate_by_missing_class"] == {"object_purpose": 1.0}
+
+
+class TestMainLoadsDotenvBeforePreflight:
+    """REV-4 regression: main() must load .env BEFORE the JEV preflight reads
+    os.environ, or a fresh clone with a valid .env but no exported key dies at
+    preflight (proven live 2026-10-03: T275 run exit 2 pre-patch, pass after)."""
+
+    def test_main_loads_dotenv_before_preflight(self, monkeypatch, tmp_path):
+        import cron_runner as cr
+
+        calls = []
+        real_load = cr._load_dotenv_stdlib
+        monkeypatch.setattr(
+            cr, "_load_dotenv_stdlib", lambda *a, **k: calls.append("dotenv") or real_load(*a, **k)
+        )
+        # Preflight stub records ordering; stop main() right after preflight.
+        monkeypatch.setattr(
+            cr, "_run_jev_preflight",
+            lambda **kw: calls.append("preflight") or {"status": "auth_failure"},
+        )
+        monkeypatch.setattr(
+            "sys.argv", ["cron_runner.py"]
+        )
+        cr._main_parser()  # real parser: main() must consume default argv
+        with pytest.raises(SystemExit):
+            cr.main()
+        assert calls == ["dotenv", "preflight"], calls

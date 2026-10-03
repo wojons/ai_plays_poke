@@ -4764,6 +4764,14 @@ def _main_parser() -> argparse.ArgumentParser:
 def main() -> None:
     global CYCLES, ROM, run_id, log_path, SCREENSHOT_DIR, DECISION_MODE, HANDOFF_POLICY
 
+    # Load the clone's .env BEFORE the JEV preflight reads os.environ (REV-4
+    # regression fix): _load_dotenv_stdlib is no-override, so real environment
+    # variables keep precedence and the preflight now validates the key a
+    # fresh clone actually has on disk. Previously this was only called inside
+    # _dry_run_summary, so every real run without an exported key died at
+    # preflight with "controller key OPENROUTER_API_KEY is not set".
+    _load_dotenv_stdlib()
+
     parser = _main_parser()
     args = parser.parse_args()
     # Decision mode (flag > env > default). Stamped into every decision row,
