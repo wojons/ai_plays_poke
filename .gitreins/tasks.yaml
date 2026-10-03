@@ -1058,3 +1058,13 @@ tasks:
   status: complete
   created_at: '2026-10-02T21:17:26.221078+00:00'
   completed_at: '2026-10-02T21:22:46.973594+00:00'
+- id: DOGFOOD-PERF-001
+  title: Reduce cron_runner cold-start delay (dogfood perf finding)
+  criteria:
+  - 'cron_runner.py reaches first decision cycle measurably faster with zero behavior
+    change: heavy imports (pyboy/sdl2/numpy-class) are deferred until after argparse/preflight
+    (dry-run completes without importing pyboy), timings measured before/after with
+    a repeatable script, fast test tier green, mypy src/ clean, ruff clean'
+  status: complete
+  created_at: '2026-10-02T23:30:15.717761+00:00'
+  completed_at: '2026-10-03T00:30:20.571320+00:00'

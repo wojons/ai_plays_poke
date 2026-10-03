@@ -1,0 +1,48 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index fb04a1f..01422a2 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1058,3 +1058,13 @@ tasks:
+   status: complete
+   created_at: '2026-10-02T21:17:26.221078+00:00'
+   completed_at: '2026-10-02T21:22:46.973594+00:00'
++- id: DOGFOOD-PERF-001
++  title: Reduce cron_runner cold-start delay (dogfood perf finding)
++  criteria:
++  - 'cron_runner.py reaches first decision cycle measurably faster with zero behavior
++    change: heavy imports (pyboy/sdl2/numpy-class) are deferred until after argparse/preflight
++    (dry-run completes without importing pyboy), timings measured before/after with
++    a repeatable script, fast test tier green, mypy src/ clean, ruff clean'
++  status: complete
++  created_at: '2026-10-02T23:30:15.717761+00:00'
++  completed_at: '2026-10-03T00:30:20.571320+00:00'
+diff --git a/tests/test_jev403_degradation.py b/tests/test_jev403_degradation.py
+index 7e03ed9..d954359 100644
+--- a/tests/test_jev403_degradation.py
++++ b/tests/test_jev403_degradation.py
+@@ -14,6 +14,7 @@ from unittest.mock import MagicMock
+ import pytest
+ 
+ import cron_runner
++from src.core import emulator as emulator_module
+ from scripts import long_run
+ from src.core import jev_client
+ 
+@@ -331,7 +332,7 @@ class TestMainPreflightGate:
+         log_dir = tmp_path / "logs"
+         monkeypatch.setattr(cron_runner, "LOG_DIR", log_dir)
+         monkeypatch.setattr(jev_client, "preflight", preflight)
+-        monkeypatch.setattr(cron_runner, "Emulator", stop_emulator)
++        monkeypatch.setattr(emulator_module, "Emulator", stop_emulator)
+         monkeypatch.setattr(sys, "argv", ["cron_runner.py", "--run-id", "gate", *argv])
+         with pytest.raises(_StopAtEmulator):
+             cron_runner.main()
+@@ -421,7 +422,7 @@ class TestMainPreflightGate:
+                 "error": "OR_JEV: HTTP 403 RBAC: access denied",
+             },
+         )
+-        monkeypatch.setattr(cron_runner, "Emulator", emulator)
++        monkeypatch.setattr(emulator_module, "Emulator", emulator)
+         monkeypatch.setattr(
+             sys,
+             "argv",

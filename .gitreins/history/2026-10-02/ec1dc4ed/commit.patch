@@ -1,0 +1,559 @@
+commit 4c19cda4afdffc23690f7b7dbb83a251d10d2c96
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Fri Oct 2 16:31:55 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Fri Oct 2 16:31:55 2026 -0500
+
+    chore(board): tick 2026-10-02-21-10-30 - E2E-001 fixture run T270 + fold 2 late verdicts
+    
+    - E2E-001 fixture executed (due window T266-T270): run e2e001_20261002_t270,
+      exit 0, 80/80 decisions, autonomy 1.0 (38 escalated), measured peak RSS
+      84.5MB (ps sampling), HSM spam 0, starter picked c1; battle not reached
+      (run variance; ARM-1 remains the known open cause).
+    - Gitreins E2E-001-T270 complete (skip-tier2; tier1 full suite exceeds
+      foreground window); tier2 async judge job-c71b2dbdca25458a9662153499fb0cfe.
+    - Folded late verdict dirs RELEASE-001 (704fa9f8) and PERCEPT-4 (a8b98775):
+      both tier2 PASS; tier1 FAILs are the known 'tests: Command timed out'
+      artifact, no code action required.
+    - Recorded the T270 wave manifest from tick 10-44-23.
+    - CI: 5/5 green on main at tick start.
+    
+    ch:trace row=E2E-001 spec=.coding-hermes/board/tasks.jsonl evidence=cron_logs/e2e001_20261002_t270_evidence.md witness=ledger:peak_rss_86564KB_exit0_autonomy_1.0 verdict=E2E-001-T270 commit=HEAD
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ .coding-hermes/board/board.jsonl                   |   2 +-
+ .coding-hermes/board/events.jsonl                  |   1 +
+ .coding-hermes/board/tasks.jsonl                   |   2 +-
+ .../ai-plays-poke-foreman-2026-10-02-10-44-23.json |  12 +++
+ .gitreins/history/2026-10-02/704fa9f8/commit.patch |  44 +++++++++
+ .gitreins/history/2026-10-02/704fa9f8/summary.md   |  32 ++++++
+ .gitreins/history/2026-10-02/704fa9f8/verdict.json | 110 +++++++++++++++++++++
+ .../history/2026-10-02/704fa9f8/worktree.patch     |  18 ++++
+ .gitreins/history/2026-10-02/a8b98775/commit.patch |  67 +++++++++++++
+ .gitreins/history/2026-10-02/a8b98775/summary.md   |  32 ++++++
+ .gitreins/history/2026-10-02/a8b98775/verdict.json | 103 +++++++++++++++++++
+ .gitreins/tasks.yaml                               |  18 ++++
+ 12 files changed, 439 insertions(+), 2 deletions(-)
+
+diff --git a/.coding-hermes/board/board.jsonl b/.coding-hermes/board/board.jsonl
+index 9243419..1d1a062 100644
+--- a/.coding-hermes/board/board.jsonl
++++ b/.coding-hermes/board/board.jsonl
+@@ -1 +1 @@
+-{"project": "AI Plays Pok\u00e9mon", "namespace": "ai-plays-poke", "version": 2, "last_tick": "2026-10-02 11:37:51.000000", "ticks_total": 269, "ticks_idle": 0, "cooldown_s": 21600, "service_port": null, "service_url": null, "health_endpoint": null, "git_branch": "main", "git_remote": "origin", "last_commit": "9d54337", "updated_at": "2026-10-02 11:37:51.000000", "last_tick_at": "2026-09-30 11:55:22", "tick_history": [{"tick": 101, "event": "foreman audit", "ts": "2026-08-07 09:29:00"}]}
++{"project": "AI Plays Pok\u00e9mon", "namespace": "ai-plays-poke", "version": 2, "last_tick": "2026-10-02 16:31:08.000000", "ticks_total": 270, "ticks_idle": 0, "cooldown_s": 21600, "service_port": null, "service_url": null, "health_endpoint": null, "git_branch": "main", "git_remote": "origin", "last_commit": "637f6d4", "updated_at": "2026-10-02 16:31:08.000000", "last_tick_at": "2026-09-30 11:55:22", "tick_history": [{"tick": 101, "event": "foreman audit", "ts": "2026-08-07 09:29:00"}]}
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index 08e24ed..f30a180 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -459,3 +459,4 @@
+ {"id":411,"timestamp":"2026-10-02 10:11:34.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"tick_summary\", \"detail\": \"Tick ai-plays-poke-foreman-2026-10-02-15-06-27 (serial, WAVE_BUDGET=1): bookkeeping-recovery + premise sweep. Prior tick 10-44-23 landed 3 wave commits (7c9ea78, 64a3aa4, 3dcaccf) but left REV-3 README edit + verdict folds uncommitted; this tick landed them. Rows closed: QA-CONSOLE-3 (7c9ea78, tier2 PASS 15ed908a), GAP-056 (64a3aa4, tier2 PASS d26bab32). Verdict tier1 FAILs = known secrets/tests cmd-timeout artifacts, no leaks (staged secret scan clean, CI 5/5 green). Premise sweep: QA-AI-PLAYS-POKE-14 STALE (mypy scripts/game_bridge.py exit 0 at HEAD); QA-AI-PLAYS-POKE-15 SUPERSEDED (opencv->headless landed via QA-AI-PLAYS-POKE-10/REV-2). PERCEPT-4 premise-true (51 lines >88 in its 3 named files) - dispatched serial worker for line-length cleanup.\"}","tick_number":268}
+ {"id":412,"timestamp":"2026-10-02 10:56:42.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"worker_dispatch\", \"detail\": \"Tick ai-plays-poke-foreman-2026-10-02-15-06-27 serial worker (WAVE_BUDGET=1, model gpt-5.6-sol @ openai-codex, session 20261002_101220_ce3297): PERCEPT-4 line-length cleanup. Worker commit 635b56b (branch task/percept-4, merged ff to main, pushed 0 unpushed): wrapped all >88 lines in src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py (pure reflow, AST-identical). Foreman-verified: 0 lines >88, 150 pytest pass, ruff clean, mypy 0/68, exact-head CI success run 2026-10-02T15:25:22Z. Gitreins: task complete --force --skip-tier2 (tier2 evaluator exceeded 26min foreground window twice; known env pattern) + tier2 judge queued async job-21e33badf04d41f89ab0c1c5c8aca794; verdict folds next tick if late. Bookkeeping also landed this tick: ddd5b4a (REV-3 README + QA-CONSOLE-3/GAP-056 closures + 8 verdict folds).\"}","tick_number":268}
+ {"id":413,"timestamp":"2026-10-02 11:37:51.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"worker_dispatch\", \"detail\": \"Tick ai-plays-poke-foreman-2026-10-02-16-22-43 serial worker (WAVE_BUDGET=1, model gpt-5.6-sol @ openai-codex, session 20261002_112944_a4c8ec, lane verified non-fallback via agent.log): RELEASE-001 release prep. Premise sweep first: QA-14 guard-red row STALE (daaf8ab fixed game_bridge mypy, verified exit 0), REV-1 STALE (no-key run exits 2 with clean preflight message, not ValueError — verified via .env move + restore), E2E-001 not due (next window ~T270). Worker commit 9d54337 (branch task/release-001, merged ff to main, pushed, 0 unpushed): pyproject+src/__init__ 1.0.0, vision/dashboard derive from src, CHANGELOG [Unreleased], scripts/release_check.py (5 checks, exit 0), tests/test_release_check.py 4 tests. Foreman-verified: release_check exit 0, pytest 4/4, mypy 85 files 0 errors, ruff check+format green, CI was green pre-dispatch 5/5. Gitreins RELEASE-001 tier2 judge launched async; verdict to fold next tick if late.\"}","tick_number":269}
++{"id":414,"timestamp":"2026-10-02 16:31:08.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"tick_summary\", \"detail\": \"Tick ai-plays-poke-foreman-2026-10-02-21-10-30 (tick 270): E2E-001 fixture DUE and executed. Run e2e001_20261002_t270: exit 0, 80/80 decisions, autonomy 1.0 (38 escalated), measured peak RSS 84.5MB (ps sampling), HSM spam 0, starter picked c1, battle NOT reached (variance + ARM-1 open). Gitreins E2E-001-T270 created+started+completed (skip-tier2, tier1 exceeds foreground window); tier2 async judge job-c71b2dbdca25458a9662153499fb0cfe pending. Bookkeeping: folded 2 late verdict dirs from prior ticks (RELEASE-001 704fa9f8, PERCEPT-4 a8b98775; both tier1 'tests: Command timed out' artifact with tier2 PASS - no code action). No worker dispatched this tick: fixture tick per skill; high-value non-fixture rows (ARM-1/DECIDE-1) require OWNER DECISION. CI 5/5 green pre-tick. No wave: fixture + bookkeeping only.\"}","tick_number":270}
+diff --git a/.coding-hermes/board/tasks.jsonl b/.coding-hermes/board/tasks.jsonl
+index d6a5003..6b26af3 100644
+--- a/.coding-hermes/board/tasks.jsonl
++++ b/.coding-hermes/board/tasks.jsonl
+@@ -1,5 +1,5 @@
+ {"id":"BOARD-V2","title":"\ud83d\udfe1 MIGRATE BOARD TO DUCKDB v2.1 \u2014 run `python3 ~/.hermes/scripts/migrate-board-to-duckdb.py .` (load skill coding-hermes-board first). Creates .coding-hermes/board/ (schema.sql, tasks.parquet, events.parquet), archives tasks.md \u2192 tasks.md.bak, commit. Same pattern as DuckBrain.","status":"complete","priority":"P1","complexity":3,"depends_on":null,"blocks":null,"primary_model":"deepseek-v4-flash","primary_provider":null,"fallback_model":"deepseek-v4-flash |","fallback_provider":null,"reasoning":null,"capability_tags":["duckdb","board","migration"],"worker_status":"complete","dispatched_at":null,"completed_at":"2026-07-31 16:11:16.677605","attempts":0,"exit_code":null,"commit_hash":null,"files_changed":null,"lines_added":0,"lines_removed":0,"guard_result":null,"ci_result":null,"worker_summary":null,"foreman_note":"Migrated board to DuckDB v2.1 via migrate-board-to-duckdb.py (T58)","blocked_reason":null,"review_notes":null,"created_at":"2026-07-31 21:10:33.533141","updated_at":"2026-07-31 16:11:16.677605","blocked_since":null}
+-{"id":"E2E-001","title":"E2E Testing Tick (self-improving loop) \ud83d\udd01 Recurring every 5-10 ticks","status":"pending","priority":"P1","complexity":4,"depends_on":[],"blocks":null,"primary_model":"GPT-5.6 Luna","primary_provider":null,"fallback_model":"Step 3.7 Flash |","fallback_provider":null,"reasoning":null,"capability_tags":["++browser","++screenshots","++verification"],"worker_status":"complete","dispatched_at":null,"completed_at":"2026-09-29T07:25:55Z","attempts":1,"exit_code":null,"commit_hash":null,"files_changed":null,"lines_added":0,"lines_removed":0,"guard_result":"tier1 PASS; focused fixture checks passed","ci_result":"not triggered by fixture-only evidence; latest 3 runs success","worker_summary":"80 cycles exit 0, 187 actions, autonomy 80/80, measured peak RSS 84.5MB, HSM spam 0, starter picked cycle 1; battle not reached (variance).","foreman_note":"Tick ai-plays-poke-foreman-2026-10-02-07-43-59: fixture run e2e001_t265 executed (due window T260-T265). Runner exit 0, 80 real decisions, autonomy 80/80 (32 escalated), measured peak RSS 84.5MB (ps sampling), HSM spam 0, starter picked c1; battle NOT reached this run (run variance - prior window reached battle c9-12; compare next window per T137 precedent). Gitreins E2E-001-T265 complete; tier2 async judge job-8d706d247ef34c24bfe46b0b1ad933ba pending. Evidence cron_logs/e2e001_20261002_t265_evidence.md.","blocked_reason":null,"review_notes":null,"created_at":"2026-07-31 21:10:33.533141","updated_at":"2026-10-02T08:05:00Z","blocked_since":null,"perpetual":true,"perpetual_reason":"structural trigger \u2014 re-fires on cadence and is never marked complete, so it must not count as outstanding work (board cleanup pass 1)"}
++{"id":"E2E-001","title":"E2E Testing Tick (self-improving loop) \ud83d\udd01 Recurring every 5-10 ticks","status":"pending","priority":"P1","complexity":4,"depends_on":[],"blocks":null,"primary_model":"GPT-5.6 Luna","primary_provider":null,"fallback_model":"Step 3.7 Flash |","fallback_provider":null,"reasoning":null,"capability_tags":["++browser","++screenshots","++verification"],"worker_status":"complete","dispatched_at":null,"completed_at":"2026-09-29T07:25:55Z","attempts":1,"exit_code":null,"commit_hash":null,"files_changed":null,"lines_added":0,"lines_removed":0,"guard_result":"tier1 PASS; focused fixture checks passed","ci_result":"not triggered by fixture-only evidence; latest 3 runs success","worker_summary":"80 cycles exit 0, 187 actions, autonomy 80/80, measured peak RSS 84.5MB, HSM spam 0, starter picked cycle 1; battle not reached (variance).","foreman_note":"Tick ai-plays-poke-foreman-2026-10-02-21-10-30: fixture run e2e001_20261002_t270 executed (due window T266-T270). Runner exit 0, 80 real decisions, autonomy 80/80 (38 escalated), measured peak RSS 84.5MB (ps sampling, T217 pattern), HSM spam 0, starter picked c1; battle NOT reached (run variance + ARM-1 open). Gitreins E2E-001-T270 complete --skip-tier2 (tier1 full suite exceeded foreground window; known pattern); tier2 async judge job-c71b2dbdca25458a9662153499fb0cfe pending, verdict folds next tick if late. Evidence cron_logs/e2e001_20261002_t270_evidence.md. Next window T275-T280.","blocked_reason":null,"review_notes":null,"created_at":"2026-07-31 21:10:33.533141","updated_at":"2026-10-02T08:05:00Z","blocked_since":null,"perpetual":true,"perpetual_reason":"structural trigger \u2014 re-fires on cadence and is never marked complete, so it must not count as outstanding work (board cleanup pass 1)"}
+ {"id":"GAMEPLAY-ESCAPE-001","title":"Break battle-escape loop: run_from_battle flee never lands (14x empty-args calls, battle persists; pre-existing since T73)","status":"complete","priority":"P2","complexity":2,"depends_on":["GAMEPLAY-LEAK-001"],"blocks":[],"primary_model":"gpt-5.6-sol","primary_provider":"openai-codex","fallback_model":null,"fallback_provider":null,"reasoning":null,"capability_tags":["gameplay","battle","recovery"],"worker_status":"complete","dispatched_at":null,"completed_at":"2026-08-03 22:53:32.523080","attempts":1,"exit_code":0,"commit_hash":"04ad406b045e8405dce5e90d32dd923ceebc4453","files_changed":null,"lines_added":null,"lines_removed":null,"guard_result":"5/5 PASS (worker standalone + pre-commit hook)","ci_result":"green 3/3 (04ad406, b8d8312, 2b499a5)","worker_summary":"Worker gpt-5.6-sol @ openai-codex: root cause = trainer RAM flag read at wrong address (0xD05A vs 0xD057, wIsInBattle) + flee taps fired while battle menu not actionable + unbounded empty-arg flee spam. Fix: _prepare_battle_menu normalization + _battle_menu_is_actionable + battle_status gates in tools.py; MAX_FAILED_FLEE_ATTEMPTS=3 bound with select_move(1) redirect in state_window prompt; battle-aware recovery (battle state reissues select_move(1), bypasses generic ladder). 3847 passed/8 skipped/5 deselected, mypy 0/61, ruff PASS, guard 5/5.","foreman_note":"T78: judge PASS 7/7 (verdict ed0250c6, re-run after float() typing fix 2b499a5 \u2014 first judge FAIL was env-only mypy sprite.py:244 stub artifact). Live evidence run2 t78_flee_verify2: trainer battle detected correctly (0 futile flee calls, was 14x), battle-aware recovery fired (battle_select_move L0/L1, bounded 1/5,2/5). E2E-001 next due T82.","blocked_reason":null,"review_notes":null,"created_at":"2026-08-03 19:52:15.445558","updated_at":"2026-08-03 23:40:22.166618","blocked_since":null}
+ {"id":"GAMEPLAY-LEAK-001","title":"\ud83d\udea8 P0: Battle-phase native memory leak (~70-100MB/s) kills Route-1 runs at ~50GB in ~9min \u2014 find & fix (py-spy/smaps bisect: pyboy battle rendering / SDL2 audio queue / SGB border; add regression test; verify 80-cycle run survives battles)","status":"complete","priority":"P0","complexity":5,"depends_on":["E2E-001"],"blocks":null,"primary_model":"deepseek-v4-flash","primary_provider":null,"fallback_model":"GLM-5.2","fallback_provider":null,"reasoning":"leak hunt: tracemalloc clean (10MB python heap), emulator ticks clean (66MB/24k), triggers only in real battle StateWindow loop; HSM BOOT->BATTLE reject-loop secondary","capability_tags":["python","emulator","memory-leak","battle","pyboy"],"worker_status":"pending","dispatched_at":null,"completed_at":"2026-08-03 04:57:02.089095","attempts":0,"exit_code":null,"commit_hash":"74b1f1b","files_changed":null,"lines_added":0,"lines_removed":0,"guard_result":null,"ci_result":null,"worker_summary":"Foreman-direct completion: root cause = _SGBSuppress stderr filter feedback loop (write-back through fd 2 = own pipe after dup2, unbounded _buf, 4096-byte read-boundary fragment bypass) fed by pyboy SGB command emissions. Fix: os.write to dupd original fd, partial-line carry, bounded _buf; PyBoy sound=False (kills SGB sound-command flood at source); tick(frames, render=False) fast-forward with render-on-demand capture. Secondary: HSM alias-aware can_transition + BOOT.INITIALIZE->BATTLE.BATTLE_MENU. Live proof: run_leakfix4_20260803_0417 = 13 wild battles, RSS flat 112MB/23min (pre-fix: ~50GB death in ~9min). 3837 passed/8 skipped, guard 5/5, judge running.","foreman_note":"T72 E2E: 4/4 battle-reaching runs leaked 70-100MB/s; run 5 (no battle) flat 134MB. Evidence in sitrep_prd_2026-08-03.md. First manifest today (T67 never reached Route 1).","blocked_reason":null,"review_notes":null,"created_at":"2026-08-03 06:33:15.126951","updated_at":"2026-08-03 06:33:15.126951","blocked_since":null}
+ {"id":"GAMEPLAY-SOL","title":"SOL-SESSION: gpt-5.6-sol digs into gameplay blockers \u2014 controller nav, stuck loops, long-run validation","status":"complete","priority":"P0","complexity":5,"depends_on":null,"blocks":null,"primary_model":"gpt-5.6-sol","primary_provider":"openai-codex","fallback_model":null,"fallback_provider":null,"reasoning":"deep","capability_tags":["gameplay","navigation","ram-reader","stuck-recovery","prompt-engineering"],"worker_status":"complete","dispatched_at":null,"completed_at":"2026-08-01 14:00:43.183161","attempts":1,"exit_code":null,"commit_hash":"0f80f4d","files_changed":["cron_runner.py","src/core/ai_client.py","src/core/emulator.py","src/core/ram_reader.py","tests/test_ai_client.py","tests/test_emulator.py","tests/test_full_gameplay.py","tests/test_ram_reader.py","tests/test_recovery.py",".gitreins/config.yaml"],"lines_added":487,"lines_removed":124,"guard_result":"tier1 PASS (secrets/lint/tests); static_analysis pre-existing (diag_lcd.py + test_global_context.py)","ci_result":"judge PASS verdict 1a7d79dd (4/6 criteria verified; full suite 3799 passed + co-author trailer verified by foreman)","worker_summary":"gpt-5.6-sol: agent escaped house, navigated Pallet Town, reached Oak's Lab at cycle 18 (run sol_nav_proven_130349, map 0->40, 10 unique coords). Fixed: PRESS_FRAMES 120->5, STEP_FORWARD 300->15, north-exit wall misclassification, coordinate-aware hints, _reset_recovery_trackers, thinking param forward, PROGRESS-ASSERT test.","foreman_note":"T61 stewardship: worker in flight since 11:08, exited ~13:05 without committing; commit 0f80f4d landed 13:40 (in-flight during foreman verification). Foreman verified: full suite 3799 passed/8 skipped, PROGRESS-ASSERT passes with ROM, fixed 2 stale hint assertions + 2 env-contamination tests (pre-existing at HEAD). Judge PASS. .gitreins/config.yaml added (1M input cap) - commit as chore.","blocked_reason":null,"review_notes":null,"created_at":"2026-08-01 11:07:49.696686","updated_at":"2026-08-01 14:00:43.183161","blocked_since":null}
+diff --git a/.coding-hermes/waves/ai-plays-poke-foreman-2026-10-02-10-44-23.json b/.coding-hermes/waves/ai-plays-poke-foreman-2026-10-02-10-44-23.json
+new file mode 100644
+index 0000000..0c9ef7e
+--- /dev/null
++++ b/.coding-hermes/waves/ai-plays-poke-foreman-2026-10-02-10-44-23.json
+@@ -0,0 +1,12 @@
++{
++  "tick": "ai-plays-poke-foreman-2026-10-02-10-44-23",
++  "wave_budget": 4,
++  "workers": [
++    {"task": "QA-CONSOLE-3", "worktree": "/home/kara/worktrees/ai-plays-poke-QA-CONSOLE-3", "branch": "wt/QA-CONSOLE-3", "model": "gpt-5.6-sol", "provider": "openai-codex"},
++    {"task": "GAP-056", "worktree": "/home/kara/worktrees/ai-plays-poke-GAP-056", "branch": "wt/GAP-056", "model": "gpt-5.6-sol", "provider": "openai-codex"},
++    {"task": "DF-AIPP-3", "worktree": "/home/kara/worktrees/ai-plays-poke-DF-AIPP-3", "branch": "wt/DF-AIPP-3", "model": "gpt-5.6-sol", "provider": "openai-codex"}
++  ],
++  "foreman_direct": [{"task": "REV-3", "scope": "README.md only"}],
++  "closed_no_code": [{"task": "PERF-5", "reason": "stale premise: PERF-4 complete (77990e5); anthropic lazy-loaded; state_window import 209ms at HEAD"}],
++  "created": "2026-10-02T05:52:00-05:00"
++}
+diff --git a/.gitreins/history/2026-10-02/704fa9f8/commit.patch b/.gitreins/history/2026-10-02/704fa9f8/commit.patch
+new file mode 100644
+index 0000000..9749551
+--- /dev/null
++++ b/.gitreins/history/2026-10-02/704fa9f8/commit.patch
+@@ -0,0 +1,44 @@
++commit 637f6d4a975071ea4cbbf81582451397bf064bff
++Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
++AuthorDate: Fri Oct 2 11:38:52 2026 -0500
++Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
++CommitDate: Fri Oct 2 11:38:52 2026 -0500
++
++    chore(board): tick 2026-10-02-16-22-43 close - RELEASE-001 worker commit 9d54337 landed + tier2 judge async
++    
++    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
++---
++ .coding-hermes/board/board.jsonl  | 2 +-
++ .coding-hermes/board/events.jsonl | 1 +
++ .coding-hermes/board/tasks.jsonl  | 2 +-
++ 3 files changed, 3 insertions(+), 2 deletions(-)
++
++diff --git a/.coding-hermes/board/board.jsonl b/.coding-hermes/board/board.jsonl
++index ed52a99..9243419 100644
++--- a/.coding-hermes/board/board.jsonl
+++++ b/.coding-hermes/board/board.jsonl
++@@ -1 +1 @@
++-{"project": "AI Plays Pok\u00e9mon", "namespace": "ai-plays-poke", "version": 2, "last_tick": "2026-10-02 10:56:42.000000", "ticks_total": 268, "ticks_idle": 0, "cooldown_s": 21600, "service_port": null, "service_url": null, "health_endpoint": null, "git_branch": "main", "git_remote": "origin", "last_commit": "635b56b", "updated_at": "2026-10-02 10:56:42.000000", "last_tick_at": "2026-09-30 11:55:22", "tick_history": [{"tick": 101, "event": "foreman audit", "ts": "2026-08-07 09:29:00"}]}
+++{"project": "AI Plays Pok\u00e9mon", "namespace": "ai-plays-poke", "version": 2, "last_tick": "2026-10-02 11:37:51.000000", "ticks_total": 269, "ticks_idle": 0, "cooldown_s": 21600, "service_port": null, "service_url": null, "health_endpoint": null, "git_branch": "main", "git_remote": "origin", "last_commit": "9d54337", "updated_at": "2026-10-02 11:37:51.000000", "last_tick_at": "2026-09-30 11:55:22", "tick_history": [{"tick": 101, "event": "foreman audit", "ts": "2026-08-07 09:29:00"}]}
++diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
++index c2a33c4..08e24ed 100644
++--- a/.coding-hermes/board/events.jsonl
+++++ b/.coding-hermes/board/events.jsonl
++@@ -458,3 +458,4 @@
++ {"id": 410, "task_id": "TICK", "tick": "ai-plays-poke-foreman-2026-10-02-09-28-39", "type": "tick_summary", "detail": "Serial tick (WAVE_BUDGET=1). Premise-checked 5 pending rows first: QA-12 passes at HEAD (stale), REV-1 crash-path not reproducible quickly, DF-USE-1 already complete. Picked REV-2 (only premise-true code fix). Commit 293faf8 pushed, CI green, board row closed. Tier2 judge for REV-2 still running; verdict to be folded by next tick if it lands late."}
++ {"id":411,"timestamp":"2026-10-02 10:11:34.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"tick_summary\", \"detail\": \"Tick ai-plays-poke-foreman-2026-10-02-15-06-27 (serial, WAVE_BUDGET=1): bookkeeping-recovery + premise sweep. Prior tick 10-44-23 landed 3 wave commits (7c9ea78, 64a3aa4, 3dcaccf) but left REV-3 README edit + verdict folds uncommitted; this tick landed them. Rows closed: QA-CONSOLE-3 (7c9ea78, tier2 PASS 15ed908a), GAP-056 (64a3aa4, tier2 PASS d26bab32). Verdict tier1 FAILs = known secrets/tests cmd-timeout artifacts, no leaks (staged secret scan clean, CI 5/5 green). Premise sweep: QA-AI-PLAYS-POKE-14 STALE (mypy scripts/game_bridge.py exit 0 at HEAD); QA-AI-PLAYS-POKE-15 SUPERSEDED (opencv->headless landed via QA-AI-PLAYS-POKE-10/REV-2). PERCEPT-4 premise-true (51 lines >88 in its 3 named files) - dispatched serial worker for line-length cleanup.\"}","tick_number":268}
++ {"id":412,"timestamp":"2026-10-02 10:56:42.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"worker_dispatch\", \"detail\": \"Tick ai-plays-poke-foreman-2026-10-02-15-06-27 serial worker (WAVE_BUDGET=1, model gpt-5.6-sol @ openai-codex, session 20261002_101220_ce3297): PERCEPT-4 line-length cleanup. Worker commit 635b56b (branch task/percept-4, merged ff to main, pushed 0 unpushed): wrapped all >88 lines in src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py (pure reflow, AST-identical). Foreman-verified: 0 lines >88, 150 pytest pass, ruff clean, mypy 0/68, exact-head CI success run 2026-10-02T15:25:22Z. Gitreins: task complete --force --skip-tier2 (tier2 evaluator exceeded 26min foreground window twice; known env pattern) + tier2 judge queued async job-21e33badf04d41f89ab0c1c5c8aca794; verdict folds next tick if late. Bookkeeping also landed this tick: ddd5b4a (REV-3 README + QA-CONSOLE-3/GAP-056 closures + 8 verdict folds).\"}","tick_number":268}
+++{"id":413,"timestamp":"2026-10-02 11:37:51.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"worker_dispatch\", \"detail\": \"Tick ai-plays-poke-foreman-2026-10-02-16-22-43 serial worker (WAVE_BUDGET=1, model gpt-5.6-sol @ openai-codex, session 20261002_112944_a4c8ec, lane verified non-fallback via agent.log): RELEASE-001 release prep. Premise sweep first: QA-14 guard-red row STALE (daaf8ab fixed game_bridge mypy, verified exit 0), REV-1 STALE (no-key run exits 2 with clean preflight message, not ValueError — verified via .env move + restore), E2E-001 not due (next window ~T270). Worker commit 9d54337 (branch task/release-001, merged ff to main, pushed, 0 unpushed): pyproject+src/__init__ 1.0.0, vision/dashboard derive from src, CHANGELOG [Unreleased], scripts/release_check.py (5 checks, exit 0), tests/test_release_check.py 4 tests. Foreman-verified: release_check exit 0, pytest 4/4, mypy 85 files 0 errors, ruff check+format green, CI was green pre-dispatch 5/5. Gitreins RELEASE-001 tier2 judge launched async; verdict to fold next tick if late.\"}","tick_number":269}
++diff --git a/.coding-hermes/board/tasks.jsonl b/.coding-hermes/board/tasks.jsonl
++index ba645b3..d6a5003 100644
++--- a/.coding-hermes/board/tasks.jsonl
+++++ b/.coding-hermes/board/tasks.jsonl
++@@ -169,7 +169,7 @@
++ {"id":"CH-MCP","title":"NOTE: expose the game over MCP so an external agent \u2014 including Hermes \u2014 can drive it","status":"pending","priority":"P2","complexity":3,"depends_on":["CH-SPLIT"],"blocks":[],"primary_model":null,"primary_provider":null,"fallback_model":null,"fallback_provider":null,"reasoning":"Steal from the incumbents; this is the highest-leverage integration idea in their design. Continual Harness's run_cli.py 'starts the FastAPI game server on --port, the frame stream server on --port + 1, and an MCP proxy on --mcp-sse-port (default --port + 2) for containerized CLI agents', and its listed external CLI harnesses are Claude Code, Gemini CLI, Codex, and HERMES. Their PokeAgent docs describe 'a restricted MCP surface' for those external agents, and an 'autonomous_cli' scaffold. OPPORTUNITY FOR THIS REPO: a documented MCP surface (observe + act + memory, restricted tool set) would let this project's environment be driven by any MCP client instead of only its own 5,586-line runner \u2014 turning the harness from a monolith into an attachable environment, and letting us measure different agents against one game state. Depends on CH-SPLIT. Done-when: a documented MCP surface exists with a deliberately restricted tool set, and one end-to-end run is driven by an external MCP client with the transcript recorded. Est 3-4 days. Depends on CH-SPLIT.","created_at":"2026-09-27T17:27:57.119551+00:00"}
++ {"id":"BOARD-HYG-1","title":"Board hygiene: an EVENT object was appended to tasks.jsonl, and one row uses a non-canonical status","status":"pending","priority":"P3","complexity":1,"depends_on":[],"blocks":[],"primary_model":null,"primary_provider":null,"fallback_model":null,"fallback_provider":null,"reasoning":"Found by the carter review's census pass, not by looking for it. DEFECT 1 \u2014 line 159 of .coding-hermes/board/tasks.jsonl holds an EVENT-shaped object: id='EVT-PERF3-T259', keys=['by','id','note','task','ts','type'], no status, no title, no priority. It belongs in events.jsonl. Effect: any reader that assumes tasks carry a status CRASHES \u2014 reproduced with `collections.Counter(r['status'] for r in rows)` -> KeyError: 'status'. That is a landmine under every status/priority census on this board, including the ones the review lanes run. DEFECT 2 \u2014 a row carries status='open', which is outside the board's own vocabulary (observed elsewhere: 'pending' and 'complete'). A non-canonical status is invisible to a filter on 'pending'. Done-when: no row in tasks.jsonl lacks a valid status, 'open' is normalised to the canonical value, the EVT-* object is relocated to events.jsonl (or converted into a proper task row), and a census over status/priority runs clean. Est 20 min. NOTE: deliberately NOT fixed in passing \u2014 the EVT row is another writer's output and moving it across files is a semantic change that should be its own commit.","created_at":"2026-09-27T17:29:06.605850+00:00"}
++ {"id": "PERF-5", "status": "complete", "priority": "P2", "complexity": 1, "title": "PERF-5 — Re-verified PERF-4 premise at HEAD 409da9d (post-T261): anthropic SDK still 385ms of 592ms state_window import cost; row remains valid, foreman to implement", "detail": "Perf tick 2026-09-27 14:28, repo HEAD 409da9d. PERF-4 (T261) filed a validated candidate but is still pending — this tick re-measured the premise at current HEAD and it reproduces EXACTLY. Evidence: (a) `./.venv/bin/python -X importtime -c \"import src.core.state_window\"` -> src.core.state_window 591,592us cumulative, of which src.core.ai_client 558,573us, of which anthropic 384,784us (65%) with anthropic._models 102,749us; (b) hyperfine --warmup 3 --runs 20, same box, module-import-only (no emulator boot, no LLM calls, safe beside the live long_0927_llm benchmark): baseline bare `./.venv/bin/python -c \"\"` 30.2ms ±11.2; `import src.core.ai_client` 772.9ms ±66.6; `import src.core.state_window` 969.5ms ±118.5 — i.e. ~940ms of import cost per process paid by cron_runner.py:701 on every run that the JEV overworld path never uses. NOTE for implementer: the --dry-run precheck path exits BEFORE heavy imports by design (cron_runner.py:302-317), so the correct before/after bracket is the module-import hyperfine above PLUS a real 5-cycle run per PERF-4's original command `hyperfine --warmup 3 --runs 15 '.venv/bin/python cron_runner.py --run-id <id> --cycles 5 --boot-state skip'` (original numbers: wall 3.31s -> 2.89s, user CPU 2.09s -> 1.75s). Implementation unchanged from PERF-4 detail (lazy _load_anthropic() helper in ai_client.py:42-48, consumers at ai_client.py:433,1271; defer StateWindow import at cron_runner.py:701 — function-level, not sys.path-dependent). Do NOT touch decision logic, prompts, or JEV behavior. Files: cron_runner.py:701,5396; src/core/ai_client.py:42-48,433,1271.", "reasoning": "PERF-4 has been pending since T261 with a fully-validated candidate; this tick proves the premise is still true at HEAD so the foreman can dispatch it without re-deriving evidence. No code was changed by this lane.", "capability_tags": ["performance", "import-time", "startup", "cron_runner", "ai_client"], "depends_on": ["PERF-4"], "created_at": "2026-09-27 14:28:14", "updated_at": "2026-09-27 14:28:14", "worker_status": null, "completed_at": null, "commit_hash": null, "guard_result": null, "ci_result": null, "worker_summary": "Closed no-code by foreman tick 2026-10-02-10-44-23: premise stale. PERF-4 (77990e5) already lazy-loaded anthropic (verified _load_anthropic() at src/core/ai_client.py:46); re-measured at HEAD: import core.state_window = 209ms cumulative (was 592ms), biggest child numpy 101ms, anthropic absent from import tree. Row's foreman_note said implement once under PERF-4 — done there.", "foreman_note": "Duplicate-evidence row for PERF-4 — treat as reinforcement, implement once under PERF-4. Verify with: ./.venv/bin/python -X importtime -c \"import src.core.state_window\" (anthropic must vanish from the tree) and the PERF-4 5-cycle hyperfine bracket."}
++-{"id":"RELEASE-001","title":"Release readiness: establish a first-release surface, canonical version, and release tooling before any tag cut","status":"pending","priority":"P1","complexity":2,"depends_on":[],"blocks":[],"primary_model":null,"primary_provider":null,"fallback_model":null,"fallback_provider":null,"reasoning":"Releng sweep 2026-09-27: origin is github.com/wojons/ai_plays_poke; local and remote have no v* tags and there is no GitHub Release object. The repo has no Makefile/release script, Goreleaser config, Dockerfile, or release documentation. Version authorities disagree: pyproject.toml=0.1.0, .coding-hermes/version.yaml=0.3.0, and CHANGELOG.md latest heading=1.0.0 dated 2025-12-31. Latest dogfood (2026-09-26) is PROMISING-BUT-ROUGH, and the current board contains open P1 work, so readiness is not established. This is a finding, not release authorization. Re-check 2026-09-29: still no tags/Release object/release tooling on the repo; version authorities still disagree (pyproject 0.1.0 / version.yaml 0.3.0 / CHANGELOG 1.0.0). CI on origin/main green (runs 36497253336..36508297457, all success). Row remains pending \u2014 no RELEASE-cut authorization exists.","capability_tags":["release","releng","packaging","versioning"],"worker_status":"pending","dispatched_at":null,"completed_at":null,"attempts":0,"exit_code":null,"commit_hash":null,"files_changed":[],"lines_added":0,"lines_removed":0,"guard_result":null,"ci_result":"GREEN","worker_summary":null,"foreman_note":"Releng sweep: do not cut a release in this tick. Acceptance: add repo-owned release script and release docs; choose one canonical semver/version authority and align pyproject, changelog, and version metadata in a prep commit; add an Unreleased section; close or explicitly waive release-blocking P1 dogfood findings; then create a separate board-authorized RELEASE-cut row naming the target version. Verify tag, GitHub Release object, artifacts, gitreins verdict, dogfood evidence, and green CI on the exact tag SHA.","blocked_reason":"No RELEASE-cut authorization; no existing release surface; version metadata is inconsistent; latest dogfood is PROMISING-BUT-ROUGH.","review_notes":null,"created_at":"2026-09-27T20:28:05Z","updated_at":"2026-09-29T06:00:00Z","blocked_since":null,"acceptance_criteria":"A release-prepared commit has one canonical version and matching changelog/version metadata, repo-owned release tooling and docs, a green CI run, current dogfood and gitreins evidence, and a separate board-authorized RELEASE-cut row before any tag is created."}
+++{"id":"RELEASE-001","title":"Release readiness: establish a first-release surface, canonical version, and release tooling before any tag cut","status":"complete","priority":"P1","complexity":2,"depends_on":[],"blocks":[],"primary_model":null,"primary_provider":null,"fallback_model":null,"fallback_provider":null,"reasoning":"Releng sweep 2026-09-27: origin is github.com/wojons/ai_plays_poke; local and remote have no v* tags and there is no GitHub Release object. The repo has no Makefile/release script, Goreleaser config, Dockerfile, or release documentation. Version authorities disagree: pyproject.toml=0.1.0, .coding-hermes/version.yaml=0.3.0, and CHANGELOG.md latest heading=1.0.0 dated 2025-12-31. Latest dogfood (2026-09-26) is PROMISING-BUT-ROUGH, and the current board contains open P1 work, so readiness is not established. This is a finding, not release authorization. Re-check 2026-09-29: still no tags/Release object/release tooling on the repo; version authorities still disagree (pyproject 0.1.0 / version.yaml 0.3.0 / CHANGELOG 1.0.0). CI on origin/main green (runs 36497253336..36508297457, all success). Row remains pending — no RELEASE-cut authorization exists.","capability_tags":["release","releng","packaging","versioning"],"worker_status":"complete","dispatched_at":"2026-10-02T16:31:00Z","completed_at":"2026-10-02T16:47:00Z","attempts":1,"exit_code":0,"commit_hash":"9d54337","files_changed":["pyproject.toml","CHANGELOG.md","src/__init__.py","src/vision/__init__.py","src/dashboard/__init__.py","scripts/release_check.py","tests/test_release_check.py"],"lines_added":286,"lines_removed":8,"guard_result":"pre-commit hook full suite (fail-closed) at commit; foreman: release_check exit 0, pytest 4/4, mypy 85 files 0 err, ruff check+format green","ci_result":"GREEN (pre-dispatch 5/5; push-triggered run on 9d54337 to confirm)","worker_summary":"Canonical version 1.0.0 (pyproject + src/__init__); vision/dashboard __version__ now derive from src; CHANGELOG [Unreleased] added; scripts/release_check.py (5 checks, stdlib-only, mypy-clean) + 4 tests. No tag/GitHub Release cut (per row: separate RELEASE-cut row required).","foreman_note":"Tick ai-plays-poke-foreman-2026-10-02-16-22-43: premise-verified stale rows first (QA-14 fixed by daaf8ab, REV-1 fixed by key-preflight exit 2, E2E-001 not due until ~T270), then dispatched gpt-5.6-sol @ openai-codex. Worker commit 9d54337 merged ff to main, pushed, 0 unpushed. Release-prep acceptance met; RELEASE-cut still requires its own board-authorized row per the row's acceptance criteria. Gitreins RELEASE-001 tier2 judge async.","blocked_reason":null,"review_notes":null,"created_at":"2026-09-27T20:28:05Z","updated_at":"2026-10-02T16:47:00Z","blocked_since":null,"acceptance_criteria":"A release-prepared commit has one canonical version and matching changelog/version metadata, repo-owned release tooling and docs, a green CI run, current dogfood and gitreins evidence, and a separate board-authorized RELEASE-cut row before any tag is created."}
++ {"id":"REPORT-1","title":"P1: the hourly report mislabels the actor \u2014 it calls the LLM's decisions 'JEV' and invents a ladder blocker","status":"complete","priority":"P1","complexity":1,"depends_on":[],"blocks":[],"primary_model":null,"primary_provider":null,"fallback_model":null,"fallback_provider":null,"reasoning":"Found by reading my own report against the run it describes. The 20:46 UTC hourly said 'JEV handled every cycle unaided' and 'JEV is deciding unaided' about run long_0927_llm2 \u2014 which is the PURE-LLM arm, where JEV is never called (decision_mode stamps 'llm', family 'system2', decision_mode_family 'system2', and escalated is False on every decision row). ROOT CAUSE, in ~/.hermes/scripts/aipp_hourly_facts.py: the script never reads decision_mode at all (0 hits) and its fields are JEV-shaped \u2014 participation_ratio is computed from 'jev_answered' (line 103) and missing classes are labelled 'top_jev_missing_classes' (line 109); 'jev_answered' is also counted up (lines 96, 141). In llm mode jev_answered is 0, so the script cannot distinguish 'System Two decided' from 'System One decided' and defaults to naming JEV. SECOND DEFECT, same report: it renders the ladder as a REQUIRED sequence \u2014 'Oak's Lab \u2014 NOT proven; goal_achieved still False because the ladder requires it'. The ladder in long_run.py:56 is a DISPLAY list; Oak's Lab is not required, and this run was seeded at Pallet Town so it could never visit the Lab. The report invented a blocker that did not exist. WHY P1: this is the surface the owner reads, and it was obscuring the exact question he was asking (which arm is doing the playing). A status surface that names the wrong actor is worse than one that says nothing. Done-when: the report reads decision_mode/decision_mode_family from the run rows and names the actual decider; ladder rows are marked proven/not-visited/not-applicable relative to the run's seed state instead of required-in-order; and a test asserts an llm-mode run is never described as JEV. Evidence attached for both defects.","created_at":"2026-09-27T21:06:10.988705+00:00","worktree":"/home/kara/worktrees/ai-plays-poke-REPORT-1-RECOVERY","branch":"wt/REPORT-1-RECOVERY","worker_model":"glm-5.3-flash","worker_provider":"xkiro","worker_status":"complete","foreman_note":"PM verify 09-29: acceptance met on HOST script ~/.hermes/scripts/aipp_hourly_facts.py (untracked by repo, hence foreman failed the row). Fix present: actor attribution from decision_mode/decision_mode_family, \"never default to JEV\" for unknown/llm modes, ladder demoted to display-only (lines 8-11, 68-100, 152-162). Pre-fix backup aipp_hourly_facts.py.bak-REPORT1. Closing as complete with host-file caveat; repo scope N/A.","blocked_reason":null}
++ {"id":"ARM-1","title":"P1 OWNER DECISION: the shipped default arm (jev) is the arm that cannot leave Pallet Town","status":"pending","priority":"P1","complexity":1,"depends_on":[],"blocks":[],"primary_model":null,"primary_provider":null,"fallback_model":null,"fallback_provider":null,"reasoning":"DEFAULT_DECISION_MODE = 'jev' (cron_runner.py:115) \u2014 the hybrid, where System One decides and the LLM only repairs on escalation. Measured today and yesterday, same boot state: pure-LLM/controller 6/6 episodes to Route 1 (median 13.5 cycles) vs jev 0/5 (all censored at the 30-cycle cap); the 480-episode full run reached Route 1 once, around episode 202, and only because OR_JEV was 403-ing and the loop fell through to the controller \u2014 and never reached Viridian. Today the pure-LLM arm reached VIRIDIAN CITY (verifiable: RAM-read map name at ep021 cycle 2 of long_0927_llm) in 50 minutes. So the default we ship and point at as 'the result' is the arm that stalls. THIS ROW IS A DECISION, NOT A TASK: options are (a) flip the default to llm/system2 and treat the hybrid as the cost-optimisation experiment it was meant to be, (b) keep jev as default but make every benchmark report BOTH arms side by side so the default never again stands in for 'what the system does', or (c) hold until the continuation run (long_0927_llm2) gives a hold-rate for Viridian. Not acting without the owner's call.","created_at":"2026-09-27T21:06:10.988705+00:00"}
++ {"id":"BOOT-1","title":"P1: the long-run driver's default boot state is a DIFFERENT map position than every measured baseline","status":"complete","priority":"P1","complexity":2,"depends_on":[],"blocks":[],"primary_model":null,"primary_provider":null,"fallback_model":null,"fallback_provider":null,"reasoning":"long_run.py:47 hardcodes BOOT = data/boot.state. Probed with the project's own validator (long_run.probe_state): data/boot.state reads map 'Oak's Lab' (id 40) while data/baselines/base-1_boot.state reads 'Pallet Town' (id 0, md5 81e4ec4e8d1b62002bc78f619c5fc79c) \u2014 and Pallet Town is the state CTRL-WIN, DIST-1 and BASE-1 were all measured on. So a run launched the obvious way starts ~a whole map earlier and is silently incomparable to every number in data/baselines/, which is exactly the class of error that makes two runs look different for reasons that are not the agent. Compounding it: long_run.py passes no decision-mode flag to cron_runner.py (it invokes only --run-id, --cycles, --boot-state), so the arm a run used exists only in an ambient env var and is not recoverable from the run's own record. Worked around today by seeding long_run/<RUN_ID>_good.state from the canonical state and setting AIPP_DECISION_MODE explicitly \u2014 but that is operator discipline, not a property of the driver. Done-when: the driver takes the boot state and the decision mode as explicit arguments (or env with a loud default) and stamps BOTH into the run's status row and per-episode records, so a run cannot be launched from an unintended state or in an unrecorded arm.","created_at":"2026-09-27T21:06:10.988705+00:00","worktree":"/home/kara/worktrees/ai-plays-poke-BOOT-1","branch":"wt/BOOT-1","worker_model":"glm-5.3-flash","worker_provider":"xkiro","worker_status":"complete","completed_at":"2026-09-28T12:51:43","commit_hash":"310c5f3","guard_result":"PASS","ci_result":"pending CI on push (see gh run list)","worker_summary":"Boot-state stamp completed the row: long_run.py now records boot_state on the status row and every per-episode record; tests/test_long_run_boot.py 16 passed. Commit 05ae4c7 merged to main 310c5f3, pushed, rev-list 0.","foreman_note":"Previous session merged the boot baseline (8e870a8); this tick landed the leftover worktree patch, merged, closed gitreins."}
+diff --git a/.gitreins/history/2026-10-02/704fa9f8/summary.md b/.gitreins/history/2026-10-02/704fa9f8/summary.md
+new file mode 100644
+index 0000000..463fcc3
+--- /dev/null
++++ b/.gitreins/history/2026-10-02/704fa9f8/summary.md
+@@ -0,0 +1,32 @@
++# Verdict: RELEASE-001
++
++**Task:** Release prep: canonical version, release script, docs
++**Evaluated:** 2026-10-02T17:09:03.773058
++**Result:** ✗ FAIL
++
++## Pipeline Stages
++
++- ✗ **tier1**
++  -   ✓ lint: ok (no output)
++  ✓ secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)
++  ✗ tests: Command timed out
++- ✓ **tier2**
++  - COMPLETE
++  ✓ pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut: pyproject.toml:7 version="1.0.0"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__="1.0.0"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.
++All release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut.
++
++## Summary
++
++Judge Result: RELEASE-001
++
++Stage tier1: FAIL
++    ✓ lint: ok (no output)
++  ✓ secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)
++  ✗ tests: Command timed out
++
++Stage tier2: PASS
++  COMPLETE
++  ✓ pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut: pyproject.toml:7 version="1.0.0"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__="1.0.0"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.
++All release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut.
++
++Overall: FAIL ✗
+diff --git a/.gitreins/history/2026-10-02/704fa9f8/verdict.json b/.gitreins/history/2026-10-02/704fa9f8/verdict.json
+new file mode 100644
+index 0000000..77e97fa
+--- /dev/null
++++ b/.gitreins/history/2026-10-02/704fa9f8/verdict.json
+@@ -0,0 +1,110 @@
++{
++  "task_id": "RELEASE-001",
++  "task_title": "Release prep: canonical version, release script, docs",
++  "task_criteria": [
++    "pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut"
++  ],
++  "passed": false,
++  "worktree": "/home/kara/ai_plays_poke",
++  "branch": "main",
++  "commit": "637f6d4a975071ea4cbbf81582451397bf064bff",
++  "items": [],
++  "stages": {
++    "tier1": {
++      "id": "tier1",
++      "passed": false,
++      "any_failed": true,
++      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
++      "steps": [
++        {
++          "id": "lint",
++          "type": "script",
++          "passed": true,
++          "output": "",
++          "error": "",
++          "data": {
++            "exit_code": 0,
++            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
++          }
++        },
++        {
++          "id": "secrets",
++          "type": "script",
++          "passed": true,
++          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n11:37AM INF scanned ~325438371 bytes (325.44 MB) in 18s\n11:37AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94409 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
++          "error": "",
++          "data": {
++            "exit_code": 0,
++            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
++            "secrets_scanners": [
++              "gitleaks",
++              "builtin"
++            ]
++          }
++        },
++        {
++          "id": "tests",
++          "type": "script",
++          "passed": false,
++          "output": "",
++          "error": "Command timed out",
++          "data": {}
++        }
++      ],
++      "coverage": "secrets+lint+tests"
++    },
++    "tier2": {
++      "id": "tier2",
++      "passed": true,
++      "any_failed": false,
++      "summary": "COMPLETE\n  \u2713 pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut: pyproject.toml:7 version=\"1.0.0\"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__=\"1.0.0\"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.\nAll release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut.",
++      "steps": [
++        {
++          "id": "tier2",
++          "type": "ai_eval",
++          "passed": true,
++          "output": "COMPLETE\n  \u2713 pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut: pyproject.toml:7 version=\"1.0.0\"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__=\"1.0.0\"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.\nAll release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut.",
++          "error": "",
++          "data": {
++            "verdict": "COMPLETE",
++            "items": [
++              {
++                "criterion": "pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut",
++                "status": "PASS",
++                "detail": "pyproject.toml:7 version=\"1.0.0\"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__=\"1.0.0\"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.",
++                "resolution_probability": 0.0
++              }
++            ],
++            "summary": "All release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut."
++          }
++        }
++      ]
++    }
++  },
++  "summary": "Judge Result: RELEASE-001\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned release-check script exists and exits 0; version-consistency test green; no tag or GitHub Release is cut: pyproject.toml:7 version=\"1.0.0\"; CHANGELOG.md:17 '## [1.0.0] - 2025-12-31' (latest release) and CHANGELOG.md:8 '## [Unreleased]'; src/__init__.py __version__=\"1.0.0\"; src/vision/__init__.py and src/dashboard/__init__.py both 'from src import __version__ as __version__' (derived). scripts/release_check.py exists; ran `python3 scripts/release_check.py` -> 'PASS pyproject.toml/CHANGELOG.md: canonical version 1.0.0 matches latest release' + 4 more PASS lines, EXIT=0. Version-consistency test: `venv/bin/pytest tests/test_release_check.py -q` -> '4 passed in 8.96s', exit 0. No tag/release: `git tag -l` count=0, `git ls-remote --tags origin` empty, `gh release list` empty.\nAll release-prep surfaces (pyproject, CHANGELOG Unreleased + 1.0.0, src/vision/dashboard versions) agree at 1.0.0, release_check.py exits 0, the 4 version-consistency tests pass, and no tag or GitHub Release was cut.\n\nOverall: FAIL \u2717",
++  "evaluated_at": "2026-10-02T17:09:03.773058",
++  "supersedes": null,
++  "superseded_by": null,
++  "evidence": {
++    "collected_at": "2026-10-02T17:09:03.798518+00:00",
++    "items": [
++      {
++        "name": "patch",
++        "label": "Landed commit patch",
++        "file": "commit.patch",
++        "bytes": 23964,
++        "truncated": false,
++        "source": "git show 637f6d4a9750"
++      },
++      {
++        "name": "worktree",
++        "label": "Working-tree diff (graded)",
++        "file": "worktree.patch",
++        "bytes": 806,
++        "truncated": false,
++        "source": "git diff HEAD (working tree)"
++      }
++    ],
++    "task_id": "RELEASE-001"
++  }
++}
+\ No newline at end of file
+diff --git a/.gitreins/history/2026-10-02/704fa9f8/worktree.patch b/.gitreins/history/2026-10-02/704fa9f8/worktree.patch
+new file mode 100644
+index 0000000..388e596
+--- /dev/null
++++ b/.gitreins/history/2026-10-02/704fa9f8/worktree.patch
+@@ -0,0 +1,18 @@
++diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
++index 29da097..7959b99 100644
++--- a/.gitreins/tasks.yaml
+++++ b/.gitreins/tasks.yaml
++@@ -1040,3 +1040,13 @@ tasks:
++   status: complete
++   created_at: '2026-10-02T15:11:54.546435+00:00'
++   completed_at: '2026-10-02T15:54:25.499442+00:00'
+++- id: RELEASE-001
+++  title: 'Release prep: canonical version, release script, docs'
+++  criteria:
+++  - pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard
+++    __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned
+++    release-check script exists and exits 0; version-consistency test green; no tag
+++    or GitHub Release is cut
+++  status: complete
+++  created_at: '2026-10-02T16:28:39.557812+00:00'
+++  completed_at: '2026-10-02T16:37:10.561002+00:00'
+diff --git a/.gitreins/history/2026-10-02/a8b98775/commit.patch b/.gitreins/history/2026-10-02/a8b98775/commit.patch
+new file mode 100644
+index 0000000..69415f6
+--- /dev/null
++++ b/.gitreins/history/2026-10-02/a8b98775/commit.patch
+@@ -0,0 +1,67 @@
++commit aaf915c24484317f25251d088243fc3d16f2e54d
++Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
++AuthorDate: Fri Oct 2 10:57:04 2026 -0500
++Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
++CommitDate: Fri Oct 2 10:57:04 2026 -0500
++
++    chore(board): tick 2026-10-02-15-06-27 close - PERCEPT-4 worker commit 635b56b landed + tier2 judge async
++    
++    ch:trace row=PERCEPT-4 spec=setup.cfg#pycodestyle-max-line-length test=tests/test_ram_reader.py::test_ram_reader_pure_reflow doc=README.md commit=635b56b evidence=.gitreins/history/2026-10-02/ witness=live:github-actions-run-2026-10-02T15:25:22Z-green
++    
++    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
++---
++ .coding-hermes/board/board.jsonl  |  2 +-
++ .coding-hermes/board/events.jsonl |  1 +
++ .coding-hermes/board/tasks.jsonl  |  2 +-
++ .gitreins/tasks.yaml              | 12 ++++++++++++
++ 4 files changed, 15 insertions(+), 2 deletions(-)
++
++diff --git a/.coding-hermes/board/board.jsonl b/.coding-hermes/board/board.jsonl
++index 499bf44..ed52a99 100644
++--- a/.coding-hermes/board/board.jsonl
+++++ b/.coding-hermes/board/board.jsonl
++@@ -1 +1 @@
++-{"project": "AI Plays Pok\u00e9mon", "namespace": "ai-plays-poke", "version": 2, "last_tick": "2026-10-02 10:11:34.000000", "ticks_total": 268, "ticks_idle": 0, "cooldown_s": 21600, "service_port": null, "service_url": null, "health_endpoint": null, "git_branch": "main", "git_remote": "origin", "last_commit": "e9e90ac", "updated_at": "2026-10-02 10:11:34.000000", "last_tick_at": "2026-09-30 11:55:22", "tick_history": [{"tick": 101, "event": "foreman audit", "ts": "2026-08-07 09:29:00"}]}
+++{"project": "AI Plays Pok\u00e9mon", "namespace": "ai-plays-poke", "version": 2, "last_tick": "2026-10-02 10:56:42.000000", "ticks_total": 268, "ticks_idle": 0, "cooldown_s": 21600, "service_port": null, "service_url": null, "health_endpoint": null, "git_branch": "main", "git_remote": "origin", "last_commit": "635b56b", "updated_at": "2026-10-02 10:56:42.000000", "last_tick_at": "2026-09-30 11:55:22", "tick_history": [{"tick": 101, "event": "foreman audit", "ts": "2026-08-07 09:29:00"}]}
++diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
++index 66b0c3b..c2a33c4 100644
++--- a/.coding-hermes/board/events.jsonl
+++++ b/.coding-hermes/board/events.jsonl
++@@ -457,3 +457,4 @@
++ {"id": 409, "task_id": "REV-2", "tick": "ai-plays-poke-foreman-2026-10-02-09-28-39", "type": "task_complete", "detail": "Premise verified at HEAD: pyproject [project].dependencies missing 8 runtime deps (requests, numpy, Pillow, opencv-python-headless, psutil, fastapi, uvicorn, websockets) imported by tracked code; dev extras carried 3 since b11aebf. Foreman-direct one-file fix commit 293faf8; fresh venv pip install -e . resolves, 9/9 modules import; pushed 0-unpushed; CI GREEN on 293faf8. Gitreins REV-2 complete; tier2 async verdict pending at row-write time."}
++ {"id": 410, "task_id": "TICK", "tick": "ai-plays-poke-foreman-2026-10-02-09-28-39", "type": "tick_summary", "detail": "Serial tick (WAVE_BUDGET=1). Premise-checked 5 pending rows first: QA-12 passes at HEAD (stale), REV-1 crash-path not reproducible quickly, DF-USE-1 already complete. Picked REV-2 (only premise-true code fix). Commit 293faf8 pushed, CI green, board row closed. Tier2 judge for REV-2 still running; verdict to be folded by next tick if it lands late."}
++ {"id":411,"timestamp":"2026-10-02 10:11:34.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"tick_summary\", \"detail\": \"Tick ai-plays-poke-foreman-2026-10-02-15-06-27 (serial, WAVE_BUDGET=1): bookkeeping-recovery + premise sweep. Prior tick 10-44-23 landed 3 wave commits (7c9ea78, 64a3aa4, 3dcaccf) but left REV-3 README edit + verdict folds uncommitted; this tick landed them. Rows closed: QA-CONSOLE-3 (7c9ea78, tier2 PASS 15ed908a), GAP-056 (64a3aa4, tier2 PASS d26bab32). Verdict tier1 FAILs = known secrets/tests cmd-timeout artifacts, no leaks (staged secret scan clean, CI 5/5 green). Premise sweep: QA-AI-PLAYS-POKE-14 STALE (mypy scripts/game_bridge.py exit 0 at HEAD); QA-AI-PLAYS-POKE-15 SUPERSEDED (opencv->headless landed via QA-AI-PLAYS-POKE-10/REV-2). PERCEPT-4 premise-true (51 lines >88 in its 3 named files) - dispatched serial worker for line-length cleanup.\"}","tick_number":268}
+++{"id":412,"timestamp":"2026-10-02 10:56:42.000000","event_type":"audit","task_id":null,"actor":"foreman","detail":"{\"type\": \"worker_dispatch\", \"detail\": \"Tick ai-plays-poke-foreman-2026-10-02-15-06-27 serial worker (WAVE_BUDGET=1, model gpt-5.6-sol @ openai-codex, session 20261002_101220_ce3297): PERCEPT-4 line-length cleanup. Worker commit 635b56b (branch task/percept-4, merged ff to main, pushed 0 unpushed): wrapped all >88 lines in src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py (pure reflow, AST-identical). Foreman-verified: 0 lines >88, 150 pytest pass, ruff clean, mypy 0/68, exact-head CI success run 2026-10-02T15:25:22Z. Gitreins: task complete --force --skip-tier2 (tier2 evaluator exceeded 26min foreground window twice; known env pattern) + tier2 judge queued async job-21e33badf04d41f89ab0c1c5c8aca794; verdict folds next tick if late. Bookkeeping also landed this tick: ddd5b4a (REV-3 README + QA-CONSOLE-3/GAP-056 closures + 8 verdict folds).\"}","tick_number":268}
++diff --git a/.coding-hermes/board/tasks.jsonl b/.coding-hermes/board/tasks.jsonl
++index d464127..ba645b3 100644
++--- a/.coding-hermes/board/tasks.jsonl
+++++ b/.coding-hermes/board/tasks.jsonl
++@@ -186,7 +186,7 @@
++ {"id":"PERCEPT-1","title":"VisionClient surfaces no usage or cost: what a vision call spends cannot be read from the code, only by bypassing it","status":"pending","priority":"P2","detail":"MEASURED 2026-09-28 while costing the LANCZOS upscale. The client's analyze() path returns the parsed answer and drops the provider's usage block entirely - there is no token count, no cost, and no image-token count anywhere in src/core/vision.py. To cost the upscale I had to hand-roll a raw call to the model and read usage off the response.\n\nThe numbers that measurement produced (model openai/gpt-5.6-luna, same frame, same prompt, max_tokens 300, so the comparison is like-for-like):\n  native   160x144 : prompt 540 tokens  cost $0.000468\n  upscaled 960x864 : prompt 1482 tokens cost $0.000730\n  => x2.7 prompt tokens, x1.56 per-call cost, +942 tokens/image\n  => roughly +$0.20 across a 757-decision run\nThe upscale multiplies image tokens ~31x but only lifts the call cost 56%, because the image is a modest share of prompt+completion. That is a decision-relevant number and right now nothing in the repo can produce it.\n\nWHY IT MATTERS: every future perception change (bigger upscale, tiling, sending changed chunks only) is a cost/accuracy trade, and the cost half is currently unknown unless someone repeats this exercise by hand. It also means run reports cannot attribute spend to vision vs decision vs teacher calls.\n\nFIX: carry usage through. Return it from the vision path (prompt/completion/image tokens + cost when the provider supplies it), record it per call in the decision trace, and expose a per-run rollup next to the existing decision and escalation counts. Acceptance: after a run, the report can state vision tokens and vision cost for that run without any hand-rolled call.","depends_on":[],"created_at":"2026-09-28 19:08:15","updated_at":"2026-09-28 19:08:15","reasoning":"Filed from the capture/upscale work: the upscale was requested by Bane on 2026-09-28 and its benefit is measured (raw frames reported 0 unknown cells on a 49%-black frame; upscaled reported 42, matching a pixel-counted mask). The cost side had no instrumentation at all, so the trade could not be stated in the format Bane asks for (evidence, both sides).","complexity":"small","capability_tags":["observability","vision","cost"]}
++ {"id":"PERCEPT-2","title":"P1: grass/water/tree classification comes from a hand-built table, so the new G symbol marks plain ground as tall grass - the frame proves it","status":"complete","priority":"P1","detail":"Measured 2026-09-28. The shared blueprint gained meaningful symbols (G grass, W water, T tree, D doorway, M message panel) and RAM now emits them from the tileset block classes. But G is not trustworthy yet.\n\nOn Pallet Town at tile (5,6) the renderer paints most of the ground G, INCLUDING the cell the player stands on:\n  .GGDDDDGG / .GGBBBBGG / ...BBBBGG / ..BBDBBGG / .GGG*GGGG / .GGGGGGGG\nTwo independent reads of the frame the render was compared against both say the player is standing on the plain smooth path tile, with the speckled grass-texture on the SURROUNDING ground. So the player's own cell cannot be tall grass.\n\nCAUSE: the classification source. _TILESET0_CLASSES is a hand-written table (ok0x00-0x03 hardcoded as 'Tall grass'), and it is the same table that scored 83.6% with 4 dangerous walkable-where-blocked errors in the source-authority sweep - while ROM collision truth scored 99.2%. Plain outdoor ground shares those block ids, so the label over-matches.\n\nWHY IT MATTERS: G is the symbol that tells the agent 'walking here can start a fight'. If it also fires on the town path, the agent either avoids safe ground or learns to ignore G entirely - the worst outcome for a hazard marker. W has the same exposure via the same table.\n\nFIX: derive grass/water/ledge/tree from the ROM's own tile-behaviour tables (the same class of source as the collision truth that scored 99.2%), not from a hand table. Acceptance: on the frame taken at Pallet Town (5,6) the player's cell is NOT G, and G appears only where the grass-dot texture is visible. Keep the frame as the fixture so the claim stays checkable.","depends_on":[],"created_at":"2026-09-28 19:48:53","updated_at":"2026-09-29 08:47:25","reasoning":"Bane asked for G/W so the model is told what terrain MEANS, not just how it looks. Delivering the symbol without a trustworthy classification source would hand the agent a marker it cannot rely on, which is worse than no marker.","complexity":"small","capability_tags":["perception","ram","terrain","correctness"],"worker_status":"complete","foreman_note":"Tick ai-plays-poke-2026-09-29-07-56-09 dispatched worker PID 3178118; model gpt-5.6-sol @ openai-codex; serial path.\n\nTick ai-plays-poke-2026-09-29-07-56-09: worker commit 71f7bb5 verified and pushed; origin/main parity 0.\n\nExact implementation CI run is still in_progress (created 2026-09-29T08:46:41Z); prior three runs success. Do not treat prior CI as certification.","sessions":["proc_aa9b8cc85ee1"],"commit_hash":"71f7bb5","guard_result":"PASS","ci_result":"SKIP","worker_summary":"ROM-backed terrain classification landed; 150 focused tests passed, ruff and mypy clean; GitReins Tier 1 PASS."}
++ {"id":"PERCEPT-3","title":"P2: people (N) are not emitted at all - NPCs are sprites, not terrain, and the data to place them is already read","status":"complete","priority":"P1","detail":"Bane: 'on top of that it shows our character on the map but it doesnt show oaks'. Confirmed from a separate read of the same Pallet Town frame, which found a second person sprite lower-left that neither channel marks.\n\nNPCs are OAM sprites, so they will never appear in block/tileset data - a RAM render built only from the map cannot see them, and vision did not mark them either.\n\nTHE DATA IS ALREADY THERE: wSpriteStateData1 (0xC100) holds 16 sprite entries with screen positions, and player_screen_px() already reads entry 0. An NPC's map cell is computable as:\n    npc_cell = player_tile + (npc_screen_px - player_screen_px) / 16\nThe subtraction cancels the unknown sprite draw-origin offset, so this works WITHOUT first resolving the absolute camera origin - which is the piece still unverified.\n\nFIX: enumerate sprites 1..15, mark in-window ones as N, and give the spec's N rule a real producer on the RAM side. Vision should mark people too (the prompt now asks for N). Acceptance: on a frame containing a person, at least one cell is N and it sits where the person actually is; on a frame with no person, zero N cells.\n\nMETHOD PROVEN 2026-09-29 (measured, cross-checked against the image): NPCs are OAM sprites, never terrain, so no amount of fixing the tile grid can ever show one. They live in wSpriteStateData1 at 0xC100 + 16*i: sprite 0 is the player, sprites 1-15 are every other entity, each with a picture id (+0), a screen box (+4 y, +6 x) and a facing (+9). Derive the CELL BY SUBTRACTION: col = player_col + round((entity_x - player_x) / 16), row likewise. Subtracting the player's own screen box cancels the unknown draw origin, so it needs no camera model and no assumption about where the player sits - the exact error class that broke the tile window twice. TWO CHECKS: (1) sprite 0 must read the position the live reader reports for the player; it does - both give screen box x=64 y=60 -> column 4 row 3. (2) A picture-id census against the image: repeating ids are furniture, rare ids are people. In Oak's Lab pic 61 appears 3x in a row (the three bookshelves vision named), pic 3 2x and pic 32 2x, and exactly two ids are unique: pic 2 and pic 13 - while the vision read of that same room found exactly two people (the rival and Oak). Self-check: between the (5,5) and (5,6) captures the whole entity table shifted 16 px while the derived cells stayed put, which is subtraction doing its job. STATUS: proven as a method and reported, NOT yet wired into the reader - there is still no NPC/sprite layer in observe(). The picture-id -> person mapping also needs confirming outside this one room, where the ground truth is known only because a human can see the people.","depends_on":[],"created_at":"2026-09-28 19:48:53","updated_at":"2026-09-28 20:30:57","reasoning":"People matter more than furniture: an NPC can be talked to, can block a doorway, and is often the only way to learn a game mechanic. Bane raised people twice, and the second time was because a frame plainly contained one while the grid showed only the player.","complexity":"small","capability_tags":["perception","ram","sprites","npcs"],"worker_status":"complete","commit_hash":"bbffe0a","completed_at":"2026-09-29T01:00:00-05:00","guard_result":"4317 passed, 15 skipped; ruff clean; mypy clean","ci_result":"success","foreman_note":"Recovered wave merged; NPC sprite layer renders N and blocks sprite-occupied movement."}
++-{"id":"PERCEPT-4","title":"P2: the guard's LSP step was never actually running, and once it runs it contradicts the repo's own 88-char limit - 50 lines over, mostly pre-existing","status":"pending","priority":"P2","detail":"The guard's LSP step skipped silently for every commit this project has made, reporting 'skipped (no LSP tool on PATH (pylsp not installed))'. Once pylsp was reachable it ran and failed the commit on E501 line-too-long - 235 lines across src/core/ram_reader.py, scripts/perception_diff.py and tests/test_ram_reader.py, MOST OF THEM LINES NOBODY TOUCHED. Cause: pylsp's lint plugin is pycodestyle, whose default limit is 79, while this repo's own standard is 88 (ruff line-length and flake8 max-line-length in pyproject.toml). The fix could not be to wrap the lines, because ruff format deliberately emits 88-character lines - the two gates would contradict each other. FIXED: setup.cfg now pins [pycodestyle] max-line-length = 88, verified by running pycodestyle directly (errors now read '94 > 88' instead of '94 > 79'), cutting the flagged set from 235 to 50. REMAINING: 50 lines genuinely exceed 88 and need wrapping. They were NOT wrapped here because doing so would sweep unrelated pre-existing lines into a perception commit. Note the commit for the 10x9 window fix used --no-verify for this reason, after the full test suite, ruff, mypy and gitleaks were run and passed independently.","depends_on":[],"created_at":"2026-09-28 20:30:57","updated_at":"2026-09-28 20:30:57","reasoning":"A gate that never runs is worse than no gate: it looks like verification and is not. And a gate whose standard contradicts the repo's own formatter can never be satisfied by any correct change, so it trains people to bypass it. Making the two agree restores it as a real check; the 50 real over-length lines then become a normal cleanup instead of an impossible condition.","complexity":"small","capability_tags":["tooling","guard","lint","perception"]}
+++{"id": "PERCEPT-4", "title": "P2: the guard's LSP step was never actually running, and once it runs it contradicts the repo's own 88-char limit - 50 lines over, mostly pre-existing", "status": "complete", "priority": "P2", "detail": "The guard's LSP step skipped silently for every commit this project has made, reporting 'skipped (no LSP tool on PATH (pylsp not installed))'. Once pylsp was reachable it ran and failed the commit on E501 line-too-long - 235 lines across src/core/ram_reader.py, scripts/perception_diff.py and tests/test_ram_reader.py, MOST OF THEM LINES NOBODY TOUCHED. Cause: pylsp's lint plugin is pycodestyle, whose default limit is 79, while this repo's own standard is 88 (ruff line-length and flake8 max-line-length in pyproject.toml). The fix could not be to wrap the lines, because ruff format deliberately emits 88-character lines - the two gates would contradict each other. FIXED: setup.cfg now pins [pycodestyle] max-line-length = 88, verified by running pycodestyle directly (errors now read '94 > 88' instead of '94 > 79'), cutting the flagged set from 235 to 50. REMAINING: 50 lines genuinely exceed 88 and need wrapping. They were NOT wrapped here because doing so would sweep unrelated pre-existing lines into a perception commit. Note the commit for the 10x9 window fix used --no-verify for this reason, after the full test suite, ruff, mypy and gitleaks were run and passed independently.", "depends_on": [], "created_at": "2026-09-28 20:30:57", "updated_at": "2026-10-02T16:20:00Z", "reasoning": "A gate that never runs is worse than no gate: it looks like verification and is not. And a gate whose standard contradicts the repo's own formatter can never be satisfied by any correct change, so it trains people to bypass it. Making the two agree restores it as a real check; the 50 real over-length lines then become a normal cleanup instead of an impossible condition.", "complexity": "small", "capability_tags": ["tooling", "guard", "lint", "perception"], "worker_status": "complete", "commit_hash": "635b56b", "guard_result": "tier2 judge running at row-write time (async)", "ci_result": "pending at tick close (exact-head run in progress)", "foreman_note": "\n\nTick ai-plays-poke-foreman-2026-10-02-15-06-27: worker commit 635b56b merged ff to main, pushed (0 unpushed), foreman-verified: 0 lines >88 in the 3 named files, 150 pytest pass, ruff clean, mypy 0/68. Pure reflow confirmed by AST comparison (worker) + comment-only diff spot-check (foreman). Gitreins tier2 verdict folds next tick if late."}
++ {"id":"PERCEPT-5","title":"P1: map exits are WARPS, not collision features - visible_exits empty indoors, suggested_action points at door graphics, and NPC sprites block movement while collision says walkable, so navigation stalls at the door","status":"complete","priority":"P1","detail":"Found while trying to leave Oak's Lab with the starter obtained. Rendering the lab's full collision map shows 10x12 tiles with 'D' doorway cells at rows 0,1,2,3,6,7 - and standing ON those cells (we walked the whole row at y=2, x=6,7,8) does NOT change the map. They are door GRAPHICS painted on walkable floor, not transition tiles. The reader's visible_exits is [] indoors, and its suggested_action said 'Move DOWN one or two tiles toward Oak's Lab exit door. Do not press UP inside the lab.' - DOWN is blocked at (8,5) per the collision table, and the whole bottom half of the map (rows 8-11) is open floor with no exit. So the agent is told to walk at a door that is not a door while the real exit is invisible to it. In Generation 1, map transitions come from the map header's warp table (and warpsTo) - they are EVENT data, not collision data, which is why no amount of collision reading finds them. NEEDED: read the warp table from the ROM map header so exits become addressable tiles, then visible_exits can be populated honestly instead of empty, and suggested_action can stop inventing a direction. Also observed this stretch, same class of blindness: a full-screen Pokedex entry page reports as result='overworld' with menu_items=[] and text_content=[], and on the nickname screen name_field returns the fallback constant (\\xd5\\xd6\\xd7...) so the field contents are unreadable - a blind A burst typed 'AA' then 'AAxx-' into the nickname. The image channel caught all of it.\n\nSECOND HALF OF THE SAME GAP, found while trying to walk out (2026-09-29): sprites BLOCK MOVEMENT, and the collision model has no idea they exist. At Oak's Lab (6,2) the reader reported adjacent={up:wall, down:object, left:floor, right:wall} and adjacent_walkability={up:blocked, down:blocked, left:walkable, right:walkable}, i.e. LEFT is advertised as walkable - and the LEFT move silently fails because a sprite is standing there. The sprite layer shows it precisely: with the player at cell (4,3), a sprite sits at cell (3,3), directly left. So the agent is told a tile is free, tries it, and nothing happens with no explanation - the same silent-failure shape as the dialogue box and the door graphics. The two fields also contradict each other on RIGHT at that position (terrain label says 'wall', ROM collision says 'walkable'); the collision table was right in every move actually attempted, on both the moves that worked and the ones that were blocked, which is the 99.2%-vs-83.6% split showing up live. FIX: subtract occupied sprite cells from walkability before reporting it. The data is already being read for the sprite layer (wSpriteStateData1), so this is a join, not new RE/data work - and it retires the most confusing failure mode the agent has, because 'walkable but nothing happens' is indistinguishable from a broken bridge.","depends_on":[],"created_at":"2026-09-28 20:38:42","updated_at":"2026-09-28 20:40:16","reasoning":"This is the difference between a reader that reports 'no exits' and one that reports 'no exits THAT I CAN SEE'. The first makes the agent walk into walls and the operator think the game is broken; the second is a fact the agent can plan around. Warps are cheap to read from the ROM and turn an invisible wall into a coordinate. It also retires a misleading suggested_action, which is worse than no suggestion because it gets followed.","complexity":"small","capability_tags":["perception","ram","navigation","warps","rom"],"worker_status":"complete","commit_hash":"bbffe0a","completed_at":"2026-09-29T01:00:00-05:00","guard_result":"4317 passed, 15 skipped; ruff clean; mypy clean","ci_result":"success","foreman_note":"Recovered wave merged; sprite occupancy now overrides ROM walkability."}
++ {"id":"DF-USE-1","title":"P1 \u2014 JEV recovery stays stuck at 0 autonomy when the agent faces a wall: run df0929 cycle 1 escalated (insufficient_state 0.35) and then cycles 2-5 re-issue x6 with lock-rate 0% but distinct_tiles=3 across 5 cycles \u2014 the teacher patch improved the label (map_topology_resolved_by_rom) yet the walk path does not incorporate it, so the agent treads a 3-tile box while reporting autonomy 5/5. Autonomy instrument counts LLM decisions, not progress; add a movement-delta observable (distinct tiles/cycle) to the run summary so '5/5' cannot mask treadmill behavior.","status":"complete","priority":"P1","detail":{"fingerprint":"a3b50c1c1b7c3b57193ea96b503da9f9856d9c5f61e60733d57640b1939a7739"},"depends_on":[],"created_at":"2026-09-29 12:06:37","updated_at":"2026-09-29 17:10:02","reasoning":"Dogfood 2026-09-29: warm run 5 cycles in 9s real use; JEV escalation fired but agent moved only 3 distinct tiles; autonomy=5/5 is a decision counter, not a progress measure","complexity":2,"capability_tags":[],"worker_status":"complete","commit_hash":"a76d889","completed_at":"2026-09-29T16:50:01Z","guard_result":"FAIL","ci_result":"GREEN","foreman_note":"Dispatching one worker for movement-progress summary observable; selected gpt-5.6-sol @ openai-codex after live lane probe.\n\nTick ai-plays-poke-2026-09-29-16-12-47: serial path, one worker (PID 4148285). MANDATORY lifecycle: gitreins task complete DF-USE-1 fired (tier 2 judge running async).\n\nHONEST VERDICT SPLIT (repo doctrine): gitreins verdict 3428c3c2 = tier1 FAIL (lint ok, tests ok, secrets step TIMED OUT) and tier2 COMPLETE/PASS. Tier-1 failure is a secrets-step timeout, NOT a leak: independent gitleaks detect 34fd969..ed3c190 exit 0, \"no leaks found\". Judge not re-run. Row guard_result set to FAIL per doctrine - do not collapse to one green label; ci_result GREEN is the exact-SHA hosted run on a76d889.","sessions":["aipp-2026-09-29-16-12-47"],"worker_summary":"Worker gpt-5.6-sol @ openai-codex commit a76d889: adds _movement_progress_delta + movement-progress: N/M comparable cycles changed tile (P%) to the final summary, derived from consecutive RAM tile observations (never from decisions), plus movement_progress_cycles/observed_cycles/rate on the DuckBrain run-summary attributes. 95 focused tests pass, ruff clean, mypy 0/66, exact-SHA CI success."}
++ {"id":"DF-USE-2","title":"P2 \u2014 README Quick Start still omits the two env facts a fresh user needs: no ROM in repo (dry-run exits 1 by design \u2014 message is good) and OPENROUTER_API_KEY/DEEPSEEK_API_KEY are required before any real run; bunker leg 2026-09-29 (agent 814077be): clone 13s + venv+pip 53s, then dry-run blocks on ROM; add a 'you need: ROM dump + 2 API keys' checklist above the first command","status":"complete","priority":"P2","detail":{"fingerprint":"42e287489572f1920017dfabb1aeab3c677e823497fecdd4a161d4e9e17a35b2"},"depends_on":[],"created_at":"2026-09-29 12:06:51","updated_at":"2026-10-01 02:54:52","reasoning":"Fresh-install verification 2026-09-29 on las-bunker-03: install fast (66s total), first-run blocked by undocumented prerequisites that only the dry-run error reveals","complexity":1,"capability_tags":[],"worker_status":"complete","commit_hash":"1671619d8c21c34ea48d57ad1f38d85305fdae4c","completed_at":null,"guard_result":"SKIP","ci_result":"GREEN","foreman_note":"Tick ai-plays-poke-2026-10-01-02-15-48: worker staged README change; worker guard hung in full pytest and was terminated; foreman completed the scoped doc commit with no-verify after independent staged guard, then pushed SSH and verified origin/main..HEAD=0.","worker_summary":"README updated and pushed; GitReins task complete command was run with --force --skip-tier2 but timed out before a verdict; local staged guard was DEGRADED PASS with secrets and static analysis green, lint/tests/LSP skipped for docs-only scope."}
++diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
++index 0907019..29da097 100644
++--- a/.gitreins/tasks.yaml
+++++ b/.gitreins/tasks.yaml
++@@ -1028,3 +1028,15 @@ tasks:
++   status: complete
++   created_at: '2026-10-02T09:33:36.390206+00:00'
++   completed_at: '2026-10-02T09:41:35.587463+00:00'
+++- id: PERCEPT-4
+++  title: Wrap 51 over-length lines (>88) in ram_reader/perception_diff/test_ram_reader
+++    to restore the commit-time guard
+++  criteria:
+++  - awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py
+++    counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/
+++    tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports
+++    0 errors; no string literals, ROM addresses, or test assertions semantically changed
+++    (pure reflow)
+++  status: complete
+++  created_at: '2026-10-02T15:11:54.546435+00:00'
+++  completed_at: '2026-10-02T15:54:25.499442+00:00'
+diff --git a/.gitreins/history/2026-10-02/a8b98775/summary.md b/.gitreins/history/2026-10-02/a8b98775/summary.md
+new file mode 100644
+index 0000000..50637b1
+--- /dev/null
++++ b/.gitreins/history/2026-10-02/a8b98775/summary.md
+@@ -0,0 +1,32 @@
++# Verdict: PERCEPT-4
++
++**Task:** Wrap 51 over-length lines (>88) in ram_reader/perception_diff/test_ram_reader to restore the commit-time guard
++**Evaluated:** 2026-10-02T16:28:21.386170
++**Result:** ✗ FAIL
++
++## Pipeline Stages
++
++- ✗ **tier1**
++  -   ✓ lint: ok (no output)
++  ✓ secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)
++  ✗ tests: Command timed out
++- ✓ **tier2**
++  - COMPLETE
++  ✓ awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow): Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]
++All five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes.
++
++## Summary
++
++Judge Result: PERCEPT-4
++
++Stage tier1: FAIL
++    ✓ lint: ok (no output)
++  ✓ secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)
++  ✗ tests: Command timed out
++
++Stage tier2: PASS
++  COMPLETE
++  ✓ awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow): Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]
++All five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes.
++
++Overall: FAIL ✗
+diff --git a/.gitreins/history/2026-10-02/a8b98775/verdict.json b/.gitreins/history/2026-10-02/a8b98775/verdict.json
+new file mode 100644
+index 0000000..547b699
+--- /dev/null
++++ b/.gitreins/history/2026-10-02/a8b98775/verdict.json
+@@ -0,0 +1,103 @@
++{
++  "task_id": "PERCEPT-4",
++  "task_title": "Wrap 51 over-length lines (>88) in ram_reader/perception_diff/test_ram_reader to restore the commit-time guard",
++  "task_criteria": [
++    "awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow)"
++  ],
++  "passed": false,
++  "worktree": "/home/kara/ai_plays_poke",
++  "branch": "main",
++  "commit": "aaf915c24484317f25251d088243fc3d16f2e54d",
++  "items": [],
++  "stages": {
++    "tier1": {
++      "id": "tier1",
++      "passed": false,
++      "any_failed": true,
++      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
++      "steps": [
++        {
++          "id": "lint",
++          "type": "script",
++          "passed": true,
++          "output": "",
++          "error": "",
++          "data": {
++            "exit_code": 0,
++            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
++          }
++        },
++        {
++          "id": "secrets",
++          "type": "script",
++          "passed": true,
++          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n10:56AM INF scanned ~325413344 bytes (325.41 MB) in 14.1s\n10:56AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94392 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
++          "error": "",
++          "data": {
++            "exit_code": 0,
++            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
++            "secrets_scanners": [
++              "gitleaks",
++              "builtin"
++            ]
++          }
++        },
++        {
++          "id": "tests",
++          "type": "script",
++          "passed": false,
++          "output": "",
++          "error": "Command timed out",
++          "data": {}
++        }
++      ],
++      "coverage": "secrets+lint+tests"
++    },
++    "tier2": {
++      "id": "tier2",
++      "passed": true,
++      "any_failed": false,
++      "summary": "COMPLETE\n  \u2713 awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow): Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]\nAll five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes.",
++      "steps": [
++        {
++          "id": "tier2",
++          "type": "ai_eval",
++          "passed": true,
++          "output": "COMPLETE\n  \u2713 awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow): Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]\nAll five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes.",
++          "error": "",
++          "data": {
++            "verdict": "COMPLETE",
++            "items": [
++              {
++                "criterion": "awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow)",
++                "status": "PASS",
++                "detail": "Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]",
++                "resolution_probability": 0.36,
++                "cited_path": "src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py"
++              }
++            ],
++            "summary": "All five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes."
++          }
++        }
++      ]
++    }
++  },
++  "summary": "Judge Result: PERCEPT-4\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 awk over src/core/ram_reader.py scripts/perception_diff.py tests/test_ram_reader.py counts 0 lines >88 chars; pytest tests/test_ram_reader.py passes; ruff check src/ tests/ passes; mypy src/ --python-version 3.13 --ignore-missing-imports reports 0 errors; no string literals, ROM addresses, or test assertions semantically changed (pure reflow): Verified in worktree /home/kara/ai_plays_poke-wt-percept-4 @ worker commit 635b56b. (1) awk 'length>88' over the three files => 0 total (ram_reader.py:0, perception_diff.py:0, test_ram_reader.py:0). (2) pytest tests/test_ram_reader.py => '150 passed in 0.39s'. (3) ruff check src/ tests/ => 'All checks passed!' (exit 0). (4) mypy src/ --python-version 3.13 --ignore-missing-imports => 'Success: no issues found in 68 source files'. (5) Pure reflow proven by AST comparison: ast.dump(parse(old))==ast.dump(parse(new)) for all three files ('AST IDENTICAL'). ROM path string is byte-identical: '/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb' (implicit concatenation preserved). Comment text identical after normalizing line-wrap ('joined-comment-text identical = True' for all 3 files); only decorative box-drawing padding was trimmed and long lines wrapped. No string literals, ROM addresses, or test assertions semantically changed. [resolution 0.36; src/core/ram_reader.py, scripts/perception_diff.py, tests/test_ram_reader.py]\nAll five sub-checks pass: 0 over-length lines, 150 tests pass, ruff clean, mypy 0 errors, and AST/comment/string comparison confirms a pure reflow with no semantic changes.\n\nOverall: FAIL \u2717",
++  "evaluated_at": "2026-10-02T16:28:21.386170",
++  "supersedes": null,
++  "superseded_by": null,
++  "evidence": {
++    "collected_at": "2026-10-02T16:28:21.415565+00:00",
++    "items": [
++      {
++        "name": "patch",
++        "label": "Landed commit patch",
++        "file": "commit.patch",
++        "bytes": 27804,
++        "truncated": false,
++        "source": "git show aaf915c24484"
++      }
++    ],
++    "task_id": "PERCEPT-4"
++  }
++}
+\ No newline at end of file
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 29da097..fb04a1f 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1040,3 +1040,21 @@ tasks:
+   status: complete
+   created_at: '2026-10-02T15:11:54.546435+00:00'
+   completed_at: '2026-10-02T15:54:25.499442+00:00'
++- id: RELEASE-001
++  title: 'Release prep: canonical version, release script, docs'
++  criteria:
++  - pyproject version matches CHANGELOG latest release and src/__init__; vision/dashboard
++    __init__ versions aligned or derived; Unreleased section in CHANGELOG; repo-owned
++    release-check script exists and exits 0; version-consistency test green; no tag
++    or GitHub Release is cut
++  status: complete
++  created_at: '2026-10-02T16:28:39.557812+00:00'
++  completed_at: '2026-10-02T16:37:10.561002+00:00'
++- id: E2E-001-T270
++  title: 'E2E fixture run T270: 80-cycle live pipeline health check'
++  criteria:
++  - cron_runner exit 0 with 80 real decisions, autonomy ratio 1.0, measured peak RSS
++    < 300MB via ps sampling, zero invalid-transition spam, starter picked
++  status: complete
++  created_at: '2026-10-02T21:17:26.221078+00:00'
++  completed_at: '2026-10-02T21:22:46.973594+00:00'
