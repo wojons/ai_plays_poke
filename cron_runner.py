@@ -1569,6 +1569,325 @@ def _teacher_world_memory_targets(
     return missing_facts, targets
 
 
+# ── S6 NAV-MEM: memory-driven navigation ────────────────────────────────────
+# A map transition observed by the loop is a PROVEN edge: pressing
+# ``crossing_direction`` in ``from_map`` moved the player to ``to_map``. S6
+# stores that edge as ``/world/path/<from>-><to>`` (see ``_path_memory_write``)
+# and, before a navigation gap spends a teacher (LLM) call, replays it from
+# memory instead of re-deriving the same world fact every episode.
+#
+# The store is read through ``duckbrain_client.recall`` rather than in-process
+# state, so a route recorded by an earlier run is usable after a restart.
+PATH_MEMORY_PREFIX = "/world/path/"
+PATH_MEMORY_RECALL_LIMIT = 16
+# The decision-pipeline stamped on a row whose plan came from path memory.
+MEMORY_NAV_PIPELINE = "memory_nav"
+# The one JEV missing-information class whose decisions are navigation. Only a
+# gap JEV classified this way may be resolved from ``world/path/*``; every other
+# hand-off keeps the existing teacher path untouched.
+NAVIGATION_MISSING_CLASSES: frozenset[str] = frozenset({"map_topology"})
+_WALK_DIRECTIONS: frozenset[str] = frozenset({"UP", "DOWN", "LEFT", "RIGHT"})
+
+
+def _map_slug(map_name: str | None, map_id: int) -> str:
+    """Canonical map token used in ``/world/path/<from>-><to>`` keys.
+
+    Names are slugged so a memory key is stable and human-citable
+    (``Pallet Town`` -> ``Pallet-Town``); a map with no usable name falls back
+    to the same ``Map_XX`` spelling the rest of the harness uses for its id.
+    """
+    name = (map_name or "").strip()
+    if name:
+        slug = re.sub(r"[^0-9A-Za-z]+", "-", name).strip("-")
+        if slug:
+            return slug
+    return f"Map-{map_id:02X}"
+
+
+def _path_memory_key(from_slug: str, to_slug: str) -> str:
+    """The exact memory key for one proven map edge."""
+    return f"{PATH_MEMORY_PREFIX}{from_slug}->{to_slug}"
+
+
+def _parse_path_memory_key(key: Any) -> tuple[str, str] | None:
+    """Split a ``/world/path/<from>-><to>`` key, or None when it is not one."""
+    if not isinstance(key, str) or not key.startswith(PATH_MEMORY_PREFIX):
+        return None
+    rest = key[len(PATH_MEMORY_PREFIX) :]
+    from_slug, separator, to_slug = rest.partition("->")
+    if not separator or not from_slug or not to_slug:
+        return None
+    return from_slug, to_slug
+
+
+def _observation_map_slug(observation: dict[str, Any]) -> str | None:
+    """The current map's path-key token, or None when the map is unreadable."""
+    map_id = observation.get("map_id")
+    if not isinstance(map_id, int) or map_id < 0:
+        return None
+    return _map_slug(str(observation.get("map_name") or ""), map_id)
+
+
+def _tile_from_point(value: Any) -> tuple[int, int] | None:
+    """Read a stored ``{"x": int, "y": int}`` point, when it is typed."""
+    if not isinstance(value, dict):
+        return None
+    x, y = value.get("x"), value.get("y")
+    if isinstance(x, int) and isinstance(y, int):
+        return (x, y)
+    return None
+
+
+def _observation_tile(observation: dict[str, Any]) -> tuple[int, int] | None:
+    """The tile the player stands on, when both coordinates are typed ints."""
+    x = observation.get("player_tile_x")
+    y = observation.get("player_tile_y")
+    if isinstance(x, int) and isinstance(y, int):
+        return (x, y)
+    return None
+
+
+def _memory_walkability(observation: dict[str, Any]) -> dict[str, str]:
+    """ROM-resolved adjacent walkability for the tile the player stands on.
+
+    The live collision grid is applied last: it is this cycle's RAM read, while
+    ``adjacent_walkability`` may carry vision-derived labels.
+    """
+    resolved = _known_walkability(observation.get("adjacent_walkability"))
+    resolved.update(_walkability_from_collision_grid(observation.get("collision_grid")))
+    return resolved
+
+
+def _step_toward(
+    current: tuple[int, int],
+    door: tuple[int, int],
+    walkability: dict[str, str],
+) -> str | None:
+    """One legal button press that shortens the walk to ``door``.
+
+    The larger remaining delta is tried first, so a wide room is crossed on its
+    long axis. A direction is only chosen when the ROM resolved it as walkable:
+    an unresolved or blocked cell is never pressed, so memory cannot invent a
+    move the collision grid contradicts.
+    """
+    deltas = {
+        ("RIGHT" if door[0] > current[0] else "LEFT"): abs(door[0] - current[0]),
+        ("DOWN" if door[1] > current[1] else "UP"): abs(door[1] - current[1]),
+    }
+    for direction, delta in sorted(deltas.items(), key=lambda item: -item[1]):
+        if delta <= 0:
+            continue
+        if walkability.get(direction.lower()) == "walkable":
+            return direction
+    return None
+
+
+def _memory_route_plan(
+    current: tuple[int, int] | None,
+    door: tuple[int, int] | None,
+    direction: str,
+    walkability: dict[str, str],
+) -> tuple[list[str], str] | None:
+    """The button plan that replays a proven edge from the current tile.
+
+    On the recorded door tile the proven crossing direction is replayed; away
+    from it, one ROM-legal step toward the door is taken. Returns None when
+    neither is legal, so the caller keeps its existing decision path instead of
+    inventing a press.
+    """
+    if door is not None and current is not None and current != door:
+        step = _step_toward(current, door, walkability)
+        if step is None:
+            return None
+        return [step], "step_to_door"
+    if direction not in _WALK_DIRECTIONS:
+        return None
+    if walkability.get(direction.lower()) == "blocked":
+        return None
+    return [direction], "proven_crossing"
+
+
+def _memory_navigation_route(
+    observation: dict[str, Any],
+    *,
+    visited_maps: tuple[tuple[int, str], ...] | None = None,
+) -> dict[str, Any] | None:
+    """Return a proven route toward a NOT-YET-VISITED map, or None.
+
+    Reads the store (never in-process state). A destination the run has already
+    visited is not a route toward new ground, and a route whose next step the
+    ROM contradicts is refused here so the caller keeps its existing path.
+    """
+    from_slug = _observation_map_slug(observation)
+    if from_slug is None:
+        return None
+    from src.core import duckbrain_client as _dbc
+
+    records = _dbc.recall(
+        key_prefix=f"{PATH_MEMORY_PREFIX}{from_slug}->",
+        namespace=WORLD_MEMORY_NAMESPACE,
+        limit=PATH_MEMORY_RECALL_LIMIT,
+    )
+    visited_slugs = {from_slug}
+    for visited_id, visited_name in visited_maps or ():
+        if isinstance(visited_id, int) and visited_id >= 0:
+            visited_slugs.add(_map_slug(str(visited_name or ""), visited_id))
+
+    current_tile = _observation_tile(observation)
+    walkability = _memory_walkability(observation)
+    candidates: list[
+        tuple[str, dict[str, Any], str, tuple[int, int] | None]
+    ] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        parsed = _parse_path_memory_key(record.get("key"))
+        if parsed is None or parsed[1] in visited_slugs:
+            continue
+        attributes = record.get("attributes")
+        if not isinstance(attributes, dict):
+            attributes = {}
+        candidates.append(
+            (
+                str(record.get("created_at") or ""),
+                record,
+                str(attributes.get("crossing_direction") or "").upper(),
+                _tile_from_point(attributes.get("door_tile")),
+            )
+        )
+    if not candidates:
+        return None
+
+    # The newest record wins: a later crossing is the more recent proof.
+    _, record, direction, door = max(candidates, key=lambda item: item[0])
+    plan_result = _memory_route_plan(current_tile, door, direction, walkability)
+    if plan_result is None:
+        return None
+    plan, mechanism = plan_result
+    parsed = _parse_path_memory_key(record.get("key"))
+    if parsed is None:
+        return None
+    attributes = record.get("attributes")
+    if not isinstance(attributes, dict):
+        attributes = {}
+    return {
+        "key": record.get("key"),
+        "from_map": parsed[0],
+        "to_map": parsed[1],
+        "crossing_direction": direction or None,
+        "door_tile": (
+            {"x": door[0], "y": door[1]} if door is not None else None
+        ),
+        "arrival_tile": attributes.get("arrival_tile"),
+        "plan": plan,
+        "mechanism": mechanism,
+    }
+
+
+def _memory_navigation_decision(
+    observation: dict[str, Any],
+    *,
+    visited_maps: tuple[tuple[int, str], ...] | None = None,
+) -> dict[str, Any]:
+    """Resolve a navigation gap from ``world/path/*`` memory.
+
+    Always returns a recordable outcome: a hit carries the cited key and the
+    plan; a miss/error carries why, so the run summary can separate "no proven
+    route exists" from "the store could not be read".
+    """
+    base: dict[str, Any] = {
+        "source": "world/path",
+        "from_map": _observation_map_slug(observation),
+    }
+    if base["from_map"] is None:
+        return {**base, "result": "miss", "reason": "current_map_unknown"}
+    try:
+        route = _memory_navigation_route(observation, visited_maps=visited_maps)
+    except Exception as exc:  # noqa: BLE001 - memory must not stop gameplay
+        safe_print(f"  [NAV-MEM] path memory read failed: {exc!r}")
+        return {**base, "result": "error", "reason": type(exc).__name__}
+    if route is None:
+        return {
+            **base,
+            "result": "miss",
+            "reason": "no_proven_route_to_unvisited_map",
+        }
+    return {**base, **route, "result": "hit"}
+
+
+def _is_navigation_gap(decision: dict[str, Any]) -> bool:
+    """Whether this JEV answer is asking how to move through the map.
+
+    The RAW reported class is read first: ``_map_topology_resolved`` may already
+    have demoted an effective gap to ``missing_class="none"`` once the live ROM
+    closed it, but the decision is still a navigation one, and a proven route
+    still outranks re-deriving the same fact from the projection.
+    """
+    if not decision.get("ok"):
+        return False
+    if decision.get("reported_missing_class") in NAVIGATION_MISSING_CLASSES:
+        return True
+    missing = decision.get("missing_class")
+    if isinstance(missing, str) and missing in NAVIGATION_MISSING_CLASSES:
+        return True
+    reason = decision.get("escalate_reason")
+    return isinstance(reason, str) and "map_topology" in reason.lower()
+
+
+def _path_memory_write(
+    transition: dict[str, Any],
+    *,
+    observation: dict[str, Any],
+    evidence: dict[str, Any],
+    confidence: float,
+) -> dict[str, Any] | None:
+    """Render one observed map transition as a ``/world/path/*`` memory write."""
+    from_id = transition.get("from_map_id")
+    to_id = transition.get("to_map_id")
+    if not isinstance(from_id, int) or not isinstance(to_id, int):
+        return None
+    if from_id < 0 or to_id < 0:
+        return None
+    from_name = str(transition.get("from_map_name") or "")
+    to_name = str(transition.get("to_map_name") or "")
+    from_slug = _map_slug(from_name, from_id)
+    to_slug = _map_slug(to_name, to_id)
+    domain = f"world/path/{from_slug}->{to_slug}"
+    direction = str(transition.get("crossing_direction") or "").upper()
+    door = _tile_from_point(transition.get("departure_tile"))
+    arrival = _observation_tile(observation)
+
+    attributes: dict[str, Any] = {
+        "fact_type": "path_transition",
+        "from_map": {"id": from_id, "name": from_name},
+        "to_map": {"id": to_id, "name": to_name},
+        "crossing_direction": direction or None,
+        "regression": bool(transition.get("regression")),
+    }
+    if door is not None:
+        attributes["door_tile"] = {"x": door[0], "y": door[1]}
+    if arrival is not None:
+        attributes["arrival_tile"] = {"x": arrival[0], "y": arrival[1]}
+
+    rendered = (
+        f"Proven route: from {from_name or from_slug}, press {direction} "
+        f"to reach {to_name or to_slug}"
+        if direction
+        else f"Proven route: {from_name or from_slug} connects to "
+        f"{to_name or to_slug}"
+    )
+    return {
+        "key": f"/{domain}",
+        "domain": domain,
+        "attributes": attributes,
+        "embedding_text": rendered,
+        "labels": ["world", domain],
+        "confidence": confidence,
+        "evidence": evidence,
+        "applies_when": {"from_map_id": from_id},
+    }
+
+
 def _jev_overworld_decision(
     obs: dict[str, Any],
     *,
@@ -1589,6 +1908,7 @@ def _jev_overworld_decision(
     handoff_policy: dict[str, Any] | None = None,
     teacher_budget: dict[str, int] | None = None,
     scenario_path: str | Path | None = None,
+    visited_maps: tuple[tuple[int, str], ...] | None = None,
 ) -> dict[str, Any]:
     """Ask the JEV tier for this overworld cycle's plan (PRD v3 stages 5-6).
 
@@ -1653,6 +1973,28 @@ def _jev_overworld_decision(
     teacher_one_shot: str | None = None
     teacher_missing_facts: list[str] = []
     teacher_memory_targets: list[str] = []
+    # ── S6 NAV-MEM: consult proven routes BEFORE the teacher ────────────
+    # Only a navigation gap reads ``world/path/*``; a hit replaces the teacher
+    # call entirely and stamps the cited memory key on the row. A miss leaves
+    # the existing hand-off byte-identical, so an empty store cannot change a
+    # run's behaviour.
+    memory_navigation: dict[str, Any] | None = None
+    memory_hit: dict[str, Any] | None = None
+    if _is_navigation_gap(initial_decision):
+        memory_navigation = _memory_navigation_decision(
+            obs, visited_maps=visited_maps
+        )
+        if memory_navigation.get("result") == "hit":
+            memory_hit = memory_navigation
+            safe_print(
+                f"  [NAV-MEM] {memory_hit['key']} "
+                f"({memory_hit['mechanism']}) -> {memory_hit['plan']} | no LLM call"
+            )
+        else:
+            safe_print(
+                f"  [NAV-MEM] no proven route ({memory_navigation.get('reason')}) "
+                "- keeping the existing path"
+            )
     missing_class = decision.get("missing_class")
     escalation_class = (
         missing_class if isinstance(missing_class, str) and missing_class else "unknown"
@@ -1677,6 +2019,9 @@ def _jev_overworld_decision(
         and bool(teacher_model)
         and escalated_classes is not None
         and escalation_class not in escalated_classes
+        # S6 NAV-MEM: a proven route already answered this navigation gap, so
+        # the teacher (LLM) is never called for it.
+        and memory_hit is None
     )
     if can_call_teacher:
         # The predicate above narrows this for readers; the assertion also makes
@@ -1730,20 +2075,6 @@ def _jev_overworld_decision(
             if isinstance(post_ask, dict) and post_ask.get("ok"):
                 decision = post_ask
 
-    raw_action = teacher_one_shot or decision.get("next_action")
-    action = raw_action.upper() if isinstance(raw_action, str) else None
-    if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
-        # A failed escalation degrades to the original JEV decision. If that is
-        # unusable too, the caller takes its existing controller fallback.
-        decision = initial_decision
-        raw_action = decision.get("next_action")
-        action = raw_action.upper() if isinstance(raw_action, str) else None
-    if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
-        # Return the JEV attempt, not an empty sentinel: the caller still takes
-        # the controller fallback, but can stamp whether this was a transport
-        # failure or a healthy response with no usable action.
-        return decision
-
     escalate = bool(initial_decision.get("escalate", False))
     # A policy-blocked trigger is NOT an escalation: no teacher was called, so
     # the row must not claim one. This is what makes system1 (handoff off)
@@ -1751,20 +2082,43 @@ def _jev_overworld_decision(
     if escalate and not handoff_ok:
         escalate = False
     reason = initial_decision.get("escalate_reason")
-    if teacher_one_shot is not None:
-        plan = [teacher_one_shot]
-        intent = f"teacher one-shot {teacher_one_shot}"
-    elif action == OVERWORLD_WAIT:
-        plan = []
-        intent = "jev WAIT (no press)"
+    # S6 NAV-MEM: a memory-resolved navigation gap neither handed back to the
+    # teacher nor carries a JEV-authored plan, so the row reports
+    # `escalated=False` / `jev_answered=False` and cites the path-memory key.
+    jev_answered = True
+    if memory_hit is not None:
+        plan = list(memory_hit["plan"])
+        intent = f"memory-nav {memory_hit['key']}"
+        escalate = False
+        jev_answered = False
     else:
-        plan = [action]
-        intent = f"jev {action}"
+        raw_action = teacher_one_shot or decision.get("next_action")
+        action = raw_action.upper() if isinstance(raw_action, str) else None
+        if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
+            # A failed escalation degrades to the original JEV decision. If that
+            # is unusable too, the caller takes its existing controller fallback.
+            decision = initial_decision
+            raw_action = decision.get("next_action")
+            action = raw_action.upper() if isinstance(raw_action, str) else None
+        if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
+            # Return the JEV attempt, not an empty sentinel: the caller still
+            # takes the controller fallback, but can stamp whether this was a
+            # transport failure or a healthy response with no usable action.
+            return decision
+        if teacher_one_shot is not None:
+            plan = [teacher_one_shot]
+            intent = f"teacher one-shot {teacher_one_shot}"
+        elif action == OVERWORLD_WAIT:
+            plan = []
+            intent = "jev WAIT (no press)"
+        else:
+            plan = [action]
+            intent = f"jev {action}"
     return {
         "ok": bool(decision.get("ok")),
         "plan": plan,
         "intent": intent,
-        "jev_answered": True,
+        "jev_answered": jev_answered,
         "escalated": escalate,
         "missing_class": initial_decision.get("missing_class"),
         "reported_missing_class": initial_decision.get("reported_missing_class"),
@@ -1788,6 +2142,10 @@ def _jev_overworld_decision(
         # The main loop holds these exact /world/* keys until the next cycle.
         "teacher_missing_facts": teacher_missing_facts,
         "teacher_memory_targets": teacher_memory_targets,
+        # S6 NAV-MEM: the path-memory outcome of this decision — a hit (and the
+        # cited key), or a miss/error with the reason. Counted run-wide into
+        # `memory_navigation_hits` / `memory_navigation_fallbacks`.
+        "memory_navigation": memory_navigation,
     }
 
 
@@ -2637,6 +2995,8 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     scenario_resolved_classes: set[str] = set()
     handoff_triggers: Counter[str] = Counter()
     handoff_blocked = 0
+    memory_navigation_hits = 0
+    memory_navigation_fallbacks = 0
 
     for row in results:
         if "intent" not in row:
@@ -2666,6 +3026,16 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
             escalated_by_class[
                 missing_class if isinstance(missing_class, str) else None
             ] += 1
+        # S6 NAV-MEM: a navigation decision either replayed a proven route from
+        # ``world/path/*`` (hit) or was consulted and fell through to the
+        # existing path (miss/error). Counted from the rows, never incremented
+        # by the summary printer.
+        route = row.get("memory_navigation")
+        if isinstance(route, dict):
+            if route.get("result") == "hit" and route.get("key"):
+                memory_navigation_hits += 1
+            elif route.get("result") in ("miss", "error"):
+                memory_navigation_fallbacks += 1
 
     ratio: float | None = (
         round(jev_answered / decisions_total, 4) if decisions_total else None
@@ -2702,6 +3072,10 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         "degraded": degraded,
         "handoff_trigger_counts": dict(handoff_triggers),
         "handoff_blocked": handoff_blocked,
+        # S6 NAV-MEM: navigation decisions answered from ``world/path/*`` memory
+        # vs those that were consulted and fell through to the existing path.
+        "memory_navigation_hits": memory_navigation_hits,
+        "memory_navigation_fallbacks": memory_navigation_fallbacks,
     }
 
 
@@ -2720,14 +3094,24 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
     Shape: ``autonomy=J/D (E escalated)``. With no decision rows — or an
     older caller that supplies no block — the ratio prints as ``n/a``: AC-1
     forbids inventing a number the run cannot back up.
+
+    S6 NAV-MEM appends ``nav-mem: H hits/F fallbacks`` on EVERY summary (even
+    at zero) so the metric is visible without a separate probe.
     """
     if not autonomy:
-        return "autonomy=n/a (0 decisions, 0 escalated)"
+        return (
+            "autonomy=n/a (0 decisions, 0 escalated) "
+            "| nav-mem: 0 hits/0 fallbacks"
+        )
     decisions_total = _as_int(autonomy.get("decisions_total"))
     jev_answered = _as_int(autonomy.get("jev_answered"))
     escalated = _as_int(autonomy.get("escalated"))
+    nav_tail = (
+        f" | nav-mem: {_as_int(autonomy.get('memory_navigation_hits'))} hits/"
+        f"{_as_int(autonomy.get('memory_navigation_fallbacks'))} fallbacks"
+    )
     if not decisions_total:
-        return f"autonomy=n/a (0 decisions, {escalated} escalated)"
+        return f"autonomy=n/a (0 decisions, {escalated} escalated){nav_tail}"
     tail = f"autonomy={jev_answered}/{decisions_total} ({escalated} escalated)"
     if autonomy.get("degraded"):
         failures = _as_int(autonomy.get("jev_transport_failures"))
@@ -2736,7 +3120,7 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
             f" | JEV DEGRADED: {failures}/{decisions_total} transport failures "
             f"({rate:.0%})"
         )
-    return tail
+    return tail + nav_tail
 
 
 def _write_autonomy_row(
@@ -2779,6 +3163,12 @@ def _write_autonomy_row(
         # Counted from the decision rows by _autonomy_counters.
         "handoff_trigger_counts": autonomy.get("handoff_trigger_counts", {}),
         "handoff_blocked": _as_int(autonomy.get("handoff_blocked")),
+        # S6 NAV-MEM: navigation decisions answered from ``world/path/*`` memory
+        # vs those consulted and left to the existing path.
+        "memory_navigation_hits": _as_int(autonomy.get("memory_navigation_hits")),
+        "memory_navigation_fallbacks": _as_int(
+            autonomy.get("memory_navigation_fallbacks")
+        ),
     }
     log_file.write(json.dumps(row, default=str) + "\n")
     log_file.flush()
@@ -3297,6 +3687,7 @@ def _populate_world_memory(
     log_file: TextIO,
     written_keys: set[str],
     retrieval_targets: list[str] | None = None,
+    transition: dict[str, Any] | None = None,
 ) -> list[str]:
     """Retrieve current-map facts, then persist newly observed world facts.
 
@@ -3539,6 +3930,19 @@ def _populate_world_memory(
                     "applies_when": {"map_id": typed_map_id},
                 }
             )
+
+    if isinstance(transition, dict):
+        # S6 NAV-MEM: an observed map transition IS a proven edge. Storing it
+        # as ``/world/path/<from>-><to>`` lets a later navigation gap replay the
+        # route instead of re-deriving it (or paying a teacher for it).
+        path_write = _path_memory_write(
+            transition,
+            observation=observation,
+            evidence=evidence,
+            confidence=confidence,
+        )
+        if path_write is not None:
+            writes.append(path_write)
 
     for write in writes:
         key = str(write["key"])
@@ -4504,6 +4908,9 @@ def main() -> None:
     _last_screen_type: str = ""  # for same-screen detection
     _same_tile_count: int = 0  # consecutive cycles on same RAM tile
     _last_tile: tuple[int, int, int] | None = None
+    # S6 NAV-MEM: the tile stood on before this cycle's observation — the door
+    # tile of any map transition observed this cycle.
+    _departure_tile: tuple[int, int, int] | None = None
     _void_tile_pct: float = 0.0  # % of tiles classified as unknown/void
     _void_cycles: int = 0  # consecutive cycles with >95% void tiles
 
@@ -4916,6 +5323,9 @@ def main() -> None:
             )
             _movement_progress_cycles += _progress_delta
             _movement_observed_cycles += _observed_delta
+            # S6 NAV-MEM: keep the tile stood on BEFORE this cycle's update —
+            # it is the door tile of any transition detected just below.
+            _departure_tile = _last_tile
             _last_tile, _same_tile_count = _track_same_tile(
                 current_tile, _last_tile, _same_tile_count
             )
@@ -4934,6 +5344,16 @@ def main() -> None:
                 _last_direction,
             )
             if _navigation_transition is not None:
+                # S6 NAV-MEM: the departure tile is the door tile of the proven
+                # edge, and only counts when it was on the SOURCE map.
+                if (
+                    _departure_tile is not None
+                    and _departure_tile[0] == _navigation_transition["from_map_id"]
+                ):
+                    _navigation_transition["departure_tile"] = {
+                        "x": _departure_tile[1],
+                        "y": _departure_tile[2],
+                    }
                 _mem_goal = _navigation_state.goal
                 _same_dir = None
                 _same_dir_count = 0
@@ -4976,6 +5396,7 @@ def main() -> None:
                 log_file=log_file,
                 written_keys=_world_memory_written_keys,
                 retrieval_targets=_teacher_targets_for_cycle,
+                transition=_navigation_transition,
             )
 
             # ── Default exploration goal (GAP-038) ──────────────
@@ -5338,6 +5759,9 @@ def main() -> None:
                     handoff_policy=HANDOFF_POLICY,
                     teacher_budget=_teacher_budget,
                     scenario_path=DEFAULT_JEV_SCENARIO_PATH,
+                    # S6 NAV-MEM: the maps this run has already entered, so a
+                    # proven route is only replayed toward NEW ground.
+                    visited_maps=_navigation_state.visited_maps,
                 )
                 if isinstance(_jev_attempt, dict):
                     raw_targets = _jev_attempt.get("teacher_memory_targets")
@@ -5357,7 +5781,28 @@ def main() -> None:
                     if isinstance(_jev_attempt, dict)
                     else {"jev_ok": None}
                 )
-                if _jev_attempt and _jev_attempt.get("jev_answered"):
+                # ── Step 2a-pre: S6 NAV-MEM result ─────────────────────
+                # A proven route from ``world/path/*`` already answered this
+                # navigation decision, so neither the teacher (LLM) nor the
+                # reasoning controller is consulted; the row is stamped with the
+                # memory pipeline and the cited key.
+                _memory_route = (
+                    _jev_attempt.get("memory_navigation")
+                    if isinstance(_jev_attempt, dict)
+                    else None
+                )
+                _memory_hit = bool(
+                    isinstance(_memory_route, dict)
+                    and _memory_route.get("result") == "hit"
+                )
+                if _memory_hit and isinstance(_jev_attempt, dict) and isinstance(_memory_route, dict):
+                    decision = {**_jev_attempt, **_jev_outcome}
+                    _decision_pipeline = MEMORY_NAV_PIPELINE
+                    safe_print(
+                        f"  [NAV-MEM] {decision['intent']} | no LLM call | "
+                        f"cited {_memory_route['key']}"
+                    )
+                elif _jev_attempt and _jev_attempt.get("jev_answered"):
                     decision = {**_jev_attempt, **_jev_outcome}
                     _decision_pipeline = JEV_PIPELINE
                     safe_print(
@@ -5630,6 +6075,10 @@ def main() -> None:
                         _missing_class if isinstance(_missing_class, str) else None
                     ),
                     "reported_missing_class": decision.get("reported_missing_class"),
+                    # S6 NAV-MEM: the path-memory outcome of this navigation
+                    # decision — a hit cites the exact ``/world/path/...`` key
+                    # the route came from; a miss names why no route was used.
+                    "memory_navigation": decision.get("memory_navigation"),
                     "raw_distribution": decision.get("raw_distribution"),
                     "scenario_post_distribution": decision.get(
                         "scenario_post_distribution"
