@@ -138,6 +138,66 @@ def test_ac6_teacher_patch_reasks_jev_and_records_improvement(monkeypatch: Any) 
     )
 
 
+def test_teacher_repair_reaches_state_gate_and_increments_metric(
+    monkeypatch: Any,
+) -> None:
+    """A typed repair must be visible beyond next_action's local instructions."""
+    pre_decision = {
+        **_pre_decision(),
+        "next_action": "RIGHT",
+        "raw": {"next_action": {"choice": "RIGHT"}},
+    }
+    monkeypatch.setattr(jev_client, "decide", lambda *_args, **_kwargs: pre_decision)
+    _patch_teacher(monkeypatch, _TYPED_PATCH)
+
+    reask_states: list[str] = []
+
+    def state_sensitive_reask(state: str, **kwargs: Any) -> dict[str, Any]:
+        reask_states.append(state)
+        assert (
+            _TYPED_PATCH["instruction_patch"]
+            in (kwargs["questions"]["next_action"]["instructions"])
+        )
+        repair_visible = all(
+            marker in state
+            for marker in (
+                "TEACHER STATE REPAIR",
+                _TYPED_PATCH["missing_facts"][0],
+                _TYPED_PATCH["fact_source"][0],
+                _TYPED_PATCH["instruction_patch"],
+            )
+        )
+        return {
+            "ok": True,
+            "next_action": "DOWN" if repair_visible else "RIGHT",
+            "sufficient_state": 0.60 if repair_visible else 0.22,
+            "missing_class": "none" if repair_visible else "map_topology",
+            "raw": {},
+        }
+
+    monkeypatch.setattr(jev_client, "ask", state_sensitive_reask)
+    results: list[dict[str, Any]] = []
+
+    decision = cron_runner._jev_overworld_decision(
+        {},
+        teacher_api_client=object(),
+        teacher_model="test/reasoning-teacher",
+        teacher_log_file=io.StringIO(),
+        teacher_cycle=4,
+        teacher_results=results,
+        escalated_classes=set(),
+    )
+
+    teacher = cron_runner.teacher_escalation_records(results)
+    autonomy = cron_runner._autonomy_counters([decision])
+    assert len(reask_states) == 1
+    assert decision["plan"] == ["DOWN"]
+    assert teacher == {"count": 1, "improved": 1}
+    assert decision["escalated"] is True
+    assert autonomy["escalated"] == 1
+    assert autonomy["escalation_rate_by_missing_class"] == {"map_topology": 1.0}
+
+
 def test_equal_or_worse_reask_is_not_improved(monkeypatch: Any) -> None:
     _patch_teacher(monkeypatch, _TYPED_PATCH)
     monkeypatch.setattr(

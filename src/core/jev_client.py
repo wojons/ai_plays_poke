@@ -448,6 +448,35 @@ def apply_patch(
     return questions
 
 
+def apply_state_patch(projection: str, patch: dict[str, Any]) -> str:
+    """Expose a typed teacher repair to every question in the batched re-ask.
+
+    JEV evaluates each question against the shared ``state`` plus that question's
+    own instructions. ``apply_patch`` repairs the action question, while this
+    bounded block lets the sufficiency and missing-class questions evaluate the
+    same repair instead of seeing the unchanged pre-escalation state.
+    """
+    repair: dict[str, Any] = {}
+    for key in ("missing_facts", "fact_source"):
+        value = patch.get(key)
+        if isinstance(value, list):
+            items = [
+                item.strip() for item in value if isinstance(item, str) and item.strip()
+            ]
+            if items:
+                repair[key] = items
+    for key in ("instruction_patch", "applies_when"):
+        value = patch.get(key)
+        if isinstance(value, str) and value.strip():
+            repair[key] = value.strip()
+    if not repair:
+        return projection
+    rendered = json.dumps(repair, sort_keys=True, separators=(",", ":"))
+    return (
+        f"{projection.rstrip()}\n\nTEACHER STATE REPAIR (one re-ask only):\n{rendered}"
+    )
+
+
 def _number(value: Any) -> float | None:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
@@ -555,7 +584,12 @@ def escalate_and_reask(
         else _questions(in_battle=in_battle),
         patch,
     )
-    post_ask = ask(projection, in_battle=in_battle, questions=questions)
+    repaired_projection = apply_state_patch(projection, patch)
+    post_ask = ask(
+        repaired_projection,
+        in_battle=in_battle,
+        questions=questions,
+    )
     record["post_ask"] = post_ask
     record["latency_s"] = round(time.monotonic() - started, 3)
     record["cost_usd"] = _sum_optional(patch.get("cost_usd"), post_ask.get("cost_usd"))
