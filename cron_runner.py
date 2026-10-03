@@ -796,6 +796,153 @@ class _RecoveryTrackers:
     a_press_count: int
 
 
+@dataclass
+class _NavigationHoldState:
+    """Run-local map memory that prevents an achieved transition from regressing.
+
+    A map transition is an edge with a direction.  Once the player crosses a
+    previously-unseen edge, the reverse direction remains guarded for every
+    later cycle on the destination map.  The state also owns the persistent
+    navigation goal injected into both decision paths.
+    """
+
+    current_map_id: int | None = None
+    current_map_name: str = ""
+    previous_map_id: int | None = None
+    previous_map_name: str = ""
+    entry_direction: str = ""
+    blocked_return_direction: str = ""
+    goal: str = ""
+    visited_maps: tuple[tuple[int, str], ...] = ()
+
+    def observe(
+        self,
+        map_id: int,
+        map_name: str,
+        last_direction: str,
+    ) -> dict[str, Any] | None:
+        """Remember one map observation and return a transition log row if changed."""
+        if map_id < 0:
+            return None
+        normalized_name = map_name or f"Map_{map_id:02X}"
+        if self.current_map_id is None:
+            self.current_map_id = map_id
+            self.current_map_name = normalized_name
+            self.visited_maps = ((map_id, normalized_name),)
+            return None
+        if map_id == self.current_map_id:
+            self.current_map_name = normalized_name
+            return None
+
+        source_id = self.current_map_id
+        source_name = self.current_map_name
+        direction = last_direction.upper()
+        if direction not in _OPPOSITE_DIR:
+            direction = ""
+        already_visited = any(seen_id == map_id for seen_id, _ in self.visited_maps)
+
+        self.previous_map_id = source_id
+        self.previous_map_name = source_name
+        self.current_map_id = map_id
+        self.current_map_name = normalized_name
+        if not already_visited:
+            self.visited_maps = (*self.visited_maps, (map_id, normalized_name))
+            self.entry_direction = direction
+            self.blocked_return_direction = _OPPOSITE_DIR.get(direction, "")
+            self.goal = (
+                f"Advance through {normalized_name} toward the next new map; "
+                f"do not return to {source_name}. The {source_name} edge is already completed."
+            )
+        else:
+            # The observation itself proves a regression already happened. Do
+            # not turn that old map into the new held destination; keep the goal
+            # pointed at the map from which progress was lost.
+            self.entry_direction = ""
+            self.blocked_return_direction = ""
+            self.goal = (
+                f"Return to {source_name}; entering {normalized_name} again was a regression."
+            )
+
+        return {
+            "event": "navigation_transition",
+            "from_map_id": source_id,
+            "from_map_name": source_name,
+            "to_map_id": map_id,
+            "to_map_name": normalized_name,
+            "crossing_direction": direction or None,
+            "blocked_return_direction": self.blocked_return_direction or None,
+            "regression": already_visited,
+            "persistent_goal": self.goal,
+            "visited_maps": [name for _, name in self.visited_maps],
+            "mechanism": "visited_map_edge_memory",
+        }
+
+    def context(self) -> dict[str, Any]:
+        """Return the bounded decision/log projection of the held edge."""
+        return {
+            "active": bool(self.blocked_return_direction),
+            "current_map_id": self.current_map_id,
+            "current_map_name": self.current_map_name,
+            "previous_map_id": self.previous_map_id,
+            "previous_map_name": self.previous_map_name,
+            "entry_direction": self.entry_direction,
+            "blocked_return_direction": self.blocked_return_direction,
+            "visited_maps": [name for _, name in self.visited_maps],
+            "goal": self.goal,
+        }
+
+
+def _guard_navigation_plan(
+    plan: list[str], navigation: dict[str, Any] | None
+) -> tuple[list[str], dict[str, Any] | None]:
+    """Replace actions that would traverse the held map edge in reverse."""
+    original = [str(button).upper() for button in plan]
+    if not isinstance(navigation, dict) or not navigation.get("active"):
+        return original, None
+    blocked = str(navigation.get("blocked_return_direction") or "").upper()
+    forward = str(navigation.get("entry_direction") or "").upper()
+    if blocked not in _OPPOSITE_DIR or forward not in _OPPOSITE_DIR:
+        return original, None
+
+    guarded = [forward if button == blocked else button for button in original]
+    if guarded == original:
+        return original, None
+    event = {
+        "mechanism": "reverse_edge_guard",
+        "reason": (
+            f"{blocked} reverses the completed transition from "
+            f"{navigation.get('previous_map_name')} to {navigation.get('current_map_name')}"
+        ),
+        "from_map_id": navigation.get("previous_map_id"),
+        "from_map_name": navigation.get("previous_map_name"),
+        "to_map_id": navigation.get("current_map_id"),
+        "to_map_name": navigation.get("current_map_name"),
+        "blocked_direction": blocked,
+        "replacement_direction": forward,
+        "original_plan": original,
+        "guarded_plan": guarded,
+        "persistent_goal": navigation.get("goal"),
+        "visited_maps": list(navigation.get("visited_maps") or []),
+    }
+    return guarded, event
+
+
+def _apply_navigation_hold_to_decision(
+    decision: dict[str, Any], spatial_desc: dict[str, Any]
+) -> dict[str, Any]:
+    """Apply the spatially-projected hold to one controller decision."""
+    raw_plan = decision.get("plan")
+    if not isinstance(raw_plan, list):
+        return decision
+    guarded, event = _guard_navigation_plan(
+        raw_plan,
+        spatial_desc.get("navigation_hold"),
+    )
+    if event is None:
+        return decision
+    return {**decision, "plan": guarded, "navigation_hold_event": event}
+
+
 def _reset_recovery_trackers(
     recovery_reason: str,
     *,
@@ -1677,6 +1824,7 @@ def _escalating_recovery(
     last_saved_slot: int | None,
     game_state: dict[str, Any] | None = None,
     decision_out: dict[str, Any] | None = None,
+    forbidden_directions: set[str] | None = None,
 ) -> tuple[str, str]:
     """Execute escalating recovery action. Returns (strategy_name, description).
 
@@ -1779,6 +1927,30 @@ def _escalating_recovery(
 
     elif level == 2 and last_direction in _OPPOSITE_DIR:
         opp = _OPPOSITE_DIR[last_direction]
+        forbidden = {direction.upper() for direction in (forbidden_directions or set())}
+        if opp in forbidden:
+            replacement = _DIR_ROTATION[opp]
+            for _ in range(4):
+                if replacement not in forbidden:
+                    break
+                replacement = _DIR_ROTATION[replacement]
+            if replacement in forbidden:
+                return (
+                    "navigation_hold_recovery_skipped",
+                    f"refused {opp}; every recovery direction is forbidden",
+                )
+            emu.press_button(replacement.lower(), frames=60)
+            emu.fast_forward(120)
+            if decision_out is not None:
+                decision_out["navigation_hold_recovery"] = {
+                    "mechanism": "reverse_edge_guard",
+                    "blocked_direction": opp,
+                    "replacement_direction": replacement,
+                }
+            return (
+                "navigation_hold_recovery",
+                f"refused reverse-edge {opp}; pressed {replacement} instead",
+            )
         emu.press_button(opp.lower(), frames=60)
         emu.fast_forward(120)
         return ("step_back", f"pressed {opp} (opposite of {last_direction})")
@@ -1807,6 +1979,8 @@ def _escalating_recovery(
         last_direction,
         last_saved_slot,
         game_state=game_state,
+        decision_out=decision_out,
+        forbidden_directions=forbidden_directions,
     )
 
 
@@ -2203,6 +2377,19 @@ def controller_plan(
         f"SCREEN TEXT: {text_str}\n"
         f"SUGGESTED ACTION: {suggested}"
     )
+    navigation_hold = spatial_desc.get("navigation_hold")
+    if isinstance(navigation_hold, dict) and navigation_hold.get("active"):
+        visited_maps = ", ".join(
+            str(name) for name in navigation_hold.get("visited_maps") or []
+        )
+        spatial_summary += (
+            "\nNAVIGATION HOLD: transition "
+            f"{navigation_hold.get('previous_map_name')} -> "
+            f"{navigation_hold.get('current_map_name')} is complete; "
+            f"never press {navigation_hold.get('blocked_return_direction')} because "
+            "that traverses the completed edge backward. "
+            f"Visited maps: {visited_maps or 'none'}."
+        )
 
     system = (
         load_system_prompt(hint_level=HINT_LEVEL)
@@ -2346,13 +2533,16 @@ def controller_plan(
 
     if kind == "plan" and payload is not None:
         payload["raw_response"] = text
-        return payload  # type: ignore[no-any-return]
+        return _apply_navigation_hold_to_decision(payload, spatial_desc)
     if kind == "button" and payload is not None:
-        return {
-            "plan": [payload["button"]],
-            "intent": payload.get("intent", ""),
-            "raw_response": text,
-        }
+        return _apply_navigation_hold_to_decision(
+            {
+                "plan": [payload["button"]],
+                "intent": payload.get("intent", ""),
+                "raw_response": text,
+            },
+            spatial_desc,
+        )
     if kind == "unreadable":
         return {"plan": ["A"], "intent": "parse_fallback", "raw_response": text}
     return {"plan": ["A"], "intent": "parse_failure_fallback", "raw_response": text}
@@ -4598,6 +4788,10 @@ def main() -> None:
     _agent_context = BoundedAgentContext()
     _agent_memory = DuckBrainAgentMemory()
     _research_delegate = ModelResearchDelegate(controller_client, controller_model)
+    # HOLD-1: unlike the bounded transcript, map-edge memory is authoritative
+    # run state. It survives every decision cycle and owns the anti-regression
+    # goal plus the reverse edge that must not be traversed.
+    _navigation_state = _NavigationHoldState()
 
     # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
     # Built ONCE here (not per cycle) from the four DuckBrain layers
@@ -4728,6 +4922,46 @@ def main() -> None:
             tile_recovery_reason = _tile_lock_reason(_last_tile, _same_tile_count)
 
             map_id = int(raw_map_id) if isinstance(raw_map_id, int) else -1
+
+            # HOLD-1: detect the edge before asking either decision path. The
+            # resulting goal and reverse-edge guard persist for every later
+            # cycle on the destination map. Saving an anchor here also ensures
+            # the recovery ladder cannot roll a held transition back to an old
+            # checkpoint on the source map.
+            _navigation_transition = _navigation_state.observe(
+                map_id,
+                str(patch_data.get("map_name") or ""),
+                _last_direction,
+            )
+            if _navigation_transition is not None:
+                _mem_goal = _navigation_state.goal
+                _same_dir = None
+                _same_dir_count = 0
+                _recovery_level = 0
+                _recovery_attempts = 0
+                _dir_blacklist.clear()
+                if not _navigation_transition["regression"] and st == "overworld":
+                    try:
+                        emu.save_state(_checkpoint_slot)
+                        _navigation_transition["anchor_checkpoint_slot"] = _checkpoint_slot
+                        _last_saved_slot = _checkpoint_slot
+                        _checkpoint_slot = (_checkpoint_slot + 1) % CHECKPOINT_SLOTS
+                    except Exception as exc:
+                        _navigation_transition["anchor_checkpoint_error"] = str(exc)
+                _navigation_transition = {
+                    "cycle": cycle + 1,
+                    **_navigation_transition,
+                }
+                results.append(_navigation_transition)
+                log_file.write(json.dumps(_navigation_transition, default=str) + "\n")
+                log_file.flush()
+                safe_print(
+                    "  [NAV-HOLD] "
+                    f"{_navigation_transition['from_map_name']} -> "
+                    f"{_navigation_transition['to_map_name']} | "
+                    f"block={_navigation_transition['blocked_return_direction']} | "
+                    f"regression={_navigation_transition['regression']}"
+                )
 
             # S2 world memory: retrieve facts already present at cycle start,
             # then persist this observation. The ordering makes next-cycle use
@@ -4981,6 +5215,11 @@ def main() -> None:
                                 _last_saved_slot,
                                 game_state=patch_data,
                                 decision_out=recovery_decision,
+                                forbidden_directions=(
+                                    {_navigation_state.blocked_return_direction}
+                                    if _navigation_state.blocked_return_direction
+                                    else None
+                                ),
                             )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
@@ -5056,6 +5295,14 @@ def main() -> None:
                             map_name=patch_data.get("map_name", ""),
                             screen=st,
                         )
+                # HOLD-1 projects the run-local map history into the reasoning
+                # path while the fast tier receives the same persistent goal.
+                _navigation_context = _navigation_state.context()
+                _controller_spatial = {
+                    **patch_data,
+                    "navigation_hold": _navigation_context,
+                }
+
                 # ── Step 2a: JEV tier (DF-JEV-1, PRD v3 stages 5-6) ────
                 # The cheap System-One tier decides this overworld cycle from
                 # the bounded RAM projection BEFORE the reasoning controller is
@@ -5150,7 +5397,7 @@ def main() -> None:
                     else:
                         decision = controller_plan(
                             controller_client,
-                            patch_data,
+                            _controller_spatial,
                             _last_direction or "",
                             _last_result,
                             blocked_dir=_same_dir or "",
@@ -5315,6 +5562,40 @@ def main() -> None:
                     log_file.write(json.dumps(evt, default=str) + "\n")
                     log_file.flush()
 
+                # HOLD-1 is the final movement filter so blacklist rotation,
+                # no-op recovery, and post-exhaustion injection cannot
+                # reintroduce the completed edge's reverse direction.
+                _controller_hold_event = decision.get("navigation_hold_event")
+                plan, _final_hold_event = _guard_navigation_plan(
+                    plan,
+                    _navigation_context,
+                )
+                _navigation_hold_event = (
+                    _final_hold_event
+                    if _final_hold_event is not None
+                    else (
+                        _controller_hold_event
+                        if isinstance(_controller_hold_event, dict)
+                        else None
+                    )
+                )
+                if _navigation_hold_event is not None:
+                    _navigation_hold_event = {
+                        "cycle": cycle + 1,
+                        "event": "navigation_hold_guard",
+                        **_navigation_hold_event,
+                        "executed_plan": plan,
+                    }
+                    results.append(_navigation_hold_event)
+                    log_file.write(json.dumps(_navigation_hold_event, default=str) + "\n")
+                    log_file.flush()
+                    safe_print(
+                        "  [NAV-HOLD] blocked "
+                        f"{_navigation_hold_event['blocked_direction']} -> "
+                        f"{_navigation_hold_event['replacement_direction']} | "
+                        f"plan={plan}"
+                    )
+
                 # JEV-1: JEV's missing-information taxonomy for this decision
                 # (only meaningful when the hand-back gate escalated it).
                 _missing_class = decision.get("missing_class")
@@ -5334,6 +5615,8 @@ def main() -> None:
                     "context_snapshot": _agent_context.render(),
                     "plan": plan,
                     "intent": intent,
+                    "navigation_hold": _navigation_context,
+                    "navigation_hold_applied": _navigation_hold_event is not None,
                     # JEV-1 (PRD v3 AC-1): every decision row carries the
                     # autonomy fields. DF-JEV-1 wired the JEV tier into this
                     # loop, so a row JEV decided (`pipeline="jev"`) fills them
@@ -5682,6 +5965,11 @@ def main() -> None:
                                 _last_saved_slot,
                                 game_state=patch_data,
                                 decision_out=recovery_decision,
+                                forbidden_directions=(
+                                    {_navigation_state.blocked_return_direction}
+                                    if _navigation_state.blocked_return_direction
+                                    else None
+                                ),
                             )
                         _recovery_level += 1
                         # Blacklist the blocked direction on checkpoint restore
