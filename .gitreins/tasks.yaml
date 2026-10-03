@@ -960,13 +960,14 @@ tasks:
   created_at: '2026-09-30T10:21:12.640407+00:00'
   completed_at: '2026-09-30T11:54:57.525994+00:00'
 - id: E2E-001
-  title: Run recurring E2E gameplay fixture
+  title: E2E fixture run T280 (recurring quality gate)
   criteria:
-  - Execute the 80-cycle E2E fixture with RSS watchdog; verify exit 0, no HSM spam,
-    stable memory, starter selection, battle behavior, and record evidence without
-    claiming unrun progression.
-  status: in_progress
-  created_at: '2026-10-01T07:45:52.066526+00:00'
+  - Run cron_runner.py fixture e2e001_20261003_t280 with 80 cycles, verify exit 0,
+    check metrics (autonomy >= 80/80, lock-rate <= 5%, peak RSS <= 150MB, API failures
+    = 0), verify starter-pick milestone fires, attempt to reach first battle
+  status: complete
+  created_at: '2026-10-03T15:28:25.768066+00:00'
+  completed_at: '2026-10-03T15:31:59.012504+00:00'
 - id: AGENT-1
   title: Give the agent an agentic context window, tool calls, and bounded delegation
   criteria:
@@ -1068,3 +1069,18 @@ tasks:
   status: complete
   created_at: '2026-10-02T23:30:15.717761+00:00'
   completed_at: '2026-10-03T00:30:20.571320+00:00'
+- id: NAV-MEM
+  title: S6 memory-driven navigation
+  criteria:
+  - memory-first navigation wired; memory_navigation_hits metric in run summary; regression
+    test for mock path memory; full suite green; guard green; commit pushed
+  status: in_progress
+  created_at: '2026-10-03T06:37:58.261541+00:00'
+- id: FIX-ENV-PREFLIGHT
+  title: cron_runner main() loads .env before JEV preflight (REV-4 regression fix)
+  criteria:
+  - main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test
+    proves ordering; live run passes preflight without exported key; fast suite green
+  status: complete
+  created_at: '2026-10-03T08:15:02.767703+00:00'
+  completed_at: '2026-10-03T09:44:46.696743+00:00'
