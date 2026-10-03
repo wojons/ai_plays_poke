@@ -176,6 +176,7 @@ class TestHeadlessRun:
 # ── full decision-loop test (ROM + API key) ────────────────────────────────
 
 
+@pytest.mark.live
 @pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api

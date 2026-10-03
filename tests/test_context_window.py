@@ -226,7 +226,10 @@ def test_live_teacher_prompt_and_logged_record_carry_prior_turns(monkeypatch):
     assert logged_row["request_prompt"] == prompt
     assert expected_block in logged_row["request_prompt"]
     assert results == [logged_row]
-    assert markers == ["  [CTX] teacher request carried 3 prior turns"]
+    assert markers == [
+        "  [NAV-MEM] no proven route (current_map_unknown) - keeping the existing path",
+        "  [CTX] teacher request carried 3 prior turns",
+    ]
     assert decision["plan"] == ["RIGHT"]
     print("captured teacher request prior-turn block:")
     print(expected_block)

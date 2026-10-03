@@ -22,6 +22,8 @@ from src.core.demo_runner import DemoRunner, demo_summary
 from src.core.emulator import Emulator
 from src.core.tools import TOOL_SCHEMA
 
+pytestmark = pytest.mark.live
+
 # ── helpers ────────────────────────────────────────────────────────────────
 
 _HERE = Path(__file__).resolve().parent

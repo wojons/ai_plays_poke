@@ -47,6 +47,7 @@ def test_default_boot_resolves_to_pallet_town_map_0():
     )
 
 
+@pytest.mark.live
 @pytest.mark.integration
 @pytest.mark.skipif(
     not Path(long_run.ROM).exists(), reason="ROM is a user-supplied file"
