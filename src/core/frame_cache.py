@@ -141,9 +141,17 @@ class FrameCache:
         return len(self._by_hash)
 
     def stats(self) -> dict[str, Any]:
+        size_bytes = 0
+        try:
+            size_bytes = self._path.stat().st_size
+        except OSError:
+            pass
         return {
             "cached_frames": self.unique_frames,
             "total_references": self.total_seen,
             "max_entries": self.MAX_ENTRIES,
             "path": str(self._path),
+            "cache_size_bytes": size_bytes,
+            "cache_size_mb": round(size_bytes / (1024 * 1024), 2),
+            "eviction_policy": "LRU by last_seen_cycle",
         }

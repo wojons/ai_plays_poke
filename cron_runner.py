@@ -6694,7 +6694,9 @@ def main() -> None:
         safe_print(
             f"[{run_id}] Frame cache saved: {_frame_cache.unique_frames} unique "
             f"frames / {_frame_cache.total_seen} total references "
-            f"({_frame_cache.stats()['max_entries']} max)"
+            f"({_frame_cache.stats()['max_entries']} max) — "
+            f"{_frame_cache.stats()['cache_size_mb']} MB on disk, "
+            f"eviction: {_frame_cache.stats()['eviction_policy']}"
         )
 
 
