@@ -1350,7 +1350,7 @@ def _is_battle_game_state(game_state: dict[str, Any] | None) -> bool:
     return screen == "battle" or bool(game_state.get("battle_state"))
 
 
-BATTLE_ACTIONS = {"MOVE_1", "MOVE_2", "MOVE_3", "MOVE_4", "SWITCH", "ITEM", "RUN"}
+BATTLE_ACTIONS = jev_client.BATTLE_ACTIONS
 
 
 def _battle_fallback_action(game_state: dict[str, Any]) -> str | None:
@@ -1413,7 +1413,7 @@ def _battle_action_description(tool_name: str, arguments: dict[str, Any]) -> str
 
 
 def _observe_battle_decision(game_state: dict[str, Any]) -> dict[str, Any] | None:
-    """Ask JEV for battle telemetry without changing the action controller chooses."""
+    """Ask JEV for the next normal battle action and its raw evidence."""
     if current_mode_family() == MODE_SYSTEM2:
         return None
     try:
@@ -1426,6 +1426,26 @@ def _observe_battle_decision(game_state: dict[str, Any]) -> dict[str, Any] | Non
         safe_print(f"  [JEV] battle observation failed: {exc!r}")
         return None
     return decision if isinstance(decision, dict) else None
+
+
+def _jev_battle_action(decision: dict[str, Any] | None) -> str | None:
+    """Return a valid action from a successful JEV battle decision."""
+    if not isinstance(decision, dict) or not decision.get("ok"):
+        return None
+    raw_action = decision.get("next_action")
+    action = raw_action.upper() if isinstance(raw_action, str) else None
+    return action if action in BATTLE_ACTIONS else None
+
+
+def _jev_battle_tool_call(
+    decision: dict[str, Any] | None, game_state: dict[str, Any]
+) -> dict[str, Any] | None:
+    """Translate an available JEV battle choice for StateWindow execution."""
+    action = _jev_battle_action(decision)
+    if action is None:
+        return None
+    tool_name, arguments = _battle_tool_call(action, game_state)
+    return {"name": tool_name, "arguments": arguments}
 
 
 def _executed_battle_action(history: list[dict[str, Any]]) -> str | None:
@@ -1467,7 +1487,8 @@ def _stamp_battle_observability(
     entry.update(
         {
             "phase": "BATTLE",
-            "battle_action": _executed_battle_action(history),
+            "battle_action": _jev_battle_action(jev_decision)
+            or _executed_battle_action(history),
             "raw_distribution": (
                 jev_decision.get("raw") if isinstance(jev_decision, dict) else None
             ),
@@ -6742,8 +6763,9 @@ def main() -> None:
                     log_file.flush()
                     safe_print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle + 1}")
 
-                # Probe JEV for battle telemetry only. StateWindow still chooses and
-                # executes the action, preserving the established battle behavior.
+                # Normal battle turns ask JEV first. StateWindow executes the typed
+                # choice directly; its established model/select_move(1) path remains
+                # the fallback when JEV is disabled, unavailable, or malformed.
                 battle_jev_decision = (
                     _observe_battle_decision(vis_dict)
                     if state_type == "battle"
@@ -6776,6 +6798,11 @@ def main() -> None:
                     hint_level=HINT_LEVEL,
                     use_ram_prompts=True,
                     failed_flee_attempts=_failed_flee_attempts,
+                    battle_tool_call=(
+                        _jev_battle_tool_call(battle_jev_decision, vis_dict)
+                        if state_type == "battle"
+                        else None
+                    ),
                 )
                 result = win.run()
                 if state_type == "battle":

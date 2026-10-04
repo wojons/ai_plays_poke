@@ -47,6 +47,9 @@ PROGRESS_FLOOR = 1.0  # score 0..3; below this = not making progress
 RECENT_DECISION_LIMIT = 6
 
 BUTTONS = ["UP", "DOWN", "LEFT", "RIGHT", "A", "B", "START", "WAIT"]
+BATTLE_ACTIONS: frozenset[str] = frozenset(
+    {"MOVE_1", "MOVE_2", "MOVE_3", "MOVE_4", "SWITCH", "ITEM", "RUN"}
+)
 
 MISSING_CLASSES = {
     "none": "the state is complete for this decision",

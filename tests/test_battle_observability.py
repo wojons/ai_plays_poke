@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 import cron_runner
 from src.core import jev_client
+from src.core.global_context import GlobalContext
+from src.core.state_window import StateWindow
 
 
-def test_real_battle_path_stamps_executed_action_and_jev_payload(
+def test_normal_battle_routes_jev_action_through_state_window_and_stamps_row(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     raw = {
@@ -38,27 +41,95 @@ def test_real_battle_path_stamps_executed_action_and_jev_payload(
         "battle_state": {"player": {"moves": [{"slot": 1}, {"slot": 3}]}},
     }
     observation = cron_runner._observe_battle_decision(game_state)
-    row = {"cycle": 5, "screen": "battle", "action": "select_move({'move_number': 3})"}
+    battle_tool_call = cron_runner._jev_battle_tool_call(observation, game_state)
+    emulator = MagicMock()
 
+    with (
+        patch("src.core.state_window.OpenRouterClient") as client_cls,
+        patch(
+            "src.core.state_window.execute_tool_call", return_value="selected move 3"
+        ) as execute,
+        patch("src.core.state_window.battle_status", return_value="wild"),
+    ):
+        window = StateWindow(
+            "battle",
+            GlobalContext(),
+            emulator,
+            game_state,
+            max_steps=5,
+            battle_tool_call=battle_tool_call,
+        )
+        window._check_outcome = MagicMock(return_value=None)
+        result = window.run()
+
+    row = {
+        "cycle": 5,
+        "screen": "battle",
+        "action": "select_move({'move_number': 3})",
+    }
     cron_runner._stamp_battle_observability(
         row,
         state_type="battle",
-        history=[
-            {
-                "tool_call": {
-                    "name": "select_move",
-                    "arguments": {"move_number": 3},
-                }
-            }
-        ],
+        history=window._history,
         jev_decision=observation,
     )
 
     assert len(calls) == 1
     assert calls[0][1] == {"in_battle": True, "act_phase": True}
+    execute.assert_called_once_with(
+        emulator,
+        tool_name="select_move",
+        arguments={"move_number": 3},
+    )
+    client_cls.return_value.send_tool_request.assert_not_called()
+    assert result["steps"] == 1
     assert row["phase"] == "BATTLE"
     assert row["battle_action"] == "MOVE_3"
     assert row["raw_distribution"] == raw
+
+
+def test_jev_unavailable_keeps_existing_state_window_fallback() -> None:
+    game_state = {
+        "result": "battle",
+        "battle_state": {"player": {"moves": [{"slot": 1}]}},
+    }
+    unavailable = {"ok": False, "error": "JEV unavailable"}
+
+    assert cron_runner._jev_battle_tool_call(None, game_state) is None
+    assert cron_runner._jev_battle_tool_call(unavailable, game_state) is None
+
+    emulator = MagicMock()
+    query = '{"name":"query_global","arguments":{"question":"best move?"}}'
+    with (
+        patch("src.core.state_window.OpenRouterClient") as client_cls,
+        patch(
+            "src.core.state_window.execute_tool_call", return_value="selected move 1"
+        ) as execute,
+    ):
+        client_cls.return_value.send_tool_request.return_value = query
+        window = StateWindow(
+            "battle",
+            GlobalContext(),
+            emulator,
+            game_state,
+            max_steps=3,
+            battle_tool_call=cron_runner._jev_battle_tool_call(unavailable, game_state),
+        )
+        window._check_outcome = MagicMock(return_value=None)
+        window.run()
+
+    assert client_cls.return_value.send_tool_request.call_count == 3
+    execute.assert_called_once_with(
+        emulator,
+        tool_name="select_move",
+        arguments={"move_number": 1},
+    )
+
+
+def test_public_battle_vocabulary_matches_jev_questions() -> None:
+    criteria = jev_client._questions(in_battle=True)["next_action"]["criteria"]
+
+    assert set(criteria) == jev_client.BATTLE_ACTIONS
 
 
 def test_non_battle_shaped_jev_answer_stamps_effective_fallback_without_fabrication() -> (

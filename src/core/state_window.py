@@ -271,6 +271,7 @@ class StateWindow:
         use_ram_prompts: bool = False,
         hsm: HierarchicalStateMachine | None = None,
         failed_flee_attempts: int = 0,
+        battle_tool_call: dict[str, Any] | None = None,
     ) -> None:
         self.state_type = state_type
         self.global_ctx = global_ctx
@@ -291,6 +292,17 @@ class StateWindow:
         # Sliding window of last 5 actions with outcomes for controller context
         self._recent_actions: list[str] = []  # "pressed DOWN → moved to (3,5)"
         self._failed_flee_attempts = max(0, failed_flee_attempts)
+        self._battle_tool_call = (
+            {
+                "name": battle_tool_call["name"],
+                "arguments": dict(battle_tool_call.get("arguments", {})),
+            }
+            if state_type == "battle"
+            and isinstance(battle_tool_call, dict)
+            and isinstance(battle_tool_call.get("name"), str)
+            and isinstance(battle_tool_call.get("arguments", {}), dict)
+            else None
+        )
 
         # Track last known player position for movement detection
         self._last_player_pos: tuple[int, int] | None = None
@@ -473,35 +485,43 @@ class StateWindow:
             else:
                 _auto_a_count = 0  # reset on interactive or non-dialog states
 
-            # Build the focused prompt
-            prompt = self._build_prompt()
-
-            # Get action from thinking model
-            response = self.client.send_tool_request(
-                prompt=prompt,
-                tools=TOOL_SCHEMA + _DUCKBRAIN_TOOLS + [_QUERY_GLOBAL_TOOL],
-                model=self.thinking_model,
-                max_tokens=2000,
-                temperature=0.3,
+            preselected_battle_action = (
+                self._battle_tool_call if self._step_count == 1 else None
             )
+            if preselected_battle_action is not None:
+                tool_call = preselected_battle_action
+            else:
+                # Build the focused prompt
+                prompt = self._build_prompt()
 
-            self._raw_responses.append(response or "")
+                # Get action from thinking model
+                response = self.client.send_tool_request(
+                    prompt=prompt,
+                    tools=TOOL_SCHEMA + _DUCKBRAIN_TOOLS + [_QUERY_GLOBAL_TOOL],
+                    model=self.thinking_model,
+                    max_tokens=2000,
+                    temperature=0.3,
+                )
 
-            # Parse tool call
-            from src.core.tools import parse_tool_call
+                self._raw_responses.append(response or "")
 
-            tool_call = parse_tool_call(response) if response else None
-            if tool_call is None:
-                tool_call = {
-                    "name": "press_button",
-                    "arguments": {"button": "a", "duration": 5},
-                }
-            # Normalize arguments to dict
-            if isinstance(tool_call.get("arguments"), str):
-                try:
-                    tool_call["arguments"] = json.loads(tool_call["arguments"])
-                except (json.JSONDecodeError, TypeError):
-                    tool_call["arguments"] = {"raw": tool_call["arguments"]}
+                # Parse tool call
+                from src.core.tools import parse_tool_call
+
+                parsed_tool_call = parse_tool_call(response) if response else None
+                if parsed_tool_call is None:
+                    tool_call = {
+                        "name": "press_button",
+                        "arguments": {"button": "a", "duration": 5},
+                    }
+                else:
+                    tool_call = parsed_tool_call
+                # Normalize arguments to dict
+                if isinstance(tool_call.get("arguments"), str):
+                    try:
+                        tool_call["arguments"] = json.loads(tool_call["arguments"])
+                    except (json.JSONDecodeError, TypeError):
+                        tool_call["arguments"] = {"raw": tool_call["arguments"]}
 
             # Handle query_global calls
             if tool_call["name"] == "query_global":
@@ -717,6 +737,11 @@ class StateWindow:
                 outcome["_battle_events"] = self._battle_events
                 outcome["_failed_flee_attempts"] = self._failed_flee_attempts
                 return outcome
+
+            # A JEV choice is one complete normal battle turn. Return control to
+            # cron_runner so the next turn starts from a fresh RAM observation.
+            if preselected_battle_action is not None:
+                break
 
         # Max steps reached without resolution
         result: dict[str, Any] = {
