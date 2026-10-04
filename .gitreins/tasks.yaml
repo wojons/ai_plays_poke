@@ -1130,5 +1130,14 @@ tasks:
   - 'act run''s ''Type check (mypy)'' step must not crash on a fresh agent: reproduce
     locally with act, identify the environment difference vs hosted CI, land a minimal
     ci.yml or workflow fix, verify the step passes under act AND hosted CI stays green'
-  status: in_progress
+  status: complete
   created_at: '2026-10-04T17:21:52.509480+00:00'
+  completed_at: '2026-10-04T17:46:13.756828+00:00'
+- id: DOC-6
+  title: Full CLI Flags table in docs/api/cron_runner.md
+  criteria:
+  - docs/api/cron_runner.md CLI Flags table has a row for every argparse flag in cron_runner.py
+    _main_parser; defaults match help text
+  status: complete
+  created_at: '2026-10-04T17:37:44.075738+00:00'
+  completed_at: '2026-10-04T17:37:55.382245+00:00'

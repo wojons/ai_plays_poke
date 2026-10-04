@@ -1,0 +1,122 @@
+{
+  "task_id": "QA-AI-PLAYS-POKE-11",
+  "task_title": "Fix act mypy step crash (fresh-agent false-red)",
+  "task_criteria": [
+    "act run's 'Type check (mypy)' step must not crash on a fresh agent: reproduce locally with act, identify the environment difference vs hosted CI, land a minimal ci.yml or workflow fix, verify the step passes under act AND hosted CI stays green"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "1d14725b24107c6d762075eb26c6384c1a7d9e37",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261004T114038.110353Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4424 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [474185 chars omitted \u2014 5204 line(s)] \u2026\ntest_bench_pathfinding_small_grid              620.9593 (1.24)           6,671.9949 (2.99)            865.6043 (1.33)            194.5492 (1.0)             872.0672 (1.64)           130.9672 (2.91)       100;13  1,155,262.2450 (0.75)       1393           1\ntest_bench_vision_pipeline_validate          6,051.0356 (12.08)        606,423.0110 (271.45)        6,668.7196 (10.26)         3,001.4411 (15.43)         6,561.9824 (12.36)          261.0032 (5.80)     584;1503    149,953.8227 (0.10)      42438           1\ntest_bench_ram_reader_observe            1,839,627.0461 (>1000.0)  145,981,084.0897 (>1000.0)   2,905,813.8465 (>1000.0)  10,267,363.7733 (>1000.0)   2,080,423.0589 (>1000.0)     97,543.4086 (>1000.0)      3;82        344.1377 (0.00)        515           1\ntest_bench_vision_pipeline_process      37,513,989.0239 (>1000.0)   43,969,084.0431 (>1000.0)  39,135,623.6370 (>1000.0)   1,601,604.3635 (>1000.0)  38,350,760.0054 (>1000.0)  1,861,812.7215 (>1000.0)       5;2         25.5522 (0.00)         27           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4410 passed, 14 skipped in 246.84s (0:04:06) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261004T114038.110353Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 act run's 'Type check (mypy)' step must not crash on a fresh agent: reproduce locally with act, identify the environment difference vs hosted CI, land a minimal ci.yml or workflow fix, verify the step passes under act AND hosted CI stays green: 4 of 5 conjuncts verified PASS, but the final conjunct 'hosted CI stays green' is UNVERIFIED. PASS parts: (a) reproduced locally with act \u2014 pre-fix workflow fails with 'python3: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.38' not found (required by /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.11.so.1.0)' (/tmp/act_old.log:39-41); (b) env difference identified \u2014 act's default node image glibc 2.35 vs setup-python's cached 3.11.16 needing GLIBC_2.38, hosted ubuntu-latest = 24.04/glibc 2.39; (c) minimal fix landed \u2014 commit 60399bf adds 6 lines to .github/workflows/ci.yml: 'container: catthehacker/ubuntu:act-latest' + 'defaults.run.shell: bash'; (d) step passes under act \u2014 verified twice: 'Success: no issues found in 85 source files' + '\u2705 Success - Main Type check (mypy)' + full job '\ud83c\udfc6 Job succeeded' (/tmp/act_mypy2.log:674-675, /tmp/act_full.log:675,5985,5994); regression test tests/test_ci_scope.py::test_ci_uses_a_glibc_compatible_act_container PASSES (2 passed in 5.46s); full local suite green (4408 passed, 8 skipped). FAIL part: 'hosted CI stays green' has ZERO evidence \u2014 .coding-hermes/board/tasks.jsonl QA-AI-PLAYS-POKE-11 is status=pending with ci_result=None, guard_result=None, commit_hash=None, completed_at=None; foreman_note records 'RECURRED AGAIN at HEAD 41e29a8 (act mypy step \u274c 12.0s crash-shaped...)'; commit 60399bf was made by a SIBLING lane (foreman tick 282 / commit 1d14725) that found the fix 'stranded/dirty in tree' and did only 'Tier1 completion' (board trace witness=none:lane-fix-committed-tier1-only); no CI run record for 60399bf exists. Critically, the fix CHANGES hosted CI's execution model (the job now runs inside the third-party container catthehacker/ubuntu:act-latest), a behavioral change to hosted CI that was never validated green. The fix is functionally plausible (container is Ubuntu 24.04 with sudo/git/curl/python3 and setup-python works inside it), so hosted CI would likely stay green \u2014 but the criterion explicitly requires that verification and none exists.\nThe act mypy crash was reproduced, root-caused to a glibc mismatch, fixed with a minimal ci.yml container change, and the step now passes under act \u2014 but the criterion's explicit 'hosted CI stays green' requirement is unverified (board task still pending, ci_result=None, fix committed by a sibling lane as tier1-only).",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 act run's 'Type check (mypy)' step must not crash on a fresh agent: reproduce locally with act, identify the environment difference vs hosted CI, land a minimal ci.yml or workflow fix, verify the step passes under act AND hosted CI stays green: 4 of 5 conjuncts verified PASS, but the final conjunct 'hosted CI stays green' is UNVERIFIED. PASS parts: (a) reproduced locally with act \u2014 pre-fix workflow fails with 'python3: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.38' not found (required by /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.11.so.1.0)' (/tmp/act_old.log:39-41); (b) env difference identified \u2014 act's default node image glibc 2.35 vs setup-python's cached 3.11.16 needing GLIBC_2.38, hosted ubuntu-latest = 24.04/glibc 2.39; (c) minimal fix landed \u2014 commit 60399bf adds 6 lines to .github/workflows/ci.yml: 'container: catthehacker/ubuntu:act-latest' + 'defaults.run.shell: bash'; (d) step passes under act \u2014 verified twice: 'Success: no issues found in 85 source files' + '\u2705 Success - Main Type check (mypy)' + full job '\ud83c\udfc6 Job succeeded' (/tmp/act_mypy2.log:674-675, /tmp/act_full.log:675,5985,5994); regression test tests/test_ci_scope.py::test_ci_uses_a_glibc_compatible_act_container PASSES (2 passed in 5.46s); full local suite green (4408 passed, 8 skipped). FAIL part: 'hosted CI stays green' has ZERO evidence \u2014 .coding-hermes/board/tasks.jsonl QA-AI-PLAYS-POKE-11 is status=pending with ci_result=None, guard_result=None, commit_hash=None, completed_at=None; foreman_note records 'RECURRED AGAIN at HEAD 41e29a8 (act mypy step \u274c 12.0s crash-shaped...)'; commit 60399bf was made by a SIBLING lane (foreman tick 282 / commit 1d14725) that found the fix 'stranded/dirty in tree' and did only 'Tier1 completion' (board trace witness=none:lane-fix-committed-tier1-only); no CI run record for 60399bf exists. Critically, the fix CHANGES hosted CI's execution model (the job now runs inside the third-party container catthehacker/ubuntu:act-latest), a behavioral change to hosted CI that was never validated green. The fix is functionally plausible (container is Ubuntu 24.04 with sudo/git/curl/python3 and setup-python works inside it), so hosted CI would likely stay green \u2014 but the criterion explicitly requires that verification and none exists.\nThe act mypy crash was reproduced, root-caused to a glibc mismatch, fixed with a minimal ci.yml container change, and the step now passes under act \u2014 but the criterion's explicit 'hosted CI stays green' requirement is unverified (board task still pending, ci_result=None, fix committed by a sibling lane as tier1-only).",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "act run's 'Type check (mypy)' step must not crash on a fresh agent: reproduce locally with act, identify the environment difference vs hosted CI, land a minimal ci.yml or workflow fix, verify the step passes under act AND hosted CI stays green",
+                "status": "FAIL",
+                "detail": "4 of 5 conjuncts verified PASS, but the final conjunct 'hosted CI stays green' is UNVERIFIED. PASS parts: (a) reproduced locally with act \u2014 pre-fix workflow fails with 'python3: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.38' not found (required by /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.11.so.1.0)' (/tmp/act_old.log:39-41); (b) env difference identified \u2014 act's default node image glibc 2.35 vs setup-python's cached 3.11.16 needing GLIBC_2.38, hosted ubuntu-latest = 24.04/glibc 2.39; (c) minimal fix landed \u2014 commit 60399bf adds 6 lines to .github/workflows/ci.yml: 'container: catthehacker/ubuntu:act-latest' + 'defaults.run.shell: bash'; (d) step passes under act \u2014 verified twice: 'Success: no issues found in 85 source files' + '\u2705 Success - Main Type check (mypy)' + full job '\ud83c\udfc6 Job succeeded' (/tmp/act_mypy2.log:674-675, /tmp/act_full.log:675,5985,5994); regression test tests/test_ci_scope.py::test_ci_uses_a_glibc_compatible_act_container PASSES (2 passed in 5.46s); full local suite green (4408 passed, 8 skipped). FAIL part: 'hosted CI stays green' has ZERO evidence \u2014 .coding-hermes/board/tasks.jsonl QA-AI-PLAYS-POKE-11 is status=pending with ci_result=None, guard_result=None, commit_hash=None, completed_at=None; foreman_note records 'RECURRED AGAIN at HEAD 41e29a8 (act mypy step \u274c 12.0s crash-shaped...)'; commit 60399bf was made by a SIBLING lane (foreman tick 282 / commit 1d14725) that found the fix 'stranded/dirty in tree' and did only 'Tier1 completion' (board trace witness=none:lane-fix-committed-tier1-only); no CI run record for 60399bf exists. Critically, the fix CHANGES hosted CI's execution model (the job now runs inside the third-party container catthehacker/ubuntu:act-latest), a behavioral change to hosted CI that was never validated green. The fix is functionally plausible (container is Ubuntu 24.04 with sudo/git/curl/python3 and setup-python works inside it), so hosted CI would likely stay green \u2014 but the criterion explicitly requires that verification and none exists.",
+                "resolution_probability": 0.17,
+                "cited_path": "ci.yml"
+              }
+            ],
+            "summary": "The act mypy crash was reproduced, root-caused to a glibc mismatch, fixed with a minimal ci.yml container change, and the step now passes under act \u2014 but the criterion's explicit 'hosted CI stays green' requirement is unverified (board task still pending, ci_result=None, fix committed by a sibling lane as tier1-only)."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: QA-AI-PLAYS-POKE-11\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 act run's 'Type check (mypy)' step must not crash on a fresh agent: reproduce locally with act, identify the environment difference vs hosted CI, land a minimal ci.yml or workflow fix, verify the step passes under act AND hosted CI stays green: 4 of 5 conjuncts verified PASS, but the final conjunct 'hosted CI stays green' is UNVERIFIED. PASS parts: (a) reproduced locally with act \u2014 pre-fix workflow fails with 'python3: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.38' not found (required by /opt/hostedtoolcache/Python/3.11.16/x64/lib/libpython3.11.so.1.0)' (/tmp/act_old.log:39-41); (b) env difference identified \u2014 act's default node image glibc 2.35 vs setup-python's cached 3.11.16 needing GLIBC_2.38, hosted ubuntu-latest = 24.04/glibc 2.39; (c) minimal fix landed \u2014 commit 60399bf adds 6 lines to .github/workflows/ci.yml: 'container: catthehacker/ubuntu:act-latest' + 'defaults.run.shell: bash'; (d) step passes under act \u2014 verified twice: 'Success: no issues found in 85 source files' + '\u2705 Success - Main Type check (mypy)' + full job '\ud83c\udfc6 Job succeeded' (/tmp/act_mypy2.log:674-675, /tmp/act_full.log:675,5985,5994); regression test tests/test_ci_scope.py::test_ci_uses_a_glibc_compatible_act_container PASSES (2 passed in 5.46s); full local suite green (4408 passed, 8 skipped). FAIL part: 'hosted CI stays green' has ZERO evidence \u2014 .coding-hermes/board/tasks.jsonl QA-AI-PLAYS-POKE-11 is status=pending with ci_result=None, guard_result=None, commit_hash=None, completed_at=None; foreman_note records 'RECURRED AGAIN at HEAD 41e29a8 (act mypy step \u274c 12.0s crash-shaped...)'; commit 60399bf was made by a SIBLING lane (foreman tick 282 / commit 1d14725) that found the fix 'stranded/dirty in tree' and did only 'Tier1 completion' (board trace witness=none:lane-fix-committed-tier1-only); no CI run record for 60399bf exists. Critically, the fix CHANGES hosted CI's execution model (the job now runs inside the third-party container catthehacker/ubuntu:act-latest), a behavioral change to hosted CI that was never validated green. The fix is functionally plausible (container is Ubuntu 24.04 with sudo/git/curl/python3 and setup-python works inside it), so hosted CI would likely stay green \u2014 but the criterion explicitly requires that verification and none exists.\nThe act mypy crash was reproduced, root-caused to a glibc mismatch, fixed with a minimal ci.yml container change, and the step now passes under act \u2014 but the criterion's explicit 'hosted CI stays green' requirement is unverified (board task still pending, ci_result=None, fix committed by a sibling lane as tier1-only).\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-04T18:05:17.848683",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-04T18:05:17.879581+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 4796,
+        "truncated": false,
+        "source": "git show 1d14725b2410"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 927,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "QA-AI-PLAYS-POKE-11"
+  }
+}
