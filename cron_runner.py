@@ -859,9 +859,7 @@ class _NavigationHoldState:
             # pointed at the map from which progress was lost.
             self.entry_direction = ""
             self.blocked_return_direction = ""
-            self.goal = (
-                f"Return to {source_name}; entering {normalized_name} again was a regression."
-            )
+            self.goal = f"Return to {source_name}; entering {normalized_name} again was a regression."
 
         return {
             "event": "navigation_transition",
@@ -1580,6 +1578,9 @@ def _teacher_world_memory_targets(
 # state, so a route recorded by an earlier run is usable after a restart.
 PATH_MEMORY_PREFIX = "/world/path/"
 PATH_MEMORY_RECALL_LIMIT = 16
+WORLD_MEMORY_TOP_K = 8
+WORLD_MEMORY_BLOCK_CHARS = 2_000
+WORLD_MEMORY_FACT_CHARS = 240
 # The decision-pipeline stamped on a row whose plan came from path memory.
 MEMORY_NAV_PIPELINE = "memory_nav"
 # The one JEV missing-information class whose decisions are navigation. Only a
@@ -1618,6 +1619,48 @@ def _parse_path_memory_key(key: Any) -> tuple[str, str] | None:
     if not separator or not from_slug or not to_slug:
         return None
     return from_slug, to_slug
+
+
+def _world_memory_key(fact: Any) -> str | None:
+    """Extract the stable cited key from one rendered ``/world/*`` fact."""
+    if not isinstance(fact, str):
+        return None
+    key = fact.partition(":")[0].strip()
+    return key if key.startswith("/world/") else None
+
+
+def _bounded_world_facts(facts: list[str] | None) -> list[str]:
+    """Apply S3's top-K and character ceilings to decision-memory facts."""
+    bounded: list[str] = []
+    used = 0
+    for raw in facts or []:
+        if len(bounded) >= WORLD_MEMORY_TOP_K:
+            break
+        fact = " ".join(str(raw).split())
+        if not fact:
+            continue
+        if len(fact) > WORLD_MEMORY_FACT_CHARS:
+            fact = fact[: WORLD_MEMORY_FACT_CHARS - 3] + "..."
+        remaining = WORLD_MEMORY_BLOCK_CHARS - used
+        if remaining <= 0:
+            break
+        if len(fact) > remaining:
+            if remaining < 4:
+                break
+            fact = fact[: remaining - 3] + "..."
+        bounded.append(fact)
+        used += len(fact)
+    return bounded
+
+
+def _world_memory_block(facts: list[str] | None) -> str:
+    """Render the bounded relevant-memory block for the reasoning controller."""
+    bounded = _bounded_world_facts(facts)
+    if not bounded:
+        return ""
+    return "RELEVANT WORLD MEMORY (top 8, cited keys):\n" + "\n".join(
+        f"- {fact}" for fact in bounded
+    )
 
 
 def _observation_map_slug(observation: dict[str, Any]) -> str | None:
@@ -1735,9 +1778,7 @@ def _memory_navigation_route(
 
     current_tile = _observation_tile(observation)
     walkability = _memory_walkability(observation)
-    candidates: list[
-        tuple[str, dict[str, Any], str, tuple[int, int] | None]
-    ] = []
+    candidates: list[tuple[str, dict[str, Any], str, tuple[int, int] | None]] = []
     for record in records:
         if not isinstance(record, dict):
             continue
@@ -1775,9 +1816,7 @@ def _memory_navigation_route(
         "from_map": parsed[0],
         "to_map": parsed[1],
         "crossing_direction": direction or None,
-        "door_tile": (
-            {"x": door[0], "y": door[1]} if door is not None else None
-        ),
+        "door_tile": ({"x": door[0], "y": door[1]} if door is not None else None),
         "arrival_tile": attributes.get("arrival_tile"),
         "plan": plan,
         "mechanism": mechanism,
@@ -1856,12 +1895,25 @@ def _path_memory_write(
     direction = str(transition.get("crossing_direction") or "").upper()
     door = _tile_from_point(transition.get("departure_tile"))
     arrival = _observation_tile(observation)
+    route_tiles: list[dict[str, int]] = []
+    raw_route = transition.get("route_tiles")
+    if isinstance(raw_route, list):
+        for raw_tile in raw_route:
+            tile = _tile_from_point(raw_tile)
+            rendered_tile = {"x": tile[0], "y": tile[1]} if tile is not None else None
+            if rendered_tile is not None and rendered_tile not in route_tiles:
+                route_tiles.append(rendered_tile)
+    if door is not None:
+        rendered_door = {"x": door[0], "y": door[1]}
+        if rendered_door not in route_tiles:
+            route_tiles.append(rendered_door)
 
     attributes: dict[str, Any] = {
         "fact_type": "path_transition",
         "from_map": {"id": from_id, "name": from_name},
         "to_map": {"id": to_id, "name": to_name},
         "crossing_direction": direction or None,
+        "route_tiles": route_tiles,
         "regression": bool(transition.get("regression")),
     }
     if door is not None:
@@ -1873,8 +1925,7 @@ def _path_memory_write(
         f"Proven route: from {from_name or from_slug}, press {direction} "
         f"to reach {to_name or to_slug}"
         if direction
-        else f"Proven route: {from_name or from_slug} connects to "
-        f"{to_name or to_slug}"
+        else f"Proven route: {from_name or from_slug} connects to {to_name or to_slug}"
     )
     return {
         "key": f"/{domain}",
@@ -1885,6 +1936,86 @@ def _path_memory_write(
         "confidence": confidence,
         "evidence": evidence,
         "applies_when": {"from_map_id": from_id},
+    }
+
+
+def _transition_map_exit_write(
+    transition: dict[str, Any],
+    *,
+    existing: dict[str, Any] | None,
+    evidence: dict[str, Any],
+    confidence: float,
+) -> dict[str, Any] | None:
+    """Merge a newly proven exit into the source map's durable map record."""
+    from_id = transition.get("from_map_id")
+    to_id = transition.get("to_map_id")
+    door = _tile_from_point(transition.get("departure_tile"))
+    if not isinstance(from_id, int) or not isinstance(to_id, int) or door is None:
+        return None
+    if from_id < 0 or to_id < 0:
+        return None
+    from_name = str(transition.get("from_map_name") or f"Map_{from_id:02X}")
+    to_name = str(transition.get("to_map_name") or f"Map_{to_id:02X}")
+    direction = str(transition.get("crossing_direction") or "").upper() or None
+    attributes: dict[str, Any] = {}
+    if isinstance(existing, dict) and isinstance(existing.get("attributes"), dict):
+        attributes.update(existing["attributes"])
+    attributes.update(
+        {
+            "fact_type": "map_observation",
+            "map_id": from_id,
+            "map_name": from_name,
+        }
+    )
+    raw_exits = attributes.get("exits")
+    exits = (
+        [dict(item) for item in raw_exits if isinstance(item, dict)]
+        if isinstance(raw_exits, list)
+        else []
+    )
+    new_exit = {
+        "tile": {"x": door[0], "y": door[1]},
+        "destination": {"id": to_id, "name": to_name},
+        "crossing_direction": direction,
+    }
+    if new_exit in exits:
+        return None
+    exits.append(new_exit)
+    attributes["exits"] = exits
+
+    raw_tiles_visited = attributes.get("tiles_visited")
+    tiles_visited = (
+        [dict(item) for item in raw_tiles_visited if isinstance(item, dict)]
+        if isinstance(raw_tiles_visited, list)
+        else []
+    )
+    raw_route = transition.get("route_tiles")
+    for raw_tile in raw_route if isinstance(raw_route, list) else []:
+        tile = _tile_from_point(raw_tile)
+        rendered = {"x": tile[0], "y": tile[1]} if tile is not None else None
+        if rendered is not None and rendered not in tiles_visited:
+            tiles_visited.append(rendered)
+    door_point = {"x": door[0], "y": door[1]}
+    if door_point not in tiles_visited:
+        tiles_visited.append(door_point)
+    attributes["tiles_visited"] = tiles_visited
+
+    source_evidence = {
+        **evidence,
+        "map": {"id": from_id, "name": from_name},
+        "tile": door_point,
+    }
+    domain = f"world/map/{from_id}"
+    return {
+        "key": f"/{domain}",
+        "domain": domain,
+        "attributes": attributes,
+        "embedding_text": (
+            f"Observed {from_name} exit at ({door[0]},{door[1]}) to {to_name}"
+        ),
+        "labels": ["world", domain],
+        "confidence": confidence,
+        "evidence": source_evidence,
     }
 
 
@@ -1927,8 +2058,15 @@ def _jev_overworld_decision(
     ``missing_class`` and ``raw_distribution`` (the full answer distribution).
     """
     try:
-        if world_facts:
-            safe_print(f"  [MEM-WORLD] {len(world_facts)} facts -> JEV projection")
+        bounded_world_facts = _bounded_world_facts(world_facts)
+        world_memory_keys = [
+            key for fact in bounded_world_facts if (key := _world_memory_key(fact))
+        ]
+        if bounded_world_facts:
+            safe_print(
+                f"  [MEM-WORLD] {len(bounded_world_facts)} facts -> JEV projection: "
+                + ", ".join(world_memory_keys)
+            )
         projection = state_projection.build(
             obs,
             goal=goal,
@@ -1937,7 +2075,7 @@ def _jev_overworld_decision(
             last_action=last_action,
             last_action_changed_state=last_action_changed_state,
             mechanics=state_projection.DEFAULT_MECHANICS,
-            extra_facts=world_facts or None,
+            extra_facts=bounded_world_facts or None,
         )
         decision = jev_client.decide(
             projection,
@@ -1981,9 +2119,7 @@ def _jev_overworld_decision(
     memory_navigation: dict[str, Any] | None = None
     memory_hit: dict[str, Any] | None = None
     if _is_navigation_gap(initial_decision):
-        memory_navigation = _memory_navigation_decision(
-            obs, visited_maps=visited_maps
-        )
+        memory_navigation = _memory_navigation_decision(obs, visited_maps=visited_maps)
         if memory_navigation.get("result") == "hit":
             memory_hit = memory_navigation
             safe_print(
@@ -2146,6 +2282,8 @@ def _jev_overworld_decision(
         # cited key), or a miss/error with the reason. Counted run-wide into
         # `memory_navigation_hits` / `memory_navigation_fallbacks`.
         "memory_navigation": memory_navigation,
+        # Exact citations for the bounded facts that reached this request.
+        "world_memory_keys": world_memory_keys,
     }
 
 
@@ -2669,6 +2807,7 @@ def controller_plan(
     model: str | None = None,
     recent_decisions: list[dict[str, Any]] | None = None,
     running_summary: str = "",
+    world_facts: list[str] | None = None,
 ) -> dict[str, Any]:
     """Controller model (Luna via OpenRouter) outputs a movement PLAN.
 
@@ -2820,8 +2959,11 @@ def controller_plan(
         f"LAST DIALOG: {last_dialog or 'none'}\n"
         f"STUDY RESULT: {study_result or '(none)'}\n"
     )
+    world_memory_ctx = _world_memory_block(world_facts)
     recent_ctx = _recent_decisions_block(recent_decisions or [])
     msg += memory_ctx
+    if world_memory_ctx:
+        msg += f"\n{world_memory_ctx}\n"
     if running_summary:
         msg += f"\nEARLIER TURN SUMMARY (capped):\n{running_summary[:1200]}\n"
     if recent_ctx:
@@ -3099,10 +3241,7 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
     at zero) so the metric is visible without a separate probe.
     """
     if not autonomy:
-        return (
-            "autonomy=n/a (0 decisions, 0 escalated) "
-            "| nav-mem: 0 hits/0 fallbacks"
-        )
+        return "autonomy=n/a (0 decisions, 0 escalated) | nav-mem: 0 hits/0 fallbacks"
     decisions_total = _as_int(autonomy.get("decisions_total"))
     jev_answered = _as_int(autonomy.get("jev_answered"))
     escalated = _as_int(autonomy.get("escalated"))
@@ -3675,6 +3814,21 @@ def _world_fact_text(
         parts.append(
             f"exits={','.join(str(item) for item in exits) if exits else 'none'}"
         )
+    proven_exits = attributes.get("exits")
+    if isinstance(proven_exits, list) and proven_exits:
+        parts.append(f"proven_exits={json.dumps(proven_exits, sort_keys=True)}")
+    door = _tile_from_point(attributes.get("door_tile"))
+    if door is not None:
+        parts.append(f"door_tile={door[0]},{door[1]}")
+    route_tiles = attributes.get("route_tiles")
+    if isinstance(route_tiles, list) and route_tiles:
+        rendered_route = [
+            f"{tile[0]},{tile[1]}"
+            for item in route_tiles
+            if (tile := _tile_from_point(item)) is not None
+        ]
+        if rendered_route:
+            parts.append(f"route_tiles={'|'.join(rendered_route)}")
     return f"{key}: {'; '.join(parts)}" if parts else key
 
 
@@ -3713,6 +3867,7 @@ def _populate_world_memory(
     map_domain = f"world/map/{typed_map_id}"
     map_key = f"/{map_domain}"
     object_prefix = f"/world/object/{typed_map_id}/"
+    path_prefix = f"{PATH_MEMORY_PREFIX}{_map_slug(map_name, typed_map_id)}->"
 
     from src.core import duckbrain_client as _dbc
 
@@ -3731,6 +3886,8 @@ def _populate_world_memory(
             normalized_targets.append(target)
 
     retrieved_facts: list[str] = []
+    current_map_record: dict[str, Any] | None = None
+    transition_source_record: dict[str, Any] | None = None
     try:
         targeted_records: list[dict[str, Any]] = []
         for target in normalized_targets:
@@ -3745,15 +3902,33 @@ def _populate_world_memory(
             *_dbc.recall(
                 key=map_key,
                 namespace=WORLD_MEMORY_NAMESPACE,
-                limit=8,
+                limit=WORLD_MEMORY_TOP_K,
+            ),
+            *_dbc.recall(
+                key_prefix=path_prefix,
+                namespace=WORLD_MEMORY_NAMESPACE,
+                limit=WORLD_MEMORY_TOP_K,
             ),
             *_dbc.recall(
                 key_prefix=object_prefix,
                 namespace=WORLD_MEMORY_NAMESPACE,
-                limit=8,
+                limit=WORLD_MEMORY_TOP_K,
             ),
             *targeted_records,
         ]
+        if isinstance(transition, dict):
+            source_id = transition.get("from_map_id")
+            if isinstance(source_id, int) and source_id >= 0:
+                source_records = _dbc.recall(
+                    key=f"/world/map/{source_id}",
+                    namespace=WORLD_MEMORY_NAMESPACE,
+                    limit=WORLD_MEMORY_TOP_K,
+                )
+                if source_records:
+                    transition_source_record = max(
+                        source_records,
+                        key=lambda record: str(record.get("created_at") or ""),
+                    )
         recalled_by_key: dict[str, dict[str, Any]] = {}
         for record in recalled:
             key = record.get("key")
@@ -3764,6 +3939,7 @@ def _populate_world_memory(
                 current.get("created_at") or ""
             ):
                 recalled_by_key[key] = record
+        current_map_record = recalled_by_key.get(map_key)
         if normalized_targets:
             matched_keys = [
                 target for target in normalized_targets if target in recalled_by_key
@@ -3792,7 +3968,7 @@ def _populate_world_memory(
                     fresh_grid if isinstance(fresh_grid, str) else None
                 ),
             )
-            for record in recalled_by_key.values()
+            for record in list(recalled_by_key.values())[:WORLD_MEMORY_TOP_K]
         ]
         if fresh_topology is not None:
             # Live ROM collision truth leads the supplied facts: memory is a
@@ -3815,9 +3991,12 @@ def _populate_world_memory(
                 log_file=log_file,
             )
             retrieved_facts.insert(0, fresh_topology)
+            retrieved_facts = _bounded_world_facts(retrieved_facts)
             safe_print(
                 f"  [MEM-WORLD] cycle {cycle} live ROM topology fact -> JEV projection"
             )
+        else:
+            retrieved_facts = _bounded_world_facts(retrieved_facts)
         if recalled_by_key:
             retrieval_event = {
                 "cycle": cycle,
@@ -3861,24 +4040,54 @@ def _populate_world_memory(
         "tile": {"x": typed_tile_x, "y": typed_tile_y},
     }
     confidence = 1.0 if USE_RAM_READER else 0.75
+    map_attributes: dict[str, Any] = {}
+    if isinstance(current_map_record, dict) and isinstance(
+        current_map_record.get("attributes"), dict
+    ):
+        map_attributes.update(current_map_record["attributes"])
+    existing_exits = map_attributes.get("exits")
+    map_attributes["exits"] = (
+        [dict(item) for item in existing_exits if isinstance(item, dict)]
+        if isinstance(existing_exits, list)
+        else []
+    )
+    existing_landmarks = map_attributes.get("landmarks")
+    map_attributes["landmarks"] = (
+        [dict(item) for item in existing_landmarks if isinstance(item, dict)]
+        if isinstance(existing_landmarks, list)
+        else []
+    )
+    existing_tiles = map_attributes.get("tiles_visited")
+    tiles_visited = (
+        [dict(item) for item in existing_tiles if isinstance(item, dict)]
+        if isinstance(existing_tiles, list)
+        else []
+    )
+    current_point = {"x": typed_tile_x, "y": typed_tile_y}
+    if current_point not in tiles_visited:
+        tiles_visited.append(current_point)
+    map_attributes.update(
+        {
+            "fact_type": "map_observation",
+            "map_id": typed_map_id,
+            "map_name": map_name,
+            "player_tile": current_point,
+            "map_dimensions": observation.get("map_dimensions"),
+            "map_tileset": observation.get("map_tileset"),
+            "visible_exits": list(observation.get("visible_exits") or []),
+            "tiles_visited": tiles_visited,
+            "adjacent_tiles": dict(observation.get("adjacent") or {}),
+            # Never persist vision-derived labels as movement truth. Missing
+            # collision cells stay absent and are re-derived on retrieval.
+            "adjacent_walkability": dict(fresh_walkability),
+            "local_collision_grid": str(observation.get("collision_grid") or ""),
+        }
+    )
     writes: list[dict[str, Any]] = [
         {
             "key": map_key,
             "domain": map_domain,
-            "attributes": {
-                "fact_type": "map_observation",
-                "map_id": typed_map_id,
-                "map_name": map_name,
-                "player_tile": {"x": typed_tile_x, "y": typed_tile_y},
-                "map_dimensions": observation.get("map_dimensions"),
-                "map_tileset": observation.get("map_tileset"),
-                "visible_exits": list(observation.get("visible_exits") or []),
-                "adjacent_tiles": dict(observation.get("adjacent") or {}),
-                # Never persist vision-derived labels as movement truth. Missing
-                # collision cells stay absent and are re-derived on retrieval.
-                "adjacent_walkability": dict(fresh_walkability),
-                "local_collision_grid": str(observation.get("collision_grid") or ""),
-            },
+            "attributes": map_attributes,
             "embedding_text": (
                 f"Observed {map_name} (map {typed_map_id}) at tile "
                 f"({typed_tile_x},{typed_tile_y})"
@@ -3903,6 +4112,13 @@ def _populate_world_memory(
                 continue
             object_x = player_x + dx
             object_y = player_y + dy
+            landmark = {
+                "tile": {"x": object_x, "y": object_y},
+                "kind": tile_type,
+            }
+            landmarks = map_attributes["landmarks"]
+            if isinstance(landmarks, list) and landmark not in landmarks:
+                landmarks.append(landmark)
             object_domain = f"world/object/{typed_map_id}/{object_x}_{object_y}"
             writes.append(
                 {
@@ -3943,10 +4159,24 @@ def _populate_world_memory(
         )
         if path_write is not None:
             writes.append(path_write)
+        source_map_write = _transition_map_exit_write(
+            transition,
+            existing=transition_source_record,
+            evidence=evidence,
+            confidence=confidence,
+        )
+        if source_map_write is not None:
+            writes.append(source_map_write)
 
+    forced_keys = {
+        str(write["key"])
+        for write in writes
+        if isinstance(transition, dict)
+        and str(write["key"]) == f"/world/map/{transition.get('from_map_id')}"
+    }
     for write in writes:
         key = str(write["key"])
-        if key in written_keys:
+        if key in written_keys and key not in forced_keys:
             continue
         try:
             memory_id = _dbc.remember(
@@ -5176,6 +5406,9 @@ def main() -> None:
     # ── Per-run metrics (GAP-028, DF-USE-1) ───────────────────────
     _dir_lock_warn_cycles = 0  # cycles with >=1 direction-lock warning
     _visited_tiles: set[tuple[int, int, int]] = set()  # (map_id, x, y) seen
+    # Ordered unique source-map tiles become the proven route on a transition.
+    _route_map_id: int | None = None
+    _route_tiles: list[dict[str, int]] = []
     _movement_progress_cycles = 0  # comparable cycles whose RAM tile changed
     _movement_observed_cycles = 0  # cycles with current + previous RAM tiles
     # JEV projection cross-cycle material (DF-JEV-1, PRD v3 §3.4): how many
@@ -5317,6 +5550,12 @@ def main() -> None:
                 current_tile = (raw_map_id, raw_tile_x, raw_tile_y)
             if current_tile is not None:
                 _visited_tiles.add(current_tile)
+                if _route_map_id is None:
+                    _route_map_id = current_tile[0]
+                if current_tile[0] == _route_map_id:
+                    route_tile = {"x": current_tile[1], "y": current_tile[2]}
+                    if route_tile not in _route_tiles:
+                        _route_tiles.append(route_tile)
                 # JEV projection (DF-JEV-1): repeat counts for the map the
                 # player is standing on right now.
                 if _tile_visits_map_id != current_tile[0]:
@@ -5362,6 +5601,10 @@ def main() -> None:
                         "x": _departure_tile[1],
                         "y": _departure_tile[2],
                     }
+                _navigation_transition["route_tiles"] = list(_route_tiles)
+                if current_tile is not None:
+                    _route_map_id = current_tile[0]
+                    _route_tiles = [{"x": current_tile[1], "y": current_tile[2]}]
                 _mem_goal = _navigation_state.goal
                 _same_dir = None
                 _same_dir_count = 0
@@ -5371,7 +5614,9 @@ def main() -> None:
                 if not _navigation_transition["regression"] and st == "overworld":
                     try:
                         emu.save_state(_checkpoint_slot)
-                        _navigation_transition["anchor_checkpoint_slot"] = _checkpoint_slot
+                        _navigation_transition["anchor_checkpoint_slot"] = (
+                            _checkpoint_slot
+                        )
                         _last_saved_slot = _checkpoint_slot
                         _checkpoint_slot = (_checkpoint_slot + 1) % CHECKPOINT_SLOTS
                     except Exception as exc:
@@ -5803,7 +6048,11 @@ def main() -> None:
                     isinstance(_memory_route, dict)
                     and _memory_route.get("result") == "hit"
                 )
-                if _memory_hit and isinstance(_jev_attempt, dict) and isinstance(_memory_route, dict):
+                if (
+                    _memory_hit
+                    and isinstance(_jev_attempt, dict)
+                    and isinstance(_memory_route, dict)
+                ):
                     decision = {**_jev_attempt, **_jev_outcome}
                     _decision_pipeline = MEMORY_NAV_PIPELINE
                     safe_print(
@@ -5865,6 +6114,7 @@ def main() -> None:
                             boot_memory=_boot_memory,  # MEM-2: built once at boot
                             recent_decisions=_recent_decisions,
                             running_summary=_agent_context.summary,
+                            world_facts=_world_facts,
                             model=controller_model,  # GAP-052: flag/env-resolved
                         )
                         _decision_pipeline = pipeline_name
@@ -6040,7 +6290,9 @@ def main() -> None:
                         "executed_plan": plan,
                     }
                     results.append(_navigation_hold_event)
-                    log_file.write(json.dumps(_navigation_hold_event, default=str) + "\n")
+                    log_file.write(
+                        json.dumps(_navigation_hold_event, default=str) + "\n"
+                    )
                     log_file.flush()
                     safe_print(
                         "  [NAV-HOLD] blocked "

@@ -178,7 +178,8 @@ def test_world_facts_respect_projection_caps(monkeypatch: pytest.MonkeyPatch) ->
     )
 
     assert len(projections) == 1
-    assert len(projections[0]) == 6000
+    assert len(projections[0]) <= 6000
+    assert projections[0].count("  - fact-") == cron_runner.WORLD_MEMORY_TOP_K
     assert "  - " + "fact-" + "x" * 232 + "..." in projections[0]
     assert long_fact not in projections[0]
 
