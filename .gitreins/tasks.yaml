@@ -766,14 +766,13 @@ tasks:
   created_at: '2026-09-26T16:58:07.476895+00:00'
   completed_at: '2026-09-26T17:46:47.236495+00:00'
 - id: DF-JEV-3
-  title: Battle decision rows carry battle_action + raw_distribution on the real battle
-    path
+  title: 'Fix battle observable: JEV battle vocabulary not used in normal battles'
   criteria:
-  - every battle-adjacent decision row on the real battle path carries battle_action,
-    and raw_distribution when a JEV payload exists; non-battle rows unchanged
-  status: complete
-  created_at: '2026-09-26T16:58:07.621196+00:00'
-  completed_at: '2026-09-26T17:50:57.039549+00:00'
+  - 'A real 20-cycle run that reaches a battle logs, for at least one battle turn,
+    a row with phase=BATTLE and battle_action + raw distribution (not just select_move({''move_number'':
+    1}) from StateWindow fallback)'
+  status: in_progress
+  created_at: '2026-10-04T11:17:30.039238+00:00'
 - id: PERF-1
   title: 'PERF: skip-on-identical-frame gate for the per-cycle screenshot save'
   criteria:
@@ -1070,12 +1069,17 @@ tasks:
   created_at: '2026-10-02T23:30:15.717761+00:00'
   completed_at: '2026-10-03T00:30:20.571320+00:00'
 - id: NAV-MEM
-  title: S6 memory-driven navigation
+  title: 'S6 memory-driven navigation: world/map + world/path stop re-deriving topology'
   criteria:
-  - memory-first navigation wired; memory_navigation_hits metric in run summary; regression
-    test for mock path memory; full suite green; guard green; commit pushed
-  status: in_progress
-  created_at: '2026-10-03T06:37:58.261541+00:00'
+  - 'Implementation of S6 from docs/specs/SPEC_agentic_memory_loop.md: on observed
+    map transitions the harness deterministically writes a proven world/path/<from>-><to>
+    record (route + door tile) and updates world/map/<map_id>; the overworld decision
+    context injects these records (world/map + world/path) so the agent stops paying
+    teacher calls for map_topology; unit tests cover write-on-transition and recall
+    injection; full test suite green, ruff + CI-exact mypy clean'
+  status: complete
+  created_at: '2026-10-04T10:49:20.832476+00:00'
+  completed_at: '2026-10-04T11:31:42.801777+00:00'
 - id: FIX-ENV-PREFLIGHT
   title: cron_runner main() loads .env before JEV preflight (REV-4 regression fix)
   criteria:
@@ -1100,10 +1104,22 @@ tasks:
   status: complete
   created_at: '2026-10-03T23:51:24.378831+00:00'
   completed_at: '2026-10-04T00:00:40.668012+00:00'
-- id: README-BATCH-1
-  title: Fix verified README doc defects (README-1..19 batch)
+- id: DF-USE-3
+  title: 'Frame cache observability: expose cache bytes + eviction in run summary'
   criteria:
-  - README.md contains no known-broken commands or stale counts from rows README-1..19;
-    git diff touches only README.md; every referenced command/path exists
-  status: in_progress
-  created_at: '2026-10-04T00:02:45.877855+00:00'
+  - The run-tail frame-cache save line reports unique frames, total references, max
+    entries, cache file size in MB, and eviction policy; a fast pytest subset covering
+    FrameCache.stats passes
+  status: complete
+  created_at: '2026-10-04T10:36:12.806222+00:00'
+  completed_at: '2026-10-04T10:37:49.241142+00:00'
+- id: DF-AIPP-6
+  title: 'Fix fresh-install docs gap: ROM not in repo, README troubleshooting wrong'
+  criteria:
+  - 'README Quick Start documents data/rom/ contents that don''t exist on fresh clone;
+    troubleshooting section says ''ls data/rom/ # Should show: ...'' which is wrong;
+    data/boot.state checkpoint useless without matching ROM; dry-run correctly fails
+    ROM-missing but user has no guidance on obtaining ROM or matching boot.state'
+  status: complete
+  created_at: '2026-10-04T11:02:32.408927+00:00'
+  completed_at: '2026-10-04T11:14:13.261626+00:00'
