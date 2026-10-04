@@ -523,6 +523,9 @@ class EmergencyRecovery:
         self._recovery_history: List[RecoveryResult] = []
         self._current_recovery: Optional[RecoveryResult] = None
         self._shutdown_requested = False
+        # Detail of the most recent snapshot write failure (None if the last
+        # snapshot attempt succeeded or no attempt has been made yet).
+        self.last_snapshot_error: Optional[str] = None
 
         os.makedirs(snapshot_dir, exist_ok=True)
 
@@ -629,6 +632,7 @@ class EmergencyRecovery:
             actions.append(f"snapshot_saved: {snapshot_file}")
         except Exception as e:
             actions.append(f"snapshot_failed: {str(e)}")
+            self.last_snapshot_error = str(e)
 
         return actions
 

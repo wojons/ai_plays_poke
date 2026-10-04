@@ -17,6 +17,7 @@ import time
 import threading
 import os
 import json
+import tempfile
 
 from src.core.failsafe import (
     ConfidenceScorer,
@@ -514,29 +515,57 @@ class TestEmergencyRecovery:
 
     def test_snapshot_saved_to_file(self) -> None:
         """Test that snapshots are saved to file"""
-        recovery = EmergencyRecovery(snapshot_dir="/tmp/test_snapshots")
+        with tempfile.TemporaryDirectory() as snapshot_dir:
+            recovery = EmergencyRecovery(snapshot_dir=snapshot_dir)
 
-        recovery.initiate_recovery("Test", None, {"test": "data"})
+            recovery.initiate_recovery("Test", None, {"test": "data"})
 
-        files = os.listdir("/tmp/test_snapshots")
-        snapshot_files = [f for f in files if f.startswith("snapshot_")]
-        assert len(snapshot_files) >= 1
-
-        for f in snapshot_files:
-            os.remove(f"/tmp/test_snapshots/{f}")
+            files = os.listdir(snapshot_dir)
+            snapshot_files = [f for f in files if f.startswith("snapshot_")]
+            assert len(snapshot_files) >= 1
 
     def test_emergency_report_created(self) -> None:
         """Test that emergency reports are created"""
-        recovery = EmergencyRecovery(snapshot_dir="/tmp/test_snapshots")
+        with tempfile.TemporaryDirectory() as snapshot_dir:
+            recovery = EmergencyRecovery(snapshot_dir=snapshot_dir)
 
-        recovery.initiate_recovery("Test", None, {})
+            recovery.initiate_recovery("Test", None, {})
 
-        files = os.listdir("/tmp/test_snapshots")
-        report_files = [f for f in files if f.startswith("emergency_report_")]
-        assert len(report_files) >= 1
+            files = os.listdir(snapshot_dir)
+            report_files = [f for f in files if f.startswith("emergency_report_")]
+            assert len(report_files) >= 1
 
-        for f in report_files:
-            os.remove(f"/tmp/test_snapshots/{f}")
+    def test_snapshot_write_failure_is_reported(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test that a snapshot write failure is observable on the recovery result"""
+        with tempfile.TemporaryDirectory() as snapshot_dir:
+            recovery = EmergencyRecovery(snapshot_dir=snapshot_dir)
+
+            def _raise_oserror(*args: object, **kwargs: object) -> None:
+                raise OSError("permission denied by test injection")
+
+            monkeypatch.setattr(
+                "src.core.failsafe.json.dump", _raise_oserror, raising=True
+            )
+
+            result = recovery.initiate_recovery("Test", None, {"test": "data"})
+
+            # Recovery still completes (snapshot failure must not abort it)
+            assert result.success is True
+            # The failure is named in the actions taken on the result itself
+            failed_actions = [
+                a for a in result.actions_taken if a.startswith("snapshot_failed")
+            ]
+            assert failed_actions, "snapshot failure missing from result.actions_taken"
+            assert "permission denied by test injection" in failed_actions[0]
+            # And it is recorded on the recovery instance
+            assert (
+                recovery.last_snapshot_error is not None
+            ), "snapshot failure not recorded on the EmergencyRecovery instance"
+            assert "permission denied by test injection" in (
+                recovery.last_snapshot_error
+            )
 
     def test_get_recovery_history(self) -> None:
         """Test retrieving recovery history"""
