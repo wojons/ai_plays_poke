@@ -1084,3 +1084,26 @@ tasks:
   status: complete
   created_at: '2026-10-03T08:15:02.767703+00:00'
   completed_at: '2026-10-03T09:44:46.696743+00:00'
+- id: QA-AI-PLAYS-POKE-16
+  title: Marker-based live-test exclusion so unit tests gate CI
+  criteria:
+  - pytest tests/test_context_window.py passes at HEAD; CI Test step uses -m 'not
+    live' with registered marker; ruff and mypy src/ clean
+  status: complete
+  created_at: '2026-10-03T16:31:01.087490+00:00'
+  completed_at: '2026-10-03T16:44:57.454967+00:00'
+- id: TEACH-1
+  title: "Teacher repair rate is 0 \u2014 teacher or metric broken"
+  criteria:
+  - Either teacher_improved > 0 on a run where a named missing class is repairable,
+    or the metric is shown mis-designed and replaced with evidence; tests pass
+  status: complete
+  created_at: '2026-10-03T23:51:24.378831+00:00'
+  completed_at: '2026-10-04T00:00:40.668012+00:00'
+- id: README-BATCH-1
+  title: Fix verified README doc defects (README-1..19 batch)
+  criteria:
+  - README.md contains no known-broken commands or stale counts from rows README-1..19;
+    git diff touches only README.md; every referenced command/path exists
+  status: in_progress
+  created_at: '2026-10-04T00:02:45.877855+00:00'

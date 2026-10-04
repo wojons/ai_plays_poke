@@ -1,0 +1,119 @@
+{
+  "task_id": "QA-AI-PLAYS-POKE-16",
+  "task_title": "Marker-based live-test exclusion so unit tests gate CI",
+  "task_criteria": [
+    "pytest tests/test_context_window.py passes at HEAD; CI Test step uses -m 'not live' with registered marker; ruff and mypy src/ clean"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "4654912602ed9f9daa1195a8e138e9ac7aff06a6",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  ~ tests: Command timed out after 1800s (step budget)",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n11:45AM INF scanned ~328397589 bytes (328.40 MB) in 14.3s\n11:45AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94907 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 1800s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 1800
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "tests"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 tests: timed out after 1800s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 pytest tests/test_context_window.py passes at HEAD; CI Test step uses -m 'not live' with registered marker; ruff and mypy src/ clean: Ran ./.venv/bin/pytest tests/test_context_window.py -q: '5 passed in 0.04s', exit 0. CI Test step at .github/workflows/ci.yml:84 uses `-m \"not live\"`; marker registered in pyproject.toml:69 under [tool.pytest.ini_options] markers ('live: marks tests that require a real API or ROM connection'). Ruff: `ruff check src/` -> 'All checks passed!' exit 0. Mypy: `mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 68 source files' exit 0. All artifacts confirmed present at HEAD (commit 4654912) via git show. [resolution 0.34; tests/test_context_window.py]\nAll three sub-requirements verified with fresh command output: context-window tests pass, CI uses the registered 'not live' marker, and ruff/mypy are clean.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 pytest tests/test_context_window.py passes at HEAD; CI Test step uses -m 'not live' with registered marker; ruff and mypy src/ clean: Ran ./.venv/bin/pytest tests/test_context_window.py -q: '5 passed in 0.04s', exit 0. CI Test step at .github/workflows/ci.yml:84 uses `-m \"not live\"`; marker registered in pyproject.toml:69 under [tool.pytest.ini_options] markers ('live: marks tests that require a real API or ROM connection'). Ruff: `ruff check src/` -> 'All checks passed!' exit 0. Mypy: `mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 68 source files' exit 0. All artifacts confirmed present at HEAD (commit 4654912) via git show. [resolution 0.34; tests/test_context_window.py]\nAll three sub-requirements verified with fresh command output: context-window tests pass, CI uses the registered 'not live' marker, and ruff/mypy are clean.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "pytest tests/test_context_window.py passes at HEAD; CI Test step uses -m 'not live' with registered marker; ruff and mypy src/ clean",
+                "status": "PASS",
+                "detail": "Ran ./.venv/bin/pytest tests/test_context_window.py -q: '5 passed in 0.04s', exit 0. CI Test step at .github/workflows/ci.yml:84 uses `-m \"not live\"`; marker registered in pyproject.toml:69 under [tool.pytest.ini_options] markers ('live: marks tests that require a real API or ROM connection'). Ruff: `ruff check src/` -> 'All checks passed!' exit 0. Mypy: `mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 68 source files' exit 0. All artifacts confirmed present at HEAD (commit 4654912) via git show. [resolution 0.34; tests/test_context_window.py]",
+                "resolution_probability": 0.34,
+                "cited_path": "tests/test_context_window.py"
+              }
+            ],
+            "summary": "All three sub-requirements verified with fresh command output: context-window tests pass, CI uses the registered 'not live' marker, and ruff/mypy are clean."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: QA-AI-PLAYS-POKE-16\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 tests did not run (skipped at runtime \u2014 tests: timed out after 1800s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  ~ tests: Command timed out after 1800s (step budget)\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 pytest tests/test_context_window.py passes at HEAD; CI Test step uses -m 'not live' with registered marker; ruff and mypy src/ clean: Ran ./.venv/bin/pytest tests/test_context_window.py -q: '5 passed in 0.04s', exit 0. CI Test step at .github/workflows/ci.yml:84 uses `-m \"not live\"`; marker registered in pyproject.toml:69 under [tool.pytest.ini_options] markers ('live: marks tests that require a real API or ROM connection'). Ruff: `ruff check src/` -> 'All checks passed!' exit 0. Mypy: `mypy src/ --ignore-missing-imports` -> 'Success: no issues found in 68 source files' exit 0. All artifacts confirmed present at HEAD (commit 4654912) via git show. [resolution 0.34; tests/test_context_window.py]\nAll three sub-requirements verified with fresh command output: context-window tests pass, CI uses the registered 'not live' marker, and ruff/mypy are clean.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-03T17:16:23.600122",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-03T17:16:23.627081+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 15554,
+        "truncated": false,
+        "source": "git show 4654912602ed"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 663,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "QA-AI-PLAYS-POKE-16"
+  }
+}

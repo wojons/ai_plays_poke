@@ -1,0 +1,104 @@
+{
+  "task_id": "HOLD-1",
+  "task_title": "Holding a transition \u2014 the agent reaches Route 1 then walks back; nothing in the plan addresses staying",
+  "task_criteria": [
+    "a run crosses into Route 1 and does not re-enter Pallet Town for the remainder, with the mechanism cited from the log"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "8c8db0586762ebc917d362adc0091c59a06135ff",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 tests: FAIL (tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree [first failing id])\n  \u2717 secrets: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4415 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [32697 chars omitted \u2014 357 line(s)] \u2026\ntests/test_ai_client.py::TestOpenRouterClientVisionResponse::test_get_vision_response PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterClientTextResponse::test_get_text_response PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterClientSendToolRequest::test_send_tool_request PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterAuthHeader::test_chat_completion_sends_auth_header PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterAuthHeader::test_send_vision_request_sends_auth_header PASSED [  8%]\ntests/test_ai_client.py::TestOpenRouterAuthHeader::test_aimodelclient_prefers_openrouter_key PASSED [  8%]\ntests/test_ai_client.py::TestGameAIManagerAnalyzeScreenshotNoneHP::test_null_hp_uses_sanitized_values PASSED [  8%]\ntests/test_ai_client.py::TestGameAIManagerAnalyzeScreenshotNoneHP::test_none_vision_response_does_not_crash PASSED [  8%]\ntests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree FAILED [  8%]\n\n=================================== FAILURES ===================================\n______________________ test_guard_passes_on_current_tree _______________________\ntests/test_assist_inventory_guard.py:34: in test_guard_passes_on_current_tree\n    assert result == 0\nE   assert 1 == 0\n=========================== short test summary info ============================\nFAILED tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n=================== 1 failed, 383 passed in 88.82s (0:01:28) ===================\n",
+          "error": "",
+          "data": {
+            "exit_code": 1,
+            "pytest_outcome": {
+              "kind": "failed",
+              "detail": "1 failure(s); first: tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree",
+              "first_failing_test": "tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree",
+              "failures": 1,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 a run crosses into Route 1 and does not re-enter Pallet Town for the remainder, with the mechanism cited from the log: FAIL: Criterion requires \"a run crosses into Route 1 and does not re-enter Pallet Town for the remainder, with the mechanism cited from the log\".\n\nEvidence AGAINST:\n1. No run log anywhere in the repo contains the new mechanism. `grep -rl \"navigation_transition|NAV-HOLD|navigation_hold\"` over the whole tree (excluding .git) returns only cron_runner.py, tests/test_hold_transition.py, and pycache. Zero cron_logs/*.jsonl contain it.\n2. The most recent run log (cron_logs/run_e2e001_20261002_t270.jsonl, Oct 2 16:13, 80 cycles) never leaves Oak's Lab: `grep -o '\"map_name\": \"[^\"]*\"'` -> 646x \"Oak's Lab\". No Route 1, no Pallet Town.\n3. The only run that crosses into Route 1 and stays is cron_logs/run_long_0926_0014_ep204.jsonl (Sep 26, pre-dates the HOLD-1 commit by 6 days): map sequence is Route 1 for all 25 decision rows, final_map=Route 1. But it contains no navigation_hold/navigation_transition/NAV-HOLD row, so no mechanism can be cited from it.\n4. cron_logs/run_long_0927_llm2_ep018.jsonl (Sep 27) is Route 1 for all 30 cycles (271 map_name rows all \"Route 1\", final Route 1) \u2014 also pre-commit and also with zero navigation_hold rows.\n5. The regression case the criterion targets is documented as still failing pre-commit: data/baselines/ctrl-win_2026-09-26.json \"held_the_transition\": false (\"reached Route 1 at c13 and was back in Pallet Town by c22\"); data/baselines/dist1_ctrlwin_distribution_2026-09-27.json llm mode \"transitions_held\": {\"held\": 4, \"of\": 6} with dist1_llm_e001 and dist1_llm_e006 ending on Pallet Town. No post-commit re-run of DIST-1/CTRL-WIN exists to show the guard changed this.\n6. The commit's own test suite (tests/test_hold_transition.py, 6 passed in 0.12s) is unit-level only: it feeds a hand-built spatial dict with navigation_hold already active and asserts the plan is rewritten. test_main_loop_wires_transition_memory_and_final_plan_guard only greps cron_runner.py source text for ordering. No test drives a run across the map boundary.\n\nSo the mechanism exists in code (cron_runner.py:895 _guard_navigation_plan, :4931 _navigation_state.observe, :5569 final plan guard, :5583-5596 navigation_hold_guard log row) but the criterion's required artifact \u2014 a run log showing the crossing held with the mechanism cited \u2014 does not exist.\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 a run crosses into Route 1 and does not re-enter Pallet Town for the remainder, with the mechanism cited from the log: FAIL: Criterion requires \"a run crosses into Route 1 and does not re-enter Pallet Town for the remainder, with the mechanism cited from the log\".\n\nEvidence AGAINST:\n1. No run log anywhere in the repo contains the new mechanism. `grep -rl \"navigation_transition|NAV-HOLD|navigation_hold\"` over the whole tree (excluding .git) returns only cron_runner.py, tests/test_hold_transition.py, and pycache. Zero cron_logs/*.jsonl contain it.\n2. The most recent run log (cron_logs/run_e2e001_20261002_t270.jsonl, Oct 2 16:13, 80 cycles) never leaves Oak's Lab: `grep -o '\"map_name\": \"[^\"]*\"'` -> 646x \"Oak's Lab\". No Route 1, no Pallet Town.\n3. The only run that crosses into Route 1 and stays is cron_logs/run_long_0926_0014_ep204.jsonl (Sep 26, pre-dates the HOLD-1 commit by 6 days): map sequence is Route 1 for all 25 decision rows, final_map=Route 1. But it contains no navigation_hold/navigation_transition/NAV-HOLD row, so no mechanism can be cited from it.\n4. cron_logs/run_long_0927_llm2_ep018.jsonl (Sep 27) is Route 1 for all 30 cycles (271 map_name rows all \"Route 1\", final Route 1) \u2014 also pre-commit and also with zero navigation_hold rows.\n5. The regression case the criterion targets is documented as still failing pre-commit: data/baselines/ctrl-win_2026-09-26.json \"held_the_transition\": false (\"reached Route 1 at c13 and was back in Pallet Town by c22\"); data/baselines/dist1_ctrlwin_distribution_2026-09-27.json llm mode \"transitions_held\": {\"held\": 4, \"of\": 6} with dist1_llm_e001 and dist1_llm_e006 ending on Pallet Town. No post-commit re-run of DIST-1/CTRL-WIN exists to show the guard changed this.\n6. The commit's own test suite (tests/test_hold_transition.py, 6 passed in 0.12s) is unit-level only: it feeds a hand-built spatial dict with navigation_hold already active and asserts the plan is rewritten. test_main_loop_wires_transition_memory_and_final_plan_guard only greps cron_runner.py source text for ordering. No test drives a run across the map boundary.\n\nSo the mechanism exists in code (cron_runner.py:895 _guard_navigation_plan, :4931 _navigation_state.observe, :5569 final plan guard, :5583-5596 navigation_hold_guard log row) but the criterion's required artifact \u2014 a run log showing the crossing held with the mechanism cited \u2014 does not exist.\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "a run crosses into Route 1 and does not re-enter Pallet Town for the remainder, with the mechanism cited from the log",
+                "status": "FAIL",
+                "detail": "FAIL: Criterion requires \"a run crosses into Route 1 and does not re-enter Pallet Town for the remainder, with the mechanism cited from the log\".\n\nEvidence AGAINST:\n1. No run log anywhere in the repo contains the new mechanism. `grep -rl \"navigation_transition|NAV-HOLD|navigation_hold\"` over the whole tree (excluding .git) returns only cron_runner.py, tests/test_hold_transition.py, and pycache. Zero cron_logs/*.jsonl contain it.\n2. The most recent run log (cron_logs/run_e2e001_20261002_t270.jsonl, Oct 2 16:13, 80 cycles) never leaves Oak's Lab: `grep -o '\"map_name\": \"[^\"]*\"'` -> 646x \"Oak's Lab\". No Route 1, no Pallet Town.\n3. The only run that crosses into Route 1 and stays is cron_logs/run_long_0926_0014_ep204.jsonl (Sep 26, pre-dates the HOLD-1 commit by 6 days): map sequence is Route 1 for all 25 decision rows, final_map=Route 1. But it contains no navigation_hold/navigation_transition/NAV-HOLD row, so no mechanism can be cited from it.\n4. cron_logs/run_long_0927_llm2_ep018.jsonl (Sep 27) is Route 1 for all 30 cycles (271 map_name rows all \"Route 1\", final Route 1) \u2014 also pre-commit and also with zero navigation_hold rows.\n5. The regression case the criterion targets is documented as still failing pre-commit: data/baselines/ctrl-win_2026-09-26.json \"held_the_transition\": false (\"reached Route 1 at c13 and was back in Pallet Town by c22\"); data/baselines/dist1_ctrlwin_distribution_2026-09-27.json llm mode \"transitions_held\": {\"held\": 4, \"of\": 6} with dist1_llm_e001 and dist1_llm_e006 ending on Pallet Town. No post-commit re-run of DIST-1/CTRL-WIN exists to show the guard changed this.\n6. The commit's own test suite (tests/test_hold_transition.py, 6 passed in 0.12s) is unit-level only: it feeds a hand-built spatial dict with navigation_hold already active and asserts the plan is rewritten. test_main_loop_wires_transition_memory_and_final_plan_guard only greps cron_runner.py source text for ordering. No test drives a run across the map boundary.\n\nSo the mechanism exists in code (cron_runner.py:895 _guard_navigation_plan, :4931 _navigation_state.observe, :5569 final plan guard, :5583-5596 navigation_hold_guard log row) but the criterion's required artifact \u2014 a run log showing the crossing held with the mechanism cited \u2014 does not exist."
+              }
+            ],
+            "summary": "Partial verdict \u2014 evaluation hit resource cap before all criteria verified"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: HOLD-1\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 tests: FAIL (tests/test_assist_inventory_guard.py::test_guard_passes_on_current_tree [first failing id])\n  \u2717 secrets: Command timed out\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 a run crosses into Route 1 and does not re-enter Pallet Town for the remainder, with the mechanism cited from the log: FAIL: Criterion requires \"a run crosses into Route 1 and does not re-enter Pallet Town for the remainder, with the mechanism cited from the log\".\n\nEvidence AGAINST:\n1. No run log anywhere in the repo contains the new mechanism. `grep -rl \"navigation_transition|NAV-HOLD|navigation_hold\"` over the whole tree (excluding .git) returns only cron_runner.py, tests/test_hold_transition.py, and pycache. Zero cron_logs/*.jsonl contain it.\n2. The most recent run log (cron_logs/run_e2e001_20261002_t270.jsonl, Oct 2 16:13, 80 cycles) never leaves Oak's Lab: `grep -o '\"map_name\": \"[^\"]*\"'` -> 646x \"Oak's Lab\". No Route 1, no Pallet Town.\n3. The only run that crosses into Route 1 and stays is cron_logs/run_long_0926_0014_ep204.jsonl (Sep 26, pre-dates the HOLD-1 commit by 6 days): map sequence is Route 1 for all 25 decision rows, final_map=Route 1. But it contains no navigation_hold/navigation_transition/NAV-HOLD row, so no mechanism can be cited from it.\n4. cron_logs/run_long_0927_llm2_ep018.jsonl (Sep 27) is Route 1 for all 30 cycles (271 map_name rows all \"Route 1\", final Route 1) \u2014 also pre-commit and also with zero navigation_hold rows.\n5. The regression case the criterion targets is documented as still failing pre-commit: data/baselines/ctrl-win_2026-09-26.json \"held_the_transition\": false (\"reached Route 1 at c13 and was back in Pallet Town by c22\"); data/baselines/dist1_ctrlwin_distribution_2026-09-27.json llm mode \"transitions_held\": {\"held\": 4, \"of\": 6} with dist1_llm_e001 and dist1_llm_e006 ending on Pallet Town. No post-commit re-run of DIST-1/CTRL-WIN exists to show the guard changed this.\n6. The commit's own test suite (tests/test_hold_transition.py, 6 passed in 0.12s) is unit-level only: it feeds a hand-built spatial dict with navigation_hold already active and asserts the plan is rewritten. test_main_loop_wires_transition_memory_and_final_plan_guard only greps cron_runner.py source text for ordering. No test drives a run across the map boundary.\n\nSo the mechanism exists in code (cron_runner.py:895 _guard_navigation_plan, :4931 _navigation_state.observe, :5569 final plan guard, :5583-5596 navigation_hold_guard log row) but the criterion's required artifact \u2014 a run log showing the crossing held with the mechanism cited \u2014 does not exist.\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-03T03:41:47.689898",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-03T03:41:47.712190+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 25005,
+        "truncated": false,
+        "source": "git show 8c8db0586762"
+      }
+    ],
+    "task_id": "HOLD-1"
+  }
+}

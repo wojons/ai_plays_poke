@@ -1,0 +1,95 @@
+{
+  "task_id": "DOGFOOD-PERF-001",
+  "task_title": "Reduce cron_runner cold-start delay (dogfood perf finding)",
+  "task_criteria": [
+    "cron_runner.py reaches first decision cycle measurably faster with zero behavior change: heavy imports (pyboy/sdl2/numpy-class) are deferred until after argparse/preflight (dry-run completes without importing pyboy), timings measured before/after with a repeatable script, fast test tier green, mypy src/ clean, ruff clean"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "b23d63f660061406ab643be4bc1771f7500b482a",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n8:12PM INF scanned ~326384174 bytes (326.38 MB) in 19.2s\n8:12PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94655 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out",
+          "data": {}
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.7 used). Increase max_iterations or split criteria.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.7 used). Increase max_iterations or split criteria.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [],
+            "summary": "Cap exceeded: Iteration cap (100) reached (100.7 used). Increase max_iterations or split criteria."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DOGFOOD-PERF-001\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2717 tests: Command timed out\n\nStage tier2: FAIL\n  INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.7 used). Increase max_iterations or split criteria.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-03T01:58:29.493070",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-03T01:58:29.526049+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 160343,
+        "truncated": false,
+        "source": "git show b23d63f66006"
+      }
+    ],
+    "task_id": "DOGFOOD-PERF-001"
+  }
+}

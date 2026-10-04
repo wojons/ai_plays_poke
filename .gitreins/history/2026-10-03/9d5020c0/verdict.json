@@ -1,0 +1,119 @@
+{
+  "task_id": "FIX-ENV-PREFLIGHT",
+  "task_title": "cron_runner main() loads .env before JEV preflight (REV-4 regression fix)",
+  "task_criteria": [
+    "main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test proves ordering; live run passes preflight without exported key; fast suite green"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "b492c13a551a61f1cfc524cafcefde3bca52ad00",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: ok (no output)\n  \u2717 tests: FAIL (tests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns [fi\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": false,
+          "output": "============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4416 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [59465 chars omitted \u2014 632 line(s)] \u2026\ntests/test_context_window.py::test_recent_decision_block_keeps_only_last_six_turns PASSED [ 14%]\ntests/test_context_window.py::test_model_can_answer_from_three_cycles_back_and_event_records_it PASSED [ 14%]\ntests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns FAILED [ 14%]\n\n=================================== FAILURES ===================================\n_________ test_live_teacher_prompt_and_logged_record_carry_prior_turns _________\ntests/test_context_window.py:229: in test_live_teacher_prompt_and_logged_record_carry_prior_turns\n    assert markers == [\"  [CTX] teacher request carried 3 prior turns\"]\nE   AssertionError: assert ['  [NAV-MEM]... prior turns'] == ['  [CTX] tea... prior turns']\nE     \nE     At index 0 diff: '  [NAV-MEM] no proven route (current_map_unknown) - keeping the existing path' != '  [CTX] teacher request carried 3 prior turns'\nE     Left contains one more item: '  [CTX] teacher request carried 3 prior turns'\nE     \nE     Full diff:\nE       [\nE     +     '  [NAV-MEM] no proven route (current_map_unknown) - keeping the existing '...\nE     \nE     ...Full output truncated (3 lines hidden), use '-vv' to show\n=========================== short test summary info ============================\nFAILED tests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns\n!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!\n======================== 1 failed, 652 passed in 23.79s ========================\n",
+          "error": "",
+          "data": {
+            "exit_code": 1,
+            "pytest_outcome": {
+              "kind": "failed",
+              "detail": "1 failure(s); first: tests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns",
+              "first_failing_test": "tests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns",
+              "failures": 1,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\n4:45AM INF scanned ~327411977 bytes (327.41 MB) in 12.8s\n4:45AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 94814 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261002T034445.018902Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test proves ordering; live run passes preflight without exported key; fast suite green: Criterion 1: main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test proves ordering; live run passes preflight without exported key; fast suite green\n\nSUB-CHECKS:\n(a) ORDERING IN CODE: PASS. cron_runner.py:4773 `_load_dotenv_stdlib()` is called at top of main() (line 4764), BEFORE `_run_jev_preflight(...)` at line 4811. Confirmed via sed -n '4764,4830p'.\n\n(b) REGRESSION TEST PROVES ORDERING: PASS. tests/test_cron_runner_metrics.py:1046-1070 TestMainLoadsDotenvBeforePreflight::test_main_loads_dotenv_before_preflight asserts calls == [\"dotenv\",\"preflight\"]. Ran it: PASSED (1 passed in 0.05s). MUTATION CHECK: removed the _load_dotenv_stdlib() call from main() -> test FAILED with AssertionError: ['preflight'] (missing 'dotenv'). Restored -> PASSED. So the test genuinely proves ordering, not a false positive.\n\n(c) LIVE RUN PASSES PREFLIGHT WITHOUT EXPORTED KEY: PASS. .env exists on disk with OPENROUTER_API_KEY (grep -c = 1); shell has OPENROUTER_API_KEY empty. Probe: `env -u OPENROUTER_API_KEY python3 -c \"...controller_key()...\"` -> before load: None; after _load_dotenv_stdlib(): key present True len 73. controller_key() (cron_runner.py:4552) reads os.environ, and _run_jev_preflight (line 4589) gates on controller_key() is None -> auth_failure. So with dotenv loaded first, preflight no longer fails.\n\n(d) FAST SUITE GREEN: PARTIAL/FAIL. `./.venv/bin/pytest -x --tb=short -q -k \"not benchmark\"` -> 1 failed, 613 passed. Failure = tests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns, caused by a [NAV-MEM] marker from commit 523a85e (NAV-MEM task, status in_progress), NOT from FIX-ENV-PREFLIGHT commit 3ad291c. Verified pre-existing: checked out 3ad291c~1 cron_runner.py -> same test fails identically. So the failure is unrelated to this task's change, but the suite is NOT green as literally stated.\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test proves ordering; live run passes preflight without exported key; fast suite green: Criterion 1: main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test proves ordering; live run passes preflight without exported key; fast suite green\n\nSUB-CHECKS:\n(a) ORDERING IN CODE: PASS. cron_runner.py:4773 `_load_dotenv_stdlib()` is called at top of main() (line 4764), BEFORE `_run_jev_preflight(...)` at line 4811. Confirmed via sed -n '4764,4830p'.\n\n(b) REGRESSION TEST PROVES ORDERING: PASS. tests/test_cron_runner_metrics.py:1046-1070 TestMainLoadsDotenvBeforePreflight::test_main_loads_dotenv_before_preflight asserts calls == [\"dotenv\",\"preflight\"]. Ran it: PASSED (1 passed in 0.05s). MUTATION CHECK: removed the _load_dotenv_stdlib() call from main() -> test FAILED with AssertionError: ['preflight'] (missing 'dotenv'). Restored -> PASSED. So the test genuinely proves ordering, not a false positive.\n\n(c) LIVE RUN PASSES PREFLIGHT WITHOUT EXPORTED KEY: PASS. .env exists on disk with OPENROUTER_API_KEY (grep -c = 1); shell has OPENROUTER_API_KEY empty. Probe: `env -u OPENROUTER_API_KEY python3 -c \"...controller_key()...\"` -> before load: None; after _load_dotenv_stdlib(): key present True len 73. controller_key() (cron_runner.py:4552) reads os.environ, and _run_jev_preflight (line 4589) gates on controller_key() is None -> auth_failure. So with dotenv loaded first, preflight no longer fails.\n\n(d) FAST SUITE GREEN: PARTIAL/FAIL. `./.venv/bin/pytest -x --tb=short -q -k \"not benchmark\"` -> 1 failed, 613 passed. Failure = tests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns, caused by a [NAV-MEM] marker from commit 523a85e (NAV-MEM task, status in_progress), NOT from FIX-ENV-PREFLIGHT commit 3ad291c. Verified pre-existing: checked out 3ad291c~1 cron_runner.py -> same test fails identically. So the failure is unrelated to this task's change, but the suite is NOT green as literally stated.\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test proves ordering; live run passes preflight without exported key; fast suite green",
+                "status": "FAIL",
+                "detail": "Criterion 1: main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test proves ordering; live run passes preflight without exported key; fast suite green\n\nSUB-CHECKS:\n(a) ORDERING IN CODE: PASS. cron_runner.py:4773 `_load_dotenv_stdlib()` is called at top of main() (line 4764), BEFORE `_run_jev_preflight(...)` at line 4811. Confirmed via sed -n '4764,4830p'.\n\n(b) REGRESSION TEST PROVES ORDERING: PASS. tests/test_cron_runner_metrics.py:1046-1070 TestMainLoadsDotenvBeforePreflight::test_main_loads_dotenv_before_preflight asserts calls == [\"dotenv\",\"preflight\"]. Ran it: PASSED (1 passed in 0.05s). MUTATION CHECK: removed the _load_dotenv_stdlib() call from main() -> test FAILED with AssertionError: ['preflight'] (missing 'dotenv'). Restored -> PASSED. So the test genuinely proves ordering, not a false positive.\n\n(c) LIVE RUN PASSES PREFLIGHT WITHOUT EXPORTED KEY: PASS. .env exists on disk with OPENROUTER_API_KEY (grep -c = 1); shell has OPENROUTER_API_KEY empty. Probe: `env -u OPENROUTER_API_KEY python3 -c \"...controller_key()...\"` -> before load: None; after _load_dotenv_stdlib(): key present True len 73. controller_key() (cron_runner.py:4552) reads os.environ, and _run_jev_preflight (line 4589) gates on controller_key() is None -> auth_failure. So with dotenv loaded first, preflight no longer fails.\n\n(d) FAST SUITE GREEN: PARTIAL/FAIL. `./.venv/bin/pytest -x --tb=short -q -k \"not benchmark\"` -> 1 failed, 613 passed. Failure = tests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns, caused by a [NAV-MEM] marker from commit 523a85e (NAV-MEM task, status in_progress), NOT from FIX-ENV-PREFLIGHT commit 3ad291c. Verified pre-existing: checked out 3ad291c~1 cron_runner.py -> same test fails identically. So the failure is unrelated to this task's change, but the suite is NOT green as literally stated.\n"
+              }
+            ],
+            "summary": "Partial verdict \u2014 evaluation hit resource cap before all criteria verified"
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: FIX-ENV-PREFLIGHT\n\nStage tier1: FAIL\n    \u2713 lint: ok (no output)\n  \u2717 tests: FAIL (tests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns [fi\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test proves ordering; live run passes preflight without exported key; fast suite green: Criterion 1: main() calls _load_dotenv_stdlib() before _run_jev_preflight; regression test proves ordering; live run passes preflight without exported key; fast suite green\n\nSUB-CHECKS:\n(a) ORDERING IN CODE: PASS. cron_runner.py:4773 `_load_dotenv_stdlib()` is called at top of main() (line 4764), BEFORE `_run_jev_preflight(...)` at line 4811. Confirmed via sed -n '4764,4830p'.\n\n(b) REGRESSION TEST PROVES ORDERING: PASS. tests/test_cron_runner_metrics.py:1046-1070 TestMainLoadsDotenvBeforePreflight::test_main_loads_dotenv_before_preflight asserts calls == [\"dotenv\",\"preflight\"]. Ran it: PASSED (1 passed in 0.05s). MUTATION CHECK: removed the _load_dotenv_stdlib() call from main() -> test FAILED with AssertionError: ['preflight'] (missing 'dotenv'). Restored -> PASSED. So the test genuinely proves ordering, not a false positive.\n\n(c) LIVE RUN PASSES PREFLIGHT WITHOUT EXPORTED KEY: PASS. .env exists on disk with OPENROUTER_API_KEY (grep -c = 1); shell has OPENROUTER_API_KEY empty. Probe: `env -u OPENROUTER_API_KEY python3 -c \"...controller_key()...\"` -> before load: None; after _load_dotenv_stdlib(): key present True len 73. controller_key() (cron_runner.py:4552) reads os.environ, and _run_jev_preflight (line 4589) gates on controller_key() is None -> auth_failure. So with dotenv loaded first, preflight no longer fails.\n\n(d) FAST SUITE GREEN: PARTIAL/FAIL. `./.venv/bin/pytest -x --tb=short -q -k \"not benchmark\"` -> 1 failed, 613 passed. Failure = tests/test_context_window.py::test_live_teacher_prompt_and_logged_record_carry_prior_turns, caused by a [NAV-MEM] marker from commit 523a85e (NAV-MEM task, status in_progress), NOT from FIX-ENV-PREFLIGHT commit 3ad291c. Verified pre-existing: checked out 3ad291c~1 cron_runner.py -> same test fails identically. So the failure is unrelated to this task's change, but the suite is NOT green as literally stated.\n\nPartial verdict \u2014 evaluation hit resource cap before all criteria verified\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-03T10:17:12.429983",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-03T10:17:12.459120+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 16340,
+        "truncated": false,
+        "source": "git show b492c13a551a"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1016,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "FIX-ENV-PREFLIGHT"
+  }
+}
