@@ -52,23 +52,29 @@ Current AI gaming projects fail because they treat Pokémon as a simple button-p
 
 ## Complete Specification
 
-**~53,500 lines** of comprehensive technical documentation covering all aspects of autonomous Pokémon gameplay:
+**~46,500 lines** of comprehensive technical documentation across 24 spec documents (as of 2026-10-03) covering all aspects of autonomous Pokémon gameplay:
 
 | Chapter | Focus | Lines |
 |---------|-------|-------|
-| 1 | Vision & Perception Engine | ~1,500 |
-| 2 | Hierarchical State Machine | ~1,200 |
-| 3 | Tactical Combat Heuristics | ~1,300 |
-| 4 | World Navigation & Spatial Memory | ~1,500 |
-| 5 | Data Persistence & Cognitive Schema | ~1,400 |
-| 6 | Entity Management & Party Optimization | ~1,650 |
-| 7 | Inventory & Item Logistics | ~1,400 |
-| 8 | Dialogue & Interaction Systems | ~1,600 |
-| 9 | GOAP Decision Core | ~1,800 |
-| 10 | Failsafe Protocols & System Integrity | ~1,500 |
-| — | CLI Control Infrastructure | ~10,000 |
-| — | Mode Duration Tracking & Anomaly Detection | ~2,000 |
-| — | Edge Cases & Recovery Protocols | ~3,000 |
+| 1 | Vision & Perception Engine | 564 |
+| 2 | Hierarchical State Machine | 818 |
+| 3 | Tactical Combat Heuristics | 1,019 |
+| 4 | World Navigation & Spatial Memory | 1,214 |
+| 5 | Data Persistence & Cognitive Schema | 1,520 |
+| 5b | Tri-Tier Memory Architecture | 776 |
+| 6 | Entity Management & Party Optimization | 1,996 |
+| 7 | Inventory & Item Logistics | 4,227 |
+| 8 | Dialogue & Interaction Systems | 1,592 |
+| 9 | GOAP Decision Core | 1,922 |
+| 10 | Failsafe Protocols & System Integrity | 2,410 |
+| — | CLI Control Infrastructure | 2,591 |
+| — | Mode Duration Tracking & Anomaly Detection | 1,952 |
+| — | Edge Cases & Recovery Protocols | 272 |
+
+The chapter files above (`specs/ptp_01x_detailed/` + the three cross-cutting specs)
+total ~22,100 lines; the remaining ~24,500 lines are the other top-level spec
+documents under `specs/` (design variants, API integration, database schema,
+executive summary, and SPECIFICATION_COMPLETE).
 
 Each chapter follows a **spec-driven format** with:
 - Mermaid flowcharts for visual logic
@@ -239,7 +245,8 @@ produced no screen classification (e.g. skipped/error frames, or the RAM reader'
 unknown bucket) rather than a specific screen type.
 
 **Outputs:**
-- `cron_logs/run_<id>.jsonl` — one JSON line per cycle: screen type, button plan, LLM
+- `cron_logs/run_<id>.jsonl` — one JSON line per event (cycle decisions among
+  them): screen type, button plan, LLM
   intent, player coordinates (x/y), map name, plus event rows (recovery, state saved).
 - `screenshots/run_<id>/step_NNNN.png` — 160×144 RGB frame per cycle.
 
@@ -251,6 +258,16 @@ unknown bucket) rather than a specific screen type.
 | `--cycles` | 20 | Number of AI decision cycles |
 | `--rom` | `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb` | Path to the Gen-1 GB ROM to boot (overrides the module default) |
 | `--boot-state` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass; `skip` forces the legacy intro bypass |
+| `--dry-run` | off | Validate setup (ROM + boot-state paths, config summary, API-key liveness) and exit 0 — zero LLM/API calls, no emulator boot |
+| `--skip-key-check` | off | With `--dry-run`: skip the API-key liveness probes and report key presence only (fully offline validation) |
+
+Step 5 above needs a real key in `.env` (`OPENROUTER_API_KEY`, or the
+`DEEPSEEK_API_KEY` fallback) because it starts live AI decisions. Without a key,
+validate the setup offline instead:
+
+```bash
+python3 cron_runner.py --dry-run --skip-key-check
+```
 
 **Full reference:** [docs/api/cron_runner.md](docs/api/cron_runner.md) — CLI flags,
 pipeline stages, JSONL log schema, checkpoint/rollback behavior, and cost notes.
@@ -289,6 +306,18 @@ varies by run.
 > remains the legacy path — use `cron_runner.py` for real autonomous gameplay.
 
 ## Quick Start (legacy game_loop.py)
+
+> **⚠️ PYTHONPATH required for the legacy path:** the commands below crash with
+> `ModuleNotFoundError: No module named 'db'` unless run with `src/` on
+> `PYTHONPATH` and the project venv activated:
+>
+> ```bash
+> source .venv/bin/activate
+> export PYTHONPATH=src
+> ```
+>
+> (`src/game_loop.py` imports `db.*`/`core.*` packages that only resolve with
+> `src/` on `PYTHONPATH`.)
 
 ```bash
 # 1. Create virtual environment
@@ -411,10 +440,10 @@ runs/test_001/
 .venv/bin/python -m pytest tests/test_schemas.py -v
 
 # Run tests in a specific directory
-.venv/bin/python -m pytest tests/cli/ -v
+.venv/bin/python -m pytest tests/ptp_cli/ -v
 
 # Run a specific test function
-.venv/bin/python -m pytest tests/test_schemas.py::test_command_creation -v
+.venv/bin/python -m pytest tests/test_schemas.py::TestCommandTypeEnum::test_command_type_values_exist -v
 
 # Run tests matching a pattern
 .venv/bin/python -m pytest -k "battle" -v
@@ -530,10 +559,16 @@ ERROR: Emulator crashed at tick 150
 4. Verify in config/settings.yaml that `models.thinking_model.provider` is set to "openai"
 
 #### Verifying API Connection
+The command below only verifies that `.env` loads and prints `API Key set:
+True/False` for whether the key is **present** — it does not contact OpenRouter.
+Real key liveness (expired/invalid keys) is checked by the dry run:
+
 ```bash
-# Test API key is loaded
 source .venv/bin/activate
 python3 -c "from dotenv import load_dotenv; from pathlib import Path; load_dotenv(Path('.env')); import os; print('API Key set:', bool(os.getenv('OPENROUTER_API_KEY')))"
+
+# Real liveness check (validates ROM, boot state, and live API keys; zero LLM calls)
+python3 cron_runner.py --dry-run
 ```
 
 ### Emulator Issues
@@ -637,7 +672,16 @@ flake8>=6.0           # Linting
 ├── src/                  # Implementation framework
 │   ├── core/             # AI core systems
 │   ├── db/               # Database operations
-│   └── schemas/          # Command definitions
+│   ├── ptp_cli/          # PTP CLI commands
+│   ├── schemas/          # Command definitions
+│   ├── dashboard/        # FastAPI dashboard (src.dashboard.main:app)
+│   └── vision/           # Vision pipeline
+├── tests/                # Test suite
+│   └── ptp_cli/          # CLI tests
+├── tools/                # Utilities (console/, incl. bench_vision_accuracy.py)
+├── web/                  # Browser-based live viewer (index.html + JS overlay)
+├── cron_runner.py        # Primary entry point (autonomous gameplay runner)
+├── ram_map_server.py     # Live RAM-map viewer server (:8099)
 └── config/               # Configuration files
 ```
 
@@ -669,4 +713,4 @@ MIT License - See LICENSE file for details.
 
 **PTP-01X** - *Orchestrated Intelligence for Autonomous Gameplay*
 
-*Last Updated: December 31, 2025*
+*Last Updated: October 3, 2026*
