@@ -1124,3 +1124,11 @@ tasks:
   status: complete
   created_at: '2026-10-04T11:02:32.408927+00:00'
   completed_at: '2026-10-04T11:14:13.261626+00:00'
+- id: QA-AI-PLAYS-POKE-11
+  title: Fix act mypy step crash (fresh-agent false-red)
+  criteria:
+  - 'act run''s ''Type check (mypy)'' step must not crash on a fresh agent: reproduce
+    locally with act, identify the environment difference vs hosted CI, land a minimal
+    ci.yml or workflow fix, verify the step passes under act AND hosted CI stays green'
+  status: in_progress
+  created_at: '2026-10-04T17:21:52.509480+00:00'

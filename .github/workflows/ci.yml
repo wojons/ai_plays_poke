@@ -9,6 +9,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Keep local act runs on an image whose glibc can load setup-python's
+    # cached interpreter, matching the hosted runner's runtime baseline.
+    container: catthehacker/ubuntu:act-latest
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 15
 
     steps:
