@@ -103,6 +103,8 @@ Each chapter follows a **spec-driven format** with:
 
 ### 🎯 GOAP Decision Core
 
+> **SPEC-DRIVEN / design-only** — not wired into the running `cron_runner.py` loop (see Runtime boundary below).
+
 Hierarchical planning layers operating at different timescales:
 - **Strategic Layer (1000+ cycles)**: Team composition, gym preparation
 - **Tactical Layer (30-100 cycles)**: Route planning, resource management
