@@ -26,7 +26,7 @@ def _capture_writes(monkeypatch) -> list[dict[str, Any]]:
         "remember",
         lambda **kwargs: writes.append(kwargs) or "memory-id",
     )
-    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: None)
+    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: (kwargs, None)[-1])
     return writes
 
 
@@ -179,10 +179,11 @@ def test_failed_memory_write_records_no_event(monkeypatch, tmp_path) -> None:
     """
 
     def fail_remember(**kwargs) -> str:
+        _ = kwargs
         raise OSError("duckbrain offline")
 
     monkeypatch.setattr(duckbrain_client, "remember", fail_remember)
-    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: None)
+    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: (kwargs, None)[-1])
     results: list[dict[str, Any]] = []
     log_path = tmp_path / "run_fail.jsonl"
 

@@ -622,7 +622,7 @@ class TestScreenDetection:
         """Overworld = not battle, not menu, not dialog.
         NOTE: is_in_menu has a shape[:0] bug — monkeypatched to bypass."""
         img = _make_screenshot(_path_tile)
-        detector.is_in_menu = lambda screenshot: False  # type: ignore[method-assign]
+        detector.is_in_menu = lambda screenshot: (screenshot, False)[-1]  # type: ignore[method-assign]
         result = detector.classify_screen_type(img)
         assert result == "overworld"
 

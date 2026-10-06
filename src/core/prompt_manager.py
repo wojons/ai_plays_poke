@@ -119,7 +119,7 @@ class PromptManager:
             return None
 
     def get_relevant_prompts(
-        self, game_state_type: str, context: Dict[str, Any]
+        self, game_state_type: str, _context: Dict[str, Any]
     ) -> List[PromptTemplate]:
         """
         Get prompts relevant for current game state

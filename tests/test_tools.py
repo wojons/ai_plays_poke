@@ -632,6 +632,7 @@ class TestBattleToolEmulatorErrorWrapping:
     def test_emulator_runtime_error_wrapped(self) -> None:
         class BadEmu:
             def press_button(self, b, frames=5):
+                _ = (b, frames)
                 raise RuntimeError("pyboy disconnected")
 
         result = execute_tool_call(BadEmu(), "select_move", {"move_number": 1})
@@ -641,9 +642,11 @@ class TestBattleToolEmulatorErrorWrapping:
     def test_wait_exception_wrapped(self) -> None:
         class BadEmu:
             def press_button(self, b, frames=5):
+                _ = (b, frames)
                 return None
 
             def wait(self, n):
+                _ = n
                 raise OSError("wait failed")
 
         result = execute_tool_call(BadEmu(), "run_from_battle", {})

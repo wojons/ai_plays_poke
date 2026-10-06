@@ -38,11 +38,13 @@ class _FakeEmulator:
         self.presses: list[str] = []
 
     def press_button(self, button: str, frames: int = 5) -> None:
+        _ = frames
         self.presses.append(button)
         if self.movement_changes_position and button == "right":
             self.x += 1
 
     def fast_forward(self, frames: int) -> None:
+        _ = frames
         return None
 
 
@@ -382,6 +384,7 @@ def test_model_research_delegate_enforces_cost_ceiling_without_tools() -> None:
 def test_model_research_delegate_returns_at_wall_clock_cap() -> None:
     class _SlowResearchClient:
         def chat_completion(self, **kwargs: Any) -> dict[str, str]:
+            _ = kwargs
             time.sleep(0.08)
             return {"content": '{"finding": "late"}'}
 

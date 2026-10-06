@@ -1228,7 +1228,7 @@ class ShoppingHeuristic:
     def calculate_quantity_needed(
         self,
         item_type: ItemType,
-        party_state: PartyState,
+        _party_state: PartyState,
     ) -> int:
         """Calculate how many of an item are needed"""
         current = self._inventory.get_quantity(item_type)
@@ -1257,7 +1257,7 @@ class ShoppingHeuristic:
     def calculate_budget(
         self,
         current_money: int,
-        upcoming_challenges: List[str],
+        _upcoming_challenges: List[str],
     ) -> Tuple[int, int]:
         """
         Calculate available shopping budget and emergency reserve.
@@ -1502,7 +1502,7 @@ class PokemonCenterProtocol:
         needs_healing, _, _ = self.assess_healing_need(party_state)
         return needs_healing
 
-    def calculate_healing_cost(self, party_state: PartyState) -> int:
+    def calculate_healing_cost(self, _party_state: PartyState) -> int:
         """Calculate cost for Pokemon Center healing (always free in Gen 1)"""
         return 0
 
@@ -1529,8 +1529,8 @@ class PokemonCenterProtocol:
     def execute_center_protocol(
         self,
         party_state: PartyState,
-        pc_box_state: Optional[List[PokemonState]] = None,
-        upcoming_challenges: Optional[List[str]] = None,
+        _pc_box_state: Optional[List[PokemonState]] = None,
+        _upcoming_challenges: Optional[List[str]] = None,
     ) -> Tuple[bool, PartyState]:
         """
         Execute complete Pokemon Center visit: heal + optional PC.
@@ -1568,7 +1568,7 @@ class PokemonCenterProtocol:
         self,
         party_state: PartyState,
         pc_box_state: List[PokemonState],
-        upcoming_challenges: List[str],
+        _upcoming_challenges: List[str],
     ) -> List[Tuple[int, int]]:
         """
         Analyze if PC swaps are needed for optimal party composition.
@@ -1644,7 +1644,7 @@ class ItemUsageStrategy:
         self,
         party_state: PartyState,
         active_index: int,
-        enemy_info: Optional[Dict[str, Any]] = None,
+        _enemy_info: Optional[Dict[str, Any]] = None,
         is_trainer_battle: bool = False,
     ) -> Tuple[Optional[ItemType], Optional[int]]:
         """
@@ -1738,7 +1738,7 @@ class ItemUsageStrategy:
 
     def should_use_potion(
         self,
-        pokemon: PokemonState,
+        _pokemon: PokemonState,
         current_hp_percent: float,
         battle_context: Dict[str, Any],
     ) -> bool:
@@ -1820,7 +1820,7 @@ class ItemUsageStrategy:
         self,
         item_type: ItemType,
         party_state: PartyState,
-        battle_context: Dict[str, Any],
+        _battle_context: Dict[str, Any],
     ) -> float:
         """
         Calculate value score for an item based on current situation.
@@ -1884,7 +1884,7 @@ class ItemUsageStrategy:
         self,
         pokemon: PokemonState,
         party_state: PartyState,
-        upcoming_challenges: List[str],
+        _upcoming_challenges: List[str],
     ) -> bool:
         """Determine if Rare Candy should be used on this Pokemon"""
         if not self._inventory.has_item(ItemType.RARE_CANDY):
@@ -1905,7 +1905,7 @@ class ItemUsageStrategy:
     def get_optimal_candy_target(
         self,
         party_state: PartyState,
-        upcoming_challenges: List[str],
+        _upcoming_challenges: List[str],
     ) -> Optional[int]:
         """Get index of best Pokemon to use Rare Candy on"""
         if not self._inventory.has_item(ItemType.RARE_CANDY):
@@ -1978,7 +1978,7 @@ class ItemUsageStrategy:
     def evaluate_repel_usage(
         self,
         party_state: PartyState,
-        current_location: str,
+        _current_location: str,
         upcoming_route: str,
     ) -> Tuple[bool, Optional[ItemType], str]:
         """
@@ -2148,7 +2148,7 @@ class InventoryManager:
             party_state, active_index, battle_context
         )
 
-    def record_item_usage(self, item_type: ItemType, context: Dict[str, Any]) -> None:
+    def record_item_usage(self, item_type: ItemType, _context: Dict[str, Any]) -> None:
         """Record item usage for learning/optimization"""
         self._inventory.consume_item(item_type)
 

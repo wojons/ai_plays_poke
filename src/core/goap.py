@@ -165,7 +165,7 @@ class Goal:
                     missing["pokemon_species"] = required
         return len(missing) == 0, missing
 
-    def calculate_utility(self, state: GameState) -> float:
+    def calculate_utility(self, _state: GameState) -> float:
         if self.estimated_cost == 0:
             return self.estimated_value * self.priority
         return (self.estimated_value / self.estimated_cost) * self.priority
@@ -790,7 +790,7 @@ class GoalPriorityCalculator:
 
         return min(max(final_priority, 0), 100)
 
-    def _calculate_temporal_multiplier(self, goal: Goal, state: GameState) -> float:
+    def _calculate_temporal_multiplier(self, goal: Goal, _state: GameState) -> float:
         if not goal.deadline:
             return 1.0
         time_remaining = (goal.deadline - datetime.now()).total_seconds()
@@ -810,7 +810,7 @@ class GoalPriorityCalculator:
             return 1.2
         return 1.0
 
-    def _calculate_efficiency_multiplier(self, goal: Goal, state: GameState) -> float:
+    def _calculate_efficiency_multiplier(self, goal: Goal, _state: GameState) -> float:
         value = goal.estimated_value
         cost = goal.estimated_cost
         if cost == 0:
@@ -901,7 +901,7 @@ class GoalPrioritizer:
             priority = self.calculator.calculate_priority(goal, state)
             self.priority_queue.update_priority(goal.goal_id, priority)
 
-    def get_urgent_goals(self, state: GameState) -> List[Goal]:
+    def get_urgent_goals(self, _state: GameState) -> List[Goal]:
         urgent = []
         for goal in self.goal_dag.nodes.values():
             if goal.goal_type == GoalType.IMMEDIATE:
@@ -910,7 +910,7 @@ class GoalPrioritizer:
                 urgent.append(goal)
         return sorted(urgent, key=lambda g: g.priority, reverse=True)
 
-    def get_strategic_goals(self, state: GameState) -> List[Goal]:
+    def get_strategic_goals(self, _state: GameState) -> List[Goal]:
         strategic = []
         for goal in self.goal_dag.nodes.values():
             if goal.goal_type in [GoalType.MEDIUM_TERM, GoalType.LONG_TERM]:
@@ -963,7 +963,7 @@ class Planner:
         return actions
 
     def _decompose_catch_goal(
-        self, goal: CatchPokemonGoal, state: GameState
+        self, goal: CatchPokemonGoal, _state: GameState
     ) -> List[Action]:
         actions: List[Action] = []
         if goal.location:
@@ -973,7 +973,7 @@ class Planner:
         return actions
 
     def _decompose_heal_goal(
-        self, goal: HealPartyGoal, state: GameState
+        self, _goal: HealPartyGoal, _state: GameState
     ) -> List[Action]:
         actions: List[Action] = []
         actions.append(NavigateAction("Pokemon Center", method="nearest"))
@@ -990,7 +990,7 @@ class Planner:
         return actions
 
     def _decompose_item_goal(
-        self, goal: ObtainItemGoal, state: GameState
+        self, goal: ObtainItemGoal, _state: GameState
     ) -> List[Action]:
         actions: List[Action] = []
         if goal.buy:

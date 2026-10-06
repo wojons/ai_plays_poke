@@ -152,6 +152,7 @@ def sample_team(sample_pokemon_data: PokemonData) -> Team:
 @pytest.fixture
 def full_party(sample_pokemon_data: PokemonData, sample_base_stats: BaseStats) -> Team:
     """Create a full party of 6 Pokemon for testing"""
+    _ = sample_base_stats
     charizard_stats = BaseStats(
         species_id="CHARIZARD",
         species_name="Charizard",
@@ -1353,6 +1354,7 @@ class TestEntityManager:
         self, sample_team, sample_pokemon_data, type_chart
     ) -> None:  # type: ignore[no-untyped-def]
         """Test evolution recommendations for existing Pokemon"""
+        _ = sample_pokemon_data
         manager = EntityManager(type_chart)
         manager.set_team(sample_team)
         recommendations = manager.get_evolution_recommendations("pokemon_001")
@@ -1562,6 +1564,7 @@ class TestEdgeCases:
 
     def test_team_with_all_fainted(self, sample_pokemon_data, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test team where all Pokemon are fainted"""
+        _ = type_chart
         sample_pokemon_data.current_hp = 0
         team = Team(
             team_id="test",
@@ -1574,6 +1577,7 @@ class TestEdgeCases:
 
     def test_party_with_hm_users(self, full_party, type_chart) -> None:  # type: ignore[no-untyped-def]
         """Test HM user detection in full party"""
+        _ = type_chart
         assert full_party.has_hm_user() is False
         full_party.party[0].moves.append(
             Move(

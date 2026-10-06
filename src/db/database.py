@@ -513,7 +513,7 @@ class GameDatabase:
 
             return session_dict
 
-    def export_session_data(self, session_id: int, format: str = "json") -> str:
+    def export_session_data(self, session_id: int, _format: str = "json") -> str:
         """Export all session data for analysis"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -530,7 +530,9 @@ class GameDatabase:
         # Write the export next to the DB (which lives in the configured
         # save-dir), NOT the CWD — a --save-dir run must not dirty the repo
         # root (GAP-025).
-        output_path = str(Path(self.db_path).parent / f"session_{session_id}_export.json")
+        output_path = str(
+            Path(self.db_path).parent / f"session_{session_id}_export.json"
+        )
         with open(output_path, "w") as f:
             json.dump(data, f, indent=2, default=str)
 

@@ -577,7 +577,7 @@ class TacticianMemory:
 
     def _generate_strategy_key(
         self,
-        context: Dict[str, Any],
+        _context: Dict[str, Any],
         enemy_type: str,
         player_pokemon: str,
         moves_sequence: List[str],

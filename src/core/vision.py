@@ -112,6 +112,7 @@ class VisionClient:
             text_lines, menu_items, and other fields.
             Falls back to ``{"screen_type": "unknown"}`` on persistent failure.
         """
+        _ = game
         # ── cache check ─────────────────────────────────────────────────
         current_hash = self._compute_hash(screenshot)
         if current_hash == self._last_hash and self._last_result is not None:

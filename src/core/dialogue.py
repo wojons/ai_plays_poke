@@ -817,7 +817,7 @@ class DialogParser:
         return primary_intent, secondary_intent, confidence
 
     def _determine_actions(
-        self, lines: List[DialogLine], intent: DialogIntent
+        self, _lines: List[DialogLine], intent: DialogIntent
     ) -> List[str]:
         """Determine required actions based on intent"""
         actions = []
@@ -1121,7 +1121,7 @@ class MenuNavigator:
             is_active=True,
         )
 
-    def _calculate_position(self, total_options: int, index: int) -> Tuple[int, int]:
+    def _calculate_position(self, _total_options: int, index: int) -> Tuple[int, int]:
         """Calculate cursor position for option index"""
         row = index % 2
         col = index // 2

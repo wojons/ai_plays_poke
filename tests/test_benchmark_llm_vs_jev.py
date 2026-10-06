@@ -42,6 +42,7 @@ def test_llm_mode_battle_recovery_never_calls_jev(monkeypatch):
     """BENCH-1 gate: battle recovery must not consult the fast tier in llm mode."""
 
     def _spy(*args, **kwargs):
+        _ = (args, kwargs)
         raise AssertionError("jev_client.decide was called in pure-LLM mode")
 
     monkeypatch.setattr(cron_runner.jev_client, "decide", _spy)
@@ -75,7 +76,7 @@ def test_jev_mode_battle_recovery_still_consults_jev(monkeypatch):
 
     monkeypatch.setattr(cron_runner.jev_client, "decide", _spy)
     monkeypatch.setattr(
-        cron_runner, "execute_tool_call", lambda *a, **k: "pressed move 1"
+        cron_runner, "execute_tool_call", lambda *a, **k: (a, k, "pressed move 1")[-1]
     )
     cron_runner.DECISION_MODE = "jev"
 
@@ -97,6 +98,7 @@ def test_llm_mode_starter_selection_never_calls_jev(monkeypatch):
     """BENCH-1 gate: starter selection must not consult the fast tier in llm mode."""
 
     def _spy(*args, **kwargs):
+        _ = (args, kwargs)
         raise AssertionError("jev_client.decide was called in pure-LLM mode")
 
     monkeypatch.setattr(cron_runner.jev_client, "decide", _spy)

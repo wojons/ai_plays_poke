@@ -387,8 +387,8 @@ class AStarPathfinder:
 
     def _calculate_movement_cost(
         self,
-        current: Position,
-        neighbor: Position,
+        _current: Position,
+        _neighbor: Position,
         edge: GraphEdge,
         context: PathfindingContext,
         node: Optional[GraphNode],
@@ -427,7 +427,7 @@ class AStarPathfinder:
 
     def _reconstruct_path(
         self,
-        start: Position,
+        _start: Position,
         goal: Position,
         came_from: Dict[Position, Position],
         g_score: Dict[Position, float],
@@ -510,7 +510,7 @@ class AStarPathfinder:
         )
 
     def _find_warp_sequence(
-        self, start_map: str, goal_map: str, context: PathfindingContext
+        self, start_map: str, goal_map: str, _context: PathfindingContext
     ) -> List[Position]:
         if start_map == goal_map:
             return []

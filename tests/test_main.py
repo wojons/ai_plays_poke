@@ -71,6 +71,7 @@ class TestPokemonAIAgentInit:
 # ——— PokemonAIAgent.start ———
 class TestStart:
     def test_start_rom_missing(self, tmp_path):
+        _ = tmp_path
         a = PokemonAIAgent("/nonexistent/rom.gb")
         assert a.start() is False
 
@@ -231,6 +232,7 @@ class TestStop:
 class TestMainFunction:
     def test_main_rom_not_found(self, tmp_path):
         """main() with nonexistent ROM should return early without crash."""
+        _ = tmp_path
         with patch("main.PokemonAIAgent") as MockAgent:
             inst = MockAgent.return_value
             inst.start.return_value = False

@@ -485,6 +485,7 @@ class TestHSMCallbacks:
         hsm = HierarchicalStateMachine()
 
         def failing_cb(prev, curr):
+            _ = (prev, curr)
             raise RuntimeError("callback boom")
 
         hsm.register_transition_callback(failing_cb)
@@ -510,6 +511,7 @@ class TestHSMCallbacks:
         hsm = HierarchicalStateMachine()
 
         def failing_ecb(reason):
+            _ = reason
             raise RuntimeError("emergency callback boom")
 
         hsm.register_emergency_callback(failing_ecb)
@@ -655,6 +657,7 @@ class TestHSMUpdate:
         original_on_update = hsm._current_state.on_update
 
         def patched_on_update(tick):
+            _ = tick
             return target
 
         hsm._current_state.on_update = patched_on_update
@@ -790,6 +793,7 @@ class TestGameStateClassifier:
 
         # Patch _determine_state to suggest a valid transition
         def mock_determine(screen_data, memory_data):
+            _ = (screen_data, memory_data)
             return "MENU.MAIN_MENU"
 
         gsc._determine_state = mock_determine  # type: ignore[assignment]
@@ -805,6 +809,7 @@ class TestGameStateClassifier:
         gsc = GameStateClassifier(hsm)
 
         def mock_determine(screen_data, memory_data):
+            _ = (screen_data, memory_data)
             return "BATTLE.BATTLE_ANIMATION"  # not valid from INITIALIZE
 
         gsc._determine_state = mock_determine  # type: ignore[assignment]
@@ -819,6 +824,7 @@ class TestGameStateClassifier:
         gsc = GameStateClassifier(hsm)
 
         def mock_determine(screen_data, memory_data):
+            _ = (screen_data, memory_data)
             return "EMERGENCY.SOFTLOCK_DETECTED"
 
         gsc._determine_state = mock_determine  # type: ignore[assignment]

@@ -34,6 +34,7 @@ def _write_jsonl(data_dir: Path, date_str: str, records: list[dict]) -> Path:
 
 class TestEnsureNamespace:
     def test_creates_data_dir(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-ns")
         assert data_dir.exists()
         assert data_dir.name == "data"
@@ -44,6 +45,7 @@ class TestEnsureNamespace:
         assert data_dir == expected
 
     def test_idempotent(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         d1 = dbc._ensure_namespace("ns1")
         d2 = dbc._ensure_namespace("ns1")
         assert d1 == d2
@@ -54,6 +56,7 @@ class TestEnsureNamespace:
 
 class TestRemember:
     def test_returns_uuid_string(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         mem_id = dbc.remember(
             key="/test/key",
             domain="concept",
@@ -127,6 +130,7 @@ class TestRemember:
         assert len(files) == 1
 
     def test_distinct_uuids(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         id1 = dbc.remember(
             key="/u1", domain="concept", attributes={}, embedding_text="a"
         )
@@ -179,10 +183,12 @@ class TestRemember:
 
 class TestRecall:
     def test_empty_namespace_returns_empty_list(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         results = dbc.recall(namespace="empty-ns")
         assert results == []
 
     def test_recall_all(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-recall")
         _write_jsonl(
             data_dir,
@@ -208,6 +214,7 @@ class TestRecall:
         assert len(results) == 2
 
     def test_filter_by_key(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-key")
         _write_jsonl(
             data_dir,
@@ -234,6 +241,7 @@ class TestRecall:
         assert results[0]["id"] == "1"
 
     def test_filter_by_key_prefix(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-prefix")
         _write_jsonl(
             data_dir,
@@ -266,6 +274,7 @@ class TestRecall:
         assert len(results) == 2
 
     def test_filter_by_domain(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-domain")
         _write_jsonl(
             data_dir,
@@ -298,6 +307,7 @@ class TestRecall:
         assert len(results) == 2
 
     def test_limit(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-limit")
         records = [
             {
@@ -314,6 +324,7 @@ class TestRecall:
         assert len(results) == 3
 
     def test_skips_tombstones(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-tombstone")
         _write_jsonl(
             data_dir,
@@ -340,6 +351,7 @@ class TestRecall:
         assert results[0]["id"] == "1"
 
     def test_skips_corrupt_json(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-corrupt")
         jsonl_path = data_dir / "memories-2026-06-25.jsonl"
         jsonl_path.write_text(
@@ -351,6 +363,7 @@ class TestRecall:
         assert len(results) == 2
 
     def test_skips_empty_lines(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-empty")
         jsonl_path = data_dir / "memories-2026-06-25.jsonl"
         jsonl_path.write_text(
@@ -362,10 +375,12 @@ class TestRecall:
         assert len(results) == 1
 
     def test_handles_missing_data_dir(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         results = dbc.recall(namespace="nonexistent-ns")
         assert results == []
 
     def test_key_and_key_prefix_mutually_filter(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-both")
         _write_jsonl(
             data_dir,
@@ -393,6 +408,7 @@ class TestRecall:
         assert results[0]["id"] == "1"
 
     def test_reads_multiple_jsonl_files(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-multi")
         _write_jsonl(
             data_dir,
@@ -424,6 +440,7 @@ class TestRecall:
         assert len(results) == 2
 
     def test_filter_by_labels_requires_all_requested_labels(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         namespace = "test-label-and"
         dbc.remember(
             key="/both",
@@ -454,6 +471,7 @@ class TestRecall:
         assert [record["key"] for record in results] == ["/both"]
 
     def test_domain_counts_as_a_label(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         namespace = "test-domain-label"
         dbc.remember(
             key="/domain-label",
@@ -476,6 +494,7 @@ class TestRecall:
         assert [record["key"] for record in results] == ["/domain-label"]
 
     def test_labels_none_preserves_unfiltered_recall(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         namespace = "test-label-default"
         dbc.remember(
             key="/labeled",
@@ -555,10 +574,12 @@ print(json.dumps({
 
 class TestListKeys:
     def test_empty_namespace_returns_empty(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         keys = dbc.list_keys(namespace="empty-keys")
         assert keys == []
 
     def test_lists_unique_keys(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-keys")
         _write_jsonl(
             data_dir,
@@ -593,6 +614,7 @@ class TestListKeys:
         assert "/d" in keys
 
     def test_filter_by_prefix(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-prefix-keys")
         _write_jsonl(
             data_dir,
@@ -628,6 +650,7 @@ class TestListKeys:
         assert "/other" not in keys
 
     def test_truncation_warns_and_logs_correct_lower_bound(self, duckbrain_tmp, caplog):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-limit-keys")
         records = [
             {
@@ -654,6 +677,7 @@ class TestListKeys:
         assert message in caplog.messages
 
     def test_exact_limit_does_not_warn(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-exact-limit-keys")
         records = [
             {
@@ -675,6 +699,7 @@ class TestListKeys:
         assert not captured
 
     def test_one_past_cap_does_not_change_returned_keys(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-one-past-keys")
         records = [
             {
@@ -695,6 +720,7 @@ class TestListKeys:
         assert keys == ["/b", "/c"]
 
     def test_skips_tombstones(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-keys-tomb")
         _write_jsonl(
             data_dir,
@@ -721,6 +747,7 @@ class TestListKeys:
         assert "/dead" not in keys
 
     def test_returns_sorted(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-sorted")
         _write_jsonl(
             data_dir,
@@ -753,10 +780,12 @@ class TestListKeys:
         assert keys == ["/a", "/m", "/z"]
 
     def test_handles_missing_data_dir(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         keys = dbc.list_keys(namespace="nonexistent-ns")
         assert keys == []
 
     def test_default_prefix_is_root_slash(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-default-prefix")
         _write_jsonl(
             data_dir,
@@ -782,6 +811,7 @@ class TestListKeys:
         assert len(keys) == 2
 
     def test_deduplicates_across_files(self, duckbrain_tmp):
+        _ = duckbrain_tmp
         data_dir = dbc._ensure_namespace("test-dedup")
         _write_jsonl(
             data_dir,

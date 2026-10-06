@@ -112,7 +112,7 @@ def _restore_ram() -> str | None:
 # ------------------------------------------------------------------ metrics
 def episode_metrics_from_log(
     log_path: Path,
-    start_map: str = START_MAP,
+    _start_map: str = START_MAP,
     goal_map: str = GOAL_MAP,
 ) -> dict[str, Any]:
     """Per-episode DIST-1 metrics from one cron_runner JSONL log.

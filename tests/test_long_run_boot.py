@@ -61,6 +61,7 @@ def test_default_boot_probes_pallet_town_map_0_live():
 
 
 def test_resolve_boot_state_default(monkeypatch):
+    _ = monkeypatch
     assert long_run.resolve_boot_state() == long_run.BOOT
 
 

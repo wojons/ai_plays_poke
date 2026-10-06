@@ -54,6 +54,7 @@ def _block(text: str, label: str, next_label: str | None = None) -> str:
 
 
 def test_boot_blocks_render_populated_store(temp_store: Path) -> None:
+    _ = temp_store
     _remember(
         "/game/mechanics/controls",
         "game/mechanics",
@@ -145,6 +146,7 @@ def test_boot_blocks_render_populated_store(temp_store: Path) -> None:
 
 
 def test_boot_blocks_are_placeholders_on_empty_store(temp_store: Path) -> None:
+    _ = temp_store
     boot = cron_runner._build_boot_memory_blocks()
 
     assert boot.has_content is False
@@ -161,6 +163,7 @@ def test_boot_blocks_are_placeholders_on_empty_store(temp_store: Path) -> None:
 
 
 def test_over_long_entry_is_truncated_to_value_cap(temp_store: Path) -> None:
+    _ = temp_store
     _remember(
         "/game/mechanics/battle",
         "game/mechanics",
@@ -183,6 +186,7 @@ def test_over_long_entry_is_truncated_to_value_cap(temp_store: Path) -> None:
 def test_over_long_block_is_truncated_to_block_cap(temp_store: Path) -> None:
     # Many small item values: each stays under the value cap while the
     # assembled SAVE block still blows past the block cap.
+    _ = temp_store
     _remember(
         "/game/save/items",
         "game/save",
@@ -210,6 +214,7 @@ def test_payload_budget_is_enforced() -> None:
 
 
 def test_runs_index_digest_is_capped_at_last_ten(temp_store: Path) -> None:
+    _ = temp_store
     _remember(
         "/game/runs/index",
         "game/runs",
@@ -231,6 +236,7 @@ def test_runs_index_digest_is_capped_at_last_ten(temp_store: Path) -> None:
 
 
 def test_save_state_renders_plain_item_name_lists(temp_store: Path) -> None:
+    _ = temp_store
     _remember(
         "/game/save/items",
         "game/save",
@@ -247,6 +253,7 @@ def test_boot_injection_failure_is_swallowed(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     def fail_get(**kwargs: Any) -> None:
+        _ = kwargs
         raise OSError("duckbrain offline")
 
     monkeypatch.setattr(duckbrain_client, "get", fail_get)
@@ -306,6 +313,7 @@ def test_prompt_includes_blocks_only_when_nontrivial() -> None:
 
 
 def test_prompt_assembly_matches_populated_store(temp_store: Path) -> None:
+    _ = temp_store
     _remember(
         "/game/learning/battle",
         "game/learning",

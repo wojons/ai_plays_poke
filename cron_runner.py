@@ -430,7 +430,7 @@ def _extract_provider_error(body: str, status: int) -> str:
 
 
 def _probe_api_key(
-    name: str,
+    _name: str,
     url: str,
     key: str,
     timeout: float = _PROBE_TIMEOUT_SECONDS,
@@ -957,6 +957,7 @@ def _reset_recovery_trackers(
     a_press_count: int,
 ) -> _RecoveryTrackers:
     """Clear the tracker that fired, including A presses after any recovery."""
+    _ = a_press_count
     if "direction-locked" in recovery_reason:
         same_dir = None
         same_dir_count = 0

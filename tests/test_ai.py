@@ -47,6 +47,7 @@ class TestPromptSelection:
         self, sample_game_contexts, mock_prompt_manager
     ) -> None:  # type: ignore[no-untyped-def]
         """Test correct prompts are selected for battle state"""
+        _ = mock_prompt_manager
         from src.core.prompt_manager import PromptManager, PromptTemplate
 
         battle_template = PromptTemplate(
@@ -57,7 +58,9 @@ class TestPromptSelection:
             priority=5,
         )
 
-        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
+        with patch.object(
+            PromptManager, "__init__", lambda x, y=None: (x, y, None)[-1]
+        ):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = [battle_template]
             prompt_manager.prompt_usage_stats = {}
@@ -72,7 +75,9 @@ class TestPromptSelection:
         """Test correct prompts are selected for menu state"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
+        with patch.object(
+            PromptManager, "__init__", lambda x, y=None: (x, y, None)[-1]
+        ):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
@@ -87,7 +92,9 @@ class TestPromptSelection:
         """Test correct prompts are selected for overworld state"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
+        with patch.object(
+            PromptManager, "__init__", lambda x, y=None: (x, y, None)[-1]
+        ):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
@@ -102,7 +109,9 @@ class TestPromptSelection:
         """Test AI preference affects prompt selection"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
+        with patch.object(
+            PromptManager, "__init__", lambda x, y=None: (x, y, None)[-1]
+        ):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
@@ -119,7 +128,9 @@ class TestPromptSelection:
         """Test prompts are sorted by priority"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
+        with patch.object(
+            PromptManager, "__init__", lambda x, y=None: (x, y, None)[-1]
+        ):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
@@ -712,7 +723,9 @@ class TestAIIntegration:
         """Test prompt selection integration"""
         from src.core.prompt_manager import PromptManager
 
-        with patch.object(PromptManager, "__init__", lambda x, y=None: None):
+        with patch.object(
+            PromptManager, "__init__", lambda x, y=None: (x, y, None)[-1]
+        ):
             prompt_manager = PromptManager.__new__(PromptManager)
             prompt_manager.prompt_templates = []
             prompt_manager.prompt_usage_stats = {}
@@ -727,7 +740,9 @@ class TestAIIntegration:
         """Test AI client can be initialized with mocks"""
         from src.core.ai_client import OpenRouterClient
 
-        with patch.object(OpenRouterClient, "__init__", lambda self, key=None: None):
+        with patch.object(
+            OpenRouterClient, "__init__", lambda self, key=None: (self, key, None)[-1]
+        ):
             client = OpenRouterClient.__new__(OpenRouterClient)
             client.models = {
                 "vision": "openai/gpt-4o",
@@ -774,6 +789,7 @@ class TestClaudeIntegration:
 
     def test_claude_chat_completion(self, mock_anthropic_client) -> None:  # type: ignore[no-untyped-def]
         """Test Claude chat completion with mocked response"""
+        _ = mock_anthropic_client
         from src.core.ai_client import ClaudeClient
 
         mock_response = MagicMock()
@@ -800,6 +816,7 @@ class TestClaudeIntegration:
 
     def test_claude_get_text_response(self, mock_anthropic_client) -> None:  # type: ignore[no-untyped-def]
         """Test Claude text response generation"""
+        _ = mock_anthropic_client
         from src.core.ai_client import ClaudeClient
 
         mock_response = MagicMock()

@@ -35,7 +35,7 @@ def _capture_writes(monkeypatch) -> list[dict[str, Any]]:
         "remember",
         lambda **kwargs: writes.append(kwargs) or "memory-id",
     )
-    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: None)
+    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: (kwargs, None)[-1])
     return writes
 
 

@@ -167,7 +167,7 @@ class OCREngine:
         with open(self.FONT_DATABASE_PATH, "w") as f:
             json.dump(data, f, indent=2)
 
-    def _build_common_words_set(self, words: list[str] | None = None) -> set[str]:
+    def _build_common_words_set(self, _words: list[str] | None = None) -> set[str]:
         """Build set of common Pokemon words for validation"""
         return {
             "POKEMON",

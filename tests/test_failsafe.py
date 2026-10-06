@@ -543,6 +543,7 @@ class TestEmergencyRecovery:
             recovery = EmergencyRecovery(snapshot_dir=snapshot_dir)
 
             def _raise_oserror(*args: object, **kwargs: object) -> None:
+                _ = (args, kwargs)
                 raise OSError("permission denied by test injection")
 
             monkeypatch.setattr(
@@ -560,9 +561,9 @@ class TestEmergencyRecovery:
             assert failed_actions, "snapshot failure missing from result.actions_taken"
             assert "permission denied by test injection" in failed_actions[0]
             # And it is recorded on the recovery instance
-            assert (
-                recovery.last_snapshot_error is not None
-            ), "snapshot failure not recorded on the EmergencyRecovery instance"
+            assert recovery.last_snapshot_error is not None, (
+                "snapshot failure not recorded on the EmergencyRecovery instance"
+            )
             assert "permission denied by test injection" in (
                 recovery.last_snapshot_error
             )

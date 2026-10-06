@@ -99,7 +99,7 @@ def test_jev_mode_result_is_not_mutated(monkeypatch):
     """Pass-through must not copy or alter the decision dict."""
     sentinel = {"intent": "jev LEFT", "plan": ["LEFT"], "escalated": True}
     monkeypatch.setattr(
-        cron_runner, "_jev_overworld_decision", lambda *a, **k: sentinel
+        cron_runner, "_jev_overworld_decision", lambda *a, **k: (a, k, sentinel)[-1]
     )
     cron_runner.DECISION_MODE = "jev"
     out = cron_runner._jev_or_none()

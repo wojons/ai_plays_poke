@@ -29,7 +29,7 @@ def test_record_run_memory_writes_summary_lessons_and_bounded_index(
     monkeypatch.setattr(
         duckbrain_client,
         "get",
-        lambda **kwargs: {"attributes": {"runs": previous_runs}},
+        lambda **kwargs: (kwargs, {"attributes": {"runs": previous_runs}})[-1],
     )
 
     results = [
@@ -128,7 +128,7 @@ def test_record_run_memory_skips_empty_lessons(monkeypatch) -> None:
         "remember",
         lambda **kwargs: writes.append(kwargs) or "memory-id",
     )
-    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: None)
+    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: (kwargs, None)[-1])
 
     cron_runner._record_run_memory("no-lessons", [{"screen": "overworld"}])
 
@@ -145,7 +145,7 @@ def test_record_run_memory_writes_readable_ram_truth(monkeypatch) -> None:
         "remember",
         lambda **kwargs: writes.append(kwargs) or "memory-id",
     )
-    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: None)
+    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: (kwargs, None)[-1])
 
     class FakeRAMReader:
         def party_count(self) -> int:
@@ -188,10 +188,11 @@ def test_record_run_memory_writes_readable_ram_truth(monkeypatch) -> None:
 
 def test_record_run_memory_swallows_duckbrain_failure(monkeypatch, capsys) -> None:
     def fail_remember(**kwargs) -> str:
+        _ = kwargs
         raise OSError("duckbrain offline")
 
     monkeypatch.setattr(duckbrain_client, "remember", fail_remember)
-    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: None)
+    monkeypatch.setattr(duckbrain_client, "get", lambda **kwargs: (kwargs, None)[-1])
 
     assert cron_runner._record_run_memory("survives", []) is None
     assert "[MEM] recorder failed: duckbrain offline" in capsys.readouterr().out

@@ -215,14 +215,14 @@ class State(ABC):
         """Get the hierarchical path to this state"""
         return self.name
 
-    def on_enter(self, from_state: Optional[State] = None) -> None:
+    def on_enter(self, _from_state: Optional[State] = None) -> None:
         """Called when entering this state"""
         self._is_active = True
         self._entry_time = time.time()
         self._tick_count = 0
         logger.debug(f"Entered state: {self.get_full_path()}")
 
-    def on_exit(self, to_state: Optional["State"] = None) -> None:
+    def on_exit(self, _to_state: Optional["State"] = None) -> None:
         """Called when exiting this state"""
         self._is_active = False
         logger.debug(f"Exited state: {self.get_full_path()}")
@@ -857,7 +857,7 @@ class GameStateClassifier:
         return None
 
     def _determine_state(
-        self, screen_data: Any, memory_data: Optional[Dict[str, Any]]
+        self, _screen_data: Any, _memory_data: Optional[Dict[str, Any]]
     ) -> Optional[str]:
         """Determine the current state from screen/memory data"""
         return None

@@ -239,6 +239,7 @@ class TestBuildRamPrompt:
 
     def test_template_format_exception_falls_back(self, ctx, mock_emu, tmp_path):
         """If template.format() raises KeyError, fall back gracefully."""
+        _ = tmp_path
         vision = {
             "result": "overworld",
             "map_name": "Test",

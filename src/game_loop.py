@@ -560,9 +560,7 @@ class GameLoop:
         self.metrics["ai_decisions"] = (
             cast(int, self.metrics.get("ai_decisions", 0)) + 1
         )
-        print(
-            f"🎮 Vision recommended_action wired: {recommended!r} -> {command}"
-        )
+        print(f"🎮 Vision recommended_action wired: {recommended!r} -> {command}")
 
     @staticmethod
     def _normalize_recommended_action(action: str) -> Optional[str]:
@@ -755,7 +753,7 @@ class GameLoop:
         else:
             return self._simple_exploration_ai(game_state)
 
-    def _simple_battle_ai(self, game_state: GameState) -> Dict[str, Any]:
+    def _simple_battle_ai(self, _game_state: GameState) -> Dict[str, Any]:
         """Simple battle heuristic (stub)"""
         return {
             "action": "press:A",
@@ -764,7 +762,7 @@ class GameLoop:
             "confidence": 0.6,
         }
 
-    def _simple_menu_ai(self, game_state: GameState) -> Dict[str, Any]:
+    def _simple_menu_ai(self, _game_state: GameState) -> Dict[str, Any]:
         """Simple menu navigation"""
         return {
             "action": "press:DOWN",
@@ -773,7 +771,7 @@ class GameLoop:
             "confidence": 0.5,
         }
 
-    def _simple_dialog_ai(self, game_state: GameState) -> Dict[str, Any]:
+    def _simple_dialog_ai(self, _game_state: GameState) -> Dict[str, Any]:
         """Simple dialog handling"""
         return {
             "action": "press:A",
@@ -782,7 +780,7 @@ class GameLoop:
             "confidence": 0.9,
         }
 
-    def _simple_exploration_ai(self, game_state: GameState) -> Dict[str, Any]:
+    def _simple_exploration_ai(self, _game_state: GameState) -> Dict[str, Any]:
         """Simple exploration"""
         return {
             "action": "press:UP",
@@ -1055,7 +1053,7 @@ Examples:
     game_loop = GameLoop(config)
 
     # Handle graceful shutdown
-    def signal_handler(sig: int, frame: object) -> None:
+    def signal_handler(_sig: int, _frame: object) -> None:
         print("\n🤷 Signal received, stopping gracefully...")
         game_loop.stop()
         sys.exit(0)

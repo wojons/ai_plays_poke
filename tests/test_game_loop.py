@@ -91,7 +91,9 @@ class TestSimpleBattleAI:
 
     @pytest.fixture
     def loop(self) -> GameLoop:
-        with patch.object(GameLoop, "__init__", lambda self, config: None):
+        with patch.object(
+            GameLoop, "__init__", lambda self, config: (self, config, None)[-1]
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.current_tick = 0
             gl.metrics = {}
@@ -115,7 +117,9 @@ class TestSimpleMenuAI:
 
     @pytest.fixture
     def loop(self) -> GameLoop:
-        with patch.object(GameLoop, "__init__", lambda self, config: None):
+        with patch.object(
+            GameLoop, "__init__", lambda self, config: (self, config, None)[-1]
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.current_tick = 0
             gl.metrics = {}
@@ -139,7 +143,9 @@ class TestSimpleDialogAI:
 
     @pytest.fixture
     def loop(self) -> GameLoop:
-        with patch.object(GameLoop, "__init__", lambda self, config: None):
+        with patch.object(
+            GameLoop, "__init__", lambda self, config: (self, config, None)[-1]
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.current_tick = 0
             gl.metrics = {}
@@ -162,7 +168,9 @@ class TestSimpleExplorationAI:
 
     @pytest.fixture
     def loop(self) -> GameLoop:
-        with patch.object(GameLoop, "__init__", lambda self, config: None):
+        with patch.object(
+            GameLoop, "__init__", lambda self, config: (self, config, None)[-1]
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.current_tick = 0
             gl.metrics = {}
@@ -190,7 +198,9 @@ class TestGetStubAIDecision:
 
     @pytest.fixture
     def loop(self) -> GameLoop:
-        with patch.object(GameLoop, "__init__", lambda self, config: None):
+        with patch.object(
+            GameLoop, "__init__", lambda self, config: (self, config, None)[-1]
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.current_tick = 0
             gl.metrics = {}
@@ -254,7 +264,9 @@ class TestParseCommand:
 
     @pytest.fixture
     def loop(self) -> GameLoop:
-        with patch.object(GameLoop, "__init__", lambda self, config: None):
+        with patch.object(
+            GameLoop, "__init__", lambda self, config: (self, config, None)[-1]
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.current_tick = 0
             gl.metrics = {}
@@ -332,7 +344,9 @@ class TestAnalyzeGameStateStub:
 
     @pytest.fixture
     def loop(self) -> GameLoop:
-        with patch.object(GameLoop, "__init__", lambda self, config: None):
+        with patch.object(
+            GameLoop, "__init__", lambda self, config: (self, config, None)[-1]
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.current_tick = 50
             gl.metrics = {}
@@ -732,9 +746,7 @@ class TestBattleRecordingIntegrity:
             gl._detect_battle_transition()
             gl._detect_battle_transition()
 
-        assert self._battle_rows(gl) == [
-            ("unidentified (sprite unclear)", "unknown")
-        ]
+        assert self._battle_rows(gl) == [("unidentified (sprite unclear)", "unknown")]
         assert gl.metrics["battles_encountered"] == 1
         assert gl.metrics["battles_won"] == 0
         assert gl.metrics["battles_lost"] == 0
@@ -1086,7 +1098,9 @@ class TestAnalyzeGameStateNoneHP:
     @pytest.fixture
     def loop_with_vision(self) -> GameLoop:
         """A GameLoop stub with real AI enabled and mocked vision result."""
-        with patch.object(GameLoop, "__init__", lambda self, config: None):
+        with patch.object(
+            GameLoop, "__init__", lambda self, config: (self, config, None)[-1]
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.current_tick = 1
             gl.battle_turn_count = 0
@@ -1157,7 +1171,9 @@ class TestVisionRecommendedActionWiring:
     @pytest.fixture
     def gl(self) -> GameLoop:
         """A GameLoop stub with real AI enabled and a mocked vision result."""
-        with patch.object(GameLoop, "__init__", lambda self, config: None):
+        with patch.object(
+            GameLoop, "__init__", lambda self, config: (self, config, None)[-1]
+        ):
             gl = GameLoop.__new__(GameLoop)
             gl.current_tick = 1
             gl.battle_turn_count = 0

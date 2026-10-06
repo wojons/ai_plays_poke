@@ -344,7 +344,7 @@ class AIModelClient:
             self._client = None
 
     def _make_request_with_retry(
-        self, endpoint: str, payload: Dict[str, Any], max_retries: int = 3
+        self, _endpoint: str, payload: Dict[str, Any], max_retries: int = 3
     ) -> Dict[str, Any]:
         """
         Make API request with retry logic
@@ -569,7 +569,7 @@ class OpenRouterClient:
         max_tokens: Optional[int] = 500,
         temperature: float = 0.3,
         stream: bool = False,
-        retry_count: int = 0,
+        _retry_count: int = 0,
         tools: Optional[List[Dict[str, Any]]] = None,
         thinking: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:

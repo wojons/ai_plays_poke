@@ -112,7 +112,7 @@ class TestFailClosedAuth:
             {"uvicorn": type(sys)("fake_uvicorn")},
         ):
             fake_uvicorn = sys.modules["uvicorn"]
-            fake_uvicorn.run = lambda *a, **k: None
+            fake_uvicorn.run = lambda *a, **k: (a, k, None)[-1]
             runpy.run_path(
                 str(Path(dashboard_pkg.__file__).parent / "main.py"),
                 run_name="__main__",

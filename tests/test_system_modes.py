@@ -449,6 +449,7 @@ def test_system1_mode_empties_the_policy_in_main(monkeypatch):
     Exercises main()'s post-parse rule directly, since that is where the
     emptying happens.
     """
+    _ = monkeypatch
     policy = cron_runner.build_handoff_policy(handoff="any")
     assert policy["families"], "precondition: default policy allows handoffs"
 

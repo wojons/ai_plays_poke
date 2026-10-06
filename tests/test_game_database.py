@@ -117,6 +117,7 @@ class TestInit:
 
     def test_init_is_idempotent(self, db, db_path: str):
         """Calling __init__ twice doesn't fail — CREATE IF NOT EXISTS."""
+        _ = db
         from src.db.database import GameDatabase
 
         db2 = GameDatabase(db_path=db_path)
@@ -669,9 +670,7 @@ class TestBattleTracking:
     ) -> None:
         """Database writes cannot turn an unidentified sprite into a win."""
         db.start_session(rom_path="/tmp/test.gb", model_name="test")
-        battle_id = db.log_battle_start(
-            {"tick": 1, "enemy_pokemon": enemy_pokemon}
-        )
+        battle_id = db.log_battle_start({"tick": 1, "enemy_pokemon": enemy_pokemon})
 
         db.log_battle_end(battle_id, "victory", turns_taken=1)
 

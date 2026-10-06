@@ -288,7 +288,7 @@ class LocationDetector:
         self,
         tile_patterns: Dict[str, int],
         features: Dict[str, bool],
-        pattern_hash: str,
+        _pattern_hash: str,
     ) -> Tuple[str, str, float]:
         best_match = None
         best_score = 0.0

@@ -158,7 +158,7 @@ class VisionPipeline:
         self,
         raw_screenshot: np.ndarray,
         extract_rois: bool = True,
-        timeout: Optional[float] = None,
+        _timeout: Optional[float] = None,
     ) -> PreprocessingResult:
         """
         Process a screenshot through the full pipeline
@@ -246,7 +246,7 @@ class VisionPipeline:
         """
         self.validate_screenshot(raw_screenshot)
 
-        def timeout_handler(signum, frame) -> None:  # type: ignore[no-untyped-def]
+        def timeout_handler(_signum, _frame) -> None:  # type: ignore[no-untyped-def]
             raise ScreenshotProcessingError(
                 message=f"Screenshot processing timed out after {timeout} seconds",
                 error_type="timeout",

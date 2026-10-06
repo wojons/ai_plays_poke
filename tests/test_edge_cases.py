@@ -250,6 +250,7 @@ class TestAPIKeyHandling:
 
         def raise_rate_limit(*args, **kwargs):  # type: ignore[no-untyped-def]
 
+            _ = (args, kwargs)
             nonlocal call_count
             call_count += 1
             if call_count < 3:
@@ -305,6 +306,7 @@ class TestNetworkHandling:
 
         def raise_timeout(*args, **kwargs):  # type: ignore[no-untyped-def]
 
+            _ = (args, kwargs)
             nonlocal call_count
             call_count += 1
             if call_count < 2:

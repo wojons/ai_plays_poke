@@ -476,7 +476,7 @@ Examples:
             print("⚠️ No saved state in slot 0, starting fresh")
 
     # Handle graceful shutdown
-    def signal_handler(sig: int, frame: Any) -> int:
+    def signal_handler(_sig: int, _frame: Any) -> int:
 
         print("\n🤷 Ctrl+C detected, stopping gracefully...")
         game_loop.stop()

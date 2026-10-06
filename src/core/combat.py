@@ -673,7 +673,7 @@ class MoveSelector:
         defender: Pokemon,
         risk_averse: bool = True,
         setup_opportunity: bool = False,
-        opponent_weakened: bool = False,
+        _opponent_weakened: bool = False,
     ) -> MoveScore:
         """Score a single move for selection"""
         notes: List[str] = []
@@ -819,7 +819,7 @@ class MoveSelector:
         risk_averse: bool = True,
         setup_opportunity: bool = False,
         opponent_weakened: bool = False,
-        prefer_powerful: bool = False,
+        _prefer_powerful: bool = False,
     ) -> MoveScore:
         """Select the best move from available options"""
         available_moves = [m for m in attacker.moves if m.pp > 0]
@@ -943,7 +943,7 @@ class EnemyPredictor:
         self.type_chart = type_chart or TypeChart()
         self._learned_patterns: Dict[str, Dict[str, Any]] = {}
 
-    def predict_moves(self, species: str, level: int) -> List[str]:
+    def predict_moves(self, species: str, _level: int) -> List[str]:
         """Predict likely moves for a Pokemon species"""
         return self._base_move_sets.get(
             species, ["Tackle", "Growl", "Scratch", "Ember"]
@@ -1354,7 +1354,7 @@ class BattleStrategist:
             return False, "Miss would give enemy another chance"
 
     def select_stat_boost_item(
-        self, pokemon: Pokemon, opponent: Pokemon, inventory: Dict[str, int]
+        self, pokemon: Pokemon, _opponent: Pokemon, inventory: Dict[str, int]
     ) -> Tuple[Optional[str], str]:
         """Select optimal stat boost item to use"""
         if "X Attack" in inventory and pokemon.attack_stage < 4:
@@ -1496,7 +1496,7 @@ class CombatManager:
         self.strategist = BattleStrategist(self.type_chart)
 
     def get_combat_state(
-        self, player_pokemon: Pokemon, enemy_pokemon: Pokemon, battle_type: str
+        self, player_pokemon: Pokemon, enemy_pokemon: Pokemon, _battle_type: str
     ) -> Dict[str, Any]:
         """Get comprehensive combat state for AI decision making"""
         best_move = self.move_selector.select_best_move(player_pokemon, enemy_pokemon)

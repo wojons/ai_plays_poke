@@ -757,6 +757,7 @@ class DeathSpiralPreventer:
         - should_heal: whether healing is recommended
         - recommended_action: suggested action
         """
+        _ = party_hp_percent
         with self._lock:
             result: dict[str, Any] = {
                 "status": "healthy",
@@ -833,7 +834,9 @@ class DeathSpiralPreventer:
             "tick": tick,
         }
 
-    def check_pp_status(self, move_pp: Dict[str, int], tick: int = 0) -> Dict[str, Any]:
+    def check_pp_status(
+        self, _move_pp: Dict[str, int], tick: int = 0
+    ) -> Dict[str, Any]:
         """Check move PP status (MVP stub)"""
         return {
             "has_pp": True,
@@ -972,7 +975,7 @@ class SystemHealthMonitor:
     def _calculate_health_score(
         self,
         memory_mb: float,
-        memory_percent: float,
+        _memory_percent: float,
         api_latency_ms: float,
         api_success_rate: float,
     ) -> float:

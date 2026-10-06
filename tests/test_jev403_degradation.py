@@ -422,12 +422,15 @@ class TestMainPreflightGate:
         monkeypatch.setattr(
             jev_client,
             "preflight",
-            lambda *, timeout: {
-                "status": "auth_failure",
-                "ok": False,
-                "key_name": "OR_JEV",
-                "error": "OR_JEV: HTTP 403 RBAC: access denied",
-            },
+            lambda *, timeout: (
+                timeout,
+                {
+                    "status": "auth_failure",
+                    "ok": False,
+                    "key_name": "OR_JEV",
+                    "error": "OR_JEV: HTTP 403 RBAC: access denied",
+                },
+            )[-1],
         )
         monkeypatch.setattr(emulator_module, "Emulator", emulator)
         monkeypatch.setattr(

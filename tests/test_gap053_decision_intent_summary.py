@@ -27,6 +27,7 @@ class _ScriptedClient:
         self.calls = 0
 
     def chat_completion(self, **kwargs: Any) -> dict[str, Any]:
+        _ = kwargs
         self.calls += 1
         return {"content": self.content}
 
@@ -201,7 +202,7 @@ def test_record_run_memory_summary_attributes_carry_decision_counts(
     monkeypatch.setattr(
         duckbrain_client,
         "get",
-        lambda **kwargs: {"attributes": {"runs": []}},
+        lambda **kwargs: (kwargs, {"attributes": {"runs": []}})[-1],
     )
 
     results = [

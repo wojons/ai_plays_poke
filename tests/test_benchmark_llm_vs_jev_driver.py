@@ -167,6 +167,7 @@ def _episode_row(**overrides):
 
 def _battery_rows(n=2, cycles=5):
     """A clean two-arm episode log (llm + jev interleaved rows)."""
+    _ = cycles
     rows = []
     for i in range(1, n + 1):
         rows.append(

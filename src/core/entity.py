@@ -1104,7 +1104,7 @@ class EvolutionManager:
         self.type_chart = type_chart
 
     def get_evolution_conditions(
-        self, species_id: str, current_level: int
+        self, species_id: str, _current_level: int
     ) -> List[EvolutionCondition]:
         return self.evolution_data.get(species_id, [])
 
@@ -1209,7 +1209,7 @@ class EvolutionManager:
         return min(value, 15.0)
 
     def should_use_evolution_item(
-        self, pokemon: PokemonData, item_name: str, team_needs: Dict[str, Any]
+        self, pokemon: PokemonData, _item_name: str, team_needs: Dict[str, Any]
     ) -> bool:
         evolution = self.check_evolution_available(pokemon)
         if not evolution:
@@ -1743,7 +1743,7 @@ class TeamCompositionOptimizer:
         self,
         current_party: List[Optional[PokemonData]],
         box_pokemon: List[PokemonData],
-        upcoming_content: Dict[str, Any],
+        _upcoming_content: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         suggestions: List[Dict[str, Any]] = []
 

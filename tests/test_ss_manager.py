@@ -346,6 +346,7 @@ class TestLiveViewUpdateDisplay:
     def test_scales_when_displaying(
         self, mock_waitkey, mock_cvt, mock_imshow, mock_puttext, mock_resize, tmp_path
     ):
+        _ = (mock_waitkey, mock_cvt, mock_imshow, mock_puttext)
         sm = ScreenshotManager(str(tmp_path / "ss"))
         lv = LiveView(sm)
         lv.is_displaying = True
@@ -361,6 +362,7 @@ class TestLiveViewStartStop:
     @patch("cv2.namedWindow")
     @patch("cv2.resizeWindow")
     def test_start_display(self, mock_resize, mock_named, tmp_path):
+        _ = mock_resize
         sm = ScreenshotManager(str(tmp_path / "ss"))
         lv = LiveView(sm)
         lv.start_display()
@@ -392,6 +394,7 @@ class TestLiveViewDisplayScreenshot:
     def test_valid_file_displays(
         self, mock_wait, mock_imshow, mock_puttext, mock_imread, tmp_path
     ):
+        _ = (mock_wait, mock_imshow, mock_puttext)
         sm = ScreenshotManager(str(tmp_path / "ss"))
         lv = LiveView(sm)
         dummy = np.zeros((144, 160, 3), dtype=np.uint8)

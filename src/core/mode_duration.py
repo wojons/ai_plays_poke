@@ -249,7 +249,7 @@ class ModeClassifier:
         base_mode: str,
         visual_mode: Dict[str, Any],
         text_context: Dict[str, Any],
-        state: Dict[str, Any],
+        _state: Dict[str, Any],
     ) -> str:
         if base_mode == GameMode.BATTLE.value:
             return self._classify_battle_sub_mode(visual_mode, text_context)
@@ -323,7 +323,7 @@ class ModeClassifier:
         return CutsceneSubMode.INTRO.value
 
     def _calculate_confidence(
-        self, base_mode: str, visual_mode: Dict[str, Any], text_context: Dict[str, Any]
+        self, _base_mode: str, visual_mode: Dict[str, Any], text_context: Dict[str, Any]
     ) -> float:
         confidence = 0.7
         if visual_mode.get("screen_type"):
@@ -858,7 +858,7 @@ class AnomalyDetector:
         sub_mode: str,
         cumulative_session: float,
         cumulative_hour: float,
-        cumulative_day: float,
+        _cumulative_day: float,
     ) -> List[Anomaly]:
         anomalies = []
         mode_key = f"{mode}/{sub_mode}"
@@ -1106,7 +1106,7 @@ class BreakoutManager:
         return False, "UNKNOWN_STRATEGY"
 
     def _break_out_immediate(
-        self, mode: str, sub_mode: str, context: Dict[str, Any]
+        self, mode: str, _sub_mode: str, _context: Dict[str, Any]
     ) -> Tuple[bool, str]:
         if mode == GameMode.BATTLE.value:
             return self._battle_breakout_immediate()
@@ -1125,7 +1125,7 @@ class BreakoutManager:
         return self._break_out_immediate(mode, sub_mode, context)
 
     def _break_out_standard(
-        self, mode: str, sub_mode: str, context: Dict[str, Any]
+        self, mode: str, _sub_mode: str, _context: Dict[str, Any]
     ) -> Tuple[bool, str]:
         if mode == GameMode.BATTLE.value:
             return self._battle_breakout_standard()
@@ -1136,10 +1136,10 @@ class BreakoutManager:
         return False, "UNKNOWN_MODE"
 
     def _force_break_out(
-        self, mode: str, sub_mode: str, context: Dict[str, Any]
+        self, mode: str, _sub_mode: str, context: Dict[str, Any]
     ) -> Tuple[bool, str]:
         if mode == GameMode.BATTLE.value:
-            if context.get("has_item", lambda x: False)("POKEBALL"):
+            if context.get("has_item", lambda _x: False)("POKEBALL"):
                 return True, "USE_BALL_ESCAPE"
             return True, "FORCE_EXIT"
         elif mode == GameMode.DIALOG.value:
@@ -1158,7 +1158,7 @@ class BreakoutManager:
         return True, "PROGRESS_DETECTED"
 
     def _increase_monitoring(
-        self, mode: str, sub_mode: str, context: Dict[str, Any]
+        self, _mode: str, _sub_mode: str, _context: Dict[str, Any]
     ) -> Tuple[bool, str]:
         return True, "MONITORING_INCREASED"
 
@@ -1218,7 +1218,7 @@ class BreakoutAnalytics:
         key = f"{strategy}/{mode}"
         return self.success_rates.get(key, 0.0)
 
-    def get_recommended_strategy(self, mode: str, sub_mode: str) -> BreakoutStrategy:
+    def get_recommended_strategy(self, mode: str, _sub_mode: str) -> BreakoutStrategy:
         strategies = [
             BreakoutStrategy.STANDARD,
             BreakoutStrategy.AGGRESSIVE,
@@ -1234,7 +1234,7 @@ class BreakoutAnalytics:
                 best_strategy = strategy
         return best_strategy
 
-    def _update_success_rate(self, key: str, success: bool) -> None:
+    def _update_success_rate(self, key: str, _success: bool) -> None:
         history = [
             r for r in self.breakout_history if f"{r['strategy']}/{r['mode']}" == key
         ]

@@ -22,6 +22,7 @@ def _make_rom_bytes(
     ptr_table_offset: int = 0x01AE,
 ) -> bytes:
     """Build a minimal fake ROM binary with dummy map headers for testing."""
+    _ = map_count
     # A 512KB ROM with everything zeroed except the map tables
     rom = bytearray(512 * 1024)
 
@@ -768,12 +769,15 @@ class TestRAMReaderAdjacentBlocks:
                     0x10,
                 ],
             }
-            mock_db.classify_block.side_effect = lambda b, t: {
-                0x0F: "floor",
-                0x10: "wall",
-                0x0D: "stairs",
-                0x12: "object",
-            }.get(b, "unknown")
+            mock_db.classify_block.side_effect = lambda b, t: (
+                t,
+                {
+                    0x0F: "floor",
+                    0x10: "wall",
+                    0x0D: "stairs",
+                    0x12: "object",
+                }.get(b, "unknown"),
+            )[-1]
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
@@ -866,12 +870,15 @@ class TestRAMReaderBuildMinimap:
                     0x10,
                 ],
             }
-            mock_db.classify_block.side_effect = lambda b, t: {
-                0x0F: "floor",
-                0x10: "wall",
-                0x0D: "stairs",
-                0x12: "object",
-            }.get(b, "unknown")
+            mock_db.classify_block.side_effect = lambda b, t: (
+                t,
+                {
+                    0x0F: "floor",
+                    0x10: "wall",
+                    0x0D: "stairs",
+                    0x12: "object",
+                }.get(b, "unknown"),
+            )[-1]
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
@@ -1044,9 +1051,10 @@ class TestRAMReaderObserve:
                 "height": 4,
                 "block_data": [0x0F] * 16,
             }
-            mock_db.classify_block.side_effect = lambda b, t: {0x0F: "floor"}.get(
-                b, "unknown"
-            )
+            mock_db.classify_block.side_effect = lambda b, t: (
+                t,
+                {0x0F: "floor"}.get(b, "unknown"),
+            )[-1]
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
@@ -1076,10 +1084,13 @@ class TestRAMReaderObserve:
                 "height": 4,
                 "block_data": block_data,
             }
-            mock_db.classify_block.side_effect = lambda b, t: {
-                0x0F: "floor",
-                0x10: "door",
-            }.get(b, "unknown")
+            mock_db.classify_block.side_effect = lambda b, t: (
+                t,
+                {
+                    0x0F: "floor",
+                    0x10: "door",
+                }.get(b, "unknown"),
+            )[-1]
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")
@@ -1164,12 +1175,15 @@ class TestRenderOverworld:
                     0x10,
                 ],
             }
-            mock_db.classify_block.side_effect = lambda b, t: {
-                0x0F: "floor",
-                0x10: "wall",
-                0x0D: "stairs",
-                0x12: "object",
-            }.get(b, "unknown")
+            mock_db.classify_block.side_effect = lambda b, t: (
+                t,
+                {
+                    0x0F: "floor",
+                    0x10: "wall",
+                    0x0D: "stairs",
+                    0x12: "object",
+                }.get(b, "unknown"),
+            )[-1]
             mock_mapdb_cls.return_value = mock_db
 
             reader = RAMReader(mock_emu, "/fake/rom.gb")

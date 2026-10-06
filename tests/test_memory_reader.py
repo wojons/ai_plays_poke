@@ -83,6 +83,7 @@ class TestScanMemoryForPokemonData:
         calls = {"n": 0}
 
         def side_effect(addr: int) -> int:
+            _ = addr
             calls["n"] += 1
             if calls["n"] > 4:
                 raise IndexError("oob")
@@ -165,7 +166,9 @@ class TestMemoryScanningFunction:
             patch("memory_reader.PyBoy", return_value=pyboy) as mock_cls,
         ):
             assert test_memory_scanning() is True
-            mock_cls.assert_called_once_with("data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
+            mock_cls.assert_called_once_with(
+                "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
+            )
             # 500 init ticks
             assert pyboy.tick.call_count == 500
             pyboy.stop.assert_called_once()

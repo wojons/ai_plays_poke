@@ -72,7 +72,7 @@ def verify_api_key(x_api_key: Optional[str] = Header(None)) -> bool:
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):  # type: ignore[no-untyped-def]
+async def lifespan(_app: FastAPI):  # type: ignore[no-untyped-def]
     sessions.clear()
     connection_manager.clear()
     yield
@@ -243,7 +243,7 @@ async def root() -> HTMLResponse:
 
 @app.get("/status")
 async def get_status(
-    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+    _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
 ) -> Dict[str, Any]:
     session = get_session(session_id)
     return session.get_status()
@@ -251,7 +251,7 @@ async def get_status(
 
 @app.get("/screenshots/latest")
 async def get_latest_screenshot(
-    x_api_key: bool = Depends(verify_api_key),
+    _x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     format: str = "json",
 ) -> Response:
@@ -302,7 +302,7 @@ async def get_screenshot_file(path: str = Query(...)) -> FileResponse:
 
 @app.get("/actions/recent")
 async def get_recent_actions(
-    x_api_key: bool = Depends(verify_api_key),
+    _x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     limit: int = 50,
 ) -> Dict[str, Any]:
@@ -315,7 +315,7 @@ async def get_recent_actions(
 
 @app.get("/metrics")
 async def get_metrics(
-    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+    _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
 ) -> Dict[str, Any]:
     session = get_session(session_id)
     return session.get_metrics()
@@ -323,7 +323,7 @@ async def get_metrics(
 
 @app.post("/control/pause", response_model=None)
 async def pause_session(
-    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+    _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
 ) -> Dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"]:
@@ -334,7 +334,7 @@ async def pause_session(
 
 @app.post("/control/resume", response_model=None)
 async def resume_session(
-    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+    _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
 ) -> Dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"]:
@@ -345,7 +345,7 @@ async def resume_session(
 
 @app.post("/control/stop")
 async def stop_session(
-    x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
+    _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
 ) -> Dict[str, Any]:
     session = get_session(session_id)
     session.stop()
@@ -354,7 +354,7 @@ async def stop_session(
 
 @app.post("/control/start")
 async def start_session(
-    x_api_key: bool = Depends(verify_api_key),
+    _x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     save_dir: str = "./game_saves",
 ) -> Dict[str, Any]:
@@ -368,7 +368,7 @@ async def start_session(
 @app.post("/control/command", response_model=None)
 async def send_command(
     command: Dict[str, Any],
-    x_api_key: bool = Depends(verify_api_key),
+    _x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
 ) -> Dict[str, Any] | JSONResponse:
     session = get_session(session_id)
@@ -387,7 +387,7 @@ async def send_command(
 
 @app.get("/sessions")
 async def list_sessions(
-    x_api_key: bool = Depends(verify_api_key),
+    _x_api_key: bool = Depends(verify_api_key),
 ) -> Dict[str, List[Dict[str, Any]]]:
     return {
         "sessions": [
@@ -502,6 +502,7 @@ async def api_docs() -> Dict[str, Any]:
 
 
 def create_dashboard_app(save_dir: str = "./game_saves") -> FastAPI:
+    _ = save_dir
     return app
 
 

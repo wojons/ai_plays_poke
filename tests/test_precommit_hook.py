@@ -131,6 +131,7 @@ def test_wrapper_rejects_missing_fresh_verdict(hook_repo):
 
 
 def test_wrapper_rejects_stale_verdict(hook_repo, monkeypatch):
+    _ = monkeypatch
     repo, bin_dir = hook_repo
     logs = repo / ".gitreins" / "logs"
     logs.mkdir()

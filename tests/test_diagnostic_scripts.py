@@ -25,6 +25,7 @@ class TestScanMemory:
         mem = MagicMock()
 
         def side_effect(addr, *args, **kwargs):
+            _ = (args, kwargs)
             if addr in addr_map:
                 return addr_map[addr]
             raise IndexError(f"no value at {hex(addr)}")
@@ -67,6 +68,7 @@ class TestScanMemory:
         mem = MagicMock()
 
         def raising(addr, *args, **kwargs):
+            _ = (args, kwargs)
             if addr > 0xD010:
                 raise IndexError()
             return 1
@@ -103,7 +105,11 @@ class TestReadPokemonStats:
             0xCFD9: 120,
             0xCFE2: 22,
         }
-        mem.__getitem__.side_effect = lambda addr, *a, **kw: addr_vals.get(addr, 0)
+        mem.__getitem__.side_effect = lambda addr, *a, **kw: (
+            a,
+            kw,
+            addr_vals.get(addr, 0),
+        )[-1]
         mock_pyboy.memory = mem
 
         stats = read_pokemon_stats(mock_pyboy)
@@ -129,7 +135,12 @@ class TestReadPokemonStats:
 
         mock_pyboy = MagicMock()
         mock_pyboy.memory = MagicMock()
-        mock_pyboy.memory.__getitem__.side_effect = lambda addr, *a, **kw: 1
+        mock_pyboy.memory.__getitem__.side_effect = lambda addr, *a, **kw: (
+            addr,
+            a,
+            kw,
+            1,
+        )[-1]
 
         stats = read_pokemon_stats(mock_pyboy)
         expected_keys = {

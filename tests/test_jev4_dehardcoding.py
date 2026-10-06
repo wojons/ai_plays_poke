@@ -226,9 +226,7 @@ def test_load_keys_never_reads_a_decoy_home(tmp_path, monkeypatch):
     decoy = tmp_path / "decoy.env"
     decoy.write_text("OPENROUTER_API_KEY=sk-decoy-home\nOR_JEV=jev-decoy\n")
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setattr(
-        jev_client, "_repo_dotenv", lambda: tmp_path / "absent.env"
-    )
+    monkeypatch.setattr(jev_client, "_repo_dotenv", lambda: tmp_path / "absent.env")
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("OR_JEV", raising=False)
 
@@ -238,9 +236,7 @@ def test_load_keys_never_reads_a_decoy_home(tmp_path, monkeypatch):
 def test_keyless_preflight_fails_with_controller_key_message(tmp_path, monkeypatch):
     """A keyless run fails during preflight, naming the controller key."""
     monkeypatch.setenv("HOME", str(tmp_path))
-    monkeypatch.setattr(
-        jev_client, "_repo_dotenv", lambda: tmp_path / "absent.env"
-    )
+    monkeypatch.setattr(jev_client, "_repo_dotenv", lambda: tmp_path / "absent.env")
     for name in ("OPENROUTER_API_KEY", "OR_JEV"):
         monkeypatch.delenv(name, raising=False)
     # The JEV probe itself must never run when the controller key is missing.
@@ -273,7 +269,10 @@ def test_keyful_preflight_still_probes_jev(tmp_path, monkeypatch):
     monkeypatch.setattr(
         jev_client,
         "preflight",
-        lambda **kw: {"status": "pass", "ok": True, "key_name": "OPENROUTER_API_KEY"},
+        lambda **kw: (
+            kw,
+            {"status": "pass", "ok": True, "key_name": "OPENROUTER_API_KEY"},
+        )[-1],
     )
     log_path = tmp_path / "run.jsonl"
 

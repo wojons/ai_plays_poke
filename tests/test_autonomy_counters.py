@@ -33,6 +33,7 @@ class _ScriptedClient:
         self.content = content
 
     def chat_completion(self, **kwargs: Any) -> dict[str, Any]:
+        _ = kwargs
         return {"content": self.content}
 
 

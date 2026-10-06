@@ -29,12 +29,15 @@ class TestFullTickCycle:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
+        monkeypatch.setattr(
+            "game_loop.Emulator", lambda *a, **kw: (a, kw, mock_emu)[-1]
+        )
 
     def test_screenshot_to_state_detection(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ) -> None:
         """Test that screenshot capture leads to proper state detection"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -53,6 +56,7 @@ class TestFullTickCycle:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that game state triggers AI decision"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -89,6 +93,7 @@ class TestFullTickCycle:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that pending commands are executed"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -123,6 +128,7 @@ class TestFullTickCycle:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that executed commands are logged to database"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -161,6 +167,7 @@ class TestFullTickCycle:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test complete tick cycle: screenshot -> state -> decision -> command -> log"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -195,6 +202,7 @@ class TestFullTickCycle:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Verify database entries are created at each stage of the tick cycle"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -254,12 +262,15 @@ class TestBattleTransition:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
+        monkeypatch.setattr(
+            "game_loop.Emulator", lambda *a, **kw: (a, kw, mock_emu)[-1]
+        )
 
     def test_overworld_to_battle_detection(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of transition from overworld to battle"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -300,6 +311,7 @@ class TestBattleTransition:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test proper state tracking during battle"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -337,6 +349,7 @@ class TestBattleTransition:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of battle end and return to overworld"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -392,6 +405,7 @@ class TestBattleTransition:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that battle turns are properly counted"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -429,6 +443,7 @@ class TestBattleTransition:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that battle metrics are updated correctly"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -491,12 +506,15 @@ class TestDialogFlow:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
+        monkeypatch.setattr(
+            "game_loop.Emulator", lambda *a, **kw: (a, kw, mock_emu)[-1]
+        )
 
     def test_dialog_initiation(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of dialog initiation"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -530,6 +548,7 @@ class TestDialogFlow:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test AI decision to advance dialog text"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -565,6 +584,7 @@ class TestDialogFlow:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test detection of dialog completion"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -611,6 +631,7 @@ class TestDialogFlow:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test multi-page dialog advancement"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -649,12 +670,15 @@ class TestCommandExecution:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
+        monkeypatch.setattr(
+            "game_loop.Emulator", lambda *a, **kw: (a, kw, mock_emu)[-1]
+        )
 
     def test_single_button_press(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test execution of single button press command"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -679,6 +703,7 @@ class TestCommandExecution:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test execution of button sequence commands (not implemented, returns None)"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -701,6 +726,7 @@ class TestCommandExecution:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test execution of batch movement commands (not implemented, returns None)"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -721,6 +747,7 @@ class TestCommandExecution:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that command execution includes proper timing"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -759,6 +786,7 @@ class TestCommandExecution:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test all directional button commands"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -783,6 +811,7 @@ class TestCommandExecution:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that executed commands are tracked in history"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -839,12 +868,15 @@ class TestErrorRecovery:
     def _patch_emulator(self, monkeypatch: "pytest.MonkeyPatch") -> None:
         """Patch Emulator constructor so tests don't need real ROMs."""
         mock_emu = MagicMock()
-        monkeypatch.setattr("game_loop.Emulator", lambda *a, **kw: mock_emu)
+        monkeypatch.setattr(
+            "game_loop.Emulator", lambda *a, **kw: (a, kw, mock_emu)[-1]
+        )
 
     def test_api_failure_stub_fallback(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test fallback to stub AI when API fails"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -879,6 +911,7 @@ class TestErrorRecovery:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test graceful shutdown when emulator encounters error"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -910,6 +943,7 @@ class TestErrorRecovery:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test retry logic when database operations fail"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -927,6 +961,7 @@ class TestErrorRecovery:
             call_count = [0]
 
             def failing_log(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+                _ = (args, kwargs)
                 call_count[0] += 1
                 if call_count[0] < 3:
                     raise Exception("Database temporarily unavailable")
@@ -956,6 +991,7 @@ class TestErrorRecovery:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test handling of invalid command formats"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -979,6 +1015,7 @@ class TestErrorRecovery:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test handling of unknown button in command"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -999,6 +1036,7 @@ class TestErrorRecovery:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that command execution errors are properly logged"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -1038,6 +1076,7 @@ class TestErrorRecovery:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test error handling in state analysis"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:
@@ -1062,6 +1101,7 @@ class TestErrorRecovery:
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
     ):
         """Test that empty command list doesn't cause errors"""
+        _ = mock_ai_client
         from game_loop import GameLoop
 
         with patch("game_loop.GameDatabase") as mock_db_class:

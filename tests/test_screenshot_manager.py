@@ -384,8 +384,10 @@ class TestLiveViewUpdateDisplay:
         with (
             mock.patch("cv2.imshow") as mock_imshow,
             mock.patch("cv2.waitKey", return_value=0),
-            mock.patch("cv2.resize", side_effect=lambda x, size, **kw: x),
-            mock.patch("cv2.cvtColor", side_effect=lambda x, code: x),
+            mock.patch(
+                "cv2.resize", side_effect=lambda x, size, **kw: (size, kw, x)[-1]
+            ),
+            mock.patch("cv2.cvtColor", side_effect=lambda x, code: (code, x)[-1]),
             mock.patch("cv2.putText"),
         ):
             lv.update_display(_fake_screen())
@@ -399,8 +401,10 @@ class TestLiveViewUpdateDisplay:
         with (
             mock.patch("cv2.imshow"),
             mock.patch("cv2.waitKey", return_value=ord("q")),
-            mock.patch("cv2.resize", side_effect=lambda x, size, **kw: x),
-            mock.patch("cv2.cvtColor", side_effect=lambda x, code: x),
+            mock.patch(
+                "cv2.resize", side_effect=lambda x, size, **kw: (size, kw, x)[-1]
+            ),
+            mock.patch("cv2.cvtColor", side_effect=lambda x, code: (code, x)[-1]),
             mock.patch("cv2.putText"),
             mock.patch("cv2.destroyWindow") as mock_destroy,
         ):

@@ -131,11 +131,13 @@ class TestAdvanceToOverworld:
 
     def test_boot_emulator_wires_advance(self, monkeypatch) -> None:
         emu = FakeEmu()
-        monkeypatch.setattr(rms, "Emulator", lambda path: emu)
+        monkeypatch.setattr(rms, "Emulator", lambda path: (path, emu)[-1])
         monkeypatch.setattr(
             rms,
             "RAMReader",
-            lambda emu_, path: FakeReader(["name_entry", "overworld"]),
+            lambda emu_, path: (emu_, path, FakeReader(["name_entry", "overworld"]))[
+                -1
+            ],
         )
         saved = (rms.emu, rms.reader)
         rms.emu = None
@@ -166,6 +168,7 @@ class _FakeSocket:
         self.response = BytesIO()
 
     def makefile(self, mode: str, *args: Any) -> BytesIO:
+        _ = (mode, args)
         return self._request
 
     def sendall(self, data: bytes) -> None:
@@ -231,9 +234,7 @@ class TestPostInput:
 
     def test_frames_are_passed_through(self, fake_emu, fake_reader) -> None:
         with patch.object(rms, "boot_emulator", return_value=(fake_emu, fake_reader)):
-            status, _ = _post(
-                json.dumps({"button": "down", "frames": 30}).encode()
-            )
+            status, _ = _post(json.dumps({"button": "down", "frames": 30}).encode())
         assert status == 200
         assert fake_emu.presses == [("down", 30)]
 
@@ -285,11 +286,10 @@ class TestPostInput:
     def test_emulator_exception_folded_into_400(self, fake_reader) -> None:
         class BoomEmu(FakeEmu):
             def press_button(self, button: str, frames: int = 5) -> None:
+                _ = (button, frames)
                 raise RuntimeError("pyboy exploded")
 
-        with patch.object(
-            rms, "boot_emulator", return_value=(BoomEmu(), fake_reader)
-        ):
+        with patch.object(rms, "boot_emulator", return_value=(BoomEmu(), fake_reader)):
             status, body = _post(json.dumps({"button": "a"}).encode())
         assert status == 400
         assert "pyboy exploded" in body["error"]

@@ -67,8 +67,17 @@ def _duckbrain_summary(run_id: str = "e2e002_20261001_010203_ab12") -> dict:
     return {
         "key": f"/game/runs/{run_id}/summary",
         "attributes": {
-            "events": {"memory_note": 1, "starter_picked": 1, "battle_start": 1, "battle_end": 1},
-            "ladder": {"memory_events": 1, "battle_events": 2, "map_progress": "Route 1"},
+            "events": {
+                "memory_note": 1,
+                "starter_picked": 1,
+                "battle_start": 1,
+                "battle_end": 1,
+            },
+            "ladder": {
+                "memory_events": 1,
+                "battle_events": 2,
+                "map_progress": "Route 1",
+            },
         },
     }
 
@@ -129,7 +138,10 @@ def test_first_full_pass_is_l1_candidate_not_l2_claim(tmp_path: Path) -> None:
     assert result["gate_pass"] is False
     assert result["score"]["level"] == "L1"
     assert result["score"]["levels"]["L2"]["passed"] is False
-    assert result["score"]["levels"]["L2"]["reason"] == "requires two distinct passing run ids; observed 1"
+    assert (
+        result["score"]["levels"]["L2"]["reason"]
+        == "requires two distinct passing run ids; observed 1"
+    )
 
 
 @pytest.mark.parametrize(
@@ -137,41 +149,73 @@ def test_first_full_pass_is_l1_candidate_not_l2_claim(tmp_path: Path) -> None:
     [
         (
             "jsonl memory missing",
-            lambda m, r, d, review, replay: r.__setitem__(
-                slice(None), [row for row in r if row.get("event") != "memory_note"]
-            ),
+            lambda m, r, d, review, replay: (
+                m,
+                d,
+                review,
+                replay,
+                r.__setitem__(
+                    slice(None), [row for row in r if row.get("event") != "memory_note"]
+                ),
+            )[-1],
             "memory_both_surfaces",
         ),
         (
             "duckbrain memory missing",
-            lambda m, r, d, review, replay: d["attributes"].__setitem__("events", {}),
+            lambda m, r, d, review, replay: (
+                m,
+                r,
+                review,
+                replay,
+                d["attributes"].__setitem__("events", {}),
+            )[-1],
             "memory_both_surfaces",
         ),
         (
             "only checkpoint battle artifacts",
-            lambda m, r, d, review, replay: r.__setitem__(
-                slice(None),
-                [row for row in r if row.get("event") not in {"battle_start", "battle_end"}],
-            ),
+            lambda m, r, d, review, replay: (
+                m,
+                d,
+                review,
+                replay,
+                r.__setitem__(
+                    slice(None),
+                    [
+                        row
+                        for row in r
+                        if row.get("event") not in {"battle_start", "battle_end"}
+                    ],
+                ),
+            )[-1],
             "organic_battle_pair",
         ),
         (
             "post battle route missing",
-            lambda m, r, d, review, replay: [
-                row.__setitem__("map_id", 40) for row in r if row.get("map_id") == 11
-            ],
+            lambda m, r, d, review, replay: (
+                m,
+                d,
+                review,
+                replay,
+                [row.__setitem__("map_id", 40) for row in r if row.get("map_id") == 11],
+            )[-1],
             "map_40_to_11_post_battle",
         ),
         (
             "api failure",
-            lambda m, r, d, review, replay: r.append(
-                {"cycle": 50, "jev_ok": False, "jev_error": "transport failed"}
-            ),
+            lambda m, r, d, review, replay: (
+                m,
+                d,
+                review,
+                replay,
+                r.append(
+                    {"cycle": 50, "jev_ok": False, "jev_error": "transport failed"}
+                ),
+            )[-1],
             "api_failures",
         ),
         (
             "replay missing",
-            lambda m, r, d, review, replay: replay.unlink(),
+            lambda m, r, d, review, replay: (m, r, d, review, replay.unlink())[-1],
             "review_and_replay",
         ),
     ],

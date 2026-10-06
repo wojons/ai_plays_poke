@@ -1115,7 +1115,7 @@ class StateWindow:
 
     # ── Global query handler ─────────────────────────────────────────
 
-    def _answer_global_query(self, question: str) -> str:
+    def _answer_global_query(self, _question: str) -> str:
         """Answer a query against global context.
 
         In battle, the answer MUST include live RAM battle state (the

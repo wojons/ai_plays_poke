@@ -153,6 +153,7 @@ class TestDebugScreenLoop:
 
     def test_debug_dir_created(self, tmp_path):
         """debug/ directory is created next to the project root."""
+        _ = tmp_path
         import debug_screen as ds
 
         arr = np.zeros((4, 4, 3), dtype=np.uint8)

@@ -506,9 +506,11 @@ class TestDryRunKeyLiveness:
     def test_dead_openrouter_key_exits_nonzero_with_verbatim_provider_error(
         self, rom, monkeypatch, capsys
     ) -> None:
+        _ = rom
         monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-expired")
 
         def fake_urlopen(request, timeout=None):
+            _ = timeout
             raise self._http_error(
                 request, 401, {"error": {"message": "API key expired"}}
             )
@@ -526,11 +528,13 @@ class TestDryRunKeyLiveness:
     def test_live_keys_exit_zero_and_send_bearer_auth(
         self, rom, monkeypatch, capsys
     ) -> None:
+        _ = rom
         monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-live")
         monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek-live")
         seen: list[tuple[str, str | None]] = []
 
         def fake_urlopen(request, timeout=None):
+            _ = timeout
             seen.append((request.full_url, request.get_header("Authorization")))
             return _FakeProbeResponse()
 
@@ -551,10 +555,12 @@ class TestDryRunKeyLiveness:
     def test_skip_key_check_makes_no_network_call(
         self, rom, monkeypatch, capsys
     ) -> None:
+        _ = rom
         monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-expired")
         monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek-expired")
 
         def boom(*args, **kwargs):
+            _ = (args, kwargs)
             raise AssertionError("network call attempted despite --skip-key-check")
 
         monkeypatch.setattr("urllib.request.urlopen", boom)
@@ -568,10 +574,12 @@ class TestDryRunKeyLiveness:
     def test_dead_deepseek_key_probes_models_endpoint(
         self, rom, monkeypatch, capsys
     ) -> None:
+        _ = rom
         monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-deepseek-expired")
         urls: list[str] = []
 
         def fake_urlopen(request, timeout=None):
+            _ = timeout
             urls.append(request.full_url)
             raise self._http_error(
                 request,
@@ -591,9 +599,11 @@ class TestDryRunKeyLiveness:
     def test_network_error_is_dead_with_verbatim_error(
         self, rom, monkeypatch, capsys
     ) -> None:
+        _ = rom
         monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-whatever")
 
         def fake_urlopen(request, timeout=None):
+            _ = (request, timeout)
             raise urllib.error.URLError(
                 "[Errno -3] Temporary failure in name resolution"
             )
@@ -607,7 +617,10 @@ class TestDryRunKeyLiveness:
         assert "OPENROUTER_API_KEY is dead" in out
 
     def test_no_configured_keys_never_probes(self, rom, monkeypatch, capsys) -> None:
+        _ = rom
+
         def boom(*args, **kwargs):
+            _ = (args, kwargs)
             raise AssertionError("network call attempted with no configured keys")
 
         monkeypatch.setattr("urllib.request.urlopen", boom)
@@ -625,6 +638,7 @@ class TestDryRunKeyLiveness:
         monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-v1-expired")
 
         def fake_urlopen(request, timeout=None):
+            _ = timeout
             raise self._http_error(
                 request, 401, {"error": {"message": "API key expired"}}
             )
@@ -701,6 +715,7 @@ class _ScriptedClient:
         self.content = content
 
     def chat_completion(self, **kwargs: Any) -> dict[str, Any]:
+        _ = kwargs
         return {"content": self.content}
 
 
@@ -924,6 +939,7 @@ class TestJevOverworldMiss:
 
     def test_a_raising_tier_fails_closed_and_says_so(self, monkeypatch, capsys) -> None:
         def boom(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            _ = (args, kwargs)
             raise RuntimeError("decisions endpoint exploded")
 
         monkeypatch.setattr(jev_client, "decide", boom)
@@ -1110,6 +1126,7 @@ class TestMainLoadsDotenvBeforePreflight:
     preflight (proven live 2026-10-03: T275 run exit 2 pre-patch, pass after)."""
 
     def test_main_loads_dotenv_before_preflight(self, monkeypatch, tmp_path):
+        _ = tmp_path
         import cron_runner as cr
 
         calls = []
@@ -1123,7 +1140,9 @@ class TestMainLoadsDotenvBeforePreflight:
         monkeypatch.setattr(
             cr,
             "_run_jev_preflight",
-            lambda **kw: calls.append("preflight") or {"status": "auth_failure"},
+            lambda **kw: (kw, calls.append("preflight") or {"status": "auth_failure"})[
+                -1
+            ],
         )
         monkeypatch.setattr("sys.argv", ["cron_runner.py"])
         cr._main_parser()  # real parser: main() must consume default argv

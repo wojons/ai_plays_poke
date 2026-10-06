@@ -395,6 +395,7 @@ def test_live_rom_topology_clears_a_jev_reported_gap_without_the_teacher(
     teacher_calls = {"count": 0}
 
     def decide(projection: str, **_kwargs: Any) -> dict[str, Any]:
+        _ = projection
         decision = {
             "ok": True,
             "next_action": "DOWN",
