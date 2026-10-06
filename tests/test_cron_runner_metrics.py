@@ -137,6 +137,67 @@ class TestMovementProgressDelta:
         assert cron_runner._movement_progress_delta((40, 6, 4), None) == (0, 0)
 
 
+class TestStepSettle:
+    """Directional reads wait through Gen I's transient ledge-hop midpoint."""
+
+    def test_settle_ledge_mid_step_sample_cannot_invert_movement_delta(self) -> None:
+        # A live Blue-ROM ledge hop reports the ledge tile with wWalkCounter=0
+        # for two frames, resumes movement, and only then commits the landing.
+        samples = [
+            ((12, 10, 27), False),
+            ((12, 10, 27), False),
+            ((12, 10, 27), True),
+            ((12, 10, 28), False),
+            ((12, 10, 28), False),
+            ((12, 10, 28), False),
+            ((12, 10, 28), False),
+        ]
+
+        class FakeEmulator:
+            def __init__(self) -> None:
+                self.fast_forwarded: list[int] = []
+
+            def fast_forward(self, frames: int) -> None:
+                self.fast_forwarded.append(frames)
+
+        class FakeRAMReader:
+            def __init__(self) -> None:
+                self.index = 0
+
+            def current_map_id(self) -> int:
+                return samples[self.index][0][0]
+
+            def player_tile_x(self) -> int:
+                return samples[self.index][0][1]
+
+            def player_tile_y(self) -> int:
+                return samples[self.index][0][2]
+
+            def is_moving(self) -> bool:
+                moving = samples[self.index][1]
+                self.index += 1
+                return moving
+
+        emu = FakeEmulator()
+        settled = cron_runner._settle_directional_step(
+            emu,
+            FakeRAMReader(),
+            max_frames=len(samples),
+            stable_frames=4,
+        )
+
+        previous_cycle_tile = (12, 10, 28)
+        assert cron_runner._movement_progress_delta(
+            (12, 10, 27), previous_cycle_tile
+        ) == (1, 1)
+        assert settled == previous_cycle_tile
+        assert cron_runner._movement_progress_delta(settled, previous_cycle_tile) == (
+            0,
+            1,
+        )
+        assert emu.fast_forwarded == [1] * len(samples)
+
+
 class TestDryRun:
     """--dry-run precheck (GAP-032): validates setup, exits 0, never boots.
 
@@ -1054,16 +1115,17 @@ class TestMainLoadsDotenvBeforePreflight:
         calls = []
         real_load = cr._load_dotenv_stdlib
         monkeypatch.setattr(
-            cr, "_load_dotenv_stdlib", lambda *a, **k: calls.append("dotenv") or real_load(*a, **k)
+            cr,
+            "_load_dotenv_stdlib",
+            lambda *a, **k: calls.append("dotenv") or real_load(*a, **k),
         )
         # Preflight stub records ordering; stop main() right after preflight.
         monkeypatch.setattr(
-            cr, "_run_jev_preflight",
+            cr,
+            "_run_jev_preflight",
             lambda **kw: calls.append("preflight") or {"status": "auth_failure"},
         )
-        monkeypatch.setattr(
-            "sys.argv", ["cron_runner.py"]
-        )
+        monkeypatch.setattr("sys.argv", ["cron_runner.py"])
         cr._main_parser()  # real parser: main() must consume default argv
         with pytest.raises(SystemExit):
             cr.main()

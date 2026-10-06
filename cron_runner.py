@@ -726,7 +726,12 @@ HINT_LEVEL = 4  # 0=benchmark, 1=mechanics, 2=genre, 3=starter, 4=navigation
 FAST_FORWARD_FRAMES = 600  # ~10s game time, ~50ms wall time
 CART_STEPS = 6  # controller steps per overworld cycle (reduced from 12 — short moves, more cartographer feedback)
 PRESS_FRAMES = 5  # one deliberate D-pad/button press (roughly one tile)
-STEP_FORWARD = 15  # settle without triggering D-pad key repeat
+# Fixed settle for non-direction buttons. Directional movement uses the bounded,
+# RAM-stabilized settle below: live Blue-ROM probes measured floor/grass commits
+# at 17 frames total, a turn at 19, and a two-tile ledge hop at 36.
+STEP_FORWARD = 15
+STEP_SETTLE_MAX_FRAMES = 40  # post-press bound; 45 frames total with PRESS_FRAMES
+STEP_SETTLE_STABLE_FRAMES = 4  # exceeds the ledge hop's 2-frame midpoint pause
 LOG_DIR = Path("cron_logs")
 LOG_DIR.mkdir(exist_ok=True)
 run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -1000,6 +1005,66 @@ def _movement_progress_delta(
     return (int(current_tile != last_tile), 1)
 
 
+def _read_player_tile(ram_reader: RAMReader) -> tuple[int, int, int] | None:
+    """Return one valid RAM map/tile sample, or ``None`` if it is incomplete."""
+    try:
+        map_id = ram_reader.current_map_id()
+        tile_x = ram_reader.player_tile_x()
+        tile_y = ram_reader.player_tile_y()
+    except AttributeError:
+        # Lightweight test/replay readers predate the movement-RAM surface.
+        return None
+    if not all(isinstance(value, int) for value in (map_id, tile_x, tile_y)):
+        return None
+    return map_id, tile_x, tile_y
+
+
+def _settle_directional_step(
+    emu: Any,
+    ram_reader: RAMReader,
+    *,
+    max_frames: int = STEP_SETTLE_MAX_FRAMES,
+    stable_frames: int = STEP_SETTLE_STABLE_FRAMES,
+) -> tuple[int, int, int] | None:
+    """Advance until a directional move has a stable, non-moving RAM tile.
+
+    Gen I ledge hops are two linked tile movements. At the measured midpoint,
+    ``wWalkCounter`` is zero for two frames and the coordinates name the ledge
+    tile, even though the hop has not committed. Requiring a longer stable run
+    prevents that transient tile from becoming movement/recovery ground truth.
+    The loop is bounded so malformed RAM cannot stall the runner.
+    """
+    stable_tile: tuple[int, int, int] | None = None
+    stable_count = 0
+    last_tile: tuple[int, int, int] | None = None
+
+    frame_limit = max(0, max_frames)
+    for elapsed_frames in range(1, frame_limit + 1):
+        emu.fast_forward(1)
+        current_tile = _read_player_tile(ram_reader)
+        if current_tile is None:
+            # Preserve the historical fixed settle for readers that cannot
+            # expose movement RAM, without exceeding the caller's bound.
+            fallback_frames = min(frame_limit, STEP_FORWARD) - elapsed_frames
+            if fallback_frames > 0:
+                emu.fast_forward(fallback_frames)
+            return None
+        last_tile = current_tile or last_tile
+        if current_tile is not None and not ram_reader.is_moving():
+            if current_tile == stable_tile:
+                stable_count += 1
+            else:
+                stable_tile = current_tile
+                stable_count = 1
+            if stable_count >= max(1, stable_frames):
+                return current_tile
+        else:
+            stable_tile = None
+            stable_count = 0
+
+    return last_tile
+
+
 def _tile_lock_reason(tile: tuple[int, int, int] | None, same_tile_count: int) -> str:
     """Return the recovery reason for a tile streak at the configured limit."""
     if tile is None or same_tile_count < MAX_SAME_TILE_CYCLES:
@@ -1056,9 +1121,9 @@ def _approach_first_starter(
 
     for button in moves:
         emu.press_button(button, frames=PRESS_FRAMES)
-        emu.fast_forward(STEP_FORWARD)
+        _settle_directional_step(emu, ram_reader)
     emu.press_button("up", frames=PRESS_FRAMES)
-    emu.fast_forward(STEP_FORWARD)
+    _settle_directional_step(emu, ram_reader)
     emu.press_button("a", frames=STARTER_ACTION_FRAMES)
     emu.fast_forward(STARTER_ADVANCE_FRAMES)
 
@@ -1181,9 +1246,9 @@ def _select_starter_from_menu(
         direction = "right" if target_x > current_x else "left"
         for _ in range(abs(target_x - current_x)):
             emu.press_button(direction, frames=PRESS_FRAMES)
-            emu.fast_forward(STEP_FORWARD)
+            _settle_directional_step(emu, ram_reader)
         emu.press_button("up", frames=PRESS_FRAMES)
-        emu.fast_forward(STEP_FORWARD)
+        _settle_directional_step(emu, ram_reader)
         emu.press_button("a", frames=STARTER_ACTION_FRAMES)
         emu.fast_forward(STARTER_ADVANCE_FRAMES)
 
@@ -6406,7 +6471,10 @@ def main() -> None:
                     button = button.upper()
                     btn = btn_map.get(button, "a")
                     emu.press_button(btn, frames=PRESS_FRAMES)
-                    emu.fast_forward(STEP_FORWARD)
+                    if button in ("UP", "DOWN", "LEFT", "RIGHT"):
+                        _settle_directional_step(emu, ram_reader)
+                    else:
+                        emu.fast_forward(STEP_FORWARD)
                     _last_direction = button
 
                     # Blocked-direction tracking (per-button for recovery)

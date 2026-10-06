@@ -236,7 +236,7 @@ Before execution the plan passes through three deterministic filters:
 
 ### 3. Execute — with stuck detection and recovery
 
-Each plan action is pressed (`PRESS_FRAMES` = 5) with a settle fast-forward (`STEP_FORWARD` = 15). Five independent stuck detectors feed an escalating recovery ladder (see [Checkpoint & Rollback](#checkpoint--rollback)):
+Each plan action is pressed for `PRESS_FRAMES` = 5. Non-direction buttons retain the fixed `STEP_FORWARD` = 15 wait. Directional movement settles adaptively from RAM: the runner waits for the map/tile coordinates to remain unchanged with `wWalkCounter == 0` for 4 consecutive frames, bounded at 40 post-press frames. A live Pokémon Blue probe measured normal ground and tall grass committing at 17 total frames, turn-plus-step at 19, and a two-tile ledge hop at 36; the ledge exposes an uncommitted midpoint tile with a two-frame zero walk counter, which the stabilization rule deliberately rejects. Five independent stuck detectors feed an escalating recovery ladder (see [Checkpoint & Rollback](#checkpoint--rollback)):
 
 | Detector | Threshold | Meaning |
 |----------|-----------|---------|
