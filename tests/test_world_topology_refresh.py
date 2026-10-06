@@ -532,6 +532,11 @@ def test_teacher_missing_facts_become_next_cycle_world_targets(
         },
     )
 
+    # Empty path-memory store for the pre-teacher NAV-MEM consult: a live
+    # local DuckBrain with real /world/path/* records would answer the
+    # navigation gap before the teacher runs, making this test env-dependent.
+    monkeypatch.setattr(duckbrain_client, "recall", lambda **_kwargs: [])
+
     decision = cron_runner._jev_overworld_decision(
         _observation(),
         teacher_api_client=object(),

@@ -211,6 +211,11 @@ def test_complete_map_fact_stops_repeat_topology_escalation(
 
     monkeypatch.setattr(cron_runner.jev_client, "decide", decide)
     monkeypatch.setattr(cron_runner.jev_client, "escalate_and_reask", teacher)
+    # Empty path-memory store: this test is about ROM topology resolution, and
+    # a live local DuckBrain holding real /world/path/* records would otherwise
+    # have nav-mem replay a proven route instead of the ROM-derived plan.
+    monkeypatch.setattr(duckbrain_client, "recall", lambda **_kwargs: [])
+    monkeypatch.setattr(duckbrain_client, "remember", lambda **_kwargs: "memory-id")
     observation = dict(_OBSERVATION)
     fact = (
         "/world/map/0: Observed Pallet Town; tile=6,6; "
