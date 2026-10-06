@@ -4,51 +4,52 @@
 
 ## The Paradigm Shift
 
-Current AI gaming projects fail because they treat Pokémon as a simple button-pressing problem. **PTP-01X** understands the truth:
+PTP-01X treats autonomous Pokémon play as a repeated observe-decide-act loop with durable evidence, not as an unstructured stream of screenshots and button presses. The repository separates what runs today from the larger spec-driven ambition:
 
-- **69 distinct gameplay states** - not just "battle", "overworld", "menu"
-- **20+ hour gameplay journey** with interconnected strategic decisions
-- **151 Pokémon** to catalog, learn types, moves, and abilities
-- **8 Gyms + Elite Four** requiring team composition planning
+- **Live today:** `cron_runner.py` boots Pokémon Blue, projects emulator RAM into structured state, selects decisions through configurable System-1/System-2 modes, executes tools, and records each cycle.
+- **Live memory and evidence:** decision rows are appended to per-run JSONL logs, while reusable goals, notes, studies, and route knowledge can persist through DuckBrain.
+- **SPEC-DRIVEN / design-only:** the 69-state gameplay machine, GOAP decision core, Observer → Strategist → Tactician tri-tier memory hierarchy, multi-phase vision/OCR recognition, and the complete 20+ hour journey are ambitions documented under `specs/`. They are not wired into the running `cron_runner.py` loop yet.
+- **Long-range scope:** cataloging 151 Pokémon and planning through eight Gyms plus the Elite Four remain product goals, not claims that a current run completes them.
 
 ### Why Simple AI Fails
 
-| Approach | Problem | PTP-01X Solution |
-|----------|---------|------------------|
-| Stochastic Parrot | Throws pixels at model, hopes for correlation | Multi-phase state machine recognition |
-| Context Amnesia | Treats every tick as independent | 3-tier memory hierarchy (Observer → Strategist → Tactician) |
-| Memory Hoarding | Keeps all data until token limits hit | Intelligent compression & retrieval |
-| No Strategic Planning | Immediate tactics only | GOAP decision core with hierarchical layers |
+| Failure mode | Live response | Design goal |
+|--------------|---------------|-------------|
+| Pixel-only observation | Default gameplay state comes directly from emulator RAM instead of a paid vision call each tick. | The multi-phase vision/OCR state machine remains design-only in `specs/`. |
+| Context amnesia | Structured JSONL decision history and DuckBrain persistence carry evidence and selected knowledge across cycles and runs. | The Observer → Strategist → Tactician tri-tier hierarchy remains a design-only specification. |
+| One policy for every situation | The default `jev` hybrid uses fast System-1 decisions and invokes an LLM System-2 teacher on configured handoff triggers. | The GOAP planning core remains a design-only specification. |
+| Unverifiable autonomy | Every cycle records the selected mode, decision evidence, action, and outcome where available. | End-to-end completion of the designed 20+ hour journey is not yet a shipped capability. |
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PTP-01X ORCHESTRATION LAYER                   │
-├─────────────────────────────────────────────────────────────────┤
-│  Observer (Long-term)  │  Strategist (Session)  │  Tactician   │
-│  • Journey progress    │  • Battle lessons      │  • HP/status │
-│  • Badge history       │  • Route knowledge     │  • Active    │
-│  • Party evolution     │  • Resource strategies │  • Immediate │
-│  • Meta-analysis       │  • Failure analysis    │  objectives  │
-└─────────────────────────────────────────────────────────────────┘
+The live autonomous path is implemented by `cron_runner.py` and the modules it imports. Its loop is:
+
+```text
+ROM + data/boot.state checkpoint (or intro-bypass fallback)
                               │
                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      GOAP DECISION CORE                          │
-│  • Goal stack management      • Hierarchical planning layers    │
-│  • Critical path analysis     • Action execution with recovery  │
-└─────────────────────────────────────────────────────────────────┘
+cron_runner.py boots PyBoy and captures the current game state
                               │
                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    PERCEPTION & EXECUTION                        │
-│  • Vision & OCR pipeline      • Hierarchical state machine      │
-│  • Battle heuristics          • World navigation & pathfinding  │
-│  • Entity management          • Inventory & item logistics      │
-│  • Dialogue systems           • Failsafe & recovery protocols   │
-└─────────────────────────────────────────────────────────────────┘
+src/core/state_projection.py
+RAM projection → StateWindow flow for structured game state
+                              │
+                              ▼
+src/core/jev_client.py
+--decision-mode flag > AIPP_DECISION_MODE / CRON_DECISION_MODE > jev default
+jev = fast System-1 policy + LLM System-2 teacher on handoff triggers
+                              │
+                              ▼
+src/core/tools.py :: execute_tool_call
+validated emulator button/tool execution
+                              │
+                              ▼
+cron_logs/run_<id>.jsonl decision rows + DuckBrain persistence
 ```
+
+The selectable decision modes are `system1`, `system2`/`llm`, `system1+system2`/`hybrid`/`jev`, and `agentic`; `jev` is the default spelling for the hybrid family. Boot-state recovery, RAM observation, decision routing, tool execution, structured logging, and DuckBrain integration are the running architecture.
+
+**Runtime boundary:** the later Complete Specification and Key Components sections catalog design documents. Their 69-state machine, GOAP core, tri-tier memory hierarchy, and vision/OCR pipeline are **SPEC-DRIVEN / design-only** and are not imported or executed by `cron_runner.py`.
 
 ## Complete Specification
 
