@@ -40,7 +40,13 @@ A missing or explicitly bad boot-state path is reported as a warning with the in
 ```text
 usage: cron_runner.py [-h] [--run-id RUN_ID] [--cycles CYCLES] [--rom ROM]
                       [--boot-state BOOT_STATE] [--dry-run] [--skip-key-check]
-                      [--controller-model CONTROLLER_MODEL]
+                      [--skip-preflight] [--controller-model CONTROLLER_MODEL]
+                      [--decision-mode {system1,system2,system1+system2,hybrid,jev,llm,agentic}]
+                      [--handoff HANDOFF]
+                      [--handoff-confidence HANDOFF_CONFIDENCE]
+                      [--handoff-ambiguity HANDOFF_AMBIGUITY]
+                      [--handoff-classes HANDOFF_CLASSES]
+                      [--teacher-max-per-episode TEACHER_MAX_PER_EPISODE]
 
 Cron-friendly Pokemon AI runner with RAM reader / cartographer → controller
 pipeline. Flow: 1. Observe game state (RAM reader OR Gemma 12B cartographer)
@@ -72,6 +78,45 @@ options:
                         — e.g. '--controller-model deepseek-chat' sends the
                         controller to api.deepseek.com via DEEPSEEK_API_KEY
                         (GAP-052).
+  --skip-preflight      Skip the real JEV startup probe for a JEV-mode run.
+                        The skip is still stamped in the run log.
+  --decision-mode {system1,system2,system1+system2,hybrid,jev,llm,agentic}
+                        Who decides each cycle. 'system1': the fast System-One
+                        tier decides EVERY cycle and never hands back.
+                        'system2' (alias 'llm'): the controller decides EVERY
+                        cycle and the fast tier is never called — the pure-LLM
+                        benchmark. 'agentic': the explicit opt-in bounded
+                        model-tool loop (also System-Two). 'system1+system2'
+                        (alias 'jev', the default): the fast tier decides and
+                        hands back to the reasoning teacher when a trigger
+                        fires and --handoff allows it. Overrides the
+                        AIPP_DECISION_MODE / CRON_DECISION_MODE env vars.
+  --handoff HANDOFF     Which handoff trigger families may hand back to the
+                        reasoning teacher in 'system1+system2': 'off' (==
+                        system1), 'any' (default), 'failure', 'gap',
+                        'confidence', or a comma list of those. 'failure' =
+                        the last action changed nothing; 'gap' = the fast tier
+                        reports its state insufficient or names a missing
+                        class; 'confidence' = low action confidence with the
+                        layered gate. Overrides AIPP_HANDOFF / CRON_HANDOFF.
+  --handoff-confidence HANDOFF_CONFIDENCE
+                        Action-confidence floor for the confidence trigger
+                        (default 0.5). The default mirrors the threshold
+                        already in code, so changing it invalidates comparison
+                        against existing runs.
+  --handoff-ambiguity HANDOFF_AMBIGUITY
+                        Ambiguity gate for the layered confidence trigger
+                        (default 0.4); low confidence alone does not hand back
+                        unless the phase is irreversible.
+  --handoff-classes HANDOFF_CLASSES
+                        Comma list of missing-information classes allowed to
+                        hand off (e.g. 'map_topology'). Unset means any class
+                        may.
+  --teacher-max-per-episode TEACHER_MAX_PER_EPISODE
+                        Hard cap on teacher handoffs per episode. On
+                        exhaustion the run keeps playing on the fast tier and
+                        records why the handoff was blocked. Unset means
+                        unlimited.
 ```
 
 ## CLI Flags
@@ -93,6 +138,66 @@ options:
 | `--handoff-ambiguity HANDOFF_AMBIGUITY` | `float` | `0.40` | Ambiguity gate for the layered confidence trigger (default 0.40); low confidence alone does not hand back unless the phase is irreversible. |
 | `--handoff-classes HANDOFF_CLASSES` | `str` | unset (any class may hand off) | Comma list of missing-information classes allowed to hand off (e.g. `map_topology`). Unset means any class may. |
 | `--teacher-max-per-episode N` | `int` | unset (unlimited) | Hard cap on teacher handoffs per episode. On exhaustion the run keeps playing on the fast tier and records why the handoff was blocked. Unset means unlimited. |
+
+## Decision modes and handoff
+
+`--decision-mode` selects who decides each cycle. Resolution order is
+**flag > env > default** (`resolve_decision_mode()` in `cron_runner.py`), and
+the resolved spelling plus its family are stamped into every decision row
+(`decision_mode` / `decision_mode_family`) and into the `run_autonomy`
+closeout event, so a run log alone reveals the run's architecture.
+
+### Accepted `--decision-mode` values
+
+The argparse `choices` come from `DECISION_MODES = tuple(DECISION_MODE_ALIASES)`
+in `cron_runner.py` — seven accepted spellings mapping onto three families:
+
+| Value | Family | Behavior |
+|-------|--------|----------|
+| `system1` | `system1` | The fast System-One tier decides EVERY eligible cycle and never hands back. Measures the fast tier unaided. |
+| `system2` | `system2` | The controller decides EVERY cycle; JEV is never called (not even consulted). The pure-LLM benchmark. |
+| `llm` | `system2` | Historical alias of `system2`. |
+| `system1+system2` | `system1+system2` | The fast tier decides and hands back to the reasoning teacher when a trigger fires and the policy allows it. |
+| `hybrid` | `system1+system2` | Alias of `system1+system2`. |
+| `jev` | `system1+system2` | Historical alias of `system1+system2` — and the DEFAULT spelling (`DEFAULT_DECISION_MODE = "jev"`). |
+| `agentic` | `system2` | Explicit opt-in bounded model→tool loop. System-Two for routing, keeps its own spelling in decision rows, and enables the tool loop (`agentic_tools_enabled: true` on its rows). |
+
+The exact spelling passed is preserved in `decision_mode` (byte-identical to
+historical run logs); only the family branches runtime behavior.
+
+### Env vars and precedence
+
+| Setting | Env vars (first set wins) | Default | Overriding flag |
+|---------|---------------------------|---------|-----------------|
+| Decision mode | `AIPP_DECISION_MODE`, `CRON_DECISION_MODE` | `jev` (`system1+system2`) | `--decision-mode` |
+| Handoff policy | `AIPP_HANDOFF`, `CRON_HANDOFF` | `any` (all three trigger families) | `--handoff` |
+
+An env var whose value is not a recognized spelling/policy is ignored and the
+next candidate (the other env var, then the default) is used; an explicit flag
+always wins.
+
+### Handoff policy
+
+In `system1+system2`, `--handoff` selects WHICH trigger families may hand back
+to the reasoning teacher: `off`, `any`/`all` (default), `failure`, `gap`,
+`confidence`, or a comma/`+`-separated list of those (`failure` = the last
+action changed nothing; `gap` = the fast tier reports its state insufficient
+or names a missing class; `confidence` = low action confidence with the
+layered gate). Unknown tokens in a list are dropped; a list that keeps no
+known family allows nothing. `off` yields an empty family set — exactly
+`system1` (one mechanism, not two).
+
+| Flag | Type | Default | Purpose |
+|------|------|---------|---------|
+| `--handoff-confidence` | `float` | `0.50` (mirrors `jev_client.ESCALATE_THRESHOLD`) | Action-confidence floor for the confidence trigger |
+| `--handoff-ambiguity` | `float` | `0.40` (mirrors `jev_client.AMBIGUITY_GATE`) | Ambiguity gate for the layered confidence trigger; low confidence alone does not hand back unless the phase is irreversible |
+| `--handoff-classes` | `str` | unset (any class may hand off) | Comma/semicolon list of missing-information classes allowed to hand off (e.g. `map_topology`) |
+| `--teacher-max-per-episode` | `int` | unset (unlimited) | Hard cap on teacher handoffs per episode; on exhaustion the run keeps playing on the fast tier and records why the handoff was blocked |
+
+One deliberate exception: `transport` triggers (fast-tier availability) are
+**not** policy-gated — `handoff_allowed()` allows them ahead of the
+empty-families check, so `--handoff off` cannot wedge a run by suppressing the
+failover that keeps it moving.
 
 ### Boot-state ROM mismatch warning
 

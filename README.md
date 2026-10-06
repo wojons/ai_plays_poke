@@ -133,7 +133,11 @@ default configuration, place it at
 | Gen 1 (Game Boy) | Red, Blue, Green, Yellow |
 | Gen 2 (Game Boy Color) | Gold, Silver |
 
-**To change games:** Edit `config/settings.yaml` and change `rom.path`
+**To change games:** pass `--rom /path/to/your.rom` to `cron_runner.py` (the
+default lives on the `ROM` constant in `cron_runner.py`; `config/settings.yaml`
+is not read by any maintained code path). A non-Blue ROM also needs
+`--boot-state skip` unless you supply a matching checkpoint — the shipped
+`data/boot.state` was captured from Pokemon Blue.
 
 ## Web-Based Live Viewer
 
@@ -332,7 +336,8 @@ cp .env.example .env
 # Edit .env and add your OPENROUTER_API_KEY (required) and DEEPSEEK_API_KEY (fallback)
 
 # 4. Select your game
-# Edit config/settings.yaml -> rom.path (default: "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb")
+# Pass --rom on the command line (default: "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb").
+# (config/settings.yaml is legacy — no maintained code reads it.)
 
 # 5. Run the AI (basic)
 python3 src/game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir runs/test_001
@@ -556,7 +561,10 @@ ERROR: Emulator crashed at tick 150
    ```
 3. (Optional fallback provider) Add `DEEPSEEK_API_KEY` to `.env` — used when the
    OpenRouter call path falls back (ai_client.py:532, cron_runner.py:760).
-4. Verify in config/settings.yaml that `models.thinking_model.provider` is set to "openai"
+4. No settings.yaml step is needed — no maintained code reads `config/settings.yaml`.
+   Routing is automatic: `OPENROUTER_API_KEY` is used first; when `DEEPSEEK_API_KEY`
+   is set, DeepSeek models (the `deepseek-v4-flash` thinking model) route direct to
+   `api.deepseek.com`. Validate either with `python3 cron_runner.py --dry-run`.
 
 #### Verifying API Connection
 The command below only verifies that `.env` loads and prints `API Key set:
@@ -577,7 +585,8 @@ python3 cron_runner.py --dry-run
 **Solutions:**
 1. ROM may be corrupted - try a different ROM file
 2. Verify ROM is the correct version for your emulator settings
-3. Check emulator speed setting in `config/settings.yaml`
+3. `config/settings.yaml` is legacy (no maintained code reads it) and carries no
+   emulator-speed setting — try a different ROM dump or `--boot-state skip`
 
 #### Save states not loading
 **Solutions:**

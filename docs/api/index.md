@@ -33,6 +33,7 @@ This section documents all public APIs and interfaces for PTP-01X - an orchestra
 | Tool | Description |
 |------|-------------|
 | [cron_runner](cron_runner.md) | Cron-friendly autonomous gameplay runner — CLI flags, pipeline, JSONL log schema, checkpoints, costs |
+| [Dashboard](dashboard.md) | Observability dashboard server (`src/dashboard/main.py`) — run instructions, auth, REST + WebSocket route reference |
 
 ### Examples
 
