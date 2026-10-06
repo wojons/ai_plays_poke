@@ -1,0 +1,6 @@
+{
+  "file": "data/boot.state",
+  "md5": "81e4ec4e8d1b62002bc78f619c5fc79c",
+  "provenance": "restored from data/baselines/base-1_boot.state (BASE-REPIN, tick 287, 2026-10-06). base-1_boot.state is the rescued copy whose md5 matches what BOTH baseline artifacts document (ctrl-win_2026-09-26.json, dist1_ctrlwin_distribution_2026-09-27.json). The pre-repin data/boot.state had drifted to md5 41391672917163a07842e054338ba2e0 mid-run.",
+  "note": "A run must never re-save this file. If this md5 moves without an explicit re-pin commit, runs silently change baseline."
+}
