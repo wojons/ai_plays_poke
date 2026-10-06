@@ -682,7 +682,24 @@ flake8>=6.0           # Linting
 ├── web/                  # Browser-based live viewer (index.html + JS overlay)
 ├── cron_runner.py        # Primary entry point (autonomous gameplay runner)
 ├── ram_map_server.py     # Live RAM-map viewer server (:8099)
+├── make_run_video.py     # Run footage → MP4 review video with HUD overlay
+├── live_viewer.py        # Live run viewer (terminal)
+├── web_viewer.py         # Browser run viewer
+├── simple_viewer.py      # Minimal screenshot viewer (scratch/diagnostic)
+├── push_intro.py         # Intro-sequence button driver (scratch/diagnostic)
+├── intro_blast.py        # Intro bypass helper (scratch/diagnostic)
+├── diag_*.py, _*.py      # One-off diagnostic / CI helper scripts (scratch)
 └── config/               # Configuration files
+```
+
+### Review tooling
+
+Convert a finished run's screenshot sequence into a review video (MP4 with a
+burned-in HUD showing cycle #, screen type, and action taken):
+
+```bash
+./venv/bin/python make_run_video.py <run_id> [--fps 2] [--out dir]
+./venv/bin/python make_run_video.py run_luna_v10_20260802_0515
 ```
 
 ## Documentation
