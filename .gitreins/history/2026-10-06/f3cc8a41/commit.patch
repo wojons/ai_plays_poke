@@ -1,0 +1,22 @@
+commit 7428e93e199fe66fc604681326f25db4a83f579d
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Tue Oct 6 10:47:02 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Tue Oct 6 10:47:02 2026 -0500
+
+    chore(board): record DOC-6..9 ch:trace verdicts (verdict=1a8cf11)
+    
+    The DOC-6..9 closure commit (1a8cf11) could not carry its own sha in its
+    verdict= fields: a commit message cannot contain its own hash, and the
+    planned amend that would have filled the placeholders was aborted after a
+    concurrent foreman committed on top (1a8cf11 is pushed and referenced by
+    tick-285, so rewriting history is not an option). This empty bookkeeping
+    commit records the intended verdicts exactly as prescribed, without
+    rewriting pushed history.
+    
+    ch:trace row=DOC-6 spec=docs/api/cron_runner.md#wave=cli-flags evidence=docs/api/cron_runner.md witness=path@origin:cron_runner.py:4887-5012 verdict=1a8cf11
+    ch:trace row=DOC-7 spec=docs/api/cron_runner.md#wave=decision-handoff evidence=docs/api/cron_runner.md witness=path@origin:cron_runner.py:117-136,190-304 verdict=1a8cf11
+    ch:trace row=DOC-8 spec=docs/api/dashboard.md evidence=docs/api/dashboard.md witness=path@origin:src/dashboard/main.py:239-517 verdict=1a8cf11
+    ch:trace row=DOC-9 spec=README.md#wave=real-config-surface evidence=README.md witness=path@origin:src/test_pyboy.py:19 verdict=1a8cf11
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>

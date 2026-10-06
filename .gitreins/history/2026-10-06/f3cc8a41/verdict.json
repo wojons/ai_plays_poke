@@ -1,0 +1,121 @@
+{
+  "task_id": "E2E-001",
+  "task_title": "E2E fixture run tick 285",
+  "task_criteria": [
+    "cron_runner live run exit 0, 80 cycles, autonomy 80/80, lock-rate 0, peak RSS measured < 300MB"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "7428e93e199fe66fc604681326f25db4a83f579d",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261006T154704.484280Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4424 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [474228 chars omitted \u2014 5204 line(s)] \u2026\ntest_bench_pathfinding_small_grid              831.9039 (1.03)          40,203.7986 (12.12)           957.3808 (1.0)           1,128.5917 (1.64)            910.8335 (1.09)             10.0117 (1.0)         2;221  1,044,516.5010 (1.0)        1260           1\ntest_bench_vision_pipeline_validate          6,352.0856 (7.83)       3,054,691.9443 (921.21)        9,301.3218 (9.72)         18,412.8714 (26.75)         8,635.9214 (10.38)         3,186.2874 (318.26)     33;257    107,511.6014 (0.10)      28141           1\ntest_bench_ram_reader_observe            1,963,353.0173 (>1000.0)  206,592,445.0289 (>1000.0)   4,378,704.8697 (>1000.0)  14,934,532.2833 (>1000.0)   2,910,796.0872 (>1000.0)   1,124,101.2835 (>1000.0)       4;8        228.3780 (0.00)        341           1\ntest_bench_vision_pipeline_process      39,173,314.1150 (>1000.0)   68,884,158.0413 (>1000.0)  50,326,850.8799 (>1000.0)   8,178,254.5418 (>1000.0)  49,201,307.8183 (>1000.0)  13,964,518.0898 (>1000.0)       9;0         19.8701 (0.00)         25           1\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4410 passed, 14 skipped in 305.45s (0:05:05) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261006T154704.484280Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 cron_runner live run exit 0, 80 cycles, autonomy 80/80, lock-rate 0, peak RSS measured < 300MB: All five sub-conditions verified from measured artifacts. (1) exit 0: cron_logs/e2e_t20261006_1508_evidence.txt line 1 'RUN_EXIT=0'. (2) 80 cycles: cron_logs/run_e2e_t20261006_1508.jsonl has 80 decision rows across distinct cycles 1..80. (3) autonomy 80/80: run_autonomy row in same jsonl => decisions_total=80, jev_answered=80, autonomy_ratio=1.0. (4) lock-rate 0: cron_logs/e2e001_20261003_t275_stdout.log summary 'lock-rate: 0/80 cycles with direction-lock warnings (0%) | real_decisions=80 fallback_decisions=0 autonomy=80/80'; latest run jsonl contains 0 direction-lock entries. (5) peak RSS: e2e_t20261006_1508_evidence.txt 'PEAK_RSS_KB=91108' (91.1 MB < 300MB) from 5 ps samples (19780/88388/89104/90116/91108 KB). Corroborated by cron_logs/e2e001_20261002_t270_evidence.md (exit 0, autonomy_ratio 1.0, peak RSS 86564KB).\n",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 cron_runner live run exit 0, 80 cycles, autonomy 80/80, lock-rate 0, peak RSS measured < 300MB: All five sub-conditions verified from measured artifacts. (1) exit 0: cron_logs/e2e_t20261006_1508_evidence.txt line 1 'RUN_EXIT=0'. (2) 80 cycles: cron_logs/run_e2e_t20261006_1508.jsonl has 80 decision rows across distinct cycles 1..80. (3) autonomy 80/80: run_autonomy row in same jsonl => decisions_total=80, jev_answered=80, autonomy_ratio=1.0. (4) lock-rate 0: cron_logs/e2e001_20261003_t275_stdout.log summary 'lock-rate: 0/80 cycles with direction-lock warnings (0%) | real_decisions=80 fallback_decisions=0 autonomy=80/80'; latest run jsonl contains 0 direction-lock entries. (5) peak RSS: e2e_t20261006_1508_evidence.txt 'PEAK_RSS_KB=91108' (91.1 MB < 300MB) from 5 ps samples (19780/88388/89104/90116/91108 KB). Corroborated by cron_logs/e2e001_20261002_t270_evidence.md (exit 0, autonomy_ratio 1.0, peak RSS 86564KB).\n",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "cron_runner live run exit 0, 80 cycles, autonomy 80/80, lock-rate 0, peak RSS measured < 300MB",
+                "status": "PASS",
+                "detail": "All five sub-conditions verified from measured artifacts. (1) exit 0: cron_logs/e2e_t20261006_1508_evidence.txt line 1 'RUN_EXIT=0'. (2) 80 cycles: cron_logs/run_e2e_t20261006_1508.jsonl has 80 decision rows across distinct cycles 1..80. (3) autonomy 80/80: run_autonomy row in same jsonl => decisions_total=80, jev_answered=80, autonomy_ratio=1.0. (4) lock-rate 0: cron_logs/e2e001_20261003_t275_stdout.log summary 'lock-rate: 0/80 cycles with direction-lock warnings (0%) | real_decisions=80 fallback_decisions=0 autonomy=80/80'; latest run jsonl contains 0 direction-lock entries. (5) peak RSS: e2e_t20261006_1508_evidence.txt 'PEAK_RSS_KB=91108' (91.1 MB < 300MB) from 5 ps samples (19780/88388/89104/90116/91108 KB). Corroborated by cron_logs/e2e001_20261002_t270_evidence.md (exit 0, autonomy_ratio 1.0, peak RSS 86564KB).",
+                "resolution_probability": 0.15
+              }
+            ],
+            "summary": ""
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: E2E-001\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 cron_runner live run exit 0, 80 cycles, autonomy 80/80, lock-rate 0, peak RSS measured < 300MB: All five sub-conditions verified from measured artifacts. (1) exit 0: cron_logs/e2e_t20261006_1508_evidence.txt line 1 'RUN_EXIT=0'. (2) 80 cycles: cron_logs/run_e2e_t20261006_1508.jsonl has 80 decision rows across distinct cycles 1..80. (3) autonomy 80/80: run_autonomy row in same jsonl => decisions_total=80, jev_answered=80, autonomy_ratio=1.0. (4) lock-rate 0: cron_logs/e2e001_20261003_t275_stdout.log summary 'lock-rate: 0/80 cycles with direction-lock warnings (0%) | real_decisions=80 fallback_decisions=0 autonomy=80/80'; latest run jsonl contains 0 direction-lock entries. (5) peak RSS: e2e_t20261006_1508_evidence.txt 'PEAK_RSS_KB=91108' (91.1 MB < 300MB) from 5 ps samples (19780/88388/89104/90116/91108 KB). Corroborated by cron_logs/e2e001_20261002_t270_evidence.md (exit 0, autonomy_ratio 1.0, peak RSS 86564KB).\n\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-06T15:55:19.894028",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-06T15:55:19.910898+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 1529,
+        "truncated": false,
+        "source": "git show 7428e93e199f"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 479,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "E2E-001"
+  }
+}
