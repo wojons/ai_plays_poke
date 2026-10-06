@@ -1148,3 +1148,43 @@ tasks:
   status: complete
   created_at: '2026-10-06T14:07:00.460272+00:00'
   completed_at: '2026-10-06T14:15:26.852600+00:00'
+- id: CLN-1
+  title: 'Repo hygiene: clean up project folder structure'
+  criteria:
+  - 'Inventory tracked root files/dirs vs documented layout; find junk/misplaced artifacts;
+    grep tests/ and CI before removing; move or archive the rest; record intentional
+    exceptions in repo docs. Do not touch auto-generated provider registries or perpetual
+    fixtures (NEVER-DONE/E2E-001). PASS: root tree matches documented layout, no orphan
+    outputs/scripts, SPEC_STATUS.md or equivalent documents wired vs design-only modules.'
+  status: in_progress
+  created_at: '2026-10-06T17:07:43.349367+00:00'
+- id: DEPS-AIPP-001
+  title: Safe grouped upgrades of outdated Python packages
+  criteria:
+  - Outdated-package report reduced or every remaining major/incompatible upgrade
+    documented with a reason; package resolution passes and pytest tests/ is green
+    on the upgraded groups
+  status: complete
+  created_at: '2026-10-06T17:21:28.094119+00:00'
+  completed_at: '2026-10-06T17:52:20.279308+00:00'
+- id: SETTLE-1
+  title: Verify 15-frame step settle across terrain (1-frame margin silently inverts
+    state_changed)
+  criteria:
+  - STEP_FORWARD=15 settle verified safe or widened; mid-step sampling cannot invert
+    state_changed; regression test added; guard/tests green
+  status: complete
+  created_at: '2026-10-06T19:33:50.517247+00:00'
+  completed_at: '2026-10-06T19:53:26.367190+00:00'
+- id: README-9
+  title: Rework README Architecture sections to describe the live loop, mark GOAP/tri-tier
+    as design-only
+  criteria:
+  - README.md Architecture Overview and Paradigm Shift sections describe the live
+    RAM-observe->StateWindow->plan->execute->DuckBrain loop concretely; GOAP core,
+    tri-tier memory and LLM reasoning chapters are marked design-only/spec-driven;
+    grep of live imports in cron_runner.py cited; no claims that unwired specs are
+    shipped.
+  status: complete
+  created_at: '2026-10-06T20:24:14.379867+00:00'
+  completed_at: '2026-10-06T20:36:32.826689+00:00'
