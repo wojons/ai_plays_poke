@@ -1,5 +1,7 @@
 # PTP-01X - Orchestrated Intelligence Framework for Autonomous Pokémon Gameplay
 
+[![CI](https://github.com/wojons/ai_plays_poke/actions/workflows/ci.yml/badge.svg)](https://github.com/wojons/ai_plays_poke/actions/workflows/ci.yml)
+
 🎮 **A fundamentally different AI gaming approach** that shifts from Reinforcement Learning training loops to Orchestrated Intelligence with hierarchical memory and strategic reasoning.
 
 ## The Paradigm Shift
