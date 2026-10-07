@@ -225,6 +225,12 @@ def _episode_skeleton() -> dict[str, Any]:
         "lock_total_cycles": None,
         "lock_rate": None,
         "autonomy": None,
+        "map_transitions_observed": None,
+        "map_transition_comparisons": None,
+        "decisions_per_map_transition": None,
+        "state_comparisons": None,
+        "backtrack_events": None,
+        "backtrack_rate": None,
         "decision_mode": None,
         "decision_mode_log": None,
         "decision_mode_family": None,
@@ -280,7 +286,24 @@ def episode_metrics_from_log(log_path: Path, stdout_path: Path | None = None) ->
                 "escalated": r.get("escalated"),
                 "autonomy_ratio": r.get("autonomy_ratio"),
                 "teacher_escalations": r.get("teacher_escalations"),
+                "map_transitions_observed": r.get("map_transitions_observed"),
+                "map_transition_comparisons": r.get("map_transition_comparisons"),
+                "decisions_per_map_transition": r.get("decisions_per_map_transition"),
+                "state_comparisons": r.get("state_comparisons"),
+                "backtrack_events": r.get("backtrack_events"),
+                "backtrack_rate": r.get("backtrack_rate"),
             }
+            # BENCH-PAR episode rows mirror the runner's counted efficiency
+            # fields instead of re-deriving them from a different population.
+            for field in (
+                "map_transitions_observed",
+                "map_transition_comparisons",
+                "decisions_per_map_transition",
+                "state_comparisons",
+                "backtrack_events",
+                "backtrack_rate",
+            ):
+                m[field] = r.get(field)
             m["decision_mode_log"] = r.get("decision_mode")
             summary_surface = {
                 "decision_mode": r.get("decision_mode"),
@@ -698,6 +721,28 @@ def _arm_aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     mode_families = {r.get("decision_mode_family") for r in rows}
     tools_enabled = {r.get("agentic_tools_enabled") for r in rows}
     pipelines = {r.get("pipeline") for r in rows}
+    transition_counts_known = all(
+        r.get("map_transitions_observed") is not None for r in rows
+    )
+    state_counts_known = all(
+        r.get("state_comparisons") is not None and r.get("backtrack_events") is not None
+        for r in rows
+    )
+    map_transitions_observed = (
+        sum(int(r.get("map_transitions_observed") or 0) for r in rows)
+        if transition_counts_known
+        else None
+    )
+    state_comparisons = (
+        sum(int(r.get("state_comparisons") or 0) for r in rows)
+        if state_counts_known
+        else None
+    )
+    backtrack_events = (
+        sum(int(r.get("backtrack_events") or 0) for r in rows)
+        if state_counts_known
+        else None
+    )
     pipeline_counts: dict[str, int] = {}
     for row in rows:
         for pipeline, count in (row.get("pipeline_counts") or {}).items():
@@ -714,6 +759,19 @@ def _arm_aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "agentic_tool_calls": sum(int(r.get("agentic_tool_calls") or 0) for r in rows),
         "pipeline": next(iter(pipelines)) if len(pipelines) == 1 else "mixed",
         "pipeline_counts": pipeline_counts,
+        "map_transitions_observed": map_transitions_observed,
+        "decisions_per_map_transition": (
+            round(decisions / map_transitions_observed, 4)
+            if decisions and map_transitions_observed
+            else None
+        ),
+        "state_comparisons": state_comparisons,
+        "backtrack_events": backtrack_events,
+        "backtrack_rate": (
+            round(backtrack_events / state_comparisons, 4)
+            if backtrack_events is not None and state_comparisons
+            else None
+        ),
         "episodes": len(rows),
         "episodes_completed": completed,
         "decisions": decisions,
@@ -748,6 +806,19 @@ def _arm_aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         arm_row["lock_rate_reason"] = (
             "runner stdout carried no lock-rate line (no completed summary); "
             "rate is null, not zero"
+        )
+    if not transition_counts_known:
+        arm_row["decisions_per_map_transition_reason"] = (
+            "one or more episode run_autonomy rows lack EFF-1 transition counts"
+        )
+    elif not map_transitions_observed:
+        arm_row["decisions_per_map_transition_reason"] = (
+            "no map transition occurred; decisions per transition is undefined "
+            "(null), not zero"
+        )
+    if not state_counts_known or not state_comparisons:
+        arm_row["backtrack_rate_reason"] = (
+            "no comparable consecutive stamped map/tile states were available"
         )
     return arm_row
 
@@ -868,6 +939,8 @@ def cmd_report(episode_log: Path) -> int:
         "teacher_calls",
         "cost_usd_observed",
         "tiles_visited_distinct",
+        "decisions_per_map_transition",
+        "backtrack_rate",
         "first_map_transition_cycle",
         "errors",
     )

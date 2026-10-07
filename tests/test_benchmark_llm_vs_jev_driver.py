@@ -281,6 +281,28 @@ class TestPlanRuns:
 
 
 class TestEpisodeMetricsFromLog:
+    def test_efficiency_fields_mirror_the_run_autonomy_row(self, tmp_path):
+        autonomy = {
+            **_autonomy_row(decisions=4, mode="llm"),
+            "map_transitions_observed": 2,
+            "decisions_per_map_transition": 2.0,
+            "state_comparisons": 3,
+            "backtrack_events": 1,
+            "backtrack_rate": 0.3333,
+        }
+
+        metrics = bench.episode_metrics_from_log(
+            _write_log(tmp_path, [_llm_decision_row(), autonomy])
+        )
+
+        assert metrics["map_transitions_observed"] == 2
+        assert metrics["decisions_per_map_transition"] == 2.0
+        assert metrics["state_comparisons"] == 3
+        assert metrics["backtrack_events"] == 1
+        assert metrics["backtrack_rate"] == 0.3333
+        assert metrics["autonomy"]["decisions_per_map_transition"] == 2.0
+        assert metrics["autonomy"]["backtrack_rate"] == 0.3333
+
     def test_both_modes_stamp_comparable_tool_loop_fields(self, tmp_path):
         llm_rows = [
             _llm_decision_row(agentic_tool_calls=1),
@@ -585,8 +607,54 @@ class TestCmdReport:
             "lock_rate",
             "fallback_decisions",
             "errors",
+            "map_transitions_observed",
+            "decisions_per_map_transition",
+            "state_comparisons",
+            "backtrack_events",
+            "backtrack_rate",
         ):
             assert field in row, f"comparison table missing required field {field}"
+
+    def test_table_aggregates_efficiency_as_weighted_counts(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setattr(bench, "REPO", tmp_path)
+        rows = _battery_rows()
+        for row in rows:
+            if row["arm"] == "llm":
+                row.update(
+                    map_transitions_observed=1,
+                    state_comparisons=4,
+                    backtrack_events=3,
+                    decisions_per_map_transition=float(row["decisions"]),
+                    backtrack_rate=0.75,
+                )
+            else:
+                row.update(
+                    map_transitions_observed=2,
+                    state_comparisons=6,
+                    backtrack_events=1,
+                    decisions_per_map_transition=row["decisions"] / 2,
+                    backtrack_rate=round(1 / 6, 4),
+                )
+        ep_log = self._write_battery(tmp_path, rows)
+
+        assert bench.cmd_report(ep_log) == 0
+        artifact = json.loads(
+            (
+                tmp_path
+                / "data"
+                / "baselines"
+                / f"bench1_headtohead_{bench.today()}.json"
+            ).read_text()
+        )
+        llm_row, jev_row = artifact["comparison"]["table"]
+        assert llm_row["map_transitions_observed"] == 2
+        assert llm_row["decisions_per_map_transition"] == 5.5
+        assert llm_row["backtrack_rate"] == 0.75
+        assert jev_row["map_transitions_observed"] == 4
+        assert jev_row["decisions_per_map_transition"] == 3.75
+        assert jev_row["backtrack_rate"] == pytest.approx(1 / 6, abs=1e-4)
 
     def test_null_measurements_carry_reasons(self, tmp_path, monkeypatch):
         """A censored measurement is null WITH a reason, never hand-entered."""

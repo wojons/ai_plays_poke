@@ -1149,3 +1149,92 @@ class TestMainLoadsDotenvBeforePreflight:
         with pytest.raises(SystemExit):
             cr.main()
         assert calls == ["dotenv", "preflight"], calls
+
+
+class TestCycleEfficiencyObservables:
+    """EFF-1: autonomy must say whether its decisions moved the player."""
+
+    @staticmethod
+    def _row(cycle: int, map_id: int, tile_x: int, tile_y: int) -> dict[str, Any]:
+        return {
+            "cycle": cycle,
+            "screen": "overworld",
+            "intent": "move",
+            "jev_answered": True,
+            "escalated": False,
+            "map_id": map_id,
+            "map_name": f"Map {map_id}",
+            "player_tile_x": tile_x,
+            "player_tile_y": tile_y,
+        }
+
+    def test_treadmill_run_reports_no_transition_and_full_backtrack_rate(self) -> None:
+        rows = [self._row(cycle, 1, 4, 7) for cycle in range(1, 6)]
+
+        block = cron_runner._autonomy_counters(rows)
+
+        assert block["decisions_total"] == 5
+        assert block["map_transitions_observed"] == 0
+        assert block["decisions_per_map_transition"] is None
+        assert block["state_comparisons"] == 4
+        assert block["backtrack_events"] == 4
+        assert block["backtrack_rate"] == 1.0
+        tail = cron_runner._format_autonomy_tail(block)
+        assert "efficiency: n/a dec/map-transition, backtrack 100%" in tail
+
+    def test_healthy_run_reports_transition_efficiency_and_limited_backtracking(
+        self,
+    ) -> None:
+        rows = [
+            self._row(1, 1, 0, 0),
+            self._row(2, 1, 1, 0),
+            self._row(3, 2, 5, 5),
+            self._row(4, 2, 6, 5),
+            self._row(5, 1, 1, 0),
+        ]
+
+        block = cron_runner._autonomy_counters(rows)
+
+        assert block["map_transitions_observed"] == 2
+        assert block["decisions_per_map_transition"] == 2.5
+        assert block["state_comparisons"] == 4
+        assert block["backtrack_events"] == 1
+        assert block["backtrack_rate"] == 0.25
+        assert "efficiency: 2.50 dec/map-transition, backtrack 25%" in (
+            cron_runner._format_autonomy_tail(block)
+        )
+
+    def test_no_decisions_reports_unknown_efficiency_everywhere(self) -> None:
+        block = cron_runner._autonomy_counters(
+            [{"cycle": 1, "event": "state_saved", "map_id": 1}]
+        )
+
+        assert block["decisions_total"] == 0
+        assert block["decisions_per_map_transition"] is None
+        assert block["backtrack_rate"] is None
+        assert "efficiency: n/a dec/map-transition, backtrack n/a" in (
+            cron_runner._format_autonomy_tail(block)
+        )
+
+        buffer = io.StringIO()
+        row = cron_runner._write_autonomy_row(buffer, "eff-1-empty", block)
+        assert row["decisions_per_map_transition"] is None
+        assert row["backtrack_rate"] is None
+
+    def test_run_autonomy_row_mirrors_efficiency_from_counted_rows(self) -> None:
+        rows = [
+            self._row(1, 1, 0, 0),
+            self._row(2, 2, 0, 0),
+            self._row(3, 2, 0, 0),
+        ]
+        block = cron_runner._autonomy_counters(rows)
+        buffer = io.StringIO()
+
+        row = cron_runner._write_autonomy_row(buffer, "eff-1", block)
+
+        assert row["map_transitions_observed"] == 1
+        assert row["decisions_per_map_transition"] == 3.0
+        assert row["state_comparisons"] == 2
+        assert row["backtrack_events"] == 1
+        assert row["backtrack_rate"] == 0.5
+        assert json.loads(buffer.getvalue()) == row

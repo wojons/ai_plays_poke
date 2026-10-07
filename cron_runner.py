@@ -3336,6 +3336,35 @@ JEV_DEGRADED_RATE = 0.5
 JEV_DEGRADED_MIN_DECISIONS = 5
 
 
+def _decision_map_key(row: dict[str, Any]) -> tuple[str, int | str] | None:
+    """Return a stable map identity from one stamped decision row."""
+    map_id = row.get("map_id")
+    if isinstance(map_id, int) and not isinstance(map_id, bool):
+        return ("id", map_id)
+    map_name = row.get("map_name")
+    if isinstance(map_name, str) and map_name:
+        return ("name", map_name)
+    return None
+
+
+def _decision_tile_state(
+    row: dict[str, Any],
+) -> tuple[str, int | str, int, int] | None:
+    """Return the stamped map/tile state, or None when it is not observable."""
+    map_key = _decision_map_key(row)
+    tile_x = row.get("player_tile_x")
+    tile_y = row.get("player_tile_y")
+    if (
+        map_key is None
+        or not isinstance(tile_x, int)
+        or isinstance(tile_x, bool)
+        or not isinstance(tile_y, int)
+        or isinstance(tile_y, bool)
+    ):
+        return None
+    return (*map_key, tile_x, tile_y)
+
+
 def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     """Derive the run's autonomy block from the per-decision rows (JEV-1).
 
@@ -3349,10 +3378,18 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     recovery, state_saved), error rows and per-button execution rows never
     set ``intent`` and move no counter here.
 
-    Returns ``decisions_total``, ``jev_answered``, ``escalated``,
-    ``autonomy_ratio`` (rounded to 4 dp, ``None`` on an empty population) and
-    ``escalation_rate_by_missing_class`` (missing_class -> share of escalated
-    rows, empty when nothing escalated; insertion order follows the rows).
+    EFF-1 derives movement efficiency in the SAME pass and from the SAME
+    stamped decision-row population. The summary printer never increments a
+    transition or backtrack counter: otherwise a repeated wrong decision could
+    still report perfect autonomy without exposing that the player did not
+    move. A map transition is each comparable consecutive decision pair whose
+    stamped map changed, matching S0's per-transition denominator. A backtrack
+    is a comparable map/tile state that is unchanged or was visited earlier.
+
+    Returns the autonomy counters plus ``map_transitions_observed``,
+    ``decisions_per_map_transition``, ``state_comparisons``,
+    ``backtrack_events`` and ``backtrack_rate``. Ratios are rounded to 4 dp and
+    remain ``None`` when their denominator is unavailable or zero.
     """
     decisions_total = 0
     jev_answered = 0
@@ -3367,11 +3404,40 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     memory_navigation_fallbacks = 0
     agentic_tool_calls = 0
     pipeline_counts: Counter[str] = Counter()
+    map_transitions_observed = 0
+    map_transition_comparisons = 0
+    previous_map: tuple[str, int | str] | None = None
+    state_comparisons = 0
+    backtrack_events = 0
+    previous_state: tuple[str, int | str, int, int] | None = None
+    visited_states: set[tuple[str, int | str, int, int]] = set()
 
     for row in results:
         if "intent" not in row:
             continue
         decisions_total += 1
+        map_key = _decision_map_key(row)
+        if map_key is None:
+            # Do not bridge an unobservable decision: that would invent a map
+            # transition between two rows that were not consecutive evidence.
+            previous_map = None
+        else:
+            if previous_map is not None:
+                map_transition_comparisons += 1
+                if map_key != previous_map:
+                    map_transitions_observed += 1
+            previous_map = map_key
+
+        state = _decision_tile_state(row)
+        if state is None:
+            previous_state = None
+        else:
+            if previous_state is not None:
+                state_comparisons += 1
+                if state == previous_state or state in visited_states:
+                    backtrack_events += 1
+            visited_states.add(state)
+            previous_state = state
         pipeline = row.get("pipeline")
         if isinstance(pipeline, str) and pipeline:
             pipeline_counts[pipeline] += 1
@@ -3434,6 +3500,14 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         decisions_total >= JEV_DEGRADED_MIN_DECISIONS
         and raw_jev_failure_rate > JEV_DEGRADED_RATE
     )
+    decisions_per_map_transition = (
+        round(decisions_total / map_transitions_observed, 4)
+        if decisions_total and map_transitions_observed
+        else None
+    )
+    backtrack_rate = (
+        round(backtrack_events / state_comparisons, 4) if state_comparisons else None
+    )
     return {
         "decisions_total": decisions_total,
         "jev_answered": jev_answered,
@@ -3455,6 +3529,13 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         # benchmark summaries directly comparable with their source rows.
         "agentic_tool_calls": agentic_tool_calls,
         "pipeline_counts": dict(pipeline_counts),
+        # EFF-1: evidence-bearing cycle efficiency, counted from decision rows.
+        "map_transitions_observed": map_transitions_observed,
+        "map_transition_comparisons": map_transition_comparisons,
+        "decisions_per_map_transition": decisions_per_map_transition,
+        "state_comparisons": state_comparisons,
+        "backtrack_events": backtrack_events,
+        "backtrack_rate": backtrack_rate,
     }
 
 
@@ -3478,7 +3559,10 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
     at zero) so the metric is visible without a separate probe.
     """
     if not autonomy:
-        return "autonomy=n/a (0 decisions, 0 escalated) | nav-mem: 0 hits/0 fallbacks"
+        return (
+            "autonomy=n/a (0 decisions, 0 escalated) | efficiency: n/a "
+            "dec/map-transition, backtrack n/a | nav-mem: 0 hits/0 fallbacks"
+        )
     decisions_total = _as_int(autonomy.get("decisions_total"))
     jev_answered = _as_int(autonomy.get("jev_answered"))
     escalated = _as_int(autonomy.get("escalated"))
@@ -3486,8 +3570,29 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
         f" | nav-mem: {_as_int(autonomy.get('memory_navigation_hits'))} hits/"
         f"{_as_int(autonomy.get('memory_navigation_fallbacks'))} fallbacks"
     )
+    raw_decisions_per_transition = autonomy.get("decisions_per_map_transition")
+    decisions_per_transition = (
+        f"{float(raw_decisions_per_transition):.2f}"
+        if isinstance(raw_decisions_per_transition, (int, float))
+        and not isinstance(raw_decisions_per_transition, bool)
+        else "n/a"
+    )
+    raw_backtrack_rate = autonomy.get("backtrack_rate")
+    backtrack = (
+        f"{float(raw_backtrack_rate):.0%}"
+        if isinstance(raw_backtrack_rate, (int, float))
+        and not isinstance(raw_backtrack_rate, bool)
+        else "n/a"
+    )
+    efficiency_tail = (
+        f" | efficiency: {decisions_per_transition} dec/map-transition, "
+        f"backtrack {backtrack}"
+    )
     if not decisions_total:
-        return f"autonomy=n/a (0 decisions, {escalated} escalated){nav_tail}"
+        return (
+            f"autonomy=n/a (0 decisions, {escalated} escalated)"
+            f"{efficiency_tail}{nav_tail}"
+        )
     tail = f"autonomy={jev_answered}/{decisions_total} ({escalated} escalated)"
     if autonomy.get("degraded"):
         failures = _as_int(autonomy.get("jev_transport_failures"))
@@ -3496,7 +3601,7 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
             f" | JEV DEGRADED: {failures}/{decisions_total} transport failures "
             f"({rate:.0%})"
         )
-    return tail + nav_tail
+    return tail + efficiency_tail + nav_tail
 
 
 def _write_autonomy_row(
@@ -3546,6 +3651,16 @@ def _write_autonomy_row(
         "agentic_tool_calls": _as_int(autonomy.get("agentic_tool_calls")),
         "pipeline": pipeline,
         "pipeline_counts": pipeline_counts,
+        # EFF-1 mirrors the counted movement evidence onto the run-level row
+        # consumed by BENCH-PAR; benchmark episodes need no second inference.
+        "map_transitions_observed": _as_int(autonomy.get("map_transitions_observed")),
+        "map_transition_comparisons": _as_int(
+            autonomy.get("map_transition_comparisons")
+        ),
+        "decisions_per_map_transition": autonomy.get("decisions_per_map_transition"),
+        "state_comparisons": _as_int(autonomy.get("state_comparisons")),
+        "backtrack_events": _as_int(autonomy.get("backtrack_events")),
+        "backtrack_rate": autonomy.get("backtrack_rate"),
         "handoff_policy": dict(HANDOFF_POLICY),
         # Which triggers fired this run, and how often the policy refused one.
         # Counted from the decision rows by _autonomy_counters.
