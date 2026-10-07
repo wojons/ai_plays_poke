@@ -562,6 +562,186 @@ class OpenRouterClient:
         self.circuit_breaker = CircuitBreaker()
         self._last_usage: dict[str, Any] = {}
 
+    def _resolve_endpoint(self, model: str) -> tuple[str, str]:
+        """Return (base_url, api_key), routing DeepSeek models to the direct API."""
+        deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
+        if deepseek_key and "deepseek" in model.lower():
+            return "https://api.deepseek.com", deepseek_key
+        return self.base_url, self.api_key  # type: ignore
+
+    def _attach_images(
+        self,
+        payload: dict[str, Any],
+        images: list[np.ndarray] | None,
+    ) -> None:
+        """Convert ndarray images to base64 PNG parts on the first user message."""
+        if not images:
+            return
+
+        image_content = []
+        for img in images:
+            if isinstance(img, np.ndarray):
+                pil_img = Image.fromarray(img)
+
+                if pil_img.size[0] > 1024:
+                    pil_img = pil_img.resize(
+                        (1024, int(1024 * pil_img.size[1] / pil_img.size[0]))
+                    )
+
+                import io
+
+                buffered = io.BytesIO()
+                pil_img.save(buffered, format="PNG")
+                image_base64 = base64.b64encode(buffered.getvalue()).decode()
+
+                image_content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": f"data:image/png;base64,{image_base64}",
+                    }
+                )
+
+        user_message_found = False
+        for message in payload["messages"]:
+            if message.get("role") == "user":
+                user_message = message
+
+                original_content = user_message.get("content", "")
+                if not original_content:
+                    original_content = "Analyze this game screenshot."
+
+                user_message["content"] = [
+                    {"type": "text", "text": original_content},
+                    *image_content,
+                ]
+                user_message_found = True
+                break
+
+        if not user_message_found:
+            payload["messages"].append(
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "Analyze this game screenshot."},
+                        *image_content,
+                    ],
+                }
+            )
+
+    def _build_chat_payload(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        images: list[np.ndarray] | None,
+        max_tokens: int | None,
+        temperature: float,
+        stream: bool,
+        tools: list[dict[str, Any]] | None,
+        thinking: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": messages,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": 0.95,
+            "stream": stream,
+        }
+
+        if tools:
+            payload["tools"] = tools
+            # NOTE: Do NOT set response_format when tools are present.
+            # response_format conflicts with tool_calls — the model must
+            # return tool_calls, not raw JSON content.
+
+        if thinking is not None:
+            payload["thinking"] = thinking
+
+        self._attach_images(payload, images)
+        return payload
+
+    def _extract_tool_call_content(self, message: dict[str, Any]) -> str | None:
+        """Serialize OpenAI-style tool_calls into the legacy JSON content form.
+
+        Returns None when the message has no tool_calls.
+        """
+        tool_calls = message.get("tool_calls", [])
+        if not tool_calls:
+            return None
+        first_tool = tool_calls[0]
+        func = first_tool.get("function", {})
+        raw_args = func.get("arguments", "{}")
+        if isinstance(raw_args, str):
+            try:
+                parsed_args = json.loads(raw_args)
+            except (json.JSONDecodeError, TypeError):
+                parsed_args = raw_args
+        else:
+            parsed_args = raw_args
+        return json.dumps(
+            {
+                "name": func.get("name", ""),
+                "arguments": parsed_args,
+            }
+        )
+
+    def _parse_success_response(
+        self, result: dict[str, Any], model: str, duration_ms: float
+    ) -> dict[str, Any]:
+        usage = result.get("usage", {})
+        choices = result.get("choices", [])
+        first_choice = choices[0] if choices else {}
+        message = first_choice.get("message", {})
+
+        content = self._extract_tool_call_content(message)
+        if content is None:
+            content = message.get("content", "")
+
+        return {
+            "content": content,
+            "finish_reason": first_choice.get("finish_reason", "stop"),
+            "model": result.get("model", model),
+            "usage": usage,
+            "duration_ms": duration_ms,
+            "request_id": result.get("id", ""),
+        }
+
+    def _log_success(
+        self, model: str, duration_ms: float, usage: dict[str, Any]
+    ) -> float:
+        """Record success, log the API call, return the computed cost."""
+        input_tokens = usage.get("prompt_tokens", 0)
+        output_tokens = usage.get("completion_tokens", 0)
+        cost = calculate_cost(model, input_tokens, output_tokens)
+
+        self.circuit_breaker.record_success()
+        log_api_call(model, duration_ms, input_tokens, output_tokens, cost, True)
+        return cost
+
+    def _handle_retry_response(
+        self,
+        response: "requests.Response",
+        attempt: int,
+    ) -> bool:
+        """Handle 429/5xx backoff. Return True if the caller should retry."""
+        if response.status_code == 429:
+            wait = 2**attempt  # 1s, 2s, 4s
+            print(
+                f"  [API] Rate limited (429), backing off {wait}s (attempt {attempt + 1}/3)"
+            )
+            time.sleep(wait)
+            return True
+
+        if response.status_code >= 500 and attempt < 2:
+            wait = 1 * (attempt + 1)
+            print(
+                f"  [API] Server error {response.status_code}, retrying in {wait}s (attempt {attempt + 1}/3)"
+            )
+            time.sleep(wait)
+            return True
+
+        return False
+
     def chat_completion(
         self,
         model: str,
@@ -581,90 +761,23 @@ class OpenRouterClient:
         if not self.circuit_breaker.allow_request():
             raise Exception("Circuit breaker open - too many failures")
 
-        # Route DeepSeek models through DeepSeek API directly
-        deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
-        if deepseek_key and "deepseek" in model.lower():
-            base_url = "https://api.deepseek.com"
-            api_key = deepseek_key
-        else:
-            base_url = self.base_url
-            api_key = self.api_key  # type: ignore
+        base_url, api_key = self._resolve_endpoint(model)
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://ai-plays-pokemon.com",
         }
 
-        payload: dict[str, Any] = {
-            "model": model,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "top_p": 0.95,
-            "stream": stream,
-        }
-
-        if tools:
-            payload["tools"] = tools
-            # NOTE: Do NOT set response_format when tools are present.
-            # response_format conflicts with tool_calls — the model must
-            # return tool_calls, not raw JSON content.
-
-        if thinking is not None:
-            payload["thinking"] = thinking
-
-        if images and len(images) > 0:
-            image_content = []
-            for img in images:
-                if isinstance(img, np.ndarray):
-                    pil_img = Image.fromarray(img)
-
-                    if pil_img.size[0] > 1024:
-                        pil_img = pil_img.resize(
-                            (1024, int(1024 * pil_img.size[1] / pil_img.size[0]))
-                        )
-
-                    import io
-
-                    buffered = io.BytesIO()
-                    pil_img.save(buffered, format="PNG")
-                    image_base64 = base64.b64encode(buffered.getvalue()).decode()
-
-                    image_content.append(
-                        {
-                            "type": "image_url",
-                            "image_url": f"data:image/png;base64,{image_base64}",
-                        }
-                    )
-
-            user_message_found = False
-            for i, message in enumerate(payload["messages"]):
-                if message.get("role") == "user":
-                    user_message = message
-
-                    original_content = user_message.get("content", "")
-                    if not original_content:
-                        original_content = "Analyze this game screenshot."
-
-                    content_array = [
-                        {"type": "text", "text": original_content},
-                        *image_content,
-                    ]
-
-                    user_message["content"] = content_array
-                    user_message_found = True
-                    break
-
-            if not user_message_found:
-                payload["messages"].append(
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Analyze this game screenshot."},
-                            *image_content,
-                        ],
-                    }
-                )
+        payload = self._build_chat_payload(
+            model,
+            messages,
+            images,
+            max_tokens,
+            temperature,
+            stream,
+            tools,
+            thinking,
+        )
 
         start_time = time.time()
         last_error = None
@@ -679,20 +792,7 @@ class OpenRouterClient:
                 )
                 duration_ms = (time.time() - start_time) * 1000
 
-                if response.status_code == 429:
-                    wait = 2**attempt  # 1s, 2s, 4s
-                    print(
-                        f"  [API] Rate limited (429), backing off {wait}s (attempt {attempt + 1}/3)"
-                    )
-                    time.sleep(wait)
-                    continue
-
-                if response.status_code >= 500 and attempt < 2:
-                    wait = 1 * (attempt + 1)
-                    print(
-                        f"  [API] Server error {response.status_code}, retrying in {wait}s (attempt {attempt + 1}/3)"
-                    )
-                    time.sleep(wait)
+                if self._handle_retry_response(response, attempt):
                     continue
 
                 if response.status_code != 200:
@@ -703,52 +803,9 @@ class OpenRouterClient:
                     )
 
                 result = response.json()
-
                 usage = result.get("usage", {})
-                input_tokens = usage.get("prompt_tokens", 0)
-                output_tokens = usage.get("completion_tokens", 0)
-                cost = calculate_cost(model, input_tokens, output_tokens)
-
-                self.circuit_breaker.record_success()
-
-                log_api_call(
-                    model, duration_ms, input_tokens, output_tokens, cost, True
-                )
-
-                choices = result.get("choices", [])
-                first_choice = choices[0] if choices else {}
-                message = first_choice.get("message", {})
-
-                # Check for tool_calls FIRST (proper OpenAI function calling)
-                tool_calls = message.get("tool_calls", [])
-                if tool_calls:
-                    first_tool = tool_calls[0]
-                    func = first_tool.get("function", {})
-                    raw_args = func.get("arguments", "{}")
-                    if isinstance(raw_args, str):
-                        try:
-                            parsed_args = json.loads(raw_args)
-                        except (json.JSONDecodeError, TypeError):
-                            parsed_args = raw_args
-                    else:
-                        parsed_args = raw_args
-                    content = json.dumps(
-                        {
-                            "name": func.get("name", ""),
-                            "arguments": parsed_args,
-                        }
-                    )
-                else:
-                    content = message.get("content", "")
-
-                return {
-                    "content": content,
-                    "finish_reason": first_choice.get("finish_reason", "stop"),
-                    "model": result.get("model", model),
-                    "usage": usage,
-                    "duration_ms": duration_ms,
-                    "request_id": result.get("id", ""),
-                }
+                self._log_success(model, duration_ms, usage)
+                return self._parse_success_response(result, model, duration_ms)
 
             except Exception as e:
                 last_error = e

@@ -200,99 +200,10 @@ class Emulator:
         self.press_button("start", frames=15)
         self.wait(60)
 
-    def enter_name(self, name: str = "ASH") -> None:
-        """Mechanically enter a name on the Gen 1 keyboard screen."""
-        name = name.upper()[:7]
-
-        _grid: dict[str, tuple[int, int]] = {
-            "A": (0, 0),
-            "B": (0, 1),
-            "C": (0, 2),
-            "D": (0, 3),
-            "E": (0, 4),
-            "F": (0, 5),
-            "G": (0, 6),
-            "H": (0, 7),
-            "I": (0, 8),
-            "J": (0, 9),
-            "K": (1, 0),
-            "L": (1, 1),
-            "M": (1, 2),
-            "N": (1, 3),
-            "O": (1, 4),
-            "P": (1, 5),
-            "Q": (1, 6),
-            "R": (1, 7),
-            "S": (1, 8),
-            "T": (1, 9),
-            "U": (2, 0),
-            "V": (2, 1),
-            "W": (2, 2),
-            "X": (2, 3),
-            "Y": (2, 4),
-            "Z": (2, 5),
-            "a": (3, 2),
-            "b": (3, 3),
-            "c": (3, 4),
-            "d": (3, 5),
-            "e": (3, 6),
-            "f": (3, 7),
-            "g": (3, 8),
-            "h": (3, 9),
-            "i": (4, 0),
-            "j": (4, 1),
-            "k": (4, 2),
-            "l": (4, 3),
-            "m": (4, 4),
-            "n": (4, 5),
-            "o": (4, 6),
-            "p": (4, 7),
-            "q": (4, 8),
-            "r": (4, 9),
-            "s": (5, 0),
-            "t": (5, 1),
-            "u": (5, 2),
-            "v": (5, 3),
-            "w": (5, 4),
-            "x": (5, 5),
-            "y": (5, 6),
-            "z": (5, 7),
-        }
-        _END_POS = (4, 8)
-
-        cur_r, cur_c = 0, 0
-
-        for ch in name:
-            target = _grid.get(ch)
-            if target is None:
-                continue
-            tr, tc = target
-            dr = tr - cur_r
-            dc = tc - cur_c
-            if dc > 0:
-                for _ in range(dc):
-                    self.press_button("right", frames=5)
-                    self.wait(15)
-            elif dc < 0:
-                for _ in range(-dc):
-                    self.press_button("left", frames=5)
-                    self.wait(15)
-            if dr > 0:
-                for _ in range(dr):
-                    self.press_button("down", frames=5)
-                    self.wait(15)
-            elif dr < 0:
-                for _ in range(-dr):
-                    self.press_button("up", frames=5)
-                    self.wait(15)
-            self.wait(6)
-            self.press_button("a", frames=15)
-            self.wait(12)
-            cur_r, cur_c = tr, tc
-
-        # Navigate to END and confirm
-        dr = _END_POS[0] - cur_r
-        dc = _END_POS[1] - cur_c
+    def _move_cursor(self, cur_r: int, cur_c: int, tr: int, tc: int) -> tuple[int, int]:
+        """Press arrows to walk the keyboard cursor to (tr, tc); return new pos."""
+        dr = tr - cur_r
+        dc = tc - cur_c
         if dc > 0:
             for _ in range(dc):
                 self.press_button("right", frames=5)
@@ -309,8 +220,86 @@ class Emulator:
             for _ in range(-dr):
                 self.press_button("up", frames=5)
                 self.wait(15)
+        return tr, tc
+
+    def _confirm_cursor(self) -> None:
+        """Press A on the current cursor position."""
         self.wait(6)
         self.press_button("a", frames=15)
+        self.wait(12)
+
+    _NAME_GRID: dict[str, tuple[int, int]] = {
+        "A": (0, 0),
+        "B": (0, 1),
+        "C": (0, 2),
+        "D": (0, 3),
+        "E": (0, 4),
+        "F": (0, 5),
+        "G": (0, 6),
+        "H": (0, 7),
+        "I": (0, 8),
+        "J": (0, 9),
+        "K": (1, 0),
+        "L": (1, 1),
+        "M": (1, 2),
+        "N": (1, 3),
+        "O": (1, 4),
+        "P": (1, 5),
+        "Q": (1, 6),
+        "R": (1, 7),
+        "S": (1, 8),
+        "T": (1, 9),
+        "U": (2, 0),
+        "V": (2, 1),
+        "W": (2, 2),
+        "X": (2, 3),
+        "Y": (2, 4),
+        "Z": (2, 5),
+        "a": (3, 2),
+        "b": (3, 3),
+        "c": (3, 4),
+        "d": (3, 5),
+        "e": (3, 6),
+        "f": (3, 7),
+        "g": (3, 8),
+        "h": (3, 9),
+        "i": (4, 0),
+        "j": (4, 1),
+        "k": (4, 2),
+        "l": (4, 3),
+        "m": (4, 4),
+        "n": (4, 5),
+        "o": (4, 6),
+        "p": (4, 7),
+        "q": (4, 8),
+        "r": (4, 9),
+        "s": (5, 0),
+        "t": (5, 1),
+        "u": (5, 2),
+        "v": (5, 3),
+        "w": (5, 4),
+        "x": (5, 5),
+        "y": (5, 6),
+        "z": (5, 7),
+    }
+    _NAME_END_POS = (4, 8)
+
+    def enter_name(self, name: str = "ASH") -> None:
+        """Mechanically enter a name on the Gen 1 keyboard screen."""
+        name = name.upper()[:7]
+
+        cur_r, cur_c = 0, 0
+
+        for ch in name:
+            target = self._NAME_GRID.get(ch)
+            if target is None:
+                continue
+            cur_r, cur_c = self._move_cursor(cur_r, cur_c, *target)
+            self._confirm_cursor()
+
+        # Navigate to END and confirm
+        cur_r, cur_c = self._move_cursor(cur_r, cur_c, *self._NAME_END_POS)
+        self._confirm_cursor()
         self.wait(30)
 
     def submit_name(self) -> None:

@@ -158,19 +158,16 @@ def _scenario_id(missing_class: str, applies_when: str, instruction_patch: str) 
     return f"{slug}-{hashlib.sha256(fingerprint).hexdigest()[:12]}"
 
 
-def promote_teacher_record(
+def _validate_promotion_args(
     record: dict[str, Any],
-    *,
     missing_class: str,
     knowledge_layer: str,
     run_id: str,
     cycle: int,
-    artifact_path: str | Path,
 ) -> dict[str, Any]:
-    """Explicitly promote one successful teacher record into the artifact.
+    """Validate the caller-supplied record and promotion metadata.
 
-    Evidence comes only from the caller. Re-promoting the same patch appends a
-    distinct evidence pair instead of creating a duplicate scenario.
+    Returns the successful patch dict; raises ValueError on any violation.
     """
     if not record.get("ok") or not record.get("improved"):
         raise ValueError("only a successful, improved teacher record can be promoted")
@@ -192,6 +189,31 @@ def promote_teacher_record(
         raise ValueError("successful patch has no instruction_patch")
     if not isinstance(condition, str) or not condition.strip():
         raise ValueError("successful patch has no applies_when condition")
+    return patch
+
+
+def promote_teacher_record(
+    record: dict[str, Any],
+    *,
+    missing_class: str,
+    knowledge_layer: str,
+    run_id: str,
+    cycle: int,
+    artifact_path: str | Path,
+) -> dict[str, Any]:
+    """Explicitly promote one successful teacher record into the artifact.
+
+    Evidence comes only from the caller. Re-promoting the same patch appends a
+    distinct evidence pair instead of creating a duplicate scenario.
+    """
+    patch = _validate_promotion_args(
+        record, missing_class, knowledge_layer, run_id, cycle
+    )
+
+    instruction = patch.get("instruction_patch")
+    condition = patch.get("applies_when")
+    assert isinstance(instruction, str) and instruction.strip()
+    assert isinstance(condition, str) and condition.strip()
     confidence = patch.get("confidence")
     entry = _validate_scenario(
         {

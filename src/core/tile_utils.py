@@ -90,6 +90,56 @@ def normalize_strip_terrain(raw: str) -> str:
 # ── Tile extraction from screenshots ─────────────────────────────────────────
 
 
+def _extract_tile_row(
+    screenshot: np.ndarray,
+    row_px: int,
+    start: int,
+    length: int,
+    tile_px: int,
+) -> np.ndarray | None:
+    """Extract one horizontal row of tiles (N/S edges)."""
+    h, w = screenshot.shape[:2]
+    if row_px < 0 or row_px + tile_px > h:
+        return None
+
+    full_row = screenshot[row_px : row_px + tile_px, :, :]
+    tiles: list[np.ndarray] = []
+    for i in range(start, start + length):
+        x_px = i * tile_px
+        if x_px < 0 or x_px + tile_px > w:
+            break
+        tiles.append(full_row[:, x_px : x_px + tile_px, :])
+
+    if not tiles:
+        return None
+    return np.concatenate(tiles, axis=1)
+
+
+def _extract_tile_column(
+    screenshot: np.ndarray,
+    col_px: int,
+    start: int,
+    length: int,
+    tile_px: int,
+) -> np.ndarray | None:
+    """Extract one vertical column of tiles, arranged horizontally (E/W edges)."""
+    h, w = screenshot.shape[:2]
+    if col_px < 0 or col_px + tile_px > w:
+        return None
+
+    tiles = []
+    for i in range(start, start + length):
+        y_px = i * tile_px
+        if y_px < 0 or y_px + tile_px > h:
+            break
+        tile = screenshot[y_px : y_px + tile_px, col_px : col_px + tile_px, :]
+        tiles.append(tile)
+
+    if not tiles:
+        return None
+    return np.concatenate(tiles, axis=1)
+
+
 def extract_tile_strip(
     screenshot: np.ndarray,
     edge: str,
@@ -123,45 +173,12 @@ def extract_tile_strip(
         strip of tile images laid out left-to-right, or *None* if the
         requested region is out of bounds.
     """
-    h, w = screenshot.shape[:2]
-
     edge_upper = edge.upper()
 
     if edge_upper in ("N", "S"):
-        # Horizontal strip: extract one row of tiles
-        row_px = y_or_x
-        if row_px < 0 or row_px + tile_px > h:
-            return None
-
-        full_row = screenshot[row_px : row_px + tile_px, :, :]
-        tiles: list[np.ndarray] = []
-        for i in range(start, start + length):
-            x_px = i * tile_px
-            if x_px < 0 or x_px + tile_px > w:
-                break
-            tiles.append(full_row[:, x_px : x_px + tile_px, :])
-
-        if not tiles:
-            return None
-        return np.concatenate(tiles, axis=1)
-
+        return _extract_tile_row(screenshot, y_or_x, start, length, tile_px)
     elif edge_upper in ("E", "W"):
-        # Vertical strip: extract one column of tiles, arrange horizontally
-        col_px = y_or_x
-        if col_px < 0 or col_px + tile_px > w:
-            return None
-
-        tiles = []
-        for i in range(start, start + length):
-            y_px = i * tile_px
-            if y_px < 0 or y_px + tile_px > h:
-                break
-            tile = screenshot[y_px : y_px + tile_px, col_px : col_px + tile_px, :]
-            tiles.append(tile)
-
-        if not tiles:
-            return None
-        return np.concatenate(tiles, axis=1)
+        return _extract_tile_column(screenshot, y_or_x, start, length, tile_px)
 
     return None
 

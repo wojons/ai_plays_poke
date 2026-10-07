@@ -282,70 +282,35 @@
         },
         {
             "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
+            "context": "Emulator._move_cursor",
             "button": "right",
             "call": "press_button('right', frames=5)",
             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
         },
         {
             "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
+            "context": "Emulator._move_cursor",
             "button": "left",
             "call": "press_button('left', frames=5)",
             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
         },
         {
             "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
+            "context": "Emulator._move_cursor",
             "button": "down",
             "call": "press_button('down', frames=5)",
             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
         },
         {
             "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
+            "context": "Emulator._move_cursor",
             "button": "up",
             "call": "press_button('up', frames=5)",
             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
         },
         {
             "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
-            "button": "a",
-            "call": "press_button('a', frames=15)",
-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
-        },
-        {
-            "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
-            "button": "right",
-            "call": "press_button('right', frames=5)",
-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
-        },
-        {
-            "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
-            "button": "left",
-            "call": "press_button('left', frames=5)",
-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
-        },
-        {
-            "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
-            "button": "down",
-            "call": "press_button('down', frames=5)",
-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
-        },
-        {
-            "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
-            "button": "up",
-            "call": "press_button('up', frames=5)",
-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
-        },
-        {
-            "file": "src/core/emulator.py",
-            "context": "Emulator.enter_name",
+            "context": "Emulator._confirm_cursor",
             "button": "a",
             "call": "press_button('a', frames=15)",
             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."

@@ -606,46 +606,30 @@ class HierarchicalStateMachine:
         self._emergency_reason = None
         logger.info("Emergency state cleared")
 
-    def transition_to(
-        self, state_name: str, reason: str = "", tick: int | None = None
+    def _advance_tick(self, tick: int | None) -> None:
+        """Set the tick explicitly or increment it."""
+        if tick is not None:
+            self._tick = tick
+        else:
+            self._tick += 1
+
+    def _emergency_bypass(self, target_state: "State") -> StateTransitionResult:
+        """Force an EMERGENCY transition, ignoring the allowed-transition table."""
+        if self._current_state:
+            self._current_state.on_exit(target_state)
+        self._previous_state = self._current_state
+        self._current_state = target_state
+        target_state.on_enter(self._previous_state)
+        return StateTransitionResult.EMERGENCY_INTERRUPT
+
+    def _execute_transition(
+        self,
+        from_state: str,
+        state_name: str,
+        target_state: "State",
+        reason: str,
     ) -> StateTransitionResult:
-        """
-        Transition to a new state
-        Returns the result of the transition attempt
-        """
-        target_state = self._states.get(state_name)
-        if target_state is None:
-            raise ValueError(f"State not found: {state_name}")
-
-        if tick is not None and tick < self._tick:
-            raise ValueError(
-                f"Invalid tick value: {tick} < {self._tick}. Ticks must be non-decreasing."
-            )
-
-        from_state = self._current_state.name if self._current_state else "None"
-
-        if self._current_state == target_state:
-            if tick is not None:
-                self._tick = tick
-            else:
-                self._tick += 1
-            return StateTransitionResult.SUCCESS
-
-        if not self.can_transition(from_state, state_name):
-            logger.warning(
-                f"Invalid transition attempted: {from_state} -> {state_name}"
-            )
-
-            if "EMERGENCY" in state_name:
-                if self._current_state:
-                    self._current_state.on_exit(target_state)
-                self._previous_state = self._current_state
-                self._current_state = target_state
-                target_state.on_enter(self._previous_state)
-                return StateTransitionResult.EMERGENCY_INTERRUPT
-
-            return StateTransitionResult.INVALID_TRANSITION
-
+        """Perform the exit/enter, record history, and fire callbacks."""
         start_time = time.time()
 
         if self._current_state:
@@ -653,11 +637,6 @@ class HierarchicalStateMachine:
 
         self._previous_state = self._current_state
         self._current_state = target_state
-
-        if tick is not None:
-            self._tick = tick
-        else:
-            self._tick += 1
 
         target_state.on_enter(self._previous_state)
 
@@ -684,6 +663,41 @@ class HierarchicalStateMachine:
         logger.debug(f"Transition: {from_state} -> {state_name} ({duration_ms:.2f}ms)")
 
         return StateTransitionResult.SUCCESS
+
+    def transition_to(
+        self, state_name: str, reason: str = "", tick: int | None = None
+    ) -> StateTransitionResult:
+        """
+        Transition to a new state
+        Returns the result of the transition attempt
+        """
+        target_state = self._states.get(state_name)
+        if target_state is None:
+            raise ValueError(f"State not found: {state_name}")
+
+        if tick is not None and tick < self._tick:
+            raise ValueError(
+                f"Invalid tick value: {tick} < {self._tick}. Ticks must be non-decreasing."
+            )
+
+        from_state = self._current_state.name if self._current_state else "None"
+
+        if self._current_state == target_state:
+            self._advance_tick(tick)
+            return StateTransitionResult.SUCCESS
+
+        if not self.can_transition(from_state, state_name):
+            logger.warning(
+                f"Invalid transition attempted: {from_state} -> {state_name}"
+            )
+
+            if "EMERGENCY" in state_name:
+                return self._emergency_bypass(target_state)
+
+            return StateTransitionResult.INVALID_TRANSITION
+
+        self._advance_tick(tick)
+        return self._execute_transition(from_state, state_name, target_state, reason)
 
     def push_state(self, state_name: str) -> bool:
         """Push a state onto the stack (for temporary interrupts)"""

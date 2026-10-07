@@ -99,26 +99,10 @@ def _recent_lines(events: Iterable[Any] | None) -> list[str]:
     return out
 
 
-def build(
-    obs: dict[str, Any],
-    *,
-    goal: str = "",
-    visited: Iterable[tuple[int, int]] | dict[Any, int] | None = None,
-    recent_events: Iterable[Any] | None = None,
-    last_action: str = "",
-    last_action_changed_state: bool | None = None,
-    mechanics: Iterable[str] | None = None,
-    extra_facts: Iterable[str] | None = None,
-) -> str:
-    """Render a RAM observation into a bounded, factual state text for Jev.
-
-    The caller owns `goal`, `visited`, `recent_events` and `mechanics` because
-    they are cross-cycle/session state, not readable from a single RAM snapshot.
-    """
-    st = obs.get("result", "unknown")
+def _header_lines(obs: dict[str, Any], st: str, ptx: Any, pty: Any) -> list[str]:
+    """Game/map/player/party/screen header block."""
     mid = obs.get("map_id")
     mname = obs.get("map_name") or "unknown"
-    ptx, pty = obs.get("player_tile_x"), obs.get("player_tile_y")
     facing = obs.get("player_facing") or "?"
     party = obs.get("party_count")
     species = obs.get("first_party_species")
@@ -143,8 +127,12 @@ def build(
     else:
         lines.append("PARTY: empty (no Pokemon yet)")
     lines.append(f"SCREEN: {st}")
+    return lines
 
-    # ── topology: this is the section Jev said was missing ──────────────────
+
+def _topology_lines(obs: dict[str, Any]) -> list[str]:
+    """ROM-collision topology, local maps, and visible exits."""
+    lines: list[str] = []
     walkability = obs.get("adjacent_walkability") or {}
     lines.append("TOPOLOGY (ROM collision truth for the next move):")
     lines.append(_adjacent_line(walkability or obs.get("adjacent") or {}))
@@ -176,8 +164,12 @@ def build(
 
     exits = obs.get("visible_exits") or []
     lines.append(f"VISIBLE EXITS: {', '.join(exits) if exits else '(none adjacent)'}")
+    return lines
 
-    # ── conversation / menu / battle content, only when on that screen ─────
+
+def _screen_content_lines(obs: dict[str, Any], st: str) -> list[str]:
+    """Conversation / menu / battle content, only when on that screen."""
+    lines: list[str] = []
     if st in ("dialog", "menu", "battle", "name_entry"):
         render = obs.get("render") or ""
         if render:
@@ -190,8 +182,22 @@ def build(
                 f"MENU: {ms.get('num_items')} items, "
                 f"cursor {ms.get('current_item')}, kind {ms.get('menu_kind')}"
             )
+    return lines
 
-    # ── cross-cycle state (caller-supplied, factual) ───────────────────────
+
+def _cross_cycle_lines(
+    visited: Iterable[tuple[int, int]] | dict[Any, int] | None,
+    recent_events: Iterable[Any] | None,
+    ptx: Any,
+    pty: Any,
+    last_action: str,
+    last_action_changed_state: bool | None,
+    goal: str,
+    mechanics: Iterable[str] | None,
+    extra_facts: Iterable[str] | None,
+) -> list[str]:
+    """Caller-supplied, factual cross-cycle state."""
+    lines: list[str] = []
     lines.append("TILES VISITED THIS RUN (tile xCount, * = now):")
     lines.append(_visited_line(visited, (ptx or 0, pty or 0)))
 
@@ -220,6 +226,44 @@ def build(
         lines.append("SUPPLIED FACTS:")
         for f in extra_facts:
             lines.append("  - " + _cap(str(f), 240))
+    return lines
+
+
+def build(
+    obs: dict[str, Any],
+    *,
+    goal: str = "",
+    visited: Iterable[tuple[int, int]] | dict[Any, int] | None = None,
+    recent_events: Iterable[Any] | None = None,
+    last_action: str = "",
+    last_action_changed_state: bool | None = None,
+    mechanics: Iterable[str] | None = None,
+    extra_facts: Iterable[str] | None = None,
+) -> str:
+    """Render a RAM observation into a bounded, factual state text for Jev.
+
+    The caller owns `goal`, `visited`, `recent_events` and `mechanics` because
+    they are cross-cycle/session state, not readable from a single RAM snapshot.
+    """
+    st = obs.get("result", "unknown")
+    ptx, pty = obs.get("player_tile_x"), obs.get("player_tile_y")
+
+    lines = _header_lines(obs, st, ptx, pty)
+    lines.extend(_topology_lines(obs))
+    lines.extend(_screen_content_lines(obs, st))
+    lines.extend(
+        _cross_cycle_lines(
+            visited,
+            recent_events,
+            ptx,
+            pty,
+            last_action,
+            last_action_changed_state,
+            goal,
+            mechanics,
+            extra_facts,
+        )
+    )
 
     proj = "\n".join(lines)
     # hard ceiling so a pathological map cannot blow the per-decision budget

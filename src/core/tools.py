@@ -551,6 +551,70 @@ def _execute_switch_pokemon(emulator: EmulatorLike, arguments: dict[str, Any]) -
 _TOOL_CALL_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
 
 
+def _parse_openai_tool_calls(text: str) -> dict[str, Any] | None:
+    """Parse an OpenAI-style ``tool_calls`` array (first element is used)."""
+    if '"tool_calls"' not in text and "'tool_calls'" not in text:
+        return None
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        data = None
+    if isinstance(data, dict) and "tool_calls" in data:
+        calls = data["tool_calls"]
+        if isinstance(calls, list) and calls:
+            call = calls[0]
+            if isinstance(call, dict):
+                func = call.get("function", call)
+                return {
+                    "name": func.get("name", ""),
+                    "arguments": func.get("arguments", {}),
+                }
+    return None
+
+
+def _parse_longcat_tool_call(text: str) -> dict[str, Any] | None:
+    """Parse the Owl-alpha XML ``<longcat_tool_call>`` format."""
+    # <longcat_tool_call>press_button<longcat_arg_key>button</longcat_arg_key>
+    # <longcat_arg_value>a</longcat_arg_value></longcat_tool_call>
+    xml_tool = re.search(
+        r"<longcat_tool_call>(.*?)</longcat_tool_call>", text, re.DOTALL
+    )
+    if not xml_tool:
+        return None
+    inner = xml_tool.group(1)
+    # Extract tool name (first text before any longcat tag)
+    tool_name = re.match(r"([^<]+)", inner)
+    name = tool_name.group(1).strip() if tool_name else ""
+    # Extract key-value pairs
+    args: dict[str, Any] = {}
+    for match in re.finditer(
+        r"<longcat_arg_key>(.*?)</longcat_arg_key>\s*<longcat_arg_value>(.*?)</longcat_arg_value>",
+        inner,
+        re.DOTALL,
+    ):
+        k = match.group(1).strip()
+        v = match.group(2).strip()
+        # Try to parse int values
+        try:
+            v = int(v)
+        except ValueError:
+            pass
+        args[k] = v
+    if name:
+        return {"name": name, "arguments": args}
+    return None
+
+
+def _parse_json_payload(payload: Any) -> dict[str, Any] | None:
+    """Normalize a parsed JSON object into a tool-call dict, or None."""
+    if isinstance(payload, dict) and "name" in payload:
+        return {
+            "name": payload["name"],
+            "arguments": payload.get("arguments", payload.get("parameters", {})),
+        }
+    return None
+
+
 def parse_tool_call(response_text: str) -> dict[str, Any] | None:
     """
     Extract a tool-call payload from a model response string.
@@ -571,76 +635,32 @@ def parse_tool_call(response_text: str) -> dict[str, Any] | None:
     text = response_text.strip()
 
     # --- OpenAI-style tool_calls array ---------------------------------------
-    if '"tool_calls"' in text or "'tool_calls'" in text:
-        try:
-            data = json.loads(text)
-        except json.JSONDecodeError:
-            data = None
-        if isinstance(data, dict) and "tool_calls" in data:
-            calls = data["tool_calls"]
-            if isinstance(calls, list) and calls:
-                call = calls[0]
-                if isinstance(call, dict):
-                    func = call.get("function", call)
-                    return {
-                        "name": func.get("name", ""),
-                        "arguments": func.get("arguments", {}),
-                    }
+    result = _parse_openai_tool_calls(text)
+    if result is not None:
+        return result
 
     # --- Owl-alpha XML tool call format --------------------------------------
-    # <longcat_tool_call>press_button<longcat_arg_key>button</longcat_arg_key>
-    # <longcat_arg_value>a</longcat_arg_value></longcat_tool_call>
-    xml_tool = re.search(
-        r"<longcat_tool_call>(.*?)</longcat_tool_call>", text, re.DOTALL
-    )
-    if xml_tool:
-        inner = xml_tool.group(1)
-        # Extract tool name (first text before any longcat tag)
-        tool_name = re.match(r"([^<]+)", inner)
-        name = tool_name.group(1).strip() if tool_name else ""
-        # Extract key-value pairs
-        args: dict[str, Any] = {}
-        for match in re.finditer(
-            r"<longcat_arg_key>(.*?)</longcat_arg_key>\s*<longcat_arg_value>(.*?)</longcat_arg_value>",
-            inner,
-            re.DOTALL,
-        ):
-            k = match.group(1).strip()
-            v = match.group(2).strip()
-            # Try to parse int values
-            try:
-                v = int(v)
-            except ValueError:
-                pass
-            args[k] = v
-        if name:
-            return {"name": name, "arguments": args}
+    result = _parse_longcat_tool_call(text)
+    if result is not None:
+        return result
 
     # --- Code-fenced JSON ----------------------------------------------------
     m = _TOOL_CALL_JSON_RE.search(text)
     if m:
         try:
             payload = json.loads(m.group(1))
-            if isinstance(payload, dict) and "name" in payload:
-                return {
-                    "name": payload["name"],
-                    "arguments": payload.get(
-                        "arguments", payload.get("parameters", {})
-                    ),
-                }
         except json.JSONDecodeError:
-            pass
+            payload = None
+        result = _parse_json_payload(payload)
+        if result is not None:
+            return result
 
     # --- Bare JSON -----------------------------------------------------------
     # Try extracting the first JSON object from the text.
     for candidate in _iter_json_objects(text):
-        if isinstance(candidate, dict) and "name" in candidate:
-            return {
-                "name": candidate["name"],
-                "arguments": candidate.get(
-                    "arguments", candidate.get("parameters", {})
-                ),
-            }
+        result = _parse_json_payload(candidate)
+        if result is not None:
+            return result
 
     return None
 

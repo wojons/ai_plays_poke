@@ -1640,6 +1640,68 @@ class ItemUsageStrategy:
     def __init__(self, inventory: InventoryState):
         self._inventory = inventory
 
+    _STATUS_HEAL_MAP: dict[str, ItemType] = {
+        "PARALYZED": ItemType.PARALYZE_HEAL,
+        "ASLEEP": ItemType.AWAKENING,
+        "FROZEN": ItemType.ICE_HEAL,
+        "POISONED": ItemType.ANTIDOTE,
+        "BURNED": ItemType.BURN_HEAL,
+    }
+
+    def _select_potion(
+        self,
+        active_index: int,
+        include_full_restore: bool,
+    ) -> tuple[ItemType | None, int | None]:
+        """Return the strongest available healing item, or (None, None)."""
+        candidates = [
+            ItemType.MAX_POTION,
+            ItemType.HYPER_POTION,
+            ItemType.SUPER_POTION,
+            ItemType.POTION,
+        ]
+        if include_full_restore:
+            candidates.append(ItemType.FULL_RESTORE)
+        for item in candidates:
+            if self._inventory.has_item(item):
+                return item, active_index
+        return None, None
+
+    def _select_pp_or_buff_item(
+        self,
+        active_pokemon: Any,
+        active_index: int,
+        is_trainer_battle: bool,
+    ) -> tuple[ItemType | None, int | None]:
+        """PP restoration first, then trainer-battle stat buffs."""
+        total_pp = sum(active_pokemon.move_pp.values())
+        if total_pp == 0:
+            if self._inventory.has_item(ItemType.ELIXIR):
+                return ItemType.ELIXIR, active_index
+            elif self._inventory.has_item(ItemType.ETHER):
+                return ItemType.ETHER, active_index
+
+        if is_trainer_battle:
+            if self._inventory.has_item(ItemType.X_ATTACK):
+                return ItemType.X_ATTACK, active_index
+            elif self._inventory.has_item(ItemType.X_DEFEND):
+                return ItemType.X_DEFEND, active_index
+            elif self._inventory.has_item(ItemType.X_SPEED):
+                return ItemType.X_SPEED, active_index
+
+        return None, None
+
+    def _select_status_heal(
+        self,
+        status: str,
+        active_index: int,
+    ) -> tuple[ItemType | None, int | None]:
+        """Return the heal item for this status if available, or (None, None)."""
+        item = self._STATUS_HEAL_MAP.get(status)
+        if item is not None and self._inventory.has_item(item):
+            return item, active_index
+        return None, None
+
     def select_battle_item(
         self,
         party_state: PartyState,
@@ -1673,68 +1735,31 @@ class ItemUsageStrategy:
         healthy_count = party_state.get_healthy_count()
 
         if hp_percent < 0.10:
-            if healthy_count > 1:
-                if self._inventory.has_item(ItemType.MAX_POTION):
-                    return ItemType.MAX_POTION, active_index
-                elif self._inventory.has_item(ItemType.HYPER_POTION):
-                    return ItemType.HYPER_POTION, active_index
-                elif self._inventory.has_item(ItemType.SUPER_POTION):
-                    return ItemType.SUPER_POTION, active_index
-                elif self._inventory.has_item(ItemType.POTION):
-                    return ItemType.POTION, active_index
-            else:
-                if self._inventory.has_item(ItemType.MAX_POTION):
-                    return ItemType.MAX_POTION, active_index
-                elif self._inventory.has_item(ItemType.HYPER_POTION):
-                    return ItemType.HYPER_POTION, active_index
-                elif self._inventory.has_item(ItemType.SUPER_POTION):
-                    return ItemType.SUPER_POTION, active_index
-                elif self._inventory.has_item(ItemType.POTION):
-                    return ItemType.POTION, active_index
-                elif self._inventory.has_item(ItemType.FULL_RESTORE):
-                    return ItemType.FULL_RESTORE, active_index
+            # With multiple healthy pokemon, FULL_RESTORE is saved; when the
+            # active is the last healthy one it joins the candidates.
+            include_full_restore = healthy_count <= 1
+            found = self._select_potion(active_index, include_full_restore)
+            if found != (None, None):
+                return found
 
-        if status in ["PARALYZED", "ASLEEP", "FROZEN"]:
-            if status == "PARALYZED" and self._inventory.has_item(
-                ItemType.PARALYZE_HEAL
-            ):
-                return ItemType.PARALYZE_HEAL, active_index
-            elif status == "ASLEEP" and self._inventory.has_item(ItemType.AWAKENING):
-                return ItemType.AWAKENING, active_index
-            elif status == "FROZEN" and self._inventory.has_item(ItemType.ICE_HEAL):
-                return ItemType.ICE_HEAL, active_index
+        if status in ("PARALYZED", "ASLEEP", "FROZEN"):
+            found = self._select_status_heal(status, active_index)
+            if found != (None, None):
+                return found
 
-        if hp_percent < 0.50 and hp_percent >= 0.10:
-            if self._inventory.has_item(ItemType.MAX_POTION):
-                return ItemType.MAX_POTION, active_index
-            elif self._inventory.has_item(ItemType.HYPER_POTION):
-                return ItemType.HYPER_POTION, active_index
-            elif self._inventory.has_item(ItemType.SUPER_POTION):
-                return ItemType.SUPER_POTION, active_index
-            elif self._inventory.has_item(ItemType.POTION):
-                return ItemType.POTION, active_index
+        if 0.10 <= hp_percent < 0.50:
+            found = self._select_potion(active_index, include_full_restore=False)
+            if found != (None, None):
+                return found
 
-        if status in ["POISONED", "BURNED"]:
-            if status == "POISONED" and self._inventory.has_item(ItemType.ANTIDOTE):
-                return ItemType.ANTIDOTE, active_index
-            elif status == "BURNED" and self._inventory.has_item(ItemType.BURN_HEAL):
-                return ItemType.BURN_HEAL, active_index
+        if status in ("POISONED", "BURNED"):
+            found = self._select_status_heal(status, active_index)
+            if found != (None, None):
+                return found
 
-        total_pp = sum(active_pokemon.move_pp.values())
-        if total_pp == 0 and self._inventory.has_item(ItemType.ELIXIR):
-            return ItemType.ELIXIR, active_index
-        elif total_pp == 0 and self._inventory.has_item(ItemType.ETHER):
-            return ItemType.ETHER, active_index
-
-        if is_trainer_battle:
-            if self._inventory.has_item(ItemType.X_ATTACK):
-                return ItemType.X_ATTACK, active_index
-            elif self._inventory.has_item(ItemType.X_DEFEND):
-                return ItemType.X_DEFEND, active_index
-            elif self._inventory.has_item(ItemType.X_SPEED):
-                return ItemType.X_SPEED, active_index
-
-        return None, None
+        return self._select_pp_or_buff_item(
+            active_pokemon, active_index, is_trainer_battle
+        )
 
     def should_use_potion(
         self,
@@ -1988,34 +2013,22 @@ class ItemUsageStrategy:
             (should_use, repel_type, reason)
         """
         avg_level = party_state.get_avg_level()
+        route_data = ShoppingHeuristic.ROUTE_SHOPPING_NEEDS.get(upcoming_route)
 
-        if upcoming_route in ShoppingHeuristic.ROUTE_SHOPPING_NEEDS:
-            route_data = ShoppingHeuristic.ROUTE_SHOPPING_NEEDS[upcoming_route]
+        if route_data is not None:
             max_wild_level = route_data.get("max_wild_level", 99)
 
             if avg_level > max_wild_level + 10:
-                if self._inventory.has_item(ItemType.MAX_REPEL):
-                    return (
-                        True,
-                        ItemType.MAX_REPEL,
-                        f"Party level {avg_level} >> wild levels",
-                    )
-                elif self._inventory.has_item(ItemType.SUPER_REPEL):
-                    return (
-                        True,
-                        ItemType.SUPER_REPEL,
-                        f"Party level {avg_level} >> wild levels",
-                    )
-                elif self._inventory.has_item(ItemType.REPEL):
-                    return (
-                        True,
-                        ItemType.REPEL,
-                        f"Party level {avg_level} >> wild levels",
-                    )
+                for repel in (ItemType.MAX_REPEL, ItemType.SUPER_REPEL, ItemType.REPEL):
+                    if self._inventory.has_item(repel):
+                        return (
+                            True,
+                            repel,
+                            f"Party level {avg_level} >> wild levels",
+                        )
 
         route_length = 50
-        if upcoming_route in ShoppingHeuristic.ROUTE_SHOPPING_NEEDS:
-            route_data = ShoppingHeuristic.ROUTE_SHOPPING_NEEDS[upcoming_route]
+        if route_data is not None:
             route_length = route_data.get("recommended_potions", 50)
 
         if route_length > 100:

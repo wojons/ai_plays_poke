@@ -14,7 +14,7 @@ import uuid
 import warnings
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 
 DUCKBRAIN_ROOT = Path(os.path.expanduser("~/duckbrain/namespaces"))
@@ -73,27 +73,15 @@ def remember(
     return memory_id
 
 
-def recall(
-    key: str | None = None,
-    key_prefix: str | None = None,
-    domain: str | None = None,
-    limit: int = 10,
-    namespace: str = "pokemon-global",
-    labels: list[str] | None = None,
-) -> list[dict[str, Any]]:
-    """Query memories by key, prefix, domain, or labels.
+def _iter_active_records(
+    data_dir: Path,
+    op: str,
+) -> "Iterator[dict[str, Any]]":
+    """Yield parsed, non-deleted records from a namespace's JSONL files.
 
-    Label filters use AND semantics: every requested label must match an exact
-    string in the record's labels list or equal the record's domain, which is
-    treated as an implicit label.
+    Files are scanned newest-first; unreadable files are skipped with a debug
+    log so scanning continues.
     """
-    data_dir = _ensure_namespace(namespace)
-    results: list[dict[str, Any]] = []
-
-    if not data_dir.exists():
-        return results
-
-    # Read all JSONL files (newest first)
     jsonl_files = sorted(data_dir.glob("memories-*.jsonl"), reverse=True)
     for jsonl_path in jsonl_files:
         try:
@@ -106,34 +94,65 @@ def recall(
                         record = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-
-                    # Skip tombstones
                     if record.get("status") == "deleted":
                         continue
-
-                    # Filter
-                    if key and record.get("key") != key:
-                        continue
-                    if key_prefix and not record.get("key", "").startswith(key_prefix):
-                        continue
-                    if domain and record.get("domain") != domain:
-                        continue
-                    if labels is not None:
-                        record_labels = record.get("labels", [])
-                        if not isinstance(record_labels, list):
-                            record_labels = []
-                        if not all(
-                            label == record.get("domain") or label in record_labels
-                            for label in labels
-                        ):
-                            continue
-
-                    results.append(record)
-                    if len(results) >= limit:
-                        return results
+                    yield record
         except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
-            logger.debug("recall: skipping unreadable %s: %s", jsonl_path, exc)
+            logger.debug("%s: skipping unreadable %s: %s", op, jsonl_path, exc)
             continue
+
+
+def _record_matches(
+    record: dict[str, Any],
+    key: str | None,
+    key_prefix: str | None,
+    domain: str | None,
+    labels: list[str] | None,
+) -> bool:
+    """Exact key / prefix / domain / AND-semantics label filter."""
+    if key and record.get("key") != key:
+        return False
+    if key_prefix and not record.get("key", "").startswith(key_prefix):
+        return False
+    if domain and record.get("domain") != domain:
+        return False
+    if labels is not None:
+        record_labels = record.get("labels", [])
+        if not isinstance(record_labels, list):
+            record_labels = []
+        if not all(
+            label == record.get("domain") or label in record_labels for label in labels
+        ):
+            return False
+    return True
+
+
+def recall(
+    key: str | None = None,
+    key_prefix: str | None = None,
+    domain: str | None = None,
+    labels: list[str] | None = None,
+    limit: int = 50,
+    namespace: str = "pokemon-global",
+) -> list[dict[str, Any]]:
+    """Retrieve memories by exact key, key prefix, domain, and/or labels.
+
+    Label filters use AND semantics: every requested label must match an exact
+    string in the record's labels list or equal the record's domain, which is
+    treated as an implicit label.
+    """
+    data_dir = _ensure_namespace(namespace)
+    results: list[dict[str, Any]] = []
+
+    if not data_dir.exists():
+        return results
+
+    for record in _iter_active_records(data_dir, "recall"):
+        if not _record_matches(record, key, key_prefix, domain, labels):
+            continue
+        results.append(record)
+        if len(results) >= limit:
+            return results
 
     return results
 
@@ -150,36 +169,17 @@ def list_keys(
     if not data_dir.exists():
         return []
 
-    jsonl_files = sorted(data_dir.glob("memories-*.jsonl"), reverse=True)
     truncated = False
-    for jsonl_path in jsonl_files:
-        try:
-            with open(jsonl_path) as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        record = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-
-                    if record.get("status") == "deleted":
-                        continue
-
-                    k = record.get("key", "")
-                    if k.startswith(prefix) and k not in keys:
-                        # Read one unique key beyond the cap so a partial census
-                        # is always observable without changing the returned keys.
-                        if len(keys) >= limit:
-                            truncated = True
-                            break
-                        keys.add(k)
-            if truncated:
-                break
-        except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
-            logger.debug("list_keys: skipping unreadable %s: %s", jsonl_path, exc)
+    for record in _iter_active_records(data_dir, "list_keys"):
+        k = record.get("key", "")
+        if not k.startswith(prefix) or k in keys:
             continue
+        # Read one unique key beyond the cap so a partial census
+        # is always observable without changing the returned keys.
+        if len(keys) >= limit:
+            truncated = True
+            break
+        keys.add(k)
 
     if truncated:
         message = (

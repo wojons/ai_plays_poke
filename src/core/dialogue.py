@@ -695,6 +695,42 @@ class DialogParser:
 
         return None
 
+    _ACTION_KEYWORDS = [
+        "battle",
+        "fight",
+        "shop",
+        "buy",
+        "sell",
+        "heal",
+        "catch",
+        "trade",
+        "gift",
+    ]
+
+    def _extract_word_entities(self, text: str, entities: dict[str, list[str]]) -> None:
+        """Append pokemon/location/item names found as whole words."""
+        words = text.split()
+        for word in words:
+            clean_word = re.sub(r"[^\w]", "", word).upper()
+            if clean_word in self._pokemon_names:
+                entities["pokemon"].append(clean_word)
+            if clean_word in self._location_names:
+                entities["locations"].append(clean_word)
+            if clean_word in self._item_names:
+                entities["items"].append(clean_word)
+
+    def _extract_tm_entity(
+        self, text_upper: str, entities: dict[str, list[str]]
+    ) -> None:
+        """Append the TM reference (with number when present)."""
+        if "TM" not in text_upper:
+            return
+        tm_match = re.search(r"TM\s*(\d+)", text_upper)
+        if tm_match:
+            entities["items"].append(f"TM{tm_match.group(1)}")
+        else:
+            entities["items"].append("TM")
+
     def _extract_entities(self, text: str) -> dict[str, list[str]]:
         """Extract entities from text"""
         entities: dict[str, list[str]] = {
@@ -708,22 +744,8 @@ class DialogParser:
         text_upper = text.upper()
         text_lower = text.lower()
 
-        words = text.split()
-        for word in words:
-            clean_word = re.sub(r"[^\w]", "", word).upper()
-            if clean_word in self._pokemon_names:
-                entities["pokemon"].append(clean_word)
-            if clean_word in self._location_names:
-                entities["locations"].append(clean_word)
-            if clean_word in self._item_names:
-                entities["items"].append(clean_word)
-
-        if "TM" in text_upper:
-            tm_match = re.search(r"TM\s*(\d+)", text_upper)
-            if tm_match:
-                entities["items"].append(f"TM{tm_match.group(1)}")
-            else:
-                entities["items"].append("TM")
+        self._extract_word_entities(text, entities)
+        self._extract_tm_entity(text_upper, entities)
 
         for location in self._location_names:
             if location in text_upper:
@@ -734,18 +756,7 @@ class DialogParser:
                 if item not in entities["items"]:
                     entities["items"].append(item)
 
-        action_keywords = [
-            "battle",
-            "fight",
-            "shop",
-            "buy",
-            "sell",
-            "heal",
-            "catch",
-            "trade",
-            "gift",
-        ]
-        for keyword in action_keywords:
+        for keyword in self._ACTION_KEYWORDS:
             if keyword in text_lower:
                 entities["actions"].append(keyword)
 

@@ -210,44 +210,29 @@ class LocationDetector:
 
         tile_mean = np.mean(tile)
         tile_std = np.std(tile)
+        center_mean = self._center_mean(tile)
+        edge_mean = self._edge_mean(tile)
 
+        return _classify_tile_stats(tile_mean, tile_std, center_mean, edge_mean)
+
+    @staticmethod
+    def _center_mean(tile: np.ndarray) -> float:
         h, w = tile.shape
-
         center_region = tile[h // 4 : 3 * h // 4, w // 4 : 3 * w // 4]
-        center_mean = np.mean(center_region)
+        return float(np.mean(center_region))
 
+    @staticmethod
+    def _edge_mean(tile: np.ndarray) -> float:
         edge_top = tile[0, :]
         edge_bottom = tile[-1, :]
         edge_left = tile[:, 0]
         edge_right = tile[:, -1]
-
-        edge_mean = (
-            np.mean(edge_top)
-            + np.mean(edge_bottom)
-            + np.mean(edge_left)
-            + np.mean(edge_right)
+        return (
+            float(np.mean(edge_top))
+            + float(np.mean(edge_bottom))
+            + float(np.mean(edge_left))
+            + float(np.mean(edge_right))
         ) / 4
-
-        if center_mean > 150 and tile_std < 30:
-            return "wall"
-        elif center_mean > 100 and tile_std < 50:
-            if edge_mean < 80:
-                return "door"
-            return "path"
-        elif tile_mean > 80 and tile_mean < 120 and tile_std > 40:
-            return "grass"
-        elif tile_mean > 60 and tile_mean < 100 and tile_std > 50:
-            return "tall_grass"
-        elif tile_mean < 80:
-            return "water"
-        elif tile_mean > 120:
-            if tile_std > 60:
-                return "tree"
-            return "rock"
-        elif edge_mean < center_mean - 20:
-            return "sign"
-
-        return "path"
 
     def _compute_pattern_hash(self, pattern_counts: dict[str, int]) -> str:
         sorted_patterns = sorted(pattern_counts.items(), key=lambda x: x[0])
@@ -445,3 +430,29 @@ class LocationDetector:
             return "dialog"
         else:
             return "overworld"
+
+
+def _classify_tile_stats(
+    tile_mean: float, tile_std: float, center_mean: float, edge_mean: float
+) -> str:
+    """Map tile statistics to a tile-class label."""
+    if center_mean > 150 and tile_std < 30:
+        return "wall"
+    elif center_mean > 100 and tile_std < 50:
+        if edge_mean < 80:
+            return "door"
+        return "path"
+    elif tile_mean > 80 and tile_mean < 120 and tile_std > 40:
+        return "grass"
+    elif tile_mean > 60 and tile_mean < 100 and tile_std > 50:
+        return "tall_grass"
+    elif tile_mean < 80:
+        return "water"
+    elif tile_mean > 120:
+        if tile_std > 60:
+            return "tree"
+        return "rock"
+    elif edge_mean < center_mean - 20:
+        return "sign"
+
+    return "path"

@@ -102,32 +102,11 @@ class MapIntegrator:
         for corr in patch.corrections:
             self._apply_correction(corr)
 
-        # Movement
         if patch.movement:
-            mov = patch.movement
-            w.last_button = mov.input
-            w.last_result = mov.result
-            w.player.facing = mov.facing
-            w.player.mode = mov.mode
+            self._apply_movement(patch)
 
-            if mov.result == "moved":
-                w.player.pos = (
-                    w.player.pos[0] + mov.player_delta[0],
-                    w.player.pos[1] + mov.player_delta[1],
-                )
-                # Mark visited
-                self._mark_visited(w.player.pos[0], w.player.pos[1], "@")
-                if patch.visited_add:
-                    for vpos in patch.visited_add:
-                        self._mark_visited(vpos[0], vpos[1], "+")
-
-        # Viewport
         if patch.viewport:
-            vp = patch.viewport
-            w.viewport.origin = (
-                w.viewport.origin[0] + vp.origin_delta[0],
-                w.viewport.origin[1] + vp.origin_delta[1],
-            )
+            self._apply_viewport_delta(patch)
 
         # Strip (new row/column)
         if patch.strip:
@@ -149,6 +128,37 @@ class MapIntegrator:
             self._apply_actor_update(au, patch.tick)
 
         w.tick = patch.tick
+
+    def _apply_movement(self, patch: ObsPatch) -> None:
+        """Apply a movement observation: player delta + visited marks."""
+        w = self.world
+        mov = patch.movement
+        assert mov is not None
+        w.last_button = mov.input
+        w.last_result = mov.result
+        w.player.facing = mov.facing
+        w.player.mode = mov.mode
+
+        if mov.result == "moved":
+            w.player.pos = (
+                w.player.pos[0] + mov.player_delta[0],
+                w.player.pos[1] + mov.player_delta[1],
+            )
+            # Mark visited
+            self._mark_visited(w.player.pos[0], w.player.pos[1], "@")
+            if patch.visited_add:
+                for vpos in patch.visited_add:
+                    self._mark_visited(vpos[0], vpos[1], "+")
+
+    def _apply_viewport_delta(self, patch: ObsPatch) -> None:
+        """Shift the viewport origin by the observed delta."""
+        w = self.world
+        vp = patch.viewport
+        assert vp is not None
+        w.viewport.origin = (
+            w.viewport.origin[0] + vp.origin_delta[0],
+            w.viewport.origin[1] + vp.origin_delta[1],
+        )
 
     def _apply_resync(self, patch: ObsPatch) -> None:
         """Full resync — clear and rebuild from full_viewport."""
@@ -181,13 +191,48 @@ class MapIntegrator:
 
         w.tick = patch.tick
 
+    def _write_strip_row(
+        self, y: int, x_start: int, terrain_str: str, objects_str: str
+    ) -> None:
+        """Write one N/S strip row of terrain and objects characters."""
+        w = self.world
+        if terrain_str:
+            for i, ch in enumerate(terrain_str):
+                x = x_start + i
+                if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
+                    if ch != "?" or w.terrain[y][x] == "?":
+                        w.terrain[y][x] = ch
+        if objects_str:
+            for i, ch in enumerate(objects_str):
+                x = x_start + i
+                if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
+                    if ch != " " or w.objects[y][x] == " ":
+                        w.objects[y][x] = ch
+
+    def _write_strip_column(
+        self, x: int, y_start: int, terrain_str: str, objects_str: str
+    ) -> None:
+        """Write one E/W strip column of terrain and objects characters."""
+        w = self.world
+        if terrain_str:
+            for i, ch in enumerate(terrain_str):
+                y = y_start + i
+                if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
+                    if ch != "?" or w.terrain[y][x] == "?":
+                        w.terrain[y][x] = ch
+        if objects_str:
+            for i, ch in enumerate(objects_str):
+                y = y_start + i
+                if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
+                    if ch != " " or w.objects[y][x] == " ":
+                        w.objects[y][x] = ch
+
     def _apply_strip(self, strip: StripUpdate) -> None:
         """Apply a single row/column of new data.
 
         Handles both packed strings (``"TTT....ggg"``) and TSV format
         (``"T\\tT\\tT\\t.\\t.\\t.\\t.\\tg\\tg\\tg"``) transparently.
         """
-        w = self.world
         edge = strip.edge.upper()
 
         # Normalize terrain/objects — accept TSV or packed
@@ -195,34 +240,13 @@ class MapIntegrator:
         objects_str = normalize_strip_terrain(strip.objects) if strip.objects else ""
 
         if edge in ("N", "S"):
-            y = strip.global_y
-            if terrain_str:
-                for i, ch in enumerate(terrain_str):
-                    x = strip.x_start + i
-                    if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
-                        if ch != "?" or w.terrain[y][x] == "?":
-                            w.terrain[y][x] = ch
-            if objects_str:
-                for i, ch in enumerate(objects_str):
-                    x = strip.x_start + i
-                    if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
-                        if ch != " " or w.objects[y][x] == " ":
-                            w.objects[y][x] = ch
-
+            self._write_strip_row(
+                strip.global_y, strip.x_start, terrain_str, objects_str
+            )
         elif edge in ("E", "W"):
-            x = strip.global_x
-            if terrain_str:
-                for i, ch in enumerate(terrain_str):
-                    y = strip.y_start + i
-                    if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
-                        if ch != "?" or w.terrain[y][x] == "?":
-                            w.terrain[y][x] = ch
-            if objects_str:
-                for i, ch in enumerate(objects_str):
-                    y = strip.y_start + i
-                    if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
-                        if ch != " " or w.objects[y][x] == " ":
-                            w.objects[y][x] = ch
+            self._write_strip_column(
+                strip.global_x, strip.y_start, terrain_str, objects_str
+            )
 
     def _apply_correction(self, corr: Correction) -> None:
         """Apply a correction to a previously-written tile."""

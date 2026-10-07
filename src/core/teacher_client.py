@@ -131,36 +131,45 @@ def build_teacher_prompt(
     )
 
 
+def _find_balanced_json(cleaned: str, start: int) -> int:
+    """End index (exclusive) of the balanced object starting at *start*, or -1."""
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start, len(cleaned)):
+        char = cleaned[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return index + 1
+    return -1
+
+
 def _extract_json(text: str) -> dict[str, Any] | None:
     """Take the first balanced JSON object after stripping reasoning markers."""
     cleaned = _END_MARKER_RE.sub("", _REASONING_BLOCK_RE.sub("", text)).strip()
     start = cleaned.find("{")
     while start >= 0:
-        depth = 0
-        in_string = False
-        escaped = False
-        for index in range(start, len(cleaned)):
-            char = cleaned[index]
-            if in_string:
-                if escaped:
-                    escaped = False
-                elif char == "\\":
-                    escaped = True
-                elif char == '"':
-                    in_string = False
-                continue
-            if char == '"':
-                in_string = True
-            elif char == "{":
-                depth += 1
-            elif char == "}":
-                depth -= 1
-                if depth == 0:
-                    try:
-                        parsed = json.loads(cleaned[start : index + 1])
-                    except (json.JSONDecodeError, ValueError):
-                        break
-                    return parsed if isinstance(parsed, dict) else None
+        end = _find_balanced_json(cleaned, start)
+        if end >= 0:
+            try:
+                parsed = json.loads(cleaned[start:end])
+            except (json.JSONDecodeError, ValueError):
+                pass
+            else:
+                return parsed if isinstance(parsed, dict) else None
         start = cleaned.find("{", start + 1)
     return None
 
@@ -255,6 +264,55 @@ def _response_parts(
     )
 
 
+def _validate_teacher_request(
+    client: Any,
+    teacher_model: str | None,
+    max_tokens: int,
+) -> None:
+    """Fail loud on a mis-specified teacher request."""
+    if client is None:
+        raise ValueError("teacher client was not supplied")
+    if not teacher_model:
+        raise ValueError("teacher model was not supplied")
+    if max_tokens < 1:
+        raise ValueError("teacher max_tokens must be positive")
+
+
+def _call_teacher_with_retry(
+    client: Any,
+    teacher_model: str,
+    messages: list[dict[str, str]],
+    max_tokens: int,
+) -> tuple[str | None, str | None, float | None]:
+    """Call the teacher, doubling the budget once on a length-capped empty reply."""
+    content: str | None = None
+    finish_reason: str | None = None
+    cost_usd: float | None = None
+    budget = max_tokens
+    for attempt in range(TEACHER_REASONING_RETRY_LIMIT + 1):
+        response = client.chat_completion(
+            model=teacher_model,
+            messages=messages,
+            max_tokens=budget,
+            temperature=0.2,
+            # Reasoning models bill thinking tokens against max_tokens;
+            # parseable teacher patches need thinking OFF + headroom.
+            # Repo diagnostics: docs/dogfood/diagnostics.md (judge finding b).
+            thinking={"type": "disabled"},
+        )
+        content, finish_reason, _usage, cost_usd = _response_parts(response)
+        if (content is None or not content.strip()) and finish_reason == "length":
+            if attempt < TEACHER_REASONING_RETRY_LIMIT:
+                budget *= 2
+                continue
+            raise ValueError(
+                "teacher token budget exhausted by reasoning tokens "
+                "(finish_reason=length)"
+            )
+        break
+    return content, finish_reason, cost_usd
+
+
 def request_patch(
     *,
     distributions: dict[str, Any] | None = None,
@@ -276,12 +334,8 @@ def request_patch(
     started = time.monotonic()
     prompt: str | None = None
     try:
-        if client is None:
-            raise ValueError("teacher client was not supplied")
-        if not teacher_model:
-            raise ValueError("teacher model was not supplied")
-        if max_tokens < 1:
-            raise ValueError("teacher max_tokens must be positive")
+        _validate_teacher_request(client, teacher_model, max_tokens)
+        assert teacher_model is not None
         prompt = build_teacher_prompt(
             distributions=distributions,
             missing_class=missing_class,
@@ -301,31 +355,9 @@ def request_patch(
             },
             {"role": "user", "content": prompt},
         ]
-        content: str | None = None
-        finish_reason: str | None = None
-        cost_usd: float | None = None
-        budget = max_tokens
-        for attempt in range(TEACHER_REASONING_RETRY_LIMIT + 1):
-            response = client.chat_completion(
-                model=teacher_model,
-                messages=messages,
-                max_tokens=budget,
-                temperature=0.2,
-                # Reasoning models bill thinking tokens against max_tokens;
-                # parseable teacher patches need thinking OFF + headroom.
-                # Repo diagnostics: docs/dogfood/diagnostics.md (judge finding b).
-                thinking={"type": "disabled"},
-            )
-            content, finish_reason, _usage, cost_usd = _response_parts(response)
-            if (content is None or not content.strip()) and finish_reason == "length":
-                if attempt < TEACHER_REASONING_RETRY_LIMIT:
-                    budget *= 2
-                    continue
-                raise ValueError(
-                    "teacher token budget exhausted by reasoning tokens "
-                    "(finish_reason=length)"
-                )
-            break
+        content, finish_reason, cost_usd = _call_teacher_with_retry(
+            client, teacher_model, messages, max_tokens
+        )
 
         if not isinstance(content, str) or not content.strip():
             raise ValueError("teacher response has no text content")

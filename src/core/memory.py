@@ -1208,27 +1208,10 @@ class MemoryConsolidator:
         result.details["pending_patterns"] = len(self._pending_patterns)
         return result
 
-    def consolidate_strategist_to_tactician(self) -> ConsolidationResult:
-        """
-        Extract learned strategies from session to long-term memory
-
-        - Identify battle patterns with high success rates
-        - Extract successful move sequences
-        - Record mistakes with high severity
-        - Update preferences based on behavior
-        """
-        result = ConsolidationResult(success=True)
-
-        if not self.strategist or not self.tactician:
-            result.success = False
-            result.details["error"] = "Missing strategist or tactician memory"
-            return result
-
-        battles = self.strategist.battle_history
-        if not battles:
-            result.details["message"] = "No battles to consolidate"
-            return result
-
+    def _tally_battle_outcomes(
+        self, battles: list[Any]
+    ) -> dict[str, dict[str, object]]:
+        """Aggregate battles into per-matchup win/loss/move tallies."""
         battle_outcomes: dict[str, dict[str, object]] = defaultdict(
             lambda: {"wins": 0, "losses": 0, "moves": []}
         )
@@ -1244,7 +1227,14 @@ class MemoryConsolidator:
                 battle_outcomes[key]["losses"] = (
                     cast(int, battle_outcomes[key]["losses"]) + 1
                 )
+        return battle_outcomes
 
+    def _create_strategies_from_outcomes(
+        self,
+        battle_outcomes: dict[str, dict[str, object]],
+        result: ConsolidationResult,
+    ) -> None:
+        """Create tactician strategies for high-win-rate matchups."""
         for key, outcome in battle_outcomes.items():
             total = cast(int, outcome["wins"]) + cast(int, outcome["losses"])
             win_rate = cast(int, outcome["wins"]) / total if total > 0 else 0.0
@@ -1266,6 +1256,29 @@ class MemoryConsolidator:
                     strategy.record_use(True)
                     result.strategies_created += 1
 
+    def consolidate_strategist_to_tactician(self) -> ConsolidationResult:
+        """
+        Extract learned strategies from session to long-term memory
+
+        - Identify battle patterns with high success rates
+        - Extract successful move sequences
+        - Record mistakes with high severity
+        - Update preferences based on behavior
+        """
+        result = ConsolidationResult(success=True)
+
+        if not self.strategist or not self.tactician:
+            result.success = False
+            result.details["error"] = "Missing strategist or tactician memory"
+            return result
+
+        battles = self.strategist.battle_history
+        if not battles:
+            result.details["message"] = "No battles to consolidate"
+            return result
+
+        battle_outcomes = self._tally_battle_outcomes(battles)
+        self._create_strategies_from_outcomes(battle_outcomes, result)
         for battle in battles:
             if battle.outcome == "defeat":
                 mistake_key = f"mistake_{battle.enemy_pokemon}_{battle.player_pokemon}_{battle.turns_taken}"
