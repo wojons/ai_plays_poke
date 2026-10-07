@@ -260,14 +260,14 @@ class StateWindow:
         self,
         state_type: str,
         global_ctx: GlobalContext,
-        emulator: Any,
+        emulator: Any,  # noqa: ANN401 — duck-typed emulator handle
         vision: dict[str, Any],
         *,
         generation: str = "gen1",
         thinking_model: str = "deepseek-v4-flash",
         max_steps: int = 15,
         hint_level: int = 0,
-        vision_client: Any = None,
+        vision_client: Any = None,  # noqa: ANN401 — duck-typed vision client
         use_ram_prompts: bool = False,
         hsm: HierarchicalStateMachine | None = None,
         failed_flee_attempts: int = 0,
@@ -1237,7 +1237,7 @@ class StateWindow:
         # Can't map
         return None
 
-    def _log_hsm_transition(self, from_state: Any, to_state: Any) -> None:
+    def _log_hsm_transition(self, from_state: Any, to_state: Any) -> None:  # noqa: ANN401 — HSM callback passes enum or None
         """Callback: log HSM state transitions to DuckBrain.
 
         Registered with ``hsm.register_transition_callback()``.
