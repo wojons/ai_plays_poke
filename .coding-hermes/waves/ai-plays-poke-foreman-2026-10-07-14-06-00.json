@@ -1,0 +1,1 @@
+{"tick":"ai-plays-poke-foreman-2026-10-07-14-06-00","mode":"serial-fallback","reason":"pending code tasks (PYTYP-2604/PYCMP/PYLINT) all churn src/ broadly -> not independent; P1s are owner decisions","tasks":[{"id":"PYTYP-2604","worktree":"PENDING","branch":"PENDING"}]}
