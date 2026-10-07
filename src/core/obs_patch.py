@@ -147,7 +147,20 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
     patch.prev_tick = data.get("prev_tick", 0)
     patch.tick = data.get("tick", 0)
 
-    # Movement
+    _parse_movement(patch, data)
+    _parse_viewport(patch, data)
+    _parse_strip(patch, data)
+    _parse_visited(patch, data)
+    _parse_edges(patch, data)
+    _parse_actor_updates(patch, data)
+    _parse_corrections(patch, data)
+    _parse_resync(patch, data)
+
+    patch.raw["_errors"] = errors
+    return patch
+
+
+def _parse_movement(patch: ObsPatch, data: dict[str, Any]) -> None:
     mov = data.get("movement")
     if isinstance(mov, dict):
         patch.movement = Movement(
@@ -158,7 +171,8 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
             mode=mov.get("mode", "walk"),
         )
 
-    # Viewport
+
+def _parse_viewport(patch: ObsPatch, data: dict[str, Any]) -> None:
     vp = data.get("viewport")
     if isinstance(vp, dict):
         patch.viewport = ViewportDelta(
@@ -166,99 +180,96 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
             new_edge=vp.get("new_edge", "none"),
         )
 
-    # Strip
+
+def _parse_strip(patch: ObsPatch, data: dict[str, Any]) -> None:
     strip = data.get("strip")
-    if isinstance(strip, dict):
-        edge = strip.get("edge", "")
-        # Accept terrain_tsv (tab-separated) as an alternative to terrain (packed)
-        terrain_raw = strip.get("terrain", "")
-        terrain_tsv = strip.get("terrain_tsv", "")
-        if terrain_tsv and not terrain_raw:
-            from .tile_utils import tsv_to_strip
+    if not isinstance(strip, dict):
+        return
+    patch.strip = StripUpdate(
+        edge=strip.get("edge", ""),
+        global_y=strip.get("global_y", 0),
+        global_x=strip.get("global_x", 0),
+        x_start=strip.get("x_start", 0),
+        y_start=strip.get("y_start", 0),
+        terrain=_strip_field(strip, "terrain"),
+        objects=_strip_field(strip, "objects"),
+        actors=_strip_field(strip, "actors"),
+    )
 
-            terrain_raw = tsv_to_strip(terrain_tsv)
 
-        objects_raw = strip.get("objects", "")
-        objects_tsv = strip.get("objects_tsv", "")
-        if objects_tsv and not objects_raw:
-            from .tile_utils import tsv_to_strip
+def _strip_field(strip: dict[str, Any], name: str) -> str:
+    """Read a strip field, accepting a <name>_tsv alternative to packed data."""
+    raw: str = strip.get(name, "")
+    tsv = strip.get(f"{name}_tsv", "")
+    if tsv and not raw:
+        from .tile_utils import tsv_to_strip
 
-            objects_raw = tsv_to_strip(objects_tsv)
+        converted: str = tsv_to_strip(tsv)
+        return converted
+    return raw
 
-        actors_raw = strip.get("actors", "")
-        actors_tsv = strip.get("actors_tsv", "")
-        if actors_tsv and not actors_raw:
-            from .tile_utils import tsv_to_strip
 
-            actors_raw = tsv_to_strip(actors_tsv)
-
-        patch.strip = StripUpdate(
-            edge=edge,
-            global_y=strip.get("global_y", 0),
-            global_x=strip.get("global_x", 0),
-            x_start=strip.get("x_start", 0),
-            y_start=strip.get("y_start", 0),
-            terrain=terrain_raw,
-            objects=objects_raw,
-            actors=actors_raw,
-        )
-
-    # Visited
+def _parse_visited(patch: ObsPatch, data: dict[str, Any]) -> None:
     visited = data.get("visited", data.get("visited_add"))
     if isinstance(visited, dict):
         patch.visited_add = visited.get("add", [])
     elif isinstance(visited, list):
         patch.visited_add = visited
 
-    # Edges
+
+def _parse_edges(patch: ObsPatch, data: dict[str, Any]) -> None:
     edges = data.get("edges")
-    if isinstance(edges, list):
-        for e in edges:
-            if isinstance(e, dict):
-                patch.edges.append(
-                    EdgeUpdate(
-                        from_pos=cast(
-                            list[int], e.get("from", e.get("from_pos", [0, 0]))
-                        ),
-                        dir=cast(str, e.get("dir", e.get("direction", "N"))),
-                        outcome=e.get("outcome", "unknown"),
-                        reason=e.get("reason", ""),
-                    )
+    if not isinstance(edges, list):
+        return
+    for e in edges:
+        if isinstance(e, dict):
+            patch.edges.append(
+                EdgeUpdate(
+                    from_pos=cast(list[int], e.get("from", e.get("from_pos", [0, 0]))),
+                    dir=cast(str, e.get("dir", e.get("direction", "N"))),
+                    outcome=e.get("outcome", "unknown"),
+                    reason=e.get("reason", ""),
                 )
+            )
 
-    # Actor updates
+
+def _parse_actor_updates(patch: ObsPatch, data: dict[str, Any]) -> None:
     actors = data.get("actor_updates", data.get("actors"))
-    if isinstance(actors, list):
-        for a in actors:
-            if isinstance(a, dict):
-                patch.actor_updates.append(
-                    ActorUpdate(
-                        id=a.get("id", f"actor_{len(patch.actor_updates)}"),
-                        kind=a.get("kind", "u"),
-                        symbol=a.get("symbol", ""),
-                        pos=a.get("pos", [0, 0]),
-                        facing=a.get("facing", "S"),
-                        confidence=a.get("confidence", 0.5),
-                    )
+    if not isinstance(actors, list):
+        return
+    for a in actors:
+        if isinstance(a, dict):
+            patch.actor_updates.append(
+                ActorUpdate(
+                    id=a.get("id", f"actor_{len(patch.actor_updates)}"),
+                    kind=a.get("kind", "u"),
+                    symbol=a.get("symbol", ""),
+                    pos=a.get("pos", [0, 0]),
+                    facing=a.get("facing", "S"),
+                    confidence=a.get("confidence", 0.5),
                 )
+            )
 
-    # Corrections
+
+def _parse_corrections(patch: ObsPatch, data: dict[str, Any]) -> None:
     corrections = data.get("corrections")
-    if isinstance(corrections, list):
-        for c in corrections:
-            if isinstance(c, dict):
-                patch.corrections.append(
-                    Correction(
-                        layer=c.get("layer", "terrain"),
-                        at=c.get("at", [0, 0]),
-                        from_char=c.get("from", "?"),
-                        to_char=c.get("to", "?"),
-                        confidence=c.get("confidence", 0.5),
-                        reason=c.get("reason", ""),
-                    )
+    if not isinstance(corrections, list):
+        return
+    for c in corrections:
+        if isinstance(c, dict):
+            patch.corrections.append(
+                Correction(
+                    layer=c.get("layer", "terrain"),
+                    at=c.get("at", [0, 0]),
+                    from_char=c.get("from", "?"),
+                    to_char=c.get("to", "?"),
+                    confidence=c.get("confidence", 0.5),
+                    reason=c.get("reason", ""),
                 )
+            )
 
-    # Resync
+
+def _parse_resync(patch: ObsPatch, data: dict[str, Any]) -> None:
     resync = data.get("resync")
     if resync is True:
         # Boolean resync — signal to re-observe without full data
@@ -272,9 +283,6 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
             player_facing=resync.get("player_facing", "S"),
             full_viewport=resync.get("full_viewport", {}),
         )
-
-    patch.raw["_errors"] = errors
-    return patch
 
 
 # ── Validator ───────────────────────────────────────────────────────────────
@@ -302,43 +310,48 @@ def validate_patch(patch: ObsPatch) -> list[str]:
     result = mov.result
 
     if result == "moved":
-        # Player must move at most 1 tile
-        dx, dy = mov.player_delta
-        if abs(dx) > 1 or abs(dy) > 1:
-            errors.append(f"Player moved more than 1 tile: delta={mov.player_delta}")
-
-        # If viewport scrolled, strip must be present
-        vp = patch.viewport
-        if vp and vp.new_edge != "none":
-            if not patch.strip:
-                errors.append("Viewport scrolled but no 'strip' provided")
-            elif not patch.strip.terrain:
-                errors.append("Strip has no terrain data")
-
-        # Strip should only contain one new row/column
-        if patch.strip and patch.strip.edge and patch.strip.edge.upper() in ("N", "S"):
-            if patch.strip.terrain and len(patch.strip.terrain) > 30:
-                errors.append(
-                    f"Strip terrain too long for single row: {len(patch.strip.terrain)} chars"
-                )
-
+        _validate_moved(patch, mov, errors)
     elif result == "blocked":
-        # Should not shift viewport
-        vp = patch.viewport
-        if vp and vp.origin_delta != [0, 0]:
-            errors.append("Blocked movement should not shift viewport")
-        # Should record blocked edge
-        if not patch.edges:
-            errors.append("Blocked movement should record at least one blocked edge")
-
+        _validate_blocked(patch, errors)
     elif result == "turned_only":
         # Player delta must be [0, 0]
         if mov.player_delta != [0, 0]:
             errors.append("turned_only should have player_delta [0, 0]")
-
     elif result in ("warp", "battle", "dialog", "menu", "cutscene"):
         # These should trigger a resync, not a normal patch
         if not patch.resync:
             errors.append(f"'{result}' movement result should include 'resync' section")
 
     return errors
+
+
+def _validate_moved(patch: ObsPatch, mov: Movement, errors: list[str]) -> None:
+    # Player must move at most 1 tile
+    dx, dy = mov.player_delta
+    if abs(dx) > 1 or abs(dy) > 1:
+        errors.append(f"Player moved more than 1 tile: delta={mov.player_delta}")
+
+    # If viewport scrolled, strip must be present
+    vp = patch.viewport
+    if vp and vp.new_edge != "none":
+        if not patch.strip:
+            errors.append("Viewport scrolled but no 'strip' provided")
+        elif not patch.strip.terrain:
+            errors.append("Strip has no terrain data")
+
+    # Strip should only contain one new row/column
+    if patch.strip and patch.strip.edge and patch.strip.edge.upper() in ("N", "S"):
+        if patch.strip.terrain and len(patch.strip.terrain) > 30:
+            errors.append(
+                f"Strip terrain too long for single row: {len(patch.strip.terrain)} chars"
+            )
+
+
+def _validate_blocked(patch: ObsPatch, errors: list[str]) -> None:
+    # Should not shift viewport
+    vp = patch.viewport
+    if vp and vp.origin_delta != [0, 0]:
+        errors.append("Blocked movement should not shift viewport")
+    # Should record blocked edge
+    if not patch.edges:
+        errors.append("Blocked movement should record at least one blocked edge")

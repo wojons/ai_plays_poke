@@ -378,19 +378,21 @@ class Action(ABC):
         preconditions = self.get_preconditions()
         if not preconditions:
             return True
-        for key, required in preconditions.items():
-            if key == "location":
-                if state.location != required:
-                    return False
-            elif key == "in_battle":
-                if not state.is_battle:
-                    return False
-            elif key == "not_in_battle":
-                if state.is_battle:
-                    return False
-            elif key == "money":
-                if state.money < required:
-                    return False
+        return all(
+            self._precondition_met(state, key, required)
+            for key, required in preconditions.items()
+        )
+
+    @staticmethod
+    def _precondition_met(state: GameState, key: str, required: Any) -> bool:
+        if key == "location":
+            return bool(state.location == required)
+        if key == "in_battle":
+            return bool(state.is_battle)
+        if key == "not_in_battle":
+            return not state.is_battle
+        if key == "money":
+            return bool(state.money >= required)
         return True
 
 

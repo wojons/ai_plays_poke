@@ -697,11 +697,8 @@ class MoveSelector:
 
         base_score = move.power / 10.0
 
-        effectiveness_multiplier = effectiveness
-        if effectiveness >= 2.0:
-            notes.append("Super effective!")
-            effectiveness_multiplier = 2.0
-        elif effectiveness == 0.0:
+        effectiveness_multiplier = self._effectiveness_multiplier(effectiveness, notes)
+        if effectiveness == 0.0:
             notes.append("Immune - avoid!")
             return MoveScore(
                 move=move,
@@ -712,9 +709,6 @@ class MoveSelector:
                 has_stab=has_stab,
                 notes=notes,
             )
-        elif effectiveness <= 0.5:
-            notes.append("Not very effective")
-            effectiveness_multiplier = 0.5
 
         if has_stab:
             base_score *= 1.5
@@ -729,24 +723,11 @@ class MoveSelector:
             notes.append("Likely KO")
             ko_likely = True
 
-        accuracy_factor = move.accuracy / 100.0
-        if risk_averse and move.accuracy < 80:
-            accuracy_factor *= 0.8
-            notes.append(f"Low accuracy ({move.accuracy}%)")
-
-        if move.priority > 0:
-            if attacker.speed < defender.speed:
-                base_score *= 1.5
-                notes.append("Priority advantage")
-            else:
-                base_score *= 1.1
-                notes.append("Priority move")
-
-        if setup_opportunity:
-            if self._is_setup_move(move):
-                if damage_range.expected_damage < defender.current_hp * 0.3:
-                    base_score *= 2.0
-                    notes.append("Good setup opportunity")
+        accuracy_factor = self._accuracy_factor(move, risk_averse, notes)
+        base_score *= self._priority_factor(move, attacker, defender, notes)
+        base_score *= self._setup_factor(
+            move, setup_opportunity, damage_range, defender, notes
+        )
 
         coverage_bonus = 1.0
         attacker_move_types = [m.move_type for m in attacker.moves if m != move]
@@ -767,6 +748,60 @@ class MoveSelector:
             has_stab=has_stab,
             notes=notes,
         )
+
+    @staticmethod
+    def _effectiveness_multiplier(effectiveness: float, notes: list[str]) -> float:
+        """Effectiveness scoring multiplier, with a note when it is clamped."""
+        if effectiveness == 0.0:
+            # Immune — the caller appends the "Immune" note and scores zero.
+            return effectiveness
+        if effectiveness >= 2.0:
+            notes.append("Super effective!")
+            return 2.0
+        if effectiveness <= 0.5:
+            notes.append("Not very effective")
+            return 0.5
+        return effectiveness
+
+    @staticmethod
+    def _accuracy_factor(move: Move, risk_averse: bool, notes: list[str]) -> float:
+        """Accuracy as a scoring factor, dampened for risky low-accuracy moves."""
+        accuracy_factor = move.accuracy / 100.0
+        if risk_averse and move.accuracy < 80:
+            accuracy_factor *= 0.8
+            notes.append(f"Low accuracy ({move.accuracy}%)")
+        return accuracy_factor
+
+    @staticmethod
+    def _priority_factor(
+        move: Move, attacker: Pokemon, defender: Pokemon, notes: list[str]
+    ) -> float:
+        """Score bonus for priority moves, stronger when the user is slower."""
+        if move.priority <= 0:
+            return 1.0
+        if attacker.speed < defender.speed:
+            notes.append("Priority advantage")
+            return 1.5
+        notes.append("Priority move")
+        return 1.1
+
+    def _setup_factor(
+        self,
+        move: Move,
+        setup_opportunity: bool,
+        damage_range: DamageRange,
+        defender: Pokemon,
+        notes: list[str],
+    ) -> float:
+        """Score bonus for a good setup opportunity on this move."""
+        if (
+            setup_opportunity
+            and self._is_setup_move(move)
+            and damage_range.expected_damage < defender.current_hp * 0.3
+        ):
+            notes.append("Good setup opportunity")
+            return 2.0
+        return 1.0
 
     def _score_status_move(
         self, move: Move, defender: Pokemon, notes: list[str]
@@ -1104,6 +1139,23 @@ class BattleStrategist:
         if current.current_hp / current.max_hp < 0.1:
             return True, "Critical HP - emergency switch", None
 
+        if self._can_ko_opponent(current, opponent):
+            return False, "Can KO opponent", None
+
+        if self._would_be_koed(current, opponent):
+            return True, "Type disadvantage - switch recommended", None
+
+        candidates = self.evaluate_switch_candidates(
+            current, opponent, party, move_selector
+        )
+
+        if candidates and candidates[0].score > 0.5:
+            return True, f"Better matchup: {candidates[0].reasoning}", candidates[0]
+
+        return False, "Current Pokemon is optimal", None
+
+    def _can_ko_opponent(self, current: Pokemon, opponent: Pokemon) -> bool:
+        """True when any of the current Pokemon's damaging moves can KO the opponent."""
         move_calculator = DamageCalculator(self.type_chart)
         for move in current.moves:
             if move.category != MoveCategory.STATUS and move.pp > 0:
@@ -1114,8 +1166,12 @@ class BattleStrategist:
                     damage_range, opponent.current_hp
                 )
                 if guaranteed_ko:
-                    return False, "Can KO opponent", None
+                    return True
+        return False
 
+    def _would_be_koed(self, current: Pokemon, opponent: Pokemon) -> bool:
+        """True when the opponent's best move could KO the current Pokemon."""
+        move_calculator = DamageCalculator(self.type_chart)
         threat_calculator = EnemyPredictor(self.type_chart)
         threat_calculator.predict_threat_level(opponent, current)
 
@@ -1137,16 +1193,8 @@ class BattleStrategist:
                 most_threatening_move_type, current.types
             )
             if type_disadvantage >= 2.0:
-                return True, "Type disadvantage - switch recommended", None
-
-        candidates = self.evaluate_switch_candidates(
-            current, opponent, party, move_selector
-        )
-
-        if candidates and candidates[0].score > 0.5:
-            return True, f"Better matchup: {candidates[0].reasoning}", candidates[0]
-
-        return False, "Current Pokemon is optimal", None
+                return True
+        return False
 
     def evaluate_switch_candidates(
         self,

@@ -226,6 +226,18 @@ _QUERY_GLOBAL_TOOL = {
     },
 }
 
+# Map vision screen_type labels to HSM state names (RAM reader path preferred).
+_HSM_VISION_STATES = {
+    "battle": "BATTLE.BATTLE_MENU",
+    "menu": "MENU.MAIN_MENU",
+    "dialog": "DIALOG.TEXT_DISPLAY",
+    "text": "DIALOG.TEXT_DISPLAY",
+    "overworld": "OVERWORLD.IDLE",
+    "navigation": "OVERWORLD.IDLE",
+    "title": "TITLE.WAITING_FOR_START",
+    "name_entry": "BOOT.CHARACTER_NAMING",
+}
+
 # ── State workflow loading ───────────────────────────────────────────────
 
 _STATES_DIR = Path("configs/states")
@@ -380,367 +392,33 @@ class StateWindow:
         for _ in range(self.max_steps):
             self._step_count += 1
 
-            # ── Fast-forward shortcut for non-interactive dialog ─────
-            if self.state_type == "dialog" and not self._is_interactive():
-                if _auto_a_count < _MAX_AUTO_A:
-                    self.emulator.press_button("a", frames=30)
-                    self.emulator.wait(10)  # let game register
-                    self.emulator.fast_forward(120)
-                    self._history.append(
-                        {
-                            "step": self._step_count,
-                            "tool_call": {
-                                "name": "press_button",
-                                "arguments": {
-                                    "button": "a",
-                                    "duration": 30,
-                                    "fast_forward": 120,
-                                },
-                            },
-                            "action": "auto_a",
-                            "auto": True,
-                        }
-                    )
-                    _auto_a_count += 1
-                    continue
-                else:
-                    # Safety cap: fall back to AI deliberation
-                    pass
-            elif self.state_type == "name_entry":
-                self.emulator.press_button("a", frames=30)
-                self.emulator.wait(10)
-                self.emulator.fast_forward(120)
-                self._history.append(
-                    {
-                        "step": self._step_count,
-                        "tool_call": {
-                            "name": "press_button",
-                            "arguments": {
-                                "button": "a",
-                                "duration": 30,
-                                "fast_forward": 120,
-                            },
-                        },
-                        "action": "name_entry_a_mash",
-                    }
-                )
-                _auto_a_count += 1
+            auto_handled = self._maybe_auto_advance(_auto_a_count, _MAX_AUTO_A)
+            _auto_a_count = self._apply_auto_advance(auto_handled, _auto_a_count)
+            if auto_handled == "continue":
                 continue
-
-                # ── Programmatic name entry keyboard navigation ────
-                # DeepSeek ignores keyboard_grid instructions, so we
-                # compute the correct button press here directly.
-                kg = self.vision.get("keyboard_grid", {})
-                if kg:
-                    rows = kg.get("rows", [])
-                    cursor = kg.get("current_cursor", {"row": 0, "col": 0})
-                    cr, cc = cursor.get("row", 0), cursor.get("col", 0)
-                    name_field = self.vision.get("name_field", "")
-                    target_name = "ASH"
-
-                    # Determine what to do
-                    if name_field and len(name_field) >= len(target_name):
-                        # All letters typed — navigate to END
-                        button, dur = "down", 10
-                    elif name_field:
-                        # Find next letter
-                        next_letter = target_name[len(name_field)]
-                        tr, tc = -1, -1
-                        for ri, row in enumerate(rows):
-                            for ci, letter in enumerate(row):
-                                if letter.upper() == next_letter.upper():
-                                    tr, tc = ri, ci
-                                    break
-                            if tr >= 0:
-                                break
-                        if tr >= 0:
-                            if tr == cr and tc == cc:
-                                button, dur = "a", 30
-                            elif tr > cr:
-                                button, dur = "down", 10
-                            elif tr < cr:
-                                button, dur = "up", 10
-                            elif tc > cc:
-                                button, dur = "right", 10
-                            elif tc < cc:
-                                button, dur = "left", 10
-                            else:
-                                button, dur = "a", 30
-                        else:
-                            button, dur = "down", 10
-                    else:
-                        # Nothing typed yet — cursor should be on A, press it
-                        button, dur = "a", 30
-
-                    self.emulator.press_button(button, frames=dur)
-                    self.emulator.wait(10)
-                    self._history.append(
-                        {
-                            "step": self._step_count,
-                            "tool_call": {
-                                "name": "press_button",
-                                "arguments": {"button": button, "duration": dur},
-                            },
-                            "action": f"name_entry_auto_{button}",
-                        }
-                    )
-                    continue
-                # No keyboard_grid — fall through to LLM
-            else:
-                _auto_a_count = 0  # reset on interactive or non-dialog states
 
             preselected_battle_action = (
                 self._battle_tool_call if self._step_count == 1 else None
             )
-            if preselected_battle_action is not None:
-                tool_call = preselected_battle_action
-            else:
-                # Build the focused prompt
-                prompt = self._build_prompt()
-
-                # Get action from thinking model
-                response = self.client.send_tool_request(
-                    prompt=prompt,
-                    tools=TOOL_SCHEMA + _DUCKBRAIN_TOOLS + [_QUERY_GLOBAL_TOOL],
-                    model=self.thinking_model,
-                    max_tokens=2000,
-                    temperature=0.3,
-                )
-
-                self._raw_responses.append(response or "")
-
-                # Parse tool call
-                from src.core.tools import parse_tool_call
-
-                parsed_tool_call = parse_tool_call(response) if response else None
-                if parsed_tool_call is None:
-                    tool_call = {
-                        "name": "press_button",
-                        "arguments": {"button": "a", "duration": 5},
-                    }
-                else:
-                    tool_call = parsed_tool_call
-                # Normalize arguments to dict
-                if isinstance(tool_call.get("arguments"), str):
-                    try:
-                        tool_call["arguments"] = json.loads(tool_call["arguments"])
-                    except (json.JSONDecodeError, TypeError):
-                        tool_call["arguments"] = {"raw": tool_call["arguments"]}
-
-            # Handle query_global calls
-            if tool_call["name"] == "query_global":
-                question = tool_call.get("arguments", {}).get("question", "")
-                self._query_count += 1
-                if self._query_count > 2:
-                    # Query bound: the LLM would loop forever asking.
-                    # Force a deterministic battle action (or dialog A).
-                    if self.state_type == "battle":
-                        forced = execute_tool_call(
-                            self.emulator,
-                            tool_name="select_move",
-                            arguments={"move_number": 1},
-                        )
-                        self._history.append(
-                            {
-                                "step": self._step_count,
-                                "forced": True,
-                                "tool_call": {
-                                    "name": "select_move",
-                                    "arguments": {"move_number": 1},
-                                },
-                                "action": forced,
-                            }
-                        )
-                        self._record_recent_action(
-                            {"name": "select_move", "arguments": {"move_number": 1}},
-                            forced,
-                        )
-                        self.emulator.wait(60)
-                        self.emulator.fast_forward(180)
-                    else:
-                        # Non-battle: plain A to keep the game advancing
-                        action_result = execute_tool_call(
-                            self.emulator,
-                            tool_name="press_button",
-                            arguments={"button": "a", "duration": 30},
-                        )
-                        self._history.append(
-                            {
-                                "step": self._step_count,
-                                "forced": True,
-                                "tool_call": {
-                                    "name": "press_button",
-                                    "arguments": {"button": "a"},
-                                },
-                                "action": action_result,
-                            }
-                        )
-                        self._record_recent_action(
-                            {"name": "press_button", "arguments": {"button": "a"}},
-                            action_result,
-                        )
-                    self._step_count += 1
-                    # Check outcome (battle may have ended from the forced action)
-                    outcome = self._check_outcome()
-                    if outcome:
-                        if self._in_battle:
-                            self._battle_events.append(
-                                {
-                                    "event": "battle_end",
-                                    "outcome": outcome.get("outcome", "unknown"),
-                                    "to_type": outcome.get("to_type", "unknown"),
-                                }
-                            )
-                        outcome["_battle_events"] = self._battle_events
-                        outcome["_failed_flee_attempts"] = self._failed_flee_attempts
-                        return outcome
-                    continue
-                answer = self._answer_global_query(question)
-                self._history.append(
-                    {"role": "query_global", "question": question, "answer": answer}
-                )
-                continue  # re-loop with answer in history
-
-            # Handle DuckBrain calls (no emulator action)
-            if tool_call["name"] == "remember":
-                key = tool_call.get("arguments", {}).get("key", "/discoveries/unknown")
-                fact = tool_call.get("arguments", {}).get("fact", "")
-                rid = _duckbrain_remember(key=key, fact=fact)
-                self._history.append({"role": "remember", "key": key, "id": rid})
-                continue
-
-            if tool_call["name"] == "recall":
-                query = tool_call.get("arguments", {}).get("query", "/")
-                results = _duckbrain_recall(query=query)
-                self._history.append(
-                    {"role": "recall", "query": query, "results": results[:200]}
-                )
-                continue
-
-            if tool_call["name"] == "set_goal":
-                goal = tool_call.get("arguments", {}).get("goal", "")
-                self.global_ctx.add_goal(goal)
-                # Persist across runs so /goals/current survives sessions
-                try:
-                    from src.core import duckbrain_client as _dbc
-
-                    _dbc.remember(
-                        key="/goals/current",
-                        domain="goal",
-                        attributes={"goal": goal, "source": "agent"},
-                        embedding_text=f"Current goal: {goal}",
-                    )
-                except Exception as _e:  # memory persistence is best-effort
-                    logger.debug("DuckBrain goal persistence failed (ignored): %s", _e)
-                self._history.append({"role": "set_goal", "goal": goal})
-                continue
-
-            if tool_call["name"] == "list_keys":
-                prefix = tool_call.get("arguments", {}).get("prefix", "/")
-                try:
-                    from src.core import duckbrain_client as _dbc
-
-                    # Agent memory browsing needs a deliberate near-full census;
-                    # list_keys still warns loudly if this higher safety cap truncates.
-                    keys = _dbc.list_keys(prefix=prefix, limit=2000)
-                    answer = (
-                        "\n".join(keys)
-                        if keys
-                        else "(nothing stored under this prefix)"
-                    )
-                except Exception as _e:
-                    answer = f"(list_keys failed: {_e})"
-                self._history.append(
-                    {"role": "list_keys", "prefix": prefix, "keys": answer[:400]}
-                )
-                continue
-
-            if tool_call["name"] == "get":
-                key = tool_call.get("arguments", {}).get("key", "/")
-                try:
-                    from src.core import duckbrain_client as _dbc
-
-                    rec = _dbc.get(key=key)
-                    if rec:
-                        attrs = rec.get("attributes", {})
-                        body = (
-                            attrs.get("fact")
-                            or attrs.get("goal")
-                            or rec.get("embedding_text", "")
-                        )
-                        answer = f"{rec.get('key')}: {body}"[:400]
-                    else:
-                        answer = f"(no memory at {key})"
-                except Exception as _e:
-                    answer = f"(get failed: {_e})"
-                self._history.append(
-                    {"role": "get", "key": key, "content": answer[:400]}
-                )
-                continue
-
-            # Bound repeated flee requests. The counter is supplied by the
-            # outer cron loop, so it survives fresh StateWindow instances on
-            # subsequent cycles of the same battle.
-            requested_tool_call = tool_call
-            if self.state_type == "battle":
-                tool_call = decide_battle_tool_call(
-                    requested_tool_call, self._failed_flee_attempts
-                )
-
-            # Execute on emulator
-            action_result = execute_tool_call(
-                self.emulator,
-                tool_name=tool_call["name"],
-                arguments=tool_call.get("arguments", {}),
+            tool_call, preselected_battle_action = self._obtain_tool_call(
+                preselected_battle_action
             )
 
-            self._history.append(
-                {
-                    "step": self._step_count,
-                    "tool_call": tool_call,
-                    "action": action_result,
-                }
-            )
+            query_handled = self._maybe_handle_query_global(tool_call)
+            if query_handled:
+                if query_handled == "return":
+                    settled = self._settled_outcome()
+                    if settled:
+                        return settled
+                continue
 
-            # ── Recent actions memory window ──────────────────────
-            self._record_recent_action(tool_call, action_result)
+            if self._maybe_handle_memory_tool(tool_call):
+                continue
 
-            # ── Battle animation wait ──────────────────────────────
-            # After executing a battle action (FIGHT, move select),
-            # wait for the attack/HP-drain animation before re-reading.
-            if self.state_type == "battle":
-                self.emulator.wait(60)
-                self.emulator.fast_forward(180)
-                current_battle_status = battle_status(self.emulator)
-                if tool_call["name"] == "run_from_battle" and current_battle_status in (
-                    "wild",
-                    "trainer",
-                ):
-                    self._failed_flee_attempts += 1
-                elif current_battle_status == "ended":
-                    self._failed_flee_attempts = 0
-
-            # ── HSM state update ──────────────────────────────────
-            new_hsm_state = self._map_vision_to_hsm_state()
-            if new_hsm_state and new_hsm_state != self.hsm.get_current_state_name():
-                self.hsm.transition_to(new_hsm_state, reason=f"Step {self._step_count}")
-
-            # Check for state transition
-            outcome = self._check_outcome()
-            if outcome:
-                # ── Battle end logging ──────────────────────────
-                if self._in_battle:
-                    self._battle_events.append(
-                        {
-                            "event": "battle_end",
-                            "outcome": outcome.get("outcome", "unknown"),
-                            "to_type": outcome.get("to_type", "unknown"),
-                        }
-                    )
-                # ── Include battle events and flee policy state in result ──
-                outcome["_battle_events"] = self._battle_events
-                outcome["_failed_flee_attempts"] = self._failed_flee_attempts
-                return outcome
+            outcome = self._execute_tool_step(tool_call)
+            settled = self._finalize_outcome(outcome) if outcome else None
+            if settled:
+                return settled
 
             # A JEV choice is one complete normal battle turn. Return control to
             # cron_runner so the next turn starts from a fresh RAM observation.
@@ -755,6 +433,336 @@ class StateWindow:
             "_failed_flee_attempts": self._failed_flee_attempts,
         }
         return result
+
+    @staticmethod
+    def _apply_auto_advance(auto_handled: str, auto_a_count: int) -> int:
+        """Update the auto-A counter from a _maybe_auto_advance() result."""
+        if auto_handled == "continue":
+            return auto_a_count + 1
+        if auto_handled == "reset":
+            return 0
+        return auto_a_count
+
+    def _settled_outcome(self) -> dict[str, Any] | None:
+        """Check for a loop-ending outcome, with battle bookkeeping attached."""
+        outcome = self._check_outcome()
+        return self._finalize_outcome(outcome) if outcome else None
+
+    def _execute_tool_step(self, tool_call: dict[str, Any]) -> dict[str, Any] | None:
+        """Execute an emulator tool call and return the outcome (if the loop ends).
+
+        Bounds repeated flee requests (the counter is supplied by the outer cron
+        loop, so it survives fresh StateWindow instances on subsequent cycles of
+        the same battle), records history, waits out battle animations, and
+        updates the HSM state.
+        """
+        if self.state_type == "battle":
+            tool_call = decide_battle_tool_call(tool_call, self._failed_flee_attempts)
+
+        # Execute on emulator
+        action_result = execute_tool_call(
+            self.emulator,
+            tool_name=tool_call["name"],
+            arguments=tool_call.get("arguments", {}),
+        )
+
+        self._history.append(
+            {
+                "step": self._step_count,
+                "tool_call": tool_call,
+                "action": action_result,
+            }
+        )
+
+        self._record_recent_action(tool_call, action_result)
+        self._post_battle_action_wait(tool_call)
+
+        # ── HSM state update ──────────────────────────────────
+        new_hsm_state = self._map_vision_to_hsm_state()
+        if new_hsm_state and new_hsm_state != self.hsm.get_current_state_name():
+            self.hsm.transition_to(new_hsm_state, reason=f"Step {self._step_count}")
+
+        # Check for state transition
+        return self._check_outcome()
+
+    def _finalize_outcome(self, outcome: dict[str, Any]) -> dict[str, Any]:
+        """Attach battle event bookkeeping to a loop-ending outcome."""
+        if self._in_battle:
+            self._battle_events.append(
+                {
+                    "event": "battle_end",
+                    "outcome": outcome.get("outcome", "unknown"),
+                    "to_type": outcome.get("to_type", "unknown"),
+                }
+            )
+        outcome["_battle_events"] = self._battle_events
+        outcome["_failed_flee_attempts"] = self._failed_flee_attempts
+        return outcome
+
+    def _maybe_auto_advance(self, auto_a_count: int, max_auto_a: int) -> str:
+        """Handle auto-A dialog fast-forward and name-entry mashing.
+
+        Returns "continue" when a step action was taken, "reset" when the
+        auto-A counter should reset, or "" when the caller should proceed to
+        the LLM decision path.
+        """
+        # ── Fast-forward shortcut for non-interactive dialog ─────
+        if self.state_type == "dialog" and not self._is_interactive():
+            if auto_a_count < max_auto_a:
+                self.emulator.press_button("a", frames=30)
+                self.emulator.wait(10)  # let game register
+                self.emulator.fast_forward(120)
+                self._history.append(
+                    {
+                        "step": self._step_count,
+                        "tool_call": {
+                            "name": "press_button",
+                            "arguments": {
+                                "button": "a",
+                                "duration": 30,
+                                "fast_forward": 120,
+                            },
+                        },
+                        "action": "auto_a",
+                        "auto": True,
+                    }
+                )
+                return "continue"
+            # Safety cap: fall back to AI deliberation
+            return ""
+
+        if self.state_type == "name_entry":
+            self.emulator.press_button("a", frames=30)
+            self.emulator.wait(10)
+            self.emulator.fast_forward(120)
+            self._history.append(
+                {
+                    "step": self._step_count,
+                    "tool_call": {
+                        "name": "press_button",
+                        "arguments": {
+                            "button": "a",
+                            "duration": 30,
+                            "fast_forward": 120,
+                        },
+                    },
+                    "action": "name_entry_a_mash",
+                }
+            )
+            return "continue"
+
+        return "reset"
+
+    def _obtain_tool_call(
+        self, preselected_battle_action: dict[str, Any] | None
+    ) -> tuple[dict[str, Any], dict[str, Any] | None]:
+        """Get the next tool call, from preselection or from the thinking model."""
+        if preselected_battle_action is not None:
+            return preselected_battle_action, preselected_battle_action
+
+        # Build the focused prompt
+        prompt = self._build_prompt()
+
+        # Get action from thinking model
+        response = self.client.send_tool_request(
+            prompt=prompt,
+            tools=TOOL_SCHEMA + _DUCKBRAIN_TOOLS + [_QUERY_GLOBAL_TOOL],
+            model=self.thinking_model,
+            max_tokens=2000,
+            temperature=0.3,
+        )
+
+        self._raw_responses.append(response or "")
+
+        # Parse tool call
+        from src.core.tools import parse_tool_call
+
+        parsed_tool_call = parse_tool_call(response) if response else None
+        tool_call = (
+            parsed_tool_call
+            if parsed_tool_call is not None
+            else {"name": "press_button", "arguments": {"button": "a", "duration": 5}}
+        )
+        # Normalize arguments to dict
+        raw_args = tool_call.get("arguments")
+        if isinstance(raw_args, str):
+            try:
+                tool_call["arguments"] = json.loads(raw_args)
+            except (json.JSONDecodeError, TypeError):
+                tool_call["arguments"] = {"raw": raw_args}
+        return tool_call, None
+
+    def _maybe_handle_query_global(self, tool_call: dict[str, Any]) -> str:
+        """Handle a query_global tool call.
+
+        Returns "" (not a query), "answered" (answer recorded, re-loop),
+        "continue" (forced action executed and outcome clear, re-loop), or
+        "return" (forced action executed; caller must check the outcome).
+        """
+        if tool_call["name"] != "query_global":
+            return ""
+        question = tool_call.get("arguments", {}).get("question", "")
+        self._query_count += 1
+        if self._query_count > 2:
+            # Query bound: the LLM would loop forever asking.
+            # Force a deterministic battle action (or dialog A).
+            if self.state_type == "battle":
+                forced = execute_tool_call(
+                    self.emulator,
+                    tool_name="select_move",
+                    arguments={"move_number": 1},
+                )
+                self._history.append(
+                    {
+                        "step": self._step_count,
+                        "forced": True,
+                        "tool_call": {
+                            "name": "select_move",
+                            "arguments": {"move_number": 1},
+                        },
+                        "action": forced,
+                    }
+                )
+                self._record_recent_action(
+                    {"name": "select_move", "arguments": {"move_number": 1}},
+                    forced,
+                )
+                self.emulator.wait(60)
+                self.emulator.fast_forward(180)
+            else:
+                # Non-battle: plain A to keep the game advancing
+                action_result = execute_tool_call(
+                    self.emulator,
+                    tool_name="press_button",
+                    arguments={"button": "a", "duration": 30},
+                )
+                self._history.append(
+                    {
+                        "step": self._step_count,
+                        "forced": True,
+                        "tool_call": {
+                            "name": "press_button",
+                            "arguments": {"button": "a"},
+                        },
+                        "action": action_result,
+                    }
+                )
+                self._record_recent_action(
+                    {"name": "press_button", "arguments": {"button": "a"}},
+                    action_result,
+                )
+            self._step_count += 1
+            return "return"
+        answer = self._answer_global_query(question)
+        self._history.append(
+            {"role": "query_global", "question": question, "answer": answer}
+        )
+        return "answered"
+
+    def _maybe_handle_memory_tool(self, tool_call: dict[str, Any]) -> bool:
+        """Handle DuckBrain memory tool calls (no emulator action).
+
+        Returns True when the call was consumed and the loop should continue.
+        """
+        if tool_call["name"] == "remember":
+            key = tool_call.get("arguments", {}).get("key", "/discoveries/unknown")
+            fact = tool_call.get("arguments", {}).get("fact", "")
+            rid = _duckbrain_remember(key=key, fact=fact)
+            self._history.append({"role": "remember", "key": key, "id": rid})
+            return True
+
+        if tool_call["name"] == "recall":
+            query = tool_call.get("arguments", {}).get("query", "/")
+            results = _duckbrain_recall(query=query)
+            self._history.append(
+                {"role": "recall", "query": query, "results": results[:200]}
+            )
+            return True
+
+        if tool_call["name"] in ("set_goal", "list_keys"):
+            return self._handle_memory_keys_tool(tool_call)
+
+        if tool_call["name"] == "get":
+            return self._handle_memory_get(tool_call)
+
+        return False
+
+    def _handle_memory_keys_tool(self, tool_call: dict[str, Any]) -> bool:
+        """Handle set_goal and list_keys tool calls."""
+        if tool_call["name"] == "set_goal":
+            goal = tool_call.get("arguments", {}).get("goal", "")
+            self.global_ctx.add_goal(goal)
+            # Persist across runs so /goals/current survives sessions
+            try:
+                from src.core import duckbrain_client as _dbc
+
+                _dbc.remember(
+                    key="/goals/current",
+                    domain="goal",
+                    attributes={"goal": goal, "source": "agent"},
+                    embedding_text=f"Current goal: {goal}",
+                )
+            except Exception as _e:  # memory persistence is best-effort
+                logger.debug("DuckBrain goal persistence failed (ignored): %s", _e)
+            self._history.append({"role": "set_goal", "goal": goal})
+            return True
+
+        # list_keys
+        prefix = tool_call.get("arguments", {}).get("prefix", "/")
+        try:
+            from src.core import duckbrain_client as _dbc
+
+            # Agent memory browsing needs a deliberate near-full census;
+            # list_keys still warns loudly if this higher safety cap truncates.
+            keys = _dbc.list_keys(prefix=prefix, limit=2000)
+            answer = "\n".join(keys) if keys else "(nothing stored under this prefix)"
+        except Exception as _e:
+            answer = f"(list_keys failed: {_e})"
+        self._history.append(
+            {"role": "list_keys", "prefix": prefix, "keys": answer[:400]}
+        )
+        return True
+
+    def _handle_memory_get(self, tool_call: dict[str, Any]) -> bool:
+        """Handle the get tool call (read one memory record)."""
+        key = tool_call.get("arguments", {}).get("key", "/")
+        try:
+            from src.core import duckbrain_client as _dbc
+
+            rec = _dbc.get(key=key)
+            if rec:
+                attrs = rec.get("attributes", {})
+                body = (
+                    attrs.get("fact")
+                    or attrs.get("goal")
+                    or rec.get("embedding_text", "")
+                )
+                answer = f"{rec.get('key')}: {body}"[:400]
+            else:
+                answer = f"(no memory at {key})"
+        except Exception as _e:
+            answer = f"(get failed: {_e})"
+        self._history.append({"role": "get", "key": key, "content": answer[:400]})
+        return True
+
+    def _post_battle_action_wait(self, tool_call: dict[str, Any]) -> None:
+        """Wait for battle animation and track failed flee attempts.
+
+        After executing a battle action (FIGHT, move select), wait for the
+        attack/HP-drain animation before re-reading.
+        """
+        if self.state_type != "battle":
+            return
+        self.emulator.wait(60)
+        self.emulator.fast_forward(180)
+        current_battle_status = battle_status(self.emulator)
+        if tool_call["name"] == "run_from_battle" and current_battle_status in (
+            "wild",
+            "trainer",
+        ):
+            self._failed_flee_attempts += 1
+        elif current_battle_status == "ended":
+            self._failed_flee_attempts = 0
 
     # ── Prompt building ─────────────────────────────────────────────
 
@@ -776,32 +784,7 @@ class StateWindow:
 
         target_name = "ASH"
         if name_field and len(name_field) > 0:
-            typed_count = len(name_field)
-            if typed_count < len(target_name):
-                next_letter = target_name[typed_count]
-                tr, tc = self._find_letter_in_grid(rows, next_letter)
-                if tr >= 0:
-                    dirs = self._compute_directions(cr, cc, tr, tc)
-                    parts.append(
-                        f"  NEXT LETTER TO TYPE: '{next_letter}' at row={tr}, col={tc}"
-                    )
-                    if not dirs:
-                        parts.append(
-                            f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!"
-                        )
-                    else:
-                        parts.append(
-                            f"  TO REACH '{next_letter}': {' then '.join(dirs)}"
-                        )
-                        parts.append("  After reaching it, press A to type the letter.")
-                else:
-                    parts.append(
-                        f"  NEXT LETTER '{next_letter}' not found — navigate to END"
-                    )
-            else:
-                parts.append(
-                    "  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A."
-                )
+            self._add_next_letter_lines(parts, rows, cr, cc, name_field, target_name)
         else:
             first_letter = target_name[0]
             tr, tc = self._find_letter_in_grid(rows, first_letter)
@@ -823,6 +806,35 @@ class StateWindow:
                 parts.append(f"    Row {ri}: {row}")
         parts.append(f"  Bottom row: {kg.get('bottom_row', [])}")
         return parts
+
+    def _add_next_letter_lines(
+        self,
+        parts: list[str],
+        rows: list,
+        cr: int,
+        cc: int,
+        name_field: str,
+        target_name: str,
+    ) -> None:
+        """Add guidance lines for typing the next letter (or finishing)."""
+        typed_count = len(name_field)
+        if typed_count >= len(target_name):
+            parts.append(
+                "  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A."
+            )
+            return
+        next_letter = target_name[typed_count]
+        tr, tc = self._find_letter_in_grid(rows, next_letter)
+        if tr < 0:
+            parts.append(f"  NEXT LETTER '{next_letter}' not found — navigate to END")
+            return
+        dirs = self._compute_directions(cr, cc, tr, tc)
+        parts.append(f"  NEXT LETTER TO TYPE: '{next_letter}' at row={tr}, col={tc}")
+        if not dirs:
+            parts.append(f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!")
+        else:
+            parts.append(f"  TO REACH '{next_letter}': {' then '.join(dirs)}")
+            parts.append("  After reaching it, press A to type the letter.")
 
     def _find_letter_in_grid(self, rows: list, letter: str) -> tuple[int, int]:
         """Find a letter's position in the keyboard grid."""
@@ -1053,47 +1065,7 @@ class StateWindow:
         # Get battle state from vision dict (populated by ram_reader.observe())
         battle_state = self.vision.get("battle_state", {})
         battle_type = str(battle_state.get("battle_type", "unknown"))
-        prompt = ""
-        if battle_state:
-            p = battle_state.get("player", {})
-            e = battle_state.get("enemy", {})
-
-            # Build moves list. pp_max and power are not currently
-            # returned by read_battle_state() but are accepted if
-            # present (tests / future schema), so format adaptively.
-            moves_parts = []
-            for i, move in enumerate(p.get("moves", [])):
-                slot = move.get("slot", i + 1)
-                pp = move.get("pp", 0)
-                pp_max = move.get("pp_max")
-                power = move.get("power")
-                pp_str = f"PP: {pp}/{pp_max}" if pp_max else f"PP:{pp}"
-                power_str = f", Power: {power}" if power else ""
-                moves_parts.append(
-                    f"  {slot}. {move.get('name', '?')} ({pp_str}{power_str})"
-                )
-            moves_str = "\n".join(moves_parts) if moves_parts else "  (no moves)"
-
-            if tmpl:
-                try:
-                    prompt = tmpl.format(
-                        battle_type=battle_type,
-                        enemy_name=e.get("name", "Unknown"),
-                        player_name=p.get("name", "Pokémon"),
-                        player_level=p.get("level", "?"),
-                        player_hp_pct=p.get("hp_pct", "?"),
-                        player_hp=p.get("hp", "?"),
-                        player_max_hp=p.get("max_hp", "?"),
-                        player_type=p.get("type", "Unknown"),
-                        enemy_level=e.get("level", "?"),
-                        enemy_hp_pct=e.get("hp_pct", "?"),
-                        enemy_hp=e.get("hp", "?"),
-                        enemy_max_hp=e.get("max_hp", "?"),
-                        enemy_type=e.get("type", "Unknown"),
-                        moves_list=moves_str,
-                    )
-                except (KeyError, ValueError, AttributeError):
-                    pass
+        prompt = self._render_battle_template(tmpl, battle_state, battle_type)
 
         if not prompt:
             render = str(self.vision.get("render", ""))
@@ -1128,6 +1100,51 @@ class StateWindow:
         if recent:
             prompt += "\n\n" + recent
         return prompt
+
+    def _render_battle_template(
+        self, tmpl: str, battle_state: dict, battle_type: str
+    ) -> str:
+        """Render the battle RAM template (empty when no template or state)."""
+        if not battle_state or not tmpl:
+            return ""
+        p = battle_state.get("player", {})
+        e = battle_state.get("enemy", {})
+
+        # Build moves list. pp_max and power are not currently
+        # returned by read_battle_state() but are accepted if
+        # present (tests / future schema), so format adaptively.
+        moves_parts = []
+        for i, move in enumerate(p.get("moves", [])):
+            slot = move.get("slot", i + 1)
+            pp = move.get("pp", 0)
+            pp_max = move.get("pp_max")
+            power = move.get("power")
+            pp_str = f"PP: {pp}/{pp_max}" if pp_max else f"PP:{pp}"
+            power_str = f", Power: {power}" if power else ""
+            moves_parts.append(
+                f"  {slot}. {move.get('name', '?')} ({pp_str}{power_str})"
+            )
+        moves_str = "\n".join(moves_parts) if moves_parts else "  (no moves)"
+
+        try:
+            return tmpl.format(
+                battle_type=battle_type,
+                enemy_name=e.get("name", "Unknown"),
+                player_name=p.get("name", "Pokémon"),
+                player_level=p.get("level", "?"),
+                player_hp_pct=p.get("hp_pct", "?"),
+                player_hp=p.get("hp", "?"),
+                player_max_hp=p.get("max_hp", "?"),
+                player_type=p.get("type", "Unknown"),
+                enemy_level=e.get("level", "?"),
+                enemy_hp_pct=e.get("hp_pct", "?"),
+                enemy_hp=e.get("hp", "?"),
+                enemy_max_hp=e.get("max_hp", "?"),
+                enemy_type=e.get("type", "Unknown"),
+                moves_list=moves_str,
+            )
+        except (KeyError, ValueError, AttributeError):
+            return ""
 
     def _build_ram_fallback(self) -> str:
         """Fallback: use the 'render' field from ram_reader as the prompt."""
@@ -1207,9 +1224,7 @@ class StateWindow:
         # Menu detection via RAM reader
         if result == "menu" or (menu_items and result != "overworld"):
             # If menu items contain battle commands, we're in battle menu
-            if any(item in ["FIGHT", "BAG", "PKMN", "RUN"] for item in menu_items):
-                return "BATTLE.BATTLE_MENU"
-            return "MENU.MAIN_MENU"
+            return self._hsm_menu_state(menu_items)
 
         # Dialog/text detection
         if result == "dialog" or (
@@ -1223,23 +1238,14 @@ class StateWindow:
 
         # ── Vision-based fallback ─────────────────────────────────────
         st = self.vision.get("screen_type", "")
-        _subtype = self.vision.get("screen_subtype", "")
+        return _HSM_VISION_STATES.get(st)
 
-        if st == "battle":
+    @staticmethod
+    def _hsm_menu_state(menu_items: list) -> str:
+        """Classify a RAM menu: battle commands mean battle menu, else main menu."""
+        if any(item in ["FIGHT", "BAG", "PKMN", "RUN"] for item in menu_items):
             return "BATTLE.BATTLE_MENU"
-        if st == "menu":
-            return "MENU.MAIN_MENU"
-        if st in ("dialog", "text"):
-            return "DIALOG.TEXT_DISPLAY"
-        if st in ("overworld", "navigation"):
-            return "OVERWORLD.IDLE"
-        if st == "title":
-            return "TITLE.WAITING_FOR_START"
-        if st == "name_entry":
-            return "BOOT.CHARACTER_NAMING"
-
-        # Can't map
-        return None
+        return "MENU.MAIN_MENU"
 
     def _log_hsm_transition(self, from_state: Any, to_state: Any) -> None:  # noqa: ANN401 — HSM callback passes enum or None
         """Callback: log HSM state transitions to DuckBrain.

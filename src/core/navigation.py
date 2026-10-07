@@ -216,37 +216,46 @@ class WorldGraph:
         valid_neighbors = []
 
         for edge in neighbors:
-            to_pos = edge.to_node
-
-            if edge.requires_hm:
-                if not context.allow_hm_usage:
-                    continue
-                hm_move = edge.requires_hm
-                if hm_move == HMMove.CUT and not context.has_flash:
-                    pass
-                elif hm_move not in [HMMove.FLY]:
-                    continue
-
-            if edge.is_ledge:
-                if context.avoid_encounters:
-                    continue
-                ledge_info = self.ledges.get(edge.from_node)
-                if ledge_info:
-                    direction = ledge_info[0]
-                    if direction != edge.direction:
-                        continue
-
-            node = self.nodes.get(to_pos)
-            if node and node.tile_type == TileType.BLOCKING:
-                continue
-
-            if node and node.tile_type == TileType.TRAINER_VISION:
-                if context.avoid_trainers:
-                    continue
-
-            valid_neighbors.append(edge)
+            if self._edge_traversable(edge, context):
+                valid_neighbors.append(edge)
 
         return valid_neighbors
+
+    def _edge_traversable(self, edge: GraphEdge, context: PathfindingContext) -> bool:
+        """Check HM requirements, ledge rules, and tile restrictions for an edge."""
+        if edge.requires_hm and not self._hm_usable(edge.requires_hm, context):
+            return False
+
+        if edge.is_ledge:
+            if context.avoid_encounters or not self._ledge_passable(edge):
+                return False
+
+        node = self.nodes.get(edge.to_node)
+        if node and node.tile_type == TileType.BLOCKING:
+            return False
+
+        if node and node.tile_type == TileType.TRAINER_VISION:
+            if context.avoid_trainers:
+                return False
+
+        return True
+
+    @staticmethod
+    def _hm_usable(hm_move: HMMove, context: PathfindingContext) -> bool:
+        """Whether the context permits using this HM edge."""
+        if not context.allow_hm_usage:
+            return False
+        if hm_move == HMMove.CUT and not context.has_flash:
+            return True
+        return hm_move in [HMMove.FLY]
+
+    def _ledge_passable(self, edge: GraphEdge) -> bool:
+        """Whether a ledge edge may be crossed in its own direction."""
+        ledge_info = self.ledges.get(edge.from_node)
+        if ledge_info:
+            direction = ledge_info[0]
+            return direction == edge.direction
+        return True
 
     def is_accessible(self, position: Position, context: PathfindingContext) -> bool:
         """Check if a position is accessible"""
@@ -371,19 +380,37 @@ class AStarPathfinder:
                     g_score[neighbor] = tentative_g
                     f_score[neighbor] = tentative_g + neighbor.manhattan_heuristic(goal)
 
-                    if node:
-                        if edge.requires_hm:
-                            hm_requirements.add(edge.requires_hm)
-                        if node.tile_type == TileType.TALL_GRASS:
-                            total_encounters += int(node.encounter_rate * 10)
-                        if node.danger_level > 0:
-                            total_danger += node.danger_level
+                    self._accumulate_edge_costs(edge, node, hm_requirements)
+                    total_encounters += self._edge_encounter_cost(node)
+                    total_danger += self._edge_danger_cost(node)
 
                     heappush(open_set, (f_score[neighbor], neighbor))
 
         return PathResult(
             success=False, warnings=["No path found from {start} to {goal}"]
         )
+
+    @staticmethod
+    def _accumulate_edge_costs(
+        edge: GraphEdge, node: GraphNode | None, hm_requirements: set[HMMove]
+    ) -> None:
+        """Record the HM an edge requires, when present."""
+        if node and edge.requires_hm:
+            hm_requirements.add(edge.requires_hm)
+
+    @staticmethod
+    def _edge_encounter_cost(node: GraphNode | None) -> int:
+        """Expected encounter weight for stepping onto a node."""
+        if node and node.tile_type == TileType.TALL_GRASS:
+            return int(node.encounter_rate * 10)
+        return 0
+
+    @staticmethod
+    def _edge_danger_cost(node: GraphNode | None) -> int:
+        """Danger weight for stepping onto a node."""
+        if node and node.danger_level > 0:
+            return node.danger_level
+        return 0
 
     def _calculate_movement_cost(
         self,
@@ -393,10 +420,28 @@ class AStarPathfinder:
         context: PathfindingContext,
         node: GraphNode | None,
     ) -> float:
-        base_cost = edge.cost
-
         if node is None:
-            return base_cost
+            return edge.cost
+
+        base_cost = self._terrain_cost_multiplier(edge, node, context)
+        if base_cost == float("inf"):
+            return float("inf")
+
+        if node.danger_level > 0:
+            hp_ratio = context.current_party_hp / context.max_party_hp
+            if hp_ratio < 0.3:
+                base_cost *= 1 + node.danger_level * 0.5
+
+        return base_cost
+
+    def _terrain_cost_multiplier(
+        self,
+        edge: GraphEdge,
+        node: GraphNode,
+        context: PathfindingContext,
+    ) -> float:
+        """Multiply the edge cost by terrain rules; inf when impassable."""
+        base_cost = edge.cost
 
         if node.tile_type == TileType.TALL_GRASS:
             if context.avoid_encounters:
@@ -417,11 +462,6 @@ class AStarPathfinder:
                 base_cost *= 0.9
             else:
                 base_cost *= 2.0
-
-        if node.danger_level > 0:
-            hp_ratio = context.current_party_hp / context.max_party_hp
-            if hp_ratio < 0.3:
-                base_cost *= 1 + node.danger_level * 0.5
 
         return base_cost
 

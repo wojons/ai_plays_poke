@@ -72,20 +72,11 @@ class GlobalContext:
             lines.append(f"RIVAL: {self.rival_name}")
 
         # Party
-        if self.party:
-            party_strs = []
-            for p in self.party:
-                hp = p.get("hp_pct", "?")
-                lvl = p.get("level", "?")
-                name = p.get("name", "?")
-                status = p.get("status", "")
-                s = f"{name} Lv{lvl} HP:{hp}%"
-                if status:
-                    s += f" [{status}]"
-                party_strs.append(s)
-            lines.append(f"PARTY: {' | '.join(party_strs)}")
-        else:
-            lines.append("PARTY: none")
+        lines.append(
+            f"PARTY: {' | '.join(self._party_summaries())}"
+            if self.party
+            else "PARTY: none"
+        )
 
         # Goals
         if self.goals:
@@ -107,6 +98,20 @@ class GlobalContext:
             lines.append(f"ITEMS: {', '.join(self.key_items)}")
 
         return "\n".join(lines)
+
+    def _party_summaries(self) -> list[str]:
+        """One-line summaries for each party member."""
+        party_strs = []
+        for p in self.party:
+            hp = p.get("hp_pct", "?")
+            lvl = p.get("level", "?")
+            name = p.get("name", "?")
+            status = p.get("status", "")
+            s = f"{name} Lv{lvl} HP:{hp}%"
+            if status:
+                s += f" [{status}]"
+            party_strs.append(s)
+        return party_strs
 
     # ──────────────────────────────────────────────────────────────────
     # Mutations

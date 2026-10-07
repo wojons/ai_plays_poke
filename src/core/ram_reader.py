@@ -416,9 +416,7 @@ class _MapDB:
         )
         if offsets[-1] >= len(self._rom):
             return None
-        return tuple(
-            self._rom[offset] for offset in offsets
-        )  # type: ignore[return-value]
+        return tuple(self._rom[offset] for offset in offsets)  # type: ignore[return-value]
 
     def _map_quadrant_tiles(
         self, map_id: int, tile_x: int, tile_y: int
@@ -978,6 +976,31 @@ TYPE_NAMES: dict[int, str] = {
 # ── Text decode ──
 
 
+_TEXT_SPECIAL: dict[int, str] = {
+    0x4E: "PK",  # PK
+    0x54: "POKé",  # POKé
+    0x5E: "™",  # ™
+    0x6D: "/",  # /
+    0x6E: ".",  # .
+    0x7F: " ",  # space
+}
+
+
+def _decode_char(b: int) -> str:
+    """Decode one Pokémon Gen 1 text byte."""
+    if 0x80 <= b <= 0x99:
+        return chr(ord("A") + (b - 0x80))
+    if 0xA0 <= b <= 0xB9:
+        return chr(ord("a") + (b - 0xA0))
+    if 0x00 <= b <= 0x09:
+        return str(b)
+    if b in _TEXT_SPECIAL:
+        return _TEXT_SPECIAL[b]
+    if 32 <= b < 127:
+        return chr(b)
+    return f"\\x{b:02x}"
+
+
 def _decode_text(data: bytes, offset: int, max_len: int = 20) -> str:
     """Decode Pokémon Gen 1 text encoding from RAM bytes."""
     chars: list[str] = []
@@ -985,28 +1008,7 @@ def _decode_text(data: bytes, offset: int, max_len: int = 20) -> str:
         b = data[offset + i] if offset + i < len(data) else 0x50
         if b == 0x50:  # terminator
             break
-        if 0x80 <= b <= 0x99:
-            chars.append(chr(ord("A") + (b - 0x80)))
-        elif 0xA0 <= b <= 0xB9:
-            chars.append(chr(ord("a") + (b - 0xA0)))
-        elif 0x00 <= b <= 0x09:
-            chars.append(str(b))
-        elif b == 0x4E:  # PK
-            chars.append("PK")
-        elif b == 0x54:  # POKé
-            chars.append("POKé")
-        elif b == 0x5E:  # ™
-            chars.append("™")
-        elif b == 0x6D:  # /
-            chars.append("/")
-        elif b == 0x6E:  # .
-            chars.append(".")
-        elif b == 0x7F:  # space
-            chars.append(" ")
-        elif 32 <= b < 127:
-            chars.append(chr(b))
-        else:
-            chars.append(f"\\x{b:02x}")
+        chars.append(_decode_char(b))
     return "".join(chars)
 
 
@@ -1446,56 +1448,24 @@ class RAMReader:
             row = ""
             for c in range(cols):
                 cx, cy = ox + c, oy + r
-                if not (0 <= cx < tw and 0 <= cy < th):
-                    row += "?"
+                symbol, is_unknown = self._render_grid_cell(
+                    cx,
+                    cy,
+                    mid=mid,
+                    tx=tx,
+                    ty=ty,
+                    tw=tw,
+                    th=th,
+                    bw=bw,
+                    tileset=tileset,
+                    block_data=block_data,
+                    glyph=glyph,
+                    object_numbers=object_numbers,
+                    legend_objects=legend_objects,
+                )
+                row += symbol
+                if is_unknown:
                     unknown += 1
-                    continue
-                if (cx, cy) == (tx, ty):
-                    row += glyph
-                    continue
-                walkable = self._mapdb.tile_walkability(mid, cx, cy)
-                bid = int(block_data[(cy // 2) * bw + (cx // 2)])
-                if tileset == _OVERWORLD_TILESET:
-                    cls = self._mapdb.tile_terrain(mid, cx, cy)
-                else:
-                    cls = self._mapdb.classify_block(bid, tileset)
-                if walkable is None or cls is None:
-                    row += "?"
-                    unknown += 1
-                elif cls == "water":
-                    # Not plain floor and not "blocked wall" either: water changes the
-                    # rules.
-                    # Impassable on foot now, crossable later, so it keeps its own
-                    # symbol.
-                    row += "W"
-                elif cls == "grass":
-                    # WALKABLE, but never a bare '.': stepping in can trigger an
-                    # encounter.
-                    # A hazard, not an obstacle - the distinction the agent needs.
-                    row += "G"
-                elif cls == "door":
-                    row += "D"
-                elif walkable:
-                    row += (
-                        "D"
-                        if tileset != _OVERWORLD_TILESET
-                        and self._is_doorway(mid, cx, cy)
-                        else "."
-                    )
-                elif cls == "tree":
-                    row += "T"
-                elif cls == "object":
-                    if bid not in object_numbers:
-                        object_numbers[bid] = len(object_numbers) + 1
-                        n = object_numbers[bid]
-                        tag = str(n) if n <= 9 else chr(ord("A") + n - 10)
-                        legend_objects.append(
-                            f"  {tag} = object (unnamed, block {bid:#04x})"
-                        )
-                    n = object_numbers[bid]
-                    row += str(n) if n <= 9 else chr(ord("A") + n - 10)
-                else:
-                    row += "B"
             grid_rows.append(row)
 
         head = [
@@ -1514,6 +1484,86 @@ class RAMReader:
             tail.extend(legend_objects)
         tail.append(f"Unknown cells: {unknown}")
         return "\n".join(head + body + tail)
+
+    def _render_grid_cell(
+        self,
+        cx: int,
+        cy: int,
+        *,
+        mid: int,
+        tx: int,
+        ty: int,
+        tw: int,
+        th: int,
+        bw: int,
+        tileset: int,
+        block_data: Any,
+        glyph: str,
+        object_numbers: dict[int, int],
+        legend_objects: list[str],
+    ) -> tuple[str, bool]:
+        """Render one grid cell. Returns (symbol, is_unknown)."""
+        if not (0 <= cx < tw and 0 <= cy < th):
+            return "?", True
+        if (cx, cy) == (tx, ty):
+            return glyph, False
+        walkable = self._mapdb.tile_walkability(mid, cx, cy)
+        bid = int(block_data[(cy // 2) * bw + (cx // 2)])
+        if tileset == _OVERWORLD_TILESET:
+            cls = self._mapdb.tile_terrain(mid, cx, cy)
+        else:
+            cls = self._mapdb.classify_block(bid, tileset)
+        if walkable is None or cls is None:
+            return "?", True
+        return self._cell_symbol(
+            cx, cy, mid, tileset, walkable, cls, bid, object_numbers, legend_objects
+        ), False
+
+    def _cell_symbol(
+        self,
+        cx: int,
+        cy: int,
+        mid: int,
+        tileset: int,
+        walkable: bool | None,
+        cls: str | None,
+        bid: int,
+        object_numbers: dict[int, int],
+        legend_objects: list[str],
+    ) -> str:
+        """Map a known (walkable, terrain-class) cell to its display symbol."""
+        if cls == "grass":
+            # WALKABLE, but never a bare '.': stepping in can trigger an encounter.
+            # A hazard, not an obstacle - the distinction the agent needs.
+            return "G"
+        if cls == "door":
+            return "D"
+        if cls == "water":
+            # Not plain floor and not "blocked wall" either: water changes the
+            # rules. Impassable on foot now, crossable later, so it keeps its
+            # own symbol.
+            return "W"
+        if walkable:
+            is_doorway = tileset != _OVERWORLD_TILESET and self._is_doorway(mid, cx, cy)
+            return "D" if is_doorway else "."
+        if cls == "tree":
+            return "T"
+        if cls == "object":
+            return self._object_tag(bid, object_numbers, legend_objects)
+        return "B"
+
+    @staticmethod
+    def _object_tag(
+        bid: int, object_numbers: dict[int, int], legend_objects: list[str]
+    ) -> str:
+        """Assign (or reuse) a numbered tag for a blocked object block."""
+        if bid not in object_numbers:
+            object_numbers[bid] = len(object_numbers) + 1
+            n = object_numbers[bid]
+            tag = str(n) if n <= 9 else chr(ord("A") + n - 10)
+            legend_objects.append(f"  {tag} = object (unnamed, block {bid:#04x})")
+        n = object_numbers[bid]
+        return str(n) if n <= 9 else chr(ord("A") + n - 10)
 
     def _is_doorway(self, map_id: int, x: int, y: int) -> bool:
         """True when a walkable cell sits in a GAP IN A WALL - a doorway or an opening.
@@ -1952,8 +2002,7 @@ class RAMReader:
             "wild Pokémon."
         ),
         "Route 2": (
-            "Route 2. North to Pewter City (through forest), south to Viridian "
-            "City."
+            "Route 2. North to Pewter City (through forest), south to Viridian City."
         ),
         "Pewter City": "Pewter City. Exit east to Route 3. Gym is in the northeast.",
     }
@@ -2065,47 +2114,7 @@ class RAMReader:
             obs["map_dimensions"] = f"{info['width']}×{info['height']}"
             obs["map_tileset"] = info["tileset"]
 
-        if st == SCREEN_BATTLE:
-            obs["suggested_action"] = "choose a battle action"
-            obs["battle_state"] = self.read_battle_state()
-            obs["render"] = self.render_battle()
-        elif st == SCREEN_MENU:
-            obs["suggested_action"] = "choose a menu item"
-            obs["menu_state"] = self.read_menu_state()
-            obs["menu_items"] = [
-                f"Item {i}" for i in range(obs["menu_state"]["num_items"])
-            ]
-            obs["render"] = self.render_menu()
-        elif st == SCREEN_DIALOG:
-            obs["suggested_action"] = "advance the dialogue"
-            obs["text_content"] = [self.read_dialog_text()]
-            obs["render"] = self.render_dialog()
-        elif st == SCREEN_NAME_ENTRY:
-            ne = self.read_name_entry()
-            obs["name_field"] = ne["name_so_far"]
-            obs["keyboard_grid"] = {"rows": ne["grid_rows"]}
-            obs["render"] = self.render_name_entry()
-            obs["suggested_action"] = "enter a name and press START"
-        elif st == SCREEN_OVERWORLD:
-            obs["adjacent"] = self.adjacent_blocks()
-            obs["adjacent_walkability"] = self.adjacent_walkability()
-            obs["collision_grid"] = self.build_collision_grid(radius=2)
-            obs["minimap"] = self.build_minimap(radius=2)
-            obs["overworld_grid"] = self.render_overworld()
-            obs["render"] = self.render_overworld()
-
-            # Use map-specific hint for suggested_action
-            hint = self._suggested_map_action(mname)
-            if hint:
-                obs["suggested_action"] = hint
-            else:
-                obs["suggested_action"] = "explore the area"
-            # Highlight non-floor adjacent tiles as potential exits
-            adj = obs["adjacent"]
-            exits = [d for d, t in adj.items() if t in ("stairs", "door", "warp")]
-            if exits:
-                obs["visible_exits"] = exits
-                obs["suggested_action"] = f"explore: exits at {', '.join(exits)}"
+        self._fill_screen_observation(obs, st, mname)
         # Also check menu-like overlay states
         menu_data = self.read_menu_state()
         if menu_data["num_items"] > 0:
@@ -2117,3 +2126,62 @@ class RAMReader:
                 obs["render"] = obs.get("render", "") + "\n" + self.render_menu()
 
         return obs
+
+    def _fill_screen_observation(
+        self, obs: dict[str, Any], st: str, mname: str
+    ) -> None:
+        """Fill screen-type-specific observation fields."""
+        if st == SCREEN_BATTLE:
+            self._fill_battle_observation(obs)
+        elif st == SCREEN_MENU:
+            self._fill_menu_observation(obs)
+        elif st == SCREEN_DIALOG:
+            self._fill_dialog_observation(obs)
+        elif st == SCREEN_NAME_ENTRY:
+            self._fill_name_entry_observation(obs)
+        elif st == SCREEN_OVERWORLD:
+            self._fill_overworld_observation(obs, mname)
+
+    def _fill_battle_observation(self, obs: dict[str, Any]) -> None:
+        obs["suggested_action"] = "choose a battle action"
+        obs["battle_state"] = self.read_battle_state()
+        obs["render"] = self.render_battle()
+
+    def _fill_menu_observation(self, obs: dict[str, Any]) -> None:
+        obs["suggested_action"] = "choose a menu item"
+        obs["menu_state"] = self.read_menu_state()
+        obs["menu_items"] = [f"Item {i}" for i in range(obs["menu_state"]["num_items"])]
+        obs["render"] = self.render_menu()
+
+    def _fill_dialog_observation(self, obs: dict[str, Any]) -> None:
+        obs["suggested_action"] = "advance the dialogue"
+        obs["text_content"] = [self.read_dialog_text()]
+        obs["render"] = self.render_dialog()
+
+    def _fill_name_entry_observation(self, obs: dict[str, Any]) -> None:
+        ne = self.read_name_entry()
+        obs["name_field"] = ne["name_so_far"]
+        obs["keyboard_grid"] = {"rows": ne["grid_rows"]}
+        obs["render"] = self.render_name_entry()
+        obs["suggested_action"] = "enter a name and press START"
+
+    def _fill_overworld_observation(self, obs: dict[str, Any], mname: str) -> None:
+        obs["adjacent"] = self.adjacent_blocks()
+        obs["adjacent_walkability"] = self.adjacent_walkability()
+        obs["collision_grid"] = self.build_collision_grid(radius=2)
+        obs["minimap"] = self.build_minimap(radius=2)
+        obs["overworld_grid"] = self.render_overworld()
+        obs["render"] = self.render_overworld()
+
+        # Use map-specific hint for suggested_action
+        hint = self._suggested_map_action(mname)
+        if hint:
+            obs["suggested_action"] = hint
+        else:
+            obs["suggested_action"] = "explore the area"
+        # Highlight non-floor adjacent tiles as potential exits
+        adj = obs["adjacent"]
+        exits = [d for d, t in adj.items() if t in ("stairs", "door", "warp")]
+        if exits:
+            obs["visible_exits"] = exits
+            obs["suggested_action"] = f"explore: exits at {', '.join(exits)}"

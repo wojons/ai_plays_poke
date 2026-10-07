@@ -918,24 +918,34 @@ class CarryScoreCalculator:
 
         quality_bonus = sum(self.type_values.get_weight(t) * 4.0 for t in unique_types)
 
-        boss_bonus = 0.0
-        if upcoming_battles:
-            for battle in upcoming_battles:
-                boss_types = battle.get("boss_types", [])
-                for unique_type in unique_types:
-                    for boss_type_name in boss_types:
-                        try:
-                            boss_type = PokemonType(boss_type_name)
-                            effectiveness = self.type_chart.get_effectiveness(
-                                unique_type, [boss_type]
-                            )
-                            if effectiveness >= 2.0:
-                                boss_bonus += 2.0
-                        except ValueError:
-                            continue
+        boss_bonus = self._boss_type_bonus(unique_types, upcoming_battles)
 
         final_score = base_uniqueness + quality_bonus + min(boss_bonus, 6.0)
         return max(0.0, min(30.0, final_score))
+
+    def _boss_type_bonus(
+        self,
+        unique_types: list[PokemonType],
+        upcoming_battles: list[dict[str, Any]] | None,
+    ) -> float:
+        """Bonus for unique types that are super-effective against upcoming bosses."""
+        bonus = 0.0
+        if not upcoming_battles:
+            return bonus
+        for battle in upcoming_battles:
+            boss_types = battle.get("boss_types", [])
+            for unique_type in unique_types:
+                for boss_type_name in boss_types:
+                    try:
+                        boss_type = PokemonType(boss_type_name)
+                    except ValueError:
+                        continue
+                    effectiveness = self.type_chart.get_effectiveness(
+                        unique_type, [boss_type]
+                    )
+                    if effectiveness >= 2.0:
+                        bonus += 2.0
+        return bonus
 
     def calculate_move_coverage(
         self,
@@ -1268,6 +1278,19 @@ class EvolutionManager:
         }
 
 
+def _level_delta_priority(level_delta: float) -> float:
+    """Base battle-usage priority from how the pokemon's level compares to the party."""
+    if level_delta > 5:
+        return 30.0
+    if level_delta > 3:
+        return 50.0
+    if level_delta > -3:
+        return 80.0
+    if level_delta > -5:
+        return 100.0
+    return 130.0
+
+
 class TeamCompositionOptimizer:
     """Optimizes team composition for current and upcoming content."""
 
@@ -1287,46 +1310,12 @@ class TeamCompositionOptimizer:
         upcoming_battles: list[dict[str, Any]] | None = None,
     ) -> TypeCoverage:
         all_types = set(PokemonType)
-        covered_types: set[PokemonType] = set()
-        party_move_types: set[PokemonType] = set()
-
-        for pokemon in party:
-            if pokemon is None:
-                continue
-            for move in pokemon.moves:
-                if move.pp > 0 and move.category != MoveCategory.STATUS:
-                    party_move_types.add(move.move_type)
-
-        for move_type in party_move_types:
-            for target_type in all_types:
-                effectiveness = self.type_chart.get_effectiveness(
-                    move_type, [target_type]
-                )
-                if effectiveness >= 2.0:
-                    covered_types.add(target_type)
-                    break
+        party_move_types = self._party_move_types(party)
+        covered_types = self._covered_types(party_move_types)
 
         uncovered = all_types - covered_types
 
-        critical_gaps: set[PokemonType] = set()
-        if upcoming_battles:
-            for battle in upcoming_battles:
-                boss_types = battle.get("boss_types", [])
-                for boss_type_name in boss_types:
-                    try:
-                        boss_type = PokemonType(boss_type_name)
-                        effective_counters = [
-                            t
-                            for t in all_types
-                            if self.type_chart.get_effectiveness(t, [boss_type]) >= 2.0
-                        ]
-                        if not any(
-                            counter in party_move_types
-                            for counter in effective_counters
-                        ):
-                            critical_gaps.add(boss_type)
-                    except ValueError:
-                        continue
+        critical_gaps = self._critical_type_gaps(party_move_types, upcoming_battles)
 
         coverage_pct = len(covered_types) / len(all_types) if all_types else 0.0
 
@@ -1336,6 +1325,55 @@ class TeamCompositionOptimizer:
             critical_gaps=critical_gaps,
             coverage_percentage=coverage_pct,
         )
+
+    def _party_move_types(self, party: list[PokemonData | None]) -> set[PokemonType]:
+        """Usable (non-status, PP>0) move types present in the party."""
+        move_types: set[PokemonType] = set()
+        for pokemon in party:
+            if pokemon is None:
+                continue
+            for move in pokemon.moves:
+                if move.pp > 0 and move.category != MoveCategory.STATUS:
+                    move_types.add(move.move_type)
+        return move_types
+
+    def _covered_types(self, party_move_types: set[PokemonType]) -> set[PokemonType]:
+        """All types that any party move is at least super-effective against."""
+        covered: set[PokemonType] = set()
+        for move_type in party_move_types:
+            for target_type in PokemonType:
+                effectiveness = self.type_chart.get_effectiveness(
+                    move_type, [target_type]
+                )
+                if effectiveness >= 2.0:
+                    covered.add(target_type)
+        return covered
+
+    def _critical_type_gaps(
+        self,
+        party_move_types: set[PokemonType],
+        upcoming_battles: list[dict[str, Any]] | None,
+    ) -> set[PokemonType]:
+        """Boss types that no party move can counter super-effectively."""
+        gaps: set[PokemonType] = set()
+        if not upcoming_battles:
+            return gaps
+        for battle in upcoming_battles:
+            for boss_type_name in battle.get("boss_types", []):
+                try:
+                    boss_type = PokemonType(boss_type_name)
+                except ValueError:
+                    continue
+                effective_counters = [
+                    t
+                    for t in PokemonType
+                    if self.type_chart.get_effectiveness(t, [boss_type]) >= 2.0
+                ]
+                if not any(
+                    counter in party_move_types for counter in effective_counters
+                ):
+                    gaps.add(boss_type)
+        return gaps
 
     def calculate_stat_distribution(
         self, party: list[PokemonData | None]
@@ -1438,48 +1476,8 @@ class TeamCompositionOptimizer:
             best_score = -1.0
 
             for candidate in available_pokemon:
-                candidate_types = list(candidate.types)
-
-                defensive_effectiveness: list[float] = []
-                for boss_type_name in boss_types:
-                    try:
-                        boss_type = PokemonType(boss_type_name)
-                        for cand_type in candidate_types:
-                            if cand_type:
-                                eff = self.type_chart.get_effectiveness(
-                                    boss_type, [cand_type]
-                                )
-                                defensive_effectiveness.append(eff)
-                    except ValueError:
-                        continue
-
-                if defensive_effectiveness:
-                    def_score = max(defensive_effectiveness)
-                    if def_score <= 0.5:
-                        defensive_score = 3.0
-                    elif def_score <= 1.0:
-                        defensive_score = 2.0
-                    else:
-                        defensive_score = 1.0
-                else:
-                    defensive_score = 2.0
-
-                offensive_score = 0.0
-                for boss_type_name in boss_types:
-                    try:
-                        boss_type = PokemonType(boss_type_name)
-                        for cand_type in candidate_types:
-                            if cand_type:
-                                eff = self.type_chart.get_effectiveness(
-                                    cand_type, [boss_type]
-                                )
-                                if eff >= 2.0:
-                                    offensive_score = 3.0
-                                    break
-                                elif eff >= 1.0:
-                                    offensive_score = max(offensive_score, 2.0)
-                    except ValueError:
-                        continue
+                defensive_score = self._counter_defensive_score(candidate, boss_types)
+                offensive_score = self._counter_offensive_score(candidate, boss_types)
 
                 level_score = (
                     min(candidate.level / boss_level, 1.5) if boss_level > 0 else 1.0
@@ -1506,6 +1504,54 @@ class TeamCompositionOptimizer:
 
         return counters
 
+    def _counter_defensive_score(
+        self, candidate: PokemonData, boss_types: list[str]
+    ) -> float:
+        """Score how well the candidate DEFENDS against the boss's types (0-3)."""
+        candidate_types = list(candidate.types)
+        defensive_effectiveness: list[float] = []
+        for boss_type_name in boss_types:
+            try:
+                boss_type = PokemonType(boss_type_name)
+            except ValueError:
+                continue
+            for cand_type in candidate_types:
+                if cand_type:
+                    eff = self.type_chart.get_effectiveness(boss_type, [cand_type])
+                    defensive_effectiveness.append(eff)
+
+        if not defensive_effectiveness:
+            return 2.0
+        def_score = max(defensive_effectiveness)
+        if def_score <= 0.5:
+            return 3.0
+        if def_score <= 1.0:
+            return 2.0
+        return 1.0
+
+    def _counter_offensive_score(
+        self, candidate: PokemonData, boss_types: list[str]
+    ) -> float:
+        """Score how well the candidate OFFENDS the boss's types (0-3)."""
+        offensive_score = 0.0
+        candidate_types = list(candidate.types)
+        for boss_type_name in boss_types:
+            try:
+                boss_type = PokemonType(boss_type_name)
+            except ValueError:
+                continue
+            for cand_type in candidate_types:
+                if cand_type:
+                    eff = self.type_chart.get_effectiveness(cand_type, [boss_type])
+                    if eff >= 2.0:
+                        offensive_score = 3.0
+                        break
+                    if eff >= 1.0:
+                        offensive_score = max(offensive_score, 2.0)
+            if offensive_score >= 3.0:
+                break
+        return offensive_score
+
     def calculate_battle_usage_priorities(
         self, party: list[PokemonData | None], enemy_party: list[dict[str, Any]]
     ) -> list[tuple[PokemonData | None, float]]:
@@ -1522,42 +1568,46 @@ class TeamCompositionOptimizer:
                 continue
 
             level_delta = pokemon.level - party_avg_level
-
-            if level_delta > 5:
-                base_priority = 30.0
-            elif level_delta > 3:
-                base_priority = 50.0
-            elif level_delta > -3:
-                base_priority = 80.0
-            elif level_delta > -5:
-                base_priority = 100.0
-            else:
-                base_priority = 130.0
+            base_priority = _level_delta_priority(level_delta)
 
             if not pokemon.can_battle():
                 base_priority = 0.0
             else:
-                for enemy in enemy_party:
-                    enemy_types = enemy.get("types", [])
-                    for move in pokemon.moves:
-                        if move.category != MoveCategory.STATUS:
-                            for enemy_type_name in enemy_types:
-                                try:
-                                    enemy_type = PokemonType(enemy_type_name)
-                                    effectiveness = self.type_chart.get_effectiveness(
-                                        move.move_type, [enemy_type]
-                                    )
-                                    if effectiveness >= 2.0:
-                                        base_priority += 20.0
-                                        break
-                                    elif effectiveness <= 0.5:
-                                        base_priority = max(20.0, base_priority - 15.0)
-                                except ValueError:
-                                    continue
+                base_priority = self._apply_matchup_adjustments(
+                    base_priority, pokemon, enemy_party
+                )
 
             priorities.append((pokemon, max(0.0, min(150.0, base_priority))))
 
         return priorities
+
+    def _apply_matchup_adjustments(
+        self,
+        base_priority: float,
+        pokemon: PokemonData,
+        enemy_party: list[dict[str, Any]],
+    ) -> float:
+        """Apply move-matchup adjustments to the running base priority."""
+        delta = base_priority
+        for enemy in enemy_party:
+            enemy_types = enemy.get("types", [])
+            for move in pokemon.moves:
+                if move.category == MoveCategory.STATUS:
+                    continue
+                for enemy_type_name in enemy_types:
+                    try:
+                        enemy_type = PokemonType(enemy_type_name)
+                    except ValueError:
+                        continue
+                    effectiveness = self.type_chart.get_effectiveness(
+                        move.move_type, [enemy_type]
+                    )
+                    if effectiveness >= 2.0:
+                        delta += 20.0
+                        break
+                    if effectiveness <= 0.5:
+                        delta = max(20.0, delta - 15.0)
+        return delta
 
     def optimize_party_order(
         self, party: list[PokemonData | None], battle_type: str
@@ -1755,13 +1805,14 @@ class TeamCompositionOptimizer:
             best_score = -1.0
 
             for pokemon in box_pokemon:
-                if gap_type in pokemon.types:
-                    score, _ = self.carry_calculator.calculate_carry_score(
-                        pokemon, current_party
-                    )
-                    if score > best_score:
-                        best_score = score
-                        best_candidate = pokemon
+                if gap_type not in pokemon.types:
+                    continue
+                score, _ = self.carry_calculator.calculate_carry_score(
+                    pokemon, current_party
+                )
+                if score > best_score:
+                    best_score = score
+                    best_candidate = pokemon
 
             if best_candidate:
                 suggestions.append(
@@ -1775,28 +1826,41 @@ class TeamCompositionOptimizer:
 
         for party_member in current_party:
             if party_member is not None:
-                score, _ = self.carry_calculator.calculate_carry_score(
-                    party_member, current_party
+                self._suggest_bench_replacements(
+                    suggestions, party_member, current_party, box_pokemon
                 )
-                bench_status = self.carry_calculator.should_bench(score)
-                if bench_status == "immediate_bench":
-                    for box_mon in box_pokemon:
-                        box_score, _ = self.carry_calculator.calculate_carry_score(
-                            box_mon, current_party
-                        )
-                        if box_score > score:
-                            suggestions.append(
-                                {
-                                    "action": "replace",
-                                    "remove": party_member.species_id,
-                                    "add": box_mon.species_id,
-                                    "reason": f"{box_mon.species_id} has higher carry score ({box_score:.1f} vs {score:.1f})",
-                                    "priority": "medium",
-                                }
-                            )
-                            break
 
         return suggestions
+
+    def _suggest_bench_replacements(
+        self,
+        suggestions: list[dict[str, Any]],
+        party_member: PokemonData,
+        current_party: list[PokemonData | None],
+        box_pokemon: list[PokemonData],
+    ) -> None:
+        """Suggest replacing a party member flagged for immediate benching."""
+        score, _ = self.carry_calculator.calculate_carry_score(
+            party_member, current_party
+        )
+        bench_status = self.carry_calculator.should_bench(score)
+        if bench_status != "immediate_bench":
+            return
+        for box_mon in box_pokemon:
+            box_score, _ = self.carry_calculator.calculate_carry_score(
+                box_mon, current_party
+            )
+            if box_score > score:
+                suggestions.append(
+                    {
+                        "action": "replace",
+                        "remove": party_member.species_id,
+                        "add": box_mon.species_id,
+                        "reason": f"{box_mon.species_id} has higher carry score ({box_score:.1f} vs {score:.1f})",
+                        "priority": "medium",
+                    }
+                )
+                break
 
 
 class EntityManager:

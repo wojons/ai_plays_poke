@@ -387,24 +387,17 @@
         },
         {
             "file": "src/core/state_window.py",
-            "context": "StateWindow.run",
+            "context": "StateWindow._maybe_auto_advance",
             "button": "a",
             "call": "press_button('a', frames=30)",
-            "reason": "Legacy bounded dialog/name-entry advancement: retained for non-overworld state handling and capped before AI deliberation resumes."
+            "reason": "Bounded dialog fast-forward: auto-A press for non-interactive dialogs, capped before AI deliberation resumes."
         },
         {
             "file": "src/core/state_window.py",
-            "context": "StateWindow.run",
+            "context": "StateWindow._maybe_auto_advance",
             "button": "a",
             "call": "press_button('a', frames=30)",
-            "reason": "Legacy bounded dialog/name-entry advancement: retained for non-overworld state handling and capped before AI deliberation resumes."
-        },
-        {
-            "file": "src/core/state_window.py",
-            "context": "StateWindow.run",
-            "button": "button",
-            "call": "press_button(button, frames=dur)",
-            "reason": "Legacy name-entry transport: executes the keyboard action derived from the observed cursor and target name."
+            "reason": "Bounded name-entry advancement: A-mash for the naming screen before AI deliberation resumes."
         },
         {
             "file": "src/core/tools.py",
