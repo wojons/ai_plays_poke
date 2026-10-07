@@ -4832,6 +4832,10 @@ BOOT_SAVE_KEYS: tuple[str, ...] = (
     "/game/save/items",
     "/game/save/location",
 )
+# DF-AIPP-5: the freshest distilled save record (written by the run-truth
+# distillation / MEM-3 backfill). duckbrain_client.get() already returns the
+# most recent active record for the key, so freshness is the store's job.
+BOOT_SAVE_CURRENT_KEY = "/game/save/current"
 BOOT_LEARNING_KEYS: tuple[str, ...] = (
     "/game/learning/battle",
     "/game/learning/navigation",
@@ -5015,8 +5019,41 @@ def _render_save_location(record: dict[str, Any]) -> str:
     return text
 
 
+def _render_save_current(record: dict[str, Any]) -> str:
+    """Freshest-save line (DF-AIPP-5) from whatever fields the record carries."""
+    attributes = record.get("attributes") or {}
+    if not isinstance(attributes, dict):
+        attributes = {}
+    text = ""
+    name = attributes.get("map_name")
+    map_id = attributes.get("map_id")
+    pos = attributes.get("pos")
+    if name is not None or map_id is not None or pos is not None:
+        text = _collapse_ws(str(name or "unknown map"))
+        if map_id is not None:
+            text += f" (map {map_id})"
+        if isinstance(pos, dict):
+            x, y = pos.get("x"), pos.get("y")
+            if x is not None and y is not None:
+                text += f" at {x},{y}"
+        elif isinstance(pos, (list, tuple)) and len(pos) == 2:
+            text += f" at {pos[0]},{pos[1]}"
+    party_count = attributes.get("party_count")
+    if party_count is not None:
+        if text:
+            text += "; "
+        text += f"{_as_int(party_count)} party member(s)"
+    if text:
+        return text
+    # Defensive fallback: truncated JSON dump so *some* truth still rides.
+    body = _memory_record_body(record)
+    if not body:
+        body = json.dumps(record.get("attributes") or {}, default=str)
+    return body[:200]
+
+
 def _gather_save_state(client: Any) -> list[str]:
-    """Rendered SAVE-STATE lines: party, items, location (whichever exist)."""
+    """Rendered SAVE-STATE lines: party, items, location, current (whichever exist)."""
     renderers = (_render_save_party, _render_save_items, _render_save_location)
     lines: list[str] = []
     for label, key, renderer in zip(
@@ -5028,6 +5065,11 @@ def _gather_save_state(client: Any) -> list[str]:
         body = renderer(record)
         if body:
             lines.append(f"- {label}: {body}")
+    current_record = _get_boot_record(client, BOOT_SAVE_CURRENT_KEY)
+    if current_record is not None:
+        body = _render_save_current(current_record)
+        if body:
+            lines.append(f"- current: {body}")
     return lines
 
 

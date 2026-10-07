@@ -331,3 +331,65 @@ def test_prompt_assembly_matches_populated_store(temp_store: Path) -> None:
         client, {"map_name": "Pallet Town"}, "", "", boot_memory=boot.text
     )
     assert "BOOT MEMORY" not in str(client.messages[1]["content"])
+
+
+# --- DF-AIPP-5: boot SAVE block reads the freshest /game/save/current record ---
+
+
+def test_save_current_record_renders_current_line(temp_store: Path) -> None:
+    _ = temp_store
+    _remember(
+        "/game/save/current",
+        "game/saves",
+        {
+            "map_name": "Pewter City",
+            "map_id": 18,
+            "pos": {"x": 5, "y": 8},
+            "party_count": 2,
+        },
+    )
+    boot = cron_runner._build_boot_memory_blocks()
+    save = _block(boot.text, "SAVE", "RUN HISTORY")
+    assert "- current: Pewter City (map 18) at 5,8; 2 party member(s)" in save
+    assert boot.has_content is True
+
+
+def test_save_current_absent_leaves_output_unchanged(temp_store: Path) -> None:
+    _ = temp_store
+    _remember(
+        "/game/save/party",
+        "game/saves",
+        {"party_count": 1, "species_hint": "Squirtle"},
+    )
+    boot = cron_runner._build_boot_memory_blocks()
+    save = _block(boot.text, "SAVE", "RUN HISTORY")
+    assert "- current:" not in save
+    assert "- party: 1 party member(s); first species Squirtle" in save
+
+
+def test_save_current_malformed_record_skipped_not_raised(temp_store: Path) -> None:
+    _ = temp_store
+    _remember(
+        "/game/save/current", "game/saves", {"foo": "bar"}
+    )  # no recognized fields -> fallback body
+    boot = cron_runner._build_boot_memory_blocks()  # must never raise
+    save = _block(boot.text, "SAVE", "RUN HISTORY")
+    assert "- current: foo=bar" in save  # fallback body path, truncated to <=200 chars
+    current_line = next(
+        line for line in save.splitlines() if line.startswith("- current:")
+    )
+    assert len(current_line) <= 200 + len("- current: ")
+
+
+def test_save_current_empty_attributes_falls_back_to_body(temp_store: Path) -> None:
+    _ = temp_store
+    duckbrain_client.remember(
+        key="/game/save/current",
+        domain="game/saves",
+        attributes={},
+        embedding_text="standing outside Viridian Forest",
+        namespace=cron_runner.BOOT_MEMORY_NAMESPACE,
+    )
+    boot = cron_runner._build_boot_memory_blocks()
+    save = _block(boot.text, "SAVE", "RUN HISTORY")
+    assert "- current: standing outside Viridian Forest" in save
