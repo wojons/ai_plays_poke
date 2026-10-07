@@ -13,6 +13,7 @@ Usage:
 import argparse
 import json
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,19 @@ from src.core.ram_reader import RAMReader  # noqa: E402
 from src.core.state_projection import DEFAULT_MECHANICS, build  # noqa: E402
 
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
+
+
+def _write_probe_result(prefix: str, result: dict[str, Any]) -> Path:
+    """Persist probe evidence under an unpredictable, owner-only temp filename."""
+    with tempfile.NamedTemporaryFile(
+        mode="w",
+        encoding="utf-8",
+        prefix=f"{prefix}-",
+        suffix=".json",
+        delete=False,
+    ) as output:
+        json.dump(result, output, indent=1, default=str)
+        return Path(output.name)
 
 
 def run(
@@ -130,12 +144,10 @@ def run(
                 "error": str(exc),
             }
         out["teacher_escalation"] = record
-        Path("/tmp/jev_escalation_probe.json").write_text(
-            json.dumps(record, indent=1, default=str)
-        )
+        escalation_output = _write_probe_result("jev-escalation-probe", record)
         print("\nTEACHER ESCALATION")
         print(json.dumps(record, indent=2, default=str))
-        print("WROTE /tmp/jev_escalation_probe.json")
+        print(f"WROTE {escalation_output}")
     return out
 
 
@@ -154,7 +166,5 @@ if __name__ == "__main__":
         [press for press in args.presses.split(",") if press],
         escalate=args.escalate,
     )
-    Path("/tmp/jev_projection_probe.json").write_text(
-        json.dumps(out, indent=1, default=str)
-    )
-    print("\nWROTE /tmp/jev_projection_probe.json")
+    projection_output = _write_probe_result("jev-projection-probe", out)
+    print(f"\nWROTE {projection_output}")

@@ -355,3 +355,7 @@ class TestDemoRunnerCleanupExtended:
         assert runner.emulator is None
         assert runner.loop is None
         assert runner.results == []
+
+
+# Test-only path is consumed by mocked emulator code and is never opened.
+# ruff: noqa: S108

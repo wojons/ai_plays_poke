@@ -26,6 +26,7 @@ import json
 import os
 import socket
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, cast
 
@@ -43,7 +44,6 @@ ROM = Path(
     "(SGB Enhanced).gb"
 )
 PROMPT = REPO / "prompts/exploration/vision_map_blueprint.md"
-OUTDIR = Path("/tmp/perception")
 COLS, ROWS = 10, 9  # the screen in game cells: 160/16 x 144/16
 CELL = 16  # one game cell in pixels
 PLAYER_CELL = (4, 3)  # where the player sits on screen, measured from the sprite box
@@ -122,7 +122,10 @@ def vision_grid(png: Path) -> tuple[list[str], dict[str, Any]]:
         data=json.dumps(body).encode(),
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=240) as r:
+    # This diagnostic only calls the fixed OpenRouter HTTPS endpoint.
+    with urllib.request.urlopen(  # noqa: S310  # nosec B310
+        req, timeout=240
+    ) as r:
         resp = json.loads(r.read().decode())
     got = parse_json(resp["choices"][0]["message"].get("content") or "") or {}
     return list(got.get("grid") or []), got
@@ -207,6 +210,7 @@ def verdict(a: str, b: str, ra: str, rb: str) -> str:
 
 
 def main() -> int:
+    outdir = Path(tempfile.mkdtemp(prefix="aipp-perception-"))
     label = sys.argv[1] if len(sys.argv) > 1 else "DIFF"
     o = obs()
     space = str(o.get("map_name"))
@@ -257,8 +261,7 @@ def main() -> int:
     if findings:
         print("\nCELLS THAT NEED A HUMAN LOOK:")
         print("\n".join(findings[:14]))
-    OUTDIR.mkdir(parents=True, exist_ok=True)
-    out = OUTDIR / f"{label}.json"
+    out = outdir / f"{label}.json"
     out.write_text(
         json.dumps(
             {

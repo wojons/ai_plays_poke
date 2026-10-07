@@ -657,3 +657,7 @@ class TestPromptStackAssemblyEdgeCases:
         prompt = stack.assemble("gen3", "battle", vision, memory)
         assert "Example 1:" in prompt
         assert "Example 2:" in prompt
+
+
+# Deliberately nonexistent test sentinel; no temporary path is created or opened.
+# ruff: noqa: S108

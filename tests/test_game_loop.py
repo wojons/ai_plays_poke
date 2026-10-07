@@ -1316,3 +1316,7 @@ class TestNormalizeRecommendedAction:
         assert GameLoop._normalize_recommended_action("wait") is None
         assert GameLoop._normalize_recommended_action("walk sideways") is None
         assert GameLoop._normalize_recommended_action("walk") is None
+
+
+# Test-only paths are isolated fixtures or values passed to mocked collaborators.
+# ruff: noqa: S108

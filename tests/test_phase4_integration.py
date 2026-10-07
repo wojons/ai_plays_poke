@@ -79,14 +79,16 @@ from src.core.tools import parse_tool_call, execute_tool_call  # noqa: E402
 # Test code-fenced JSON
 resp1 = '```json\n{"name": "press_button", "arguments": {"button": "a", "duration": 5}}\n```'
 parsed = parse_tool_call(resp1)
-assert parsed and parsed["name"] == "press_button"
+assert parsed
+assert parsed["name"] == "press_button"
 assert parsed["arguments"]["button"] == "a"
 print("   Code-fenced JSON ✓")
 
 # Test bare JSON
 resp2 = '{"name": "wait", "arguments": {"frames": 30}}'
 parsed2 = parse_tool_call(resp2)
-assert parsed2 and parsed2["name"] == "wait"
+assert parsed2
+assert parsed2["name"] == "wait"
 print("   Bare JSON ✓")
 
 # Test tool execution
@@ -97,7 +99,8 @@ print(f"   Tool execution: {result} ✓")
 # Test fallback (unknown screen_type)
 resp3 = 'I think we should move forward. Let me press the up button for a while. ```json\n{"name": "combo", "arguments": {"buttons": ["up"], "duration": 20}}\n```'
 parsed3 = parse_tool_call(resp3)
-assert parsed3 and parsed3["name"] == "combo"
+assert parsed3
+assert parsed3["name"] == "combo"
 print("   Mixed text + JSON ✓")
 
 # Test nil case

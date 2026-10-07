@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,11 @@ from src.core.agentic_loop import (  # noqa: E402
 
 QUESTION = "Why is the Viridian City gym locked?"
 FINDING = "Pokémon Red: Viridian City gym is locked until badges X"
+
+
+def _default_output_path() -> Path:
+    """Return a private, collision-resistant default evidence path."""
+    return Path(tempfile.mkdtemp(prefix="aipp-deleg1-smoke-")) / "run.jsonl"
 
 
 class _ScriptedClient:
@@ -169,7 +175,8 @@ def run_smoke(output: Path) -> list[dict[str, Any]]:
         f"expected 1 delegate event, got {delegate_events}"
     )
     delegate_event = delegate_events[0]
-    assert delegate_event["ok"] is True and delegate_event["verified"] is True
+    assert delegate_event["ok"] is True
+    assert delegate_event["verified"] is True
     assert delegate_event["delegation"] is True
 
     recalled = memory.recall(key=_expected_key(QUESTION))
@@ -258,9 +265,11 @@ def main() -> None:
     parser.add_argument(
         "--output",
         type=Path,
-        default=Path("/tmp/run_deleg1_smoke.jsonl"),
+        default=None,
     )
     args = parser.parse_args()
+    if args.output is None:
+        args.output = _default_output_path()
     rows = run_smoke(args.output)
     for row in rows:
         print(json.dumps(row, default=str, ensure_ascii=False))

@@ -215,7 +215,8 @@ class TestCreateGridView:
         grid_path = sm.create_grid_view(recent_count=5)
         # 5 images → 2 rows × 4 cols, grid height = 2*288 = 576, width = 4*320 = 1280
         img = Image.open(grid_path)
-        assert img.size[0] > 0 and img.size[1] > 0
+        assert img.size[0] > 0
+        assert img.size[1] > 0
 
     def test_recent_count_limits_images(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path / "ss"))

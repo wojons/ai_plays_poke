@@ -240,7 +240,8 @@ def test_write_autonomy_row_emits_one_json_line_with_the_ratio() -> None:
 
     # `grep -c '"autonomy_ratio"' cron_logs/run_<id>.jsonl` >= 1
     assert text.count('"autonomy_ratio"') == 1
-    assert text.endswith("\n") and text.count("\n") == 1
+    assert text.endswith("\n")
+    assert text.count("\n") == 1
 
     parsed = json.loads(text)
     assert parsed == row

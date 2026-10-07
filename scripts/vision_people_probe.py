@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# The sole URL is a fixed HTTPS endpoint and the open has a bounded timeout.
+# ruff: noqa: S310
+
 """Measure people identification against live Gen I sprite-table cells.
 
 Examples:
@@ -393,7 +396,7 @@ def call_openrouter(frame_path: Path, prompt: str, api_key: str) -> str:
         },
     )
     try:
-        with urllib.request.urlopen(request, timeout=240) as response:  # noqa: S310
+        with urllib.request.urlopen(request, timeout=240) as response:  # nosec B310
             loaded = json.loads(response.read().decode())
     except urllib.error.HTTPError as error:
         detail = error.read().decode(errors="replace")

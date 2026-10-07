@@ -316,3 +316,7 @@ class TestExceptionEdgeCases:
             pass
         except PokemonAIError:
             pytest.fail("ROMError caught by PokemonAIError instead of ROMError")
+
+
+# Test-only path values are exception context and are never opened.
+# ruff: noqa: S108

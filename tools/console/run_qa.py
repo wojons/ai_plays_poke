@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Console URL is a fixed loopback HTTP endpoint and every open has a bounded timeout.
+# ruff: noqa: S310
+
 """Run the existing console QA tools without issuing game movement commands."""
 
 from __future__ import annotations
@@ -67,7 +70,9 @@ def _request_json(
         headers={"Content-Type": "application/json"},
     )
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with urllib.request.urlopen(  # nosec B310
+            request, timeout=timeout
+        ) as response:
             payload = json.loads(response.read())
             return response.status, payload if isinstance(payload, dict) else {}
     except urllib.error.HTTPError as error:

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Console URL is a fixed loopback HTTP endpoint and every open has a bounded timeout.
+# ruff: noqa: S310
+
 """Full test pass for the operator console.
 
 Exercises every surface against the running system, prints a PASS/FAIL table, and restores the
@@ -36,7 +39,9 @@ def check(name: str, ok: bool, detail: str = "") -> None:
 
 def get(path: str, timeout: int = 30, raw: bool = False):
     try:
-        with urllib.request.urlopen(C + path, timeout=timeout) as r:
+        with urllib.request.urlopen(  # nosec B310
+            C + path, timeout=timeout
+        ) as r:
             body = r.read()
             return r.status, (body if raw else json.loads(body))
     except urllib.error.HTTPError as e:
@@ -52,7 +57,9 @@ def post(path: str, body: dict, timeout: int = 600):
             data=json.dumps(body).encode(),
             headers={"Content-Type": "application/json"},
         )
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(  # nosec B310
+            req, timeout=timeout
+        ) as r:
             return r.status, json.loads(r.read())
     except urllib.error.HTTPError as e:
         return e.code, None
@@ -167,7 +174,8 @@ check(
 
 # self-consistency: recompute the verdict from the grids and compare to what the panel claims
 spec = _u.spec_from_file_location("srv", "/home/kara/aipp-console/server.py")
-assert spec is not None and spec.loader is not None
+assert spec is not None
+assert spec.loader is not None
 m = _u.module_from_spec(spec)
 spec.loader.exec_module(m)
 vis = (st or {}).get("vision") or []

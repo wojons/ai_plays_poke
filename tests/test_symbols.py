@@ -86,7 +86,8 @@ class TestTerrainDicts:
     def test_terrain_emoji_values_are_strings(self):
         """Every value in TERRAIN_EMOJI is a non-empty string."""
         for key, val in TERRAIN_EMOJI.items():
-            assert isinstance(val, str) and len(val) > 0, f"{key}: {val!r}"
+            assert isinstance(val, str), f"{key}: {val!r}"
+            assert len(val) > 0, f"{key}: {val!r}"
 
     def test_terrain_ascii_values_are_single_char(self):
         """Every value in TERRAIN_ASCII is exactly 1 character."""
@@ -135,7 +136,8 @@ class TestObjectDicts:
     def test_object_emoji_values_are_strings(self):
         """Every value in OBJECT_EMOJI is a non-empty string."""
         for key, val in OBJECT_EMOJI.items():
-            assert isinstance(val, str) and len(val) > 0, f"{key}: {val!r}"
+            assert isinstance(val, str), f"{key}: {val!r}"
+            assert len(val) > 0, f"{key}: {val!r}"
 
     def test_object_ascii_values_are_single_char(self):
         """Every value in OBJECT_ASCII is exactly 1 character."""
@@ -190,7 +192,8 @@ class TestActorDicts:
     def test_actor_emoji_values_are_strings(self):
         """Every value in ACTOR_EMOJI is a non-empty string."""
         for key, val in ACTOR_EMOJI.items():
-            assert isinstance(val, str) and len(val) > 0, f"{key}: {val!r}"
+            assert isinstance(val, str), f"{key}: {val!r}"
+            assert len(val) > 0, f"{key}: {val!r}"
 
     def test_actor_ascii_values_are_single_char(self):
         """Every value in ACTOR_ASCII is exactly 1 character."""
@@ -239,7 +242,8 @@ class TestModeEmoji:
     def test_all_mode_values_are_strings(self):
         """Every mode value is a non-empty string."""
         for key, val in MODE_EMOJI.items():
-            assert isinstance(val, str) and len(val) > 0, f"{key}: {val!r}"
+            assert isinstance(val, str), f"{key}: {val!r}"
+            assert len(val) > 0, f"{key}: {val!r}"
 
 
 # ── Lighting emoji dict ─────────────────────────────────────────────────────
@@ -257,7 +261,8 @@ class TestLightingEmoji:
     def test_all_lighting_values_are_strings(self):
         """Every lighting value is a non-empty string."""
         for key, val in LIGHTING_EMOJI.items():
-            assert isinstance(val, str) and len(val) > 0, f"{key}: {val!r}"
+            assert isinstance(val, str), f"{key}: {val!r}"
+            assert len(val) > 0, f"{key}: {val!r}"
 
 
 # ── Edge outcome emoji dict ─────────────────────────────────────────────────
@@ -283,7 +288,8 @@ class TestEdgeOutcomeEmoji:
     def test_all_edge_values_are_strings(self):
         """Every edge value is a non-empty string."""
         for key, val in EDGE_OUTCOME_EMOJI.items():
-            assert isinstance(val, str) and len(val) > 0, f"{key}: {val!r}"
+            assert isinstance(val, str), f"{key}: {val!r}"
+            assert len(val) > 0, f"{key}: {val!r}"
 
 
 # ── Visited dicts ───────────────────────────────────────────────────────────
@@ -305,9 +311,11 @@ class TestVisitedDicts:
     def test_visited_values_are_strings(self):
         """Every visited value is a non-empty string."""
         for key, val in VISITED_EMOJI.items():
-            assert isinstance(val, str) and len(val) > 0, f"{key}: {val!r}"
+            assert isinstance(val, str), f"{key}: {val!r}"
+            assert len(val) > 0, f"{key}: {val!r}"
         for key, val in VISITED_ASCII.items():
-            assert isinstance(val, str) and len(val) == 1, f"{key}: {val!r}"
+            assert isinstance(val, str), f"{key}: {val!r}"
+            assert len(val) == 1, f"{key}: {val!r}"
 
 
 # ── terrain_to_emoji / terrain_to_ascii ─────────────────────────────────────

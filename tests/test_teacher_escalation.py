@@ -321,7 +321,8 @@ def test_escalation_writer_emits_grepable_triple() -> None:
 
     text = buffer.getvalue()
     assert text.count('"event": "teacher_escalation"') == 1
-    assert text.endswith("\n") and text.count("\n") == 1
+    assert text.endswith("\n")
+    assert text.count("\n") == 1
     parsed = json.loads(text)
     assert parsed == row
     assert {"pre_ask", "patch", "post_ask"} <= parsed.keys()

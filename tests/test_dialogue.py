@@ -470,10 +470,8 @@ class TestNPCInteraction:
             "MR FUJI", "Here, take this Potion as a gift!"
         )
 
-        assert (
-            result.gift_received is not None
-            and "POTION" in result.gift_received.upper()
-        )
+        assert result.gift_received is not None
+        assert "POTION" in result.gift_received.upper()
 
     def test_extract_information(self) -> None:
         """Should extract information from dialog"""

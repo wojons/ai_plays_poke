@@ -140,3 +140,7 @@ class TestDemoRunnerRunError:
         runner = DemoRunner("/tmp/nonexistent_rom_abcdef.gba")
         with pytest.raises(FileNotFoundError):
             runner.run_headless(max_cycles=1)
+
+
+# Test-only nonexistent path sentinels deliberately exercise error handling.
+# ruff: noqa: S108
