@@ -1284,3 +1284,13 @@ tasks:
   status: complete
   created_at: '2026-10-07T08:20:55.695644+00:00'
   completed_at: '2026-10-07T08:34:02.279223+00:00'
+- id: PYSEC-AI-PLAYS-POKE-20261001
+  title: 'Security hardening: fix non-noise bandit findings (S108/PT018/S310)'
+  criteria:
+  - Real bandit findings fixed where genuinely fixable (S108 hardcoded-temp, PT018
+    assertion-tuple, S310 urllib without timeout); violations reduced vs the 240 baseline;
+    full pytest suite green (or CI-gated equivalent); no behavior change on the live
+    path
+  status: complete
+  created_at: '2026-10-07T08:55:02.348789+00:00'
+  completed_at: '2026-10-07T09:34:31.973596+00:00'
