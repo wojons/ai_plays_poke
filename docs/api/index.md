@@ -33,6 +33,7 @@ This section documents all public APIs and interfaces for PTP-01X - an orchestra
 | Tool | Description |
 |------|-------------|
 | [cron_runner](cron_runner.md) | Cron-friendly autonomous gameplay runner — CLI flags, pipeline, JSONL log schema, checkpoints, costs |
+| [Bridge](../bridge.md) | Live-play bridge (`scripts/game_bridge.py`) — operator input-side inspection of a live emulator; enable/revoke steps and security model |
 | [Dashboard](dashboard.md) | Observability dashboard server (`src/dashboard/main.py`) — run instructions, auth, REST + WebSocket route reference |
 
 ### Examples

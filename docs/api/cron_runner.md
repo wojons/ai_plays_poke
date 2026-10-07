@@ -254,6 +254,15 @@ Battle, dialog, menu, and name_entry screens go through the existing `StateWindo
 
 The controller maintains its own knowledge, persisted to DuckBrain (namespace `pokemon-global`): optional `note` / `goal` / `study` fields in its JSON response are executed by the runner — notes are stored under `/notes/overworld-<cycle>`, the goal under `/goals/current` (and re-loaded at startup), and study keys are fetched and injected into the next cycle's prompt.
 
+### Live-play bridge (operator tool)
+
+When reviewing agentic or autonomous runs from the inside, the operator's
+input-side inspection tool is the live-play bridge (`scripts/game_bridge.py`,
+client `scripts/play.py`): it serves exactly the observation and state
+projection the decision model receives, and applies button presses, saves and
+frame captures against one live emulator. See [../bridge.md](../bridge.md) for
+enable/revoke steps and the security model.
+
 ## Outputs
 
 - `cron_logs/run_<id>.jsonl` — one JSON object per line (see schema below).
