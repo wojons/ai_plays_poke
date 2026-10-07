@@ -2567,6 +2567,106 @@ def _escalating_recovery(
     )
 
 
+def _extract_vision_usage(response: Any) -> dict[str, Any] | None:
+    """Normalize a chat_completion response's usage block (PERCEPT-1).
+
+    Delegates to ``VisionClient._normalize_usage`` so the vision path and
+    the decision-loop path report the identical shape. Imported lazily so
+    CLI parsing and preflight stay light.
+    """
+    from src.core.vision import VisionClient
+
+    if not isinstance(response, dict):
+        return None
+    return VisionClient._normalize_usage(response.get("usage"))
+
+
+def _sum_vision_usage(
+    left: dict[str, Any] | None, right: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """Sum two normalized vision-usage blocks (PERCEPT-1).
+
+    Used when one logical decision took several API calls (the controller
+    retry). ``None`` operands are treated as zero; the cost sums when both
+    sides price the call, stays ``None`` when neither does, and falls back
+    to the one priced side otherwise. Image tokens sum only over the sides
+    that reported them.
+    """
+    if left is None:
+        return right
+    if right is None:
+        return left
+
+    def _optional_sum(a: Any, b: Any) -> Any:
+        if a is None and b is None:
+            return None
+        if a is None:
+            return b
+        if b is None:
+            return a
+        return a + b
+
+    return {
+        "prompt_tokens": int(left.get("prompt_tokens") or 0)
+        + int(right.get("prompt_tokens") or 0),
+        "completion_tokens": int(left.get("completion_tokens") or 0)
+        + int(right.get("completion_tokens") or 0),
+        "total_tokens": int(left.get("total_tokens") or 0)
+        + int(right.get("total_tokens") or 0),
+        "image_tokens": _optional_sum(
+            left.get("image_tokens"), right.get("image_tokens")
+        ),
+        "cost_usd": _optional_sum(left.get("cost_usd"), right.get("cost_usd")),
+    }
+
+
+def _rollup_vision_usage(results: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate per-decision vision usage across a run (PERCEPT-1).
+
+    Reads ``vision_usage`` on decision rows (controller/JEV plans) and
+    ``_cartographer_usage`` on rows carrying the cartographer's spatial
+    dict. Returns a flat dict suitable for the final summary line and the
+    log's evidence row; every ``None``-valued field keeps its ``None`` so
+    the report can distinguish "provider did not price this" from 0.
+    """
+    totals: dict[str, Any] = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "image_tokens": None,
+        "cost_usd": None,
+        "calls": 0,
+    }
+    for row in results:
+        usages: list[dict[str, Any]] = []
+        vision = row.get("vision_usage")
+        if isinstance(vision, dict):
+            usages.append(vision)
+        carto = row.get("_cartographer_usage")
+        if isinstance(carto, dict):
+            usages.append(carto)
+        for usage in usages:
+            totals["calls"] += 1
+            totals["prompt_tokens"] += int(usage.get("prompt_tokens") or 0)
+            totals["completion_tokens"] += int(usage.get("completion_tokens") or 0)
+            totals["total_tokens"] += int(usage.get("total_tokens") or 0)
+            if usage.get("image_tokens") is not None:
+                current_image = totals["image_tokens"]
+                add_image = int(usage["image_tokens"])
+                totals["image_tokens"] = (
+                    add_image
+                    if current_image is None
+                    else int(current_image) + add_image
+                )
+            if usage.get("cost_usd") is not None:
+                current_cost = totals["cost_usd"]
+                add_cost = float(usage["cost_usd"])
+                totals["cost_usd"] = (
+                    add_cost if current_cost is None else float(current_cost) + add_cost
+                )
+    return totals
+
+
 def cartographer_analyze(
     client: OpenRouterClient,
     screenshot: np.ndarray,
@@ -2575,6 +2675,11 @@ def cartographer_analyze(
 
     Returns (parsed spatial JSON, raw_text). No WorldState dependency —
     the vision model looks at the game directly and describes what it sees.
+
+    The parsed dict carries ``_cartographer_usage`` (PERCEPT-1): the
+    provider's token counts and cost for THIS call, or ``None`` when the
+    provider supplied no usage block. Consumers that never read the key
+    are unaffected.
     """
     img_b64 = screenshot_to_base64(screenshot)
 
@@ -2604,7 +2709,11 @@ def cartographer_analyze(
     )
 
     text = response.get("content", "")
-    return _extract_spatial_json(text), text
+    spatial = _extract_spatial_json(text)
+    # PERCEPT-1: carry the provider's usage block out with the spatial data
+    # instead of dropping it — the run summary needs vision tokens/cost.
+    spatial["_cartographer_usage"] = _extract_vision_usage(response)
+    return spatial, text
 
 
 def _extract_spatial_json(text: str) -> dict[str, Any]:
@@ -3097,6 +3206,11 @@ def controller_plan(
         thinking={"type": "disabled"},
     )
 
+    # PERCEPT-1: keep the provider's usage block for the run rollup. On the
+    # retry path the usage from BOTH attempts is summed so the plan's cost
+    # reflects every API call it took.
+    plan_usage = _extract_vision_usage(response)
+
     text = _strip_model_noise(response.get("content") or "")
     kind, payload = _interpret_controller_response(text)
     if kind in ("unreadable", "unparseable"):
@@ -3114,12 +3228,16 @@ def controller_plan(
             thinking={"type": "disabled"},
         )
         retry_text = _strip_model_noise(retry.get("content") or "")
+        retry_usage = _extract_vision_usage(retry)
+        if retry_usage is not None:
+            plan_usage = _sum_vision_usage(plan_usage, retry_usage)
         if retry_text:
             text = retry_text
             kind, payload = _interpret_controller_response(text)
 
     if kind == "plan" and payload is not None:
         payload["raw_response"] = text
+        payload["vision_usage"] = plan_usage
         return _apply_navigation_hold_to_decision(payload, spatial_desc)
     if kind == "button" and payload is not None:
         return _apply_navigation_hold_to_decision(
@@ -3127,12 +3245,23 @@ def controller_plan(
                 "plan": [payload["button"]],
                 "intent": payload.get("intent", ""),
                 "raw_response": text,
+                "vision_usage": plan_usage,
             },
             spatial_desc,
         )
     if kind == "unreadable":
-        return {"plan": ["A"], "intent": "parse_fallback", "raw_response": text}
-    return {"plan": ["A"], "intent": "parse_failure_fallback", "raw_response": text}
+        return {
+            "plan": ["A"],
+            "intent": "parse_fallback",
+            "raw_response": text,
+            "vision_usage": plan_usage,
+        }
+    return {
+        "plan": ["A"],
+        "intent": "parse_failure_fallback",
+        "raw_response": text,
+        "vision_usage": plan_usage,
+    }
 
 
 # ── Main ────────────────────────────────────────────────────────────
@@ -3441,6 +3570,7 @@ def _format_summary(
     teacher: dict[str, int] | None = None,
     movement_progress_cycles: int = 0,
     movement_observed_cycles: int = 0,
+    vision_usage: dict[str, Any] | None = None,
 ) -> str:
     """Format the final summary line, including the per-run lock-rate.
 
@@ -3453,6 +3583,11 @@ def _format_summary(
     appended after the GAP-053 counters. The GAP-053 computation and wording
     are unchanged. ``movement_progress_cycles`` (DF-USE-1) is separately
     derived from consecutive RAM tile observations, never from decisions.
+
+    ``vision_usage`` (PERCEPT-1) is the per-run rollup from
+    ``_rollup_vision_usage`` — vision tokens and cost for the whole run —
+    appended after movement progress so the existing tail wording and every
+    parser keyed on it stay byte-identical.
     """
     lock_rate = lock_warn_cycles / total_cycles
     movement_rate = (
@@ -3466,6 +3601,18 @@ def _format_summary(
             f" | teacher={_as_int(teacher.get('count'))} escalations "
             f"({_as_int(teacher.get('improved'))} improved)"
         )
+    vision_tail = ""
+    if vision_usage is not None:
+        cost = vision_usage.get("cost_usd")
+        cost_str = f"${float(cost):.6f}" if cost is not None else "unknown"
+        image_tokens = vision_usage.get("image_tokens")
+        image_str = str(int(image_tokens)) if image_tokens is not None else "unknown"
+        vision_tail = (
+            f" | vision: {int(vision_usage.get('prompt_tokens') or 0)} prompt + "
+            f"{int(vision_usage.get('completion_tokens') or 0)} completion tokens "
+            f"({image_str} image) across {int(vision_usage.get('calls') or 0)} calls, "
+            f"cost {cost_str}"
+        )
     return (
         f"[{run_id}] Done. {n_actions} actions. Screens: {screens} "
         f"| lock-rate: {lock_warn_cycles}/{total_cycles} cycles with "
@@ -3478,6 +3625,7 @@ def _format_summary(
         f" | movement-progress: {movement_progress_cycles}/"
         f"{movement_observed_cycles} comparable cycles changed tile "
         f"({movement_rate:.0%})"
+        f"{vision_tail}"
     )
 
 
@@ -6418,6 +6566,10 @@ def main() -> None:
                     # split `_autonomy_counters` counts at closeout.
                     "jev_answered": bool(decision.get("jev_answered", False)),
                     "escalated": bool(decision.get("escalated", False)),
+                    # PERCEPT-1: this decision's own API usage (tokens +
+                    # provider cost), None when the provider reported none.
+                    "vision_usage": decision.get("vision_usage"),
+                    "_cartographer_usage": patch_data.get("_cartographer_usage"),
                     "missing_class": (
                         _missing_class if isinstance(_missing_class, str) else None
                     ),
@@ -7000,6 +7152,9 @@ def main() -> None:
     # Summary
     screens = set(r.get("screen", "unknown") for r in results)
     real_decisions, fallback_decisions = _classify_decision_intents(results)
+    # PERCEPT-1: per-run vision token/cost rollup, derived from the same
+    # per-decision rows the decision trace wrote — no hand-rolled recount.
+    vision_usage = _rollup_vision_usage(results)
     final_summary = _format_summary(
         run_id,
         len(results),
@@ -7013,6 +7168,7 @@ def main() -> None:
         teacher=teacher_summary,
         movement_progress_cycles=_movement_progress_cycles,
         movement_observed_cycles=_movement_observed_cycles,
+        vision_usage=vision_usage,
     )
     safe_print(f"\n{final_summary}")
     safe_print(f"Log: {log_path}")

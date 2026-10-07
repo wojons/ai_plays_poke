@@ -8,6 +8,7 @@ and location detection using sample screenshots.
 import pytest
 import numpy as np
 from pathlib import Path
+from typing import Any
 from PIL import Image
 from unittest.mock import MagicMock, patch
 
@@ -698,3 +699,125 @@ class TestEncodeImageScaling:
 
         img = self._decode(VisionClient._encode_image(self._frame(160, 144)))
         assert img.size[0] / img.size[1] == pytest.approx(160 / 144)
+
+
+class TestAnalyzeUsagePropagation:
+    """PERCEPT-1: analyze() must carry the provider's usage block through.
+
+    The vision path used to drop the usage dict entirely, so every
+    perception change (bigger upscale, tiling) was a cost/accuracy trade
+    with an unknown cost half. These tests pin the propagation contract:
+    parsed answer + normalized usage, cache-hit passthrough, and the
+    fallback shape.
+    """
+
+    @staticmethod
+    def _client_with_mock_backend(provider_response: dict) -> Any:
+        """Build a VisionClient whose OpenRouterClient is a mock.
+
+        ``patch`` targets the symbol VisionClient actually imports
+        (``src.core.vision.OpenRouterClient``), so no network or key is
+        needed beyond the env var the constructor reads.
+        """
+        from src.core import vision as vision_module
+
+        with (
+            patch.dict("os.environ", {"OPENROUTER_API_KEY": "test-key"}),
+            patch.object(vision_module, "OpenRouterClient"),
+        ):
+            client = vision_module.VisionClient()
+            client._client.chat_completion.return_value = provider_response
+            return client
+
+    @staticmethod
+    def _frame() -> np.ndarray:
+        return np.zeros((144, 160, 3), dtype=np.uint8)
+
+    def test_usage_survives_the_call(self) -> None:
+        """analyze() returns the parsed answer PLUS the provider's usage."""
+        client = self._client_with_mock_backend(
+            {
+                "content": '{"screen_type": "overworld"}',
+                "usage": {
+                    "prompt_tokens": 1200,
+                    "completion_tokens": 40,
+                    "total_tokens": 1240,
+                    "cost": 0.000312,
+                    "prompt_tokens_details": {"image_tokens": 1024},
+                },
+            }
+        )
+        result = client.analyze(self._frame())
+        assert result["screen_type"] == "overworld"
+        assert result["usage"] == {
+            "prompt_tokens": 1200,
+            "completion_tokens": 40,
+            "total_tokens": 1240,
+            "image_tokens": 1024,
+            "cost_usd": 0.000312,
+        }
+
+    def test_image_tokens_read_from_flat_fallback_field(self) -> None:
+        """Providers without prompt_tokens_details can report image_tokens flat."""
+        client = self._client_with_mock_backend(
+            {
+                "content": '{"screen_type": "battle"}',
+                "usage": {
+                    "prompt_tokens": 900,
+                    "completion_tokens": 30,
+                    "image_tokens": 800,
+                },
+            }
+        )
+        result = client.analyze(self._frame())
+        assert result["screen_type"] == "battle"
+        assert result["usage"]["image_tokens"] == 800
+        assert result["usage"]["cost_usd"] is None  # provider priced nothing
+
+    def test_missing_usage_block_yields_none_not_zero(self) -> None:
+        """No usage from the provider must stay None (not fake zeros)."""
+        client = self._client_with_mock_backend(
+            {"content": '{"screen_type": "menu"}', "usage": {}}
+        )
+        result = client.analyze(self._frame())
+        assert result["usage"] is None
+
+    def test_fallback_result_carries_none_usage(self) -> None:
+        """The parse-failure fallback keeps the usage key so the rollup
+        never KeyErrors on the shape."""
+        client = self._client_with_mock_backend({"content": "not json at all"})
+        result = client.analyze(self._frame())
+        assert result["screen_type"] == "unknown"
+        assert result["usage"] is None
+
+    def test_cache_hit_returns_the_stored_usage(self) -> None:
+        """A repeated identical frame replays the cached usage verbatim."""
+        client = self._client_with_mock_backend(
+            {
+                "content": '{"screen_type": "overworld"}',
+                "usage": {
+                    "prompt_tokens": 100,
+                    "completion_tokens": 10,
+                    "total_tokens": 110,
+                    "cost": 0.05,
+                },
+            }
+        )
+        frame = self._frame()
+        first = client.analyze(frame)
+        second = client.analyze(frame)
+        assert second is first  # cache hit: same object, same usage
+        assert second["usage"]["cost_usd"] == 0.05
+
+    def test_normalize_usage_rejects_non_dict(self) -> None:
+        from src.core.vision import VisionClient
+
+        assert VisionClient._normalize_usage(None) is None
+        assert VisionClient._normalize_usage("garbage") is None
+
+    def test_usage_block_ignores_all_zero_answer(self) -> None:
+        """A structurally-empty usage dict normalizes to None, not a fake
+        zero-token answer."""
+        from src.core.vision import VisionClient
+
+        assert VisionClient._normalize_usage({}) is None

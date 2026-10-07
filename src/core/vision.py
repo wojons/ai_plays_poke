@@ -100,6 +100,38 @@ class VisionClient:
 
     # ── public API ──────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _normalize_usage(usage: Any) -> Optional[dict[str, Any]]:
+        """Normalize a provider usage block into the run-facing shape.
+
+        Returns ``None`` for a missing/empty block so callers can distinguish
+        "no tokens reported" from a real zero-token answer. ``cost_usd`` is
+        the provider-supplied cost when present (OpenRouter reports it in
+        ``usage.cost``); it stays ``None`` when the provider does not price
+        the call, and image tokens pass through when reported.
+        """
+        if not isinstance(usage, dict):
+            return None
+        prompt = int(usage.get("prompt_tokens") or 0)
+        completion = int(usage.get("completion_tokens") or 0)
+        if not usage and not prompt and not completion:
+            return None
+        total = int(usage.get("total_tokens") or (prompt + completion))
+        cost = usage.get("cost")
+        details = usage.get("prompt_tokens_details")
+        image_tokens = None
+        if isinstance(details, dict):
+            image_tokens = details.get("image_tokens")
+        if image_tokens is None:
+            image_tokens = usage.get("image_tokens")
+        return {
+            "prompt_tokens": prompt,
+            "completion_tokens": completion,
+            "total_tokens": total,
+            "image_tokens": int(image_tokens) if image_tokens is not None else None,
+            "cost_usd": float(cost) if cost is not None else None,
+        }
+
     def analyze(self, screenshot: np.ndarray, game: str = "gen1") -> dict[str, Any]:
         """Analyze a game screenshot and return structured game state.
 
@@ -109,8 +141,12 @@ class VisionClient:
 
         Returns:
             Dictionary with screen_type, enemy_pokemon, hp values,
-            text_lines, menu_items, and other fields.
-            Falls back to ``{"screen_type": "unknown"}`` on persistent failure.
+            text_lines, menu_items, and other fields, plus a ``usage`` key
+            carrying the provider's token counts and cost for this call
+            (``None`` when the provider supplied no usage block, e.g. on
+            the fallback path). Falls back to
+            ``{"screen_type": "unknown", "usage": None}`` on persistent
+            failure.
         """
         _ = game
         # ── cache check ─────────────────────────────────────────────────
@@ -126,16 +162,34 @@ class VisionClient:
             temperature = 0.1 + (attempt * 0.15)  # vary temperature on retry
 
             try:
-                response_text = self._client.send_vision_request(
-                    prompt=self.VISION_PROMPT,
-                    image_b64=image_b64,
+                # chat_completion (not send_vision_request) so the provider's
+                # usage block — token counts and cost — survives the call.
+                response = self._client.chat_completion(
                     model=self.model,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": self.VISION_PROMPT},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/png;base64,{image_b64}"
+                                    },
+                                },
+                            ],
+                        }
+                    ],
+                    images=None,  # image already embedded in message content
                     max_tokens=300,
                     temperature=temperature,
                 )
+                response_text = response.get("content") or ""
+                usage = self._normalize_usage(response.get("usage"))
 
                 result = self._parse_response(response_text)
                 if result is not None:
+                    result["usage"] = usage
                     self._last_hash = current_hash
                     self._last_result = result
                     return result
@@ -145,7 +199,7 @@ class VisionClient:
                     break
 
         # ── fallback ─────────────────────────────────────────────────────
-        return dict(self._FALLBACK_RESULT)
+        return dict(self._FALLBACK_RESULT, usage=None)
 
     # ── helpers ─────────────────────────────────────────────────────────────
 
