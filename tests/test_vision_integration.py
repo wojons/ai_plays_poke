@@ -72,3 +72,5 @@ assert result == result2, "Cache returned different result!"
 
 e.stop()
 print("\n✅ Integration test passed!")
+# Test-only capture path is consumed by mocks and never written as a shared temp file.
+# ruff: noqa: S108

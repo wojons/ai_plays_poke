@@ -1,3 +1,6 @@
+# Console URL is a fixed loopback HTTP endpoint and every open has a bounded timeout.
+# ruff: noqa: S310
+
 """Every input control on the console: enumerated from the page, then exercised.
 
 Bane asked whether the testing agent covers the input boxes. It does not - the QA lane tests the
@@ -34,7 +37,9 @@ def call(
     )
     t0 = time.time()
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with urllib.request.urlopen(  # nosec B310
+            req, timeout=timeout
+        ) as r:
             return r.status, time.time() - t0, r.read(160).decode(errors="replace")
     except urllib.error.HTTPError as e:
         return e.code, time.time() - t0, e.read(160).decode(errors="replace")
@@ -108,7 +113,9 @@ print(
 print("\n=== live state after all this ===")
 st, dt, head = call("/api/state")
 
-with urllib.request.urlopen(C + "/api/state", timeout=25) as r:
+with urllib.request.urlopen(  # nosec B310
+    C + "/api/state", timeout=25
+) as r:
     d = json.loads(r.read())
 print(
     f"  tile {(d.get('game') or {}).get('tile')} facing {(d.get('game') or {}).get('facing')}"

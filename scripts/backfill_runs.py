@@ -56,6 +56,9 @@ class DuckBrainClient:
     """Small authenticated HTTP client for the DuckBrain memory API."""
 
     def __init__(self, base_url: str, namespace: str, token: str) -> None:
+        parsed = urllib.parse.urlsplit(base_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise BackfillError("DuckBrain base URL must use http:// or https://")
         self.base_url = base_url.rstrip("/")
         self.namespace = namespace
         self.token = token
@@ -74,7 +77,7 @@ class DuckBrainClient:
         query: dict[str, Any] | None = None,
     ) -> tuple[int, dict[str, Any]]:
         data = None if body is None else json.dumps(body).encode("utf-8")
-        request = urllib.request.Request(
+        request = urllib.request.Request(  # noqa: S310 -- base URL validated in __init__.
             self._url(path, query),
             data=data,
             method=method,
@@ -84,7 +87,10 @@ class DuckBrainClient:
             },
         )
         try:
-            with urllib.request.urlopen(request, timeout=60) as response:
+            # Constructor validation restricts the base URL to HTTP(S).
+            with urllib.request.urlopen(  # noqa: S310  # nosec B310
+                request, timeout=60
+            ) as response:
                 raw = response.read()
                 payload = json.loads(raw) if raw else {}
                 return response.status, payload

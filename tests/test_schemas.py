@@ -592,7 +592,8 @@ class TestCommandValidation:
             tick=100,
             timestamp="2025-01-01T00:00:00",
         )
-        assert cmd.button_sequence is not None and len(cmd.button_sequence) == 11
+        assert cmd.button_sequence is not None
+        assert len(cmd.button_sequence) == 11
 
 
 class TestSerializationRoundTrip:

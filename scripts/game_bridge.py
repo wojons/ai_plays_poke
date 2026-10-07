@@ -36,6 +36,7 @@ import secrets
 import signal
 import socket
 import sys
+import tempfile
 import threading
 import time
 from pathlib import Path
@@ -54,6 +55,14 @@ DEFAULT_MAX_WORKERS = 4
 DEFAULT_REQUEST_TIMEOUT = 30.0
 MAX_REQUEST_BYTES = 1024 * 1024
 SHUTDOWN_JOIN_TIMEOUT = 5.0
+
+
+def _new_log_path() -> str:
+    """Create the default bridge log with an unpredictable, owner-only name."""
+    with tempfile.NamedTemporaryFile(
+        prefix="aipp-bridge-", suffix=".log", delete=False
+    ) as log_file:
+        return log_file.name
 
 
 def _safe_grid(reader: RAMReader, cols: int = 10, rows: int = 9) -> str:
@@ -575,8 +584,12 @@ def main() -> int:
     ap.add_argument(
         "--boot-state", default=str(REPO / "data" / "baselines" / "base-1_boot.state")
     )
-    ap.add_argument("--log", default="/tmp/aipp_bridge.log")
+    ap.add_argument("--log")
     a = ap.parse_args()
+
+    if a.log is None:
+        a.log = _new_log_path()
+        print(f"bridge log: {a.log}")
 
     tf = Path(a.token_file)
     if not tf.exists():

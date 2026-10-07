@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Console URL is a fixed loopback HTTP endpoint and every open has a bounded timeout.
+# ruff: noqa: S310
+
 """Prove auto-vision re-reads when the screen changes, with no button pressed."""
 
 from __future__ import annotations
@@ -15,7 +18,9 @@ REPO = Path("/home/kara/ai_plays_poke")
 
 
 def get(path: str, timeout: int = 30) -> dict[str, Any]:
-    with urllib.request.urlopen(C + path, timeout=timeout) as r:
+    with urllib.request.urlopen(  # nosec B310
+        C + path, timeout=timeout
+    ) as r:
         data: Any = json.loads(r.read())
     return data if isinstance(data, dict) else {}
 
@@ -26,7 +31,9 @@ def post(path: str, body: dict[str, Any], timeout: int = 60) -> dict[str, Any]:
         data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with urllib.request.urlopen(  # nosec B310
+        req, timeout=timeout
+    ) as r:
         data: Any = json.loads(r.read())
     return data if isinstance(data, dict) else {}
 

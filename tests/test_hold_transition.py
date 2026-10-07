@@ -19,9 +19,7 @@ class _ScriptedClient:
 
 def test_controller_refuses_reverse_edge_from_navigation_context() -> None:
     """The pre-HOLD controller returned DOWN unchanged and re-entered Pallet."""
-    client = _ScriptedClient(
-        '{"plan": ["DOWN", "DOWN"], "intent": "go back south"}'
-    )
+    client = _ScriptedClient('{"plan": ["DOWN", "DOWN"], "intent": "go back south"}')
     spatial = {
         "map_id": 12,
         "map_name": "Route 1",
@@ -73,7 +71,8 @@ def test_map_edge_memory_persists_goal_and_guard_across_cycles() -> None:
 
     assert first == ["UP", "LEFT"]
     assert second == ["RIGHT", "UP"]
-    assert first_event is not None and second_event is not None
+    assert first_event is not None
+    assert second_event is not None
     assert first_event["reason"] == (
         "DOWN reverses the completed transition from Pallet Town to Route 1"
     )

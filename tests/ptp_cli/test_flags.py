@@ -592,3 +592,5 @@ class TestEnums:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+# Test-only sentinel paths exercise CLI parsing and are never opened as temp files.
+# ruff: noqa: S108

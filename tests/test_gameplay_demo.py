@@ -186,7 +186,9 @@ class TestLiveGameplay:
     @pytest.fixture(autouse=True)
     def _check_prereqs(self, request: pytest.FixtureRequest) -> None:
         if not (request.config.getoption("--live-api") or _live_enabled()):
-            pytest.skip("live-API tests are opt-in: set PTP_LIVE=1 or run with --live-api")
+            pytest.skip(
+                "live-API tests are opt-in: set PTP_LIVE=1 or run with --live-api"
+            )
         if not _has_api_key():
             pytest.skip("OPENROUTER_API_KEY not set")
         rom = _find_rom()
@@ -232,3 +234,7 @@ class TestLiveGameplay:
             assert result["cycles_completed"] == 5
         finally:
             runner.cleanup()
+
+
+# Test-only path sentinels exercise validation and are never security-sensitive writes.
+# ruff: noqa: S108

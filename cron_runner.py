@@ -455,11 +455,14 @@ def _probe_api_key(
     import urllib.error
     import urllib.request
 
-    request = urllib.request.Request(
+    request = urllib.request.Request(  # noqa: S310 -- URL is from fixed HTTPS map.
         url, headers={"Authorization": f"Bearer {key}"}, method="GET"
     )
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        # Only fixed provider endpoints reach this bounded request.
+        with urllib.request.urlopen(  # noqa: S310  # nosec B310
+            request, timeout=timeout
+        ) as response:
             status = int(getattr(response, "status", 200))
             body = response.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:

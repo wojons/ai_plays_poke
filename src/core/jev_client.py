@@ -274,7 +274,7 @@ def ask(
     ).encode()
     last_err = "unknown"
     for name, key in keys:
-        req = urllib.request.Request(
+        req = urllib.request.Request(  # noqa: S310 -- ENDPOINT is fixed HTTPS.
             ENDPOINT,
             data=body,
             headers={
@@ -285,7 +285,10 @@ def ask(
         )
         t0 = time.time()
         try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
+            # ENDPOINT is fixed HTTPS and the request has a caller-bounded timeout.
+            with urllib.request.urlopen(  # noqa: S310  # nosec B310
+                req, timeout=timeout
+            ) as resp:
                 payload = json.loads(resp.read().decode())
         except urllib.error.HTTPError as e:
             last_err = f"{name}: HTTP {e.code} {e.read().decode()[:120]}"

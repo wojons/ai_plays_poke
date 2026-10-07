@@ -1119,3 +1119,7 @@ class TestErrorRecovery:
             game_loop._execute_pending_commands()
 
             assert len(game_loop.pending_commands) == 0
+
+
+# Test-only screenshot metadata is not opened or written by this integration fixture.
+# ruff: noqa: S108

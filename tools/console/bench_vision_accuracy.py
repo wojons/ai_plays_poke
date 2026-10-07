@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Diagnostic URLs are fixed HTTP(S) endpoints and every open has a bounded timeout.
+# ruff: noqa: S310
+
 """The accuracy comparison: which fast model actually READS the screen?
 
 Speed and cost are settled (nova-lite 0.79s / 58 tokens against the current model's 187s / 0 rows at a
@@ -60,7 +63,7 @@ if la[0] > 40:
 png = b""
 for attempt in range(6):
     try:
-        with urllib.request.urlopen(
+        with urllib.request.urlopen(  # nosec B310
             f"{C}/api/frame.png?t={time.time()}", timeout=30
         ) as r:
             png = r.read()
@@ -75,7 +78,9 @@ if len(png) < 500:
         f"could not get a real frame (last {len(png)} bytes) - bridge likely starved"
     )
 
-with urllib.request.urlopen(f"{C}/api/state", timeout=30) as r:
+with urllib.request.urlopen(  # nosec B310
+    f"{C}/api/state", timeout=30
+) as r:
     st = json.loads(r.read())
 ram = [row for row in (st.get("ram") or []) if row]
 print(f"frame {len(png)} bytes; reference grid {len(ram)}x{len(ram[0]) if ram else 0}")
@@ -161,7 +166,9 @@ for model in MODELS:
     )
     t0 = time.time()
     try:
-        with urllib.request.urlopen(req, timeout=120) as r:
+        with urllib.request.urlopen(  # nosec B310
+            req, timeout=120
+        ) as r:
             d = json.loads(r.read())
         dt = time.time() - t0
         grid = parse(d["choices"][0]["message"].get("content"))

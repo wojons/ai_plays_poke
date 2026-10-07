@@ -177,3 +177,7 @@ def test_status_row_boot_state_is_full_resolved_path_value():
     # use for the episode (override or chained GOOD_STATE), not a bare name.
     src = Path(long_run.__file__).read_text()
     assert '"boot_state": boot,' in src
+
+
+# Test-only argv values verify exact forwarding and do not write to the named path.
+# ruff: noqa: S108

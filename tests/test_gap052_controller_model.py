@@ -484,7 +484,8 @@ class TestStripHelpers:
 
     def test_strip_removes_think_blocks_and_markers(self) -> None:
         stripped = cron_runner._strip_model_noise(DEEPSEEK_STYLE)
-        assert "<think>" not in stripped and "</think>" not in stripped
+        assert "<think>" not in stripped
+        assert "</think>" not in stripped
         assert "end_of_thought" not in stripped
         assert stripped.startswith('{"plan"')
 

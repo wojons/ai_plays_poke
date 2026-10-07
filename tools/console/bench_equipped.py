@@ -1,3 +1,6 @@
+# Diagnostic URLs are fixed HTTP(S) endpoints and every open has a bounded timeout.
+# ruff: noqa: S310
+
 """Is the fast model unequipped? Test the thing Bane is actually worried about.
 
 Two axes, both models, one frame:
@@ -47,7 +50,7 @@ SYN_KEY = env("SYNTHETIC_API_KEY", HOME / ".hermes/.env")
 png = b""
 for _ in range(8):
     try:
-        with urllib.request.urlopen(
+        with urllib.request.urlopen(  # nosec B310
             f"{C}/api/frame.png?t={time.time()}", timeout=30
         ) as r:
             png = r.read()
@@ -58,7 +61,9 @@ for _ in range(8):
     time.sleep(1.5)
 if len(png) < 500:
     raise SystemExit(f"no real frame ({len(png)} bytes)")
-with urllib.request.urlopen(f"{C}/api/state", timeout=30) as r:
+with urllib.request.urlopen(  # nosec B310
+    f"{C}/api/state", timeout=30
+) as r:
     st = json.loads(r.read())
 ram = [x for x in (st.get("ram") or []) if x]
 print(f"frame {len(png)} bytes; reader's grid {len(ram)}x{len(ram[0])}")
@@ -149,7 +154,9 @@ for label, url, key, ceiling in MODELS:
     t0 = time.time()
     print(f"--- {label} ---", flush=True)
     try:
-        with urllib.request.urlopen(req, timeout=300) as r:
+        with urllib.request.urlopen(  # nosec B310
+            req, timeout=300
+        ) as r:
             d = json.loads(r.read())
         dt = time.time() - t0
         msg = d["choices"][0]["message"]

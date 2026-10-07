@@ -119,6 +119,7 @@ def test_make_video_encodes_gapped_step_files(
     result = make_run_video.make_video("encode-gap", fps=2.0)
 
     assert result == out_dir / "encode-gap.mp4"
-    assert result is not None and result.stat().st_size > 0
+    assert result is not None
+    assert result.stat().st_size > 0
     assert not (out_dir / ".encode-gap.frames.ffconcat").exists()
     assert "Cycle 4  battle" in (out_dir / "encode-gap.srt").read_text(encoding="utf-8")

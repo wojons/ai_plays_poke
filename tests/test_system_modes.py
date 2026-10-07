@@ -210,7 +210,8 @@ def test_m4_only_the_permitted_trigger_may_hand_back():
     ok, _ = cron_runner.handoff_allowed(policy, "failure", "map_topology")
     assert ok is True
     gap_ok, gap_why = cron_runner.handoff_allowed(policy, "gap", "map_topology")
-    assert gap_ok is False and "gap" in gap_why
+    assert gap_ok is False
+    assert "gap" in gap_why
     conf_ok, _ = cron_runner.handoff_allowed(policy, "confidence", "map_topology")
     assert conf_ok is False
 

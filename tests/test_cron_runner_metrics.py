@@ -219,7 +219,8 @@ class TestDryRun:
             cron_runner._dry_run_precheck(["--dry-run"])
         assert e.value.code == 0
         out = capsys.readouterr().out
-        assert "ROM path:" in out and "[OK]" in out
+        assert "ROM path:" in out
+        assert "[OK]" in out
         assert "Boot state:" in out
         assert "Cycles:" in out
         assert "Run ID:" in out
@@ -455,7 +456,8 @@ class TestBootStateRomMismatch:
             cron_runner._dry_run_precheck(["--dry-run", "--rom", rom])
         assert e.value.code == 0
         out = capsys.readouterr().out
-        assert "WARNING:" in out and "POKEMON RED" in out
+        assert "WARNING:" in out
+        assert "POKEMON RED" in out
         assert "use --boot-state skip for non-Blue ROMs" in out
 
 

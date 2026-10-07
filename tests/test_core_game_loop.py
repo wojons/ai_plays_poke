@@ -728,3 +728,7 @@ class TestGameLoopIntegration:
             gl.stop()
             assert gl.is_running is False
             mock_emu.stop.assert_called_once()
+
+
+# Test-only paths are passed to mocked collaborators and never create shared temp files.
+# ruff: noqa: S108

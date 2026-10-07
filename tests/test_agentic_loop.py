@@ -79,7 +79,8 @@ def test_context_rolls_old_turns_into_a_capped_summary_with_text_facts() -> None
     assert "EARLIER TURN SUMMARY" in block
     assert "cycle 3" in block
     assert "NPC said fact-3" in block
-    assert "cycle 4" in block and "cycle 5" in block
+    assert "cycle 4" in block
+    assert "cycle 5" in block
     assert len(context.summary) <= 150
     assert len(block) <= 600
     assert evidence["window_turns"] == 2

@@ -938,3 +938,7 @@ class TestMissingACMethods:
         assert not hasattr(GameDatabase, "get_session_stats"), (
             "get_session_stats unexpectedly exists — update this test"
         )
+
+
+# ROM/screenshot paths in this file are inert database metadata, not filesystem writes.
+# ruff: noqa: S108
