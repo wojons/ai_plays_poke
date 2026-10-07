@@ -5,7 +5,7 @@ Analyzes battle screen state including Pokemon identification,
 HP parsing, move selection, and type inference.
 """
 
-from typing import Optional, Dict, List, Any
+from typing import Any
 from dataclasses import dataclass
 from enum import Enum
 
@@ -34,10 +34,10 @@ class BattlePhase(Enum):
 @dataclass
 class PokemonInfo:
     name: str
-    sprite_match: Optional[SpriteMatch]
-    hp_result: Optional[HPBarResult]
-    types: List[str]
-    level: Optional[int]
+    sprite_match: SpriteMatch | None
+    hp_result: HPBarResult | None
+    types: list[str]
+    level: int | None
     is_shiny: bool
 
 
@@ -45,13 +45,13 @@ class PokemonInfo:
 class BattleState:
     battle_type: BattleType
     phase: BattlePhase
-    enemy: Optional[PokemonInfo]
-    player: Optional[PokemonInfo]
-    available_moves: List[str]
+    enemy: PokemonInfo | None
+    player: PokemonInfo | None
+    available_moves: list[str]
     player_cursor_position: int
     is_our_turn: bool
     turn_count: int
-    last_action_result: Optional[str]
+    last_action_result: str | None
 
 
 class BattleAnalyzer:
@@ -60,7 +60,7 @@ class BattleAnalyzer:
         self.ocr_engine = OCREngine()
         self.type_chart = self._build_type_chart()
 
-    def _build_type_chart(self) -> Dict[str, Dict[str, float]]:
+    def _build_type_chart(self) -> dict[str, dict[str, float]]:
         return {
             "Normal": {"Rock": 0.5, "Ghost": 0.0, "Steel": 0.5},
             "Fire": {
@@ -260,9 +260,9 @@ class BattleAnalyzer:
     def _extract_pokemon_info(
         self,
         screenshot: np.ndarray,
-        sprite_match: Optional[SpriteMatch],
+        sprite_match: SpriteMatch | None,
         is_enemy: bool,
-    ) -> Optional[PokemonInfo]:
+    ) -> PokemonInfo | None:
         if sprite_match is None:
             return None
 
@@ -290,7 +290,7 @@ class BattleAnalyzer:
             is_shiny=is_shiny,
         )
 
-    def _extract_hp_bar_regions(self, screenshot: np.ndarray) -> Dict[str, Any]:
+    def _extract_hp_bar_regions(self, screenshot: np.ndarray) -> dict[str, Any]:
         h, w = screenshot.shape[:2]
 
         enemy_hp_region = None
@@ -331,7 +331,7 @@ class BattleAnalyzer:
         return BattleType.WILD
 
     def _determine_battle_phase(
-        self, screenshot: np.ndarray, hp_regions: Dict[str, Any]
+        self, screenshot: np.ndarray, hp_regions: dict[str, Any]
     ) -> BattlePhase:
         h, w = screenshot.shape[:2]
 
@@ -352,7 +352,7 @@ class BattleAnalyzer:
 
         return BattlePhase.INTRO
 
-    def _extract_available_moves(self, screenshot: np.ndarray) -> List[str]:
+    def _extract_available_moves(self, screenshot: np.ndarray) -> list[str]:
         h, w = screenshot.shape[:2]
 
         move_region = screenshot[int(h * 0.45) : int(h * 0.7), int(w * 0.5) : w]
@@ -372,7 +372,7 @@ class BattleAnalyzer:
         return 0
 
     def get_type_effectiveness(
-        self, attack_type: str, defender_types: List[str]
+        self, attack_type: str, defender_types: list[str]
     ) -> float:
         if attack_type not in self.type_chart:
             return 1.0
@@ -387,7 +387,7 @@ class BattleAnalyzer:
         attacker_level: int,
         attack_power: int,
         attack_type: str,
-        defender_types: List[str],
+        defender_types: list[str],
         is_critical: bool = False,
     ) -> float:
         modifier = 1.0
@@ -403,8 +403,8 @@ class BattleAnalyzer:
         return damage
 
     def get_super_effective_moves(
-        self, player_moves: List[Dict[str, Any]], enemy_types: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, player_moves: list[dict[str, Any]], enemy_types: list[str]
+    ) -> list[dict[str, Any]]:
         super_effective = []
         for move in player_moves:
             effectiveness = self.get_type_effectiveness(move["type"], enemy_types)

@@ -25,7 +25,7 @@ Performance Targets:
 from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
+from typing import Any, cast
 from datetime import datetime
 import logging
 
@@ -197,9 +197,9 @@ class ItemData:
     healing_power: int = 0
     is_key_item: bool = False
     is_tm: bool = False
-    tm_number: Optional[int] = None
-    hm_number: Optional[int] = None
-    compatible_pokemon: List[str] = field(default_factory=list)
+    tm_number: int | None = None
+    hm_number: int | None = None
+    compatible_pokemon: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -246,9 +246,9 @@ class TMData:
     move_type: str
     move_power: int
     move_accuracy: int
-    compatible_species: List[str]
+    compatible_species: list[str]
     is_hm: bool = False
-    hm_move_name: Optional[str] = None
+    hm_move_name: str | None = None
 
 
 @dataclass
@@ -259,9 +259,9 @@ class KeyItem:
     name: str
     description: str
     obtained: bool = False
-    obtained_time: Optional[datetime] = None
+    obtained_time: datetime | None = None
     used: bool = False
-    use_location: Optional[str] = None
+    use_location: str | None = None
 
 
 @dataclass
@@ -273,16 +273,16 @@ class PokemonState:
     current_hp: int
     max_hp: int
     status: str
-    moves: List[str]
-    move_pp: Dict[str, int]
-    move_max_pp: Dict[str, int]
+    moves: list[str]
+    move_pp: dict[str, int]
+    move_max_pp: dict[str, int]
 
 
 @dataclass
 class PartyState:
     """Complete party state for healing/item decisions"""
 
-    pokemon: List[PokemonState]
+    pokemon: list[PokemonState]
     money: int
 
     def get_avg_level(self) -> float:
@@ -339,7 +339,7 @@ class ShoppingListItem:
 class ShoppingPlan:
     """Complete shopping plan"""
 
-    items: List[ShoppingListItem]
+    items: list[ShoppingListItem]
     total_cost: int
     available_budget: int
     emergency_reserve: int
@@ -358,12 +358,12 @@ class InventoryState:
     - Bag capacity management
     """
 
-    ITEM_DATABASE: Dict[ItemType, ItemData] = {}
-    TM_DATABASE: Dict[int, TMData] = {}
+    ITEM_DATABASE: dict[ItemType, ItemData] = {}
+    TM_DATABASE: dict[int, TMData] = {}
 
     def __init__(self) -> None:
-        self._items: Dict[ItemType, InventoryItem] = {}
-        self._key_items: Dict[ItemType, KeyItem] = {}
+        self._items: dict[ItemType, InventoryItem] = {}
+        self._key_items: dict[ItemType, KeyItem] = {}
         self._initialize_item_database()
         self._initialize_tm_database()
         self._bag_capacity = 20
@@ -373,7 +373,7 @@ class InventoryState:
         if InventoryState.ITEM_DATABASE:
             return
 
-        item_db: Dict[ItemType, ItemData] = {}
+        item_db: dict[ItemType, ItemData] = {}
 
         healing_items = [
             (ItemType.POTION, "Potion", ItemCategory.POTION, 300, 20),
@@ -577,9 +577,9 @@ class InventoryState:
         if InventoryState.TM_DATABASE:
             return
 
-        tm_db: Dict[int, TMData] = {}
+        tm_db: dict[int, TMData] = {}
 
-        tm_data_list: List[Any] = [
+        tm_data_list: list[Any] = [
             (1, ItemType.TM01, "Mega Punch", "Normal", 40, 85, []),
             (2, ItemType.TM02, "Razor Wind", "Normal", 80, 100, []),
             (3, ItemType.TM03, "Swords Dance", "Normal", 0, 100, []),
@@ -674,7 +674,7 @@ class InventoryState:
 
         InventoryState.TM_DATABASE = tm_db
 
-    def get_item(self, item_type: ItemType) -> Optional[InventoryItem]:
+    def get_item(self, item_type: ItemType) -> InventoryItem | None:
         """Get an item from inventory"""
         return self._items.get(item_type)
 
@@ -707,14 +707,14 @@ class InventoryState:
         """Check if inventory has at least quantity of item"""
         return self.get_quantity(item_type) >= quantity
 
-    def get_by_category(self, category: ItemCategory) -> List[InventoryItem]:
+    def get_by_category(self, category: ItemCategory) -> list[InventoryItem]:
         """Get all items in a category"""
         category_items = self._get_category_mapping().get(category, set())
         return [
             item for item in self._items.values() if item.item_type in category_items
         ]
 
-    def _get_category_mapping(self) -> Dict[ItemCategory, Set[ItemType]]:
+    def _get_category_mapping(self) -> dict[ItemCategory, set[ItemType]]:
         """Get mapping of categories to item types"""
         return {
             ItemCategory.POTION: {
@@ -764,7 +764,7 @@ class InventoryState:
             ItemCategory.TM_HM: set(),
         }
 
-    def get_potions(self) -> Dict[ItemType, int]:
+    def get_potions(self) -> dict[ItemType, int]:
         """Get all healing potions with quantities"""
         potion_types = self._get_category_mapping()[ItemCategory.POTION]
         return {
@@ -773,7 +773,7 @@ class InventoryState:
             if self.get_quantity(item_type) > 0
         }
 
-    def get_pokeballs(self) -> Dict[ItemType, int]:
+    def get_pokeballs(self) -> dict[ItemType, int]:
         """Get all capture balls with quantities"""
         ball_types = self._get_category_mapping()[ItemCategory.POKEBALL]
         return {
@@ -782,7 +782,7 @@ class InventoryState:
             if self.get_quantity(item_type) > 0
         }
 
-    def get_status_cures(self) -> Dict[ItemType, int]:
+    def get_status_cures(self) -> dict[ItemType, int]:
         """Get all status cure items with quantities"""
         cure_types = self._get_category_mapping()[ItemCategory.STATUS_CURE]
         return {
@@ -791,7 +791,7 @@ class InventoryState:
             if self.get_quantity(item_type) > 0
         }
 
-    def get_tms(self) -> List[TMData]:
+    def get_tms(self) -> list[TMData]:
         """Get all obtained TMs"""
         obtained = []
         for tm_number, tm_data in InventoryState.TM_DATABASE.items():
@@ -803,7 +803,7 @@ class InventoryState:
         """Count obtained TMs"""
         return len(self.get_tms())
 
-    def get_key_item(self, item_type: ItemType) -> Optional[KeyItem]:
+    def get_key_item(self, item_type: ItemType) -> KeyItem | None:
         """Get key item status"""
         return self._key_items.get(item_type)
 
@@ -829,11 +829,11 @@ class InventoryState:
             self._key_items[item_type].used = True
             self._key_items[item_type].use_location = location
 
-    def get_tm_compatibility(self, tm_number: int) -> Optional[TMData]:
+    def get_tm_compatibility(self, tm_number: int) -> TMData | None:
         """Get TM data including compatible Pokemon"""
         return InventoryState.TM_DATABASE.get(tm_number)
 
-    def get_bag_summary(self) -> Dict[str, Any]:
+    def get_bag_summary(self) -> dict[str, Any]:
         """Get summary of inventory state"""
         category_summary = {}
         for category in ItemCategory:
@@ -853,7 +853,7 @@ class InventoryState:
             "bag_used": sum(i.quantity for i in self._items.values()),
         }
 
-    def validate_inventory(self) -> Tuple[bool, List[str]]:
+    def validate_inventory(self) -> tuple[bool, list[str]]:
         """Validate inventory for corruption (negative quantities, etc.)"""
         errors = []
         is_valid = True
@@ -890,10 +890,10 @@ class ShoppingHeuristic:
     - Budget management (money tracking, spending limits)
     """
 
-    ITEM_COSTS: Dict[ItemType, int] = {}
-    HEALING_POWER: Dict[ItemType, int] = {}
-    ROUTE_SHOPPING_NEEDS: Dict[str, Dict[str, Any]] = {}
-    GYM_SPECIFIC_ITEMS: Dict[str, Dict[ItemType, int]] = {}
+    ITEM_COSTS: dict[ItemType, int] = {}
+    HEALING_POWER: dict[ItemType, int] = {}
+    ROUTE_SHOPPING_NEEDS: dict[str, dict[str, Any]] = {}
+    GYM_SPECIFIC_ITEMS: dict[str, dict[ItemType, int]] = {}
 
     def __init__(self, inventory: InventoryState):
         self._inventory = inventory
@@ -906,8 +906,8 @@ class ShoppingHeuristic:
         if ShoppingHeuristic.ITEM_COSTS:
             return
 
-        costs: Dict[ItemType, int] = {}
-        healing_power: Dict[ItemType, int] = {}
+        costs: dict[ItemType, int] = {}
+        healing_power: dict[ItemType, int] = {}
 
         items_with_costs = [
             (ItemType.POTION, 300, 20),
@@ -956,7 +956,7 @@ class ShoppingHeuristic:
         if ShoppingHeuristic.ROUTE_SHOPPING_NEEDS:
             return
 
-        route_data: Dict[str, Dict[str, Any]] = {}
+        route_data: dict[str, dict[str, Any]] = {}
 
         route_data["ROUTE_1"] = {
             "min_wild_level": 2,
@@ -1065,7 +1065,7 @@ class ShoppingHeuristic:
         if ShoppingHeuristic.GYM_SPECIFIC_ITEMS:
             return
 
-        gym_items: Dict[str, Dict[ItemType, int]] = {}
+        gym_items: dict[str, dict[ItemType, int]] = {}
 
         gym_items["BROCK"] = {
             ItemType.POTION: 10,
@@ -1114,7 +1114,7 @@ class ShoppingHeuristic:
     def generate_shopping_list(
         self,
         party_state: PartyState,
-        upcoming_route: Optional[str] = None,
+        upcoming_route: str | None = None,
         available_money: int = 0,
     ) -> ShoppingPlan:
         """
@@ -1130,7 +1130,7 @@ class ShoppingHeuristic:
         """
         available_budget, emergency_reserve = self.calculate_budget(available_money, [])
 
-        shopping_needs: Dict[ItemType, int] = {}
+        shopping_needs: dict[ItemType, int] = {}
 
         current_potions = sum(self._inventory.get_potions().values())
         current_balls = sum(self._inventory.get_pokeballs().values())
@@ -1175,14 +1175,14 @@ class ShoppingHeuristic:
         self,
         route_id: str,
         party_level: float,
-    ) -> Dict[ItemType, int]:
+    ) -> dict[ItemType, int]:
         """
         Analyze upcoming route to determine shopping needs.
 
         Returns:
             Dictionary of item types with recommended quantities
         """
-        needs: Dict[ItemType, int] = {}
+        needs: dict[ItemType, int] = {}
 
         if route_id not in ShoppingHeuristic.ROUTE_SHOPPING_NEEDS:
             return needs
@@ -1233,7 +1233,7 @@ class ShoppingHeuristic:
         """Calculate how many of an item are needed"""
         current = self._inventory.get_quantity(item_type)
 
-        thresholds: Dict[ItemType, int] = {
+        thresholds: dict[ItemType, int] = {
             ItemType.POTION: 10,
             ItemType.SUPER_POTION: 5,
             ItemType.HYPER_POTION: 3,
@@ -1257,8 +1257,8 @@ class ShoppingHeuristic:
     def calculate_budget(
         self,
         current_money: int,
-        _upcoming_challenges: List[str],
-    ) -> Tuple[int, int]:
+        _upcoming_challenges: list[str],
+    ) -> tuple[int, int]:
         """
         Calculate available shopping budget and emergency reserve.
 
@@ -1271,16 +1271,16 @@ class ShoppingHeuristic:
 
     def select_items_for_budget(
         self,
-        shopping_needs: Dict[ItemType, int],
+        shopping_needs: dict[ItemType, int],
         available_budget: int,
-    ) -> List[ShoppingListItem]:
+    ) -> list[ShoppingListItem]:
         """
         Select items based on priority and budget constraints.
 
         Returns:
             List of ShoppingListItem sorted by priority
         """
-        priority_map: Dict[ItemType, ShoppingPriority] = {
+        priority_map: dict[ItemType, ShoppingPriority] = {
             ItemType.POTION: ShoppingPriority.CRITICAL,
             ItemType.SUPER_POTION: ShoppingPriority.HIGH,
             ItemType.HYPER_POTION: ShoppingPriority.HIGH,
@@ -1304,7 +1304,7 @@ class ShoppingHeuristic:
             ItemType.RARE_CANDY: ShoppingPriority.LOW,
         }
 
-        scored_items: List[ShoppingListItem] = []
+        scored_items: list[ShoppingListItem] = []
 
         for item_type, quantity in shopping_needs.items():
             cost = ShoppingHeuristic.ITEM_COSTS.get(item_type, 0)
@@ -1327,7 +1327,7 @@ class ShoppingHeuristic:
 
         scored_items.sort(key=lambda x: x.priority.value, reverse=True)
 
-        selected_items: List[ShoppingListItem] = []
+        selected_items: list[ShoppingListItem] = []
         remaining_budget = available_budget
 
         for item in scored_items:
@@ -1356,7 +1356,7 @@ class ShoppingHeuristic:
 
     def find_best_shop(self, current_location: str) -> str:
         """Find best shop for current location based on prices"""
-        shop_locations: Dict[str, str] = {
+        shop_locations: dict[str, str] = {
             "Pallet Town": "Viridian City PokeMart",
             "Viridian City": "Viridian City PokeMart",
             "Pewter City": "Pewter City PokeMart",
@@ -1373,7 +1373,7 @@ class ShoppingHeuristic:
 
     def get_restock_threshold(self, item_type: ItemType) -> int:
         """Get restock threshold for an item type"""
-        thresholds: Dict[ItemType, int] = {
+        thresholds: dict[ItemType, int] = {
             ItemType.POTION: 5,
             ItemType.SUPER_POTION: 3,
             ItemType.HYPER_POTION: 2,
@@ -1397,7 +1397,7 @@ class ShoppingHeuristic:
         threshold = self.get_restock_threshold(item_type)
         return current < threshold
 
-    def get_early_game_essentials(self) -> List[ItemType]:
+    def get_early_game_essentials(self) -> list[ItemType]:
         """Get essential items for early game"""
         return [
             ItemType.POTION,
@@ -1405,7 +1405,7 @@ class ShoppingHeuristic:
             ItemType.ANTIDOTE,
         ]
 
-    def get_late_game_essentials(self) -> List[ItemType]:
+    def get_late_game_essentials(self) -> list[ItemType]:
         """Get essential items for late game"""
         return [
             ItemType.HYPER_POTION,
@@ -1414,7 +1414,7 @@ class ShoppingHeuristic:
             ItemType.MAX_REPEL,
         ]
 
-    def get_gym_specific_items(self, gym_type: str) -> Dict[ItemType, int]:
+    def get_gym_specific_items(self, gym_type: str) -> dict[ItemType, int]:
         """Get items needed for specific gym battles"""
         return ShoppingHeuristic.GYM_SPECIFIC_ITEMS.get(gym_type, {})
 
@@ -1434,7 +1434,7 @@ class PokemonCenterProtocol:
         self._inventory = inventory
         self._heal_threshold_percent: float = 50.0
         self._critical_threshold_percent: float = 20.0
-        self._exit_destination: Optional[str] = None
+        self._exit_destination: str | None = None
         self._pc_swaps_max = 2
 
     def set_heal_thresholds(
@@ -1448,7 +1448,7 @@ class PokemonCenterProtocol:
 
     def assess_healing_need(
         self, party_state: PartyState
-    ) -> Tuple[bool, HealingPriority, str]:
+    ) -> tuple[bool, HealingPriority, str]:
         """
         Assess if party needs healing and at what priority.
 
@@ -1480,7 +1480,7 @@ class PokemonCenterProtocol:
             return True, HealingPriority.MEDIUM, f"PP exhausted ({total_pp}/{max_pp})"
         return False, HealingPriority.LOW, "Party healthy"
 
-    def get_healing_priority(self, party_state: PartyState) -> List[int]:
+    def get_healing_priority(self, party_state: PartyState) -> list[int]:
         """
         Get indices of Pokemon to heal in priority order.
 
@@ -1506,9 +1506,9 @@ class PokemonCenterProtocol:
         """Calculate cost for Pokemon Center healing (always free in Gen 1)"""
         return 0
 
-    def get_nearest_center_location(self, current_location: str) -> Optional[str]:
+    def get_nearest_center_location(self, current_location: str) -> str | None:
         """Get nearest Pokemon Center location from current position"""
-        center_locations: Dict[str, str] = {
+        center_locations: dict[str, str] = {
             "Pallet Town": "Pallet Town Pokemon Center",
             "Viridian City": "Viridian City Pokemon Center",
             "Pewter City": "Pewter City Pokemon Center",
@@ -1529,9 +1529,9 @@ class PokemonCenterProtocol:
     def execute_center_protocol(
         self,
         party_state: PartyState,
-        _pc_box_state: Optional[List[PokemonState]] = None,
-        _upcoming_challenges: Optional[List[str]] = None,
-    ) -> Tuple[bool, PartyState]:
+        _pc_box_state: list[PokemonState] | None = None,
+        _upcoming_challenges: list[str] | None = None,
+    ) -> tuple[bool, PartyState]:
         """
         Execute complete Pokemon Center visit: heal + optional PC.
 
@@ -1567,16 +1567,16 @@ class PokemonCenterProtocol:
     def assess_pc_needs(
         self,
         party_state: PartyState,
-        pc_box_state: List[PokemonState],
-        _upcoming_challenges: List[str],
-    ) -> List[Tuple[int, int]]:
+        pc_box_state: list[PokemonState],
+        _upcoming_challenges: list[str],
+    ) -> list[tuple[int, int]]:
         """
         Analyze if PC swaps are needed for optimal party composition.
 
         Returns:
             List of (deposit_index, withdraw_index) tuples
         """
-        swaps: List[Tuple[int, int]] = []
+        swaps: list[tuple[int, int]] = []
 
         if not pc_box_state or len(pc_box_state) == 0:
             return swaps
@@ -1595,7 +1595,7 @@ class PokemonCenterProtocol:
 
         return swaps[: self._pc_swaps_max]
 
-    def _calculate_carry_scores(self, pokemon_list: List[PokemonState]) -> List[int]:
+    def _calculate_carry_scores(self, pokemon_list: list[PokemonState]) -> list[int]:
         """Calculate carry scores for Pokemon list"""
         scores = []
         for pokemon in pokemon_list:
@@ -1609,7 +1609,7 @@ class PokemonCenterProtocol:
             scores.append(score)
         return scores
 
-    def get_exit_destination(self) -> Optional[str]:
+    def get_exit_destination(self) -> str | None:
         """Get destination to return to after healing"""
         return self._exit_destination
 
@@ -1629,7 +1629,7 @@ class ItemUsageStrategy:
     - No waste scenarios (no overhealing, no unused TMs)
     """
 
-    STATUS_CURE_MAP: Dict[str, ItemType] = {
+    STATUS_CURE_MAP: dict[str, ItemType] = {
         "POISONED": ItemType.ANTIDOTE,
         "BURNED": ItemType.BURN_HEAL,
         "PARALYZED": ItemType.PARALYZE_HEAL,
@@ -1644,9 +1644,9 @@ class ItemUsageStrategy:
         self,
         party_state: PartyState,
         active_index: int,
-        _enemy_info: Optional[Dict[str, Any]] = None,
+        _enemy_info: dict[str, Any] | None = None,
         is_trainer_battle: bool = False,
-    ) -> Tuple[Optional[ItemType], Optional[int]]:
+    ) -> tuple[ItemType | None, int | None]:
         """
         Select optimal item to use in battle.
 
@@ -1740,7 +1740,7 @@ class ItemUsageStrategy:
         self,
         _pokemon: PokemonState,
         current_hp_percent: float,
-        battle_context: Dict[str, Any],
+        battle_context: dict[str, Any],
     ) -> bool:
         """Determine if potion should be used"""
         if current_hp_percent < 0.10:
@@ -1752,15 +1752,15 @@ class ItemUsageStrategy:
     def select_potion_type(
         self,
         pokemon: PokemonState,
-        available_potions: Dict[ItemType, int],
-    ) -> Optional[ItemType]:
+        available_potions: dict[ItemType, int],
+    ) -> ItemType | None:
         """Select most efficient potion type for the situation"""
         if not available_potions:
             return None
 
         missing_hp = pokemon.max_hp - pokemon.current_hp
 
-        potion_power: Dict[ItemType, int] = {
+        potion_power: dict[ItemType, int] = {
             ItemType.HYPER_POTION: 200,
             ItemType.SUPER_POTION: 50,
             ItemType.POTION: 20,
@@ -1786,7 +1786,7 @@ class ItemUsageStrategy:
     def should_use_status_cure(
         self,
         pokemon: PokemonState,
-        battle_context: Dict[str, Any],
+        battle_context: dict[str, Any],
     ) -> bool:
         """Determine if status cure should be used"""
         blocking_statuses = ["PARALYZED", "ASLEEP", "FROZEN"]
@@ -1801,8 +1801,8 @@ class ItemUsageStrategy:
     def select_status_cure(
         self,
         pokemon: PokemonState,
-        available_cures: Dict[ItemType, int],
-    ) -> Optional[ItemType]:
+        available_cures: dict[ItemType, int],
+    ) -> ItemType | None:
         """Select appropriate status cure item"""
         if not available_cures or pokemon.status == "NONE":
             return None
@@ -1820,7 +1820,7 @@ class ItemUsageStrategy:
         self,
         item_type: ItemType,
         party_state: PartyState,
-        _battle_context: Dict[str, Any],
+        _battle_context: dict[str, Any],
     ) -> float:
         """
         Calculate value score for an item based on current situation.
@@ -1884,7 +1884,7 @@ class ItemUsageStrategy:
         self,
         pokemon: PokemonState,
         party_state: PartyState,
-        _upcoming_challenges: List[str],
+        _upcoming_challenges: list[str],
     ) -> bool:
         """Determine if Rare Candy should be used on this Pokemon"""
         if not self._inventory.has_item(ItemType.RARE_CANDY):
@@ -1905,8 +1905,8 @@ class ItemUsageStrategy:
     def get_optimal_candy_target(
         self,
         party_state: PartyState,
-        _upcoming_challenges: List[str],
-    ) -> Optional[int]:
+        _upcoming_challenges: list[str],
+    ) -> int | None:
         """Get index of best Pokemon to use Rare Candy on"""
         if not self._inventory.has_item(ItemType.RARE_CANDY):
             return None
@@ -1937,7 +1937,7 @@ class ItemUsageStrategy:
 
     def should_use_x_item(
         self,
-        battle_context: Dict[str, Any],
+        battle_context: dict[str, Any],
     ) -> bool:
         """Determine if X items should be used in this battle"""
         if not battle_context.get("is_trainer_battle", False):
@@ -1951,8 +1951,8 @@ class ItemUsageStrategy:
 
     def select_x_item(
         self,
-        battle_context: Dict[str, Any],
-    ) -> Optional[ItemType]:
+        battle_context: dict[str, Any],
+    ) -> ItemType | None:
         """Select which X item to use"""
         if not self.should_use_x_item(battle_context):
             return None
@@ -1980,7 +1980,7 @@ class ItemUsageStrategy:
         party_state: PartyState,
         _current_location: str,
         upcoming_route: str,
-    ) -> Tuple[bool, Optional[ItemType], str]:
+    ) -> tuple[bool, ItemType | None, str]:
         """
         Evaluate if Repel should be used.
 
@@ -2031,7 +2031,7 @@ class ItemUsageStrategy:
 
         return False, None, ""
 
-    def get_no_waste_items(self) -> List[ItemType]:
+    def get_no_waste_items(self) -> list[ItemType]:
         """Get list of items that should never be wasted"""
         return [
             ItemType.MASTER_BALL,
@@ -2042,8 +2042,8 @@ class ItemUsageStrategy:
     def check_waste_prevention(
         self,
         item_type: ItemType,
-        target_state: Dict[str, Any],
-    ) -> Tuple[bool, str]:
+        target_state: dict[str, Any],
+    ) -> tuple[bool, str]:
         """
         Check if using item would be wasteful.
 
@@ -2106,7 +2106,7 @@ class InventoryManager:
     def item_usage(self) -> ItemUsageStrategy:
         return self._item_usage
 
-    def process_vision_update(self, vision_data: Dict[str, Any]) -> None:
+    def process_vision_update(self, vision_data: dict[str, Any]) -> None:
         """Process vision system update for inventory changes"""
         item_readings = vision_data.get("item_readings", [])
         for reading in item_readings:
@@ -2124,16 +2124,16 @@ class InventoryManager:
 
     def get_shopping_goal(
         self, party_state: PartyState, money: int
-    ) -> Optional[ShoppingPlan]:
+    ) -> ShoppingPlan | None:
         """Generate shopping goal for GOAP planner"""
         return cast(
-            Optional[ShoppingPlan],
+            ShoppingPlan | None,
             self._shopping.generate_shopping_list(party_state, None, money),
         )
 
     def get_healing_goal(
         self, party_state: PartyState
-    ) -> Optional[Tuple[bool, HealingPriority, str]]:
+    ) -> tuple[bool, HealingPriority, str] | None:
         """Generate healing goal for GOAP planner"""
         return self._center.assess_healing_need(party_state)
 
@@ -2141,18 +2141,18 @@ class InventoryManager:
         self,
         party_state: PartyState,
         active_index: int,
-        battle_context: Dict[str, Any],
-    ) -> Tuple[Optional[ItemType], Optional[int]]:
+        battle_context: dict[str, Any],
+    ) -> tuple[ItemType | None, int | None]:
         """Get optimal item to use in battle"""
         return self._item_usage.select_battle_item(
             party_state, active_index, battle_context
         )
 
-    def record_item_usage(self, item_type: ItemType, _context: Dict[str, Any]) -> None:
+    def record_item_usage(self, item_type: ItemType, _context: dict[str, Any]) -> None:
         """Record item usage for learning/optimization"""
         self._inventory.consume_item(item_type)
 
-    def get_inventory_report(self) -> Dict[str, Any]:
+    def get_inventory_report(self) -> dict[str, Any]:
         """Get comprehensive inventory report"""
         return {
             "inventory_summary": self._inventory.get_bag_summary(),

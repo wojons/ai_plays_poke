@@ -3,7 +3,7 @@ Sprite Recognizer - Pokemon and UI Element Recognition
 """
 
 import json
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
 import numpy as np
@@ -15,8 +15,8 @@ class SpriteMatch:
     name: str
     confidence: float
     sprite_type: str
-    position: Tuple[int, int]
-    size: Tuple[int, int]
+    position: tuple[int, int]
+    size: tuple[int, int]
 
 
 @dataclass
@@ -32,15 +32,15 @@ class HPBarResult:
 class MenuCursorResult:
     position: int
     option_count: int
-    options: List[str]
+    options: list[str]
 
 
 class SpriteRecognizer:
     SPRITE_DATABASE_PATH = Path(__file__).parent / "data" / "sprites.json"
 
     def __init__(self) -> None:
-        self.sprite_templates: Dict[str, np.ndarray] = {}
-        self.sprite_metadata: Dict[str, Dict[str, Any]] = {}
+        self.sprite_templates: dict[str, np.ndarray] = {}
+        self.sprite_metadata: dict[str, dict[str, Any]] = {}
         self._load_sprite_database()
         self.hp_bar_colors = {
             "green": ((34, 139, 34), (50, 205, 50)),
@@ -154,8 +154,8 @@ class SpriteRecognizer:
             json.dump(data, f, indent=2)
 
     def recognize_pokemon(
-        self, sprite_region: np.ndarray, expected_types: Optional[List[str]] = None
-    ) -> Optional[SpriteMatch]:
+        self, sprite_region: np.ndarray, expected_types: list[str] | None = None
+    ) -> SpriteMatch | None:
         if sprite_region.size == 0:
             return None
         best_match = None
@@ -210,14 +210,14 @@ class SpriteRecognizer:
         return result
 
     def _resize_to_match(
-        self, region: np.ndarray, target_size: Tuple[int, int]
+        self, region: np.ndarray, target_size: tuple[int, int]
     ) -> np.ndarray:
         th, tw = target_size
         pil_img = Image.fromarray(region)
         resized = pil_img.resize((tw, th), Image.Resampling.LANCZOS)
         return np.array(resized)
 
-    def parse_hp_bar(self, hp_bar_image: np.ndarray) -> Optional[HPBarResult]:
+    def parse_hp_bar(self, hp_bar_image: np.ndarray) -> HPBarResult | None:
         if hp_bar_image.size == 0:
             return None
         gray = (
@@ -248,7 +248,7 @@ class SpriteRecognizer:
             is_critical=is_critical,
         )
 
-    def detect_menu_cursor(self, menu_image: np.ndarray) -> Optional[MenuCursorResult]:
+    def detect_menu_cursor(self, menu_image: np.ndarray) -> MenuCursorResult | None:
         if menu_image.size == 0:
             return None
         gray = self._ensure_grayscale(menu_image)
@@ -282,7 +282,7 @@ class SpriteRecognizer:
 
     def find_pokemon_sprites(
         self, image: np.ndarray, is_battle: bool = True
-    ) -> List[SpriteMatch]:
+    ) -> list[SpriteMatch]:
         matches = []
         if is_battle:
             h, w = image.shape[:2]
@@ -304,7 +304,7 @@ class SpriteRecognizer:
                     matches.append(match)
         return matches
 
-    def get_pokemon_types(self, name: str) -> List[str]:
+    def get_pokemon_types(self, name: str) -> list[str]:
         return list(self.pokemon_types.get(name, ["Unknown"]))
 
     def is_shiny(self, sprite_region: np.ndarray) -> bool:

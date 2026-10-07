@@ -6,17 +6,17 @@ then assembles them into a full prompt string with injected game state.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import yaml
 
 
-GAME_NAMES: Dict[str, str] = {
+GAME_NAMES: dict[str, str] = {
     "gen1": "Pokémon Red/Blue/Yellow",
     "gen3": "Pokémon FireRed/LeafGreen",
 }
 
-GEN_LABELS: Dict[str, str] = {
+GEN_LABELS: dict[str, str] = {
     "gen1": "Generation 1 (Game Boy)",
     "gen3": "Generation 3 (Game Boy Advance)",
 }
@@ -42,11 +42,11 @@ def _join_list(value: Any, sep: str = "\n  ") -> str:
     return str(value)
 
 
-def _build_hp_info(vision: Dict[str, Any]) -> str:
+def _build_hp_info(vision: dict[str, Any]) -> str:
     """Build HP info string from raw vision data fields."""
     player_pct = vision.get("player_hp_pct")
     enemy_pct = vision.get("enemy_hp_pct")
-    parts: List[str] = []
+    parts: list[str] = []
     if player_pct is not None:
         parts.append(f"Your HP: {player_pct}%")
     if enemy_pct is not None:
@@ -59,7 +59,7 @@ def _build_hp_info(vision: Dict[str, Any]) -> str:
     return " | ".join(parts) if parts else ""
 
 
-def _build_enemy_info(vision: Dict[str, Any]) -> str:
+def _build_enemy_info(vision: dict[str, Any]) -> str:
     """Build enemy info string from raw vision data fields."""
     enemy = vision.get("enemy_pokemon")
     if enemy:
@@ -94,14 +94,14 @@ class PromptStack:
 
     def __init__(self, configs_dir: str = "configs/prompts"):
         self._configs_dir = Path(configs_dir)
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
         self._flow: str = self._load_flow()
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
 
-    def load_stack(self, generation: str, screen_type: str) -> Dict[str, str]:
+    def load_stack(self, generation: str, screen_type: str) -> dict[str, str]:
         """
         Return the 5-layer prompt config for a generation + screen combo.
 
@@ -124,8 +124,8 @@ class PromptStack:
         self,
         generation: str,
         screen_type: str,
-        vision_output: Dict[str, Any],
-        memory_context: Dict[str, Any],
+        vision_output: dict[str, Any],
+        memory_context: dict[str, Any],
     ) -> str:
         """
         Assemble a full prompt string by layering system → tools →
@@ -144,7 +144,7 @@ class PromptStack:
         stack = self.load_stack(generation, screen_type)
 
         # Build the formatting context
-        fmt: Dict[str, Any] = SafeDict()
+        fmt: dict[str, Any] = SafeDict()
 
         # --- Generation / game metadata ---
         fmt["generation"] = GEN_LABELS.get(generation, generation)
@@ -171,7 +171,7 @@ class PromptStack:
         fmt["active_goal"] = memory_context.get("active_goal", "")
 
         # --- Assemble layers ---
-        parts: List[str] = []
+        parts: list[str] = []
 
         # Prepend game flow map first
         if self._flow:
@@ -200,7 +200,7 @@ class PromptStack:
         return data.get("flow", "") if isinstance(data, dict) else ""
 
     @staticmethod
-    def _format_layer(template: Any, fmt: Dict[str, Any]) -> str:
+    def _format_layer(template: Any, fmt: dict[str, Any]) -> str:
         """Format a single layer, handling both strings and example lists."""
         if isinstance(template, str):
             return template.format_map(fmt)
@@ -208,7 +208,7 @@ class PromptStack:
             # Examples layer: list of {"input": ..., "output": ...} dicts
             # These are static references — do NOT format_map them since
             # their JSON outputs contain literal curly braces.
-            lines: List[str] = ["Examples of correct responses:"]
+            lines: list[str] = ["Examples of correct responses:"]
             for i, example in enumerate(template, 1):
                 inp = example.get("input", "")
                 out = example.get("output", "")
@@ -222,9 +222,9 @@ class PromptStack:
     # Introspection helpers
     # ------------------------------------------------------------------
 
-    def available_stacks(self) -> List[str]:
+    def available_stacks(self) -> list[str]:
         """Return list of available generation/screen_type keys."""
-        stacks: List[str] = []
+        stacks: list[str] = []
         if self._configs_dir.exists():
             for gen_dir in sorted(self._configs_dir.iterdir()):
                 if gen_dir.is_dir():

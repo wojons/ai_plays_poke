@@ -8,7 +8,7 @@ Supports Pokemon names, menu items, and dialog text.
 import json
 import logging
 import re
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Any
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -26,7 +26,7 @@ class OCRResult:
     confidence: float
     character_count: int
     processing_time_ms: float = 0.0
-    characters: List[Dict[str, Any]] = field(default_factory=list)
+    characters: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -56,7 +56,7 @@ class OCREngine:
 
     def __init__(self) -> None:
         """Initialize OCR Engine with font templates"""
-        self.font_templates: Dict[int, FontTemplate] = {}
+        self.font_templates: dict[int, FontTemplate] = {}
         self._load_font_database()
 
         self.special_cases: dict[str, Any] = {
@@ -286,7 +286,7 @@ class OCREngine:
         """Binarize image using threshold"""
         return (gray > threshold).astype(np.uint8) * 255
 
-    def _split_into_lines(self, binary: np.ndarray) -> List[np.ndarray]:
+    def _split_into_lines(self, binary: np.ndarray) -> list[np.ndarray]:
         """Split binary image into lines of text"""
         h, w = binary.shape
 
@@ -313,7 +313,7 @@ class OCREngine:
 
     def _recognize_line(
         self, line: np.ndarray, min_confidence: float
-    ) -> Tuple[str, float, List[Dict[str, Any]]]:
+    ) -> tuple[str, float, list[dict[str, Any]]]:
         """Recognize a single line of text"""
         h, w = line.shape
 
@@ -370,7 +370,7 @@ class OCREngine:
 
         return self.CHAR_WIDTH
 
-    def _recognize_character(self, char_region: np.ndarray) -> Dict[str, Any]:
+    def _recognize_character(self, char_region: np.ndarray) -> dict[str, Any]:
         """Recognize a single character using template matching"""
         h, w = char_region.shape
 
@@ -419,7 +419,7 @@ class OCREngine:
         return float(max(0.0, numerator / denominator))
 
     def _resize_to_match(
-        self, region: np.ndarray, target_size: Tuple[int, int]
+        self, region: np.ndarray, target_size: tuple[int, int]
     ) -> np.ndarray:
         """Resize character region to match template size"""
         th, tw = target_size
@@ -482,7 +482,7 @@ class OCREngine:
         result = self.extract_text(image)
         return result.text
 
-    def extract_pokemon_name(self, image: np.ndarray) -> Optional[str]:
+    def extract_pokemon_name(self, image: np.ndarray) -> str | None:
         """Extract Pokemon name from name box"""
         result = self.extract_text(image, min_confidence=0.6)
 
@@ -491,7 +491,7 @@ class OCREngine:
 
         return None
 
-    def extract_hp_value(self, image: np.ndarray) -> Optional[int]:
+    def extract_hp_value(self, image: np.ndarray) -> int | None:
         """Extract HP number from HP bar"""
         result = self.extract_text(image, min_confidence=0.5)
 

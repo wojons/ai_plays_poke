@@ -2,7 +2,7 @@
 
 import threading
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 
 class TokenTracker:
@@ -13,7 +13,7 @@ class TokenTracker:
         self.total_output_tokens = 0
         self.total_cost = 0.0
         self.call_count = 0
-        self.request_history: List[Dict[str, Any]] = []
+        self.request_history: list[dict[str, Any]] = []
         self.lock = threading.Lock()
 
     def record_request(
@@ -47,7 +47,7 @@ class TokenTracker:
             return 0.0
         return float(self.total_cost / decisions)
 
-    def get_session_stats(self) -> Dict[str, Any]:
+    def get_session_stats(self) -> dict[str, Any]:
         """Get session statistics"""
         with self.lock:
             return {

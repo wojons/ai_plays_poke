@@ -26,7 +26,7 @@ Performance:
 from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Any
+from typing import TYPE_CHECKING, Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -106,7 +106,7 @@ class TeamRole(Enum):
 class TypeChart:
     """Gen 1 type effectiveness chart with 18 types."""
 
-    _chart: Dict[PokemonType, Dict[PokemonType, float]] = {}
+    _chart: dict[PokemonType, dict[PokemonType, float]] = {}
 
     def __init__(self) -> None:
         self._initialize_chart()
@@ -271,7 +271,7 @@ class TypeChart:
         }
 
     def get_effectiveness(
-        self, attack_type: PokemonType, defender_types: List[PokemonType]
+        self, attack_type: PokemonType, defender_types: list[PokemonType]
     ) -> float:
         if attack_type not in self._chart:
             return 1.0
@@ -284,12 +284,12 @@ class TypeChart:
         return effectiveness
 
     def is_immune(
-        self, attack_type: PokemonType, defender_types: List[PokemonType]
+        self, attack_type: PokemonType, defender_types: list[PokemonType]
     ) -> bool:
         return self.get_effectiveness(attack_type, defender_types) == 0.0
 
     def is_super_effective(
-        self, attack_type: PokemonType, defender_types: List[PokemonType]
+        self, attack_type: PokemonType, defender_types: list[PokemonType]
     ) -> bool:
         return self.get_effectiveness(attack_type, defender_types) >= 2.0
 
@@ -320,7 +320,7 @@ class BaseStats:
     speed: int
     special: int
     type_primary: PokemonType
-    type_secondary: Optional[PokemonType]
+    type_secondary: PokemonType | None
     catch_rate: int
     base_experience_yield: int
     growth_rate: GrowthRate
@@ -408,22 +408,22 @@ class PokemonData:
 
     pokemon_id: str
     species_id: str
-    nickname: Optional[str]
+    nickname: str | None
     level: int
     current_hp: int
     max_hp: int
     base_stats: BaseStats
     ivs: IndividualValues
     evs: EffortValues
-    moves: List[Move]
+    moves: list[Move]
     status: StatusCondition
     experience: Experience
-    types: Tuple[PokemonType, Optional[PokemonType]]
+    types: tuple[PokemonType, PokemonType | None]
     happiness: int = 100
     is_shiny: bool = False
-    catch_location: Optional[str] = None
+    catch_location: str | None = None
     catch_level: int = 1
-    date_caught: Optional[str] = None
+    date_caught: str | None = None
     victories: int = 0
     defeats: int = 0
     experience_gained: int = 0
@@ -441,7 +441,7 @@ class PokemonData:
     def has_move(self, move_name: str) -> bool:
         return any(m.name.lower() == move_name.lower() for m in self.moves)
 
-    def get_move(self, move_name: str) -> Optional[Move]:
+    def get_move(self, move_name: str) -> Move | None:
         for move in self.moves:
             if move.name.lower() == move_name.lower():
                 return move
@@ -484,7 +484,7 @@ class PokemonData:
     def is_underleveled(self, avg_level: float) -> bool:
         return self.level < avg_level - 3
 
-    def get_best_move(self) -> Optional[Move]:
+    def get_best_move(self) -> Move | None:
         valid_moves = [
             m for m in self.moves if m.pp > 0 and m.category != MoveCategory.STATUS
         ]
@@ -507,7 +507,7 @@ class PokemonData:
         dps = (best_move.power * attack_stat / 100) * speed_weight * stab
         return float(max(dps, 1.0))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "pokemon_id": self.pokemon_id,
             "species_id": self.species_id,
@@ -560,13 +560,13 @@ class Team:
     """Complete team data structure for party management."""
 
     team_id: str
-    name: Optional[str]
-    party: List[Optional[PokemonData]]
-    box: List[PokemonData]
+    name: str | None
+    party: list[PokemonData | None]
+    box: list[PokemonData]
     total_battles: int = 0
     total_victories: int = 0
     total_defeats: int = 0
-    last_analysis: Optional[str] = None
+    last_analysis: str | None = None
 
     def __post_init__(self) -> None:
         if len(self.party) != 6:
@@ -574,7 +574,7 @@ class Team:
         while len(self.party) < 6:
             self.party.append(None)
 
-    def active_pokemon(self) -> List[PokemonData]:
+    def active_pokemon(self) -> list[PokemonData]:
         return [p for p in self.party if p is not None]
 
     def active_count(self) -> int:
@@ -598,7 +598,7 @@ class Team:
             return 0
         return max(p.level for p in active) - min(p.level for p in active)
 
-    def get_lead_pokemon(self) -> Optional[PokemonData]:
+    def get_lead_pokemon(self) -> PokemonData | None:
         for p in self.party:
             if p is not None:
                 return p
@@ -612,9 +612,9 @@ class Team:
                     return True
         return False
 
-    def get_hm_users(self) -> Dict[str, List[PokemonData]]:
+    def get_hm_users(self) -> dict[str, list[PokemonData]]:
         hm_moves = {"CUT", "FLY", "SURF", "STRENGTH", "FLASH", "WHIRLPOOL", "WATERFALL"}
-        hm_users: Dict[str, List[PokemonData]] = {hm: [] for hm in hm_moves}
+        hm_users: dict[str, list[PokemonData]] = {hm: [] for hm in hm_moves}
 
         for p in self.active_pokemon():
             for move in p.moves:
@@ -663,7 +663,7 @@ class CarryScoreBreakdown:
     sentimental_modifier: float
     final_score: float
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         return {
             "level_relevance": self.level_relevance,
             "type_uniqueness": self.type_uniqueness,
@@ -683,8 +683,8 @@ class EvolutionCondition:
     required_value: Any
     target_species_id: str
     target_species_name: str
-    learnable_moves: List[Dict[str, Any]]
-    stat_changes: Dict[str, int]
+    learnable_moves: list[dict[str, Any]]
+    stat_changes: dict[str, int]
 
 
 @dataclass
@@ -704,9 +704,9 @@ class EvolutionDecision:
     """Evolution timing decision result"""
 
     decision: str
-    wait_levels: Optional[int]
+    wait_levels: int | None
     reason: str
-    expected_move: Optional[PreEvolutionMove]
+    expected_move: PreEvolutionMove | None
     stat_improvement: float
     net_benefit_score: float
 
@@ -715,12 +715,12 @@ class EvolutionDecision:
 class TypeCoverage:
     """Type coverage analysis result"""
 
-    covered_types: Set[PokemonType]
-    uncovered_types: Set[PokemonType]
-    critical_gaps: Set[PokemonType]
+    covered_types: set[PokemonType]
+    uncovered_types: set[PokemonType]
+    critical_gaps: set[PokemonType]
     coverage_percentage: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "covered_types": [t.value for t in self.covered_types],
             "uncovered_types": [t.value for t in self.uncovered_types],
@@ -734,11 +734,11 @@ class TeamAnalysis:
     """Complete team analysis result"""
 
     type_coverage: TypeCoverage
-    carry_scores: Dict[str, float]
-    role_assignments: Dict[str, str]
-    stat_distribution: Dict[str, float]
-    move_overlap: List[Dict[str, Any]]
-    recommendations: List[str]
+    carry_scores: dict[str, float]
+    role_assignments: dict[str, str]
+    stat_distribution: dict[str, float]
+    move_overlap: list[dict[str, Any]]
+    recommendations: list[str]
     team_score: float
 
 
@@ -747,13 +747,13 @@ class PartySlot:
     """Party slot with Pokemon and optimization score"""
 
     slot_index: int
-    pokemon: Optional[PokemonData]
+    pokemon: PokemonData | None
     score: float
     recommended_role: str
-    suggested_moves: List[str]
+    suggested_moves: list[str]
 
 
-CRITICAL_PRE_EVO_MOVES: Dict[str, List[PreEvolutionMove]] = {
+CRITICAL_PRE_EVO_MOVES: dict[str, list[PreEvolutionMove]] = {
     "BULBASAUR": [
         PreEvolutionMove(
             move_id="RAZOR_LEAF",
@@ -829,7 +829,7 @@ CRITICAL_PRE_EVO_MOVES: Dict[str, List[PreEvolutionMove]] = {
 class CarryScoreCalculator:
     """Calculates battle utility scores for Pokemon."""
 
-    RARITY_MULTIPLIERS: Dict[str, float] = {
+    RARITY_MULTIPLIERS: dict[str, float] = {
         "BULBASAUR": 1.15,
         "IVYSAUR": 1.15,
         "VENUSAUR": 1.15,
@@ -862,7 +862,7 @@ class CarryScoreCalculator:
         "BEEDRILL": 0.6,
     }
 
-    def __init__(self, type_chart: TypeChart, species_data: Dict[str, BaseStats]):
+    def __init__(self, type_chart: TypeChart, species_data: dict[str, BaseStats]):
         self.type_chart = type_chart
         self.species_data = species_data
         self.type_values = TypeValueWeights()
@@ -899,10 +899,10 @@ class CarryScoreCalculator:
     def calculate_type_uniqueness(
         self,
         pokemon: PokemonData,
-        current_party: List[Optional[PokemonData]],
-        upcoming_battles: Optional[List[Dict[str, Any]]] = None,
+        current_party: list[PokemonData | None],
+        upcoming_battles: list[dict[str, Any]] | None = None,
     ) -> float:
-        party_types: Set[PokemonType] = set()
+        party_types: set[PokemonType] = set()
         for member in current_party:
             if member and member != pokemon:
                 for t in member.types:
@@ -940,7 +940,7 @@ class CarryScoreCalculator:
     def calculate_move_coverage(
         self,
         pokemon: PokemonData,
-        uncovered_enemy_types: Optional[List[PokemonType]] = None,
+        uncovered_enemy_types: list[PokemonType] | None = None,
     ) -> float:
         all_types = list(PokemonType)
         target_types = uncovered_enemy_types or all_types
@@ -1038,10 +1038,10 @@ class CarryScoreCalculator:
     def calculate_carry_score(
         self,
         pokemon: PokemonData,
-        current_party: List[Optional[PokemonData]],
-        upcoming_battles: Optional[List[Dict[str, Any]]] = None,
+        current_party: list[PokemonData | None],
+        upcoming_battles: list[dict[str, Any]] | None = None,
         expected_encounter_level: int = 25,
-    ) -> Tuple[float, CarryScoreBreakdown]:
+    ) -> tuple[float, CarryScoreBreakdown]:
         level_relevance = self.calculate_level_relevance(
             pokemon, expected_encounter_level
         )
@@ -1095,8 +1095,8 @@ class EvolutionManager:
 
     def __init__(
         self,
-        evolution_data: Dict[str, List[EvolutionCondition]],
-        move_data: Dict[str, Dict[str, Any]],
+        evolution_data: dict[str, list[EvolutionCondition]],
+        move_data: dict[str, dict[str, Any]],
         type_chart: TypeChart,
     ):
         self.evolution_data = evolution_data
@@ -1105,12 +1105,12 @@ class EvolutionManager:
 
     def get_evolution_conditions(
         self, species_id: str, _current_level: int
-    ) -> List[EvolutionCondition]:
+    ) -> list[EvolutionCondition]:
         return self.evolution_data.get(species_id, [])
 
     def check_evolution_available(
         self, pokemon: PokemonData
-    ) -> Optional[EvolutionCondition]:
+    ) -> EvolutionCondition | None:
         conditions = self.get_evolution_conditions(pokemon.species_id, pokemon.level)
 
         for condition in conditions:
@@ -1121,7 +1121,7 @@ class EvolutionManager:
 
     def evaluate_pre_evolution_moves(
         self, species_id: str, current_level: int, evolution_level: int
-    ) -> Optional[PreEvolutionMove]:
+    ) -> PreEvolutionMove | None:
         important_moves = CRITICAL_PRE_EVO_MOVES.get(species_id, [])
 
         for move_data in important_moves:
@@ -1137,7 +1137,7 @@ class EvolutionManager:
         self,
         pokemon: PokemonData,
         evolution: EvolutionCondition,
-        best_pre_evo_move: Optional[PreEvolutionMove],
+        best_pre_evo_move: PreEvolutionMove | None,
     ) -> EvolutionDecision:
         stat_improvement = 0.0
         for stat_name, change in evolution.stat_changes.items():
@@ -1209,7 +1209,7 @@ class EvolutionManager:
         return min(value, 15.0)
 
     def should_use_evolution_item(
-        self, pokemon: PokemonData, _item_name: str, team_needs: Dict[str, Any]
+        self, pokemon: PokemonData, _item_name: str, team_needs: dict[str, Any]
     ) -> bool:
         evolution = self.check_evolution_available(pokemon)
         if not evolution:
@@ -1227,7 +1227,7 @@ class EvolutionManager:
 
         return False
 
-    def get_evolution_readiness(self, pokemon: PokemonData) -> Dict[str, Any]:
+    def get_evolution_readiness(self, pokemon: PokemonData) -> dict[str, Any]:
         evolution = self.check_evolution_available(pokemon)
 
         if not evolution:
@@ -1274,7 +1274,7 @@ class TeamCompositionOptimizer:
     def __init__(
         self,
         carry_calculator: CarryScoreCalculator,
-        species_data: Dict[str, BaseStats],
+        species_data: dict[str, BaseStats],
         type_chart: TypeChart,
     ):
         self.carry_calculator = carry_calculator
@@ -1283,12 +1283,12 @@ class TeamCompositionOptimizer:
 
     def analyze_type_coverage(
         self,
-        party: List[Optional[PokemonData]],
-        upcoming_battles: Optional[List[Dict[str, Any]]] = None,
+        party: list[PokemonData | None],
+        upcoming_battles: list[dict[str, Any]] | None = None,
     ) -> TypeCoverage:
         all_types = set(PokemonType)
-        covered_types: Set[PokemonType] = set()
-        party_move_types: Set[PokemonType] = set()
+        covered_types: set[PokemonType] = set()
+        party_move_types: set[PokemonType] = set()
 
         for pokemon in party:
             if pokemon is None:
@@ -1308,7 +1308,7 @@ class TeamCompositionOptimizer:
 
         uncovered = all_types - covered_types
 
-        critical_gaps: Set[PokemonType] = set()
+        critical_gaps: set[PokemonType] = set()
         if upcoming_battles:
             for battle in upcoming_battles:
                 boss_types = battle.get("boss_types", [])
@@ -1338,8 +1338,8 @@ class TeamCompositionOptimizer:
         )
 
     def calculate_stat_distribution(
-        self, party: List[Optional[PokemonData]]
-    ) -> Dict[str, float]:
+        self, party: list[PokemonData | None]
+    ) -> dict[str, float]:
         active = [p for p in party if p is not None]
         if not active:
             return {"attack": 0.0, "defense": 0.0, "speed": 0.0, "special": 0.0}
@@ -1361,9 +1361,9 @@ class TeamCompositionOptimizer:
         }
 
     def detect_move_overlap(
-        self, party: List[Optional[PokemonData]]
-    ) -> List[Dict[str, Any]]:
-        move_owners: Dict[str, List[str]] = {}
+        self, party: list[PokemonData | None]
+    ) -> list[dict[str, Any]]:
+        move_owners: dict[str, list[str]] = {}
 
         for pokemon in party:
             if pokemon is None:
@@ -1387,8 +1387,8 @@ class TeamCompositionOptimizer:
 
         return overlaps
 
-    def assign_roles(self, party: List[Optional[PokemonData]]) -> Dict[str, str]:
-        roles: Dict[str, str] = {}
+    def assign_roles(self, party: list[PokemonData | None]) -> dict[str, str]:
+        roles: dict[str, str] = {}
 
         for pokemon in party:
             if pokemon is None:
@@ -1425,8 +1425,8 @@ class TeamCompositionOptimizer:
         return roles
 
     def identify_boss_counters(
-        self, boss_team: List[Dict[str, Any]], available_pokemon: List[PokemonData]
-    ) -> List[Dict[str, Any]]:
+        self, boss_team: list[dict[str, Any]], available_pokemon: list[PokemonData]
+    ) -> list[dict[str, Any]]:
         counters = []
 
         for boss_data in boss_team:
@@ -1440,7 +1440,7 @@ class TeamCompositionOptimizer:
             for candidate in available_pokemon:
                 candidate_types = list(candidate.types)
 
-                defensive_effectiveness: List[float] = []
+                defensive_effectiveness: list[float] = []
                 for boss_type_name in boss_types:
                     try:
                         boss_type = PokemonType(boss_type_name)
@@ -1507,14 +1507,14 @@ class TeamCompositionOptimizer:
         return counters
 
     def calculate_battle_usage_priorities(
-        self, party: List[Optional[PokemonData]], enemy_party: List[Dict[str, Any]]
-    ) -> List[Tuple[Optional[PokemonData], float]]:
+        self, party: list[PokemonData | None], enemy_party: list[dict[str, Any]]
+    ) -> list[tuple[PokemonData | None, float]]:
         party_avg_level = 0.0
         active = [p for p in party if p is not None]
         if active:
             party_avg_level = sum(p.level for p in active) / len(active)
 
-        priorities: List[Tuple[Optional[PokemonData], float]] = []
+        priorities: list[tuple[PokemonData | None, float]] = []
 
         for pokemon in party:
             if pokemon is None:
@@ -1560,9 +1560,9 @@ class TeamCompositionOptimizer:
         return priorities
 
     def optimize_party_order(
-        self, party: List[Optional[PokemonData]], battle_type: str
-    ) -> List[PartySlot]:
-        scored_party: List[PartySlot] = []
+        self, party: list[PokemonData | None], battle_type: str
+    ) -> list[PartySlot]:
+        scored_party: list[PartySlot] = []
 
         for slot_index, pokemon in enumerate(party):
             if pokemon is None:
@@ -1656,8 +1656,8 @@ class TeamCompositionOptimizer:
         return scored_party
 
     def calculate_experience_rebalance_needed(
-        self, party: List[Optional[PokemonData]]
-    ) -> Dict[str, Any]:
+        self, party: list[PokemonData | None]
+    ) -> dict[str, Any]:
         active = [p for p in party if p is not None]
         if len(active) < 2:
             return {
@@ -1694,12 +1694,12 @@ class TeamCompositionOptimizer:
 
     def analyze_team(
         self,
-        party: List[Optional[PokemonData]],
-        upcoming_battles: Optional[List[Dict[str, Any]]] = None,
+        party: list[PokemonData | None],
+        upcoming_battles: list[dict[str, Any]] | None = None,
     ) -> TeamAnalysis:
         type_coverage = self.analyze_type_coverage(party, upcoming_battles)
 
-        carry_scores: Dict[str, float] = {}
+        carry_scores: dict[str, float] = {}
         for pokemon in party:
             if pokemon:
                 score, _ = self.carry_calculator.calculate_carry_score(
@@ -1741,11 +1741,11 @@ class TeamCompositionOptimizer:
 
     def suggest_party_changes(
         self,
-        current_party: List[Optional[PokemonData]],
-        box_pokemon: List[PokemonData],
-        _upcoming_content: Dict[str, Any],
-    ) -> List[Dict[str, Any]]:
-        suggestions: List[Dict[str, Any]] = []
+        current_party: list[PokemonData | None],
+        box_pokemon: list[PokemonData],
+        _upcoming_content: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        suggestions: list[dict[str, Any]] = []
 
         analysis = self.analyze_team(current_party)
         type_coverage = analysis.type_coverage
@@ -1804,10 +1804,10 @@ class EntityManager:
 
     def __init__(
         self,
-        type_chart: Optional[TypeChart] = None,
-        species_data: Optional[Dict[str, BaseStats]] = None,
-        evolution_data: Optional[Dict[str, List[EvolutionCondition]]] = None,
-        move_data: Optional[Dict[str, Dict[str, Any]]] = None,
+        type_chart: TypeChart | None = None,
+        species_data: dict[str, BaseStats] | None = None,
+        evolution_data: dict[str, list[EvolutionCondition]] | None = None,
+        move_data: dict[str, dict[str, Any]] | None = None,
     ):
         chart = type_chart if type_chart is not None else TypeChart()
         data = species_data if species_data is not None else {}
@@ -1819,13 +1819,13 @@ class EntityManager:
         self.team_optimizer = TeamCompositionOptimizer(
             self.carry_calculator, data, chart
         )
-        self.team: Optional[Team] = None
+        self.team: Team | None = None
         self.species_data = data
 
     def set_team(self, team: Team) -> None:
         self.team = team
 
-    def update_pokemon(self, pokemon_id: str, updates: Dict[str, Any]) -> bool:
+    def update_pokemon(self, pokemon_id: str, updates: dict[str, Any]) -> bool:
         if not self.team:
             return False
 
@@ -1845,7 +1845,7 @@ class EntityManager:
 
         return False
 
-    def get_pokemon(self, pokemon_id: str) -> Optional[PokemonData]:
+    def get_pokemon(self, pokemon_id: str) -> PokemonData | None:
         if not self.team:
             return None
 
@@ -1860,12 +1860,12 @@ class EntityManager:
         return None
 
     def calculate_all_carry_scores(
-        self, upcoming_battles: Optional[List[Dict[str, Any]]] = None
-    ) -> Dict[str, float]:
+        self, upcoming_battles: list[dict[str, Any]] | None = None
+    ) -> dict[str, float]:
         if not self.team:
             return {}
 
-        scores: Dict[str, float] = {}
+        scores: dict[str, float] = {}
         for pokemon in self.team.active_pokemon():
             score, _ = self.carry_calculator.calculate_carry_score(
                 pokemon, self.team.party, upcoming_battles
@@ -1875,7 +1875,7 @@ class EntityManager:
         return scores
 
     def analyze_team(
-        self, upcoming_battles: Optional[List[Dict[str, Any]]] = None
+        self, upcoming_battles: list[dict[str, Any]] | None = None
     ) -> TeamAnalysis:
         if not self.team:
             return TeamAnalysis(
@@ -1884,7 +1884,7 @@ class EntityManager:
 
         return self.team_optimizer.analyze_team(self.team.party, upcoming_battles)
 
-    def get_evolution_recommendations(self, pokemon_id: str) -> Dict[str, Any]:
+    def get_evolution_recommendations(self, pokemon_id: str) -> dict[str, Any]:
         pokemon = self.get_pokemon(pokemon_id)
         if not pokemon:
             return {}
@@ -1892,8 +1892,8 @@ class EntityManager:
         return self.evolution_manager.get_evolution_readiness(pokemon)
 
     def get_party_optimization_suggestions(
-        self, upcoming_content: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, upcoming_content: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         if not self.team:
             return []
 
@@ -1901,7 +1901,7 @@ class EntityManager:
             self.team.party, self.team.box, upcoming_content
         )
 
-    def check_experience_balance(self) -> Dict[str, Any]:
+    def check_experience_balance(self) -> dict[str, Any]:
         if not self.team:
             return {
                 "level_spread": 0,
@@ -1915,7 +1915,7 @@ class EntityManager:
             self.team.party
         )
 
-    def full_party_scan(self) -> Dict[str, Any]:
+    def full_party_scan(self) -> dict[str, Any]:
         if not self.team:
             return {"error": "No team set"}
 
@@ -1935,11 +1935,11 @@ class EntityManager:
             ],
         }
 
-    def get_bench_status(self) -> List[Dict[str, Any]]:
+    def get_bench_status(self) -> list[dict[str, Any]]:
         if not self.team:
             return []
 
-        status_list: List[Dict[str, Any]] = []
+        status_list: list[dict[str, Any]] = []
         for pokemon in self.team.active_pokemon():
             score, breakdown = self.carry_calculator.calculate_carry_score(
                 pokemon, self.team.party

@@ -16,7 +16,7 @@ Performance Specifications:
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any, Tuple, cast
+from typing import Any, cast
 import json
 import time
 import logging
@@ -54,9 +54,9 @@ class TickState:
     is_battle: bool = False
     party_hp_percent: float = 100.0
     money: int = 0
-    badges: List[str] = field(default_factory=list)
+    badges: list[str] = field(default_factory=list)
     screen_type: str = "overworld"
-    active_goal: Optional[str] = None
+    active_goal: str | None = None
 
 
 @dataclass
@@ -77,14 +77,14 @@ class ActionRecord:
 class SensoryInput:
     """Immediate vision/OCR input"""
 
-    vision_labels: List[str] = field(default_factory=list)
+    vision_labels: list[str] = field(default_factory=list)
     ocr_text: str = ""
     ocr_confidence: float = 0.0
     screen_type: str = "unknown"
-    enemy_pokemon: Optional[str] = None
+    enemy_pokemon: str | None = None
     player_hp_percent: float = 100.0
-    enemy_hp_percent: Optional[float] = None
-    available_actions: List[str] = field(default_factory=list)
+    enemy_hp_percent: float | None = None
+    available_actions: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -97,11 +97,11 @@ class ObserverMemory:
     """
 
     current_state: TickState = field(default_factory=TickState)
-    recent_actions: List[ActionRecord] = field(default_factory=list)
+    recent_actions: list[ActionRecord] = field(default_factory=list)
     sensory_input: SensoryInput = field(default_factory=SensoryInput)
-    decision_context: Dict[str, Any] = field(default_factory=dict)
+    decision_context: dict[str, Any] = field(default_factory=dict)
 
-    def get_recent_outcomes(self) -> List[Dict[str, Any]]:
+    def get_recent_outcomes(self) -> list[dict[str, Any]]:
         """Get summary of recent action outcomes"""
         return [
             {
@@ -147,7 +147,7 @@ class ObserverMemory:
             return 0.0
         return sum(a.confidence for a in self.recent_actions) / len(self.recent_actions)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize for debugging"""
         return {
             "current_state": {
@@ -191,9 +191,9 @@ class SessionObjective:
     status: str
     progress_percent: float
     created_tick: int
-    completed_tick: Optional[int]
-    prerequisites: List[str]
-    related_location: Optional[str]
+    completed_tick: int | None
+    prerequisites: list[str]
+    related_location: str | None
 
 
 @dataclass
@@ -210,9 +210,9 @@ class BattleRecord:
     outcome: str
     turns_taken: int
     player_hp_remaining: float
-    moves_used: List[str]
-    items_used: List[str]
-    key_decisions: List[str]
+    moves_used: list[str]
+    items_used: list[str]
+    key_decisions: list[str]
 
 
 @dataclass
@@ -224,10 +224,10 @@ class LocationVisited:
     first_visit_tick: int
     last_visit_tick: int
     visit_count: int
-    explored_areas: List[str]
-    unexplored_areas: List[str]
-    points_of_interest: List[str]
-    npcs_interacted: List[str]
+    explored_areas: list[str]
+    unexplored_areas: list[str]
+    points_of_interest: list[str]
+    npcs_interacted: list[str]
 
 
 @dataclass
@@ -236,9 +236,9 @@ class ResourceSnapshot:
 
     tick: int
     money: int
-    items: Dict[str, int]
-    tms_obtained: List[int]
-    hms_obtained: List[str]
+    items: dict[str, int]
+    tms_obtained: list[int]
+    hms_obtained: list[str]
 
 
 @dataclass
@@ -252,18 +252,18 @@ class StrategistMemory:
 
     session_id: str
     session_start_tick: int
-    objectives: List[SessionObjective]
-    active_objective: Optional[SessionObjective]
-    battle_history: List[BattleRecord]
-    locations_visited: Dict[str, LocationVisited]
-    resource_history: List[ResourceSnapshot]
+    objectives: list[SessionObjective]
+    active_objective: SessionObjective | None
+    battle_history: list[BattleRecord]
+    locations_visited: dict[str, LocationVisited]
+    resource_history: list[ResourceSnapshot]
     total_battles: int = 0
     victories: int = 0
     defeats: int = 0
     current_money: int = 0
-    current_items: Dict[str, int] = field(default_factory=dict)
+    current_items: dict[str, int] = field(default_factory=dict)
 
-    def get_objectives_progress(self) -> Dict[str, float]:
+    def get_objectives_progress(self) -> dict[str, float]:
         """Get completion percentage by objective type"""
         progress_by_type = defaultdict(list)
         for obj in self.objectives:
@@ -370,11 +370,11 @@ class StrategistMemory:
         else:
             self.current_items[item] = new_quantity
 
-    def get_battles_by_outcome(self, outcome: str) -> List[BattleRecord]:
+    def get_battles_by_outcome(self, outcome: str) -> list[BattleRecord]:
         """Get all battles with specific outcome"""
         return [b for b in self.battle_history if b.outcome == outcome]
 
-    def get_recent_battles(self, count: int = 5) -> List[BattleRecord]:
+    def get_recent_battles(self, count: int = 5) -> list[BattleRecord]:
         """Get most recent battles"""
         return self.battle_history[-count:] if count > 0 else self.battle_history
 
@@ -397,7 +397,7 @@ class StrategistMemory:
         self.current_money = 0
         self.current_items.clear()
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize for debugging"""
         return {
             "session_id": self.session_id,
@@ -432,7 +432,7 @@ class LearnedPattern:
     pattern_id: str
     pattern_type: str
     description: str
-    trigger_conditions: Dict[str, Any]
+    trigger_conditions: dict[str, Any]
     learned_from_session: str
     learned_from_tick: int
     success_count: int = 0
@@ -454,11 +454,11 @@ class SuccessfulStrategy:
     """Strategy that worked in past battles"""
 
     strategy_id: str
-    context: Dict[str, Any]
+    context: dict[str, Any]
     enemy_type: str
     player_pokemon: str
     strategy_description: str
-    moves_sequence: List[str]
+    moves_sequence: list[str]
     success_rate: float = 0.0
     total_uses: int = 0
     successful_uses: int = 0
@@ -482,7 +482,7 @@ class MistakeRecord:
 
     mistake_id: str
     description: str
-    situation: Dict[str, Any]
+    situation: dict[str, Any]
     outcome: str
     severity: str
     prevention_tip: str
@@ -519,10 +519,10 @@ class TacticianMemory:
     Performance: <10ms query time
     """
 
-    patterns: Dict[str, LearnedPattern] = field(default_factory=dict)
-    strategies: Dict[str, SuccessfulStrategy] = field(default_factory=dict)
-    mistakes: Dict[str, MistakeRecord] = field(default_factory=dict)
-    preferences: Dict[str, PlayerPreference] = field(default_factory=dict)
+    patterns: dict[str, LearnedPattern] = field(default_factory=dict)
+    strategies: dict[str, SuccessfulStrategy] = field(default_factory=dict)
+    mistakes: dict[str, MistakeRecord] = field(default_factory=dict)
+    preferences: dict[str, PlayerPreference] = field(default_factory=dict)
     total_sessions: int = 0
     total_battles: int = 0
     overall_win_rate: float = 0.0
@@ -550,10 +550,10 @@ class TacticianMemory:
 
     def get_or_create_strategy(
         self,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         enemy_type: str,
         player_pokemon: str,
-        moves_sequence: List[str],
+        moves_sequence: list[str],
     ) -> SuccessfulStrategy:
         """Get existing strategy or create new one"""
         strategy_key = self._generate_strategy_key(
@@ -577,10 +577,10 @@ class TacticianMemory:
 
     def _generate_strategy_key(
         self,
-        _context: Dict[str, Any],
+        _context: dict[str, Any],
         enemy_type: str,
         player_pokemon: str,
-        moves_sequence: List[str],
+        moves_sequence: list[str],
     ) -> str:
         """Generate unique strategy key"""
         key_parts = [enemy_type, player_pokemon, ",".join(sorted(moves_sequence))]
@@ -605,7 +605,7 @@ class TacticianMemory:
                 return True
         return False
 
-    def _situations_similar(self, sit1: Dict[str, Any], sit2: Dict[str, Any]) -> bool:
+    def _situations_similar(self, sit1: dict[str, Any], sit2: dict[str, Any]) -> bool:
         """Check if two situations are similar enough to merge"""
         common_keys = set(sit1.keys()) & set(sit2.keys())
         if not common_keys:
@@ -613,7 +613,7 @@ class TacticianMemory:
         matches = sum(1 for k in common_keys if sit1.get(k) == sit2.get(k))
         return matches / len(common_keys) >= 0.7
 
-    def get_preference(self, category: str) -> Optional[PlayerPreference]:
+    def get_preference(self, category: str) -> PlayerPreference | None:
         """Get preference for category"""
         return self.preferences.get(category)
 
@@ -629,7 +629,7 @@ class TacticianMemory:
             preference.updated_at = time.time()
             self.preferences[preference.category] = preference
 
-    def get_relevant_patterns(self, context: Dict[str, Any]) -> List[LearnedPattern]:
+    def get_relevant_patterns(self, context: dict[str, Any]) -> list[LearnedPattern]:
         """Get patterns relevant to current context"""
         relevant = []
         for pattern in self.patterns.values():
@@ -638,7 +638,7 @@ class TacticianMemory:
         return sorted(relevant, key=lambda p: p.relevance_score, reverse=True)
 
     def _context_matches(
-        self, conditions: Dict[str, Any], context: Dict[str, Any]
+        self, conditions: dict[str, Any], context: dict[str, Any]
     ) -> bool:
         """Check if context matches pattern conditions"""
         if not conditions:
@@ -650,7 +650,7 @@ class TacticianMemory:
 
     def get_successful_strategies(
         self, enemy_type: str, player_pokemon: str
-    ) -> List[SuccessfulStrategy]:
+    ) -> list[SuccessfulStrategy]:
         """Get strategies that worked against similar enemies"""
         candidates = []
         for strategy in self.strategies.values():
@@ -667,7 +667,7 @@ class TacticianMemory:
                 candidates.append(strategy)
         return sorted(candidates, key=lambda s: s.success_rate, reverse=True)
 
-    def get_mistakes_for_context(self, context: Dict[str, Any]) -> List[MistakeRecord]:
+    def get_mistakes_for_context(self, context: dict[str, Any]) -> list[MistakeRecord]:
         """Get mistakes relevant to current situation"""
         relevant = []
         for mistake in self.mistakes.values():
@@ -682,13 +682,13 @@ class TacticianMemory:
         weights = {"critical": 3, "major": 2, "minor": 1}
         return weights.get(severity.lower(), 0)
 
-    def get_patterns_by_type(self, pattern_type: str) -> List[LearnedPattern]:
+    def get_patterns_by_type(self, pattern_type: str) -> list[LearnedPattern]:
         """Get all patterns of a specific type"""
         return [p for p in self.patterns.values() if p.pattern_type == pattern_type]
 
     def get_high_confidence_patterns(
         self, threshold: float = 0.7
-    ) -> List[LearnedPattern]:
+    ) -> list[LearnedPattern]:
         """Get patterns above confidence threshold"""
         return [p for p in self.patterns.values() if p.confidence >= threshold]
 
@@ -1022,7 +1022,7 @@ class TacticianMemory:
 
         return pruned_count
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Serialize for debugging"""
         return {
             "total_sessions": self.total_sessions,
@@ -1070,7 +1070,7 @@ class ConsolidationResult:
     mistakes_recorded: int = 0
     memories_pruned: int = 0
     consolidation_time_ms: float = 0.0
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 class MemoryConsolidator:
@@ -1088,22 +1088,22 @@ class MemoryConsolidator:
 
     def __init__(
         self,
-        config: Optional[ConsolidationConfig] = None,
-        observer_memory: Optional[ObserverMemory] = None,
-        strategist_memory: Optional[StrategistMemory] = None,
-        tactician_memory: Optional[TacticianMemory] = None,
+        config: ConsolidationConfig | None = None,
+        observer_memory: ObserverMemory | None = None,
+        strategist_memory: StrategistMemory | None = None,
+        tactician_memory: TacticianMemory | None = None,
     ):
         self.config = config or ConsolidationConfig()
         self.observer = observer_memory
         self.strategist = strategist_memory
         self.tactician = tactician_memory
         self.last_consolidation_tick = 0
-        self.consolidation_history: List[ConsolidationResult] = []
-        self._pending_patterns: List[Dict[str, Any]] = []
-        self._pending_strategies: List[Dict[str, Any]] = []
-        self._pending_mistakes: List[Dict[str, Any]] = []
+        self.consolidation_history: list[ConsolidationResult] = []
+        self._pending_patterns: list[dict[str, Any]] = []
+        self._pending_strategies: list[dict[str, Any]] = []
+        self._pending_mistakes: list[dict[str, Any]] = []
 
-    def tick(self, current_tick: int) -> Optional[ConsolidationResult]:
+    def tick(self, current_tick: int) -> ConsolidationResult | None:
         """
         Called every tick - checks if consolidation needed
 
@@ -1229,7 +1229,7 @@ class MemoryConsolidator:
             result.details["message"] = "No battles to consolidate"
             return result
 
-        battle_outcomes: Dict[str, Dict[str, object]] = defaultdict(
+        battle_outcomes: dict[str, dict[str, object]] = defaultdict(
             lambda: {"wins": 0, "losses": 0, "moves": []}
         )
 
@@ -1239,7 +1239,7 @@ class MemoryConsolidator:
                 battle_outcomes[key]["wins"] = (
                     cast(int, battle_outcomes[key]["wins"]) + 1
                 )
-                cast(List[str], battle_outcomes[key]["moves"]).extend(battle.moves_used)
+                cast(list[str], battle_outcomes[key]["moves"]).extend(battle.moves_used)
             else:
                 battle_outcomes[key]["losses"] = (
                     cast(int, battle_outcomes[key]["losses"]) + 1
@@ -1260,7 +1260,7 @@ class MemoryConsolidator:
                         enemy_type=enemy_type,
                         player_pokemon=player_pokemon,
                         moves_sequence=list(
-                            dict.fromkeys(cast(List[str], outcome["moves"])[-5:])
+                            dict.fromkeys(cast(list[str], outcome["moves"])[-5:])
                         ),
                     )
                     strategy.record_use(True)
@@ -1318,14 +1318,14 @@ class MemoryConsolidator:
 
         return result
 
-    def prioritize_memories(self) -> Dict[str, List[str]]:
+    def prioritize_memories(self) -> dict[str, list[str]]:
         """
         Rank memories by importance for retention
 
         Returns:
             Dict with tier -> list of memory_ids sorted by priority
         """
-        priorities: Dict[str, List[str]] = {
+        priorities: dict[str, list[str]] = {
             "observer": [],
             "strategist": [],
             "tactician": [],
@@ -1357,7 +1357,7 @@ class MemoryConsolidator:
 
         return priorities
 
-    def get_consolidation_status(self) -> Dict[str, Any]:
+    def get_consolidation_status(self) -> dict[str, Any]:
         """Get current consolidation status and statistics"""
         return {
             "last_consolidation_tick": self.last_consolidation_tick,
@@ -1454,9 +1454,7 @@ class MemoryDatabaseMixin:
             return False
 
     @staticmethod
-    def load_strategist_checkpoint(
-        db: Any, session_id: int
-    ) -> Optional[StrategistMemory]:
+    def load_strategist_checkpoint(db: Any, session_id: int) -> StrategistMemory | None:
         """Load strategist memory from checkpoint"""
         try:
             cursor = db.cursor()
@@ -1494,7 +1492,7 @@ class MemoryGOAPIntegration:
         observer: ObserverMemory,
         strategist: StrategistMemory,
         tactician: TacticianMemory,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Compile memory context for GOAP decision making"""
         return {
             "observer": {
@@ -1535,14 +1533,14 @@ class MemoryGOAPIntegration:
     @staticmethod
     def query_strategist_objectives(
         strategist: StrategistMemory,
-    ) -> List[SessionObjective]:
+    ) -> list[SessionObjective]:
         """Get active objectives for GOAP"""
         return [o for o in strategist.objectives if o.status == "active"]
 
     @staticmethod
     def query_tactician_strategies(
-        tactician: TacticianMemory, context: Dict[str, Any]
-    ) -> List[SuccessfulStrategy]:
+        tactician: TacticianMemory, context: dict[str, Any]
+    ) -> list[SuccessfulStrategy]:
         """Get relevant strategies for current context"""
         enemy_type = context.get("enemy_type", "")
         player_pokemon = context.get("player_pokemon", "")
@@ -1560,7 +1558,7 @@ class MemoryGOAPIntegration:
     @staticmethod
     def get_action_history_for_planning(
         observer: ObserverMemory,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get action history formatted for GOAP"""
         return observer.get_recent_outcomes()
 
@@ -1573,7 +1571,7 @@ class MemoryAIIntegration:
         observer: ObserverMemory,
         strategist: StrategistMemory,
         tactician: TacticianMemory,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Inject memory context into AI prompts
 
@@ -1601,7 +1599,7 @@ class MemoryAIIntegration:
 
     @staticmethod
     def get_tactical_context(
-        tactician: TacticianMemory, battle_context: Dict[str, Any]
+        tactician: TacticianMemory, battle_context: dict[str, Any]
     ) -> str:
         """Get tactical context for battle AI"""
         context_parts = []
@@ -1672,7 +1670,7 @@ class MemoryAIIntegration:
         return "\n".join(parts)
 
     @staticmethod
-    def get_pattern_context(tactician: TacticianMemory, context: Dict[str, Any]) -> str:
+    def get_pattern_context(tactician: TacticianMemory, context: dict[str, Any]) -> str:
         """Get patterns relevant to current context"""
         patterns = tactician.get_relevant_patterns(context)
         if not patterns:
@@ -1715,10 +1713,10 @@ def create_tactician_memory() -> TacticianMemory:
 
 
 def create_consolidator(
-    observer: Optional[ObserverMemory] = None,
-    strategist: Optional[StrategistMemory] = None,
-    tactician: Optional[TacticianMemory] = None,
-    config: Optional[ConsolidationConfig] = None,
+    observer: ObserverMemory | None = None,
+    strategist: StrategistMemory | None = None,
+    tactician: TacticianMemory | None = None,
+    config: ConsolidationConfig | None = None,
 ) -> MemoryConsolidator:
     """Factory function to create memory consolidator"""
     return MemoryConsolidator(
@@ -1730,8 +1728,8 @@ def create_consolidator(
 
 
 def create_memory_system(
-    session_id: str, start_tick: int, config: Optional[ConsolidationConfig] = None
-) -> Tuple[ObserverMemory, StrategistMemory, TacticianMemory, MemoryConsolidator]:
+    session_id: str, start_tick: int, config: ConsolidationConfig | None = None
+) -> tuple[ObserverMemory, StrategistMemory, TacticianMemory, MemoryConsolidator]:
     """
     Factory function to create complete memory system
 
@@ -1784,7 +1782,7 @@ class GameMemory:
 
     # -- snapshot ---------------------------------------------------------
 
-    def snapshot(self) -> Dict[str, Any]:
+    def snapshot(self) -> dict[str, Any]:
         """Return a dict suitable for injection into PromptStack.assemble()."""
         return {
             "recent_actions": list(self.recent_actions),

@@ -8,7 +8,7 @@ Provides a live view for users to monitor game progress.
 import base64
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 import json
 
 import numpy as np
@@ -93,7 +93,7 @@ class ScreenshotManager:
 
         return filepath
 
-    def get_latest_screenshot(self, state_type: Optional[str] = None) -> Optional[Path]:
+    def get_latest_screenshot(self, state_type: str | None = None) -> Path | None:
         """
         Get path to most recent screenshot
 
@@ -128,7 +128,7 @@ class ScreenshotManager:
         with open(filepath, "rb") as f:
             return base64.b64encode(f.read()).decode()
 
-    def get_screenshots_info(self, state_type: Optional[str] = None) -> list[Any]:
+    def get_screenshots_info(self, state_type: str | None = None) -> list[Any]:
         """
         Get info about stored screenshots
 
@@ -223,7 +223,7 @@ class SimpleLiveView:
 
     def __init__(self, screenshot_manager: ScreenshotManager):
         self.screenshot_manager = screenshot_manager
-        self.current_image: Optional[np.ndarray] = None
+        self.current_image: np.ndarray | None = None
         self.should_display = False
 
     def update_display(self, screenshot: np.ndarray) -> None:

@@ -13,7 +13,7 @@ import json
 import time
 import threading
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Any
 from collections import deque
 from enum import Enum
 import logging
@@ -46,7 +46,7 @@ class ConfidenceBreakdown:
     overall_confidence: float = 0.0
     timestamp: float = 0.0
     tick: int = 0
-    factors: List[str] = field(default_factory=list)
+    factors: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -61,9 +61,9 @@ class SoftlockInfo:
     mode: str
     sub_mode: str
     duration_seconds: float
-    repeated_action: Optional[str] = None
-    state_sequence: List[str] = field(default_factory=list)
-    actions_taken: List[str] = field(default_factory=list)
+    repeated_action: str | None = None
+    state_sequence: list[str] = field(default_factory=list)
+    actions_taken: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -75,12 +75,12 @@ class RecoveryState:
     mode: str
     sub_mode: str
     state_name: str
-    player_hp_percent: Optional[float]
-    enemy_hp_percent: Optional[float]
-    location: Optional[str]
-    recent_actions: List[str]
+    player_hp_percent: float | None
+    enemy_hp_percent: float | None
+    location: str | None
+    recent_actions: list[str]
     confidence: float
-    anomalies: List[str]
+    anomalies: list[str]
 
 
 @dataclass
@@ -89,7 +89,7 @@ class RecoveryResult:
 
     success: bool
     recovery_type: str
-    actions_taken: List[str]
+    actions_taken: list[str]
     time_taken_ms: float
     new_confidence: float
     state_restored: bool
@@ -134,13 +134,13 @@ class ConfidenceScorer:
         self.critical_threshold = critical_threshold
         self._lock = threading.Lock()
         self._confidence_history: deque[ConfidenceBreakdown] = deque(maxlen=100)
-        self._last_confidence: Optional[ConfidenceBreakdown] = None
+        self._last_confidence: ConfidenceBreakdown | None = None
 
     def calculate_confidence(
         self,
-        ai_confidence: Optional[float] = None,
-        vision_confidence: Optional[float] = None,
-        state_confidence: Optional[float] = None,
+        ai_confidence: float | None = None,
+        vision_confidence: float | None = None,
+        state_confidence: float | None = None,
         tick: int = 0,
     ) -> ConfidenceBreakdown:
         """
@@ -213,7 +213,7 @@ class ConfidenceScorer:
         """Check if confidence meets default threshold"""
         return confidence >= self.default_threshold
 
-    def get_recent_confidence_trend(self) -> Dict[str, Any]:
+    def get_recent_confidence_trend(self) -> dict[str, Any]:
         """Get trend analysis of recent confidence scores"""
         if len(self._confidence_history) < 5:
             return {
@@ -247,11 +247,11 @@ class ConfidenceScorer:
             "count": len(scores),
         }
 
-    def get_last_confidence(self) -> Optional[ConfidenceBreakdown]:
+    def get_last_confidence(self) -> ConfidenceBreakdown | None:
         """Get the most recent confidence breakdown"""
         return self._last_confidence
 
-    def get_confidence_history(self, count: int = 10) -> List[ConfidenceBreakdown]:
+    def get_confidence_history(self, count: int = 10) -> list[ConfidenceBreakdown]:
         """Get recent confidence history"""
         return list(self._confidence_history)[-count:]
 
@@ -268,7 +268,7 @@ class SoftlockDetector:
 
     def __init__(
         self,
-        state_machine: Optional[HierarchicalStateMachine] = None,
+        state_machine: HierarchicalStateMachine | None = None,
         progress_window_seconds: float = 30.0,
         repeated_action_threshold: int = 10,
     ):
@@ -277,12 +277,12 @@ class SoftlockDetector:
         self.repeated_action_threshold = repeated_action_threshold
 
         self._lock = threading.Lock()
-        self._action_history: deque[Tuple[int, Optional[str]]] = deque(maxlen=100)
-        self._state_sequence: List[str] = []
+        self._action_history: deque[tuple[int, str | None]] = deque(maxlen=100)
+        self._state_sequence: list[str] = []
         self._last_progress_tick: int = 0
         self._last_progress_time: float = 0.0
-        self._softlock_history: List[SoftlockInfo] = []
-        self._known_good_states: List[RecoveryState] = []
+        self._softlock_history: list[SoftlockInfo] = []
+        self._known_good_states: list[RecoveryState] = []
         self._max_known_states = 50
 
     def check_softlock(
@@ -290,10 +290,10 @@ class SoftlockDetector:
         current_mode: str,
         current_sub_mode: str,
         current_duration: float,
-        current_action: Optional[str],
+        current_action: str | None,
         tick: int,
-        game_state: Optional[Dict[str, Any]] = None,
-    ) -> Optional[SoftlockInfo]:
+        game_state: dict[str, Any] | None = None,
+    ) -> SoftlockInfo | None:
         """
         Check for softlock conditions
 
@@ -331,7 +331,7 @@ class SoftlockDetector:
 
     def _check_mode_duration(
         self, mode: str, sub_mode: str, duration: float
-    ) -> Optional[SoftlockInfo]:
+    ) -> SoftlockInfo | None:
         """Check if mode duration exceeds expected thresholds"""
         thresholds = {
             ("BATTLE", "WILD_EASY"): 300,
@@ -365,8 +365,8 @@ class SoftlockDetector:
         return None
 
     def _check_repeated_action(
-        self, action: Optional[str], tick: int
-    ) -> Optional[SoftlockInfo]:
+        self, action: str | None, tick: int
+    ) -> SoftlockInfo | None:
         """Check for repeated same action"""
         if not action:
             return None
@@ -392,7 +392,7 @@ class SoftlockDetector:
 
         return None
 
-    def _check_state_loop(self, tick: int) -> Optional[SoftlockInfo]:
+    def _check_state_loop(self, tick: int) -> SoftlockInfo | None:
         """Check for state transition loops"""
         if not self.state_machine:
             return None
@@ -427,8 +427,8 @@ class SoftlockDetector:
         return None
 
     def _check_zero_progress(
-        self, tick: int, game_state: Optional[Dict[str, Any]]
-    ) -> Optional[SoftlockInfo]:
+        self, tick: int, game_state: dict[str, Any] | None
+    ) -> SoftlockInfo | None:
         """Check for zero progress over time window"""
         if not game_state:
             return None
@@ -488,14 +488,14 @@ class SoftlockDetector:
             if len(self._known_good_states) > self._max_known_states:
                 self._known_good_states.pop(0)
 
-    def get_last_known_good_state(self) -> Optional[RecoveryState]:
+    def get_last_known_good_state(self) -> RecoveryState | None:
         """Get the most recent known good state"""
         with self._lock:
             if self._known_good_states:
                 return self._known_good_states[-1]
             return None
 
-    def get_softlock_history(self, count: int = 10) -> List[SoftlockInfo]:
+    def get_softlock_history(self, count: int = 10) -> list[SoftlockInfo]:
         """Get recent softlock history"""
         with self._lock:
             return self._softlock_history[-count:]
@@ -514,26 +514,26 @@ class EmergencyRecovery:
 
     def __init__(
         self,
-        state_machine: Optional[HierarchicalStateMachine] = None,
+        state_machine: HierarchicalStateMachine | None = None,
         snapshot_dir: str = "data/emergency_snapshots",
     ):
         self.state_machine = state_machine
         self.snapshot_dir = snapshot_dir
         self._lock = threading.Lock()
-        self._recovery_history: List[RecoveryResult] = []
-        self._current_recovery: Optional[RecoveryResult] = None
+        self._recovery_history: list[RecoveryResult] = []
+        self._current_recovery: RecoveryResult | None = None
         self._shutdown_requested = False
         # Detail of the most recent snapshot write failure (None if the last
         # snapshot attempt succeeded or no attempt has been made yet).
-        self.last_snapshot_error: Optional[str] = None
+        self.last_snapshot_error: str | None = None
 
         os.makedirs(snapshot_dir, exist_ok=True)
 
     def initiate_recovery(
         self,
         reason: str,
-        softlock_info: Optional[SoftlockInfo] = None,
-        current_state: Optional[Dict[str, Any]] = None,
+        softlock_info: SoftlockInfo | None = None,
+        current_state: dict[str, Any] | None = None,
     ) -> RecoveryResult:
         """
         Initiate emergency recovery procedure
@@ -594,9 +594,9 @@ class EmergencyRecovery:
     def _log_state_snapshot(
         self,
         reason: str,
-        softlock_info: Optional[SoftlockInfo],
-        current_state: Optional[Dict[str, Any]],
-    ) -> List[str]:
+        softlock_info: SoftlockInfo | None,
+        current_state: dict[str, Any] | None,
+    ) -> list[str]:
         """Log current state snapshot"""
         actions = []
 
@@ -636,7 +636,7 @@ class EmergencyRecovery:
 
         return actions
 
-    def _attempt_graceful_shutdown(self) -> List[str]:
+    def _attempt_graceful_shutdown(self) -> list[str]:
         """Attempt graceful shutdown of current operations"""
         actions = []
 
@@ -646,7 +646,7 @@ class EmergencyRecovery:
 
         return actions
 
-    def _attempt_state_rollback(self) -> Optional[str]:
+    def _attempt_state_rollback(self) -> str | None:
         """Attempt to rollback to known good state"""
         if not self.state_machine:
             return None
@@ -668,8 +668,8 @@ class EmergencyRecovery:
             return None
 
     def _create_emergency_report(
-        self, reason: str, softlock_info: Optional[SoftlockInfo]
-    ) -> List[str]:
+        self, reason: str, softlock_info: SoftlockInfo | None
+    ) -> list[str]:
         """Create emergency report for analysis"""
         actions = []
 
@@ -695,7 +695,7 @@ class EmergencyRecovery:
 
         return actions
 
-    def _get_recovery_type(self, softlock_info: Optional[SoftlockInfo]) -> str:
+    def _get_recovery_type(self, softlock_info: SoftlockInfo | None) -> str:
         """Determine recovery type from softlock info"""
         if not softlock_info:
             return "general_recovery"
@@ -709,7 +709,7 @@ class EmergencyRecovery:
 
         return type_mapping.get(softlock_info.type, "unknown_recovery")
 
-    def get_recovery_history(self, count: int = 20) -> List[RecoveryResult]:
+    def get_recovery_history(self, count: int = 20) -> list[RecoveryResult]:
         """Get recent recovery history"""
         with self._lock:
             return self._recovery_history[-count:]
@@ -737,17 +737,17 @@ class DeathSpiralPreventer:
         self.warning_threshold = warning_threshold
         self.critical_threshold = critical_threshold
         self._lock = threading.Lock()
-        self._hp_history: deque[Tuple[int, float]] = deque(maxlen=50)
-        self._alerts: List[Dict[str, Any]] = []
+        self._hp_history: deque[tuple[int, float]] = deque(maxlen=50)
+        self._alerts: list[dict[str, Any]] = []
         self._low_hp_count = 0
         self._consecutive_low_hp_ticks = 0
 
     def check_hp_status(
         self,
-        player_hp_percent: Optional[float],
-        party_hp_percent: Optional[float],
+        player_hp_percent: float | None,
+        party_hp_percent: float | None,
         tick: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Check HP status and return alerts if needed
 
@@ -810,8 +810,8 @@ class DeathSpiralPreventer:
             return result
 
     def check_party_status(
-        self, party_status: List[Dict[str, Any]], tick: int = 0
-    ) -> Dict[str, Any]:
+        self, party_status: list[dict[str, Any]], tick: int = 0
+    ) -> dict[str, Any]:
         """Check overall party status"""
         if not party_status:
             return {"healthy": True, "can_battle": True, "tick": tick}
@@ -835,8 +835,8 @@ class DeathSpiralPreventer:
         }
 
     def check_pp_status(
-        self, _move_pp: Dict[str, int], tick: int = 0
-    ) -> Dict[str, Any]:
+        self, _move_pp: dict[str, int], tick: int = 0
+    ) -> dict[str, Any]:
         """Check move PP status (MVP stub)"""
         return {
             "has_pp": True,
@@ -846,7 +846,7 @@ class DeathSpiralPreventer:
             "_stub": True,
         }
 
-    def check_escape_available(self, tick: int = 0) -> Dict[str, Any]:
+    def check_escape_available(self, tick: int = 0) -> dict[str, Any]:
         """Check if escape is available (MVP stub)"""
         return {
             "available": True,
@@ -856,7 +856,7 @@ class DeathSpiralPreventer:
             "_stub": True,
         }
 
-    def get_hp_trend(self) -> Dict[str, Any]:
+    def get_hp_trend(self) -> dict[str, Any]:
         """Get HP trend analysis"""
         if len(self._hp_history) < 5:
             return {"trend": "insufficient_data"}
@@ -885,7 +885,7 @@ class DeathSpiralPreventer:
             "samples": len(hp_values),
         }
 
-    def get_alerts(self, count: int = 20) -> List[Dict[str, Any]]:
+    def get_alerts(self, count: int = 20) -> list[dict[str, Any]]:
         """Get recent HP alerts"""
         with self._lock:
             return self._alerts[-count:]
@@ -916,7 +916,7 @@ class SystemHealthMonitor:
 
         self._lock = threading.Lock()
         self._api_latency_history: deque[float] = deque(maxlen=50)
-        self._health_history: List[HealthMetrics] = []
+        self._health_history: list[HealthMetrics] = []
         self._process = psutil.Process(os.getpid())
 
     def check_health(self) -> HealthMetrics:
@@ -996,7 +996,7 @@ class SystemHealthMonitor:
 
         return max(0.0, min(1.0, score))
 
-    def get_health_status(self) -> Dict[str, Any]:
+    def get_health_status(self) -> dict[str, Any]:
         """Get simplified health status"""
         metrics = self.check_health()
 
@@ -1021,7 +1021,7 @@ class SystemHealthMonitor:
             "issues": issues,
         }
 
-    def get_health_history(self, count: int = 100) -> List[HealthMetrics]:
+    def get_health_history(self, count: int = 100) -> list[HealthMetrics]:
         """Get recent health history"""
         with self._lock:
             return self._health_history[-count:]
@@ -1041,7 +1041,7 @@ class FailsafeManager:
 
     def __init__(
         self,
-        state_machine: Optional[HierarchicalStateMachine] = None,
+        state_machine: HierarchicalStateMachine | None = None,
         confidence_threshold: float = 0.7,
     ):
         self.state_machine = state_machine
@@ -1062,11 +1062,11 @@ class FailsafeManager:
 
     def update(
         self,
-        game_state: Dict[str, Any],
-        ai_confidence: Optional[float] = None,
-        vision_confidence: Optional[float] = None,
+        game_state: dict[str, Any],
+        ai_confidence: float | None = None,
+        vision_confidence: float | None = None,
         tick: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Main update loop for failsafe system
 
@@ -1162,7 +1162,7 @@ class FailsafeManager:
         """Check if failsafe system is enabled"""
         return self._enabled
 
-    def get_dashboard_data(self) -> Dict[str, Any]:
+    def get_dashboard_data(self) -> dict[str, Any]:
         """Get data for dashboard display"""
         last_conf = self.confidence_scorer.get_last_confidence()
         confidence_trend = self.confidence_scorer.get_recent_confidence_trend()

@@ -11,7 +11,7 @@ import json
 import base64
 import hashlib
 import re
-from typing import Optional, cast, Any
+from typing import cast, Any
 
 import numpy as np
 from PIL import Image
@@ -95,13 +95,13 @@ class VisionClient:
         self._client = OpenRouterClient(api_key=api_key)
 
         # Cache: avoid re-calling vision for unchanged screenshots.
-        self._last_hash: Optional[str] = None
-        self._last_result: Optional[dict[str, Any]] = None
+        self._last_hash: str | None = None
+        self._last_result: dict[str, Any] | None = None
 
     # ── public API ──────────────────────────────────────────────────────────
 
     @staticmethod
-    def _normalize_usage(usage: Any) -> Optional[dict[str, Any]]:
+    def _normalize_usage(usage: Any) -> dict[str, Any] | None:
         """Normalize a provider usage block into the run-facing shape.
 
         Returns ``None`` for a missing/empty block so callers can distinguish
@@ -261,7 +261,7 @@ class VisionClient:
         return base64.b64encode(buf.getvalue()).decode()
 
     @classmethod
-    def _parse_response(cls, text: str) -> Optional[dict[str, Any]]:
+    def _parse_response(cls, text: str) -> dict[str, Any] | None:
         """Extract and parse a JSON object from the model response.
 
         Returns:
@@ -308,7 +308,7 @@ class VisionClient:
         return cleaned
 
     @staticmethod
-    def _regex_extract(text: str) -> Optional[dict[str, Any]]:
+    def _regex_extract(text: str) -> dict[str, Any] | None:
         """Fallback: extract known fields from unstructured text via regex."""
         field_patterns = {
             "screen_type": r'"screen_type"\s*:\s*"(\w+)"',

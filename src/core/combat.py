@@ -13,7 +13,7 @@ Implements combat decision-making logic with survival-first priority:
 from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -126,14 +126,14 @@ class Pokemon:
 
     name: str
     level: int
-    types: List[PokemonType]
+    types: list[PokemonType]
     max_hp: int
     current_hp: int
     attack: int
     defense: int
     speed: int
     special: int
-    moves: List[Move]
+    moves: list[Move]
     status: StatusCondition = StatusCondition.NONE
     attack_stage: int = 0
     defense_stage: int = 0
@@ -162,11 +162,11 @@ class MoveScore:
 
     move: Move
     score: float
-    damage_range: Optional[DamageRange]
+    damage_range: DamageRange | None
     ko_likely: bool
     effectiveness: float
     has_stab: bool
-    notes: List[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -192,7 +192,7 @@ class CatchAttempt:
     hp_factor: float
     success_probability: float
     recommended_ball: str
-    notes: List[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
 
 def clamp_hp(current: int, max_hp: int) -> int:
@@ -249,7 +249,7 @@ def get_default_stat(stat_name: str, default_value: int = 50) -> int:
 
 
 def validate_pokemon_data(
-    data: Dict[str, Any], required_fields: Optional[List[str]] = None
+    data: dict[str, Any], required_fields: list[str] | None = None
 ) -> None:
     """
     Validate Pokemon data for completeness.
@@ -286,7 +286,7 @@ class TypeChart:
     - 4.0: Very super effective (dual type)
     """
 
-    _chart: Dict[PokemonType, Dict[PokemonType, float]] = {}
+    _chart: dict[PokemonType, dict[PokemonType, float]] = {}
 
     def __init__(self) -> None:
         self._initialize_chart()
@@ -452,7 +452,7 @@ class TypeChart:
         }
 
     def get_effectiveness(
-        self, attack_type: PokemonType, defender_types: List[PokemonType]
+        self, attack_type: PokemonType, defender_types: list[PokemonType]
     ) -> float:
         """Calculate type effectiveness for attack vs defender"""
         if attack_type not in self._chart:
@@ -466,19 +466,19 @@ class TypeChart:
         return effectiveness
 
     def is_immune(
-        self, attack_type: PokemonType, defender_types: List[PokemonType]
+        self, attack_type: PokemonType, defender_types: list[PokemonType]
     ) -> bool:
         """Check if attack type is completely immune"""
         return self.get_effectiveness(attack_type, defender_types) == 0.0
 
     def is_super_effective(
-        self, attack_type: PokemonType, defender_types: List[PokemonType]
+        self, attack_type: PokemonType, defender_types: list[PokemonType]
     ) -> bool:
         """Check if attack is super effective (>= 2.0)"""
         return self.get_effectiveness(attack_type, defender_types) >= 2.0
 
     def is_not_very_effective(
-        self, attack_type: PokemonType, defender_types: List[PokemonType]
+        self, attack_type: PokemonType, defender_types: list[PokemonType]
     ) -> bool:
         """Check if attack is not very effective (<= 0.5)"""
         return 0.0 < self.get_effectiveness(attack_type, defender_types) <= 0.5
@@ -494,7 +494,7 @@ class DamageCalculator:
     Stat modifiers applied: Effective = Base * (1 + stage/2)
     """
 
-    def __init__(self, type_chart: Optional[TypeChart] = None) -> None:
+    def __init__(self, type_chart: TypeChart | None = None) -> None:
         self.type_chart = type_chart or TypeChart()
 
     def calculate_base_damage(
@@ -525,7 +525,7 @@ class DamageCalculator:
         return base_stat * multiplier
 
     def calculate_stab(
-        self, move_type: PokemonType, pokemon_types: List[PokemonType]
+        self, move_type: PokemonType, pokemon_types: list[PokemonType]
     ) -> float:
         """Calculate Same Type Attack Bonus (1.5x if move type matches)"""
         if move_type in pokemon_types:
@@ -623,7 +623,7 @@ class DamageCalculator:
         damage_range: DamageRange,
         defender_hp: int,
         include_criticals: bool = False,
-    ) -> Tuple[bool, bool, bool]:
+    ) -> tuple[bool, bool, bool]:
         """
         Determine KO possibilities.
 
@@ -663,7 +663,7 @@ class MoveSelector:
     - PP management
     """
 
-    def __init__(self, type_chart: Optional[TypeChart] = None) -> None:
+    def __init__(self, type_chart: TypeChart | None = None) -> None:
         self.type_chart = type_chart or TypeChart()
 
     def score_move(
@@ -676,7 +676,7 @@ class MoveSelector:
         _opponent_weakened: bool = False,
     ) -> MoveScore:
         """Score a single move for selection"""
-        notes: List[str] = []
+        notes: list[str] = []
         ko_likely = False
 
         if move.category == MoveCategory.STATUS:
@@ -769,7 +769,7 @@ class MoveSelector:
         )
 
     def _score_status_move(
-        self, move: Move, defender: Pokemon, notes: List[str]
+        self, move: Move, defender: Pokemon, notes: list[str]
     ) -> MoveScore:
         """Score a status move"""
         if defender.status != StatusCondition.NONE:
@@ -860,7 +860,7 @@ class MoveSelector:
 
     def get_move_order(
         self, attacker: Pokemon, defender: Pokemon, risk_averse: bool = True
-    ) -> List[MoveScore]:
+    ) -> list[MoveScore]:
         """Get all moves ranked by score"""
         available_moves = [m for m in attacker.moves if m.pp > 0]
 
@@ -876,7 +876,7 @@ class EnemyPredictor:
     Predict enemy behavior based on Pokemon species and trainer patterns.
     """
 
-    _base_move_sets: Dict[str, List[str]] = {
+    _base_move_sets: dict[str, list[str]] = {
         "Pikachu": ["Thunder Shock", "Growl", "Tail Whip", "Quick Attack"],
         "Charmander": ["Ember", "Growl", "Scratch", "Focus"],
         "Squirtle": ["Water Gun", "Tackle", "Tail Whip", "Withdraw"],
@@ -894,7 +894,7 @@ class EnemyPredictor:
         "Dragonite": ["Thunder Wave", "Agility", "Safeguard", "Outrage"],
     }
 
-    _trainer_behaviors: Dict[str, Dict[str, Any]] = {
+    _trainer_behaviors: dict[str, dict[str, Any]] = {
         "youngster": {
             "aggression": 0.7,
             "prefer_strong_moves": True,
@@ -939,17 +939,17 @@ class EnemyPredictor:
         },
     }
 
-    def __init__(self, type_chart: Optional[TypeChart] = None) -> None:
+    def __init__(self, type_chart: TypeChart | None = None) -> None:
         self.type_chart = type_chart or TypeChart()
-        self._learned_patterns: Dict[str, Dict[str, Any]] = {}
+        self._learned_patterns: dict[str, dict[str, Any]] = {}
 
-    def predict_moves(self, species: str, _level: int) -> List[str]:
+    def predict_moves(self, species: str, _level: int) -> list[str]:
         """Predict likely moves for a Pokemon species"""
         return self._base_move_sets.get(
             species, ["Tackle", "Growl", "Scratch", "Ember"]
         )
 
-    def get_trainer_behavior(self, trainer_type: str) -> Dict[str, Any]:
+    def get_trainer_behavior(self, trainer_type: str) -> dict[str, Any]:
         """Get behavior patterns for a trainer type"""
         return self._trainer_behaviors.get(
             trainer_type, self._trainer_behaviors["youngster"]
@@ -1083,16 +1083,16 @@ class BattleStrategist:
     - Risk assessment (1 HP enemies, setup opportunities)
     """
 
-    def __init__(self, type_chart: Optional[TypeChart] = None) -> None:
+    def __init__(self, type_chart: TypeChart | None = None) -> None:
         self.type_chart = type_chart or TypeChart()
 
     def should_switch(
         self,
         current: Pokemon,
         opponent: Pokemon,
-        party: List[Pokemon],
+        party: list[Pokemon],
         move_selector: MoveSelector,
-    ) -> Tuple[bool, str, Optional[SwitchCandidate]]:
+    ) -> tuple[bool, str, SwitchCandidate | None]:
         """
         Determine if switching is the optimal choice.
 
@@ -1152,11 +1152,11 @@ class BattleStrategist:
         self,
         current: Pokemon,
         opponent: Pokemon,
-        party: List[Pokemon],
+        party: list[Pokemon],
         move_selector: MoveSelector,
-    ) -> List[SwitchCandidate]:
+    ) -> list[SwitchCandidate]:
         """Evaluate all possible switch candidates"""
-        candidates: List[SwitchCandidate] = []
+        candidates: list[SwitchCandidate] = []
 
         for pokemon in party:
             if pokemon == current or pokemon.current_hp == 0:
@@ -1302,7 +1302,7 @@ class BattleStrategist:
 
     def assess_setup_opportunity(
         self, attacker: Pokemon, defender: Pokemon
-    ) -> Tuple[bool, float, str]:
+    ) -> tuple[bool, float, str]:
         """
         Assess if setup (stat boosting) is safe.
 
@@ -1331,7 +1331,7 @@ class BattleStrategist:
 
     def assess_1_hp_risk(
         self, attacker: Pokemon, defender: Pokemon, move: Move
-    ) -> Tuple[bool, str]:
+    ) -> tuple[bool, str]:
         """
         Assess risk when enemy is at 1 HP.
 
@@ -1354,8 +1354,8 @@ class BattleStrategist:
             return False, "Miss would give enemy another chance"
 
     def select_stat_boost_item(
-        self, pokemon: Pokemon, _opponent: Pokemon, inventory: Dict[str, int]
-    ) -> Tuple[Optional[str], str]:
+        self, pokemon: Pokemon, _opponent: Pokemon, inventory: dict[str, int]
+    ) -> tuple[str | None, str]:
         """Select optimal stat boost item to use"""
         if "X Attack" in inventory and pokemon.attack_stage < 4:
             return "X Attack", "Boost attack for physical moves"
@@ -1395,7 +1395,7 @@ class CombatSystem:
         return clamp_hp(current, max_hp)
 
     def calculate_hp_after_damage(
-        self, current_hp: int, damage: int, max_hp: Optional[int] = None
+        self, current_hp: int, damage: int, max_hp: int | None = None
     ) -> int:
         """
         Calculate new HP after taking damage with clamping.
@@ -1413,7 +1413,7 @@ class CombatSystem:
         return calculate_hp_after_damage(current_hp, damage, max_hp)
 
     def calculate_damage(
-        self, attacker: Dict[str, Any], defender: Dict[str, Any], move: Dict[str, Any]
+        self, attacker: dict[str, Any], defender: dict[str, Any], move: dict[str, Any]
     ) -> int:
         """
         Calculate damage from attacker to defender with a move.
@@ -1457,7 +1457,7 @@ class CombatSystem:
 
         return damage
 
-    def analyze_battle_state(self, battle_state: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze_battle_state(self, battle_state: dict[str, Any]) -> dict[str, Any]:
         """
         Analyze a battle state and return insights.
 
@@ -1497,7 +1497,7 @@ class CombatManager:
 
     def get_combat_state(
         self, player_pokemon: Pokemon, enemy_pokemon: Pokemon, _battle_type: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Get comprehensive combat state for AI decision making"""
         best_move = self.move_selector.select_best_move(player_pokemon, enemy_pokemon)
 

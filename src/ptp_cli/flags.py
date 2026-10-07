@@ -18,7 +18,7 @@ Date: December 31, 2025
 import argparse
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any
 from enum import Enum
 
 
@@ -62,10 +62,10 @@ class TickRateConfig:
     battle: int = 2
     timeout: int = 30
     adaptive: bool = False
-    budget_mode: Optional[str] = None
-    budget_limit: Optional[float] = None
+    budget_mode: str | None = None
+    budget_limit: float | None = None
 
-    def _validate_config(self) -> List[str]:
+    def _validate_config(self) -> list[str]:
         """Validate configuration and return list of errors."""
         errors = []
         if self.base < 1:
@@ -102,7 +102,7 @@ class ScreenshotConfig:
     async_capture: bool = False
     compress: bool = False
 
-    def _validate_config(self) -> List[str]:
+    def _validate_config(self) -> list[str]:
         """Validate configuration and return list of errors."""
         errors = []
         if self.interval < 1:
@@ -125,7 +125,7 @@ class CommandBufferConfig:
     interrupt_battle: bool = True
     stale_threshold: int = 2
 
-    def _validate_config(self) -> List[str]:
+    def _validate_config(self) -> list[str]:
         """Validate configuration and return list of errors."""
         errors = []
         if self.buffer_size < 1:
@@ -143,16 +143,16 @@ class CommandBufferConfig:
 class RunLimitsConfig:
     """Run limits configuration."""
 
-    max_time_seconds: Optional[int] = None
-    max_ticks: Optional[int] = None
-    max_cost: Optional[float] = None
-    max_pokemon_caught: Optional[int] = None
-    max_badges: Optional[int] = None
-    max_level: Optional[int] = None
+    max_time_seconds: int | None = None
+    max_ticks: int | None = None
+    max_cost: float | None = None
+    max_pokemon_caught: int | None = None
+    max_badges: int | None = None
+    max_level: int | None = None
     on_limit: str = "save-and-exit"
     grace_period: int = 30
 
-    def _validate_config(self) -> List[str]:
+    def _validate_config(self) -> list[str]:
         """Validate configuration and return list of errors."""
         errors = []
         if self.max_time_seconds is not None and self.max_time_seconds <= 0:
@@ -180,16 +180,16 @@ class SnapshotConfig:
 
     memory_count: int = 10
     disk_interval: int = 1000
-    on_event: List[str] = field(default_factory=list)
+    on_event: list[str] = field(default_factory=list)
     max_disk_gb: float = 20.0
     compress: bool = False
     validation_enabled: bool = False
     rollback_on_error: bool = False
     rollback_grace: int = 3
     allow_share: bool = False
-    name: Optional[str] = None
+    name: str | None = None
 
-    def _validate_config(self) -> List[str]:
+    def _validate_config(self) -> list[str]:
         """Validate configuration and return list of errors."""
         errors = []
         valid_events = {"catch", "battle", "badge", "death"}
@@ -213,12 +213,12 @@ class SaveStateConfig:
 
     interval_ticks: int = 1000
     max_snapshots: int = 10
-    on_event: List[str] = field(default_factory=lambda: ["battle", "level_up", "badge"])
+    on_event: list[str] = field(default_factory=lambda: ["battle", "level_up", "badge"])
     emergency_count: int = 3
     validate_on_save: bool = False
     compress_old: bool = False
 
-    def _validate_config(self) -> List[str]:
+    def _validate_config(self) -> list[str]:
         """Validate configuration and return list of errors."""
         errors = []
         valid_events = {
@@ -253,12 +253,12 @@ class ExperimentConfig:
     aggregate_stats: bool = False
     fail_mode: str = "continue"
     checkpoint_frequency: int = 10000
-    resume_from: Optional[str] = None
-    config_file: Optional[str] = None
+    resume_from: str | None = None
+    config_file: str | None = None
     export_results: bool = False
     results_format: str = "json"
 
-    def _validate_config(self) -> List[str]:
+    def _validate_config(self) -> list[str]:
         """Validate configuration and return list of errors."""
         errors = []
         if self.parallel_workers < 1:
@@ -280,9 +280,9 @@ class SystemConfig:
 
     verbose: bool = False
     quiet: bool = False
-    log_file: Optional[str] = None
-    config_file: Optional[str] = None
-    random_seed: Optional[int] = None
+    log_file: str | None = None
+    config_file: str | None = None
+    random_seed: int | None = None
     help_flag: bool = False
     version: bool = False
 
@@ -303,7 +303,7 @@ class FullConfig:
     experiment: ExperimentConfig = field(default_factory=ExperimentConfig)
     system: SystemConfig = field(default_factory=SystemConfig)
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate entire configuration."""
         errors = []
         if not self.rom_path:
@@ -321,7 +321,7 @@ class FullConfig:
         errors.extend(self.experiment._validate_config())
         return errors
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert configuration to dictionary."""
         return {
             "rom_path": self.rom_path,
@@ -954,7 +954,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
         self._add_experiment_flags()
         self._add_system_flags()
 
-    def parse_args(self, args: Optional[List[str]] = None) -> FullConfig:
+    def parse_args(self, args: list[str] | None = None) -> FullConfig:
         """
         Parse command line arguments and return FullConfig.
 
@@ -1056,7 +1056,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
             ),
         )
 
-    def validate_config(self, config: FullConfig) -> List[str]:
+    def validate_config(self, config: FullConfig) -> list[str]:
         """
         Validate a FullConfig and return list of errors.
 
@@ -1080,8 +1080,8 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
         return errors
 
     def parse_and_validate(
-        self, args: Optional[List[str]] = None
-    ) -> tuple[FullConfig, List[str]]:
+        self, args: list[str] | None = None
+    ) -> tuple[FullConfig, list[str]]:
         """
         Parse arguments and validate configuration.
 
@@ -1093,7 +1093,7 @@ For more information, see: specs/ptp_01x_cli_control_infrastructure.md
         return config, errors
 
 
-def create_config_from_args(args: Optional[List[str]] = None) -> FullConfig:
+def create_config_from_args(args: list[str] | None = None) -> FullConfig:
     """
     Convenience function to create FullConfig from CLI arguments.
 

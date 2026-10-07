@@ -7,7 +7,7 @@ using tile pattern matching and feature detection.
 
 import json
 import time
-from typing import Dict, Any, List, Tuple
+from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,7 +20,7 @@ class LocationResult:
     location_type: str
     confidence: float
     tile_pattern_hash: str
-    features: Dict[str, bool]
+    features: dict[str, bool]
 
 
 @dataclass
@@ -35,8 +35,8 @@ class LocationDetector:
     AREA_DATABASE_PATH = Path(__file__).parent / "data" / "areas.json"
 
     def __init__(self) -> None:
-        self.area_database: Dict[str, Any] = {}
-        self.tile_templates: Dict[str, np.ndarray] = {}
+        self.area_database: dict[str, Any] = {}
+        self.tile_templates: dict[str, np.ndarray] = {}
         self._load_area_database()
 
         self.tile_classifications = {
@@ -163,7 +163,7 @@ class LocationDetector:
             features=features,
         )
 
-    def _extract_tiles(self, screenshot: np.ndarray) -> List[np.ndarray]:
+    def _extract_tiles(self, screenshot: np.ndarray) -> list[np.ndarray]:
         tiles = []
 
         if len(screenshot.shape) == 3:
@@ -183,8 +183,8 @@ class LocationDetector:
 
         return tiles
 
-    def _identify_tile_patterns(self, tiles: List[np.ndarray]) -> Dict[str, int]:
-        pattern_counts: Dict[str, int] = {}
+    def _identify_tile_patterns(self, tiles: list[np.ndarray]) -> dict[str, int]:
+        pattern_counts: dict[str, int] = {}
 
         for tile in tiles:
             _ = self._compute_tile_hash(tile)
@@ -249,12 +249,12 @@ class LocationDetector:
 
         return "path"
 
-    def _compute_pattern_hash(self, pattern_counts: Dict[str, int]) -> str:
+    def _compute_pattern_hash(self, pattern_counts: dict[str, int]) -> str:
         sorted_patterns = sorted(pattern_counts.items(), key=lambda x: x[0])
         pattern_str = "_".join([f"{name}:{count}" for name, count in sorted_patterns])
         return pattern_str
 
-    def _detect_features(self, screenshot: np.ndarray) -> Dict[str, bool]:
+    def _detect_features(self, screenshot: np.ndarray) -> dict[str, bool]:
         features = {
             "pokemon_center": False,
             "pokemart": False,
@@ -286,10 +286,10 @@ class LocationDetector:
 
     def _match_area(
         self,
-        tile_patterns: Dict[str, int],
-        features: Dict[str, bool],
+        tile_patterns: dict[str, int],
+        features: dict[str, bool],
         _pattern_hash: str,
-    ) -> Tuple[str, str, float]:
+    ) -> tuple[str, str, float]:
         best_match = None
         best_score = 0.0
 
@@ -333,7 +333,7 @@ class LocationDetector:
 
     def get_navigation_graph(
         self, screenshot: np.ndarray
-    ) -> Dict[Tuple[int, int], Dict[str, Any]]:
+    ) -> dict[tuple[int, int], dict[str, Any]]:
         tiles = self._extract_tiles(screenshot)
 
         grid_width = int(screenshot.shape[1] / 16)
@@ -360,10 +360,10 @@ class LocationDetector:
 
     def find_path_to_target(
         self,
-        current_pos: Tuple[int, int],
-        target_pos: Tuple[int, int],
-        navigation_graph: Dict[Tuple[int, int], Dict[str, Any]],
-    ) -> List[Tuple[int, int]]:
+        current_pos: tuple[int, int],
+        target_pos: tuple[int, int],
+        navigation_graph: dict[tuple[int, int], dict[str, Any]],
+    ) -> list[tuple[int, int]]:
         path = [current_pos]
 
         cx, cy = current_pos

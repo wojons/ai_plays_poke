@@ -10,7 +10,6 @@ import cv2
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict
 
 import numpy as np
 from PIL import Image
@@ -32,7 +31,7 @@ class ScreenshotManager:
             dir_path.mkdir(exist_ok=True)
 
     def save_screenshot(
-        self, screenshot: np.ndarray, name_prefix: str, game_state: Optional[str] = None
+        self, screenshot: np.ndarray, name_prefix: str, game_state: str | None = None
     ) -> Path:
         """
         Save screenshot to appropriate directory
@@ -66,7 +65,7 @@ class ScreenshotManager:
 
         return filepath
 
-    def get_latest_screenshot(self, game_state: Optional[str] = None) -> Optional[Path]:
+    def get_latest_screenshot(self, game_state: str | None = None) -> Path | None:
         """
         Get path to most recent screenshot
 
@@ -104,7 +103,7 @@ class ScreenshotManager:
             return base64.b64encode(f.read()).decode()
 
     def create_grid_view(
-        self, recent_count: int = 12, output_path: Optional[Path] = None
+        self, recent_count: int = 12, output_path: Path | None = None
     ) -> Path:
         """
         Create a grid view of recent screenshots
@@ -205,7 +204,7 @@ class ScreenshotManager:
 
         print(f"🧹 Cleaned up {len(all_screenshots) - keep_count} old screenshots")
 
-    def get_screenshot_stats(self) -> Dict[str, int]:
+    def get_screenshot_stats(self) -> dict[str, int]:
         """Get statistics about stored screenshots"""
         stats = {
             "total": len(list(self.screenshot_dir.glob("*.png"))),

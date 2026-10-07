@@ -21,7 +21,7 @@ import time
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, cast
+from typing import Any, cast
 from enum import Enum
 from collections import OrderedDict
 import threading
@@ -56,19 +56,19 @@ class SnapshotMetadata:
     tick_count: int
     reason: str
     state_description: str
-    location: Optional[str] = None
+    location: str | None = None
     badges: int = 0
-    team_hp_percent: Optional[float] = None
+    team_hp_percent: float | None = None
     file_size: int = 0
     is_valid: bool = True
-    game_state: Optional[Dict[str, Any]] = None
+    game_state: dict[str, Any] | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization"""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "SnapshotMetadata":
+    def from_dict(cls, data: dict[str, Any]) -> "SnapshotMetadata":
         """Create from dictionary"""
         return cls(**data)
 
@@ -80,7 +80,7 @@ class SaveManagerConfig:
     save_dir: str = "./game_saves"
     max_snapshots: int = 10
     snapshot_interval_ticks: int = 1000
-    save_on_events: List[str] = field(
+    save_on_events: list[str] = field(
         default_factory=lambda: ["battle", "level_up", "badge"]
     )
     compress_old: bool = False
@@ -105,7 +105,7 @@ class SaveManager:
     - Thread-safe operations
     """
 
-    def __init__(self, config: Optional[SaveManagerConfig] = None):
+    def __init__(self, config: SaveManagerConfig | None = None):
         """
         Initialize SaveManager
 
@@ -171,8 +171,8 @@ class SaveManager:
         tick_count: int,
         reason: SnapshotReason,
         state_description: str = "",
-        game_state: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[bool, str]:
+        game_state: dict[str, Any] | None = None,
+    ) -> tuple[bool, str]:
         """
         Create a snapshot with full emulator state and metadata
 
@@ -304,7 +304,7 @@ class SaveManager:
             metadata = self._snapshot_cache.pop(snapshot_id)
             self._snapshot_cache[snapshot_id] = metadata
 
-    def list_snapshots(self, include_invalid: bool = False) -> List[Dict[str, Any]]:
+    def list_snapshots(self, include_invalid: bool = False) -> list[dict[str, Any]]:
         """
         List all available snapshots with metadata
 
@@ -322,7 +322,7 @@ class SaveManager:
                 snapshots.append(metadata.to_dict())
             return snapshots
 
-    def get_snapshot_info(self, snapshot_id: str) -> Optional[Dict[str, Any]]:
+    def get_snapshot_info(self, snapshot_id: str) -> dict[str, Any] | None:
         """
         Get detailed info for a specific snapshot
 
@@ -337,7 +337,7 @@ class SaveManager:
                 return self._snapshot_cache[snapshot_id].to_dict()
             return None
 
-    def get_recent_snapshots(self, count: int = 5) -> List[Dict[str, Any]]:
+    def get_recent_snapshots(self, count: int = 5) -> list[dict[str, Any]]:
         """
         Get most recent snapshots
 
@@ -416,7 +416,7 @@ class SaveManager:
         logger.warning(f"Emergency snapshot created: {snapshot_id}")
         return snapshot_id
 
-    def get_emergency_snapshots(self) -> List[Dict[str, Any]]:
+    def get_emergency_snapshots(self) -> list[dict[str, Any]]:
         """
         Get all emergency snapshots
 
@@ -477,7 +477,7 @@ class SaveManager:
 
             return True
 
-    def cleanup_all(self) -> Dict[str, int]:
+    def cleanup_all(self) -> dict[str, int]:
         """
         Clean up all snapshots and emergency snapshots
 
@@ -500,7 +500,7 @@ class SaveManager:
 
             return result
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get save manager statistics
 

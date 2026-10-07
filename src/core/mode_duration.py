@@ -9,7 +9,7 @@ import json
 import os
 import time
 from dataclasses import dataclass, field, asdict
-from typing import Dict, List, Optional, Any, Tuple, DefaultDict, cast
+from typing import Any, cast
 from collections import defaultdict
 from enum import Enum
 import threading
@@ -91,7 +91,7 @@ class ModeClassification:
     confidence: float
     timestamp: float
     tick: int
-    state_snapshot: Optional[Dict[str, Any]] = None
+    state_snapshot: dict[str, Any] | None = None
 
 
 @dataclass
@@ -100,8 +100,8 @@ class ModeEntry:
     sub_mode: str
     entry_time: float
     entry_tick: int
-    context: Dict[str, Any] = field(default_factory=dict)
-    state_snapshot: Optional[Dict[str, Any]] = None
+    context: dict[str, Any] = field(default_factory=dict)
+    state_snapshot: dict[str, Any] | None = None
 
 
 @dataclass
@@ -134,11 +134,11 @@ class ModeDurationProfile:
     trend: str
     trend_slope: float
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ModeDurationProfile":
+    def from_dict(cls, data: dict[str, Any]) -> "ModeDurationProfile":
         return cls(**data)
 
 
@@ -149,8 +149,8 @@ class Anomaly:
     description: str
     value: float
     threshold: float
-    deviation: Optional[float] = None
-    window: Optional[str] = None
+    deviation: float | None = None
+    window: str | None = None
     recommended_action: str = "log_warning"
 
 
@@ -166,21 +166,21 @@ class BreakoutResult:
 
 @dataclass
 class ResponsePlan:
-    actions: List[str]
+    actions: list[str]
     confidence_impact: int
     escalation_tier: str
-    primary_anomaly: Optional[Anomaly] = None
-    all_anomalies: List[Anomaly] = field(default_factory=list)
+    primary_anomaly: Anomaly | None = None
+    all_anomalies: list[Anomaly] = field(default_factory=list)
 
 
 class ModeClassifier:
-    def __init__(self, state_machine: Optional[Any] = None):
+    def __init__(self, state_machine: Any | None = None):
         self.state_machine = state_machine
-        self._mode_cache: Optional[Tuple[ModeClassification, float]] = None
+        self._mode_cache: tuple[ModeClassification, float] | None = None
         self._cache_ttl = 0.1
 
     def classify_mode(
-        self, current_state: Dict[str, Any], tick: int = 0
+        self, current_state: dict[str, Any], tick: int = 0
     ) -> ModeClassification:
         current_time = time.time()
         if self._mode_cache and current_time - self._mode_cache[1] < self._cache_ttl:
@@ -205,7 +205,7 @@ class ModeClassifier:
         self._mode_cache = (classification, current_time)
         return classification
 
-    def _get_base_mode(self, state: Dict[str, Any]) -> str:
+    def _get_base_mode(self, state: dict[str, Any]) -> str:
         if state.get("is_battle", False):
             return GameMode.BATTLE.value
         elif state.get("has_dialog", False):
@@ -218,7 +218,7 @@ class ModeClassifier:
             return GameMode.TRANSITION.value
         return GameMode.OVERWORLD.value
 
-    def _get_visual_mode(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def _get_visual_mode(self, state: dict[str, Any]) -> dict[str, Any]:
         return {
             "screen_type": state.get("screen_type", "unknown"),
             "menu_type": state.get("menu_type"),
@@ -229,7 +229,7 @@ class ModeClassifier:
             "dialog_text": state.get("dialog_text", ""),
         }
 
-    def _get_text_context(self, state: Dict[str, Any]) -> Dict[str, Any]:
+    def _get_text_context(self, state: dict[str, Any]) -> dict[str, Any]:
         dialog_text = state.get("dialog_text", "")
         return {
             "dialog_text": dialog_text,
@@ -247,9 +247,9 @@ class ModeClassifier:
     def _determine_sub_mode(
         self,
         base_mode: str,
-        visual_mode: Dict[str, Any],
-        text_context: Dict[str, Any],
-        _state: Dict[str, Any],
+        visual_mode: dict[str, Any],
+        text_context: dict[str, Any],
+        _state: dict[str, Any],
     ) -> str:
         if base_mode == GameMode.BATTLE.value:
             return self._classify_battle_sub_mode(visual_mode, text_context)
@@ -264,7 +264,7 @@ class ModeClassifier:
         return f"{base_mode}_GENERIC"
 
     def _classify_battle_sub_mode(
-        self, visual_mode: Dict[str, Any], text_context: Dict[str, Any]
+        self, visual_mode: dict[str, Any], text_context: dict[str, Any]
     ) -> str:
         if text_context.get("gym_leader"):
             return BattleSubMode.GYM_LEADER.value
@@ -282,7 +282,7 @@ class ModeClassifier:
             return BattleSubMode.WILD_HARD.value
         return BattleSubMode.WILD_NORMAL.value
 
-    def _classify_dialog_sub_mode(self, text_context: Dict[str, Any]) -> str:
+    def _classify_dialog_sub_mode(self, text_context: dict[str, Any]) -> str:
         if text_context.get("is_tutorial"):
             return DialogSubMode.TUTORIAL.value
         elif text_context.get("is_quest"):
@@ -293,14 +293,14 @@ class ModeClassifier:
             return DialogSubMode.NPC_LONG.value
         return DialogSubMode.NPC_SHORT.value
 
-    def _classify_overworld_sub_mode(self, visual_mode: Dict[str, Any]) -> str:
+    def _classify_overworld_sub_mode(self, visual_mode: dict[str, Any]) -> str:
         if visual_mode.get("near_pc"):
             return OverworldSubMode.PC.value
         elif visual_mode.get("near_npc"):
             return OverworldSubMode.INTERACTION.value
         return OverworldSubMode.NAVIGATION.value
 
-    def _classify_menu_sub_mode(self, visual_mode: Dict[str, Any]) -> str:
+    def _classify_menu_sub_mode(self, visual_mode: dict[str, Any]) -> str:
         menu_type = visual_mode.get("menu_type", "").lower()
         if menu_type == "pokemon":
             return MenuSubMode.POKEMON.value
@@ -311,7 +311,7 @@ class ModeClassifier:
         return MenuSubMode.PAUSE.value
 
     def _classify_cutscene_sub_mode(
-        self, visual_mode: Dict[str, Any], text_context: Dict[str, Any]
+        self, visual_mode: dict[str, Any], text_context: dict[str, Any]
     ) -> str:
         dialog_text = (
             text_context.get("dialog_text", "") or visual_mode.get("dialog_text", "")
@@ -323,7 +323,7 @@ class ModeClassifier:
         return CutsceneSubMode.INTRO.value
 
     def _calculate_confidence(
-        self, _base_mode: str, visual_mode: Dict[str, Any], text_context: Dict[str, Any]
+        self, _base_mode: str, visual_mode: dict[str, Any], text_context: dict[str, Any]
     ) -> float:
         confidence = 0.7
         if visual_mode.get("screen_type"):
@@ -337,10 +337,10 @@ class ModeClassifier:
 
 class DurationTracker:
     def __init__(self) -> None:
-        self.current_mode: Optional[ModeEntry] = None
-        self._last_mode_key: Optional[str] = None
-        self.mode_history: List[ModeExit] = []
-        self.cumulative_stats: Dict[str, DefaultDict[str, float]] = {
+        self.current_mode: ModeEntry | None = None
+        self._last_mode_key: str | None = None
+        self.mode_history: list[ModeExit] = []
+        self.cumulative_stats: dict[str, defaultdict[str, float]] = {
             "session": defaultdict(float),
             "hour": defaultdict(float),
             "day": defaultdict(float),
@@ -348,17 +348,17 @@ class DurationTracker:
         self.session_start: float = time.time()
         self.hour_start: float = time.time()
         self.day_start: float = time.time()
-        self.mode_sequence: List[str] = []
+        self.mode_sequence: list[str] = []
         self._lock = threading.Lock()
 
     def enter_mode(
         self,
         mode: str,
         sub_mode: str,
-        context: Optional[Dict[str, Any]] = None,
-        state_snapshot: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
+        state_snapshot: dict[str, Any] | None = None,
         tick: int = 0,
-    ) -> Optional[ModeExit]:
+    ) -> ModeExit | None:
         with self._lock:
             interrupted_exit = None
             if self.current_mode:
@@ -398,7 +398,7 @@ class DurationTracker:
                 self.mode_sequence.pop(0)
             return interrupted_exit
 
-    def exit_mode(self, reason: str = "natural", tick: int = 0) -> Optional[ModeExit]:
+    def exit_mode(self, reason: str = "natural", tick: int = 0) -> ModeExit | None:
         with self._lock:
             if not self.current_mode:
                 return None
@@ -435,26 +435,26 @@ class DurationTracker:
     def get_current_cumulative(
         self,
         window: str = "session",
-        mode: Optional[str] = None,
-        sub_mode: Optional[str] = None,
+        mode: str | None = None,
+        sub_mode: str | None = None,
     ) -> float:
         if mode and sub_mode:
             mode_key = f"{mode}/{sub_mode}"
-            return cast(Dict[str, float], self.cumulative_stats.get(window, {})).get(
+            return cast(dict[str, float], self.cumulative_stats.get(window, {})).get(
                 mode_key, 0.0
             )
         if self.current_mode:
             mode_key = f"{self.current_mode.mode}/{self.current_mode.sub_mode}"
-            return cast(Dict[str, float], self.cumulative_stats.get(window, {})).get(
+            return cast(dict[str, float], self.cumulative_stats.get(window, {})).get(
                 mode_key, 0.0
             )
         if self._last_mode_key:
-            return cast(Dict[str, float], self.cumulative_stats.get(window, {})).get(
+            return cast(dict[str, float], self.cumulative_stats.get(window, {})).get(
                 self._last_mode_key, 0.0
             )
         return 0.0
 
-    def get_mode_statistics(self, mode: str, sub_mode: str) -> Dict[str, Any]:
+    def get_mode_statistics(self, mode: str, sub_mode: str) -> dict[str, Any]:
         relevant_exits = [
             e for e in self.mode_history if e.mode == mode and e.sub_mode == sub_mode
         ]
@@ -494,7 +494,7 @@ class DurationProfileLearner:
     def __init__(
         self, alpha: float = 0.3, min_samples: int = 5, outlier_threshold: float = 3.0
     ):
-        self.profiles: Dict[str, ModeDurationProfile] = {}
+        self.profiles: dict[str, ModeDurationProfile] = {}
         self.alpha = alpha
         self.min_samples = min_samples
         self.outlier_threshold = outlier_threshold
@@ -590,10 +590,10 @@ class DurationProfileLearner:
         profile.trend_slope = trend_slope
         return profile
 
-    def get_profile(self, mode: str, sub_mode: str) -> Optional[ModeDurationProfile]:
+    def get_profile(self, mode: str, sub_mode: str) -> ModeDurationProfile | None:
         return self.profiles.get(f"{mode}/{sub_mode}")
 
-    def get_thresholds(self, mode: str, sub_mode: str) -> Dict[str, float]:
+    def get_thresholds(self, mode: str, sub_mode: str) -> dict[str, float]:
         profile = self.get_profile(mode, sub_mode)
         if not profile or profile.sample_count < self.min_samples:
             return self._get_default_thresholds(mode, sub_mode)
@@ -603,7 +603,7 @@ class DurationProfileLearner:
             "emergency": profile.p99_duration,
         }
 
-    def _get_default_thresholds(self, mode: str, sub_mode: str) -> Dict[str, float]:
+    def _get_default_thresholds(self, mode: str, sub_mode: str) -> dict[str, float]:
         defaults = {
             f"{GameMode.BATTLE.value}/WILD_EASY": {
                 "warning": 300,
@@ -708,7 +708,7 @@ class DurationProfileLearner:
         }
         key = f"{mode}/{sub_mode}"
         return cast(
-            Dict[str, float],
+            dict[str, float],
             defaults.get(
                 key, {"warning": 120.0, "critical": 300.0, "emergency": 600.0}
             ),
@@ -729,20 +729,20 @@ class DurationProfileStore:
         profiles[key] = profile.to_dict()
         self._save_all(profiles)
 
-    def _load_all(self) -> Dict[str, Any]:
+    def _load_all(self) -> dict[str, Any]:
         if not os.path.exists(self.storage_path):
             return {}
         try:
             with open(self.storage_path, "r") as f:
-                return cast(Dict[str, Any], json.load(f))
+                return cast(dict[str, Any], json.load(f))
         except (json.JSONDecodeError, IOError):
-            return cast(Dict[str, Any], {})
+            return cast(dict[str, Any], {})
 
-    def _save_all(self, profiles: Dict[str, Any]) -> None:
+    def _save_all(self, profiles: dict[str, Any]) -> None:
         with open(self.storage_path, "w") as f:
             json.dump(profiles, f, indent=2)
 
-    def load_profiles(self) -> Dict[str, ModeDurationProfile]:
+    def load_profiles(self) -> dict[str, ModeDurationProfile]:
         profiles = {}
         data = self._load_all()
         for key, profile_data in data.items():
@@ -768,8 +768,8 @@ class AnomalyDetector:
         cumulative_session: float,
         cumulative_hour: float,
         cumulative_day: float,
-        mode_sequence: List[str],
-    ) -> List[Anomaly]:
+        mode_sequence: list[str],
+    ) -> list[Anomaly]:
         anomalies = []
         duration_anomaly = self._detect_duration_anomaly(
             current_mode, current_sub_mode, current_duration
@@ -794,7 +794,7 @@ class AnomalyDetector:
 
     def _detect_duration_anomaly(
         self, mode: str, sub_mode: str, duration: float
-    ) -> Optional[Anomaly]:
+    ) -> Anomaly | None:
         profile = self.profile_learner.get_profile(mode, sub_mode)
         thresholds = self.profile_learner.get_thresholds(mode, sub_mode)
         if not profile or profile.sample_count < 5:
@@ -859,7 +859,7 @@ class AnomalyDetector:
         cumulative_session: float,
         cumulative_hour: float,
         _cumulative_day: float,
-    ) -> List[Anomaly]:
+    ) -> list[Anomaly]:
         anomalies = []
         mode_key = f"{mode}/{sub_mode}"
         thresholds = self.cumulative_thresholds["session"]
@@ -902,11 +902,11 @@ class AnomalyDetector:
             )
         return anomalies
 
-    def _detect_sequence_anomaly(self, sequence: List[str]) -> Optional[Anomaly]:
+    def _detect_sequence_anomaly(self, sequence: list[str]) -> Anomaly | None:
         if len(sequence) < 5:
             return None
         last_modes = [s.split("_")[0] for s in sequence[-10:]]
-        mode_counts: Dict[str, int] = {}
+        mode_counts: dict[str, int] = {}
         for m in last_modes:
             mode_counts[m] = mode_counts.get(m, 0) + 1
         most_frequent = max(mode_counts, key=lambda k: mode_counts.get(k, 0))
@@ -940,7 +940,7 @@ class AnomalyDetector:
                 )
         return None
 
-    def _detect_trend_anomaly(self, mode: str, sub_mode: str) -> Optional[Anomaly]:
+    def _detect_trend_anomaly(self, mode: str, sub_mode: str) -> Anomaly | None:
         profile = self.profile_learner.get_profile(mode, sub_mode)
         if not profile or profile.trend in ["stable", "insufficient_data"]:
             return None
@@ -996,7 +996,7 @@ class AnomalyResponseSelector:
             },
         }
 
-    def select_response(self, anomalies: List[Anomaly]) -> ResponsePlan:
+    def select_response(self, anomalies: list[Anomaly]) -> ResponsePlan:
         if not anomalies:
             return ResponsePlan(actions=[], confidence_impact=0, escalation_tier="NONE")
         sorted_anomalies = sorted(anomalies, key=lambda a: self._get_priority(a.type))
@@ -1032,9 +1032,9 @@ class AnomalyResponseSelector:
 
 
 class BreakoutManager:
-    def __init__(self, emulator_controller: Optional[Any] = None):
+    def __init__(self, emulator_controller: Any | None = None):
         self.emulator_controller = emulator_controller
-        self.success_history: List[Dict[str, Any]] = []
+        self.success_history: list[dict[str, Any]] = []
         self.max_attempts = {
             BreakoutStrategy.IMMEDIATE.value: 3,
             BreakoutStrategy.AGGRESSIVE.value: 5,
@@ -1047,7 +1047,7 @@ class BreakoutManager:
         strategy: BreakoutStrategy,
         mode: str,
         sub_mode: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> BreakoutResult:
         max_attempts = self.max_attempts.get(strategy.value, 3)
         for attempt in range(max_attempts):
@@ -1089,8 +1089,8 @@ class BreakoutManager:
         strategy: BreakoutStrategy,
         mode: str,
         sub_mode: str,
-        context: Dict[str, Any],
-    ) -> Tuple[bool, str]:
+        context: dict[str, Any],
+    ) -> tuple[bool, str]:
         if strategy == BreakoutStrategy.IMMEDIATE:
             return self._break_out_immediate(mode, sub_mode, context)
         elif strategy == BreakoutStrategy.AGGRESSIVE:
@@ -1106,8 +1106,8 @@ class BreakoutManager:
         return False, "UNKNOWN_STRATEGY"
 
     def _break_out_immediate(
-        self, mode: str, _sub_mode: str, _context: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+        self, mode: str, _sub_mode: str, _context: dict[str, Any]
+    ) -> tuple[bool, str]:
         if mode == GameMode.BATTLE.value:
             return self._battle_breakout_immediate()
         elif mode == GameMode.DIALOG.value:
@@ -1117,16 +1117,16 @@ class BreakoutManager:
         return False, "UNKNOWN_MODE"
 
     def _break_out_aggressive(
-        self, mode: str, sub_mode: str, context: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+        self, mode: str, sub_mode: str, context: dict[str, Any]
+    ) -> tuple[bool, str]:
         success, action = self._break_out_standard(mode, sub_mode, context)
         if success:
             return success, action
         return self._break_out_immediate(mode, sub_mode, context)
 
     def _break_out_standard(
-        self, mode: str, _sub_mode: str, _context: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+        self, mode: str, _sub_mode: str, _context: dict[str, Any]
+    ) -> tuple[bool, str]:
         if mode == GameMode.BATTLE.value:
             return self._battle_breakout_standard()
         elif mode == GameMode.DIALOG.value:
@@ -1136,8 +1136,8 @@ class BreakoutManager:
         return False, "UNKNOWN_MODE"
 
     def _force_break_out(
-        self, mode: str, _sub_mode: str, context: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+        self, mode: str, _sub_mode: str, context: dict[str, Any]
+    ) -> tuple[bool, str]:
         if mode == GameMode.BATTLE.value:
             if context.get("has_item", lambda _x: False)("POKEBALL"):
                 return True, "USE_BALL_ESCAPE"
@@ -1149,8 +1149,8 @@ class BreakoutManager:
         return False, "FORCE_FAILED"
 
     def _check_progress(
-        self, mode: str, sub_mode: str, context: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+        self, mode: str, sub_mode: str, context: dict[str, Any]
+    ) -> tuple[bool, str]:
         last_state = context.get("last_state")
         current_state = context.get("current_state")
         if last_state and self._states_equivalent(last_state, current_state):
@@ -1158,30 +1158,30 @@ class BreakoutManager:
         return True, "PROGRESS_DETECTED"
 
     def _increase_monitoring(
-        self, _mode: str, _sub_mode: str, _context: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+        self, _mode: str, _sub_mode: str, _context: dict[str, Any]
+    ) -> tuple[bool, str]:
         return True, "MONITORING_INCREASED"
 
-    def _battle_breakout_standard(self) -> Tuple[bool, str]:
+    def _battle_breakout_standard(self) -> tuple[bool, str]:
         return False, "RUN_FAILED"
 
-    def _battle_breakout_immediate(self) -> Tuple[bool, str]:
+    def _battle_breakout_immediate(self) -> tuple[bool, str]:
         return False, "BATTLE_RESET"
 
-    def _dialog_breakout_standard(self) -> Tuple[bool, str]:
+    def _dialog_breakout_standard(self) -> tuple[bool, str]:
         return False, "ADVANCE_FAILED"
 
-    def _dialog_breakout_immediate(self) -> Tuple[bool, str]:
+    def _dialog_breakout_immediate(self) -> tuple[bool, str]:
         return False, "DIALOG_SKIP_FAILED"
 
-    def _menu_breakout_standard(self) -> Tuple[bool, str]:
+    def _menu_breakout_standard(self) -> tuple[bool, str]:
         return False, "EXIT_FAILED"
 
-    def _menu_breakout_immediate(self) -> Tuple[bool, str]:
+    def _menu_breakout_immediate(self) -> tuple[bool, str]:
         return False, "MENU_EXIT_FAILED"
 
     def _states_equivalent(
-        self, state1: Optional[Dict[str, Any]], state2: Optional[Dict[str, Any]]
+        self, state1: dict[str, Any] | None, state2: dict[str, Any] | None
     ) -> bool:
         if not state1 or not state2:
             return False
@@ -1202,8 +1202,8 @@ class BreakoutManager:
 
 class BreakoutAnalytics:
     def __init__(self) -> None:
-        self.breakout_history: List[Dict[str, Any]] = []
-        self.success_rates: Dict[str, float] = {}
+        self.breakout_history: list[dict[str, Any]] = []
+        self.success_rates: dict[str, float] = {}
 
     def record_breakout(self, result: BreakoutResult) -> None:
         self.breakout_history.append({**asdict(result), "timestamp": time.time()})
@@ -1246,7 +1246,7 @@ class BreakoutAnalytics:
 
 
 class ModeDurationEscalation:
-    def __init__(self, confidence_scorer: Optional[Any] = None):
+    def __init__(self, confidence_scorer: Any | None = None):
         self.confidence_scorer = confidence_scorer
         self.escalation_tiers: dict[EscalationTier, dict[str, Any]] = {
             EscalationTier.NONE: {
@@ -1276,10 +1276,10 @@ class ModeDurationEscalation:
             },
         }
         self.current_tier = EscalationTier.NONE
-        self.tier_history: List[Dict[str, Any]] = []
+        self.tier_history: list[dict[str, Any]] = []
 
     def update_escalation(
-        self, anomalies: List[Anomaly], current_confidence: float
+        self, anomalies: list[Anomaly], current_confidence: float
     ) -> EscalationTier:
         target_tier = self._determine_tier_from_anomalies(anomalies)
         confidence_tier = self._determine_tier_from_confidence(current_confidence)
@@ -1289,7 +1289,7 @@ class ModeDurationEscalation:
         return self.current_tier
 
     def _determine_tier_from_anomalies(
-        self, anomalies: List[Anomaly]
+        self, anomalies: list[Anomaly]
     ) -> EscalationTier:
         if not anomalies:
             return EscalationTier.NONE
@@ -1328,7 +1328,7 @@ class ModeDurationEscalation:
         return tier1 if idx1 >= idx2 else tier2
 
     def _transition_tier(
-        self, new_tier: EscalationTier, anomalies: List[Anomaly], confidence: float
+        self, new_tier: EscalationTier, anomalies: list[Anomaly], confidence: float
     ) -> None:
         old_tier = self.current_tier
         self.tier_history.append(
@@ -1352,9 +1352,9 @@ class ModeDurationEscalation:
 class ModeDurationTrackingSystem:
     def __init__(
         self,
-        state_machine: Optional[Any] = None,
-        confidence_scorer: Optional[Any] = None,
-        failsafe_manager: Optional[Any] = None,
+        state_machine: Any | None = None,
+        confidence_scorer: Any | None = None,
+        failsafe_manager: Any | None = None,
         storage_path: str = "data/duration_profiles.json",
     ):
         self.mode_classifier = ModeClassifier(state_machine)
@@ -1378,10 +1378,10 @@ class ModeDurationTrackingSystem:
 
     def update(
         self,
-        current_state: Dict[str, Any],
+        current_state: dict[str, Any],
         tick: int = 0,
         current_confidence: float = 100.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         mode_classification = self.mode_classifier.classify_mode(current_state, tick)
         if self._is_mode_change(mode_classification):
             if self.duration_tracker.current_mode:
@@ -1451,7 +1451,7 @@ class ModeDurationTrackingSystem:
             or current.sub_mode != new_classification.sub_mode
         )
 
-    def get_dashboard_data(self) -> Dict[str, Any]:
+    def get_dashboard_data(self) -> dict[str, Any]:
         current_duration = self.duration_tracker.get_current_duration()
         current_cumulative = self.duration_tracker.get_current_cumulative("session")
         return {

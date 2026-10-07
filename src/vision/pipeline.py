@@ -7,7 +7,7 @@ for optimal vision model input.
 
 import hashlib
 import time
-from typing import Optional, Tuple, Any
+from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
 import signal
@@ -38,9 +38,9 @@ class PreprocessingResult:
 
     normalized_image: np.ndarray
     grayscale_image: np.ndarray
-    roi_battle_menu: Optional[np.ndarray] = None
-    roi_dialog_box: Optional[np.ndarray] = None
-    roi_hud: Optional[np.ndarray] = None
+    roi_battle_menu: np.ndarray | None = None
+    roi_dialog_box: np.ndarray | None = None
+    roi_hud: np.ndarray | None = None
     processing_time_ms: float = 0.0
     frame_hash: str = ""
     is_duplicate: bool = False
@@ -64,7 +64,7 @@ class VisionPipeline:
     ASPECT_RATIO = 160 / 144
     DEFAULT_TIMEOUT = 30.0
 
-    def __init__(self, debug_dir: Optional[str] = None):
+    def __init__(self, debug_dir: str | None = None):
         """Initialize Vision Pipeline"""
         self.debug_dir = Path(debug_dir) if debug_dir else None
         self.frame_history: list[Any] = []
@@ -158,7 +158,7 @@ class VisionPipeline:
         self,
         raw_screenshot: np.ndarray,
         extract_rois: bool = True,
-        _timeout: Optional[float] = None,
+        _timeout: float | None = None,
     ) -> PreprocessingResult:
         """
         Process a screenshot through the full pipeline
@@ -356,7 +356,7 @@ class VisionPipeline:
         return gray
 
     def _resize_to_target(
-        self, frame: np.ndarray, size: Optional[Tuple[int, int]] = None
+        self, frame: np.ndarray, size: tuple[int, int] | None = None
     ) -> np.ndarray:
         """Resize frame to target dimensions for vision model"""
         target = size or self.TARGET_SIZE
@@ -371,7 +371,7 @@ class VisionPipeline:
 
         return result
 
-    def _extract_battle_menu(self, frame: np.ndarray) -> Optional[np.ndarray]:
+    def _extract_battle_menu(self, frame: np.ndarray) -> np.ndarray | None:
         """Extract battle menu region from frame"""
         h, w = frame.shape[:2]
 
@@ -386,7 +386,7 @@ class VisionPipeline:
 
         return None
 
-    def _extract_dialog_box(self, frame: np.ndarray) -> Optional[np.ndarray]:
+    def _extract_dialog_box(self, frame: np.ndarray) -> np.ndarray | None:
         """Extract dialog box region from frame"""
         h, w = frame.shape[:2]
 
@@ -401,7 +401,7 @@ class VisionPipeline:
 
         return None
 
-    def _extract_hud(self, frame: np.ndarray) -> Optional[np.ndarray]:
+    def _extract_hud(self, frame: np.ndarray) -> np.ndarray | None:
         """Extract HUD (heads-up display) region from frame"""
         h, w = frame.shape[:2]
 

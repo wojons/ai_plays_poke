@@ -13,7 +13,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, List, Optional, Any, Tuple, cast
+from typing import Any, cast
 from datetime import datetime
 import time
 import logging
@@ -72,13 +72,13 @@ class GameState:
     badges: int = 0
     money: int = 0
     is_battle: bool = False
-    party: List[Dict[str, Any]] = field(default_factory=list)
-    inventory: Dict[str, int] = field(default_factory=dict)
-    active_quests: List[str] = field(default_factory=list)
+    party: list[dict[str, Any]] = field(default_factory=list)
+    inventory: dict[str, int] = field(default_factory=dict)
+    active_quests: list[str] = field(default_factory=list)
     pokedex_caught: int = 0
     pokedex_seen: int = 0
-    hms_obtained: List[str] = field(default_factory=list)
-    tms_obtained: List[int] = field(default_factory=list)
+    hms_obtained: list[str] = field(default_factory=list)
+    tms_obtained: list[int] = field(default_factory=list)
 
     def get_avg_party_level(self) -> float:
         if not self.party:
@@ -95,12 +95,12 @@ class GameState:
     def get_fainted_count(self) -> int:
         return sum(1 for p in self.party if p.get("current_hp", 0) == 0)
 
-    def get_low_hp_pokemon(self) -> List[Dict[str, Any]]:
+    def get_low_hp_pokemon(self) -> list[dict[str, Any]]:
         return [
             p for p in self.party if p.get("current_hp", 0) / p.get("max_hp", 1) < 0.25
         ]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "tick": self.tick,
             "timestamp": self.timestamp,
@@ -117,7 +117,7 @@ class GameState:
             "tms_obtained": self.tms_obtained,
         }
 
-    def to_state_dict(self) -> Dict[str, Any]:
+    def to_state_dict(self) -> dict[str, Any]:
         return {
             **self.to_dict(),
             "avg_party_level": self.get_avg_party_level(),
@@ -137,17 +137,17 @@ class Goal:
     priority: int = 50
     status: str = "PENDING"
     progress: float = 0.0
-    prerequisites: List[str] = field(default_factory=list)
-    dependencies: List[str] = field(default_factory=list)
-    required_resources: Dict[str, Any] = field(default_factory=dict)
+    prerequisites: list[str] = field(default_factory=list)
+    dependencies: list[str] = field(default_factory=list)
+    required_resources: dict[str, Any] = field(default_factory=dict)
     estimated_cost: float = 0.0
     estimated_value: float = 0.0
-    deadline: Optional[datetime] = None
+    deadline: datetime | None = None
     created_at: datetime = field(default_factory=datetime.now)
     retry_count: int = 0
     max_retries: int = 3
 
-    def is_feasible(self, state: GameState) -> Tuple[bool, Dict[str, Any]]:
+    def is_feasible(self, state: GameState) -> tuple[bool, dict[str, Any]]:
         missing = {}
         for resource, required in self.required_resources.items():
             if resource == "money":
@@ -170,7 +170,7 @@ class Goal:
             return self.estimated_value * self.priority
         return (self.estimated_value / self.estimated_cost) * self.priority
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "goal_id": self.goal_id,
             "name": self.name,
@@ -222,7 +222,7 @@ class CatchPokemonGoal(Goal):
         species: str,
         min_level: int = 1,
         max_level: int = 100,
-        location: Optional[str] = None,
+        location: str | None = None,
         estimated_cost: float = 100.0,
     ):
         super().__init__(
@@ -240,7 +240,7 @@ class CatchPokemonGoal(Goal):
         self.max_level = max_level
         self.location = location
 
-    def is_feasible(self, state: GameState) -> Tuple[bool, Dict[str, Any]]:
+    def is_feasible(self, state: GameState) -> tuple[bool, dict[str, Any]]:
         feasible, missing = super().is_feasible(state)
         if self.location and state.location != self.location:
             missing["location"] = self.location
@@ -321,7 +321,7 @@ class ObtainItemGoal(Goal):
         item_name: str,
         quantity: int = 1,
         buy: bool = True,
-        target_price: Optional[int] = None,
+        target_price: int | None = None,
         estimated_cost: float = 100.0,
     ):
         priority = 90 if item_name in ["Poke Ball", "Potion"] else 50
@@ -344,14 +344,14 @@ class ObtainItemGoal(Goal):
 class Action(ABC):
     """Base class for all actions"""
 
-    def __init__(self, action_id: Optional[str] = None):
+    def __init__(self, action_id: str | None = None):
         self.action_id = action_id or str(uuid.uuid4())
         self.status = "PENDING"
         self.progress = 0.0
         self.retry_count = 0
         self.max_retries = 3
-        self.execution_time: Optional[float] = None
-        self.error_message: Optional[str] = None
+        self.execution_time: float | None = None
+        self.error_message: str | None = None
 
     @property
     @abstractmethod
@@ -359,11 +359,11 @@ class Action(ABC):
         pass
 
     @abstractmethod
-    def get_preconditions(self) -> Dict[str, Any]:
+    def get_preconditions(self) -> dict[str, Any]:
         pass
 
     @abstractmethod
-    def get_effects(self) -> Dict[str, Any]:
+    def get_effects(self) -> dict[str, Any]:
         pass
 
     @abstractmethod
@@ -371,7 +371,7 @@ class Action(ABC):
         pass
 
     @abstractmethod
-    def execute(self, state: GameState) -> Tuple[bool, GameState]:
+    def execute(self, state: GameState) -> tuple[bool, GameState]:
         pass
 
     def can_execute(self, state: GameState) -> bool:
@@ -401,7 +401,7 @@ class NavigateAction(Action):
         self,
         target_location: str,
         method: str = "astar",
-        action_id: Optional[str] = None,
+        action_id: str | None = None,
     ):
         super().__init__(action_id)
         self.target_location = target_location
@@ -411,16 +411,16 @@ class NavigateAction(Action):
     def action_type(self) -> ActionType:
         return ActionType.NAVIGATION
 
-    def get_preconditions(self) -> Dict[str, Any]:
+    def get_preconditions(self) -> dict[str, Any]:
         return {"not_in_battle": True}
 
-    def get_effects(self) -> Dict[str, Any]:
+    def get_effects(self) -> dict[str, Any]:
         return {"location": self.target_location}
 
     def get_cost(self) -> float:
         return 10.0
 
-    def execute(self, state: GameState) -> Tuple[bool, GameState]:
+    def execute(self, state: GameState) -> tuple[bool, GameState]:
         try:
             logger.info(f"Navigating to {self.target_location} using {self.method}")
             new_state = GameState(**state.to_dict())
@@ -439,9 +439,9 @@ class BattleAction(Action):
     def __init__(
         self,
         battle_type: str = "wild",
-        target: Optional[str] = None,
+        target: str | None = None,
         strategy: str = "auto",
-        action_id: Optional[str] = None,
+        action_id: str | None = None,
     ):
         super().__init__(action_id)
         self.battle_type = battle_type
@@ -452,16 +452,16 @@ class BattleAction(Action):
     def action_type(self) -> ActionType:
         return ActionType.BATTLE
 
-    def get_preconditions(self) -> Dict[str, Any]:
+    def get_preconditions(self) -> dict[str, Any]:
         return {"in_battle": True}
 
-    def get_effects(self) -> Dict[str, Any]:
+    def get_effects(self) -> dict[str, Any]:
         return {"xp_gained": 100, "battle_won": True}
 
     def get_cost(self) -> float:
         return 5.0
 
-    def execute(self, state: GameState) -> Tuple[bool, GameState]:
+    def execute(self, state: GameState) -> tuple[bool, GameState]:
         try:
             logger.info(f"Executing battle action: {self.battle_type} battle")
             new_state = GameState(**state.to_dict())
@@ -481,9 +481,9 @@ class MenuAction(Action):
         self,
         menu_type: str,
         action: str,
-        target: Optional[str] = None,
+        target: str | None = None,
         quantity: int = 1,
-        action_id: Optional[str] = None,
+        action_id: str | None = None,
     ):
         super().__init__(action_id)
         self.menu_type = menu_type
@@ -495,11 +495,11 @@ class MenuAction(Action):
     def action_type(self) -> ActionType:
         return ActionType.MENU
 
-    def get_preconditions(self) -> Dict[str, Any]:
+    def get_preconditions(self) -> dict[str, Any]:
         return {}
 
-    def get_effects(self) -> Dict[str, Any]:
-        effects: Dict[str, Any] = {}
+    def get_effects(self) -> dict[str, Any]:
+        effects: dict[str, Any] = {}
         if self.menu_type == "shop" and self.action == "buy":
             effects["item_obtained"] = self.target
         elif self.menu_type == "pokemon_center" and self.action == "heal":
@@ -509,7 +509,7 @@ class MenuAction(Action):
     def get_cost(self) -> float:
         return 2.0
 
-    def execute(self, state: GameState) -> Tuple[bool, GameState]:
+    def execute(self, state: GameState) -> tuple[bool, GameState]:
         try:
             logger.info(f"Executing menu action: {self.menu_type} - {self.action}")
             new_state = GameState(**state.to_dict())
@@ -535,7 +535,7 @@ class DialogAction(Action):
     """Action to interact with NPCs via dialog"""
 
     def __init__(
-        self, npc_name: str, dialog_type: str = "talk", action_id: Optional[str] = None
+        self, npc_name: str, dialog_type: str = "talk", action_id: str | None = None
     ):
         super().__init__(action_id)
         self.npc_name = npc_name
@@ -545,16 +545,16 @@ class DialogAction(Action):
     def action_type(self) -> ActionType:
         return ActionType.DIALOG
 
-    def get_preconditions(self) -> Dict[str, Any]:
+    def get_preconditions(self) -> dict[str, Any]:
         return {"not_in_battle": True}
 
-    def get_effects(self) -> Dict[str, Any]:
+    def get_effects(self) -> dict[str, Any]:
         return {"dialog_completed": True, "npc_interaction": self.npc_name}
 
     def get_cost(self) -> float:
         return 3.0
 
-    def execute(self, state: GameState) -> Tuple[bool, GameState]:
+    def execute(self, state: GameState) -> tuple[bool, GameState]:
         try:
             logger.info(
                 f"Executing dialog action: {self.dialog_type} with {self.npc_name}"
@@ -574,11 +574,11 @@ class Plan:
 
     plan_id: str
     goal_id: str
-    actions: List[Action]
+    actions: list[Action]
     status: PlanStatus = PlanStatus.PENDING
     current_action_index: int = 0
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None
+    start_time: datetime | None = None
+    end_time: datetime | None = None
     total_cost: float = 0.0
     success_rate: float = 0.0
 
@@ -587,7 +587,7 @@ class Plan:
             self.plan_id = str(uuid.uuid4())
         self.total_cost = sum(a.get_cost() for a in self.actions)
 
-    def get_current_action(self) -> Optional[Action]:
+    def get_current_action(self) -> Action | None:
         if 0 <= self.current_action_index < len(self.actions):
             return self.actions[self.current_action_index]
         return None
@@ -595,7 +595,7 @@ class Plan:
     def is_complete(self) -> bool:
         return self.current_action_index >= len(self.actions)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "plan_id": self.plan_id,
             "goal_id": self.goal_id,
@@ -610,7 +610,7 @@ class GoalStack:
     """LIFO stack for managing goals"""
 
     def __init__(self, max_size: int = 50):
-        self.stack: List[Goal] = []
+        self.stack: list[Goal] = []
         self.max_size = max_size
 
     def push(self, goal: Goal) -> None:
@@ -622,12 +622,12 @@ class GoalStack:
         if len(self.stack) > self.max_size:
             self.stack.pop(0)
 
-    def pop(self) -> Optional[Goal]:
+    def pop(self) -> Goal | None:
         if not self.stack:
             return None
         return self.stack.pop()
 
-    def peek(self) -> Optional[Goal]:
+    def peek(self) -> Goal | None:
         if not self.stack:
             return None
         return self.stack[-1]
@@ -639,7 +639,7 @@ class GoalStack:
                 return True
         return False
 
-    def get_all_goals(self) -> List[Goal]:
+    def get_all_goals(self) -> list[Goal]:
         type_order = {
             GoalType.IMMEDIATE: 0,
             GoalType.SHORT_TERM: 1,
@@ -663,8 +663,8 @@ class GoalDAG:
     """Directed Acyclic Graph for goal enablement tracking"""
 
     def __init__(self) -> None:
-        self.nodes: Dict[str, Goal] = {}
-        self.edges: List[Tuple[str, str]] = []
+        self.nodes: dict[str, Goal] = {}
+        self.edges: list[tuple[str, str]] = []
 
     def add_goal(self, goal: Goal) -> None:
         self.nodes[goal.goal_id] = goal
@@ -672,13 +672,13 @@ class GoalDAG:
     def add_prerequisite(self, goal_id: str, prerequisite_id: str) -> None:
         self.edges.append((prerequisite_id, goal_id))
 
-    def get_prerequisites(self, goal_id: str) -> List[str]:
+    def get_prerequisites(self, goal_id: str) -> list[str]:
         return [from_id for from_id, to_id in self.edges if to_id == goal_id]
 
-    def get_dependents(self, goal_id: str) -> List[str]:
+    def get_dependents(self, goal_id: str) -> list[str]:
         return [to_id for from_id, to_id in self.edges if from_id == goal_id]
 
-    def get_critical_path(self) -> List[str]:
+    def get_critical_path(self) -> list[str]:
         if not self.nodes:
             return []
 
@@ -705,7 +705,7 @@ class GoalDAG:
         critical_path.reverse()
         return critical_path
 
-    def _topological_sort(self) -> List[str]:
+    def _topological_sort(self) -> list[str]:
         in_degree = {goal_id: 0 for goal_id in self.nodes}
         for from_id, to_id in self.edges:
             in_degree[to_id] = in_degree.get(to_id, 0) + 1
@@ -728,14 +728,14 @@ class PriorityQueue:
     """Priority queue for goal selection"""
 
     def __init__(self) -> None:
-        self.heap: List[Tuple[float, str, Goal]] = []
-        self.goal_map: Dict[str, Tuple[float, Goal]] = {}
+        self.heap: list[tuple[float, str, Goal]] = []
+        self.goal_map: dict[str, tuple[float, Goal]] = {}
 
     def push(self, goal: Goal, priority: float) -> None:
         heapq.heappush(self.heap, (-priority, goal.goal_id, goal))
         self.goal_map[goal.goal_id] = (priority, goal)
 
-    def pop(self) -> Optional[Goal]:
+    def pop(self) -> Goal | None:
         while self.heap:
             neg_priority, _, goal = heapq.heappop(self.heap)
             if goal.goal_id in self.goal_map:
@@ -745,7 +745,7 @@ class PriorityQueue:
                     return goal
         return None
 
-    def peek(self) -> Optional[Goal]:
+    def peek(self) -> Goal | None:
         if not self.heap:
             return None
         _, _, goal = self.heap[0]
@@ -768,7 +768,7 @@ class GoalPriorityCalculator:
     """Calculates priority scores for goals using multi-factor analysis"""
 
     def __init__(self) -> None:
-        self.success_history: Dict[str, List[int]] = {}
+        self.success_history: dict[str, list[int]] = {}
 
     def calculate_priority(self, goal: Goal, state: GameState) -> float:
         base_priority = goal.priority
@@ -886,7 +886,7 @@ class GoalPrioritizer:
     def add_prerequisite(self, goal_id: str, prerequisite_id: str) -> None:
         self.goal_dag.add_prerequisite(goal_id, prerequisite_id)
 
-    def select_next_goal(self, state: GameState) -> Optional[Goal]:
+    def select_next_goal(self, state: GameState) -> Goal | None:
         while not self.priority_queue.is_empty():
             goal = self.priority_queue.pop()
             if goal:
@@ -901,7 +901,7 @@ class GoalPrioritizer:
             priority = self.calculator.calculate_priority(goal, state)
             self.priority_queue.update_priority(goal.goal_id, priority)
 
-    def get_urgent_goals(self, _state: GameState) -> List[Goal]:
+    def get_urgent_goals(self, _state: GameState) -> list[Goal]:
         urgent = []
         for goal in self.goal_dag.nodes.values():
             if goal.goal_type == GoalType.IMMEDIATE:
@@ -910,7 +910,7 @@ class GoalPrioritizer:
                 urgent.append(goal)
         return sorted(urgent, key=lambda g: g.priority, reverse=True)
 
-    def get_strategic_goals(self, _state: GameState) -> List[Goal]:
+    def get_strategic_goals(self, _state: GameState) -> list[Goal]:
         strategic = []
         for goal in self.goal_dag.nodes.values():
             if goal.goal_type in [GoalType.MEDIUM_TERM, GoalType.LONG_TERM]:
@@ -923,8 +923,8 @@ class Planner:
 
     def __init__(self, goal_prioritizer: GoalPrioritizer):
         self.goal_prioritizer = goal_prioritizer
-        self.plans: Dict[str, Plan] = {}
-        self.current_plan: Optional[Plan] = None
+        self.plans: dict[str, Plan] = {}
+        self.current_plan: Plan | None = None
 
     def create_plan(self, goal: Goal, state: GameState) -> Plan:
         actions = self._decompose_goal(goal, state)
@@ -932,8 +932,8 @@ class Planner:
         self.plans[plan.plan_id] = plan
         return plan
 
-    def _decompose_goal(self, goal: Goal, state: GameState) -> List[Action]:
-        actions: List[Action] = []
+    def _decompose_goal(self, goal: Goal, state: GameState) -> list[Action]:
+        actions: list[Action] = []
 
         if isinstance(goal, DefeatGymGoal):
             actions = self._decompose_gym_goal(goal, state)
@@ -952,8 +952,8 @@ class Planner:
 
     def _decompose_gym_goal(
         self, goal: DefeatGymGoal, state: GameState
-    ) -> List[Action]:
-        actions: List[Action] = []
+    ) -> list[Action]:
+        actions: list[Action] = []
         if state.get_avg_party_level() < goal.required_level:
             train_goal = TrainPokemonGoal(goal.required_level)
             actions.extend(self._decompose_goal(train_goal, state))
@@ -964,8 +964,8 @@ class Planner:
 
     def _decompose_catch_goal(
         self, goal: CatchPokemonGoal, _state: GameState
-    ) -> List[Action]:
-        actions: List[Action] = []
+    ) -> list[Action]:
+        actions: list[Action] = []
         if goal.location:
             actions.append(NavigateAction(goal.location))
         actions.append(BattleAction("wild", goal.species, "catch"))
@@ -974,16 +974,16 @@ class Planner:
 
     def _decompose_heal_goal(
         self, _goal: HealPartyGoal, _state: GameState
-    ) -> List[Action]:
-        actions: List[Action] = []
+    ) -> list[Action]:
+        actions: list[Action] = []
         actions.append(NavigateAction("Pokemon Center", method="nearest"))
         actions.append(DialogAction("Nurse", "heal"))
         return actions
 
     def _decompose_train_goal(
         self, goal: TrainPokemonGoal, state: GameState
-    ) -> List[Action]:
-        actions: List[Action] = []
+    ) -> list[Action]:
+        actions: list[Action] = []
         actions.append(NavigateAction(goal.training_location))
         while state.get_avg_party_level() < goal.target_level:
             actions.append(BattleAction("wild", strategy="train"))
@@ -991,21 +991,21 @@ class Planner:
 
     def _decompose_item_goal(
         self, goal: ObtainItemGoal, _state: GameState
-    ) -> List[Action]:
-        actions: List[Action] = []
+    ) -> list[Action]:
+        actions: list[Action] = []
         if goal.buy:
             actions.append(NavigateAction("PokeMart", method="nearest"))
             actions.append(MenuAction("shop", "buy", goal.item_name, goal.quantity))
         return actions
 
-    def validate_plan(self, plan: Plan, state: GameState) -> Tuple[bool, List[str]]:
+    def validate_plan(self, plan: Plan, state: GameState) -> tuple[bool, list[str]]:
         errors = []
         for action in plan.actions:
             if not action.can_execute(state):
                 errors.append(f"Action {action.action_type} preconditions not met")
         return len(errors) == 0, errors
 
-    def resolve_dependencies(self, goal: Goal, state: GameState) -> List[Goal]:
+    def resolve_dependencies(self, goal: Goal, state: GameState) -> list[Goal]:
         prerequisites = []
         for prereq_id in goal.prerequisites:
             prereq_goal = self.goal_prioritizer.goal_dag.nodes.get(prereq_id)
@@ -1016,7 +1016,7 @@ class Planner:
                     prerequisites.append(prereq_goal)
         return prerequisites
 
-    def get_current_plan(self) -> Optional[Plan]:
+    def get_current_plan(self) -> Plan | None:
         return self.current_plan
 
     def set_current_plan(self, plan: Plan) -> None:
@@ -1028,14 +1028,14 @@ class PlanMonitor:
 
     def __init__(self, planner: Planner):
         self.planner = planner
-        self.execution_history: List[Dict[str, Any]] = []
+        self.execution_history: list[dict[str, Any]] = []
         self.replan_count: int = 0
         self.failure_count: int = 0
-        self.last_replan_time: Optional[float] = None
+        self.last_replan_time: float | None = None
 
     def monitor_execution(
         self, plan: Plan, state: GameState
-    ) -> Tuple[bool, Optional[Plan]]:
+    ) -> tuple[bool, Plan | None]:
         current_action = plan.get_current_action()
         if not current_action:
             return True, None
@@ -1067,7 +1067,7 @@ class PlanMonitor:
 
     def _handle_action_failure(
         self, plan: Plan, state: GameState
-    ) -> Tuple[bool, Optional[Plan]]:
+    ) -> tuple[bool, Plan | None]:
         self.failure_count += 1
         goal = self.planner.goal_prioritizer.goal_dag.nodes.get(plan.goal_id)
         if goal:
@@ -1077,9 +1077,7 @@ class PlanMonitor:
 
         return self._replan(plan, state)
 
-    def _replan(
-        self, failed_plan: Plan, state: GameState
-    ) -> Tuple[bool, Optional[Plan]]:
+    def _replan(self, failed_plan: Plan, state: GameState) -> tuple[bool, Plan | None]:
         self.replan_count += 1
         self.last_replan_time = time.time()
 
@@ -1102,7 +1100,7 @@ class PlanMonitor:
 
     def handle_interruption(
         self, interruption_type: str, state: GameState
-    ) -> Tuple[bool, Optional[Plan]]:
+    ) -> tuple[bool, Plan | None]:
         if interruption_type == "random_battle":
             logger.info("Random battle interruption - pausing plan")
             return True, None
@@ -1116,7 +1114,7 @@ class PlanMonitor:
 
         return True, None
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         return {
             "total_executions": len(self.execution_history),
             "replan_count": self.replan_count,
@@ -1134,9 +1132,9 @@ class HierarchicalPlanner:
         self.goal_prioritizer = GoalPrioritizer()
         self.planner = Planner(self.goal_prioritizer)
         self.plan_monitor = PlanMonitor(self.planner)
-        self.current_plan: Optional[Plan] = None
+        self.current_plan: Plan | None = None
 
-    def plan(self, state: GameState) -> Optional[Plan]:
+    def plan(self, state: GameState) -> Plan | None:
         self.goal_prioritizer.reprioritize(state)
         next_goal = self.goal_prioritizer.select_next_goal(state)
         if not next_goal:
@@ -1155,7 +1153,7 @@ class HierarchicalPlanner:
         self.current_plan = plan
         return plan
 
-    def execute_step(self, state: GameState) -> Tuple[bool, Optional[Plan], GameState]:
+    def execute_step(self, state: GameState) -> tuple[bool, Plan | None, GameState]:
         if not self.current_plan:
             new_plan = self.plan(state)
             if not new_plan:
@@ -1181,13 +1179,13 @@ class HierarchicalPlanner:
 
     def handle_interruption(
         self, interruption_type: str, state: GameState
-    ) -> Tuple[bool, Optional[Plan]]:
+    ) -> tuple[bool, Plan | None]:
         return self.plan_monitor.handle_interruption(interruption_type, state)
 
     def add_goal(self, goal: Goal, state: GameState) -> None:
         self.goal_prioritizer.add_goal(goal, state)
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         return {
             "current_plan": self.current_plan.to_dict() if self.current_plan else None,
             "goals_in_queue": len(self.goal_prioritizer.priority_queue.heap),

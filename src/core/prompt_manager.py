@@ -6,7 +6,7 @@ AI to dynamically choose relevant prompts for each screenshot.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any
 from dataclasses import dataclass, field
 
 
@@ -19,7 +19,7 @@ class PromptTemplate:
     description: str
     content: str
     priority: int = 1  # Higher priority = more relevant
-    use_cases: List[str] = field(default_factory=list)  # When to use this prompt
+    use_cases: list[str] = field(default_factory=list)  # When to use this prompt
 
     def __post_init__(self) -> None:
         """Initialize default use_cases if empty"""
@@ -46,11 +46,11 @@ class PromptManager:
             prompts_dir: Path to prompts directory
         """
         self.prompts_dir = Path(prompts_dir)
-        self.prompt_templates: List[PromptTemplate] = []
+        self.prompt_templates: list[PromptTemplate] = []
         self.load_prompts()
 
         # Usage tracking for analytics
-        self.prompt_usage_stats: Dict[str, Any] = {}
+        self.prompt_usage_stats: dict[str, Any] = {}
 
     def load_prompts(self) -> None:
         """Load all prompt templates from filesystem"""
@@ -79,7 +79,7 @@ class PromptManager:
 
     def _load_prompt_file(
         self, file_path: Path, category: str
-    ) -> Optional[PromptTemplate]:
+    ) -> PromptTemplate | None:
         """Load individual prompt file"""
         try:
             content = file_path.read_text(encoding="utf-8")
@@ -119,8 +119,8 @@ class PromptManager:
             return None
 
     def get_relevant_prompts(
-        self, game_state_type: str, _context: Dict[str, Any]
-    ) -> List[PromptTemplate]:
+        self, game_state_type: str, _context: dict[str, Any]
+    ) -> list[PromptTemplate]:
         """
         Get prompts relevant for current game state
 
@@ -168,9 +168,9 @@ class PromptManager:
     def select_prompts_for_ai(
         self,
         game_state_type: str,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         ai_preference: str = "balanced",
-    ) -> List[str]:
+    ) -> list[str]:
         """
         Select specific prompts for AI analysis
 
@@ -222,7 +222,7 @@ class PromptManager:
         stats["effectiveness_sum"] += effectiveness
         stats["last_used"] = "now"  # Could use timestamp
 
-    def get_prompt_analytics(self) -> Dict[str, Any]:
+    def get_prompt_analytics(self) -> dict[str, Any]:
         """Get analytics on prompt usage and effectiveness"""
         analytics = {}
 

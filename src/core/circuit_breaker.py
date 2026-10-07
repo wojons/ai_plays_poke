@@ -2,7 +2,6 @@
 
 import threading
 from datetime import datetime
-from typing import Optional
 
 
 class CircuitBreaker:
@@ -12,7 +11,7 @@ class CircuitBreaker:
         self.failure_threshold = failure_threshold
         self.recovery_time = recovery_time
         self.failures = 0
-        self.last_failure: Optional[datetime] = None
+        self.last_failure: datetime | None = None
         self.state = "closed"  # closed, open, half-open
         self.lock = threading.Lock()
 

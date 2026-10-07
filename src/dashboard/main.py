@@ -17,7 +17,7 @@ import time
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import (
     FastAPI,
@@ -59,11 +59,11 @@ def render_index_html(api_key: str) -> str:
     return html.replace("</head>", f"    {bootstrap}\n</head>", 1)
 
 
-sessions: Dict[str, Dict[str, Any]] = {}
-connection_manager: Dict[str, WebSocket] = {}
+sessions: dict[str, dict[str, Any]] = {}
+connection_manager: dict[str, WebSocket] = {}
 
 
-def verify_api_key(x_api_key: Optional[str] = Header(None)) -> bool:
+def verify_api_key(x_api_key: str | None = Header(None)) -> bool:
     # Fail closed: with no key configured, every request (including a missing
     # header, which would otherwise compare equal to None) is rejected.
     if not API_KEY or x_api_key != API_KEY:
@@ -101,7 +101,7 @@ class DashboardSession:
         self.save_dir.mkdir(parents=True, exist_ok=True)
         self.db = GameDatabase(str(self.save_dir / "game_data.db"))
         self.screenshot_manager = ScreenshotManager(str(self.save_dir / "screenshots"))
-        self.state: Dict[str, Any] = {
+        self.state: dict[str, Any] = {
             "running": False,
             "paused": False,
             "tick_count": 0,
@@ -110,8 +110,8 @@ class DashboardSession:
             "start_time": None,
             "last_action_time": None,
         }
-        self.command_history: List[Dict[str, Any]] = []
-        self._tick_rate_window: List[float] = []
+        self.command_history: list[dict[str, Any]] = []
+        self._tick_rate_window: list[float] = []
         self._last_tick_time = time.time()
 
     def start(self) -> None:
@@ -133,7 +133,7 @@ class DashboardSession:
         self.state["paused"] = False
 
     def update_tick(
-        self, new_state: Optional[str] = None, location: Optional[str] = None
+        self, new_state: str | None = None, location: str | None = None
     ) -> None:
         current_time = time.time()
         delta = current_time - self._last_tick_time
@@ -148,7 +148,7 @@ class DashboardSession:
             self.state["location"] = location
         self.state["last_action_time"] = datetime.now().isoformat()
 
-    def add_command(self, command: Dict[str, Any]) -> None:
+    def add_command(self, command: dict[str, Any]) -> None:
         self.command_history.append(
             {
                 **command,
@@ -159,7 +159,7 @@ class DashboardSession:
         if len(self.command_history) > 1000:
             self.command_history = self.command_history[-1000:]
 
-    def get_status(self) -> Dict[str, Any]:
+    def get_status(self) -> dict[str, Any]:
         elapsed = 0.0
         if self.state["start_time"]:
             start = datetime.fromisoformat(self.state["start_time"])
@@ -182,7 +182,7 @@ class DashboardSession:
             "last_action_time": self.state["last_action_time"],
         }
 
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         total_cost = 0.0
         total_commands = len(self.command_history)
         success_count = sum(1 for c in self.command_history if c.get("success", True))
@@ -220,14 +220,14 @@ class DashboardSession:
             "session_active": self.state["running"] and not self.state["paused"],
         }
 
-    def get_recent_actions(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_recent_actions(self, limit: int = 50) -> list[dict[str, Any]]:
         return self.command_history[-limit:]
 
-    def get_latest_screenshot_path(self) -> Optional[Path]:
+    def get_latest_screenshot_path(self) -> Path | None:
         return self.screenshot_manager.get_latest_screenshot()
 
 
-dashboard_sessions: Dict[str, DashboardSession] = {}
+dashboard_sessions: dict[str, DashboardSession] = {}
 
 
 def get_session(session_id: str = "default") -> DashboardSession:
@@ -244,7 +244,7 @@ async def root() -> HTMLResponse:
 @app.get("/status")
 async def get_status(
     _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     session = get_session(session_id)
     return session.get_status()
 
@@ -305,7 +305,7 @@ async def get_recent_actions(
     _x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     limit: int = 50,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     session = get_session(session_id)
     return {
         "actions": session.get_recent_actions(limit),
@@ -316,7 +316,7 @@ async def get_recent_actions(
 @app.get("/metrics")
 async def get_metrics(
     _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     session = get_session(session_id)
     return session.get_metrics()
 
@@ -324,7 +324,7 @@ async def get_metrics(
 @app.post("/control/pause", response_model=None)
 async def pause_session(
     _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
-) -> Dict[str, Any] | JSONResponse:
+) -> dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -335,7 +335,7 @@ async def pause_session(
 @app.post("/control/resume", response_model=None)
 async def resume_session(
     _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
-) -> Dict[str, Any] | JSONResponse:
+) -> dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -346,7 +346,7 @@ async def resume_session(
 @app.post("/control/stop")
 async def stop_session(
     _x_api_key: bool = Depends(verify_api_key), session_id: str = "default"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     session = get_session(session_id)
     session.stop()
     return {"status": "stopped", "session_id": session_id}
@@ -357,7 +357,7 @@ async def start_session(
     _x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     save_dir: str = "./game_saves",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if session_id in dashboard_sessions:
         dashboard_sessions[session_id].stop()
     dashboard_sessions[session_id] = DashboardSession(session_id, save_dir)
@@ -367,10 +367,10 @@ async def start_session(
 
 @app.post("/control/command", response_model=None)
 async def send_command(
-    command: Dict[str, Any],
+    command: dict[str, Any],
     _x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
-) -> Dict[str, Any] | JSONResponse:
+) -> dict[str, Any] | JSONResponse:
     session = get_session(session_id)
     if not session.state["running"] or session.state["paused"]:
         return JSONResponse(content={"error": "Session not running"}, status_code=400)
@@ -388,7 +388,7 @@ async def send_command(
 @app.get("/sessions")
 async def list_sessions(
     _x_api_key: bool = Depends(verify_api_key),
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> dict[str, list[dict[str, Any]]]:
     return {
         "sessions": [
             {"session_id": sid, **sess.get_status()}
@@ -475,12 +475,12 @@ async def websocket_metrics(websocket: WebSocket, session_id: str) -> None:
 
 
 @app.get("/health")
-async def health_check() -> Dict[str, Any]:
+async def health_check() -> dict[str, Any]:
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 
 @app.get("/api/docs")
-async def api_docs() -> Dict[str, Any]:
+async def api_docs() -> dict[str, Any]:
     return {
         "title": "PTP-01X Dashboard API",
         "version": "1.0.0",

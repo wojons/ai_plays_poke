@@ -16,7 +16,7 @@ Integration:
 from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any
 import time
 import logging
 import re
@@ -99,10 +99,10 @@ class DialogLine:
 
     raw_text: str
     clean_text: str
-    speaker: Optional[str]
-    speaker_type: Optional[SpeakerType]
-    intent: Optional[DialogIntent]
-    entities: Dict[str, List[str]] = field(default_factory=dict)
+    speaker: str | None
+    speaker_type: SpeakerType | None
+    intent: DialogIntent | None
+    entities: dict[str, list[str]] = field(default_factory=dict)
     is_choice: bool = False
     is_important: bool = False
     timestamp: float = field(default_factory=time.time)
@@ -112,16 +112,16 @@ class DialogLine:
 class DialogEntry:
     """Complete dialog entry with metadata"""
 
-    lines: List[DialogLine]
+    lines: list[DialogLine]
     dialog_type: DialogType
     primary_intent: DialogIntent
-    secondary_intent: Optional[DialogIntent]
+    secondary_intent: DialogIntent | None
     confidence: float
-    key_entities: Dict[str, List[str]] = field(default_factory=dict)
-    actions_required: List[str] = field(default_factory=list)
-    information_extracted: List[str] = field(default_factory=list)
-    quest_triggered: Optional[str] = None
-    reward_offered: Optional[Dict[str, Any]] = None
+    key_entities: dict[str, list[str]] = field(default_factory=dict)
+    actions_required: list[str] = field(default_factory=list)
+    information_extracted: list[str] = field(default_factory=list)
+    quest_triggered: str | None = None
+    reward_offered: dict[str, Any] | None = None
     duration_ms: float = 0.0
 
 
@@ -141,9 +141,9 @@ class MenuState:
     """Current menu state"""
 
     menu_type: MenuType
-    options: List[MenuOption]
+    options: list[MenuOption]
     current_selection: int
-    cursor_position: Tuple[int, int]
+    cursor_position: tuple[int, int]
     is_active: bool = True
 
 
@@ -155,12 +155,12 @@ class NPCInfo:
     role: str
     location: str
     is_trainer: bool = False
-    trainer_class: Optional[str] = None
-    badge_requirement: Optional[int] = None
-    gift_offered: Optional[str] = None
-    information: List[str] = field(default_factory=list)
-    hints: List[str] = field(default_factory=list)
-    dialogue_history: List[str] = field(default_factory=list)
+    trainer_class: str | None = None
+    badge_requirement: int | None = None
+    gift_offered: str | None = None
+    information: list[str] = field(default_factory=list)
+    hints: list[str] = field(default_factory=list)
+    dialogue_history: list[str] = field(default_factory=list)
     relationship_level: int = 0
 
 
@@ -169,12 +169,12 @@ class InteractionResult:
     """Result of NPC interaction"""
 
     success: bool
-    npc_info: Optional[NPCInfo]
-    dialog_entry: Optional[DialogEntry]
+    npc_info: NPCInfo | None
+    dialog_entry: DialogEntry | None
     battle_initiated: bool = False
-    gift_received: Optional[str] = None
-    information_gained: List[str] = field(default_factory=list)
-    quest_started: Optional[str] = None
+    gift_received: str | None = None
+    information_gained: list[str] = field(default_factory=list)
+    quest_started: str | None = None
     action_taken: str = ""
     time_spent_ms: float = 0.0
 
@@ -198,7 +198,7 @@ class DialogParser:
         self._keyword_patterns = self._build_keyword_patterns()
         self._speaker_patterns = self._build_speaker_patterns()
 
-    def _build_pokemon_database(self) -> Set[str]:
+    def _build_pokemon_database(self) -> set[str]:
         """Build set of Pokemon names for entity extraction"""
         return {
             "PIKACHU",
@@ -289,7 +289,7 @@ class DialogParser:
             "MEW",
         }
 
-    def _build_location_database(self) -> Set[str]:
+    def _build_location_database(self) -> set[str]:
         """Build set of location names"""
         return {
             "PALLET TOWN",
@@ -344,7 +344,7 @@ class DialogParser:
             "CERULEAN CAVE",
         }
 
-    def _build_item_database(self) -> Set[str]:
+    def _build_item_database(self) -> set[str]:
         """Build set of item names"""
         return {
             "POKE BALL",
@@ -448,7 +448,7 @@ class DialogParser:
             "TECHNICAL MACHINE",
         }
 
-    def _build_trainer_classes(self) -> Dict[str, Dict[str, Any]]:
+    def _build_trainer_classes(self) -> dict[str, dict[str, Any]]:
         """Build trainer class information"""
         return {
             "YOUNGSTER": {"aggression": 0.7, "badge_req": 0},
@@ -462,7 +462,7 @@ class DialogParser:
             "ROCKET EXECUTIVE": {"aggression": 0.85, "badge_req": 4},
         }
 
-    def _build_keyword_patterns(self) -> Dict[DialogIntent, List[str]]:
+    def _build_keyword_patterns(self) -> dict[DialogIntent, list[str]]:
         """Build keyword patterns for intent classification - order matters, later keywords take priority"""
         return {
             DialogIntent.BATTLE_CHALLENGE: [
@@ -548,7 +548,7 @@ class DialogParser:
             ],
         }
 
-    def _build_speaker_patterns(self) -> Dict[SpeakerType, List[str]]:
+    def _build_speaker_patterns(self) -> dict[SpeakerType, list[str]]:
         """Build patterns for speaker identification"""
         return {
             SpeakerType.NPC: [
@@ -584,7 +584,7 @@ class DialogParser:
         }
 
     def parse_dialog(
-        self, raw_text: str, context: Optional[Dict[str, Any]] = None
+        self, raw_text: str, context: dict[str, Any] | None = None
     ) -> DialogEntry:
         """Parse dialog text and extract structured information"""
         start_time = time.time()
@@ -625,7 +625,7 @@ class DialogParser:
 
         return entry
 
-    def _split_into_lines(self, raw_text: str) -> List[str]:
+    def _split_into_lines(self, raw_text: str) -> list[str]:
         """Split text into individual lines"""
         if not raw_text:
             return []
@@ -634,7 +634,7 @@ class DialogParser:
         return [line.strip() for line in lines if line.strip()]
 
     def _parse_line(
-        self, line: str, context: Optional[Dict[str, Any]] = None
+        self, line: str, context: dict[str, Any] | None = None
     ) -> DialogLine:
         """Parse a single line of dialog"""
         clean_text = self._clean_text(line)
@@ -664,8 +664,8 @@ class DialogParser:
         return text
 
     def _identify_speaker(
-        self, text: str, context: Optional[Dict[str, Any]] = None
-    ) -> Tuple[Optional[str], Optional[SpeakerType]]:
+        self, text: str, context: dict[str, Any] | None = None
+    ) -> tuple[str | None, SpeakerType | None]:
         """Identify who is speaking"""
         text_upper = text.upper()
 
@@ -684,7 +684,7 @@ class DialogParser:
 
         return None, None
 
-    def _identify_intent(self, text: str) -> Optional[DialogIntent]:
+    def _identify_intent(self, text: str) -> DialogIntent | None:
         """Identify the intent of the dialog line - checks more specific intents first"""
         text_lower = text.lower()
 
@@ -695,9 +695,9 @@ class DialogParser:
 
         return None
 
-    def _extract_entities(self, text: str) -> Dict[str, List[str]]:
+    def _extract_entities(self, text: str) -> dict[str, list[str]]:
         """Extract entities from text"""
-        entities: Dict[str, List[str]] = {
+        entities: dict[str, list[str]] = {
             "pokemon": [],
             "locations": [],
             "items": [],
@@ -751,9 +751,9 @@ class DialogParser:
 
         return entities
 
-    def _extract_all_entities(self, lines: List[DialogLine]) -> Dict[str, List[str]]:
+    def _extract_all_entities(self, lines: list[DialogLine]) -> dict[str, list[str]]:
         """Extract all entities from parsed lines"""
-        combined: Dict[str, List[str]] = {
+        combined: dict[str, list[str]] = {
             "pokemon": [],
             "locations": [],
             "items": [],
@@ -769,7 +769,7 @@ class DialogParser:
 
         return combined
 
-    def _classify_dialog_type(self, lines: List[DialogLine]) -> DialogType:
+    def _classify_dialog_type(self, lines: list[DialogLine]) -> DialogType:
         """Classify the overall dialog type"""
         intents = [line.intent for line in lines if line.intent]
 
@@ -791,10 +791,10 @@ class DialogParser:
         return DialogType.INFORMATION
 
     def _classify_intent(
-        self, lines: List[DialogLine]
-    ) -> Tuple[DialogIntent, Optional[DialogIntent], float]:
+        self, lines: list[DialogLine]
+    ) -> tuple[DialogIntent, DialogIntent | None, float]:
         """Classify primary and secondary intents"""
-        intent_counts: Dict[DialogIntent, int] = {}
+        intent_counts: dict[DialogIntent, int] = {}
 
         for line in lines:
             if line.intent:
@@ -817,8 +817,8 @@ class DialogParser:
         return primary_intent, secondary_intent, confidence
 
     def _determine_actions(
-        self, _lines: List[DialogLine], intent: DialogIntent
-    ) -> List[str]:
+        self, _lines: list[DialogLine], intent: DialogIntent
+    ) -> list[str]:
         """Determine required actions based on intent"""
         actions = []
 
@@ -839,7 +839,7 @@ class DialogParser:
         actions = action_map.get(intent, ["continue"])
         return actions
 
-    def _extract_information(self, lines: List[DialogLine]) -> List[str]:
+    def _extract_information(self, lines: list[DialogLine]) -> list[str]:
         """Extract useful information from dialog"""
         info = []
 
@@ -870,7 +870,7 @@ class DialogParser:
 
         return any(re.search(pattern, text.upper()) for pattern in choice_patterns)
 
-    def _is_important_line(self, text: str, intent: Optional[DialogIntent]) -> bool:
+    def _is_important_line(self, text: str, intent: DialogIntent | None) -> bool:
         """Check if line contains important information"""
         if intent in [
             DialogIntent.QUEST,
@@ -891,7 +891,7 @@ class DialogParser:
 
         return any(keyword in text.upper() for keyword in important_keywords)
 
-    def _detect_quest(self, lines: List[DialogLine]) -> Optional[str]:
+    def _detect_quest(self, lines: list[DialogLine]) -> str | None:
         """Detect if a quest is triggered"""
         for line in lines:
             if line.intent == DialogIntent.QUEST:
@@ -899,7 +899,7 @@ class DialogParser:
 
         return None
 
-    def _detect_reward(self, lines: List[DialogLine]) -> Optional[Dict[str, Any]]:
+    def _detect_reward(self, lines: list[DialogLine]) -> dict[str, Any] | None:
         """Detect if a reward is offered"""
         for line in lines:
             if line.intent == DialogIntent.REWARD or line.intent == DialogIntent.GIFT:
@@ -936,7 +936,7 @@ class TextSpeedController:
         self._dialog_advance_count = 0
         self._dialog_skip_count = 0
 
-    def get_optimal_speed(self, dialog_entry: DialogEntry) -> Dict[str, Any]:
+    def get_optimal_speed(self, dialog_entry: DialogEntry) -> dict[str, Any]:
         """Determine optimal text speed for a dialog entry"""
         line_count = len(dialog_entry.lines)
         important_lines = sum(1 for line in dialog_entry.lines if line.is_important)
@@ -958,7 +958,7 @@ class TextSpeedController:
 
     def calculate_button_presses(
         self, dialog_entry: DialogEntry
-    ) -> List[NavigationButton]:
+    ) -> list[NavigationButton]:
         """Calculate button presses needed to advance dialog"""
         speed_settings = self.get_optimal_speed(dialog_entry)
         presses = []
@@ -984,7 +984,7 @@ class TextSpeedController:
             return True
         return False
 
-    def get_speed_stats(self) -> Dict[str, Any]:
+    def get_speed_stats(self) -> dict[str, Any]:
         """Get text speed controller statistics"""
         total = self._dialog_advance_count + self._dialog_skip_count
         skip_rate = (self._dialog_skip_count / total * 100) if total > 0 else 0.0
@@ -997,7 +997,7 @@ class TextSpeedController:
             "skip_rate_percent": skip_rate,
         }
 
-    def should_skip_remaining(self, dialog_entry: DialogEntry) -> Tuple[bool, int]:
+    def should_skip_remaining(self, dialog_entry: DialogEntry) -> tuple[bool, int]:
         """Determine if remaining dialog should be skipped"""
         speed_settings = self.get_optimal_speed(dialog_entry)
 
@@ -1019,8 +1019,8 @@ class MenuNavigator:
     """
 
     def __init__(self) -> None:
-        self._menu_coordinate_maps: Dict[MenuType, Dict[str, Tuple[int, int]]] = {}
-        self._menu_cache: Dict[str, List[NavigationButton]] = {}
+        self._menu_coordinate_maps: dict[MenuType, dict[str, tuple[int, int]]] = {}
+        self._menu_cache: dict[str, list[NavigationButton]] = {}
         self._menu_statistics = {
             "total_navigations": 0,
             "successful_navigations": 0,
@@ -1063,7 +1063,7 @@ class MenuNavigator:
             },
         }
 
-    def detect_menu_type(self, screen_text: str) -> Optional[MenuType]:
+    def detect_menu_type(self, screen_text: str) -> MenuType | None:
         """Detect menu type from screen text"""
         text_upper = screen_text.upper()
 
@@ -1093,7 +1093,7 @@ class MenuNavigator:
         return None
 
     def create_menu_state(
-        self, menu_type: MenuType, options: List[str], current_selection: int = 0
+        self, menu_type: MenuType, options: list[str], current_selection: int = 0
     ) -> MenuState:
         """Create a menu state from detected options"""
         parsed_options = []
@@ -1121,15 +1121,15 @@ class MenuNavigator:
             is_active=True,
         )
 
-    def _calculate_position(self, _total_options: int, index: int) -> Tuple[int, int]:
+    def _calculate_position(self, _total_options: int, index: int) -> tuple[int, int]:
         """Calculate cursor position for option index"""
         row = index % 2
         col = index // 2
         return (row, col)
 
     def calculate_navigation_path(
-        self, current_pos: Tuple[int, int], target_pos: Tuple[int, int]
-    ) -> List[NavigationButton]:
+        self, current_pos: tuple[int, int], target_pos: tuple[int, int]
+    ) -> list[NavigationButton]:
         """Calculate button presses needed to navigate to target position"""
         path = []
         current_row, current_col = current_pos
@@ -1153,7 +1153,7 @@ class MenuNavigator:
 
     def navigate_to_option(
         self, menu_state: MenuState, option_text: str
-    ) -> Tuple[bool, List[NavigationButton]]:
+    ) -> tuple[bool, list[NavigationButton]]:
         """Calculate navigation path to a specific option"""
         self._menu_statistics["total_navigations"] += 1
 
@@ -1179,11 +1179,11 @@ class MenuNavigator:
 
         return len(path) > 0, path
 
-    def select_current_option(self) -> List[NavigationButton]:
+    def select_current_option(self) -> list[NavigationButton]:
         """Get button press to select current option"""
         return [NavigationButton.A]
 
-    def handle_yes_no_dialog(self, response: bool) -> List[NavigationButton]:
+    def handle_yes_no_dialog(self, response: bool) -> list[NavigationButton]:
         """Handle Yes/No dialog response"""
         if response:
             return [NavigationButton.A]
@@ -1192,7 +1192,7 @@ class MenuNavigator:
 
     def handle_multiple_choice(
         self, choice_index: int, total_options: int
-    ) -> List[NavigationButton]:
+    ) -> list[NavigationButton]:
         """Handle multiple choice menu selection"""
         presses = []
 
@@ -1212,11 +1212,11 @@ class MenuNavigator:
 
         return presses
 
-    def exit_menu(self) -> List[NavigationButton]:
+    def exit_menu(self) -> list[NavigationButton]:
         """Get button presses to exit current menu"""
         return [NavigationButton.B]
 
-    def get_menu_stats(self) -> Dict[str, Any]:
+    def get_menu_stats(self) -> dict[str, Any]:
         """Get menu navigation statistics"""
         total = self._menu_statistics["total_navigations"]
         success = self._menu_statistics["successful_navigations"]
@@ -1244,10 +1244,10 @@ class NPCInteraction:
     - NPC relationship tracking
     """
 
-    def __init__(self, dialog_parser: Optional[DialogParser] = None):
+    def __init__(self, dialog_parser: DialogParser | None = None):
         self._dialog_parser = dialog_parser or DialogParser()
-        self._npc_database: Dict[str, NPCInfo] = {}
-        self._interaction_history: List[InteractionResult] = []
+        self._npc_database: dict[str, NPCInfo] = {}
+        self._interaction_history: list[InteractionResult] = []
         self._setup_default_npcs()
 
     def _setup_default_npcs(self) -> None:
@@ -1337,7 +1337,7 @@ class NPCInteraction:
             self._npc_database[npc.name] = npc
 
     def interact_with_npc(
-        self, npc_name: str, dialog_text: str, context: Optional[Dict[str, Any]] = None
+        self, npc_name: str, dialog_text: str, context: dict[str, Any] | None = None
     ) -> InteractionResult:
         """Process interaction with an NPC"""
         start_time = time.time()
@@ -1370,7 +1370,7 @@ class NPCInteraction:
         return result
 
     def _get_or_create_npc(
-        self, name: str, context: Optional[Dict[str, Any]] = None
+        self, name: str, context: dict[str, Any] | None = None
     ) -> NPCInfo:
         """Get existing NPC or create new one"""
         name_upper = name.upper()
@@ -1404,7 +1404,7 @@ class NPCInteraction:
 
         return False
 
-    def _extract_gift(self, dialog_entry: DialogEntry) -> Optional[str]:
+    def _extract_gift(self, dialog_entry: DialogEntry) -> str | None:
         """Extract gift/reward information"""
         if dialog_entry.reward_offered:
             return dialog_entry.reward_offered.get("item")
@@ -1435,12 +1435,12 @@ class NPCInteraction:
 
         return action_map.get(dialog_entry.primary_intent, "continue")
 
-    def extract_information(self, dialog_text: str) -> List[str]:
+    def extract_information(self, dialog_text: str) -> list[str]:
         """Extract useful information from dialog"""
         dialog_entry = self._dialog_parser.parse_dialog(dialog_text)
         return dialog_entry.information_extracted
 
-    def extract_hints(self, dialog_text: str) -> List[str]:
+    def extract_hints(self, dialog_text: str) -> list[str]:
         """Extract hints from dialog"""
         hints = []
 
@@ -1456,15 +1456,15 @@ class NPCInteraction:
 
         return hints
 
-    def get_npc_info(self, npc_name: str) -> Optional[NPCInfo]:
+    def get_npc_info(self, npc_name: str) -> NPCInfo | None:
         """Get information about an NPC"""
         return self._npc_database.get(npc_name.upper())
 
-    def get_interaction_history(self) -> List[InteractionResult]:
+    def get_interaction_history(self) -> list[InteractionResult]:
         """Get history of all interactions"""
         return self._interaction_history.copy()
 
-    def get_interaction_stats(self) -> Dict[str, Any]:
+    def get_interaction_stats(self) -> dict[str, Any]:
         """Get interaction statistics"""
         total = len(self._interaction_history)
 
@@ -1501,7 +1501,7 @@ class DialogueManager:
         self.menu_navigator = MenuNavigator()
         self.npc_interaction = NPCInteraction(self.dialog_parser)
 
-        self._dialog_history: List[DialogEntry] = []
+        self._dialog_history: list[DialogEntry] = []
         self._system_stats = {
             "total_dialogs_processed": 0,
             "avg_processing_time_ms": 0.0,
@@ -1509,7 +1509,7 @@ class DialogueManager:
         }
 
     def process_dialog(
-        self, raw_text: str, context: Optional[Dict[str, Any]] = None
+        self, raw_text: str, context: dict[str, Any] | None = None
     ) -> DialogEntry:
         """Process dialog text and return structured entry"""
         entry = self.dialog_parser.parse_dialog(raw_text, context)
@@ -1526,19 +1526,19 @@ class DialogueManager:
 
         return entry
 
-    def advance_dialog(self, dialog_entry: DialogEntry) -> List[NavigationButton]:
+    def advance_dialog(self, dialog_entry: DialogEntry) -> list[NavigationButton]:
         """Get button presses to advance through dialog"""
         return self.text_speed.calculate_button_presses(dialog_entry)
 
     def handle_npc_interaction(
-        self, npc_name: str, dialog_text: str, context: Optional[Dict[str, Any]] = None
+        self, npc_name: str, dialog_text: str, context: dict[str, Any] | None = None
     ) -> InteractionResult:
         """Handle interaction with an NPC"""
         return self.npc_interaction.interact_with_npc(npc_name, dialog_text, context)
 
     def navigate_menu(
         self, menu_text: str, target_option: str
-    ) -> Tuple[bool, List[NavigationButton]]:
+    ) -> tuple[bool, list[NavigationButton]]:
         """Navigate to a specific menu option"""
         menu_type = self.menu_navigator.detect_menu_type(menu_text)
 
@@ -1550,7 +1550,7 @@ class DialogueManager:
 
         return self.menu_navigator.navigate_to_option(menu_state, target_option)
 
-    def _extract_menu_options(self, menu_text: str) -> List[str]:
+    def _extract_menu_options(self, menu_text: str) -> list[str]:
         """Extract menu options from text"""
         options = []
 
@@ -1562,7 +1562,7 @@ class DialogueManager:
 
         return options
 
-    def get_system_stats(self) -> Dict[str, Any]:
+    def get_system_stats(self) -> dict[str, Any]:
         """Get dialogue system statistics"""
         dialog_stats = self.text_speed.get_speed_stats()
         menu_stats = self.menu_navigator.get_menu_stats()
@@ -1575,7 +1575,7 @@ class DialogueManager:
             "npc_interactions": npc_stats,
         }
 
-    def get_dialog_history(self) -> List[DialogEntry]:
+    def get_dialog_history(self) -> list[DialogEntry]:
         """Get history of processed dialogs"""
         return self._dialog_history.copy()
 

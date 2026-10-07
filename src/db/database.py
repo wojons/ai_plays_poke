@@ -16,7 +16,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -262,7 +262,7 @@ class GameDatabase:
             )
             return session_id
 
-    def end_session(self, final_metrics: Dict[str, Any]) -> None:
+    def end_session(self, final_metrics: dict[str, Any]) -> None:
         """
         End current session with final metrics
 
@@ -297,7 +297,7 @@ class GameDatabase:
             print("✅ Database: Session ended and metrics saved")
 
     def log_screenshot(
-        self, tick: int, file_path: str, game_state: Dict[str, Any]
+        self, tick: int, file_path: str, game_state: dict[str, Any]
     ) -> None:
         """Log a screenshot capture event"""
         with sqlite3.connect(self.db_path) as conn:
@@ -311,7 +311,7 @@ class GameDatabase:
             )
             conn.commit()
 
-    def log_command(self, command_data: Dict[str, Any]) -> None:
+    def log_command(self, command_data: dict[str, Any]) -> None:
         """
         Log a command sent to emulator
 
@@ -348,7 +348,7 @@ class GameDatabase:
             )
             conn.commit()
 
-    def log_ai_thought(self, thought_data: Dict[str, Any]) -> None:
+    def log_ai_thought(self, thought_data: dict[str, Any]) -> None:
         """
         Log AI thinking process
 
@@ -385,7 +385,7 @@ class GameDatabase:
             )
             conn.commit()
 
-    def log_battle_start(self, battle_data: Dict[str, Any]) -> int | None:
+    def log_battle_start(self, battle_data: dict[str, Any]) -> int | None:
         """
         Start tracking a battle
 
@@ -444,7 +444,7 @@ class GameDatabase:
             )
             conn.commit()
 
-    def log_battle_turn(self, battle_id: int, turn_data: Dict[str, Any]) -> None:
+    def log_battle_turn(self, battle_id: int, turn_data: dict[str, Any]) -> None:
         """Log a single battle turn"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -469,7 +469,7 @@ class GameDatabase:
             )
             conn.commit()
 
-    def get_session_summary(self, session_id: int) -> Dict[str, Any]:
+    def get_session_summary(self, session_id: int) -> dict[str, Any]:
         """Get summary statistics for a session"""
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
@@ -540,7 +540,7 @@ class GameDatabase:
 
     def _get_session_data(
         self, cursor: sqlite3.Cursor, session_id: int
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         cursor.execute("SELECT * FROM sessions WHERE session_id = ?", (session_id,))
         row = cursor.fetchone()
         if not row:
@@ -549,7 +549,7 @@ class GameDatabase:
 
     def _get_commands(
         self, cursor: sqlite3.Cursor, session_id: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         cursor.execute("SELECT * FROM commands WHERE session_id = ?", (session_id,))
         return [
             dict(zip([d[0] for d in cursor.description], row))
@@ -558,7 +558,7 @@ class GameDatabase:
 
     def _get_thoughts(
         self, cursor: sqlite3.Cursor, session_id: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         cursor.execute("SELECT * FROM ai_thoughts WHERE session_id = ?", (session_id,))
         return [
             dict(zip([d[0] for d in cursor.description], row))
@@ -567,7 +567,7 @@ class GameDatabase:
 
     def _get_battles(
         self, cursor: sqlite3.Cursor, session_id: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         cursor.execute("SELECT * FROM battles WHERE session_id = ?", (session_id,))
         return [
             dict(zip([d[0] for d in cursor.description], row))
@@ -576,7 +576,7 @@ class GameDatabase:
 
     def _get_screenshots(
         self, cursor: sqlite3.Cursor, session_id: int
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         cursor.execute("SELECT * FROM screenshots WHERE session_id = ?", (session_id,))
         return [
             dict(zip([d[0] for d in cursor.description], row))
@@ -622,7 +622,7 @@ class GameDatabase:
         logger.info("Database connection closed")
         pass
 
-    def get_session(self, session_id: int) -> Dict[str, Any]:
+    def get_session(self, session_id: int) -> dict[str, Any]:
         """
         Get a session by its ID.
 
@@ -644,7 +644,7 @@ class GameDatabase:
             columns = [desc[0] for desc in cursor.description]
             return dict(zip(columns, row))
 
-    def save_session_data(self, data: Dict[str, Any]) -> bool:
+    def save_session_data(self, data: dict[str, Any]) -> bool:
         """
         Save arbitrary session data to the database.
 
@@ -673,7 +673,7 @@ class GameDatabase:
 
     # ── compatibility wrappers ─────────────────────────────────────────
 
-    def log_session_metrics(self, metrics: Dict[str, Any]) -> None:
+    def log_session_metrics(self, metrics: dict[str, Any]) -> None:
         """Compatibility wrapper."""
         pass  # No-op — use end_session() for final metrics
 
@@ -688,7 +688,7 @@ class GameDatabase:
             game_state if isinstance(game_state, dict) else {},
         )
 
-    def log_command_execution(self, command_data: Dict[str, Any]) -> None:
+    def log_command_execution(self, command_data: dict[str, Any]) -> None:
         """Compatibility wrapper for log_command."""
         self.log_command(command_data)
 

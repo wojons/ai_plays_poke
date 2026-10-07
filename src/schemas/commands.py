@@ -10,7 +10,7 @@ Defines the structure for:
 from dataclasses import dataclass, asdict
 import json
 from enum import Enum
-from typing import Optional, Dict, Any, List
+from typing import Any
 from datetime import datetime
 
 
@@ -60,14 +60,14 @@ class AICommand:
     timestamp: str
 
     # Command-specific fields
-    button: Optional[Button] = None
-    button_sequence: Optional[List[Button]] = None
-    duration_ms: Optional[int] = None
+    button: Button | None = None
+    button_sequence: list[Button] | None = None
+    duration_ms: int | None = None
     wait_ticks: int = 60
-    batch_direction: Optional[str] = None
+    batch_direction: str | None = None
     batch_steps: int = 0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for logging"""
         d = asdict(self)
         # Convert enums to strings
@@ -111,14 +111,14 @@ class AIThought:
     proposed_action: str  # What action AI wants to take
 
     # Context
-    game_state: Dict[str, Any]  # Current game state
+    game_state: dict[str, Any]  # Current game state
 
     # Metadata
     model_used: str  # Which AI model
     confidence: float  # Confidence in decision
     tokens_used: int  # Input + output tokens
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for database logging"""
         d = asdict(self)
         d["game_state"] = json.dumps(d.get("game_state", {}))
@@ -145,15 +145,15 @@ class GameState:
     has_dialog: bool
     can_move: bool = True
     turn_number: int = 0
-    enemy_pokemon: Optional[str] = None
-    enemy_hp_percent: Optional[float] = None
-    player_hp_percent: Optional[float] = None
-    menu_type: Optional[str] = None  # "pokemon", "bag", "main", "options", etc
-    cursor_position: Optional[tuple[int, int]] = None  # (x, y) on menu grid
-    dialog_text: Optional[str] = None
-    location: Optional[str] = None
+    enemy_pokemon: str | None = None
+    enemy_hp_percent: float | None = None
+    player_hp_percent: float | None = None
+    menu_type: str | None = None  # "pokemon", "bag", "main", "options", etc
+    cursor_position: tuple[int, int] | None = None  # (x, y) on menu grid
+    dialog_text: str | None = None
+    location: str | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for API/logging"""
         return asdict(self)
 
@@ -174,13 +174,13 @@ class BattleState:
     player_pokemon: str
     player_level: int
     player_hp_percent: float
-    battle_id: Optional[int] = None
-    enemy_types: Optional[List[str]] = None
-    enemy_base_stats: Optional[Dict[str, int]] = None
-    enemy_weaknesses: Optional[List[str]] = None
-    enemy_resistances: Optional[List[str]] = None
+    battle_id: int | None = None
+    enemy_types: list[str] | None = None
+    enemy_base_stats: dict[str, int] | None = None
+    enemy_weaknesses: list[str] | None = None
+    enemy_resistances: list[str] | None = None
     turn_number: int = 0
-    available_moves: Optional[List[str]] = None
+    available_moves: list[str] | None = None
 
     def get_type_advice(self) -> str:
         """Generate type matchup advice string"""
@@ -198,10 +198,10 @@ class CommandExecutionResult:
     command: AICommand
     success: bool
     execution_time_ms: float
-    error_message: Optional[str] = None
-    game_state_after: Optional[GameState] = None
+    error_message: str | None = None
+    game_state_after: GameState | None = None
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for logging"""
         d: dict[str, Any] = {
             "tick": self.command.tick,
@@ -250,7 +250,7 @@ def create_batch_command(
     )
 
 
-def parse_command_string(command_str: str) -> Optional[Dict[str, Any]]:
+def parse_command_string(command_str: str) -> dict[str, Any] | None:
     """
     Parse command string to components
 
@@ -264,7 +264,7 @@ def parse_command_string(command_str: str) -> Optional[Dict[str, Any]]:
         return None
 
     command_type, params = parts
-    result: Dict[str, Any] = {"command_type": command_type}
+    result: dict[str, Any] = {"command_type": command_type}
 
     if command_type == "press":
         if params in [b.value for b in Button]:

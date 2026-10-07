@@ -14,7 +14,7 @@ from __future__ import annotations
 from abc import ABC
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, Tuple, Callable
+from typing import Any, Callable
 from datetime import datetime
 import time
 import logging
@@ -170,22 +170,22 @@ class State(ABC):
     def __init__(self, name: str, state_type: StateType):
         self.name = name
         self.state_type = state_type
-        self._parent: Optional[State] = None
-        self._children: List[State] = []
+        self._parent: State | None = None
+        self._children: list[State] = []
         self._is_active = False
-        self._entry_time: Optional[float] = None
+        self._entry_time: float | None = None
         self._tick_count = 0
 
     @property
-    def parent(self) -> Optional[State]:
+    def parent(self) -> State | None:
         return self._parent
 
     @parent.setter
-    def parent(self, value: Optional[State]) -> None:
+    def parent(self, value: State | None) -> None:
         self._parent = value
 
     @property
-    def children(self) -> List[State]:
+    def children(self) -> list[State]:
         return self._children
 
     @property
@@ -193,7 +193,7 @@ class State(ABC):
         return self._is_active
 
     @property
-    def entry_time(self) -> Optional[float]:
+    def entry_time(self) -> float | None:
         return self._entry_time
 
     @property
@@ -215,19 +215,19 @@ class State(ABC):
         """Get the hierarchical path to this state"""
         return self.name
 
-    def on_enter(self, _from_state: Optional[State] = None) -> None:
+    def on_enter(self, _from_state: State | None = None) -> None:
         """Called when entering this state"""
         self._is_active = True
         self._entry_time = time.time()
         self._tick_count = 0
         logger.debug(f"Entered state: {self.get_full_path()}")
 
-    def on_exit(self, _to_state: Optional["State"] = None) -> None:
+    def on_exit(self, _to_state: "State" | None = None) -> None:
         """Called when exiting this state"""
         self._is_active = False
         logger.debug(f"Exited state: {self.get_full_path()}")
 
-    def on_update(self, tick: int) -> Optional[State]:
+    def on_update(self, tick: int) -> State | None:
         """
         Update this state each tick
         Returns a new state to transition to, or None to stay
@@ -235,7 +235,7 @@ class State(ABC):
         self._tick_count = tick
         return None
 
-    def get_available_transitions(self) -> Set[str]:
+    def get_available_transitions(self) -> set[str]:
         """Get set of valid state names this state can transition to"""
         return set()
 
@@ -259,18 +259,18 @@ class HierarchicalStateMachine:
 
     def __init__(self, name: str = "HSM"):
         self.name = name
-        self._states: Dict[str, State] = {}
-        self._current_state: Optional[State] = None
-        self._previous_state: Optional[State] = None
-        self._state_stack: List[State] = []
-        self._history: List[StateTransition] = []
-        self._transition_count: Dict[Tuple[str, str], int] = {}
+        self._states: dict[str, State] = {}
+        self._current_state: State | None = None
+        self._previous_state: State | None = None
+        self._state_stack: list[State] = []
+        self._history: list[StateTransition] = []
+        self._transition_count: dict[tuple[str, str], int] = {}
         self._tick = 0
         self._start_time = time.time()
         self._emergency_triggered = False
-        self._emergency_reason: Optional[str] = None
-        self._on_transition_callbacks: List[Callable[..., None]] = []
-        self._on_emergency_callbacks: List[Callable[[str], None]] = []
+        self._emergency_reason: str | None = None
+        self._on_transition_callbacks: list[Callable[..., None]] = []
+        self._on_emergency_callbacks: list[Callable[[str], None]] = []
 
         self._setup_legal_transitions()
         self._setup_state_hierarchy()
@@ -300,14 +300,14 @@ class HierarchicalStateMachine:
         # (GAMEPLAY-LEAK-001: vision mapper emits BATTLE.BATTLE_MENU, legal
         # table historically listed the BATTLE.MENU alias — both spellings
         # must resolve before the legality check).
-        self._state_aliases: Dict[str, str] = {
+        self._state_aliases: dict[str, str] = {
             "BATTLE.MENU": "BATTLE.BATTLE_MENU",
             "BATTLE.BATTLE_MENU": "BATTLE.BATTLE_MENU",
         }
 
     def _setup_legal_transitions(self) -> None:
         """Define valid state transitions"""
-        self._legal_transitions: Dict[str, Set[str]] = {
+        self._legal_transitions: dict[str, set[str]] = {
             "BOOT.INITIALIZE": {
                 "BOOT.TITLE_SCREEN",
                 "OVERWORLD.IDLE",
@@ -548,19 +548,19 @@ class HierarchicalStateMachine:
         """Add a state to the machine"""
         self._states[state.name] = state
 
-    def get_state(self, state_name: str) -> Optional[State]:
+    def get_state(self, state_name: str) -> State | None:
         """Get a state by name"""
         return self._states.get(state_name)
 
-    def get_current_state(self) -> Optional[State]:
+    def get_current_state(self) -> State | None:
         """Get the current active state"""
         return self._current_state
 
-    def get_previous_state(self) -> Optional[State]:
+    def get_previous_state(self) -> State | None:
         """Get the previous state"""
         return self._previous_state
 
-    def get_state_history(self) -> List[StateTransition]:
+    def get_state_history(self) -> list[StateTransition]:
         """Get the state transition history"""
         return self._history.copy()
 
@@ -607,7 +607,7 @@ class HierarchicalStateMachine:
         logger.info("Emergency state cleared")
 
     def transition_to(
-        self, state_name: str, reason: str = "", tick: Optional[int] = None
+        self, state_name: str, reason: str = "", tick: int | None = None
     ) -> StateTransitionResult:
         """
         Transition to a new state
@@ -697,7 +697,7 @@ class HierarchicalStateMachine:
         self.transition_to(state_name, reason="State pushed")
         return True
 
-    def pop_state(self) -> Optional[State]:
+    def pop_state(self) -> State | None:
         """Pop a state from the stack"""
         if not self._state_stack:
             return None
@@ -706,7 +706,7 @@ class HierarchicalStateMachine:
         self.transition_to(popped.name, reason="State popped")
         return popped
 
-    def update(self, tick: Optional[int] = None) -> Optional[State]:
+    def update(self, tick: int | None = None) -> State | None:
         """
         Update the state machine and current state
         Returns the current state if no transition occurred, or the new state
@@ -731,11 +731,11 @@ class HierarchicalStateMachine:
 
         return self._current_state
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """Get state machine statistics"""
         total_time = time.time() - self._start_time
 
-        state_times: Dict[str, float] = {}
+        state_times: dict[str, float] = {}
         for transition in self._history:
             if transition.to_state not in state_times:
                 state_times[transition.to_state] = 0.0
@@ -757,7 +757,7 @@ class HierarchicalStateMachine:
             "total_states": len(self._states),
         }
 
-    def get_available_transitions(self) -> Set[str]:
+    def get_available_transitions(self) -> set[str]:
         """Get all valid transitions from current state"""
         if self._current_state is None:
             return set()
@@ -821,8 +821,8 @@ class GameStateClassifier:
         self._classification_interval = 0.016  # ~60fps
 
     def classify(
-        self, screen_data: Any, memory_data: Optional[Dict[str, Any]] = None
-    ) -> Optional[str]:
+        self, screen_data: Any, memory_data: dict[str, Any] | None = None
+    ) -> str | None:
         """
         Classify the current game state and trigger appropriate transition
         Returns the new state name, or None if no transition needed
@@ -857,8 +857,8 @@ class GameStateClassifier:
         return None
 
     def _determine_state(
-        self, _screen_data: Any, _memory_data: Optional[Dict[str, Any]]
-    ) -> Optional[str]:
+        self, _screen_data: Any, _memory_data: dict[str, Any] | None
+    ) -> str | None:
         """Determine the current state from screen/memory data"""
         return None
 

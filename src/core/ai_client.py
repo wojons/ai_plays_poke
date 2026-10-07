@@ -13,7 +13,7 @@ import logging
 import re
 import threading
 import warnings
-from typing import Optional, Dict, Any, List, Callable
+from typing import Any, Callable
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, field
@@ -94,9 +94,9 @@ class APICallResult:
     cost: float
     duration_ms: float
     success: bool = True
-    error_message: Optional[str] = None
+    error_message: str | None = None
     retry_count: int = 0
-    request_id: Optional[str] = None
+    request_id: str | None = None
 
 
 def log_api_call(
@@ -119,7 +119,7 @@ def log_api_call(
 
 
 def log_vision_analysis(
-    screen_type: str, enemy_pokemon: Optional[str], player_hp: float, enemy_hp: float
+    screen_type: str, enemy_pokemon: str | None, player_hp: float, enemy_hp: float
 ) -> None:
     """Simple logging function for vision analysis (survives broken stdout)"""
     try:
@@ -237,7 +237,7 @@ class AIModelClient:
     - generate_decision() - generates AI decisions
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initialize AIModelClient
 
@@ -249,7 +249,7 @@ class AIModelClient:
         self._load_api_key()
         self._init_client()
 
-    def _load_api_key(self) -> Optional[str]:
+    def _load_api_key(self) -> str | None:
         """
         Load API key from environment or constructor argument
 
@@ -345,8 +345,8 @@ class AIModelClient:
             self._client = None
 
     def _make_request_with_retry(
-        self, _endpoint: str, payload: Dict[str, Any], max_retries: int = 3
-    ) -> Dict[str, Any]:
+        self, _endpoint: str, payload: dict[str, Any], max_retries: int = 3
+    ) -> dict[str, Any]:
         """
         Make API request with retry logic
 
@@ -393,8 +393,8 @@ class AIModelClient:
         raise APIError("Request failed")
 
     def generate_decision(
-        self, game_state: Dict[str, Any], context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, game_state: dict[str, Any], context: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Generate an AI decision based on game state
 
@@ -440,7 +440,7 @@ class AIModelClient:
 class ClaudeClient:
     """Client for Anthropic Claude API"""
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         Anthropic = _load_anthropic()
         if Anthropic is None or not ANTHROPIC_AVAILABLE:
             raise ImportError("Anthropic SDK not installed. Run: pip install anthropic")
@@ -465,10 +465,10 @@ class ClaudeClient:
     def chat_completion(
         self,
         model: str,
-        messages: List[Dict[str, Any]],
+        messages: list[dict[str, Any]],
         max_tokens: int = 500,
         temperature: float = 0.3,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Make a chat completion request to Claude"""
 
         if not self.circuit_breaker.allow_request():
@@ -511,8 +511,8 @@ class ClaudeClient:
     def get_text_response(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
-        model: Optional[str] = None,
+        system_prompt: str | None = None,
+        model: str | None = None,
         max_tokens: int = 500,
     ) -> str:
         """Get text response from Claude"""
@@ -537,7 +537,7 @@ class OpenRouterClient:
     Supports both vision (multimodal) and text-only models
     """
 
-    def __init__(self, api_key: Optional[str] = None):
+    def __init__(self, api_key: str | None = None):
         """
         Initialize OpenRouter client
 
@@ -560,20 +560,20 @@ class OpenRouterClient:
         }
 
         self.circuit_breaker = CircuitBreaker()
-        self._last_usage: Dict[str, Any] = {}
+        self._last_usage: dict[str, Any] = {}
 
     def chat_completion(
         self,
         model: str,
-        messages: List[Dict[str, Any]],
-        images: Optional[List[np.ndarray]] = None,
-        max_tokens: Optional[int] = 500,
+        messages: list[dict[str, Any]],
+        images: list[np.ndarray] | None = None,
+        max_tokens: int | None = 500,
         temperature: float = 0.3,
         stream: bool = False,
         _retry_count: int = 0,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        thinking: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        tools: list[dict[str, Any]] | None = None,
+        thinking: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """
         Make a chat completion request to OpenRouter (or DeepSeek direct).
         DeepSeek models are routed through api.deepseek.com for lower cost.
@@ -595,7 +595,7 @@ class OpenRouterClient:
             "HTTP-Referer": "https://ai-plays-pokemon.com",
         }
 
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": model,
             "messages": messages,
             "max_tokens": max_tokens,
@@ -775,7 +775,7 @@ class OpenRouterClient:
         self,
         prompt: str,
         image: np.ndarray,
-        model: Optional[str] = None,
+        model: str | None = None,
         max_tokens: int = 500,
     ) -> str:
         """Get vision model response (simplified interface)"""
@@ -842,7 +842,7 @@ class OpenRouterClient:
     def get_text_response(
         self,
         prompt: str,
-        model: Optional[str] = None,
+        model: str | None = None,
         max_tokens: int = 500,
         temperature: float = 0.3,
     ) -> str:
@@ -919,7 +919,7 @@ class OpenRouterClient:
 class JSONResponseParser:
     """Structured JSON response parser with validation and retry logic"""
 
-    def __init__(self, schema: Optional[Dict[str, Any]] = None, max_retries: int = 3):
+    def __init__(self, schema: dict[str, Any] | None = None, max_retries: int = 3):
         self.schema = schema
         self.max_retries = max_retries
         self.parse_success_count = 0
@@ -928,9 +928,9 @@ class JSONResponseParser:
     def parse(
         self,
         response: str,
-        schema: Optional[Dict[str, Any]] = None,
+        schema: dict[str, Any] | None = None,
         retry_count: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Parse response with retry logic on failure"""
         schema = schema or self.schema
 
@@ -952,8 +952,8 @@ class JSONResponseParser:
         return self._extract_with_regex_fallback(response)
 
     def _try_parse_json(
-        self, response: str, schema: Optional[Dict[str, Any]] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, response: str, schema: dict[str, Any] | None = None
+    ) -> dict[str, Any] | None:
         """Try to parse JSON from response"""
         cleaned = self._clean_json_response(response)
 
@@ -991,7 +991,7 @@ class JSONResponseParser:
         return cleaned
 
     def _validate_against_schema(
-        self, result: Dict[str, Any], schema: Dict[str, Any]
+        self, result: dict[str, Any], schema: dict[str, Any]
     ) -> None:
         """Validate parsed JSON against schema"""
         for key, expected_type in schema.items():
@@ -1004,7 +1004,7 @@ class JSONResponseParser:
                 ):
                     raise ValueError(f"Key '{key}' has wrong type")
 
-    def _parse_with_fallback(self, response: str, retry_count: int) -> Dict[str, Any]:
+    def _parse_with_fallback(self, response: str, retry_count: int) -> dict[str, Any]:
         """Parse with fallback strategies on retry"""
         cleaned = self._clean_json_response(response)
 
@@ -1029,7 +1029,7 @@ class JSONResponseParser:
 
         return self._extract_with_regex_fallback(response)
 
-    def _extract_with_regex_fallback(self, response: str) -> Dict[str, Any]:
+    def _extract_with_regex_fallback(self, response: str) -> dict[str, Any]:
         """Final fallback using regex extraction"""
         result: dict[str, Any] = {
             "raw_response": response[:500],
@@ -1078,7 +1078,7 @@ class RateLimiter:
         self.base_delay = base_delay
         self.max_delay = max_delay
 
-        self.request_times: List[float] = []
+        self.request_times: list[float] = []
         self.lock = threading.RLock()
 
     def wait(self) -> float:
@@ -1136,7 +1136,7 @@ class ModelRouter:
         self,
         task_type: str,
         priority: str = "balanced",
-        available_models: Optional[Dict[str, str]] = None,
+        available_models: dict[str, str] | None = None,
     ) -> tuple[Any, ...]:
         """
         Select best model for task
@@ -1168,7 +1168,7 @@ class ModelRouter:
             return self._select_balanced(task_type, available_models)
 
     def _select_for_speed(
-        self, task_type: str, available_models: Dict[str, str]
+        self, task_type: str, available_models: dict[str, str]
     ) -> tuple[Any, ...]:
         """Select fastest model"""
         if task_type == "vision":
@@ -1188,13 +1188,13 @@ class ModelRouter:
             )
 
     def _select_for_cost(
-        self, task_type: str, available_models: Dict[str, str]
+        self, task_type: str, available_models: dict[str, str]
     ) -> tuple[Any, ...]:
         """Select cheapest model"""
         return self._select_for_speed(task_type, available_models)
 
     def _select_for_quality(
-        self, task_type: str, available_models: Dict[str, str]
+        self, task_type: str, available_models: dict[str, str]
     ) -> tuple[Any, ...]:
         """Select highest quality model"""
         if task_type == "vision":
@@ -1214,7 +1214,7 @@ class ModelRouter:
             )
 
     def _select_balanced(
-        self, task_type: str, available_models: Dict[str, str]
+        self, task_type: str, available_models: dict[str, str]
     ) -> tuple[Any, ...]:
         """Select balanced model"""
         if task_type == "vision":
@@ -1245,8 +1245,8 @@ class GameAIManager:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
-        anthropic_api_key: Optional[str] = None,
+        api_key: str | None = None,
+        anthropic_api_key: str | None = None,
         enable_prompt_manager: bool = True,
         model_priority: str = "balanced",
     ):
@@ -1395,7 +1395,7 @@ Format: REASONING: [explanation] ACTION: [button]
 
     def _make_api_call_with_retry(  # type: ignore[no-untyped-def]
         self, client_method: Callable[..., Any], max_retries: int = 3, **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Make API call with retry logic and rate limiting"""
         for retry in range(max_retries):
             try:
@@ -1428,7 +1428,7 @@ Format: REASONING: [explanation] ACTION: [button]
 
         raise Exception("Max retries exceeded")
 
-    def analyze_screenshot(self, screenshot: np.ndarray) -> Dict[str, Any]:
+    def analyze_screenshot(self, screenshot: np.ndarray) -> dict[str, Any]:
         """Analyze screenshot using vision model"""
         print(f"👀 Analyzing screenshot with vision model: {self.vision_model}")
 
@@ -1511,8 +1511,8 @@ Format: REASONING: [explanation] ACTION: [button]
         battle_state: str,
         objective: str,
         past_failures: str,
-        model: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        model: str | None = None,
+    ) -> dict[str, Any]:
         """Make strategic planning decision using thinking model"""
         print("🧠 Strategic planning with thinking model...")
 
@@ -1572,13 +1572,13 @@ Format: REASONING: [explanation] ACTION: [button]
         enemy_pokemon: str,
         enemy_hp: float,
         enemy_type: str,
-        moves: List[str],
-        weaknesses: List[str],
+        moves: list[str],
+        weaknesses: list[str],
         recent_actions: str,
         strategy: str,
         turn: int,
-        model: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        model: str | None = None,
+    ) -> dict[str, Any]:
         """Make immediate tactical decision using acting model"""
         print(f"⚡ Tactical decision (turn {turn})...")
 
@@ -1643,7 +1643,7 @@ Format: REASONING: [explanation] ACTION: [button]
                 "action": "press:A",
             }
 
-    def get_session_stats(self) -> Dict[str, Any]:
+    def get_session_stats(self) -> dict[str, Any]:
         """Get session statistics including token usage and costs"""
         stats = self.token_tracker.get_session_stats()
         stats["json_parse_success_rate"] = self.json_parser.get_success_rate()
@@ -1655,7 +1655,7 @@ Format: REASONING: [explanation] ACTION: [button]
         self.json_parser.parse_success_count = 0
         self.json_parser.parse_failure_count = 0
 
-    def _parse_strategic_response(self, response: str) -> Dict[str, Any]:
+    def _parse_strategic_response(self, response: str) -> dict[str, Any]:
         """Parse strategic planning response"""
         parsed = self.json_parser.parse(response)
 
@@ -1674,7 +1674,7 @@ Format: REASONING: [explanation] ACTION: [button]
             "confidence": 0.5,
         }
 
-    def _parse_tactical_response(self, response: str) -> Dict[str, Any]:
+    def _parse_tactical_response(self, response: str) -> dict[str, Any]:
         """Parse tactical decision response"""
         parsed = self.json_parser.parse(response)
 
@@ -1721,7 +1721,7 @@ Format: REASONING: [explanation] ACTION: [button]
         else:
             return "overworld"
 
-    def _extract_pokemon_name(self, text: str) -> Optional[str]:
+    def _extract_pokemon_name(self, text: str) -> str | None:
         """Extract Pokemon name from text"""
         common_pokemon = [
             "Pikachu",
@@ -1760,7 +1760,7 @@ Format: REASONING: [explanation] ACTION: [button]
 
         return None
 
-    def _extract_number(self, text: str, keyword: str = "") -> Optional[int]:
+    def _extract_number(self, text: str, keyword: str = "") -> int | None:
         """Extract percentage or number from text"""
         percent_match = re.search(r"\d+%", text)
         if percent_match:
@@ -1774,7 +1774,7 @@ Format: REASONING: [explanation] ACTION: [button]
 
         return None
 
-    def _extract_actions(self, text: str) -> List[str]:
+    def _extract_actions(self, text: str) -> list[str]:
         """Extract available actions"""
         actions_match = re.search(r"Actions?[:\s]+(.*)", text, re.IGNORECASE)
         if actions_match:
@@ -1810,7 +1810,7 @@ Format: REASONING: [explanation] ACTION: [button]
 
         return text[:100]
 
-    def _extract_list(self, text: str) -> List[str]:
+    def _extract_list(self, text: str) -> list[str]:
         """Extract list of tactics from response"""
         items = re.findall(r"\d+\.\s+(.*?)(?=\n|$)", text)
         if not items:
@@ -1854,7 +1854,7 @@ class RoutingConfig:
     speed_weight: float = 0.3
     quality_weight: float = 0.4
     prefer_cheap_on_budget: bool = True
-    fallback_chain: List[str] = field(
+    fallback_chain: list[str] = field(
         default_factory=lambda: [
             "openai/gpt-4o",
             "openai/gpt-4o-mini",
@@ -1885,8 +1885,8 @@ class CostOptimizer:
         self.spent = 0.0
         self.decisions = 0
         self.cost_per_decision = 0.0
-        self.cost_per_model: Dict[str, float] = {}
-        self.cost_per_task_type: Dict[str, float] = {}
+        self.cost_per_model: dict[str, float] = {}
+        self.cost_per_task_type: dict[str, float] = {}
         self.lock = threading.RLock()
 
     def track_cost(
@@ -1991,7 +1991,7 @@ class CostOptimizer:
                 reasoning="Current model is appropriate for task",
             )
 
-    def get_cost_report(self) -> Dict[str, Any]:
+    def get_cost_report(self) -> dict[str, Any]:
         """Get detailed cost report"""
         with self.lock:
             return {
@@ -2026,7 +2026,7 @@ class PerformanceMetrics:
     total_tokens: int = 0
     success_rate: float = 1.0
     avg_latency_ms: float = 0.0
-    last_call: Optional[datetime] = None
+    last_call: datetime | None = None
 
 
 class PerformanceTracker:
@@ -2043,9 +2043,9 @@ class PerformanceTracker:
 
     def __init__(self) -> None:
         """Initialize performance tracker"""
-        self.metrics: Dict[str, PerformanceMetrics] = {}
-        self.task_metrics: Dict[str, Dict[str, PerformanceMetrics]] = {}
-        self.recent_results: List[Dict[str, Any]] = []
+        self.metrics: dict[str, PerformanceMetrics] = {}
+        self.task_metrics: dict[str, dict[str, PerformanceMetrics]] = {}
+        self.recent_results: list[dict[str, Any]] = []
         self.max_recent_results = 1000
         self.lock = threading.RLock()
 
@@ -2119,7 +2119,7 @@ class PerformanceTracker:
             if len(self.recent_results) > self.max_recent_results:
                 self.recent_results = self.recent_results[-self.max_recent_results :]
 
-    def get_model_stats(self, model: str) -> Optional[Dict[str, Any]]:
+    def get_model_stats(self, model: str) -> dict[str, Any] | None:
         """
         Get performance statistics for a model.
 
@@ -2145,7 +2145,7 @@ class PerformanceTracker:
                 "last_call": m.last_call.isoformat() if m.last_call else None,
             }
 
-    def get_best_model_for_task(self, task_type: str) -> Optional[str]:
+    def get_best_model_for_task(self, task_type: str) -> str | None:
         """
         Get the best performing model for a task type.
 
@@ -2175,7 +2175,7 @@ class PerformanceTracker:
 
             return best_model
 
-    def get_all_model_stats(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_model_stats(self) -> dict[str, dict[str, Any]]:
         """Get statistics for all models"""
         with self.lock:
             return {model: self.get_model_stats(model) or {} for model in self.metrics}
@@ -2247,8 +2247,8 @@ class MergedResult:
     confidence: float
     conflicts_detected: bool
     merge_method: str
-    contributing_models: List[str]
-    alternative_results: Dict[str, str]
+    contributing_models: list[str]
+    alternative_results: dict[str, str]
 
 
 class ResultMerger:
@@ -2274,10 +2274,10 @@ class ResultMerger:
         """
         self.confidence_threshold = confidence_threshold
         self.consensus_threshold = consensus_threshold
-        self.merge_history: List[Dict[str, Any]] = []
+        self.merge_history: list[dict[str, Any]] = []
         self.lock = threading.RLock()
 
-    def merge_results(self, results: List[ModelResult]) -> MergedResult:
+    def merge_results(self, results: list[ModelResult]) -> MergedResult:
         """
         Merge results from multiple models with confidence weighting.
 
@@ -2350,7 +2350,7 @@ class ResultMerger:
                 alternative_results={r.model: r.content for r in results},
             )
 
-    def _detect_conflicts(self, results: List[ModelResult]) -> List[Dict[str, Any]]:
+    def _detect_conflicts(self, results: list[ModelResult]) -> list[dict[str, Any]]:
         """
         Detect conflicts between model results.
 
@@ -2360,7 +2360,7 @@ class ResultMerger:
         Returns:
             List of detected conflicts
         """
-        conflicts: list[Dict[str, Any]] = []
+        conflicts: list[dict[str, Any]] = []
 
         if len(results) < 2:
             return conflicts
@@ -2407,7 +2407,7 @@ class ResultMerger:
         similarity = self._calculate_similarity(content1_lower, content2_lower)
         return similarity < 0.5
 
-    def _extract_actions(self, content: str) -> List[str]:
+    def _extract_actions(self, content: str) -> list[str]:
         """Extract action recommendations from content"""
         actions = re.findall(
             r"(?:action|decision|press)[:\s]*([A-Z]+)", content, re.IGNORECASE
@@ -2431,7 +2431,7 @@ class ResultMerger:
         return intersection / union if union > 0 else 0.0
 
     def _has_consensus(
-        self, results: List[ModelResult], conflicts: List[Dict[str, Any]]
+        self, results: list[ModelResult], conflicts: list[dict[str, Any]]
     ) -> bool:
         """Check if results have consensus"""
         if len(results) < 2:
@@ -2450,7 +2450,7 @@ class ResultMerger:
         return True
 
     def _build_consensus(
-        self, results: List[ModelResult], conflicts: List[Dict[str, Any]]
+        self, results: list[ModelResult], conflicts: list[dict[str, Any]]
     ) -> ModelResult:
         """Build consensus from results"""
         sorted_results = sorted(results, key=lambda r: r.confidence, reverse=True)
@@ -2472,7 +2472,7 @@ class ResultMerger:
             cost=consensus.cost,
         )
 
-    def _confidence_weighted_merge(self, results: List[ModelResult]) -> ModelResult:
+    def _confidence_weighted_merge(self, results: list[ModelResult]) -> ModelResult:
         """Merge results with confidence weighting"""
         total_confidence = sum(r.confidence for r in results)
         if total_confidence == 0:
@@ -2493,7 +2493,7 @@ class ResultMerger:
             cost=sum(r.cost for r in results),
         )
 
-    def get_merge_stats(self) -> Dict[str, Any]:
+    def get_merge_stats(self) -> dict[str, Any]:
         """Get merge statistics"""
         with self.lock:
             return {

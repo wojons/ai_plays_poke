@@ -19,7 +19,7 @@ import logging
 import threading
 from pathlib import Path
 from datetime import datetime
-from typing import Optional, Dict, Any, List, Union, cast, Callable
+from typing import Optional, Any, Union, cast, Callable
 from functools import wraps
 import traceback
 
@@ -69,7 +69,7 @@ class LogRotation:
 class JSONFormatter(logging.Formatter):
     """JSON formatter for structured logging"""
 
-    def __init__(self, include_fields: Optional[List[str]] = None):
+    def __init__(self, include_fields: list[str] | None = None):
         super().__init__()
         self.include_fields = include_fields or [
             "timestamp",
@@ -135,7 +135,7 @@ class JSONFormatter(logging.Formatter):
 class PlainFormatter(logging.Formatter):
     """Human-readable formatter"""
 
-    def __init__(self, fmt: Optional[str] = None, datefmt: Optional[str] = None):
+    def __init__(self, fmt: str | None = None, datefmt: str | None = None):
         super().__init__(
             fmt=fmt or "%(asctime)s [%(levelname)s] [%(category)s] %(message)s",
             datefmt=datefmt,
@@ -159,7 +159,7 @@ class PlainFormatter(logging.Formatter):
 class CategoryFilter(logging.Filter):
     """Filter logs by category"""
 
-    def __init__(self, categories: Optional[List[str]] = None, exclude: bool = False):
+    def __init__(self, categories: list[str] | None = None, exclude: bool = False):
         super().__init__()
         self.categories = set(categories or [])
         self.exclude = exclude
@@ -336,7 +336,7 @@ class AILogger:
         }
 
     def setup(
-        self, log_dir: Optional[str] = None, config: Optional[Dict[str, Any]] = None
+        self, log_dir: str | None = None, config: dict[str, Any] | None = None
     ) -> None:
         """
         Set up logging system
@@ -536,7 +536,7 @@ class AILogger:
         decision_id: str,
         action: str,
         reasoning: str,
-        game_state: Dict[str, Any],
+        game_state: dict[str, Any],
     ) -> None:
         """Log AI decision with full context"""
         self.info(
@@ -555,7 +555,7 @@ class AILogger:
         event_type: str,
         pokemon: str,
         hp: float,
-        action: Optional[str] = None,
+        action: str | None = None,
     ) -> None:
         """Log battle event"""
         msg = f"Battle {event_type}: {pokemon} (HP: {hp}%)"
@@ -633,7 +633,7 @@ class AILogger:
     def log_error_with_context(
         self,
         error: Exception,
-        context: Dict[str, Any],
+        context: dict[str, Any],
         category: str = LogCategory.ERRORS,
     ) -> None:
         """Log error with full context"""
@@ -654,7 +654,7 @@ class AILogger:
         """Get log directory path"""
         return self._base_log_dir
 
-    def get_log_files(self) -> Dict[str, Path]:
+    def get_log_files(self) -> dict[str, Path]:
         """Get all log files"""
         files = {}
         if self._base_log_dir.exists():
@@ -663,7 +663,7 @@ class AILogger:
                     files[str(f.relative_to(self._base_log_dir))] = f
         return files
 
-    def get_log_size(self) -> Dict[str, int]:
+    def get_log_size(self) -> dict[str, int]:
         """Get total log file sizes"""
         sizes = {}
         for category in [LogCategory.MAIN] + [
@@ -778,7 +778,7 @@ def get_logger() -> AILogger:
 # ============ Initialize with Environment ============
 
 
-def setup_from_env(log_dir: Optional[str] = None) -> AILogger:
+def setup_from_env(log_dir: str | None = None) -> AILogger:
     """Set up logger from environment variables"""
     logger = get_logger()
 

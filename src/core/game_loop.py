@@ -12,7 +12,7 @@ import asyncio
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any
 import signal
 import sys
 
@@ -66,11 +66,11 @@ class GameLoop:
         self.paused = False
 
         # Command pipeline
-        self.pending_commands: List[Dict[str, Any]] = []
-        self.command_history: List[Dict[str, Any]] = []
+        self.pending_commands: list[dict[str, Any]] = []
+        self.command_history: list[dict[str, Any]] = []
 
         # Performance tracking
-        self.metrics: Dict[str, Any] = {
+        self.metrics: dict[str, Any] = {
             "total_ticks": 0,
             "screenshots_taken": 0,
             "commands_sent": 0,
@@ -168,7 +168,7 @@ class GameLoop:
         if game_state.get("requires_ai_decision", False):
             asyncio.create_task(self._get_ai_decision(game_state))
 
-    def _analyze_screenshot(self, screenshot: np.ndarray) -> Dict[str, Any]:
+    def _analyze_screenshot(self, screenshot: np.ndarray) -> dict[str, Any]:
         """
         Analyze screenshot to determine game state
         This is a placeholder for actual vision processing
@@ -247,7 +247,7 @@ class GameLoop:
         return lines is not None and len(lines) > 5
 
     async def _get_ai_decision(
-        self, game_state: Dict[str, Any]
+        self, game_state: dict[str, Any]
     ) -> dict[str, Any] | None:
         """
         Get AI decision based on game state
@@ -288,7 +288,7 @@ class GameLoop:
         print(f"✅ AI decision made: {command['action']}")
         return command
 
-    def _simple_battle_ai(self) -> Dict[str, Any]:
+    def _simple_battle_ai(self) -> dict[str, Any]:
         """Simple battle heuristic (placeholder)"""
         return {
             "action": "press:A",
@@ -296,7 +296,7 @@ class GameLoop:
             "confidence": 0.6,
         }
 
-    def _simple_menu_ai(self) -> Dict[str, Any]:
+    def _simple_menu_ai(self) -> dict[str, Any]:
         """Simple menu navigation"""
         return {
             "action": "press:DOWN",
@@ -304,7 +304,7 @@ class GameLoop:
             "confidence": 0.5,
         }
 
-    def _simple_exploration_ai(self) -> Dict[str, Any]:
+    def _simple_exploration_ai(self) -> dict[str, Any]:
         """Simple exploration"""
         return {
             "action": "press:UP",

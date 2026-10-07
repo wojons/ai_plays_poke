@@ -12,7 +12,7 @@ Implements comprehensive navigation including:
 from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, Tuple, cast
+from typing import Any, cast
 from heapq import heappush, heappop
 from collections import deque
 import json
@@ -102,13 +102,13 @@ class GraphNode:
 
     position: Position
     tile_type: TileType
-    hm_requirement: Optional[HMMove] = None
-    warp_destination: Optional[Position] = None
-    location_type: Optional[LocationType] = None
+    hm_requirement: HMMove | None = None
+    warp_destination: Position | None = None
+    location_type: LocationType | None = None
     is_poi: bool = False
     encounter_rate: float = 0.0
     danger_level: int = 0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -120,7 +120,7 @@ class GraphEdge:
     cost: float = 1.0
     is_warp: bool = False
     is_ledge: bool = False
-    requires_hm: Optional[HMMove] = None
+    requires_hm: HMMove | None = None
     direction: str = ""
 
 
@@ -129,10 +129,10 @@ class PathResult:
     """Result of a pathfinding operation"""
 
     success: bool
-    path: List[Position] = field(default_factory=list)
+    path: list[Position] = field(default_factory=list)
     total_cost: float = 0.0
-    hm_requirements: List[HMMove] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    hm_requirements: list[HMMove] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
     encounters_expected: int = 0
     danger_exposure: int = 0
 
@@ -143,9 +143,9 @@ class RouteSegment:
 
     from_pos: Position
     to_pos: Position
-    path: List[Position]
+    path: list[Position]
     estimated_cost: float
-    hm_needed: Optional[HMMove] = None
+    hm_needed: HMMove | None = None
 
 
 @dataclass
@@ -156,7 +156,7 @@ class PointOfInterest:
     position: Position
     location_type: LocationType
     map_id: str
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -172,7 +172,7 @@ class PathfindingContext:
     repel_active: bool = False
     has_flash: bool = False
     grind_mode: bool = False
-    time_of_day: Optional[str] = None
+    time_of_day: str | None = None
 
 
 class WorldGraph:
@@ -181,13 +181,13 @@ class WorldGraph:
     """
 
     def __init__(self) -> None:
-        self.nodes: Dict[Position, GraphNode] = {}
-        self.edges: Dict[Position, List[GraphEdge]] = {}
-        self.map_dimensions: Dict[str, Tuple[int, int]] = {}
-        self.warps: Dict[Position, Position] = {}
-        self.hm_obstacles: Dict[Position, HMMove] = {}
-        self.ledges: Dict[Position, Tuple[str, int]] = {}
-        self.pois: Dict[str, PointOfInterest] = {}
+        self.nodes: dict[Position, GraphNode] = {}
+        self.edges: dict[Position, list[GraphEdge]] = {}
+        self.map_dimensions: dict[str, tuple[int, int]] = {}
+        self.warps: dict[Position, Position] = {}
+        self.hm_obstacles: dict[Position, HMMove] = {}
+        self.ledges: dict[Position, tuple[str, int]] = {}
+        self.pois: dict[str, PointOfInterest] = {}
 
     def add_node(self, node: GraphNode) -> None:
         self.nodes[node.position] = node
@@ -210,7 +210,7 @@ class WorldGraph:
 
     def get_neighbors(
         self, position: Position, context: PathfindingContext
-    ) -> List[GraphEdge]:
+    ) -> list[GraphEdge]:
         """Get all accessible neighboring positions"""
         neighbors = self.edges.get(position, [])
         valid_neighbors = []
@@ -276,13 +276,13 @@ class WorldGraph:
             )
             self.nodes[poi.position] = node
 
-    def get_poi_by_type(self, location_type: LocationType) -> List[PointOfInterest]:
+    def get_poi_by_type(self, location_type: LocationType) -> list[PointOfInterest]:
         return [poi for poi in self.pois.values() if poi.location_type == location_type]
 
-    def get_poi_by_name(self, name: str) -> Optional[PointOfInterest]:
+    def get_poi_by_name(self, name: str) -> PointOfInterest | None:
         return self.pois.get(name)
 
-    def get_all_pois(self) -> List[PointOfInterest]:
+    def get_all_pois(self) -> list[PointOfInterest]:
         return list(self.pois.values())
 
 
@@ -293,7 +293,7 @@ class AStarPathfinder:
 
     def __init__(self, graph: WorldGraph):
         self.graph = graph
-        self._cache: Dict[Tuple[Position, Position], PathResult] = {}
+        self._cache: dict[tuple[Position, Position], PathResult] = {}
 
     def find_path(
         self, start: Position, goal: Position, context: PathfindingContext
@@ -318,16 +318,16 @@ class AStarPathfinder:
     def _astar_search(
         self, start: Position, goal: Position, context: PathfindingContext
     ) -> PathResult:
-        open_set: List[Tuple[float, Position]] = []
-        came_from: Dict[Position, Position] = {}
-        g_score: Dict[Position, float] = {start: 0.0}
-        f_score: Dict[Position, float] = {start: start.manhattan_heuristic(goal)}
+        open_set: list[tuple[float, Position]] = []
+        came_from: dict[Position, Position] = {}
+        g_score: dict[Position, float] = {start: 0.0}
+        f_score: dict[Position, float] = {start: start.manhattan_heuristic(goal)}
 
         heappush(open_set, (f_score[start], start))
 
-        closed_set: Set[Position] = set()
-        warnings: List[str] = []
-        hm_requirements: Set[HMMove] = set()
+        closed_set: set[Position] = set()
+        warnings: list[str] = []
+        hm_requirements: set[HMMove] = set()
         total_encounters = 0
         total_danger = 0
 
@@ -391,7 +391,7 @@ class AStarPathfinder:
         _neighbor: Position,
         edge: GraphEdge,
         context: PathfindingContext,
-        node: Optional[GraphNode],
+        node: GraphNode | None,
     ) -> float:
         base_cost = edge.cost
 
@@ -429,14 +429,14 @@ class AStarPathfinder:
         self,
         _start: Position,
         goal: Position,
-        came_from: Dict[Position, Position],
-        g_score: Dict[Position, float],
-        hm_requirements: Set[HMMove],
-        warnings: List[str],
+        came_from: dict[Position, Position],
+        g_score: dict[Position, float],
+        hm_requirements: set[HMMove],
+        warnings: list[str],
         encounters: int,
         danger: int,
     ) -> PathResult:
-        path: List[Position] = [goal]
+        path: list[Position] = [goal]
         current = goal
 
         while current in came_from:
@@ -476,9 +476,9 @@ class AStarPathfinder:
         if not warp_path:
             return PathResult(success=False, warnings=["No multi-map path found"])
 
-        full_path: List[Position] = []
+        full_path: list[Position] = []
         total_cost = 0.0
-        all_hm: Set[HMMove] = set()
+        all_hm: set[HMMove] = set()
 
         for i in range(len(warp_path) - 1):
             from_pos = warp_path[i]
@@ -511,12 +511,12 @@ class AStarPathfinder:
 
     def _find_warp_sequence(
         self, start_map: str, goal_map: str, _context: PathfindingContext
-    ) -> List[Position]:
+    ) -> list[Position]:
         if start_map == goal_map:
             return []
 
-        visited: Set[str] = set()
-        queue: deque[Tuple[str, List[Position]]] = deque()
+        visited: set[str] = set()
+        queue: deque[tuple[str, list[Position]]] = deque()
         queue.append((start_map, []))
 
         while queue:
@@ -550,9 +550,9 @@ class RouteOptimizer:
     def optimize_route(
         self,
         start: Position,
-        objectives: List[PointOfInterest],
+        objectives: list[PointOfInterest],
         context: PathfindingContext,
-    ) -> Tuple[List[RouteSegment], float]:
+    ) -> tuple[list[RouteSegment], float]:
         if not objectives:
             return [], 0.0
 
@@ -563,7 +563,7 @@ class RouteOptimizer:
 
         visited = set()
         current_pos = start
-        route_segments: List[RouteSegment] = []
+        route_segments: list[RouteSegment] = []
         total_cost = 0.0
 
         objectives_sorted = [obj for obj, _ in objectives_with_priority]
@@ -572,8 +572,8 @@ class RouteOptimizer:
             nearest = None
             nearest_idx = 0
             nearest_cost = float("inf")
-            nearest_path: List[Position] = []
-            nearest_result: Optional[PathResult] = None
+            nearest_path: list[Position] = []
+            nearest_result: PathResult | None = None
 
             for i, objective in enumerate(objectives_sorted):
                 if objective.name in visited:
@@ -615,13 +615,13 @@ class RouteOptimizer:
         return route_segments, total_cost
 
     def cluster_objectives(
-        self, objectives: List[PointOfInterest], cluster_radius: int = 50
-    ) -> List[List[PointOfInterest]]:
+        self, objectives: list[PointOfInterest], cluster_radius: int = 50
+    ) -> list[list[PointOfInterest]]:
         if not objectives:
             return []
 
         unassigned = set(range(len(objectives)))
-        clusters: List[List[PointOfInterest]] = []
+        clusters: list[list[PointOfInterest]] = []
 
         while unassigned:
             idx = unassigned.pop()
@@ -640,7 +640,7 @@ class RouteOptimizer:
         return clusters
 
     def calculate_route_safety(
-        self, route: List[RouteSegment], context: PathfindingContext
+        self, route: list[RouteSegment], context: PathfindingContext
     ) -> float:
         if not route:
             return 0.0
@@ -674,10 +674,10 @@ class AreaManager:
 
     def __init__(self, graph: WorldGraph):
         self.graph = graph
-        self.routes: Dict[str, Dict[str, Any]] = {}
-        self.gyms: Dict[str, PointOfInterest] = {}
-        self.pokemon_centers: Dict[str, PointOfInterest] = {}
-        self.shops: Dict[str, PointOfInterest] = {}
+        self.routes: dict[str, dict[str, Any]] = {}
+        self.gyms: dict[str, PointOfInterest] = {}
+        self.pokemon_centers: dict[str, PointOfInterest] = {}
+        self.shops: dict[str, PointOfInterest] = {}
         self._load_area_data()
 
     def _load_area_data(self) -> None:
@@ -690,7 +690,7 @@ class AreaManager:
             logger.warning(f"Routes data not found at {data_path}, using default data")
             self._load_default_areas()
 
-    def _import_routes(self, data: Dict[str, Any]) -> None:
+    def _import_routes(self, data: dict[str, Any]) -> None:
         for route_data in data.get("routes", []):
             self.routes[route_data["id"]] = route_data
 
@@ -737,7 +737,7 @@ class AreaManager:
             self.graph.add_poi(poi)
 
     def _load_default_areas(self) -> None:
-        default_routes: List[Dict[str, object]] = [
+        default_routes: list[dict[str, object]] = [
             {
                 "id": "route1",
                 "name": "Route 1",
@@ -756,7 +756,7 @@ class AreaManager:
         ]
         self.routes.update({str(cast(str, r["id"])): r for r in default_routes})
 
-        default_centers: List[Dict[str, object]] = [
+        default_centers: list[dict[str, object]] = [
             {"name": "Pallet Town Center", "x": 6, "y": 10, "map_id": "pallet_town"},
             {
                 "name": "Viridian City Center",
@@ -782,7 +782,7 @@ class AreaManager:
             self.pokemon_centers[str(cast(str, center["name"]))] = poi
             self.graph.add_poi(poi)
 
-        default_gyms: List[Dict[str, object]] = [
+        default_gyms: list[dict[str, object]] = [
             {
                 "name": "Pewter Gym",
                 "x": 7,
@@ -819,7 +819,7 @@ class AreaManager:
             self.gyms[str(cast(str, gym["name"]))] = poi
             self.graph.add_poi(poi)
 
-        default_shops: List[Dict[str, object]] = [
+        default_shops: list[dict[str, object]] = [
             {
                 "name": "Viridian Mart",
                 "x": 11,
@@ -846,14 +846,12 @@ class AreaManager:
                 position=pos,
                 location_type=LocationType.POKEMART,
                 map_id=str(cast(str, shop["map_id"])),
-                metadata={"inventory": cast(List[str], shop["inventory"])},
+                metadata={"inventory": cast(list[str], shop["inventory"])},
             )
             self.shops[str(cast(str, shop["name"]))] = poi
             self.graph.add_poi(poi)
 
-    def get_nearest_pokemon_center(
-        self, position: Position
-    ) -> Optional[PointOfInterest]:
+    def get_nearest_pokemon_center(self, position: Position) -> PointOfInterest | None:
         centers = list(self.pokemon_centers.values())
         if not centers:
             return None
@@ -866,7 +864,7 @@ class AreaManager:
         centers.sort(key=sort_key)
         return centers[0] if centers else None
 
-    def get_nearest_gym(self, position: Position) -> Optional[PointOfInterest]:
+    def get_nearest_gym(self, position: Position) -> PointOfInterest | None:
         gyms = list(self.gyms.values())
         if not gyms:
             return None
@@ -874,19 +872,19 @@ class AreaManager:
         gyms.sort(key=lambda p: position.distance_to(p.position))
         return gyms[0] if gyms else None
 
-    def get_all_gyms(self) -> List[PointOfInterest]:
+    def get_all_gyms(self) -> list[PointOfInterest]:
         return list(self.gyms.values())
 
-    def get_all_pokemon_centers(self) -> List[PointOfInterest]:
+    def get_all_pokemon_centers(self) -> list[PointOfInterest]:
         return list(self.pokemon_centers.values())
 
-    def get_all_shops(self) -> List[PointOfInterest]:
+    def get_all_shops(self) -> list[PointOfInterest]:
         return list(self.shops.values())
 
-    def get_route(self, route_id: str) -> Optional[Dict[str, Any]]:
+    def get_route(self, route_id: str) -> dict[str, Any] | None:
         return self.routes.get(route_id)
 
-    def get_connection_maps(self, map_id: str) -> List[str]:
+    def get_connection_maps(self, map_id: str) -> list[str]:
         connections = []
         for route in self.routes.values():
             if "connections" in route and map_id in route["connections"]:
@@ -946,7 +944,7 @@ class PuzzleSolver:
         return pathfinder.find_path(start, goal, modified_context)
 
     def solve_ice_puzzle(
-        self, start: Position, goal: Position, ice_positions: Set[Position]
+        self, start: Position, goal: Position, ice_positions: set[Position]
     ) -> PathResult:
         modified_context = PathfindingContext(
             avoid_encounters=True, prefer_shortest=True, allow_hm_usage=False
@@ -970,7 +968,7 @@ class PuzzleSolver:
         return result
 
     def _validate_ice_path(
-        self, path: List[Position], ice_positions: Set[Position]
+        self, path: list[Position], ice_positions: set[Position]
     ) -> bool:
         if len(path) < 2:
             return True
@@ -986,7 +984,7 @@ class PuzzleSolver:
         return True
 
     def _slide_in_direction(
-        self, start: Position, direction: Position, ice_positions: Set[Position]
+        self, start: Position, direction: Position, ice_positions: set[Position]
     ) -> bool:
         dx = direction.x - start.x
         dy = direction.y - start.y
@@ -1008,7 +1006,7 @@ class PuzzleSolver:
         return current == direction
 
     def solve_teleport_maze(
-        self, start: Position, goal: Position, teleport_pads: Dict[Position, Position]
+        self, start: Position, goal: Position, teleport_pads: dict[Position, Position]
     ) -> PathResult:
         modified_context = PathfindingContext(
             avoid_encounters=True, prefer_shortest=True, allow_hm_usage=False
@@ -1044,7 +1042,7 @@ class NavigationSystem:
         self,
         start: Position,
         goal: Position,
-        context: Optional[PathfindingContext] = None,
+        context: PathfindingContext | None = None,
     ) -> PathResult:
         if context is None:
             context = PathfindingContext()
@@ -1055,7 +1053,7 @@ class NavigationSystem:
         self,
         start: Position,
         poi_name: str,
-        context: Optional[PathfindingContext] = None,
+        context: PathfindingContext | None = None,
     ) -> PathResult:
         poi = self.graph.get_poi_by_name(poi_name)
         if poi is None:
@@ -1064,7 +1062,7 @@ class NavigationSystem:
 
     def find_heal_location(
         self, current_pos: Position, context: PathfindingContext
-    ) -> Tuple[Optional[PointOfInterest], PathResult]:
+    ) -> tuple[PointOfInterest | None, PathResult]:
         center = self.area_manager.get_nearest_pokemon_center(current_pos)
         if center is None:
             return None, PathResult(success=False, warnings=["No Pokemon Center found"])
@@ -1075,9 +1073,9 @@ class NavigationSystem:
     def plan_multi_stop_route(
         self,
         start: Position,
-        objectives: List[str],
-        context: Optional[PathfindingContext] = None,
-    ) -> Tuple[List[RouteSegment], float]:
+        objectives: list[str],
+        context: PathfindingContext | None = None,
+    ) -> tuple[list[RouteSegment], float]:
         if context is None:
             context = PathfindingContext()
 
@@ -1107,7 +1105,7 @@ class NavigationSystem:
                 success=False, warnings=[f"Unknown puzzle type: {puzzle_type}"]
             )
 
-    def get_navigation_status(self) -> Dict[str, Any]:
+    def get_navigation_status(self) -> dict[str, Any]:
         return {
             "total_nodes": len(self.graph.nodes),
             "total_edges": sum(len(edges) for edges in self.graph.edges.values()),

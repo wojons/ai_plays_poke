@@ -17,7 +17,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional, cast
+from typing import Any, cast
 
 # Add project root to Python path for imports
 project_root = Path(__file__).parent.parent
@@ -76,7 +76,7 @@ class GameLoop:
     Screenshot → AI Decision → Command → Execute → Log → Repeat
     """
 
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         """
         Initialize game loop with configuration
 
@@ -89,7 +89,7 @@ class GameLoop:
         rom_path = config["rom_path"]
 
         # Single emulator mode
-        self.emulator_mgr: Optional[EmulatorManager] = None
+        self.emulator_mgr: EmulatorManager | None = None
         if config.get("multi_instance", False):
             count = config.get("instance_count", 3)
             self.emulator_mgr = EmulatorManager(rom_path, count)
@@ -135,11 +135,11 @@ class GameLoop:
         self._generation = "gen3"
         self._thinking_model = "openai/gpt-5.6-luna"
         if self.use_real_ai:
-            self.vision_client: Optional[VisionClient] = VisionClient(
+            self.vision_client: VisionClient | None = VisionClient(
                 model="openai/gpt-5.6-luna"
             )
-            self.prompt_stack: Optional[PromptStack] = PromptStack()
-            self.prompt_client: Optional[OpenRouterClient] = OpenRouterClient()
+            self.prompt_stack: PromptStack | None = PromptStack()
+            self.prompt_client: OpenRouterClient | None = OpenRouterClient()
         else:
             self.vision_client = None
             self.prompt_stack = None
@@ -150,20 +150,20 @@ class GameLoop:
         self.last_screenshot_tick = 0
         self.is_running = False
         self.paused = False
-        self.session_id: Optional[int] = None
+        self.session_id: int | None = None
 
         # Boot progression state (GAP-020): presses are verified via RAM
         # screen-type reads so the run can't silently idle on the title.
         self._boot_verified = False
-        self._ram_reader: Optional[RAMReader] = None
+        self._ram_reader: RAMReader | None = None
         self._last_screen_type = "unknown"
 
         # Command pipeline
-        self.pending_commands: list[Dict[str, Any]] = []
-        self.command_history: list[Dict[str, Any]] = []
+        self.pending_commands: list[dict[str, Any]] = []
+        self.command_history: list[dict[str, Any]] = []
 
         # Current battle tracking
-        self.current_battle_id: Optional[int] = None
+        self.current_battle_id: int | None = None
         self.battle_turn_count = 0
         self._current_battle_opponent_identified = False
 
@@ -529,7 +529,7 @@ class GameLoop:
         self._last_screen_type = game_state.screen_type
         return game_state
 
-    def _queue_vision_recommended_action(self, vision_result: Dict[str, Any]) -> None:
+    def _queue_vision_recommended_action(self, vision_result: dict[str, Any]) -> None:
         """Wire the vision ``recommended_action`` into the command pipeline.
 
         GAP-020: the vision classifier returns a recommended_action (e.g.
@@ -563,7 +563,7 @@ class GameLoop:
         print(f"🎮 Vision recommended_action wired: {recommended!r} -> {command}")
 
     @staticmethod
-    def _normalize_recommended_action(action: str) -> Optional[str]:
+    def _normalize_recommended_action(action: str) -> str | None:
         """Normalize a vision recommended_action into ``press:<BUTTON>``.
 
         Accepts ``press:A``, ``press A``, ``PRESS START``, ``walk up``,
@@ -669,7 +669,7 @@ class GameLoop:
             f"✅ AI decision ({model_used}): {command['action']} - {command['reasoning']}"
         )
 
-    def _get_real_ai_decision(self, game_state: GameState) -> Dict[str, Any]:
+    def _get_real_ai_decision(self, game_state: GameState) -> dict[str, Any]:
         """Get real AI decision using vision + thinking pipeline.
 
         Captures a fresh screenshot, runs VisionClient for screen analysis,
@@ -734,7 +734,7 @@ class GameLoop:
             print(f"❌ Real AI decision failed: {e}, falling back to stub")
             return self._get_stub_ai_decision(game_state)
 
-    def _get_stub_ai_decision(self, game_state: GameState) -> Dict[str, Any]:
+    def _get_stub_ai_decision(self, game_state: GameState) -> dict[str, Any]:
         """
         Get stub AI decision (original simple implementation)
 
@@ -753,7 +753,7 @@ class GameLoop:
         else:
             return self._simple_exploration_ai(game_state)
 
-    def _simple_battle_ai(self, _game_state: GameState) -> Dict[str, Any]:
+    def _simple_battle_ai(self, _game_state: GameState) -> dict[str, Any]:
         """Simple battle heuristic (stub)"""
         return {
             "action": "press:A",
@@ -762,7 +762,7 @@ class GameLoop:
             "confidence": 0.6,
         }
 
-    def _simple_menu_ai(self, _game_state: GameState) -> Dict[str, Any]:
+    def _simple_menu_ai(self, _game_state: GameState) -> dict[str, Any]:
         """Simple menu navigation"""
         return {
             "action": "press:DOWN",
@@ -771,7 +771,7 @@ class GameLoop:
             "confidence": 0.5,
         }
 
-    def _simple_dialog_ai(self, _game_state: GameState) -> Dict[str, Any]:
+    def _simple_dialog_ai(self, _game_state: GameState) -> dict[str, Any]:
         """Simple dialog handling"""
         return {
             "action": "press:A",
@@ -780,7 +780,7 @@ class GameLoop:
             "confidence": 0.9,
         }
 
-    def _simple_exploration_ai(self, _game_state: GameState) -> Dict[str, Any]:
+    def _simple_exploration_ai(self, _game_state: GameState) -> dict[str, Any]:
         """Simple exploration"""
         return {
             "action": "press:UP",
@@ -860,7 +860,7 @@ class GameLoop:
                 }
             )
 
-    def _parse_command(self, command_str: str) -> Optional[Dict[str, Any]]:
+    def _parse_command(self, command_str: str) -> dict[str, Any] | None:
         """Parse command string to components"""
         parts = command_str.split(":")
         if len(parts) != 2:
@@ -956,7 +956,7 @@ class GameLoop:
         return vision_screen_type == "battle"
 
 
-def create_config(args: Any) -> Dict[str, Any]:
+def create_config(args: Any) -> dict[str, Any]:
     """Create configuration from CLI arguments"""
     return {
         "rom_path": args.rom,
