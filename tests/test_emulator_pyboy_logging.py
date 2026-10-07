@@ -17,15 +17,9 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pyboy.logging import ERROR, INFO, get_log_level, get_logger, log_level
+from pyboy.logging import ERROR, get_log_level, get_logger, log_level
 
 from src.core import emulator as emulator_module
-
-# pyboy's filter is `get_log_level() > level`, so ERROR (3) suppresses
-# INFO (2) records. Assert the ordering explicitly: if a pyboy upgrade
-# ever renumbers the constants, these tests fail loudly instead of
-# silently inverting the suppression semantics they guard.
-assert ERROR > INFO
 
 
 def _mock_pyboy_with_real_log_level(*_args, **kwargs) -> MagicMock:

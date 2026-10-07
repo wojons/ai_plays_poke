@@ -1,5 +1,10 @@
 # PyBoy - Python Game Boy emulator
-pyboy>=1.0.0
+# 2.8.0 renumbered the logging constants NON-monotonically (INFO=4 >
+# CRITICAL=3 > ERROR=2), which inverted the boot-path log suppression
+# pinned by tests/test_emulator_pyboy_logging.py (SGB chatter leaked
+# into captured stdout in CI). Stay below 2.8.0 until that suite is
+# re-verified against the new level ordering.
+pyboy>=1.0.0,<2.8.0
 
 # LLM APIs (OpenRouter via requests)
 requests>=2.31.0
