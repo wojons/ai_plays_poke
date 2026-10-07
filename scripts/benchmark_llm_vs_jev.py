@@ -25,7 +25,8 @@ Fail-closed contract (the load-bearing rule): a benchmark-labelled run whose
 the battery aborts (rc 3), the episode row carries the guard stamp, and
 ``report`` refuses to write a comparison artifact from it. A contaminated arm
 is not a measurement. The same guard rejects an arm whose logs stamp a
-different decision_mode than the arm that was requested.
+different decision_mode than the arm that was requested. It also rejects a run
+whose run-level tool-surface stamp disagrees with its per-decision rows.
 
 Every figure in the artifact is derived from cron_logs/run_<id>.jsonl (and the
 per-run stdout log for the runner's own lock-rate) — nothing is hand-entered.
@@ -99,6 +100,7 @@ LOCK_RATE_RE = re.compile(
 GUARD_EVENT = "benchmark_purity_guard"
 REJECT_JEV_IN_PURE_LLM = "JEV_ANSWERED_IN_PURE_LLM_ARM"
 REJECT_MODE_MISMATCH = "MODE_MISMATCH_IN_ARM"
+REJECT_SURFACE_STAMP_MISMATCH = "SURFACE_STAMP_MISMATCH_IN_ARM"
 
 
 class BenchmarkGuardError(RuntimeError):
@@ -223,7 +225,14 @@ def _episode_skeleton() -> dict[str, Any]:
         "lock_total_cycles": None,
         "lock_rate": None,
         "autonomy": None,
+        "decision_mode": None,
         "decision_mode_log": None,
+        "decision_mode_family": None,
+        "agentic_tools_enabled": None,
+        "agentic_tool_calls": 0,
+        "pipeline": None,
+        "pipeline_counts": {},
+        "surface_stamp_mismatches": [],
         "run_completed": False,
         "errors": [],
     }
@@ -244,6 +253,12 @@ def episode_metrics_from_log(log_path: Path, stdout_path: Path | None = None) ->
         m["errors"].append("log missing")
         return m
     tile_set: set[tuple[Any, Any]] = set()
+    decision_modes: set[str] = set()
+    decision_mode_families: set[str] = set()
+    tool_enabled_values: set[bool] = set()
+    pipeline_counts: dict[str, int] = {}
+    agentic_tool_calls = 0
+    summary_surface: dict[str, Any] = {}
     for line in log_path.read_text(errors="replace").splitlines():
         line = line.strip()
         if not line:
@@ -267,6 +282,14 @@ def episode_metrics_from_log(log_path: Path, stdout_path: Path | None = None) ->
                 "teacher_escalations": r.get("teacher_escalations"),
             }
             m["decision_mode_log"] = r.get("decision_mode")
+            summary_surface = {
+                "decision_mode": r.get("decision_mode"),
+                "decision_mode_family": r.get("decision_mode_family"),
+                "agentic_tools_enabled": r.get("agentic_tools_enabled"),
+                "agentic_tool_calls": r.get("agentic_tool_calls"),
+                "pipeline": r.get("pipeline"),
+                "pipeline_counts": r.get("pipeline_counts"),
+            }
             m["run_completed"] = True
             teacher = r.get("teacher_escalations") or {}
             m["teacher_calls"] = max(m["teacher_calls"], teacher.get("count", 0) or 0)
@@ -283,6 +306,21 @@ def episode_metrics_from_log(log_path: Path, stdout_path: Path | None = None) ->
             m["decisions"] += 1
             m["cycles"] = max(m["cycles"], cycle)
             intent = r.get(DECISION_ROW_KEY)
+            mode = r.get("decision_mode")
+            if isinstance(mode, str):
+                decision_modes.add(mode)
+            family = r.get("decision_mode_family")
+            if isinstance(family, str):
+                decision_mode_families.add(family)
+            tools_enabled = r.get("agentic_tools_enabled")
+            if isinstance(tools_enabled, bool):
+                tool_enabled_values.add(tools_enabled)
+            row_tool_calls = r.get("agentic_tool_calls")
+            if isinstance(row_tool_calls, int) and not isinstance(row_tool_calls, bool):
+                agentic_tool_calls += max(0, row_tool_calls)
+            pipeline = r.get("pipeline")
+            if isinstance(pipeline, str) and pipeline:
+                pipeline_counts[pipeline] = pipeline_counts.get(pipeline, 0) + 1
             if isinstance(intent, str) and intent in FALLBACK_INTENTS:
                 m["fallback_decisions"] += 1
             else:
@@ -320,6 +358,60 @@ def episode_metrics_from_log(log_path: Path, stdout_path: Path | None = None) ->
         m["cost_usd_observed"] += _sum_cost_usd(r)
     m["cost_usd_observed"] = round(m["cost_usd_observed"], 6)
     m["tiles_visited_distinct"] = len(tile_set)
+    m["decision_mode"] = (
+        next(iter(decision_modes))
+        if len(decision_modes) == 1
+        else summary_surface.get("decision_mode")
+    )
+    m["decision_mode_family"] = (
+        next(iter(decision_mode_families))
+        if len(decision_mode_families) == 1
+        else summary_surface.get("decision_mode_family")
+    )
+    m["agentic_tools_enabled"] = (
+        next(iter(tool_enabled_values))
+        if len(tool_enabled_values) == 1
+        else summary_surface.get("agentic_tools_enabled")
+    )
+    m["agentic_tool_calls"] = agentic_tool_calls
+    m["pipeline_counts"] = pipeline_counts
+    pipelines = list(pipeline_counts)
+    m["pipeline"] = (
+        pipelines[0] if len(pipelines) == 1 else ("mixed" if pipelines else None)
+    )
+
+    decision_surface = {
+        "decision_mode": m["decision_mode"],
+        "decision_mode_family": m["decision_mode_family"],
+        "agentic_tools_enabled": m["agentic_tools_enabled"],
+        "agentic_tool_calls": m["agentic_tool_calls"],
+        "pipeline": m["pipeline"],
+        "pipeline_counts": m["pipeline_counts"],
+    }
+    for field, values in (
+        ("decision_mode", decision_modes),
+        ("decision_mode_family", decision_mode_families),
+        ("agentic_tools_enabled", tool_enabled_values),
+    ):
+        if len(values) > 1:
+            m["surface_stamp_mismatches"].append(
+                {
+                    "field": field,
+                    "decision_rows": sorted(values, key=str),
+                    "run_autonomy": summary_surface.get(field),
+                }
+            )
+    for field, summary_value in summary_surface.items():
+        # Older logs legitimately lack the S7 stamps. Compare only fields the
+        # summary actually supplied; new logs must agree field-for-field.
+        if summary_value is not None and summary_value != decision_surface[field]:
+            m["surface_stamp_mismatches"].append(
+                {
+                    "field": field,
+                    "decision_rows": decision_surface[field],
+                    "run_autonomy": summary_value,
+                }
+            )
     if m["map_sequence"]:
         m["final_map"] = m["map_sequence"][-1]["map"]
     if stdout_path is not None and stdout_path.exists():
@@ -347,7 +439,9 @@ def guard_benchmark_row(row: dict[str, Any]) -> tuple[str | None, list[str]]:
         measurement is contaminated no matter how small the leak), or
       REJECT_MODE_MISMATCH — the log's own run_autonomy row stamps a decision
         mode other than the arm that was requested (the argv and the run
-        disagree; the row cannot be attributed to either arm).
+        disagree; the row cannot be attributed to either arm), or
+      REJECT_SURFACE_STAMP_MISMATCH — the per-decision tool-surface fields and
+        the run-level summary disagree, so the arm is not comparable.
 
     The returned code is None exactly when the row is scorable; the guard
     stamp is written into the row either way so the artifact carries its own
@@ -371,6 +465,13 @@ def guard_benchmark_row(row: dict[str, Any]) -> tuple[str | None, list[str]]:
             f"run as arm={row.get('arm')!r}"
         )
         code = code or REJECT_MODE_MISMATCH
+    surface_mismatches = row.get("surface_stamp_mismatches") or []
+    if surface_mismatches:
+        reasons.append(
+            "run_autonomy tool-surface stamp disagrees with decision rows: "
+            + ", ".join(str(item.get("field")) for item in surface_mismatches)
+        )
+        code = code or REJECT_SURFACE_STAMP_MISMATCH
     row["guard"] = {
         "event": GUARD_EVENT,
         "status": "rejected" if code else "clean",
@@ -594,8 +695,25 @@ def _arm_aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     maps_reached = sorted({m for r in rows for m in (r.get("maps_seen") or [])})
     errors = sum(len(r.get("errors") or []) for r in rows)
     completed = sum(1 for r in rows if r.get("run_completed"))
+    mode_families = {r.get("decision_mode_family") for r in rows}
+    tools_enabled = {r.get("agentic_tools_enabled") for r in rows}
+    pipelines = {r.get("pipeline") for r in rows}
+    pipeline_counts: dict[str, int] = {}
+    for row in rows:
+        for pipeline, count in (row.get("pipeline_counts") or {}).items():
+            name = str(pipeline)
+            pipeline_counts[name] = pipeline_counts.get(name, 0) + int(count or 0)
     arm_row: dict[str, Any] = {
         "mode": rows[0].get("arm") if rows else None,
+        "decision_mode_family": (
+            next(iter(mode_families)) if len(mode_families) == 1 else "mixed"
+        ),
+        "agentic_tools_enabled": (
+            next(iter(tools_enabled)) if len(tools_enabled) == 1 else None
+        ),
+        "agentic_tool_calls": sum(int(r.get("agentic_tool_calls") or 0) for r in rows),
+        "pipeline": next(iter(pipelines)) if len(pipelines) == 1 else "mixed",
+        "pipeline_counts": pipeline_counts,
         "episodes": len(rows),
         "episodes_completed": completed,
         "decisions": decisions,
@@ -778,8 +896,9 @@ def cmd_report(episode_log: Path) -> int:
             "event": GUARD_EVENT,
             "contract": (
                 "a benchmark-labelled artifact fails closed if any decision "
-                "row in the llm arm carries jev_answered=True, or if an "
-                "episode's logs stamp a different decision_mode than its arm"
+                "row in the llm arm carries jev_answered=True, if an "
+                "episode's logs stamp a different decision_mode than its arm, "
+                "or if run-level and per-decision tool-surface stamps disagree"
             ),
             "rejected_rows": [
                 r.get("run_id") for r in rows if (r.get("guard") or {}).get("code")

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Callable
+from io import StringIO
 from pathlib import Path
 from typing import Any
 
@@ -417,6 +418,44 @@ def test_model_tool_surface_follows_system_two_family_without_touching_jev() -> 
     help_text = " ".join(cron_runner._main_parser().format_help().split())
     assert "verified model-tool surface" in help_text
     assert "JEV/hybrid never enables this surface" in help_text
+
+
+@pytest.mark.parametrize(
+    ("mode", "family", "pipeline", "tool_calls", "tools_enabled"),
+    [
+        ("jev", "system1+system2", "jev", 0, False),
+        ("llm", "system2", "agentic_tools", 1, True),
+    ],
+)
+def test_run_summary_matches_decision_tool_surface_stamps(
+    monkeypatch: pytest.MonkeyPatch,
+    mode: str,
+    family: str,
+    pipeline: str,
+    tool_calls: int,
+    tools_enabled: bool,
+) -> None:
+    monkeypatch.setattr(cron_runner, "DECISION_MODE", mode)
+    row = {
+        "intent": "benchmark decision",
+        "pipeline": pipeline,
+        "decision_mode": mode,
+        "decision_mode_family": family,
+        "agentic_tools_enabled": tools_enabled,
+        "agentic_tool_calls": tool_calls,
+        "jev_answered": mode == "jev",
+    }
+    autonomy = cron_runner._autonomy_counters([row])
+    buffer = StringIO()
+    summary = cron_runner._write_autonomy_row(buffer, "bench-par", autonomy)
+
+    assert summary["decision_mode"] == row["decision_mode"]
+    assert summary["decision_mode_family"] == row["decision_mode_family"]
+    assert summary["agentic_tools_enabled"] is row["agentic_tools_enabled"]
+    assert summary["agentic_tool_calls"] == row["agentic_tool_calls"]
+    assert summary["pipeline"] == row["pipeline"]
+    assert summary["pipeline_counts"] == {pipeline: 1}
+    assert json.loads(buffer.getvalue()) == summary
 
 
 def test_scripted_smoke_writes_model_chosen_tool_result_row(tmp_path: Path) -> None:

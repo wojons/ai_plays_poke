@@ -3365,11 +3365,17 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     handoff_blocked = 0
     memory_navigation_hits = 0
     memory_navigation_fallbacks = 0
+    agentic_tool_calls = 0
+    pipeline_counts: Counter[str] = Counter()
 
     for row in results:
         if "intent" not in row:
             continue
         decisions_total += 1
+        pipeline = row.get("pipeline")
+        if isinstance(pipeline, str) and pipeline:
+            pipeline_counts[pipeline] += 1
+        agentic_tool_calls += _as_int(row.get("agentic_tool_calls"))
         if row.get("jev_answered"):
             jev_answered += 1
         if row.get("jev_ok") is False:
@@ -3444,6 +3450,11 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         # vs those that were consulted and fell through to the existing path.
         "memory_navigation_hits": memory_navigation_hits,
         "memory_navigation_fallbacks": memory_navigation_fallbacks,
+        # S7 BENCH-PAR: derive the run-level tool-surface stamp from the same
+        # decision-row population as every other autonomy counter. This keeps
+        # benchmark summaries directly comparable with their source rows.
+        "agentic_tool_calls": agentic_tool_calls,
+        "pipeline_counts": dict(pipeline_counts),
     }
 
 
@@ -3504,6 +3515,11 @@ def _write_autonomy_row(
 
     Returns the row that was written (for callers/tests to assert on).
     """
+    pipeline_counts = autonomy.get("pipeline_counts", {})
+    if not isinstance(pipeline_counts, dict):
+        pipeline_counts = {}
+    pipelines = [str(name) for name, count in pipeline_counts.items() if count]
+    pipeline = pipelines[0] if len(pipelines) == 1 else ("mixed" if pipelines else None)
     row: dict[str, Any] = {
         "run_id": run_id,
         "event": AUTONOMY_LOG_EVENT,
@@ -3523,6 +3539,13 @@ def _write_autonomy_row(
         # alone — not only from the command line that produced it.
         "decision_mode": DECISION_MODE,
         "decision_mode_family": current_mode_family(),
+        # S7 BENCH-PAR: the run summary carries the same tool-surface fields as
+        # every decision row, so benchmark consumers need not infer the surface
+        # from a mode spelling or silently compare unlike logs.
+        "agentic_tools_enabled": _model_tools_enabled(DECISION_MODE),
+        "agentic_tool_calls": _as_int(autonomy.get("agentic_tool_calls")),
+        "pipeline": pipeline,
+        "pipeline_counts": pipeline_counts,
         "handoff_policy": dict(HANDOFF_POLICY),
         # Which triggers fired this run, and how often the policy refused one.
         # Counted from the decision rows by _autonomy_counters.

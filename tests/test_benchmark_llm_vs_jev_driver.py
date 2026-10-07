@@ -40,9 +40,11 @@ def _llm_decision_row(cycle=1, map_name="Pallet Town", **overrides):
     row = {
         "cycle": cycle,
         "screen": "overworld",
-        "pipeline": "controller",
+        "pipeline": "agentic_tools",
         "decision_mode": "llm",
         "decision_mode_family": "system2",
+        "agentic_tools_enabled": True,
+        "agentic_tool_calls": 0,
         "plan": ["UP"],
         "intent": "walk somewhere sensible",
         "jev_answered": False,
@@ -64,6 +66,8 @@ def _jev_decision_row(cycle=1, map_name="Pallet Town", **overrides):
         "pipeline": "jev",
         "decision_mode": "jev",
         "decision_mode_family": "system1+system2",
+        "agentic_tools_enabled": False,
+        "agentic_tool_calls": 0,
         "plan": ["UP"],
         "intent": "jev UP",
         "jev_answered": True,
@@ -79,6 +83,8 @@ def _jev_decision_row(cycle=1, map_name="Pallet Town", **overrides):
 
 
 def _autonomy_row(decisions=3, escalated=0, mode="llm", teacher_count=0):
+    tools_enabled = mode == "llm"
+    pipeline = "agentic_tools" if tools_enabled else "jev"
     return {
         "run_id": "bench1_llm_ep1_x",
         "event": "run_autonomy",
@@ -89,6 +95,10 @@ def _autonomy_row(decisions=3, escalated=0, mode="llm", teacher_count=0):
         "teacher_escalations": {"count": teacher_count, "improved": 0},
         "decision_mode": mode,
         "decision_mode_family": "system2" if mode == "llm" else "system1+system2",
+        "agentic_tools_enabled": tools_enabled,
+        "agentic_tool_calls": 0,
+        "pipeline": pipeline,
+        "pipeline_counts": {pipeline: decisions},
     }
 
 
@@ -157,6 +167,13 @@ def _episode_row(**overrides):
             "teacher_escalations": {"count": 0, "improved": 0},
         },
         "decision_mode_log": "llm",
+        "decision_mode": "llm",
+        "decision_mode_family": "system2",
+        "agentic_tools_enabled": True,
+        "agentic_tool_calls": 0,
+        "pipeline": "agentic_tools",
+        "pipeline_counts": {"agentic_tools": 5},
+        "surface_stamp_mismatches": [],
         "run_completed": True,
         "errors": [],
     }
@@ -177,6 +194,7 @@ def _battery_rows(n=2, cycles=5):
                 episode=i,
                 decisions=4 + i,
                 real_decisions=4 + i,
+                pipeline_counts={"agentic_tools": 4 + i},
                 autonomy={
                     "decisions_total": 4 + i,
                     "jev_answered": 0,
@@ -210,6 +228,11 @@ def _battery_rows(n=2, cycles=5):
                     "teacher_escalations": {"count": 2, "improved": 1},
                 },
                 decision_mode_log="jev",
+                decision_mode="jev",
+                decision_mode_family="system1+system2",
+                agentic_tools_enabled=False,
+                pipeline="jev",
+                pipeline_counts={"jev": 6 + i},
             )
         )
     return rows
@@ -258,6 +281,60 @@ class TestPlanRuns:
 
 
 class TestEpisodeMetricsFromLog:
+    def test_both_modes_stamp_comparable_tool_loop_fields(self, tmp_path):
+        llm_rows = [
+            _llm_decision_row(agentic_tool_calls=1),
+            {
+                **_autonomy_row(decisions=1, mode="llm"),
+                "agentic_tool_calls": 1,
+                "pipeline_counts": {"agentic_tools": 1},
+            },
+        ]
+        jev_rows = [_jev_decision_row(), _autonomy_row(decisions=1, mode="jev")]
+
+        llm = bench.episode_metrics_from_log(
+            _write_log(tmp_path, llm_rows, "run_llm.jsonl")
+        )
+        jev = bench.episode_metrics_from_log(
+            _write_log(tmp_path, jev_rows, "run_jev.jsonl")
+        )
+
+        assert jev["decision_mode"] == "jev"
+        assert jev["decision_mode_family"] == "system1+system2"
+        assert jev["agentic_tools_enabled"] is False
+        assert jev["agentic_tool_calls"] == 0
+        assert jev["pipeline"] == "jev"
+        assert llm["decision_mode"] == "llm"
+        assert llm["decision_mode_family"] == "system2"
+        assert llm["agentic_tools_enabled"] is True
+        assert llm["agentic_tool_calls"] >= 0
+        assert llm["pipeline"] == "agentic_tools"
+        assert llm["surface_stamp_mismatches"] == []
+        assert jev["surface_stamp_mismatches"] == []
+
+    def test_summary_surface_disagreement_is_rejected(self, tmp_path):
+        rows = [
+            _llm_decision_row(agentic_tool_calls=1),
+            {
+                **_autonomy_row(decisions=1, mode="llm"),
+                "agentic_tools_enabled": False,
+                "agentic_tool_calls": 1,
+                "pipeline_counts": {"agentic_tools": 1},
+            },
+        ]
+        metrics = bench.episode_metrics_from_log(_write_log(tmp_path, rows))
+        row = _episode_row(**metrics)
+
+        assert metrics["surface_stamp_mismatches"] == [
+            {
+                "field": "agentic_tools_enabled",
+                "decision_rows": True,
+                "run_autonomy": False,
+            }
+        ]
+        assert row["guard"]["status"] == "rejected"
+        assert row["guard"]["code"] == bench.REJECT_SURFACE_STAMP_MISMATCH
+
     def test_counts_controller_decisions_in_llm_arm(self, tmp_path):
         """The llm arm's decisions come from cron_runner's intent-row population
         (not the escalation-only population that undercounted ctrlwin)."""
@@ -495,6 +572,11 @@ class TestCmdReport:
         row = artifact["comparison"]["table"][0]
         for field in (
             "mode",
+            "decision_mode_family",
+            "agentic_tools_enabled",
+            "agentic_tool_calls",
+            "pipeline",
+            "pipeline_counts",
             "decisions",
             "cost_usd_observed",
             "tiles_visited_distinct",
