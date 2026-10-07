@@ -1,0 +1,171 @@
+commit 58b1897cc9d841a3a90a734182983daa8fb6fb63
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Oct 7 05:33:36 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Oct 7 05:33:36 2026 -0500
+
+    docs(bridge): PLAY-1 document live-play bridge enable/revoke + security model
+    
+    ch:trace row=PLAY-1 spec=docs/bridge.md witness=live:ruff-mypy-green
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ docs/api/cron_runner.md |   9 ++++
+ docs/api/index.md       |   1 +
+ docs/bridge.md          | 116 ++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 126 insertions(+)
+
+diff --git a/docs/api/cron_runner.md b/docs/api/cron_runner.md
+index 452cdf3..c3d5f77 100644
+--- a/docs/api/cron_runner.md
++++ b/docs/api/cron_runner.md
+@@ -254,6 +254,15 @@ Battle, dialog, menu, and name_entry screens go through the existing `StateWindo
+ 
+ The controller maintains its own knowledge, persisted to DuckBrain (namespace `pokemon-global`): optional `note` / `goal` / `study` fields in its JSON response are executed by the runner — notes are stored under `/notes/overworld-<cycle>`, the goal under `/goals/current` (and re-loaded at startup), and study keys are fetched and injected into the next cycle's prompt.
+ 
++### Live-play bridge (operator tool)
++
++When reviewing agentic or autonomous runs from the inside, the operator's
++input-side inspection tool is the live-play bridge (`scripts/game_bridge.py`,
++client `scripts/play.py`): it serves exactly the observation and state
++projection the decision model receives, and applies button presses, saves and
++frame captures against one live emulator. See [../bridge.md](../bridge.md) for
++enable/revoke steps and the security model.
++
+ ## Outputs
+ 
+ - `cron_logs/run_<id>.jsonl` — one JSON object per line (see schema below).
+diff --git a/docs/api/index.md b/docs/api/index.md
+index f131244..8121faf 100644
+--- a/docs/api/index.md
++++ b/docs/api/index.md
+@@ -33,6 +33,7 @@ This section documents all public APIs and interfaces for PTP-01X - an orchestra
+ | Tool | Description |
+ |------|-------------|
+ | [cron_runner](cron_runner.md) | Cron-friendly autonomous gameplay runner — CLI flags, pipeline, JSONL log schema, checkpoints, costs |
++| [Bridge](../bridge.md) | Live-play bridge (`scripts/game_bridge.py`) — operator input-side inspection of a live emulator; enable/revoke steps and security model |
+ | [Dashboard](dashboard.md) | Observability dashboard server (`src/dashboard/main.py`) — run instructions, auth, REST + WebSocket route reference |
+ 
+ ### Examples
+diff --git a/docs/bridge.md b/docs/bridge.md
+new file mode 100644
+index 0000000..5fc23fd
+--- /dev/null
++++ b/docs/bridge.md
+@@ -0,0 +1,116 @@
++# Live-Play Game Bridge (`scripts/game_bridge.py`)
++
++The bridge lets a human or agent play the live game cycle by cycle and inspect
++exactly what the decision model sees. It boots one emulator, keeps it alive, and
++serves the bounded text projection built from a live RAM snapshot — the same
++`RAMReader.observe()` → `state_projection.build()` output the game loop feeds the
++model, not a paraphrase. Client tool: `scripts/play.py`.
++
++## Security model
++
++- Off by default: nothing autostarts the bridge.
++- Binds `127.0.0.1` only (loopback, never `0.0.0.0`).
++- Refuses to boot without a token file.
++- Refuses a token file that is group/world-readable (requires mode `0600`).
++- Refuses tokens shorter than 24 characters.
++- Every request must carry the token, compared with `secrets.compare_digest`.
++
++A session with no token simply cannot talk to it. Enable per session; revoke by
++killing the process and deleting the token.
++
++## What it serves
++
++Newline-terminated JSON requests over a TCP socket (default port `8770`,
++loopback). Every request carries a `"token"` field and a `"cmd"` field:
++
++| `cmd` | Arguments | Effect |
++|---|---|---|
++| `health` | — | Bridge/ROM/boot status, pause state, goal |
++| `observe` | — | Full observation + state projection (what the decision model receives) |
++| `press` | `buttons` (list), `frames` (default 5), `settle` (default true) | Press buttons for N frames and settle |
++| `step` | `n` (default 30) | Advance N frames without pressing (rejected while paused) |
++| `save` | `slot` (default `slot1`) | Save emulator state to a slot |
++| `load` | `slot` (default `slot1`) | Load emulator state from a slot |
++| `frame` | `label` (default `now`) | Capture a PNG frame |
++| `raw` | — | Raw RAM reader observation (no projection) |
++| `pause` / `resume` | — | Pause/resume emulation |
++| `list_saves` | — | List saved slots |
++| `delete_save` | `slot` | Delete a saved slot |
++| `reset` | — | Reset the emulator |
++| `goal` | `text` | Set/read the current session goal |
++
++Unknown commands return `{"ok": false, "error": "unknown cmd ..."}`.
++
++### Server flags
++
++```
++python3 scripts/game_bridge.py --token-file TOKEN_FILE [--port N]
++                               [--max-workers N] [--request-timeout SECONDS]
++                               [--boot-state PATH] [--log PATH]
++```
++
++- `--token-file` (required): file holding the per-session token; must exist and be `0600`
++- `--port`: TCP port (default `8770`)
++- `--max-workers`: fixed worker-thread ceiling (default 4; pending queue has the same bound)
++- `--request-timeout`: seconds allowed to receive one newline-terminated request (default 30)
++- `--boot-state`: `.state` checkpoint to boot from
++- `--log`: log path override
++
++### Client (`scripts/play.py`)
++
++```
++python3 scripts/play.py [--frames N] CMD [args ...]
++```
++
++Commands: `observe, press, step, frame, save, load, goal, health, pause,
++resume, list_saves, delete_save, reset`. The token is read from
++`$AIPP_BRIDGE_TOKEN_FILE` (default `~/.hermes/aipp_bridge/session.token`); the
++port from `$AIPP_BRIDGE_PORT` (default `8770`). `--frames` controls how long a
++button is held (5 = one deliberate tap; the title screen needs ~30).
++
++## Enable
++
++```bash
++mkdir -p ~/.hermes/aipp_bridge
++chmod 700 ~/.hermes/aipp_bridge
++python3 -c "import secrets; print(secrets.token_urlsafe(32))" \
++    > ~/.hermes/aipp_bridge/session.token
++chmod 600 ~/.hermes/aipp_bridge/session.token
++
++# start the bridge (foreground; kill the process to stop)
++python3 scripts/game_bridge.py --token-file ~/.hermes/aipp_bridge/session.token
++
++# in another shell: verify it is up
++python3 scripts/play.py health
++```
++
++`scripts/play.py` picks up the default token path automatically; override with
++`AIPP_BRIDGE_TOKEN_FILE` / `AIPP_BRIDGE_PORT` when running more than one bridge.
++
++## Revoke
++
++```bash
++# kill the bridge process (Ctrl-C if foreground, or:)
++pkill -f scripts/game_bridge.py
++rm ~/.hermes/aipp_bridge/session.token
++```
++
++Deleting the token means any new bridge cannot be started with it and any
++client still holding it can no longer connect once the process is gone.
++
++## Concurrency
++
++The bridge serialises one request at a time against a single emulator under a
++lock, with a bounded worker pool and pending queue. The incident analysis in
++[bridge-thread-incident-2026-09-30.md](bridge-thread-incident-2026-09-30.md)
++covers what went wrong before those bounds existed. To verify current
++concurrency behaviour on your machine, run
++`scripts/verify_game_bridge_concurrency.py`.
++
++## Troubleshooting
++
++- Check `health` first: it reports ROM, boot state, pause state and goal.
++- Read the thread/concurrency incident write-up before debugging hangs:
++  [docs/bridge-thread-incident-2026-09-30.md](bridge-thread-incident-2026-09-30.md).
++- Run `scripts/verify_game_bridge_concurrency.py` to confirm the lock/queue
++  bounds behave as documented on this host.

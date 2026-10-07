@@ -422,14 +422,14 @@
         },
         {
             "file": "src/core/agentic_loop.py",
-            "context": "_tool_result",
+            "context": "_tool_walk",
             "button": "direction",
             "call": "press_button(direction, frames=5)",
             "reason": "Agentic tool transport: enacts the walk direction supplied by the model's chosen tool call; no action is selected here."
         },
         {
             "file": "src/core/agentic_loop.py",
-            "context": "_tool_result",
+            "context": "_tool_interact",
             "button": "a",
             "call": "press_button('a', frames=5)",
             "reason": "Agentic tool transport: performs the interaction requested by the model's chosen tool call; no action is selected here."

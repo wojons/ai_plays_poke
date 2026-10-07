@@ -508,6 +508,262 @@ def _state_signature(observation: dict[str, Any]) -> tuple[Any, ...]:
     )
 
 
+def _safe_run_id(run_id: str) -> str:
+    safe = "".join(char if char.isalnum() or char in "-_" else "-" for char in run_id)[
+        :80
+    ]
+    return safe or "unknown"
+
+
+def _tool_walk(
+    arguments: dict[str, Any], emulator: Any, observe: Any
+) -> tuple[bool, bool, str, bool]:
+    direction = str(arguments.get("direction", "")).lower()
+    tiles = arguments.get("tiles")
+    if direction not in {"up", "down", "left", "right"}:
+        return False, False, f"Error: invalid walk direction {direction!r}", False
+    if not isinstance(tiles, int) or not 1 <= tiles <= 3:
+        return False, False, "Error: walk tiles must be an integer in 1..3", False
+    before = observe()
+    before_pos = _position(before)
+    for _ in range(tiles):
+        emulator.press_button(direction, frames=5)
+        emulator.fast_forward(15)
+    after = observe()
+    after_pos = _position(after)
+    if None in before_pos or None in after_pos:
+        return False, False, "Error: movement verification unavailable", False
+    if after_pos == before_pos:
+        return False, True, "Error: position did not change after walk", False
+    return (
+        True,
+        True,
+        f"Walked {direction} {tiles} tile(s): {before_pos} -> {after_pos}",
+        False,
+    )
+
+
+def _tool_interact(
+    arguments: dict[str, Any], emulator: Any, observe: Any
+) -> tuple[bool, bool, str, bool]:
+    target = " ".join(str(arguments.get("target", "")).split())[:80]
+    if not target:
+        return False, False, "Error: interact requires a target", False
+    before = observe()
+    emulator.press_button("a", frames=5)
+    emulator.fast_forward(30)
+    after = observe()
+    if _state_signature(after) == _state_signature(before):
+        return (
+            False,
+            True,
+            "Error: interaction produced no observable state change",
+            False,
+        )
+    text = after.get("text_content") or after.get("text_lines") or []
+    return True, True, f"Interaction changed state; text={text}", False
+
+
+def _tool_read_dialog(observe: Any) -> tuple[bool, bool, str, bool]:
+    current = observe()
+    text = current.get("text_content") or current.get("text_lines") or []
+    if not text:
+        return False, True, "Error: no dialogue text is currently visible", False
+    return True, True, "Dialogue: " + " | ".join(str(item) for item in text), False
+
+
+def _tool_remember(
+    arguments: dict[str, Any], memory: AgentMemory, run_id: str, cycle: int
+) -> tuple[bool, bool, str, bool]:
+    key = " ".join(str(arguments.get("key", "")).split())[:160]
+    domain = " ".join(str(arguments.get("domain", "")).split())[:120]
+    facts = arguments.get("facts")
+    applies_when = arguments.get("applies_when")
+    if not key or not domain or not isinstance(facts, dict):
+        return (
+            False,
+            False,
+            "Error: remember requires key, domain, and object facts",
+            False,
+        )
+    if not isinstance(applies_when, dict):
+        return False, False, "Error: remember applies_when must be an object", False
+    record = {
+        "key": key,
+        "domain": domain,
+        "labels": [domain],
+        "facts": facts,
+        "confidence": 1.0,
+        "evidence": {"run_id": run_id, "cycle": cycle, "source": "remember"},
+        "applies_when": applies_when,
+    }
+    memory_id = memory.remember(record)
+    stored = memory.recall(key=key, limit=1)
+    if not stored:
+        return False, True, f"Error: memory write {memory_id} was not readable", False
+    return True, True, f"Remembered and verified {key} as {memory_id}", False
+
+
+def _tool_recall(
+    arguments: dict[str, Any], memory: AgentMemory
+) -> tuple[bool, bool, str, bool]:
+    recall_key = arguments.get("key")
+    labels = arguments.get("labels")
+    query_text = arguments.get("query")
+    if not any((recall_key, labels, query_text)):
+        return False, False, "Error: recall requires key, labels, or query", False
+    records = memory.recall(
+        key=str(recall_key) if recall_key else None,
+        labels=[str(item) for item in labels[:3]] if isinstance(labels, list) else None,
+        query=str(query_text) if query_text else None,
+        limit=max(1, min(int(arguments.get("limit", 4)), 4)),
+    )
+    return (
+        True,
+        True,
+        f"Recalled {len(records)} record(s): {json.dumps(records, default=str)}",
+        False,
+    )
+
+
+def _tool_set_goal(
+    arguments: dict[str, Any],
+    memory: AgentMemory,
+    context: BoundedAgentContext,
+    run_id: str,
+    cycle: int,
+) -> tuple[bool, bool, str, bool]:
+    text = " ".join(str(arguments.get("text", "")).split())[:240]
+    reason = " ".join(str(arguments.get("reason", "")).split())[:240]
+    if not text or not reason:
+        return False, False, "Error: set_goal requires text and reason", False
+    key = f"/run/{_safe_run_id(run_id)}/goal"
+    goal = {"text": text, "reason": reason}
+    memory_id = memory.remember(
+        {
+            "key": key,
+            "domain": "run/goal",
+            "labels": ["run/goal"],
+            "facts": goal,
+            "confidence": 1.0,
+            "evidence": {"run_id": run_id, "cycle": cycle, "source": "set_goal"},
+            "applies_when": {"run_id": run_id},
+        }
+    )
+    stored = memory.recall(key=key, limit=1)
+    if not stored:
+        return False, True, f"Error: goal write {memory_id} was not readable", False
+    context.current_goal = goal
+    return True, True, f"Set and verified goal {key}: {text}", False
+
+
+def _tool_check_goal(
+    memory: AgentMemory, context: BoundedAgentContext, run_id: str
+) -> tuple[bool, bool, str, bool]:
+    current_goal = context.current_goal
+    if current_goal is None:
+        stored = memory.recall(key=f"/run/{_safe_run_id(run_id)}/goal", limit=1)
+        if stored:
+            candidate = stored[0].get("facts") or stored[0].get("attributes")
+            if isinstance(candidate, dict):
+                current_goal = {
+                    "text": str(candidate.get("text", "")),
+                    "reason": str(candidate.get("reason", "")),
+                }
+                context.current_goal = current_goal
+    if current_goal is None:
+        return False, True, "Error: no current goal is set", False
+    return (
+        True,
+        True,
+        "Current goal: " + json.dumps(current_goal, ensure_ascii=False),
+        False,
+    )
+
+
+def _tool_delegate_research(
+    arguments: dict[str, Any],
+    memory: AgentMemory,
+    delegate: ResearchDelegate | None,
+    context: BoundedAgentContext,
+    projection: dict[str, Any],
+    caps: AgenticCaps,
+    cycle: int,
+) -> tuple[bool, bool, str, bool]:
+    if delegate is None:
+        return False, False, "Error: delegation is unavailable in this run", True
+    question = " ".join(str(arguments.get("question", "")).split())[:300]
+    if len(question) < 3:
+        return False, False, "Error: delegate_research requires a question", True
+    requested_budget = arguments.get("budget")
+    if not isinstance(requested_budget, dict):
+        return False, False, "Error: delegate_research requires a budget", True
+    delegate_caps = replace(
+        caps,
+        delegate_wall_seconds=min(
+            caps.delegate_wall_seconds,
+            max(
+                0.01,
+                float(requested_budget.get("wall_seconds", caps.delegate_wall_seconds)),
+            ),
+        ),
+        delegate_tool_calls=min(
+            caps.delegate_tool_calls,
+            max(1, int(requested_budget.get("tool_calls", caps.delegate_tool_calls))),
+        ),
+        delegate_cost_usd=min(
+            caps.delegate_cost_usd,
+            max(
+                0.000001,
+                float(requested_budget.get("cost_usd", caps.delegate_cost_usd)),
+            ),
+        ),
+    )
+    delegated = delegate.research(
+        question=question,
+        public_context=_public_context(projection, caps.public_context_chars),
+        caps=delegate_caps,
+    )
+    tool_calls = int(delegated.get("tool_calls", 0))
+    elapsed = float(delegated.get("elapsed_s", 0.0))
+    cost = float(delegated.get("cost_usd", 0.0))
+    if tool_calls > delegate_caps.delegate_tool_calls:
+        return False, False, "Error: delegate exceeded tool-call cap", True
+    if elapsed > delegate_caps.delegate_wall_seconds:
+        return False, False, "Error: delegate exceeded wall-clock cap", True
+    if cost > delegate_caps.delegate_cost_usd:
+        return False, False, "Error: delegate exceeded cost cap", True
+    finding = " ".join(str(delegated.get("finding", "")).split())[: caps.finding_chars]
+    if not finding:
+        return False, False, "Error: delegate returned no finding", True
+    raw_sources = delegated.get("sources", [])
+    sources = (
+        [str(source)[:160] for source in raw_sources[: caps.source_count]]
+        if isinstance(raw_sources, list)
+        else []
+    )
+    confidence = max(0.0, min(float(delegated.get("confidence", 0.0)), 1.0))
+    digest = hashlib.sha256(question.encode()).hexdigest()[:16]
+    record = {
+        "key": f"/world/research/{digest}",
+        "domain": "world/mechanics/research",
+        "labels": ["world/mechanics", "delegated"],
+        "finding": finding,
+        "sources": sources,
+        "confidence": confidence,
+        "evidence": {"cycle": cycle, "source": "delegate_research"},
+        "applies_when": {"question": question},
+    }
+    memory_id = memory.remember(record)
+    context.inject_finding(finding)
+    return (
+        True,
+        True,
+        f"Persisted delegated finding {memory_id}: {finding}; sources={sources}; confidence={confidence:.2f}",
+        True,
+    )
+
+
 def _tool_result(
     *,
     name: str,
@@ -524,304 +780,24 @@ def _tool_result(
 ) -> tuple[bool, bool, str, bool]:
     """Return ``ok, verified, result, is_delegation`` for one safe tool."""
     try:
-        if name == "walk":
-            direction = str(arguments.get("direction", "")).lower()
-            tiles = arguments.get("tiles")
-            if direction not in {"up", "down", "left", "right"}:
-                return (
-                    False,
-                    False,
-                    f"Error: invalid walk direction {direction!r}",
-                    False,
-                )
-            if not isinstance(tiles, int) or not 1 <= tiles <= 3:
-                return (
-                    False,
-                    False,
-                    "Error: walk tiles must be an integer in 1..3",
-                    False,
-                )
-            before = observe()
-            before_pos = _position(before)
-            for _ in range(tiles):
-                emulator.press_button(direction, frames=5)
-                emulator.fast_forward(15)
-            after = observe()
-            after_pos = _position(after)
-            if None in before_pos or None in after_pos:
-                return False, False, "Error: movement verification unavailable", False
-            if after_pos == before_pos:
-                return False, True, "Error: position did not change after walk", False
-            return (
-                True,
-                True,
-                f"Walked {direction} {tiles} tile(s): {before_pos} -> {after_pos}",
-                False,
-            )
-
-        if name == "interact":
-            target = " ".join(str(arguments.get("target", "")).split())[:80]
-            if not target:
-                return False, False, "Error: interact requires a target", False
-            before = observe()
-            emulator.press_button("a", frames=5)
-            emulator.fast_forward(30)
-            after = observe()
-            if _state_signature(after) == _state_signature(before):
-                return (
-                    False,
-                    True,
-                    "Error: interaction produced no observable state change",
-                    False,
-                )
-            text = after.get("text_content") or after.get("text_lines") or []
-            return True, True, f"Interaction changed state; text={text}", False
-
-        if name == "read_dialog":
-            current = observe()
-            text = current.get("text_content") or current.get("text_lines") or []
-            if not text:
-                return (
-                    False,
-                    True,
-                    "Error: no dialogue text is currently visible",
-                    False,
-                )
-            return (
-                True,
-                True,
-                "Dialogue: " + " | ".join(str(item) for item in text),
-                False,
-            )
-
-        if name == "remember":
-            key = " ".join(str(arguments.get("key", "")).split())[:160]
-            domain = " ".join(str(arguments.get("domain", "")).split())[:120]
-            facts = arguments.get("facts")
-            applies_when = arguments.get("applies_when")
-            if not key or not domain or not isinstance(facts, dict):
-                return (
-                    False,
-                    False,
-                    "Error: remember requires key, domain, and object facts",
-                    False,
-                )
-            if not isinstance(applies_when, dict):
-                return (
-                    False,
-                    False,
-                    "Error: remember applies_when must be an object",
-                    False,
-                )
-            record = {
-                "key": key,
-                "domain": domain,
-                "labels": [domain],
-                "facts": facts,
-                "confidence": 1.0,
-                "evidence": {"run_id": run_id, "cycle": cycle, "source": "remember"},
-                "applies_when": applies_when,
-            }
-            memory_id = memory.remember(record)
-            stored = memory.recall(key=key, limit=1)
-            if not stored:
-                return (
-                    False,
-                    True,
-                    f"Error: memory write {memory_id} was not readable",
-                    False,
-                )
-            return True, True, f"Remembered and verified {key} as {memory_id}", False
-
-        if name == "recall":
-            recall_key = arguments.get("key")
-            labels = arguments.get("labels")
-            query_text = arguments.get("query")
-            if not any((recall_key, labels, query_text)):
-                return (
-                    False,
-                    False,
-                    "Error: recall requires key, labels, or query",
-                    False,
-                )
-            records = memory.recall(
-                key=str(recall_key) if recall_key else None,
-                labels=[str(item) for item in labels[:3]]
-                if isinstance(labels, list)
-                else None,
-                query=str(query_text) if query_text else None,
-                limit=max(1, min(int(arguments.get("limit", 4)), 4)),
-            )
-            return (
-                True,
-                True,
-                f"Recalled {len(records)} record(s): {json.dumps(records, default=str)}",
-                False,
-            )
-
-        if name == "set_goal":
-            text = " ".join(str(arguments.get("text", "")).split())[:240]
-            reason = " ".join(str(arguments.get("reason", "")).split())[:240]
-            if not text or not reason:
-                return False, False, "Error: set_goal requires text and reason", False
-            safe_run_id = (
-                "".join(
-                    char if char.isalnum() or char in "-_" else "-" for char in run_id
-                )[:80]
-                or "unknown"
-            )
-            key = f"/run/{safe_run_id}/goal"
-            goal = {"text": text, "reason": reason}
-            memory_id = memory.remember(
-                {
-                    "key": key,
-                    "domain": "run/goal",
-                    "labels": ["run/goal"],
-                    "facts": goal,
-                    "confidence": 1.0,
-                    "evidence": {
-                        "run_id": run_id,
-                        "cycle": cycle,
-                        "source": "set_goal",
-                    },
-                    "applies_when": {"run_id": run_id},
-                }
-            )
-            stored = memory.recall(key=key, limit=1)
-            if not stored:
-                return (
-                    False,
-                    True,
-                    f"Error: goal write {memory_id} was not readable",
-                    False,
-                )
-            context.current_goal = goal
-            return True, True, f"Set and verified goal {key}: {text}", False
-
-        if name == "check_goal":
-            current_goal = context.current_goal
-            if current_goal is None:
-                safe_run_id = (
-                    "".join(
-                        char if char.isalnum() or char in "-_" else "-"
-                        for char in run_id
-                    )[:80]
-                    or "unknown"
-                )
-                stored = memory.recall(key=f"/run/{safe_run_id}/goal", limit=1)
-                if stored:
-                    candidate = stored[0].get("facts") or stored[0].get("attributes")
-                    if isinstance(candidate, dict):
-                        current_goal = {
-                            "text": str(candidate.get("text", "")),
-                            "reason": str(candidate.get("reason", "")),
-                        }
-                        context.current_goal = current_goal
-            if current_goal is None:
-                return False, True, "Error: no current goal is set", False
-            return (
-                True,
-                True,
-                "Current goal: " + json.dumps(current_goal, ensure_ascii=False),
-                False,
-            )
-
-        if name == "delegate_research":
-            if delegate is None:
-                return (
-                    False,
-                    False,
-                    "Error: delegation is unavailable in this run",
-                    True,
-                )
-            question = " ".join(str(arguments.get("question", "")).split())[:300]
-            if len(question) < 3:
-                return (
-                    False,
-                    False,
-                    "Error: delegate_research requires a question",
-                    True,
-                )
-            requested_budget = arguments.get("budget")
-            if not isinstance(requested_budget, dict):
-                return False, False, "Error: delegate_research requires a budget", True
-            delegate_caps = replace(
-                caps,
-                delegate_wall_seconds=min(
-                    caps.delegate_wall_seconds,
-                    max(
-                        0.01,
-                        float(
-                            requested_budget.get(
-                                "wall_seconds", caps.delegate_wall_seconds
-                            )
-                        ),
-                    ),
-                ),
-                delegate_tool_calls=min(
-                    caps.delegate_tool_calls,
-                    max(
-                        1,
-                        int(
-                            requested_budget.get("tool_calls", caps.delegate_tool_calls)
-                        ),
-                    ),
-                ),
-                delegate_cost_usd=min(
-                    caps.delegate_cost_usd,
-                    max(
-                        0.000001,
-                        float(requested_budget.get("cost_usd", caps.delegate_cost_usd)),
-                    ),
-                ),
-            )
-            delegated = delegate.research(
-                question=question,
-                public_context=_public_context(projection, caps.public_context_chars),
-                caps=delegate_caps,
-            )
-            tool_calls = int(delegated.get("tool_calls", 0))
-            elapsed = float(delegated.get("elapsed_s", 0.0))
-            cost = float(delegated.get("cost_usd", 0.0))
-            if tool_calls > delegate_caps.delegate_tool_calls:
-                return False, False, "Error: delegate exceeded tool-call cap", True
-            if elapsed > delegate_caps.delegate_wall_seconds:
-                return False, False, "Error: delegate exceeded wall-clock cap", True
-            if cost > delegate_caps.delegate_cost_usd:
-                return False, False, "Error: delegate exceeded cost cap", True
-            finding = " ".join(str(delegated.get("finding", "")).split())[
-                : caps.finding_chars
-            ]
-            if not finding:
-                return False, False, "Error: delegate returned no finding", True
-            raw_sources = delegated.get("sources", [])
-            sources = (
-                [str(source)[:160] for source in raw_sources[: caps.source_count]]
-                if isinstance(raw_sources, list)
-                else []
-            )
-            confidence = max(0.0, min(float(delegated.get("confidence", 0.0)), 1.0))
-            digest = hashlib.sha256(question.encode()).hexdigest()[:16]
-            record = {
-                "key": f"/world/research/{digest}",
-                "domain": "world/mechanics/research",
-                "labels": ["world/mechanics", "delegated"],
-                "finding": finding,
-                "sources": sources,
-                "confidence": confidence,
-                "evidence": {"cycle": cycle, "source": "delegate_research"},
-                "applies_when": {"question": question},
-            }
-            memory_id = memory.remember(record)
-            context.inject_finding(finding)
-            return (
-                True,
-                True,
-                f"Persisted delegated finding {memory_id}: {finding}; sources={sources}; confidence={confidence:.2f}",
-                True,
-            )
-
-        return False, False, f"Error: unknown agentic tool {name!r}", False
+        dispatch = {
+            "walk": lambda: _tool_walk(arguments, emulator, observe),
+            "interact": lambda: _tool_interact(arguments, emulator, observe),
+            "read_dialog": lambda: _tool_read_dialog(observe),
+            "remember": lambda: _tool_remember(arguments, memory, run_id, cycle),
+            "recall": lambda: _tool_recall(arguments, memory),
+            "set_goal": lambda: _tool_set_goal(
+                arguments, memory, context, run_id, cycle
+            ),
+            "check_goal": lambda: _tool_check_goal(memory, context, run_id),
+            "delegate_research": lambda: _tool_delegate_research(
+                arguments, memory, delegate, context, projection, caps, cycle
+            ),
+        }
+        handler = dispatch.get(name)
+        if handler is None:
+            return False, False, f"Error: unknown agentic tool {name!r}", False
+        return handler()
     except Exception as exc:
         return False, False, f"Error: {name} failed: {exc}", name == "delegate_research"
 

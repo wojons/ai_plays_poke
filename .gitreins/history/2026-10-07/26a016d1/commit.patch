@@ -1,0 +1,171 @@
+commit 6ac47657f63cbe220bfbba0c3caea27442589033
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Oct 7 03:29:58 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Oct 7 03:29:58 2026 -0500
+
+    feat: boot SAVE block reads freshest /game/save/current (DF-AIPP-5)
+    
+    The boot SAVE block previously rendered only /game/save/{party,items,location}.
+    It now also fetches the freshest /game/save/current record (the run-truth
+    distillation key written by MEM-3; duckbrain_client.get() already returns the
+    most recent active record) and renders one "- current:" line via a defensive
+    renderer: map/pos/party hints when present, otherwise a <=200-char fallback
+    body/JSON dump; absent or empty record leaves the output unchanged (the
+    byte-identical placeholder path is preserved when the store is empty).
+    
+    Stale marathon_driver.py references: none exist in this repo (verified across
+    all commits) - the stale refs live in fleet skills, out of worker scope.
+    
+    Verified: pytest tests/test_boot_memory_injection.py 14 passed (4 new),
+    ruff clean, mypy 0 errors, scripts/backfill_runs.py --dry-run exit 0, and a
+    live boot render showed "- current: Oak's Lab (map 40) at 3,2; 1 party member(s)".
+    
+    Addresses DF-AIPP-5.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ cron_runner.py                      | 44 +++++++++++++++++++++++++-
+ tests/test_boot_memory_injection.py | 62 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 105 insertions(+), 1 deletion(-)
+
+diff --git a/cron_runner.py b/cron_runner.py
+index 27f3061..23d7ea2 100644
+--- a/cron_runner.py
++++ b/cron_runner.py
+@@ -4832,6 +4832,10 @@ BOOT_SAVE_KEYS: tuple[str, ...] = (
+     "/game/save/items",
+     "/game/save/location",
+ )
++# DF-AIPP-5: the freshest distilled save record (written by the run-truth
++# distillation / MEM-3 backfill). duckbrain_client.get() already returns the
++# most recent active record for the key, so freshness is the store's job.
++BOOT_SAVE_CURRENT_KEY = "/game/save/current"
+ BOOT_LEARNING_KEYS: tuple[str, ...] = (
+     "/game/learning/battle",
+     "/game/learning/navigation",
+@@ -5015,8 +5019,41 @@ def _render_save_location(record: dict[str, Any]) -> str:
+     return text
+ 
+ 
++def _render_save_current(record: dict[str, Any]) -> str:
++    """Freshest-save line (DF-AIPP-5) from whatever fields the record carries."""
++    attributes = record.get("attributes") or {}
++    if not isinstance(attributes, dict):
++        attributes = {}
++    text = ""
++    name = attributes.get("map_name")
++    map_id = attributes.get("map_id")
++    pos = attributes.get("pos")
++    if name is not None or map_id is not None or pos is not None:
++        text = _collapse_ws(str(name or "unknown map"))
++        if map_id is not None:
++            text += f" (map {map_id})"
++        if isinstance(pos, dict):
++            x, y = pos.get("x"), pos.get("y")
++            if x is not None and y is not None:
++                text += f" at {x},{y}"
++        elif isinstance(pos, (list, tuple)) and len(pos) == 2:
++            text += f" at {pos[0]},{pos[1]}"
++    party_count = attributes.get("party_count")
++    if party_count is not None:
++        if text:
++            text += "; "
++        text += f"{_as_int(party_count)} party member(s)"
++    if text:
++        return text
++    # Defensive fallback: truncated JSON dump so *some* truth still rides.
++    body = _memory_record_body(record)
++    if not body:
++        body = json.dumps(record.get("attributes") or {}, default=str)
++    return body[:200]
++
++
+ def _gather_save_state(client: Any) -> list[str]:
+-    """Rendered SAVE-STATE lines: party, items, location (whichever exist)."""
++    """Rendered SAVE-STATE lines: party, items, location, current (whichever exist)."""
+     renderers = (_render_save_party, _render_save_items, _render_save_location)
+     lines: list[str] = []
+     for label, key, renderer in zip(
+@@ -5028,6 +5065,11 @@ def _gather_save_state(client: Any) -> list[str]:
+         body = renderer(record)
+         if body:
+             lines.append(f"- {label}: {body}")
++    current_record = _get_boot_record(client, BOOT_SAVE_CURRENT_KEY)
++    if current_record is not None:
++        body = _render_save_current(current_record)
++        if body:
++            lines.append(f"- current: {body}")
+     return lines
+ 
+ 
+diff --git a/tests/test_boot_memory_injection.py b/tests/test_boot_memory_injection.py
+index 424705a..3e4f5f9 100644
+--- a/tests/test_boot_memory_injection.py
++++ b/tests/test_boot_memory_injection.py
+@@ -331,3 +331,65 @@ def test_prompt_assembly_matches_populated_store(temp_store: Path) -> None:
+         client, {"map_name": "Pallet Town"}, "", "", boot_memory=boot.text
+     )
+     assert "BOOT MEMORY" not in str(client.messages[1]["content"])
++
++
++# --- DF-AIPP-5: boot SAVE block reads the freshest /game/save/current record ---
++
++
++def test_save_current_record_renders_current_line(temp_store: Path) -> None:
++    _ = temp_store
++    _remember(
++        "/game/save/current",
++        "game/saves",
++        {
++            "map_name": "Pewter City",
++            "map_id": 18,
++            "pos": {"x": 5, "y": 8},
++            "party_count": 2,
++        },
++    )
++    boot = cron_runner._build_boot_memory_blocks()
++    save = _block(boot.text, "SAVE", "RUN HISTORY")
++    assert "- current: Pewter City (map 18) at 5,8; 2 party member(s)" in save
++    assert boot.has_content is True
++
++
++def test_save_current_absent_leaves_output_unchanged(temp_store: Path) -> None:
++    _ = temp_store
++    _remember(
++        "/game/save/party",
++        "game/saves",
++        {"party_count": 1, "species_hint": "Squirtle"},
++    )
++    boot = cron_runner._build_boot_memory_blocks()
++    save = _block(boot.text, "SAVE", "RUN HISTORY")
++    assert "- current:" not in save
++    assert "- party: 1 party member(s); first species Squirtle" in save
++
++
++def test_save_current_malformed_record_skipped_not_raised(temp_store: Path) -> None:
++    _ = temp_store
++    _remember(
++        "/game/save/current", "game/saves", {"foo": "bar"}
++    )  # no recognized fields -> fallback body
++    boot = cron_runner._build_boot_memory_blocks()  # must never raise
++    save = _block(boot.text, "SAVE", "RUN HISTORY")
++    assert "- current: foo=bar" in save  # fallback body path, truncated to <=200 chars
++    current_line = next(
++        line for line in save.splitlines() if line.startswith("- current:")
++    )
++    assert len(current_line) <= 200 + len("- current: ")
++
++
++def test_save_current_empty_attributes_falls_back_to_body(temp_store: Path) -> None:
++    _ = temp_store
++    duckbrain_client.remember(
++        key="/game/save/current",
++        domain="game/saves",
++        attributes={},
++        embedding_text="standing outside Viridian Forest",
++        namespace=cron_runner.BOOT_MEMORY_NAMESPACE,
++    )
++    boot = cron_runner._build_boot_memory_blocks()
++    save = _block(boot.text, "SAVE", "RUN HISTORY")
++    assert "- current: standing outside Viridian Forest" in save

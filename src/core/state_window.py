@@ -754,14 +754,172 @@ class StateWindow:
 
     # ── Prompt building ─────────────────────────────────────────────
 
+    def _build_keyboard_section(self, kg: dict) -> list[str]:
+        """Build the name-entry keyboard navigation section."""
+        parts: list[str] = []
+        cursor = kg.get("current_cursor", {"row": 0, "col": 0})
+        cr, cc = cursor.get("row", 0), cursor.get("col", 0)
+        rows = kg.get("rows", [])
+        name_field = self.vision.get("name_field", "")
+
+        cursor_letter = "?"
+        if rows and cr < len(rows) and cc < len(rows[cr]):
+            cursor_letter = rows[cr][cc]
+
+        parts.append("\n  ⌨️ NAME ENTRY KEYBOARD — TYPE ONE LETTER AT A TIME:")
+        parts.append(f"  CURSOR IS ON LETTER: '{cursor_letter}' at row={cr}, col={cc}")
+        parts.append(f"  ALREADY TYPED: '{name_field}'")
+
+        target_name = "ASH"
+        if name_field and len(name_field) > 0:
+            typed_count = len(name_field)
+            if typed_count < len(target_name):
+                next_letter = target_name[typed_count]
+                tr, tc = self._find_letter_in_grid(rows, next_letter)
+                if tr >= 0:
+                    dirs = self._compute_directions(cr, cc, tr, tc)
+                    parts.append(
+                        f"  NEXT LETTER TO TYPE: '{next_letter}' at row={tr}, col={tc}"
+                    )
+                    if not dirs:
+                        parts.append(
+                            f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!"
+                        )
+                    else:
+                        parts.append(
+                            f"  TO REACH '{next_letter}': {' then '.join(dirs)}"
+                        )
+                        parts.append("  After reaching it, press A to type the letter.")
+                else:
+                    parts.append(
+                        f"  NEXT LETTER '{next_letter}' not found — navigate to END"
+                    )
+            else:
+                parts.append(
+                    "  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A."
+                )
+        else:
+            first_letter = target_name[0]
+            tr, tc = self._find_letter_in_grid(rows, first_letter)
+            if tr >= 0:
+                needed = self._compute_direction_labels(cr, cc, tr, tc)
+                parts.append(
+                    f"  TARGET NAME: '{target_name}' — first letter is '{first_letter}' at row={tr}, col={tc}"
+                )
+                if not needed:
+                    parts.append(f"  ⚡ CURSOR IS ON '{first_letter}' — press A NOW!")
+                else:
+                    parts.append(
+                        f"  MOVE TO '{first_letter}': {' then '.join(needed)} — then press A."
+                    )
+
+        if rows:
+            parts.append("  Grid reference:")
+            for ri, row in enumerate(rows):
+                parts.append(f"    Row {ri}: {row}")
+        parts.append(f"  Bottom row: {kg.get('bottom_row', [])}")
+        return parts
+
+    def _find_letter_in_grid(self, rows: list, letter: str) -> tuple[int, int]:
+        """Find a letter's position in the keyboard grid."""
+        for ri, row in enumerate(rows):
+            for ci, cell in enumerate(row):
+                if cell.upper() == letter.upper():
+                    return ri, ci
+        return -1, -1
+
+    def _compute_directions(self, cr: int, cc: int, tr: int, tc: int) -> list[str]:
+        """Compute directional instructions from cursor to target."""
+        dirs = []
+        dr = tr - cr
+        dc = tc - cc
+        if dr < 0:
+            dirs.append(f"press UP {abs(dr)} time(s)")
+        elif dr > 0:
+            dirs.append(f"press DOWN {dr} time(s)")
+        if dc < 0:
+            dirs.append(f"press LEFT {abs(dc)} time(s)")
+        elif dc > 0:
+            dirs.append(f"press RIGHT {dc} time(s)")
+        return dirs
+
+    def _compute_direction_labels(
+        self, cr: int, cc: int, tr: int, tc: int
+    ) -> list[str]:
+        """Compute short direction labels (e.g., 'UP 2', 'RIGHT 3')."""
+        needed = []
+        dr = tr - cr
+        dc = tc - cc
+        if dr < 0:
+            needed.append(f"UP {abs(dr)}")
+        elif dr > 0:
+            needed.append(f"DOWN {dr}")
+        if dc < 0:
+            needed.append(f"LEFT {abs(dc)}")
+        elif dc > 0:
+            needed.append(f"RIGHT {dc}")
+        return needed
+
+    def _build_observation_section(self) -> list[str]:
+        """Build the observation section from vision data."""
+        parts = ["\nobservation:"]
+        parts.append(f"  Screen: {self.vision.get('screen_type', '?')}")
+        if self.vision.get("screen_subtype"):
+            parts.append(f"  Subtype: {self.vision['screen_subtype']}")
+        if self.vision.get("name_field"):
+            parts.append(f"  Name field: {self.vision['name_field']}")
+        return parts
+
+    def _build_text_content_section(self) -> list[str]:
+        """Build the screen text section."""
+        from src.core.prompt_loader import get_text_content
+
+        content = get_text_content(self.vision)
+        if not content:
+            return []
+        parts = ["\n  SCREEN TEXT (read this — it tells you what to do):"]
+        for line in content:
+            parts.append(f"    > {line}")
+        return parts
+
+    def _build_surroundings_section(self) -> list[str]:
+        """Build the adjacent tiles and menu section."""
+        parts = []
+        menu_items = self.vision.get("menu_items", [])
+        if menu_items:
+            parts.append(f"  Menu: {menu_items}")
+        adj = self.vision.get("adjacent_tiles", {})
+        if adj:
+            parts.append(
+                f"  Surroundings: up={adj.get('up', '?')} down={adj.get('down', '?')} "
+                f"left={adj.get('left', '?')} right={adj.get('right', '?')}"
+            )
+        return parts
+
+    def _build_history_section(self) -> list[str]:
+        """Build the recent actions history section."""
+        if not self._history:
+            return []
+        parts = ["\nRecent actions in this state:"]
+        for h in self._history[-3:]:
+            role = h.get("role", "")
+            if role == "recall":
+                parts.append(
+                    f"  Recalled: {h.get('query', '')} → {h.get('results', '')}"
+                )
+            elif role == "remember":
+                parts.append(f"  Remembered: {h.get('key', '')}")
+            elif role == "set_goal":
+                parts.append(f"  Set goal: {h.get('goal', '')}")
+            elif role == "query_global":
+                parts.append(f"  Asked global: {h.get('question', '')}")
+            else:
+                parts.append(f"  Step {h.get('step', '?')}: {h.get('action', '?')}")
+        return parts
+
     def _build_prompt(self) -> str:
         """Assemble the focused state window prompt."""
-        parts: list[str] = []
-
         # ── RAM reader compact prompt path ──────────────────────────
-        # Routes to battle-specific prompt when in battle, otherwise the
-        # overworld compact prompt (which still requires player_x to be
-        # present in vision data).
         if self.use_ram_prompts:
             screen = self.vision.get("result", self.vision.get("screen_type", ""))
             if screen == "battle" or self.vision.get("battle_state"):
@@ -769,186 +927,52 @@ class StateWindow:
             if "player_x" in self.vision:
                 return self._build_ram_prompt()
 
-        # 0. Core system prompt + hints (from core.yaml + hint layers)
+        parts: list[str] = []
+
+        # Core system prompt + hints
         if self._system_prompt:
             parts.append(self._system_prompt)
 
-        # 1. Compacted global context (system role)
+        # Global context
         parts.append("\nGLOBAL STATE:\n" + self.global_ctx.compact())
 
-        # 1b. HSM state
+        # HSM state
         hsm_name = self.hsm.get_current_state_name()
         available = self.hsm.get_available_transitions()
         parts.append(f"\nHSM STATE: {hsm_name}")
         if available:
             parts.append(f"  Valid next states: {', '.join(sorted(available))}")
 
-        # 2. State workflow
+        # State workflow
         if self._workflow:
             parts.append("\nCURRENT TASK:\n" + self._workflow)
 
-        # 3. Observation from vision
-        parts.append("\nobservation:")
-        parts.append(f"  Screen: {self.vision.get('screen_type', '?')}")
-        if self.vision.get("screen_subtype"):
-            parts.append(f"  Subtype: {self.vision['screen_subtype']}")
-        if self.vision.get("name_field"):
-            parts.append(f"  Name field: {self.vision['name_field']}")
+        # Observation
+        parts.extend(self._build_observation_section())
 
-        # Keyboard grid — critical for name_entry navigation
+        # Keyboard grid for name entry
         kg = self.vision.get("keyboard_grid", {})
         if kg:
-            cursor = kg.get("current_cursor", {"row": 0, "col": 0})
-            cr, cc = cursor.get("row", 0), cursor.get("col", 0)
-            rows = kg.get("rows", [])
-            name_field = self.vision.get("name_field", "")
+            parts.extend(self._build_keyboard_section(kg))
 
-            # Figure out what letter the cursor is on
-            cursor_letter = "?"
-            if rows and cr < len(rows) and cc < len(rows[cr]):
-                cursor_letter = rows[cr][cc]
+        # Text content
+        parts.extend(self._build_text_content_section())
 
-            parts.append("\n  ⌨️ NAME ENTRY KEYBOARD — TYPE ONE LETTER AT A TIME:")
-            parts.append(
-                f"  CURSOR IS ON LETTER: '{cursor_letter}' at row={cr}, col={cc}"
-            )
-            parts.append(f"  ALREADY TYPED: '{name_field}'")
+        # Surroundings and menu
+        parts.extend(self._build_surroundings_section())
 
-            # Determine target name and next action
-            target_name = "ASH"  # default
-            if name_field and len(name_field) > 0:
-                typed_count = len(name_field)
-                if typed_count < len(target_name):
-                    next_letter = target_name[typed_count]
-                    # Find next_letter in the grid
-                    tr, tc = -1, -1
-                    for ri, row in enumerate(rows):
-                        for ci, letter in enumerate(row):
-                            if letter.upper() == next_letter.upper():
-                                tr, tc = ri, ci
-                                break
-                        if tr >= 0:
-                            break
-                    if tr >= 0:
-                        dr = tr - cr  # delta rows (negative = UP, positive = DOWN)
-                        dc = tc - cc  # delta cols (negative = LEFT, positive = RIGHT)
-                        dirs = []
-                        if dr < 0:
-                            dirs.append(f"press UP {abs(dr)} time(s)")
-                        elif dr > 0:
-                            dirs.append(f"press DOWN {dr} time(s)")
-                        if dc < 0:
-                            dirs.append(f"press LEFT {abs(dc)} time(s)")
-                        elif dc > 0:
-                            dirs.append(f"press RIGHT {dc} time(s)")
-                        parts.append(
-                            f"  NEXT LETTER TO TYPE: '{next_letter}' at row={tr}, col={tc}"
-                        )
-                        if not dirs:
-                            parts.append(
-                                f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!"
-                            )
-                        else:
-                            parts.append(
-                                f"  TO REACH '{next_letter}': {' then '.join(dirs)}"
-                            )
-                            parts.append(
-                                "  After reaching it, press A to type the letter."
-                            )
-                    else:
-                        parts.append(
-                            f"  NEXT LETTER '{next_letter}' not found — navigate to END"
-                        )
-                else:
-                    parts.append(
-                        "  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A."
-                    )
-            else:
-                # Nothing typed yet — first letter of target
-                tr, tc = -1, -1
-                first_letter = target_name[0]
-                for ri, row in enumerate(rows):
-                    for ci, letter in enumerate(row):
-                        if letter.upper() == first_letter.upper():
-                            tr, tc = ri, ci
-                            break
-                    if tr >= 0:
-                        break
-                if tr >= 0:
-                    dr = tr - cr
-                    dc = tc - cc
-                    needed = []
-                    if dr < 0:
-                        needed.append(f"UP {abs(dr)}")
-                    elif dr > 0:
-                        needed.append(f"DOWN {dr}")
-                    if dc < 0:
-                        needed.append(f"LEFT {abs(dc)}")
-                    elif dc > 0:
-                        needed.append(f"RIGHT {dc}")
-                    parts.append(
-                        f"  TARGET NAME: '{target_name}' — first letter is '{first_letter}' at row={tr}, col={cc}"
-                    )
-                    if not needed:
-                        parts.append(
-                            f"  ⚡ CURSOR IS ON '{first_letter}' — press A NOW!"
-                        )
-                    else:
-                        parts.append(
-                            f"  MOVE TO '{first_letter}': {' then '.join(needed)} — then press A."
-                        )
-
-            if rows:
-                parts.append("  Grid reference:")
-                for ri, row in enumerate(rows):
-                    parts.append(f"    Row {ri}: {row}")
-            parts.append(f"  Bottom row: {kg.get('bottom_row', [])}")
-
-        # Text content — the agent reads this to make decisions
-        from src.core.prompt_loader import get_text_content
-
-        content = get_text_content(self.vision)
-        if content:
-            parts.append("\n  SCREEN TEXT (read this — it tells you what to do):")
-            for line in content:
-                parts.append(f"    > {line}")
-
-        menu_items = self.vision.get("menu_items", [])
-        if menu_items:
-            parts.append(f"  Menu: {menu_items}")
-        adj = self.vision.get("adjacent_tiles", {})
-        if adj:
-            parts.append(
-                f"  Surroundings: up={adj.get('up', '?')} down={adj.get('down', '?')} left={adj.get('left', '?')} right={adj.get('right', '?')}"
-            )
-
-        # 4. Step counter
+        # Step counter
         parts.append(f"\nStep {self._step_count} of {self.max_steps} in this state.")
 
-        # 5. Recent actions memory window (controller context — prevents loops)
+        # Recent actions memory window
         recent_actions = self._build_recent_actions_text()
         if recent_actions:
             parts.append("\n" + recent_actions)
 
-        # 6. History (last 3 actions in this state)
-        if self._history:
-            parts.append("\nRecent actions in this state:")
-            for h in self._history[-3:]:
-                role = h.get("role", "")
-                if role == "recall":
-                    parts.append(
-                        f"  Recalled: {h.get('query', '')} → {h.get('results', '')}"
-                    )
-                elif role == "remember":
-                    parts.append(f"  Remembered: {h.get('key', '')}")
-                elif role == "set_goal":
-                    parts.append(f"  Set goal: {h.get('goal', '')}")
-                elif role == "query_global":
-                    parts.append(f"  Asked global: {h.get('question', '')}")
-                else:
-                    parts.append(f"  Step {h.get('step', '?')}: {h.get('action', '?')}")
+        # History
+        parts.extend(self._build_history_section())
 
-        # 6. Output instruction
+        # Output instruction
         parts.append(
             "\nOUTPUT: Call a tool. Use DuckBrain to remember things or set goals. "
             "If you need info from global state that isn't shown above, use query_global."

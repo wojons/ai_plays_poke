@@ -1294,3 +1294,33 @@ tasks:
   status: complete
   created_at: '2026-10-07T08:55:02.348789+00:00'
   completed_at: '2026-10-07T09:34:31.973596+00:00'
+- id: PLAY-1
+  title: Document live-play bridge (game_bridge.py) enable/revoke + security model
+    in repo docs
+  criteria:
+  - docs/bridge.md exists with enable/revoke steps and the token security model; docs/api/cron_runner.md
+    references the bridge (grep -c 'game_bridge' >= 1); docs/api/index.md links docs/bridge.md;
+    documented commands verified against scripts/game_bridge.py source; ruff+mypy
+    green; commit pushed to origin/main
+  status: complete
+  created_at: '2026-10-07T10:26:01.485676+00:00'
+  completed_at: '2026-10-07T10:38:37.301662+00:00'
+- id: FLK-2
+  title: 'Harden flaky CI test: SGB INFO message leaks through pyboy log suppression
+    under CI load'
+  criteria:
+  - tests/test_emulator_pyboy_logging.py::test_sgb_info_message_is_not_visible_at_error_level
+    passes 10/10 consecutive locally after the fix; the capture hardening addresses
+    the CI-load race; commit pushed to origin/main; CI rerun of both failed runs is
+    green
+  status: complete
+  created_at: '2026-10-07T10:54:17.199755+00:00'
+  completed_at: '2026-10-07T11:58:03.417660+00:00'
+- id: PXC-AI-PLAYS-POKE-COMPLEXITY
+  title: 'Reduce cyclomatic complexity: 135 violations (71 C901, 41 PLR0912, 23 PLR0915)'
+  criteria:
+  - Extract helper functions from the top 10 most complex functions until ruff --select
+    C901,PLR0912,PLR0915 reports <50 violations (60% reduction); full test suite remains
+    green; no behavior changes
+  status: in_progress
+  created_at: '2026-10-07T12:21:30.221043+00:00'
