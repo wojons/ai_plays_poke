@@ -171,7 +171,7 @@ class TestStarterSelection:
             "species_hint": "Charmander",
         }
 
-    @pytest.mark.parametrize("before,after", [(0, 0), (1, 1), (1, 2)])
+    @pytest.mark.parametrize(("before", "after"), [(0, 0), (1, 1), (1, 2)])
     def test_non_starter_transitions_do_not_build_milestone(
         self, before: int, after: int
     ) -> None:

@@ -533,13 +533,14 @@ dbc.remember(
     labels=["world", "visited"],
 )
 """
-        subprocess.run(
+        subprocess.run(  # noqa: S603 — sys.executable on a repo child, test harness
             [sys.executable, "-c", writer],
             cwd=repo_root,
             env=env,
             check=True,
             capture_output=True,
             text=True,
+            shell=False,
         )
 
         reader = """
@@ -552,13 +553,14 @@ print(json.dumps({
     "by_similarity": dbc.search("northern exit"),
 }))
 """
-        completed = subprocess.run(
+        completed = subprocess.run(  # noqa: S603 — sys.executable on a repo child, test harness
             [sys.executable, "-c", reader],
             cwd=repo_root,
             env=env,
             check=True,
             capture_output=True,
             text=True,
+            shell=False,
         )
         retrieved = json.loads(completed.stdout)
 

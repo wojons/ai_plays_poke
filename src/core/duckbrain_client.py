@@ -131,7 +131,8 @@ def recall(
                     results.append(record)
                     if len(results) >= limit:
                         return results
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
+            logger.debug("recall: skipping unreadable %s: %s", jsonl_path, exc)
             continue
 
     return results
@@ -176,7 +177,8 @@ def list_keys(
                         keys.add(k)
             if truncated:
                 break
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
+            logger.debug("list_keys: skipping unreadable %s: %s", jsonl_path, exc)
             continue
 
     if truncated:
@@ -242,7 +244,8 @@ def search(
                         results.append(record)
                         if len(results) >= limit:
                             return results
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
+            logger.debug("search: skipping unreadable %s: %s", jsonl_path, exc)
             continue
 
     return results

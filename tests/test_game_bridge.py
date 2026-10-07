@@ -22,7 +22,7 @@ from typing import Any
 from scripts import game_bridge
 
 
-TOKEN = "test-token-that-is-long-enough"
+TOKEN = "test-token-that-is-long-enough"  # noqa: S105 — fake fixture token, not a secret
 WORKER_POLL_INTERVAL = 0.02
 WORKER_ADMISSION_TIMEOUT = 2.0
 # Admission + busy observation together must stay inside the fake Game's 3s
@@ -232,7 +232,7 @@ def test_token_authentication_and_one_request_per_connection_are_preserved() -> 
 
 def test_soak_watchdog_uses_fake_game_and_enforces_process_thread_ceiling() -> None:
     repo = Path(__file__).resolve().parents[1]
-    completed = subprocess.run(
+    completed = subprocess.run(  # noqa: S603 — sys.executable on a repo script, test harness
         [
             sys.executable,
             str(repo / "scripts" / "verify_game_bridge_concurrency.py"),
@@ -248,6 +248,7 @@ def test_soak_watchdog_uses_fake_game_and_enforces_process_thread_ceiling() -> N
         text=True,
         timeout=10,
         check=False,
+        shell=False,
     )
 
     assert completed.returncode == 0, completed.stderr

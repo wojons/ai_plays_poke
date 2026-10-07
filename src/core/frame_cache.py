@@ -73,7 +73,7 @@ class FrameCache:
     @staticmethod
     def hash_frame(frame_bytes: bytes) -> str:
         """Return the md5 hex digest for raw screenshot bytes."""
-        return hashlib.md5(frame_bytes).hexdigest()
+        return hashlib.md5(frame_bytes, usedforsecurity=False).hexdigest()
 
     def lookup(self, frame_hash: str) -> dict[str, Any] | None:
         """Return the cached entry for *frame_hash*, or None on miss."""

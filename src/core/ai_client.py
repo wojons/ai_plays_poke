@@ -9,6 +9,7 @@ import os
 import time
 import base64
 import json
+import logging
 import re
 import threading
 import warnings
@@ -938,8 +939,10 @@ class JSONResponseParser:
             if result:
                 self.parse_success_count += 1
                 return result
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 — any parse failure falls through to retry
+            logging.getLogger(__name__).debug(
+                "JSON parse attempt failed; falling back to retry/fallback: %s", exc
+            )
 
         self.parse_failure_count += 1
 
@@ -1099,7 +1102,15 @@ class RateLimiter:
     def get_delay(self, retry_count: int) -> float:
         """Calculate exponential backoff delay"""
         delay = min(self.base_delay * (2**retry_count), self.max_delay)
-        random_value = int(hashlib.md5(str(time.time()).encode()).hexdigest(), 16) % 100
+        random_value = (
+            int(
+                hashlib.md5(
+                    str(time.time()).encode(), usedforsecurity=False
+                ).hexdigest(),
+                16,
+            )
+            % 100
+        )
         jitter = delay * 0.1 * (random_value / 100)
         return float(delay + jitter)
 

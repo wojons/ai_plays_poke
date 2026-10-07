@@ -274,7 +274,7 @@ class VisionPipeline:
         median = np.median(dct_low)
         hash_bits = (dct_low > median).astype(int)
         hash_str = "".join(str(b) for b in hash_bits.flatten())
-        return hashlib.md5(hash_str.encode()).hexdigest()[:16]
+        return hashlib.md5(hash_str.encode(), usedforsecurity=False).hexdigest()[:16]
 
     def _simple_dct_2d(self, block: np.ndarray) -> np.ndarray:
         """Simple 2D DCT implementation using numpy"""

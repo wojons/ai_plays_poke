@@ -344,7 +344,7 @@ class TestMainPreflightGate:
         return calls, log_dir / "run_gate.jsonl"
 
     @pytest.mark.parametrize(
-        "argv,expected_calls,expected_status",
+        ("argv", "expected_calls", "expected_status"),
         [
             pytest.param([], [15], "pass", id="default-jev"),
             pytest.param(["--decision-mode", "jev"], [15], "pass", id="jev"),

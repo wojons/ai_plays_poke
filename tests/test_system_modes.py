@@ -106,7 +106,7 @@ def test_system1_does_invoke_the_fast_tier(monkeypatch):
 
 # ─────────────────────────────────────────── M3: triggers are classifiable
 @pytest.mark.parametrize(
-    "reason,expected",
+    ("reason", "expected"),
     [
         ("failure: last action changed nothing", "failure"),
         ("insufficient_state (0.20) missing=map_topology", "gap"),

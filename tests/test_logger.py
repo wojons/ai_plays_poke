@@ -1005,7 +1005,7 @@ class TestLogFunctionCall:
         try:
             fail()
         except ValueError as e:
-            assert "expected failure" in str(e)
+            assert "expected failure" in str(e)  # noqa: PT017 — message guard, not a raises-test
         except KeyError:
             pass  # pre-existing logging collision, exception still tried to propagate
 

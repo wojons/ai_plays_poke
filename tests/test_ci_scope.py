@@ -39,13 +39,14 @@ def test_ci_mypy_covers_runtime_scripts_without_duplicate_modules() -> None:
         f"{Path(sys.executable).parent}{os.pathsep}{environment.get('PATH', '')}"
     )
 
-    completed = subprocess.run(
+    completed = subprocess.run(  # noqa: S603 — repo-defined mypy command, test harness
         shlex.split(command),
         cwd=REPO_ROOT,
         env=environment,
         capture_output=True,
         text=True,
         check=False,
+        shell=False,
     )
 
     assert completed.returncode == 0, (

@@ -934,8 +934,8 @@ class TestErrorRecovery:
 
             try:
                 game_loop.run_single_tick()
-            except Exception:
-                pass
+            except Exception as _exc:  # noqa: S110,BLE001 — crash-tolerance IS the test
+                pass  # the assertion below checks liveness, not the exception
 
             assert game_loop.is_running == initial_running or mock_emulator.stop.called
 
@@ -984,8 +984,8 @@ class TestErrorRecovery:
                     game_loop._execute_pending_commands()
                     if not game_loop.pending_commands:
                         break
-                except Exception:
-                    pass
+                except Exception as _exc:  # noqa: S110,BLE001 — retry-on-error IS the test
+                    pass  # loop retries; success is implied by pending_commands draining
 
     def test_invalid_command_handling(  # type: ignore[no-untyped-def]
         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection

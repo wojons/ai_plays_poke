@@ -35,19 +35,21 @@ from src.core.tools import (
 import subprocess
 import os
 import logging
+import shutil
 
 logger = logging.getLogger(__name__)
 
 # ── DuckBrain CLI wrapper ──────────────────────────────────────────────────
 
 _DUCKBRAIN_CLI = os.path.expanduser("~/duckbrain/bin/duckbrain.js")
+_NODE = shutil.which("node") or "node"
 
 
 def _duckbrain_remember(key: str, fact: str, namespace: str = "pokemon-global") -> str:
     """Store a discovery via DuckBrain CLI."""
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603 — literal local CLI argv, no shell
         [
-            "node",
+            _NODE,
             _DUCKBRAIN_CLI,
             "remember",
             key,
@@ -59,15 +61,16 @@ def _duckbrain_remember(key: str, fact: str, namespace: str = "pokemon-global") 
         text=True,
         timeout=10,
         cwd=os.path.expanduser("~/duckbrain"),
+        shell=False,
     )
     return result.stdout.strip() or result.stderr.strip()
 
 
 def _duckbrain_recall(query: str, namespace: str = "pokemon-global") -> str:
     """Query memories via DuckBrain CLI."""
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603 — literal local CLI argv, no shell
         [
-            "node",
+            _NODE,
             _DUCKBRAIN_CLI,
             "recall",
             f"--prefix={query}",
@@ -77,6 +80,7 @@ def _duckbrain_recall(query: str, namespace: str = "pokemon-global") -> str:
         text=True,
         timeout=10,
         cwd=os.path.expanduser("~/duckbrain"),
+        shell=False,
     )
     return result.stdout.strip() or "nothing found"
 
@@ -627,7 +631,7 @@ class StateWindow:
                         embedding_text=f"Current goal: {goal}",
                     )
                 except Exception as _e:  # memory persistence is best-effort
-                    pass
+                    logger.debug("DuckBrain goal persistence failed (ignored): %s", _e)
                 self._history.append({"role": "set_goal", "goal": goal})
                 continue
 
@@ -1251,9 +1255,9 @@ class StateWindow:
                 fact=entry,
                 namespace="pokemon-global",
             )
-        except Exception:
+        except Exception as exc:
             # DuckBrain is best-effort — never crash the game loop
-            pass
+            logger.debug("DuckBrain HSM transition log failed (ignored): %s", exc)
 
     @staticmethod
     def _hsm_type_to_state_type(state_type: str) -> str:

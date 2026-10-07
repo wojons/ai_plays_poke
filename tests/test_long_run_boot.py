@@ -42,7 +42,7 @@ def test_default_boot_resolves_to_pallet_town_map_0():
     import hashlib
 
     assert (
-        hashlib.md5(long_run.BOOT.read_bytes()).hexdigest()
+        hashlib.md5(long_run.BOOT.read_bytes(), usedforsecurity=False).hexdigest()
         == "81e4ec4e8d1b62002bc78f619c5fc79c"
     )
 

@@ -109,7 +109,7 @@ class TestGetModelPricing:
 
         assert get_model_pricing("openai/gpt-4o-mini") == (0.15, 0.6)
 
-    @pytest.mark.parametrize("model, expected", EXPECTED_MODEL_PRICING.items())
+    @pytest.mark.parametrize(("model", "expected"), EXPECTED_MODEL_PRICING.items())
     def test_every_documented_table_entry(
         self, model: str, expected: tuple[float, float]
     ) -> None:

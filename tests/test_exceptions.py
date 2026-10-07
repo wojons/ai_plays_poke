@@ -303,7 +303,7 @@ class TestExceptionEdgeCases:
             exc = cls("test")
             try:
                 raise exc
-            except Exception:
+            except Exception:  # noqa: S110 — the pass IS the test: proving Exception catches it
                 pass
             else:
                 pytest.fail(f"{cls.__name__} was not caught by Exception")

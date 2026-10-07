@@ -345,7 +345,7 @@ class TestLoadEnvAbs:
         run_base1_baseline.load_env_abs(tmp_path / "nope.env", ("OPENROUTER_API_KEY",))
 
 
-@pytest.mark.parametrize("n,cycles", [(0, 5), (6, 5), (5, 0), (5, 31)])
+@pytest.mark.parametrize(("n", "cycles"), [(0, 5), (6, 5), (5, 0), (5, 31)])
 def test_cmd_run_rejects_out_of_contract_invocations(n, cycles, monkeypatch, tmp_path):
     monkeypatch.setattr(run_base1_baseline, "REPO", tmp_path)
     # Pin the paths the guards check so no real ROM/boot state is consulted;

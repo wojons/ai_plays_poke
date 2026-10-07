@@ -11,12 +11,13 @@ WRAPPER = REPO_ROOT / "scripts" / "hooks" / "pre-commit"
 
 
 def _run(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
+    return subprocess.run(  # noqa: S603 — explicit-argv test helper for the tracked wrapper
         args,
         cwd=cwd,
         check=True,
         capture_output=True,
         text=True,
+        shell=False,
     )
 
 
@@ -78,13 +79,14 @@ def _invoke_wrapper(
             "FAKE_GITREINS_RC": str(rc),
         }
     )
-    return subprocess.run(
-        ["bash", str(WRAPPER)],
+    return subprocess.run(  # noqa: S603 — resolved bash on the repo's own wrapper, test harness
+        [shutil.which("bash") or "bash", str(WRAPPER)],
         cwd=repo,
         env=env,
         capture_output=True,
         text=True,
         check=False,
+        shell=False,
     )
 
 

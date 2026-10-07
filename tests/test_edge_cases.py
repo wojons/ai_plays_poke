@@ -41,7 +41,7 @@ class TestROMHandling:
         try:
             from src.core.emulator import Emulator
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
                 Emulator(rom_path=temp_path)
         finally:
             os.unlink(temp_path)
@@ -55,7 +55,7 @@ class TestROMHandling:
         try:
             from src.core.emulator import Emulator
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
                 Emulator(rom_path=temp_path)
         finally:
             if os.path.exists(temp_path):
@@ -156,7 +156,7 @@ class TestROMHandling:
 
             from src.core.emulator import Emulator
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
                 Emulator(rom_path=temp_path)
         finally:
             os.chmod(temp_path, 0o644)
@@ -170,7 +170,7 @@ class TestROMHandling:
         try:
             from src.core.emulator import Emulator
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
                 Emulator(rom_path=temp_path)
         finally:
             os.unlink(temp_path)
@@ -184,7 +184,7 @@ class TestROMHandling:
         try:
             from src.core.emulator import Emulator
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
                 Emulator(rom_path=temp_path)
         finally:
             os.unlink(temp_path)
@@ -221,7 +221,7 @@ class TestAPIKeyHandling:
 
             client = AIModelClient(api_key="invalid-key-format")
 
-            with pytest.raises(Exception):
+            with pytest.raises(Exception):  # noqa: PT011 — any validation failure counts
                 client._validate_api_key()
 
     def test_api_key_expired(self) -> None:
@@ -236,7 +236,7 @@ class TestAPIKeyHandling:
 
             from src.core.ai_client import AIModelClient
 
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises(Exception) as exc_info:  # noqa: PT011,PT012 — type-agnostic; import+build+call raise together
                 client = AIModelClient(api_key="sk-expired-key")
                 client._validate_api_key()
 
@@ -330,7 +330,7 @@ class TestNetworkHandling:
 
             from src.core.ai_client import AIModelClient
 
-            with pytest.raises((ConnectionRefusedError, Exception)):
+            with pytest.raises((ConnectionRefusedError, Exception)):  # noqa: PT012 — import+build+call raise together
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {}, max_retries=0)
 
@@ -343,7 +343,7 @@ class TestNetworkHandling:
 
             from src.core.ai_client import AIModelClient
 
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises(Exception) as exc_info:  # noqa: PT011,PT012 — type-agnostic; import+build+call raise together
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
@@ -364,7 +364,7 @@ class TestNetworkHandling:
 
             from src.core.ai_client import AIModelClient
 
-            with pytest.raises((ssl.SSLCertVerificationError, Exception)):
+            with pytest.raises((ssl.SSLCertVerificationError, Exception)):  # noqa: PT012 — import+build+call raise together
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
@@ -375,7 +375,7 @@ class TestNetworkHandling:
 
             from src.core.ai_client import AIModelClient
 
-            with pytest.raises((ConnectionResetError, Exception)):
+            with pytest.raises((ConnectionResetError, Exception)):  # noqa: PT012 — import+build+call raise together
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {}, max_retries=0)
 
@@ -391,7 +391,7 @@ class TestNetworkHandling:
 
             from src.core.ai_client import AIModelClient
 
-            with pytest.raises((json.JSONDecodeError, Exception)):
+            with pytest.raises((json.JSONDecodeError, Exception)):  # noqa: PT012 — import+build+call raise together
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
@@ -402,7 +402,7 @@ class TestNetworkHandling:
 
             from src.core.ai_client import AIModelClient
 
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises(Exception) as exc_info:  # noqa: PT011,PT012 — type-agnostic; import+build+call raise together
                 client = AIModelClient(api_key="sk-test")
                 client._make_request_with_retry("test", {})
 
@@ -448,12 +448,12 @@ class TestDatabaseHandling:
                 time.sleep(0.2)
                 try:
                     conn.close()
-                except Exception:
+                except sqlite3.Error:
                     pass
 
             threading.Thread(target=release_lock, daemon=True).start()
 
-            with pytest.raises((sqlite3.OperationalError, Exception)):
+            with pytest.raises((sqlite3.OperationalError, Exception)):  # noqa: PT012 — import+build+call raise together
                 from src.db.database import GameDatabase
 
                 GameDatabase(db_path=db_path)
@@ -461,7 +461,7 @@ class TestDatabaseHandling:
             if os.path.exists(db_path):
                 try:
                     conn.close()
-                except Exception:
+                except sqlite3.Error:
                     pass
                 os.unlink(db_path)
 
@@ -506,7 +506,7 @@ class TestDatabaseHandling:
             if os.path.exists(db_path):
                 try:
                     os.unlink(db_path)
-                except Exception:
+                except OSError:
                     pass
 
     def test_database_missing_table(self) -> None:

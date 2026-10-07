@@ -9,7 +9,10 @@ from PIL import Image
 
 
 def test_rom(
-    rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_interval: int = 100
+    rom_path: str,
+    rom_name: str,
+    num_ticks: int = 500,  # noqa: PT028 — helper of this standalone script, never pytest-collected
+    screenshot_interval: int = 100,  # noqa: PT028 — helper of this standalone script, never pytest-collected
 ) -> bool:
     """Run PyBoy test for a specific ROM"""
 
@@ -82,7 +85,10 @@ def main() -> None:
     # ROM configurations
     roms = [
         ("data/rom/pokemon_red.gb", "pokemon_red"),
-        ("data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb", "pokemon_blue"),
+        (
+            "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb",
+            "pokemon_blue",
+        ),
         ("data/rom/pokemon_green.gb", "pokemon_green"),
         ("data/rom/pokemon_yellow.gb", "pokemon_yellow"),
         ("data/rom/pokemon_gold.gbc", "pokemon_gold"),

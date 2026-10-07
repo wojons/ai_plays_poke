@@ -207,7 +207,7 @@ class VisionClient:
     def _compute_hash(screenshot: np.ndarray) -> str:
         """MD5 hash of the first 1 KB of pixel data."""
         head = screenshot.tobytes()[:1024]
-        return hashlib.md5(head).hexdigest()
+        return hashlib.md5(head, usedforsecurity=False).hexdigest()
 
     # A Game Boy frame is 160x144 px. Measured on this repo's own frames, SAME prompt and
     # SAME frame, changing only the scaling - run twice, because the two runs disagreed:

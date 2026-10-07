@@ -18,7 +18,7 @@ import cron_runner
 from src.core import duckbrain_client
 
 
-@pytest.fixture()
+@pytest.fixture
 def temp_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Point duckbrain_client's namespace root at a throwaway temp dir."""
 

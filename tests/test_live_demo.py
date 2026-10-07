@@ -61,7 +61,7 @@ def _live_enabled() -> bool:
 
 
 @pytest.fixture(scope="session")
-def _require_live(request: pytest.FixtureRequest) -> Path:
+def require_live(request: pytest.FixtureRequest) -> Path:
     """Skip all live-demo tests unless opted in AND ROM + API key present."""
     if not (request.config.getoption("--live-api") or _live_enabled()):
         pytest.skip("live-API tests are opt-in: set PTP_LIVE=1 or run with --live-api")
@@ -79,9 +79,9 @@ def _require_live(request: pytest.FixtureRequest) -> Path:
 @pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api
-def test_live_completes_one_cycle(_require_live: Path) -> None:
+def test_live_completes_one_cycle(require_live: Path) -> None:
     """AC-010: DemoRunner.run() with real ROM + owl-alpha completes ≥1 cycle."""
-    rom_path = _require_live
+    rom_path = require_live
     runner = DemoRunner(str(rom_path))
     try:
         result = runner.run(max_cycles=1, screenshot_interval=30, skip_intro=True)
@@ -106,9 +106,9 @@ def test_live_completes_one_cycle(_require_live: Path) -> None:
 @pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api
-def test_tool_calls_are_valid(_require_live: Path) -> None:
+def test_tool_calls_are_valid(require_live: Path) -> None:
     """AC-011: Decision loop produces valid tool calls (press_button, wait) from AI response."""
-    rom_path = _require_live
+    rom_path = require_live
     runner = DemoRunner(str(rom_path))
     try:
         result = runner.run(max_cycles=5, screenshot_interval=30, skip_intro=True)
@@ -157,13 +157,13 @@ def test_tool_calls_are_valid(_require_live: Path) -> None:
 @pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api
-def test_screenshots_valid_numpy_arrays(_require_live: Path) -> None:
+def test_screenshots_valid_numpy_arrays(require_live: Path) -> None:
     """AC-012: Screenshots captured at each interval are valid numpy arrays.
 
     GB:  (144, 160, 3)   — SGB border cropped
     GBA: (160, 240, 3)   — full GBA frame
     """
-    rom_path = _require_live
+    rom_path = require_live
     # Determine expected dimensions from the ROM platform
     emu = Emulator(str(rom_path))
     try:
@@ -217,9 +217,9 @@ def test_screenshots_valid_numpy_arrays(_require_live: Path) -> None:
 @pytest.mark.heavy
 @pytest.mark.integration
 @pytest.mark.live_api
-def test_demo_summary_fields(_require_live: Path) -> None:
+def test_demo_summary_fields(require_live: Path) -> None:
     """AC-013: Demo summary includes screen_types_seen, success_rate, elapsed_s."""
-    rom_path = _require_live
+    rom_path = require_live
     runner = DemoRunner(str(rom_path))
     try:
         result = runner.run(max_cycles=3, screenshot_interval=30, skip_intro=True)

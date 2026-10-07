@@ -6,6 +6,7 @@ Supports Pokemon names, menu items, and dialog text.
 """
 
 import json
+import logging
 import re
 from typing import Optional, List, Dict, Any, Tuple
 from dataclasses import dataclass, field
@@ -13,6 +14,8 @@ from pathlib import Path
 
 import numpy as np
 from PIL import Image
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -139,8 +142,10 @@ class OCREngine:
                 font = ImageFont.load_default()
             draw.text((0, 0), char, fill=1, font=font)
             template = np.array(img)
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 — template gen is best-effort; zeros fallback
+            logger.debug(
+                "Font template generation failed for %r, using zeros: %s", char, exc
+            )
 
         return template
 

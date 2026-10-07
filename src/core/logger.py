@@ -235,8 +235,8 @@ class RotationFileHandler(logging.FileHandler):
                 with gzip.open(filename + ".gz", "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
             os.remove(filename)
-        except Exception:
-            pass  # Ignore compression errors
+        except Exception:  # noqa: S110,BLE001 — we ARE the logger's handler: re-entrant
+            pass  # logging here would deadlock the logging lock; silent skip is intended
 
     def _clean_old_backups(self) -> None:
         """Clean old backup files"""
