@@ -9,7 +9,8 @@ description = "PTP-01X Autonomous Pokemon AI Benchmarking System"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "pyboy>=1.0.0",
+    "pyboy>=1.0.0,<2.8.0",  # 2.8.0 renumbered log levels non-monotonically — see requirements.txt
+
     "openai>=1.0.0",
     "anthropic>=0.3.0",
     "pydantic>=2.0",
