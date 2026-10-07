@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import cron_runner
@@ -127,13 +128,23 @@ def test_model_chosen_walk_is_executed_verified_and_stamped() -> None:
     assert event["decision_mode"] == "agentic"
     assert event["decision_mode_family"] == "system2"
     assert event["agentic_tools_enabled"] is True
-    assert {tool["function"]["name"] for tool in client.calls[0]["tools"]} >= {
+    schemas = {
+        tool["function"]["name"]: tool["function"]["parameters"]
+        for tool in client.calls[0]["tools"]
+    }
+    assert set(schemas) == {
         "walk",
         "interact",
-        "read_dialogue",
+        "read_dialog",
+        "remember",
         "recall",
         "delegate_research",
+        "set_goal",
+        "check_goal",
     }
+    assert schemas["interact"]["required"] == ["target"]
+    assert schemas["delegate_research"]["required"] == ["question", "budget"]
+    assert event["agentic_tool_calls"] == 1
 
 
 def test_failed_tool_result_is_visible_to_model_and_never_becomes_blind_a() -> None:
@@ -165,6 +176,91 @@ def test_failed_tool_result_is_visible_to_model_and_never_becomes_blind_a() -> N
     assert '"ok": false' in client.calls[1]["prompt"]
     assert result.decision["plan"] == []
     assert result.decision["intent"] != "parse_failure_fallback"
+
+
+def test_model_can_remember_then_recall_labeled_facts() -> None:
+    client = _FakeClient(
+        [
+            {
+                "name": "remember",
+                "arguments": {
+                    "key": "/world/object/1/4_7",
+                    "domain": "world/object",
+                    "facts": {"identity": "mailbox", "interaction": "none"},
+                    "applies_when": {"map_id": 1},
+                },
+            },
+            {
+                "name": "recall",
+                "arguments": {"key": "/world/object/1/4_7"},
+            },
+            {"plan": [], "intent": "memory verified"},
+        ]
+    )
+    memory = InMemoryAgentMemory()
+
+    result = run_agentic_cycle(
+        client=client,
+        emulator=_FakeEmulator(),
+        observe=lambda: {},
+        projection={"map_id": 1, "result": "overworld"},
+        context=BoundedAgentContext(),
+        memory=memory,
+        delegate=None,
+        model="fake/model",
+        cycle=6,
+        decision_mode="llm",
+        decision_mode_family="system2",
+        caps=AgenticCaps(max_tool_calls=3),
+        run_id="tools-1-test",
+    )
+
+    assert [event["tool_name"] for event in result.events] == ["remember", "recall"]
+    assert all(event["ok"] and event["verified"] for event in result.events)
+    assert result.events[1]["result"].startswith("Recalled 1 record(s)")
+    assert memory.records[0]["key"] == "/world/object/1/4_7"
+    assert memory.records[0]["facts"]["identity"] == "mailbox"
+
+
+def test_model_can_set_and_check_run_goal() -> None:
+    client = _FakeClient(
+        [
+            {
+                "name": "set_goal",
+                "arguments": {"text": "Reach Route 1", "reason": "Explore north"},
+            },
+            {"name": "check_goal", "arguments": {}},
+            {"plan": [], "intent": "goal confirmed"},
+        ]
+    )
+    context = BoundedAgentContext()
+    memory = InMemoryAgentMemory()
+
+    result = run_agentic_cycle(
+        client=client,
+        emulator=_FakeEmulator(),
+        observe=lambda: {},
+        projection={"map_id": 1, "result": "overworld"},
+        context=context,
+        memory=memory,
+        delegate=None,
+        model="fake/model",
+        cycle=7,
+        decision_mode="agentic",
+        decision_mode_family="system2",
+        caps=AgenticCaps(max_tool_calls=3),
+        run_id="run-abc",
+    )
+
+    assert [event["tool_name"] for event in result.events] == ["set_goal", "check_goal"]
+    assert result.events[1]["result"] == (
+        'Current goal: {"text": "Reach Route 1", "reason": "Explore north"}'
+    )
+    assert memory.records[0]["key"] == "/run/run-abc/goal"
+    assert context.current_goal == {
+        "text": "Reach Route 1",
+        "reason": "Explore north",
+    }
 
 
 class _FakeDelegate:
@@ -204,7 +300,14 @@ def test_delegation_is_capped_persisted_and_consumed_by_later_cycle() -> None:
         [
             {
                 "name": "delegate_research",
-                "arguments": {"question": "How can I recognize a healing location?"},
+                "arguments": {
+                    "question": "How can I recognize a healing location?",
+                    "budget": {
+                        "wall_seconds": 2.0,
+                        "tool_calls": 1,
+                        "cost_usd": 0.001,
+                    },
+                },
             },
             {"plan": [], "intent": "store the research before moving"},
         ]
@@ -270,9 +373,9 @@ def test_delegation_is_capped_persisted_and_consumed_by_later_cycle() -> None:
 def test_tool_cap_is_hard_and_mode_is_explicitly_opt_in() -> None:
     client = _FakeClient(
         [
-            {"name": "read_dialogue", "arguments": {}},
-            {"name": "read_dialogue", "arguments": {}},
-            {"name": "read_dialogue", "arguments": {}},
+            {"name": "read_dialog", "arguments": {}},
+            {"name": "read_dialog", "arguments": {}},
+            {"name": "read_dialog", "arguments": {}},
         ]
     )
     emulator = _FakeEmulator()
@@ -302,6 +405,37 @@ def test_tool_cap_is_hard_and_mode_is_explicitly_opt_in() -> None:
     assert parser.parse_args(["--decision-mode", "agentic"]).decision_mode == "agentic"
     assert cron_runner.DEFAULT_DECISION_MODE == "jev"
     assert cron_runner.decision_mode_family("agentic") == cron_runner.MODE_SYSTEM2
+
+
+def test_model_tool_surface_follows_system_two_family_without_touching_jev() -> None:
+    assert cron_runner._model_tools_enabled("agentic") is True
+    assert cron_runner._model_tools_enabled("llm") is True
+    assert cron_runner._model_tools_enabled("system2") is True
+    assert cron_runner._model_tools_enabled("jev") is False
+    assert cron_runner._model_tools_enabled("system1+system2") is False
+    assert cron_runner._model_tools_enabled("system1") is False
+    help_text = " ".join(cron_runner._main_parser().format_help().split())
+    assert "verified model-tool surface" in help_text
+    assert "JEV/hybrid never enables this surface" in help_text
+
+
+def test_scripted_smoke_writes_model_chosen_tool_result_row(tmp_path: Path) -> None:
+    from scripts.smoke_agentic_tools import run_smoke
+
+    output = tmp_path / "run_tools1_smoke.jsonl"
+    rows = run_smoke(output)
+
+    logged = [json.loads(line) for line in output.read_text().splitlines()]
+    assert logged == rows
+    assert logged[0]["event"] == "agent_tool_call"
+    assert logged[0]["decision_mode"] == "llm"
+    assert logged[0]["decision_mode_family"] == "system2"
+    assert logged[0]["agentic_tools_enabled"] is True
+    assert logged[0]["agentic_tool_calls"] >= 1
+    assert logged[0]["tool_name"] == "walk"
+    assert logged[0]["ok"] is True
+    assert logged[0]["verified"] is True
+    assert "Walked right 1 tile" in logged[0]["result"]
 
 
 def test_agentic_mode_routes_around_jev_without_changing_jev_default(

@@ -1,8 +1,8 @@
 """Bounded opt-in agentic controller loop for the live Pokémon harness.
 
-The default JEV path does not import or invoke this loop.  The live runner calls
-it only for the explicit ``agentic`` decision mode, keeping benchmark history
-comparable while providing real model-chosen, verified tools.
+The default JEV path does not import or invoke this loop. The live runner calls
+it only for System-Two decision modes (``agentic``, ``llm``, or ``system2``),
+keeping JEV history comparable while providing real model-chosen, verified tools.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import json
 import queue
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Protocol
 
 from src.core.tools import parse_tool_call
@@ -63,6 +63,7 @@ class BoundedAgentContext:
     turns: list[dict[str, Any]] = field(default_factory=list)
     summary: str = ""
     delegated_findings: list[str] = field(default_factory=list)
+    current_goal: dict[str, str] | None = None
 
     @staticmethod
     def _compact(value: Any, limit: int = 180) -> str:
@@ -139,7 +140,7 @@ class BoundedAgentContext:
 
 
 class AgentMemory(Protocol):
-    def remember_finding(self, record: dict[str, Any]) -> str: ...
+    def remember(self, record: dict[str, Any]) -> str: ...
 
     def recall(
         self,
@@ -157,7 +158,7 @@ class InMemoryAgentMemory:
 
     records: list[dict[str, Any]] = field(default_factory=list)
 
-    def remember_finding(self, record: dict[str, Any]) -> str:
+    def remember(self, record: dict[str, Any]) -> str:
         stored = dict(record)
         stored.setdefault("id", f"local-{len(self.records) + 1}")
         self.records.append(stored)
@@ -194,17 +195,26 @@ class DuckBrainAgentMemory:
     def __init__(self, namespace: str = "pokemon-global") -> None:
         self.namespace = namespace
 
-    def remember_finding(self, record: dict[str, Any]) -> str:
+    def remember(self, record: dict[str, Any]) -> str:
         from src.core import duckbrain_client
 
+        facts = record.get("facts")
+        if not isinstance(facts, dict):
+            facts = {
+                "finding": record.get("finding", ""),
+                "sources": record.get("sources", []),
+            }
+        embedding_text = str(record.get("finding") or "").strip()
+        if not embedding_text:
+            embedding_text = json.dumps(facts, ensure_ascii=False, sort_keys=True)
         return duckbrain_client.remember(
             key=str(record["key"]),
             domain=str(record["domain"]),
-            attributes={"finding": record["finding"], "sources": record["sources"]},
-            embedding_text=str(record["finding"]),
+            attributes=facts,
+            embedding_text=embedding_text,
             namespace=self.namespace,
             labels=list(record.get("labels", [])),
-            confidence=float(record["confidence"]),
+            confidence=float(record.get("confidence", 1.0)),
             evidence=dict(record.get("evidence", {})),
             applies_when=dict(record.get("applies_when", {})),
         )
@@ -356,15 +366,33 @@ AGENTIC_TOOL_SCHEMA: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {"target": {"type": "string", "maxLength": 80}},
+                "required": ["target"],
             },
         },
     },
     {
         "type": "function",
         "function": {
-            "name": "read_dialogue",
+            "name": "read_dialog",
             "description": "Read current dialogue text without pressing a button.",
             "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "remember",
+            "description": "Write a labeled fact to durable game memory and verify it by key.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "key": {"type": "string", "minLength": 2, "maxLength": 160},
+                    "domain": {"type": "string", "minLength": 2, "maxLength": 120},
+                    "facts": {"type": "object"},
+                    "applies_when": {"type": "object"},
+                },
+                "required": ["key", "domain", "facts", "applies_when"],
+            },
         },
     },
     {
@@ -398,10 +426,42 @@ AGENTIC_TOOL_SCHEMA: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "question": {"type": "string", "minLength": 3, "maxLength": 300}
+                    "question": {"type": "string", "minLength": 3, "maxLength": 300},
+                    "budget": {
+                        "type": "object",
+                        "description": "Optional requested caps; harness hard caps always win.",
+                        "properties": {
+                            "wall_seconds": {"type": "number", "minimum": 0.01},
+                            "tool_calls": {"type": "integer", "minimum": 1},
+                            "cost_usd": {"type": "number", "minimum": 0.000001},
+                        },
+                    },
                 },
-                "required": ["question"],
+                "required": ["question", "budget"],
             },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "set_goal",
+            "description": "Set and durably record the current run goal with its reason.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "minLength": 1, "maxLength": 240},
+                    "reason": {"type": "string", "minLength": 1, "maxLength": 240},
+                },
+                "required": ["text", "reason"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_goal",
+            "description": "Read the current run goal without changing it.",
+            "parameters": {"type": "object", "properties": {}},
         },
     },
 ]
@@ -460,6 +520,7 @@ def _tool_result(
     projection: dict[str, Any],
     caps: AgenticCaps,
     cycle: int,
+    run_id: str,
 ) -> tuple[bool, bool, str, bool]:
     """Return ``ok, verified, result, is_delegation`` for one safe tool."""
     try:
@@ -499,6 +560,9 @@ def _tool_result(
             )
 
         if name == "interact":
+            target = " ".join(str(arguments.get("target", "")).split())[:80]
+            if not target:
+                return False, False, "Error: interact requires a target", False
             before = observe()
             emulator.press_button("a", frames=5)
             emulator.fast_forward(30)
@@ -513,7 +577,7 @@ def _tool_result(
             text = after.get("text_content") or after.get("text_lines") or []
             return True, True, f"Interaction changed state; text={text}", False
 
-        if name == "read_dialogue":
+        if name == "read_dialog":
             current = observe()
             text = current.get("text_content") or current.get("text_lines") or []
             if not text:
@@ -530,11 +594,50 @@ def _tool_result(
                 False,
             )
 
+        if name == "remember":
+            key = " ".join(str(arguments.get("key", "")).split())[:160]
+            domain = " ".join(str(arguments.get("domain", "")).split())[:120]
+            facts = arguments.get("facts")
+            applies_when = arguments.get("applies_when")
+            if not key or not domain or not isinstance(facts, dict):
+                return (
+                    False,
+                    False,
+                    "Error: remember requires key, domain, and object facts",
+                    False,
+                )
+            if not isinstance(applies_when, dict):
+                return (
+                    False,
+                    False,
+                    "Error: remember applies_when must be an object",
+                    False,
+                )
+            record = {
+                "key": key,
+                "domain": domain,
+                "labels": [domain],
+                "facts": facts,
+                "confidence": 1.0,
+                "evidence": {"run_id": run_id, "cycle": cycle, "source": "remember"},
+                "applies_when": applies_when,
+            }
+            memory_id = memory.remember(record)
+            stored = memory.recall(key=key, limit=1)
+            if not stored:
+                return (
+                    False,
+                    True,
+                    f"Error: memory write {memory_id} was not readable",
+                    False,
+                )
+            return True, True, f"Remembered and verified {key} as {memory_id}", False
+
         if name == "recall":
-            key = arguments.get("key")
+            recall_key = arguments.get("key")
             labels = arguments.get("labels")
             query_text = arguments.get("query")
-            if not any((key, labels, query_text)):
+            if not any((recall_key, labels, query_text)):
                 return (
                     False,
                     False,
@@ -542,7 +645,7 @@ def _tool_result(
                     False,
                 )
             records = memory.recall(
-                key=str(key) if key else None,
+                key=str(recall_key) if recall_key else None,
                 labels=[str(item) for item in labels[:3]]
                 if isinstance(labels, list)
                 else None,
@@ -553,6 +656,73 @@ def _tool_result(
                 True,
                 True,
                 f"Recalled {len(records)} record(s): {json.dumps(records, default=str)}",
+                False,
+            )
+
+        if name == "set_goal":
+            text = " ".join(str(arguments.get("text", "")).split())[:240]
+            reason = " ".join(str(arguments.get("reason", "")).split())[:240]
+            if not text or not reason:
+                return False, False, "Error: set_goal requires text and reason", False
+            safe_run_id = (
+                "".join(
+                    char if char.isalnum() or char in "-_" else "-" for char in run_id
+                )[:80]
+                or "unknown"
+            )
+            key = f"/run/{safe_run_id}/goal"
+            goal = {"text": text, "reason": reason}
+            memory_id = memory.remember(
+                {
+                    "key": key,
+                    "domain": "run/goal",
+                    "labels": ["run/goal"],
+                    "facts": goal,
+                    "confidence": 1.0,
+                    "evidence": {
+                        "run_id": run_id,
+                        "cycle": cycle,
+                        "source": "set_goal",
+                    },
+                    "applies_when": {"run_id": run_id},
+                }
+            )
+            stored = memory.recall(key=key, limit=1)
+            if not stored:
+                return (
+                    False,
+                    True,
+                    f"Error: goal write {memory_id} was not readable",
+                    False,
+                )
+            context.current_goal = goal
+            return True, True, f"Set and verified goal {key}: {text}", False
+
+        if name == "check_goal":
+            current_goal = context.current_goal
+            if current_goal is None:
+                safe_run_id = (
+                    "".join(
+                        char if char.isalnum() or char in "-_" else "-"
+                        for char in run_id
+                    )[:80]
+                    or "unknown"
+                )
+                stored = memory.recall(key=f"/run/{safe_run_id}/goal", limit=1)
+                if stored:
+                    candidate = stored[0].get("facts") or stored[0].get("attributes")
+                    if isinstance(candidate, dict):
+                        current_goal = {
+                            "text": str(candidate.get("text", "")),
+                            "reason": str(candidate.get("reason", "")),
+                        }
+                        context.current_goal = current_goal
+            if current_goal is None:
+                return False, True, "Error: no current goal is set", False
+            return (
+                True,
+                True,
+                "Current goal: " + json.dumps(current_goal, ensure_ascii=False),
                 False,
             )
 
@@ -572,19 +742,52 @@ def _tool_result(
                     "Error: delegate_research requires a question",
                     True,
                 )
+            requested_budget = arguments.get("budget")
+            if not isinstance(requested_budget, dict):
+                return False, False, "Error: delegate_research requires a budget", True
+            delegate_caps = replace(
+                caps,
+                delegate_wall_seconds=min(
+                    caps.delegate_wall_seconds,
+                    max(
+                        0.01,
+                        float(
+                            requested_budget.get(
+                                "wall_seconds", caps.delegate_wall_seconds
+                            )
+                        ),
+                    ),
+                ),
+                delegate_tool_calls=min(
+                    caps.delegate_tool_calls,
+                    max(
+                        1,
+                        int(
+                            requested_budget.get("tool_calls", caps.delegate_tool_calls)
+                        ),
+                    ),
+                ),
+                delegate_cost_usd=min(
+                    caps.delegate_cost_usd,
+                    max(
+                        0.000001,
+                        float(requested_budget.get("cost_usd", caps.delegate_cost_usd)),
+                    ),
+                ),
+            )
             delegated = delegate.research(
                 question=question,
                 public_context=_public_context(projection, caps.public_context_chars),
-                caps=caps,
+                caps=delegate_caps,
             )
             tool_calls = int(delegated.get("tool_calls", 0))
             elapsed = float(delegated.get("elapsed_s", 0.0))
             cost = float(delegated.get("cost_usd", 0.0))
-            if tool_calls > caps.delegate_tool_calls:
+            if tool_calls > delegate_caps.delegate_tool_calls:
                 return False, False, "Error: delegate exceeded tool-call cap", True
-            if elapsed > caps.delegate_wall_seconds:
+            if elapsed > delegate_caps.delegate_wall_seconds:
                 return False, False, "Error: delegate exceeded wall-clock cap", True
-            if cost > caps.delegate_cost_usd:
+            if cost > delegate_caps.delegate_cost_usd:
                 return False, False, "Error: delegate exceeded cost cap", True
             finding = " ".join(str(delegated.get("finding", "")).split())[
                 : caps.finding_chars
@@ -609,7 +812,7 @@ def _tool_result(
                 "evidence": {"cycle": cycle, "source": "delegate_research"},
                 "applies_when": {"question": question},
             }
-            memory_id = memory.remember_finding(record)
+            memory_id = memory.remember(record)
             context.inject_finding(finding)
             return (
                 True,
@@ -656,6 +859,7 @@ def run_agentic_cycle(
     decision_mode: str,
     decision_mode_family: str,
     caps: AgenticCaps | None = None,
+    run_id: str = "unknown",
 ) -> AgenticCycleResult:
     """Run a bounded model→tool→result loop and return a movement decision."""
     active_caps = caps or AgenticCaps()
@@ -713,6 +917,7 @@ def run_agentic_cycle(
             projection=projection,
             caps=active_caps,
             cycle=cycle,
+            run_id=run_id,
         )
         result_text = result_text[: active_caps.tool_result_chars]
         event = {
@@ -721,6 +926,7 @@ def run_agentic_cycle(
             "decision_mode": decision_mode,
             "decision_mode_family": decision_mode_family,
             "agentic_tools_enabled": True,
+            "agentic_tool_calls": call_index + 1,
             "tool_call_index": call_index + 1,
             "tool_call_cap": active_caps.max_tool_calls,
             "tool_name": name,

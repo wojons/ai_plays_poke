@@ -128,9 +128,9 @@ DECISION_MODE_ALIASES: dict[str, str] = {
     MODE_HYBRID: MODE_HYBRID,
     "hybrid": MODE_HYBRID,
     "jev": MODE_HYBRID,  # historical: fast tier WITH the teacher on call
-    "llm": MODE_SYSTEM2,  # historical: the pure-LLM benchmark
-    # Explicit opt-in model→tool loop.  It is System-Two for routing purposes,
-    # but keeps its own spelling in every decision row for benchmark clarity.
+    "llm": MODE_SYSTEM2,  # historical pure-LLM spelling; now uses verified tools
+    # Explicit spelling for the same bounded System-Two model→tool loop. Both
+    # spellings remain distinct in decision rows for benchmark clarity.
     "agentic": MODE_SYSTEM2,
 }
 DECISION_MODES = tuple(DECISION_MODE_ALIASES)
@@ -170,6 +170,16 @@ def current_mode_family() -> str:
     with a silent wrong branch whenever they drift.
     """
     return decision_mode_family(DECISION_MODE)
+
+
+def _model_tools_enabled(mode: str | None) -> bool:
+    """Whether this mode uses the verified model-tool surface.
+
+    Both historical ``llm`` and explicit ``agentic`` are System-Two modes, as
+    is the canonical ``system2`` spelling. JEV/hybrid remains byte-for-byte on
+    its existing path with no tools.
+    """
+    return decision_mode_family(mode) == MODE_SYSTEM2
 
 
 def resolve_decision_mode(flag_value: str | None = None) -> str:
@@ -5162,13 +5172,14 @@ def _main_parser() -> argparse.ArgumentParser:
         choices=list(DECISION_MODES),
         help=(
             "Who decides each cycle. 'system1': the fast System-One tier "
-            "decides EVERY cycle and never hands back. 'system2' (alias 'llm'): "
-            "the controller decides EVERY cycle and the fast tier is never "
-            "called — the pure-LLM benchmark. 'agentic': the explicit opt-in "
-            "bounded model-tool loop (also System-Two). 'system1+system2' (alias 'jev', "
-            "the default): the fast tier decides and hands back to the "
-            "reasoning teacher when a trigger fires and --handoff allows it. "
-            "Overrides the AIPP_DECISION_MODE / CRON_DECISION_MODE env vars."
+            "decides EVERY cycle and never hands back. 'system2' (alias 'llm') "
+            "and 'agentic': the controller decides EVERY cycle through the "
+            "verified model-tool surface; the fast tier is never called. Every "
+            "decision row stamps whether tools were enabled and how many calls "
+            "ran. JEV/hybrid never enables this surface. 'system1+system2' "
+            "(alias 'jev', the default): the fast tier decides and hands back "
+            "to the reasoning teacher when a trigger fires and --handoff allows "
+            "it. Overrides the AIPP_DECISION_MODE / CRON_DECISION_MODE env vars."
         ),
     )
     parser.add_argument(
@@ -6306,7 +6317,7 @@ def main() -> None:
                 else:
                     # ── Step 2b: controller outputs the movement PLAN ──
                     # from the spatial description (JEV miss / unavailable).
-                    if DECISION_MODE == "agentic":
+                    if _model_tools_enabled(DECISION_MODE):
                         agentic_result = run_agentic_cycle(
                             client=controller_client,
                             emulator=emu,
@@ -6323,6 +6334,7 @@ def main() -> None:
                             cycle=cycle + 1,
                             decision_mode=DECISION_MODE,
                             decision_mode_family=current_mode_family(),
+                            run_id=run_id,
                         )
                         decision = agentic_result.decision
                         for tool_event in agentic_result.events:
@@ -6442,7 +6454,7 @@ def main() -> None:
                 _last_plan_sig = _plan_sig
                 _last_pos_key = _pos_key
                 _agentic_tool_cycle = bool(
-                    DECISION_MODE == "agentic"
+                    _model_tools_enabled(DECISION_MODE)
                     and int(decision.get("agentic_tool_calls", 0)) > 0
                 )
                 if _same_plan_count >= 2 and not _agentic_tool_cycle:
@@ -6549,7 +6561,7 @@ def main() -> None:
                     # historical value so existing logs stay comparable (M6);
                     # this field is the branchable one.
                     "decision_mode_family": current_mode_family(),
-                    "agentic_tools_enabled": DECISION_MODE == "agentic",
+                    "agentic_tools_enabled": _model_tools_enabled(DECISION_MODE),
                     "agentic_tool_calls": int(decision.get("agentic_tool_calls", 0)),
                     "context_evidence": _agent_context.evidence(),
                     "context_snapshot": _agent_context.render(),

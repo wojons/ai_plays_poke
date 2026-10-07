@@ -1032,18 +1032,18 @@ class TestPlanEntryRowShape:
         assert "decision = {**_jev_attempt, **_jev_outcome}" in hit
         assert "_decision_pipeline = JEV_PIPELINE" in hit
 
-        # JEV miss: the controller path is nested behind the DECISION_MODE
-        # switch (agentic mode runs the tool loop; classic mode calls
+        # JEV miss: the controller path is nested behind the decision-family
+        # switch (System-Two runs the tool loop; classic modes call
         # controller_plan), so walk the whole miss subtree structurally.
         miss_tree = ast.Module(body=node.orelse, type_ignores=[])
         mode_switches = [
             sub
             for sub in ast.walk(miss_tree)
             if isinstance(sub, ast.If)
-            and ast.unparse(sub.test) == "DECISION_MODE == 'agentic'"
+            and ast.unparse(sub.test) == "_model_tools_enabled(DECISION_MODE)"
         ]
         assert len(mode_switches) == 1, (
-            "expected one `if DECISION_MODE == 'agentic':` inside the JEV "
+            "expected one model-tool family switch inside the JEV "
             f"miss, found {len(mode_switches)}"
         )
         mode_switch = mode_switches[0]
