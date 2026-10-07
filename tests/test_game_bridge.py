@@ -23,6 +23,12 @@ from scripts import game_bridge
 
 
 TOKEN = "test-token-that-is-long-enough"
+WORKER_POLL_INTERVAL = 0.02
+WORKER_ADMISSION_TIMEOUT = 2.0
+# Admission + busy observation together must stay inside the fake Game's 3s
+# release window, otherwise the first raw call times out on its own.
+BUSY_OBSERVATION_TIMEOUT = 0.8
+WORKER_EXIT_TIMEOUT = 2.0
 
 
 @dataclass
@@ -108,6 +114,14 @@ def request(port: int, payload: dict[str, Any], timeout: float = 3) -> dict[str,
     return decoded
 
 
+def bridge_worker_threads() -> list[threading.Thread]:
+    return [
+        thread
+        for thread in threading.enumerate()
+        if thread.name.startswith("aipp-bridge-worker-")
+    ]
+
+
 def test_console_raw_retry_path_is_bounded_and_game_access_is_serialized() -> None:
     """Many concurrent raw retries cannot create more than the fixed worker set."""
     game = BlockingGame()
@@ -128,13 +142,40 @@ def test_console_raw_retry_path_is_bounded_and_game_access_is_serialized() -> No
             clients.append(client)
 
         assert game.entered.wait(timeout=2), "no raw request reached the fake Game"
-        time.sleep(0.1)  # let accept() admit/reject the whole burst
-        worker_threads = [
-            thread
-            for thread in threading.enumerate()
-            if thread.name.startswith("aipp-bridge-worker-")
-        ]
-        assert len(worker_threads) == 3
+        # Wait until the fixed worker set is fully admitted instead of guessing
+        # with a fixed sleep: poll the live thread list for the 3 workers, and
+        # hold the bounded invariant (never more than 3) across every sample.
+        deadline = time.monotonic() + WORKER_ADMISSION_TIMEOUT
+        while True:
+            worker_threads = bridge_worker_threads()
+            assert len(worker_threads) <= 3, (
+                "bridge admitted more than its fixed worker set"
+            )
+            if len(worker_threads) == 3:
+                break
+            assert time.monotonic() < deadline, (
+                "bridge worker set was not fully admitted in time"
+            )
+            time.sleep(WORKER_POLL_INTERVAL)
+
+        # Only release once a "server busy" rejection has actually been
+        # observed: releasing right after admission lets the burst drain
+        # through 3 workers + pending queue before the queue ever fills, so
+        # the rejection invariant is decided by this event, not by timing.
+        def first_response_is_busy() -> bool:
+            with response_lock:
+                return any(
+                    response.get("error") == "server busy" for response in responses
+                )
+
+        busy_deadline = time.monotonic() + BUSY_OBSERVATION_TIMEOUT
+        while not first_response_is_busy():
+            assert game.max_active == 1
+            assert len(bridge_worker_threads()) <= 3
+            assert time.monotonic() < busy_deadline, (
+                "burst of 12 never produced a 'server busy' rejection"
+            )
+            time.sleep(WORKER_POLL_INTERVAL)
         assert game.max_active == 1
 
         game.release.set()
@@ -151,10 +192,14 @@ def test_console_raw_retry_path_is_bounded_and_game_access_is_serialized() -> No
         game.release.set()
         server.close()
 
-    assert not any(
-        thread.name.startswith("aipp-bridge-worker-")
-        for thread in threading.enumerate()
-    )
+    # Worker threads exit through a 0.1s pending-poll loop, so give them a
+    # bounded drain window instead of sampling enumerate() exactly once.
+    exit_deadline = time.monotonic() + WORKER_EXIT_TIMEOUT
+    while bridge_worker_threads():
+        assert time.monotonic() < exit_deadline, (
+            "bridge worker threads did not exit after server close"
+        )
+        time.sleep(WORKER_POLL_INTERVAL)
 
 
 def test_token_authentication_and_one_request_per_connection_are_preserved() -> None:
