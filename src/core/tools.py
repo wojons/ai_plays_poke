@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Iterator
+from typing import Any, Iterator, Protocol
 
 from src.core.ram_reader import (
     ADDR_CURRENT_MENU_ITEM,
@@ -19,6 +19,28 @@ from src.core.ram_reader import (
     ADDR_TOP_MENU_ITEM_X,
     ADDR_TOP_MENU_ITEM_Y,
 )
+
+# ── Emulator protocol (duck-typed) ───────────────────────────────────────────
+
+
+class EmulatorLike(Protocol):
+    """Structural type for the subset of the emulator used by the tools.
+
+    Satisfied by :class:`src.core.emulator.Emulator` and by the lightweight
+    mocks used in the test-suite. ``read_u8`` is called via ``getattr`` because
+    some mocks omit it; it is part of the real emulator's surface.
+    """
+
+    def press_button(self, button: str, frames: int = 5) -> None: ...
+
+    def combo(self, buttons: list[str], frames: int = 5) -> None: ...
+
+    def fast_forward(self, frames: int) -> None: ...
+
+    def wait(self, frames: int) -> None: ...
+
+    def read_u8(self, addr: int) -> int: ...
+
 
 # ── Tool schema (OpenAI function-calling format) ─────────────────────────────
 
@@ -228,7 +250,9 @@ TOOL_SCHEMA: list[dict[str, Any]] = [
 # ── Tool execution ───────────────────────────────────────────────────────────
 
 
-def execute_tool_call(emulator: Any, tool_name: str, arguments: dict[str, Any]) -> str:
+def execute_tool_call(
+    emulator: EmulatorLike, tool_name: str, arguments: dict[str, Any]
+) -> str:
     """
     Execute a tool call against *emulator* and return a result string.
 
@@ -312,13 +336,15 @@ _BATTLE_MENU_PREP_ATTEMPTS = 6
 MAX_FAILED_FLEE_ATTEMPTS = 3
 
 
-def _tap(emulator: Any, button: str, frames: int = _BATTLE_MENU_TAP_FRAMES) -> None:
+def _tap(
+    emulator: EmulatorLike, button: str, frames: int = _BATTLE_MENU_TAP_FRAMES
+) -> None:
     """Press a button briefly for menu navigation, with a small settle."""
     emulator.press_button(button, frames=frames)
     emulator.wait(_BATTLE_MENU_WAIT)
 
 
-def _read_u8(emulator: Any, address: int) -> int | None:
+def _read_u8(emulator: EmulatorLike, address: int) -> int | None:
     """Best-effort RAM read for battle tools that also support simple mocks."""
     read_u8 = getattr(emulator, "read_u8", None)
     if not callable(read_u8):
@@ -330,7 +356,7 @@ def _read_u8(emulator: Any, address: int) -> int | None:
     return value if isinstance(value, int) else None
 
 
-def battle_status(emulator: Any) -> str | None:
+def battle_status(emulator: EmulatorLike) -> str | None:
     """Return ``wild``, ``trainer``, ``ended``, or ``None`` when RAM is unavailable."""
     code = _read_u8(emulator, ADDR_IS_IN_BATTLE)
     if code == 1:
@@ -342,7 +368,7 @@ def battle_status(emulator: Any) -> str | None:
     return None
 
 
-def _battle_menu_is_actionable(emulator: Any) -> bool | None:
+def _battle_menu_is_actionable(emulator: EmulatorLike) -> bool | None:
     """Detect Gen 1's two-column FIGHT/ITEM/PKMN/RUN command menu.
 
     ``DisplayBattleMenu`` sets Y=14, X=9 or 15, and max item=1. The move
@@ -358,7 +384,7 @@ def _battle_menu_is_actionable(emulator: Any) -> bool | None:
     return y == 14 and x in (9, 15) and current in (0, 1) and maximum == 1
 
 
-def _prepare_battle_menu(emulator: Any) -> str | None:
+def _prepare_battle_menu(emulator: EmulatorLike) -> str | None:
     """Wait for and normalize the Gen 1 command menu to FIGHT (top-left).
 
     B safely dismisses battle text and cancels the move/party submenus; it is
@@ -406,7 +432,7 @@ def decide_battle_tool_call(
     return requested
 
 
-def _execute_select_move(emulator: Any, arguments: dict[str, Any]) -> str:
+def _execute_select_move(emulator: EmulatorLike, arguments: dict[str, Any]) -> str:
     """Navigate FIGHT → moves → move N (1-4) → A, then wait for animation."""
     move_number = arguments.get("move_number")
     if not isinstance(move_number, int) or not 1 <= move_number <= 4:
@@ -434,11 +460,13 @@ def _execute_select_move(emulator: Any, arguments: dict[str, Any]) -> str:
     return f"Selected move {move_number}."
 
 
-def _execute_run_from_battle(emulator: Any) -> str:
+def _execute_run_from_battle(emulator: EmulatorLike) -> str:
     """Normalize the command menu, select RUN, and verify RAM battle exit."""
     status = battle_status(emulator)
     if status == "trainer":
-        return "Error: Cannot run from a trainer battle; choose a move or switch Pokémon."
+        return (
+            "Error: Cannot run from a trainer battle; choose a move or switch Pokémon."
+        )
     if status == "ended":
         return "Error: Cannot run; no battle is active."
 
@@ -461,7 +489,7 @@ def _execute_run_from_battle(emulator: Any) -> str:
     return "Ran from battle."
 
 
-def _execute_use_battle_item(emulator: Any, arguments: dict[str, Any]) -> str:
+def _execute_use_battle_item(emulator: EmulatorLike, arguments: dict[str, Any]) -> str:
     """Navigate FIGHT → BAG (TR) → USE → first matching item → confirm.
 
     Gen 1 bag flow: BAG opens to USE/SELL/QUIT submenu; selecting USE lists
@@ -496,7 +524,7 @@ def _execute_use_battle_item(emulator: Any, arguments: dict[str, Any]) -> str:
     return f"Used battle item '{item_name}'."
 
 
-def _execute_switch_pokemon(emulator: Any, arguments: dict[str, Any]) -> str:
+def _execute_switch_pokemon(emulator: EmulatorLike, arguments: dict[str, Any]) -> str:
     """Navigate FIGHT → PKMN (BL) → slot N (1-6) → A, then wait for anim."""
     slot = arguments.get("slot")
     if not isinstance(slot, int) or not 1 <= slot <= 6:
