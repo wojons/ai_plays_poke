@@ -1,0 +1,869 @@
+commit 8fc53d9d60469a3603c9accb669c74b419cb8207
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Tue Oct 6 22:48:09 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Tue Oct 6 22:48:09 2026 -0500
+
+    feat: add verified agentic model tools. Addresses TOOLS-1.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ cron_runner.py                    |  38 ++++--
+ scripts/smoke_agentic_tools.py    | 112 +++++++++++++++++
+ src/core/agentic_loop.py          | 250 ++++++++++++++++++++++++++++++++++----
+ tests/test_agentic_loop.py        | 146 +++++++++++++++++++++-
+ tests/test_cron_runner_metrics.py |   8 +-
+ 5 files changed, 509 insertions(+), 45 deletions(-)
+
+diff --git a/cron_runner.py b/cron_runner.py
+index 6378cb1..8d74faf 100644
+--- a/cron_runner.py
++++ b/cron_runner.py
+@@ -128,9 +128,9 @@ DECISION_MODE_ALIASES: dict[str, str] = {
+     MODE_HYBRID: MODE_HYBRID,
+     "hybrid": MODE_HYBRID,
+     "jev": MODE_HYBRID,  # historical: fast tier WITH the teacher on call
+-    "llm": MODE_SYSTEM2,  # historical: the pure-LLM benchmark
+-    # Explicit opt-in model→tool loop.  It is System-Two for routing purposes,
+-    # but keeps its own spelling in every decision row for benchmark clarity.
++    "llm": MODE_SYSTEM2,  # historical pure-LLM spelling; now uses verified tools
++    # Explicit spelling for the same bounded System-Two model→tool loop. Both
++    # spellings remain distinct in decision rows for benchmark clarity.
+     "agentic": MODE_SYSTEM2,
+ }
+ DECISION_MODES = tuple(DECISION_MODE_ALIASES)
+@@ -172,6 +172,16 @@ def current_mode_family() -> str:
+     return decision_mode_family(DECISION_MODE)
+ 
+ 
++def _model_tools_enabled(mode: str | None) -> bool:
++    """Whether this mode uses the verified model-tool surface.
++
++    Both historical ``llm`` and explicit ``agentic`` are System-Two modes, as
++    is the canonical ``system2`` spelling. JEV/hybrid remains byte-for-byte on
++    its existing path with no tools.
++    """
++    return decision_mode_family(mode) == MODE_SYSTEM2
++
++
+ def resolve_decision_mode(flag_value: str | None = None) -> str:
+     """Resolve the decision mode SPELLING: flag > env > ``DEFAULT_DECISION_MODE``.
+ 
+@@ -5162,13 +5172,14 @@ def _main_parser() -> argparse.ArgumentParser:
+         choices=list(DECISION_MODES),
+         help=(
+             "Who decides each cycle. 'system1': the fast System-One tier "
+-            "decides EVERY cycle and never hands back. 'system2' (alias 'llm'): "
+-            "the controller decides EVERY cycle and the fast tier is never "
+-            "called — the pure-LLM benchmark. 'agentic': the explicit opt-in "
+-            "bounded model-tool loop (also System-Two). 'system1+system2' (alias 'jev', "
+-            "the default): the fast tier decides and hands back to the "
+-            "reasoning teacher when a trigger fires and --handoff allows it. "
+-            "Overrides the AIPP_DECISION_MODE / CRON_DECISION_MODE env vars."
++            "decides EVERY cycle and never hands back. 'system2' (alias 'llm') "
++            "and 'agentic': the controller decides EVERY cycle through the "
++            "verified model-tool surface; the fast tier is never called. Every "
++            "decision row stamps whether tools were enabled and how many calls "
++            "ran. JEV/hybrid never enables this surface. 'system1+system2' "
++            "(alias 'jev', the default): the fast tier decides and hands back "
++            "to the reasoning teacher when a trigger fires and --handoff allows "
++            "it. Overrides the AIPP_DECISION_MODE / CRON_DECISION_MODE env vars."
+         ),
+     )
+     parser.add_argument(
+@@ -6306,7 +6317,7 @@ def main() -> None:
+                 else:
+                     # ── Step 2b: controller outputs the movement PLAN ──
+                     # from the spatial description (JEV miss / unavailable).
+-                    if DECISION_MODE == "agentic":
++                    if _model_tools_enabled(DECISION_MODE):
+                         agentic_result = run_agentic_cycle(
+                             client=controller_client,
+                             emulator=emu,
+@@ -6323,6 +6334,7 @@ def main() -> None:
+                             cycle=cycle + 1,
+                             decision_mode=DECISION_MODE,
+                             decision_mode_family=current_mode_family(),
++                            run_id=run_id,
+                         )
+                         decision = agentic_result.decision
+                         for tool_event in agentic_result.events:
+@@ -6442,7 +6454,7 @@ def main() -> None:
+                 _last_plan_sig = _plan_sig
+                 _last_pos_key = _pos_key
+                 _agentic_tool_cycle = bool(
+-                    DECISION_MODE == "agentic"
++                    _model_tools_enabled(DECISION_MODE)
+                     and int(decision.get("agentic_tool_calls", 0)) > 0
+                 )
+                 if _same_plan_count >= 2 and not _agentic_tool_cycle:
+@@ -6549,7 +6561,7 @@ def main() -> None:
+                     # historical value so existing logs stay comparable (M6);
+                     # this field is the branchable one.
+                     "decision_mode_family": current_mode_family(),
+-                    "agentic_tools_enabled": DECISION_MODE == "agentic",
++                    "agentic_tools_enabled": _model_tools_enabled(DECISION_MODE),
+                     "agentic_tool_calls": int(decision.get("agentic_tool_calls", 0)),
+                     "context_evidence": _agent_context.evidence(),
+                     "context_snapshot": _agent_context.render(),
+diff --git a/scripts/smoke_agentic_tools.py b/scripts/smoke_agentic_tools.py
+new file mode 100644
+index 0000000..866d120
+--- /dev/null
++++ b/scripts/smoke_agentic_tools.py
+@@ -0,0 +1,112 @@
++"""Scripted TOOLS-1 smoke run with no emulator ROM or API calls."""
++
++from __future__ import annotations
++
++import argparse
++import json
++import sys
++from pathlib import Path
++from typing import Any
++
++REPO_ROOT = Path(__file__).resolve().parents[1]
++if str(REPO_ROOT) not in sys.path:
++    sys.path.insert(0, str(REPO_ROOT))
++
++from src.core.agentic_loop import (  # noqa: E402
++    BoundedAgentContext,
++    InMemoryAgentMemory,
++    run_agentic_cycle,
++)
++
++
++class _ScriptedClient:
++    """Return one model-chosen tool call, then a final plan."""
++
++    def __init__(self) -> None:
++        self._replies = [
++            {"name": "walk", "arguments": {"direction": "right", "tiles": 1}},
++            {"plan": [], "intent": "scripted tool movement completed"},
++        ]
++
++    def send_tool_request(
++        self, prompt: str, tools: list[dict[str, Any]], **kwargs: Any
++    ) -> str:
++        _ = prompt, tools, kwargs
++        return json.dumps(self._replies.pop(0))
++
++
++class _ScriptedEmulator:
++    def __init__(self) -> None:
++        self.x = 4
++        self.y = 7
++
++    def press_button(self, button: str, frames: int = 5) -> None:
++        _ = frames
++        if button == "right":
++            self.x += 1
++
++    def fast_forward(self, frames: int) -> None:
++        _ = frames
++
++
++def run_smoke(output: Path) -> list[dict[str, Any]]:
++    """Run the real bounded tool loop against deterministic scripted fixtures."""
++    emulator = _ScriptedEmulator()
++
++    def observe() -> dict[str, Any]:
++        return {
++            "result": "overworld",
++            "map_id": 1,
++            "map_name": "Pallet Town",
++            "player_tile_x": emulator.x,
++            "player_tile_y": emulator.y,
++        }
++
++    result = run_agentic_cycle(
++        client=_ScriptedClient(),
++        emulator=emulator,
++        observe=observe,
++        projection=observe(),
++        context=BoundedAgentContext(),
++        memory=InMemoryAgentMemory(),
++        delegate=None,
++        model="scripted/tools-1",
++        cycle=1,
++        decision_mode="llm",
++        decision_mode_family="system2",
++        run_id="tools1-smoke",
++    )
++    rows = [
++        *result.events,
++        {
++            "cycle": 1,
++            "event": "decision",
++            "pipeline": "agentic_tools",
++            "decision_mode": "llm",
++            "decision_mode_family": "system2",
++            "agentic_tools_enabled": True,
++            "agentic_tool_calls": len(result.events),
++            "plan": result.decision["plan"],
++            "intent": result.decision["intent"],
++        },
++    ]
++    output.parent.mkdir(parents=True, exist_ok=True)
++    output.write_text("".join(json.dumps(row, default=str) + "\n" for row in rows))
++    return rows
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument(
++        "--output",
++        type=Path,
++        default=Path("cron_logs/run_tools1_smoke.jsonl"),
++    )
++    args = parser.parse_args()
++    rows = run_smoke(args.output)
++    print(json.dumps(rows[0], ensure_ascii=False))
++    print(f"wrote {len(rows)} rows to {args.output}")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/src/core/agentic_loop.py b/src/core/agentic_loop.py
+index d8804e8..5739046 100644
+--- a/src/core/agentic_loop.py
++++ b/src/core/agentic_loop.py
+@@ -1,8 +1,8 @@
+ """Bounded opt-in agentic controller loop for the live Pokémon harness.
+ 
+-The default JEV path does not import or invoke this loop.  The live runner calls
+-it only for the explicit ``agentic`` decision mode, keeping benchmark history
+-comparable while providing real model-chosen, verified tools.
++The default JEV path does not import or invoke this loop. The live runner calls
++it only for System-Two decision modes (``agentic``, ``llm``, or ``system2``),
++keeping JEV history comparable while providing real model-chosen, verified tools.
+ """
+ 
+ from __future__ import annotations
+@@ -12,7 +12,7 @@ import json
+ import queue
+ import threading
+ import time
+-from dataclasses import dataclass, field
++from dataclasses import dataclass, field, replace
+ from typing import Any, Protocol
+ 
+ from src.core.tools import parse_tool_call
+@@ -63,6 +63,7 @@ class BoundedAgentContext:
+     turns: list[dict[str, Any]] = field(default_factory=list)
+     summary: str = ""
+     delegated_findings: list[str] = field(default_factory=list)
++    current_goal: dict[str, str] | None = None
+ 
+     @staticmethod
+     def _compact(value: Any, limit: int = 180) -> str:
+@@ -139,7 +140,7 @@ class BoundedAgentContext:
+ 
+ 
+ class AgentMemory(Protocol):
+-    def remember_finding(self, record: dict[str, Any]) -> str: ...
++    def remember(self, record: dict[str, Any]) -> str: ...
+ 
+     def recall(
+         self,
+@@ -157,7 +158,7 @@ class InMemoryAgentMemory:
+ 
+     records: list[dict[str, Any]] = field(default_factory=list)
+ 
+-    def remember_finding(self, record: dict[str, Any]) -> str:
++    def remember(self, record: dict[str, Any]) -> str:
+         stored = dict(record)
+         stored.setdefault("id", f"local-{len(self.records) + 1}")
+         self.records.append(stored)
+@@ -194,17 +195,26 @@ class DuckBrainAgentMemory:
+     def __init__(self, namespace: str = "pokemon-global") -> None:
+         self.namespace = namespace
+ 
+-    def remember_finding(self, record: dict[str, Any]) -> str:
++    def remember(self, record: dict[str, Any]) -> str:
+         from src.core import duckbrain_client
+ 
++        facts = record.get("facts")
++        if not isinstance(facts, dict):
++            facts = {
++                "finding": record.get("finding", ""),
++                "sources": record.get("sources", []),
++            }
++        embedding_text = str(record.get("finding") or "").strip()
++        if not embedding_text:
++            embedding_text = json.dumps(facts, ensure_ascii=False, sort_keys=True)
+         return duckbrain_client.remember(
+             key=str(record["key"]),
+             domain=str(record["domain"]),
+-            attributes={"finding": record["finding"], "sources": record["sources"]},
+-            embedding_text=str(record["finding"]),
++            attributes=facts,
++            embedding_text=embedding_text,
+             namespace=self.namespace,
+             labels=list(record.get("labels", [])),
+-            confidence=float(record["confidence"]),
++            confidence=float(record.get("confidence", 1.0)),
+             evidence=dict(record.get("evidence", {})),
+             applies_when=dict(record.get("applies_when", {})),
+         )
+@@ -356,17 +366,35 @@ AGENTIC_TOOL_SCHEMA: list[dict[str, Any]] = [
+             "parameters": {
+                 "type": "object",
+                 "properties": {"target": {"type": "string", "maxLength": 80}},
++                "required": ["target"],
+             },
+         },
+     },
+     {
+         "type": "function",
+         "function": {
+-            "name": "read_dialogue",
++            "name": "read_dialog",
+             "description": "Read current dialogue text without pressing a button.",
+             "parameters": {"type": "object", "properties": {}},
+         },
+     },
++    {
++        "type": "function",
++        "function": {
++            "name": "remember",
++            "description": "Write a labeled fact to durable game memory and verify it by key.",
++            "parameters": {
++                "type": "object",
++                "properties": {
++                    "key": {"type": "string", "minLength": 2, "maxLength": 160},
++                    "domain": {"type": "string", "minLength": 2, "maxLength": 120},
++                    "facts": {"type": "object"},
++                    "applies_when": {"type": "object"},
++                },
++                "required": ["key", "domain", "facts", "applies_when"],
++            },
++        },
++    },
+     {
+         "type": "function",
+         "function": {
+@@ -398,12 +426,44 @@ AGENTIC_TOOL_SCHEMA: list[dict[str, Any]] = [
+             "parameters": {
+                 "type": "object",
+                 "properties": {
+-                    "question": {"type": "string", "minLength": 3, "maxLength": 300}
++                    "question": {"type": "string", "minLength": 3, "maxLength": 300},
++                    "budget": {
++                        "type": "object",
++                        "description": "Optional requested caps; harness hard caps always win.",
++                        "properties": {
++                            "wall_seconds": {"type": "number", "minimum": 0.01},
++                            "tool_calls": {"type": "integer", "minimum": 1},
++                            "cost_usd": {"type": "number", "minimum": 0.000001},
++                        },
++                    },
++                },
++                "required": ["question", "budget"],
++            },
++        },
++    },
++    {
++        "type": "function",
++        "function": {
++            "name": "set_goal",
++            "description": "Set and durably record the current run goal with its reason.",
++            "parameters": {
++                "type": "object",
++                "properties": {
++                    "text": {"type": "string", "minLength": 1, "maxLength": 240},
++                    "reason": {"type": "string", "minLength": 1, "maxLength": 240},
+                 },
+-                "required": ["question"],
++                "required": ["text", "reason"],
+             },
+         },
+     },
++    {
++        "type": "function",
++        "function": {
++            "name": "check_goal",
++            "description": "Read the current run goal without changing it.",
++            "parameters": {"type": "object", "properties": {}},
++        },
++    },
+ ]
+ 
+ 
+@@ -460,6 +520,7 @@ def _tool_result(
+     projection: dict[str, Any],
+     caps: AgenticCaps,
+     cycle: int,
++    run_id: str,
+ ) -> tuple[bool, bool, str, bool]:
+     """Return ``ok, verified, result, is_delegation`` for one safe tool."""
+     try:
+@@ -499,6 +560,9 @@ def _tool_result(
+             )
+ 
+         if name == "interact":
++            target = " ".join(str(arguments.get("target", "")).split())[:80]
++            if not target:
++                return False, False, "Error: interact requires a target", False
+             before = observe()
+             emulator.press_button("a", frames=5)
+             emulator.fast_forward(30)
+@@ -513,7 +577,7 @@ def _tool_result(
+             text = after.get("text_content") or after.get("text_lines") or []
+             return True, True, f"Interaction changed state; text={text}", False
+ 
+-        if name == "read_dialogue":
++        if name == "read_dialog":
+             current = observe()
+             text = current.get("text_content") or current.get("text_lines") or []
+             if not text:
+@@ -530,11 +594,50 @@ def _tool_result(
+                 False,
+             )
+ 
++        if name == "remember":
++            key = " ".join(str(arguments.get("key", "")).split())[:160]
++            domain = " ".join(str(arguments.get("domain", "")).split())[:120]
++            facts = arguments.get("facts")
++            applies_when = arguments.get("applies_when")
++            if not key or not domain or not isinstance(facts, dict):
++                return (
++                    False,
++                    False,
++                    "Error: remember requires key, domain, and object facts",
++                    False,
++                )
++            if not isinstance(applies_when, dict):
++                return (
++                    False,
++                    False,
++                    "Error: remember applies_when must be an object",
++                    False,
++                )
++            record = {
++                "key": key,
++                "domain": domain,
++                "labels": [domain],
++                "facts": facts,
++                "confidence": 1.0,
++                "evidence": {"run_id": run_id, "cycle": cycle, "source": "remember"},
++                "applies_when": applies_when,
++            }
++            memory_id = memory.remember(record)
++            stored = memory.recall(key=key, limit=1)
++            if not stored:
++                return (
++                    False,
++                    True,
++                    f"Error: memory write {memory_id} was not readable",
++                    False,
++                )
++            return True, True, f"Remembered and verified {key} as {memory_id}", False
++
+         if name == "recall":
+-            key = arguments.get("key")
++            recall_key = arguments.get("key")
+             labels = arguments.get("labels")
+             query_text = arguments.get("query")
+-            if not any((key, labels, query_text)):
++            if not any((recall_key, labels, query_text)):
+                 return (
+                     False,
+                     False,
+@@ -542,7 +645,7 @@ def _tool_result(
+                     False,
+                 )
+             records = memory.recall(
+-                key=str(key) if key else None,
++                key=str(recall_key) if recall_key else None,
+                 labels=[str(item) for item in labels[:3]]
+                 if isinstance(labels, list)
+                 else None,
+@@ -556,6 +659,73 @@ def _tool_result(
+                 False,
+             )
+ 
++        if name == "set_goal":
++            text = " ".join(str(arguments.get("text", "")).split())[:240]
++            reason = " ".join(str(arguments.get("reason", "")).split())[:240]
++            if not text or not reason:
++                return False, False, "Error: set_goal requires text and reason", False
++            safe_run_id = (
++                "".join(
++                    char if char.isalnum() or char in "-_" else "-" for char in run_id
++                )[:80]
++                or "unknown"
++            )
++            key = f"/run/{safe_run_id}/goal"
++            goal = {"text": text, "reason": reason}
++            memory_id = memory.remember(
++                {
++                    "key": key,
++                    "domain": "run/goal",
++                    "labels": ["run/goal"],
++                    "facts": goal,
++                    "confidence": 1.0,
++                    "evidence": {
++                        "run_id": run_id,
++                        "cycle": cycle,
++                        "source": "set_goal",
++                    },
++                    "applies_when": {"run_id": run_id},
++                }
++            )
++            stored = memory.recall(key=key, limit=1)
++            if not stored:
++                return (
++                    False,
++                    True,
++                    f"Error: goal write {memory_id} was not readable",
++                    False,
++                )
++            context.current_goal = goal
++            return True, True, f"Set and verified goal {key}: {text}", False
++
++        if name == "check_goal":
++            current_goal = context.current_goal
++            if current_goal is None:
++                safe_run_id = (
++                    "".join(
++                        char if char.isalnum() or char in "-_" else "-"
++                        for char in run_id
++                    )[:80]
++                    or "unknown"
++                )
++                stored = memory.recall(key=f"/run/{safe_run_id}/goal", limit=1)
++                if stored:
++                    candidate = stored[0].get("facts") or stored[0].get("attributes")
++                    if isinstance(candidate, dict):
++                        current_goal = {
++                            "text": str(candidate.get("text", "")),
++                            "reason": str(candidate.get("reason", "")),
++                        }
++                        context.current_goal = current_goal
++            if current_goal is None:
++                return False, True, "Error: no current goal is set", False
++            return (
++                True,
++                True,
++                "Current goal: " + json.dumps(current_goal, ensure_ascii=False),
++                False,
++            )
++
+         if name == "delegate_research":
+             if delegate is None:
+                 return (
+@@ -572,19 +742,52 @@ def _tool_result(
+                     "Error: delegate_research requires a question",
+                     True,
+                 )
++            requested_budget = arguments.get("budget")
++            if not isinstance(requested_budget, dict):
++                return False, False, "Error: delegate_research requires a budget", True
++            delegate_caps = replace(
++                caps,
++                delegate_wall_seconds=min(
++                    caps.delegate_wall_seconds,
++                    max(
++                        0.01,
++                        float(
++                            requested_budget.get(
++                                "wall_seconds", caps.delegate_wall_seconds
++                            )
++                        ),
++                    ),
++                ),
++                delegate_tool_calls=min(
++                    caps.delegate_tool_calls,
++                    max(
++                        1,
++                        int(
++                            requested_budget.get("tool_calls", caps.delegate_tool_calls)
++                        ),
++                    ),
++                ),
++                delegate_cost_usd=min(
++                    caps.delegate_cost_usd,
++                    max(
++                        0.000001,
++                        float(requested_budget.get("cost_usd", caps.delegate_cost_usd)),
++                    ),
++                ),
++            )
+             delegated = delegate.research(
+                 question=question,
+                 public_context=_public_context(projection, caps.public_context_chars),
+-                caps=caps,
++                caps=delegate_caps,
+             )
+             tool_calls = int(delegated.get("tool_calls", 0))
+             elapsed = float(delegated.get("elapsed_s", 0.0))
+             cost = float(delegated.get("cost_usd", 0.0))
+-            if tool_calls > caps.delegate_tool_calls:
++            if tool_calls > delegate_caps.delegate_tool_calls:
+                 return False, False, "Error: delegate exceeded tool-call cap", True
+-            if elapsed > caps.delegate_wall_seconds:
++            if elapsed > delegate_caps.delegate_wall_seconds:
+                 return False, False, "Error: delegate exceeded wall-clock cap", True
+-            if cost > caps.delegate_cost_usd:
++            if cost > delegate_caps.delegate_cost_usd:
+                 return False, False, "Error: delegate exceeded cost cap", True
+             finding = " ".join(str(delegated.get("finding", "")).split())[
+                 : caps.finding_chars
+@@ -609,7 +812,7 @@ def _tool_result(
+                 "evidence": {"cycle": cycle, "source": "delegate_research"},
+                 "applies_when": {"question": question},
+             }
+-            memory_id = memory.remember_finding(record)
++            memory_id = memory.remember(record)
+             context.inject_finding(finding)
+             return (
+                 True,
+@@ -656,6 +859,7 @@ def run_agentic_cycle(
+     decision_mode: str,
+     decision_mode_family: str,
+     caps: AgenticCaps | None = None,
++    run_id: str = "unknown",
+ ) -> AgenticCycleResult:
+     """Run a bounded model→tool→result loop and return a movement decision."""
+     active_caps = caps or AgenticCaps()
+@@ -713,6 +917,7 @@ def run_agentic_cycle(
+             projection=projection,
+             caps=active_caps,
+             cycle=cycle,
++            run_id=run_id,
+         )
+         result_text = result_text[: active_caps.tool_result_chars]
+         event = {
+@@ -721,6 +926,7 @@ def run_agentic_cycle(
+             "decision_mode": decision_mode,
+             "decision_mode_family": decision_mode_family,
+             "agentic_tools_enabled": True,
++            "agentic_tool_calls": call_index + 1,
+             "tool_call_index": call_index + 1,
+             "tool_call_cap": active_caps.max_tool_calls,
+             "tool_name": name,
+diff --git a/tests/test_agentic_loop.py b/tests/test_agentic_loop.py
+index 45bbc38..88c5dd9 100644
+--- a/tests/test_agentic_loop.py
++++ b/tests/test_agentic_loop.py
+@@ -5,6 +5,7 @@ from __future__ import annotations
+ import json
+ import time
+ from collections.abc import Callable
++from pathlib import Path
+ from typing import Any
+ 
+ import cron_runner
+@@ -127,13 +128,23 @@ def test_model_chosen_walk_is_executed_verified_and_stamped() -> None:
+     assert event["decision_mode"] == "agentic"
+     assert event["decision_mode_family"] == "system2"
+     assert event["agentic_tools_enabled"] is True
+-    assert {tool["function"]["name"] for tool in client.calls[0]["tools"]} >= {
++    schemas = {
++        tool["function"]["name"]: tool["function"]["parameters"]
++        for tool in client.calls[0]["tools"]
++    }
++    assert set(schemas) == {
+         "walk",
+         "interact",
+-        "read_dialogue",
++        "read_dialog",
++        "remember",
+         "recall",
+         "delegate_research",
++        "set_goal",
++        "check_goal",
+     }
++    assert schemas["interact"]["required"] == ["target"]
++    assert schemas["delegate_research"]["required"] == ["question", "budget"]
++    assert event["agentic_tool_calls"] == 1
+ 
+ 
+ def test_failed_tool_result_is_visible_to_model_and_never_becomes_blind_a() -> None:
+@@ -167,6 +178,91 @@ def test_failed_tool_result_is_visible_to_model_and_never_becomes_blind_a() -> N
+     assert result.decision["intent"] != "parse_failure_fallback"
+ 
+ 
++def test_model_can_remember_then_recall_labeled_facts() -> None:
++    client = _FakeClient(
++        [
++            {
++                "name": "remember",
++                "arguments": {
++                    "key": "/world/object/1/4_7",
++                    "domain": "world/object",
++                    "facts": {"identity": "mailbox", "interaction": "none"},
++                    "applies_when": {"map_id": 1},
++                },
++            },
++            {
++                "name": "recall",
++                "arguments": {"key": "/world/object/1/4_7"},
++            },
++            {"plan": [], "intent": "memory verified"},
++        ]
++    )
++    memory = InMemoryAgentMemory()
++
++    result = run_agentic_cycle(
++        client=client,
++        emulator=_FakeEmulator(),
++        observe=lambda: {},
++        projection={"map_id": 1, "result": "overworld"},
++        context=BoundedAgentContext(),
++        memory=memory,
++        delegate=None,
++        model="fake/model",
++        cycle=6,
++        decision_mode="llm",
++        decision_mode_family="system2",
++        caps=AgenticCaps(max_tool_calls=3),
++        run_id="tools-1-test",
++    )
++
++    assert [event["tool_name"] for event in result.events] == ["remember", "recall"]
++    assert all(event["ok"] and event["verified"] for event in result.events)
++    assert result.events[1]["result"].startswith("Recalled 1 record(s)")
++    assert memory.records[0]["key"] == "/world/object/1/4_7"
++    assert memory.records[0]["facts"]["identity"] == "mailbox"
++
++
++def test_model_can_set_and_check_run_goal() -> None:
++    client = _FakeClient(
++        [
++            {
++                "name": "set_goal",
++                "arguments": {"text": "Reach Route 1", "reason": "Explore north"},
++            },
++            {"name": "check_goal", "arguments": {}},
++            {"plan": [], "intent": "goal confirmed"},
++        ]
++    )
++    context = BoundedAgentContext()
++    memory = InMemoryAgentMemory()
++
++    result = run_agentic_cycle(
++        client=client,
++        emulator=_FakeEmulator(),
++        observe=lambda: {},
++        projection={"map_id": 1, "result": "overworld"},
++        context=context,
++        memory=memory,
++        delegate=None,
++        model="fake/model",
++        cycle=7,
++        decision_mode="agentic",
++        decision_mode_family="system2",
++        caps=AgenticCaps(max_tool_calls=3),
++        run_id="run-abc",
++    )
++
++    assert [event["tool_name"] for event in result.events] == ["set_goal", "check_goal"]
++    assert result.events[1]["result"] == (
++        'Current goal: {"text": "Reach Route 1", "reason": "Explore north"}'
++    )
++    assert memory.records[0]["key"] == "/run/run-abc/goal"
++    assert context.current_goal == {
++        "text": "Reach Route 1",
++        "reason": "Explore north",
++    }
++
++
+ class _FakeDelegate:
+     def __init__(self) -> None:
+         self.calls: list[dict[str, Any]] = []
+@@ -204,7 +300,14 @@ def test_delegation_is_capped_persisted_and_consumed_by_later_cycle() -> None:
+         [
+             {
+                 "name": "delegate_research",
+-                "arguments": {"question": "How can I recognize a healing location?"},
++                "arguments": {
++                    "question": "How can I recognize a healing location?",
++                    "budget": {
++                        "wall_seconds": 2.0,
++                        "tool_calls": 1,
++                        "cost_usd": 0.001,
++                    },
++                },
+             },
+             {"plan": [], "intent": "store the research before moving"},
+         ]
+@@ -270,9 +373,9 @@ def test_delegation_is_capped_persisted_and_consumed_by_later_cycle() -> None:
+ def test_tool_cap_is_hard_and_mode_is_explicitly_opt_in() -> None:
+     client = _FakeClient(
+         [
+-            {"name": "read_dialogue", "arguments": {}},
+-            {"name": "read_dialogue", "arguments": {}},
+-            {"name": "read_dialogue", "arguments": {}},
++            {"name": "read_dialog", "arguments": {}},
++            {"name": "read_dialog", "arguments": {}},
++            {"name": "read_dialog", "arguments": {}},
+         ]
+     )
+     emulator = _FakeEmulator()
+@@ -304,6 +407,37 @@ def test_tool_cap_is_hard_and_mode_is_explicitly_opt_in() -> None:
+     assert cron_runner.decision_mode_family("agentic") == cron_runner.MODE_SYSTEM2
+ 
+ 
++def test_model_tool_surface_follows_system_two_family_without_touching_jev() -> None:
++    assert cron_runner._model_tools_enabled("agentic") is True
++    assert cron_runner._model_tools_enabled("llm") is True
++    assert cron_runner._model_tools_enabled("system2") is True
++    assert cron_runner._model_tools_enabled("jev") is False
++    assert cron_runner._model_tools_enabled("system1+system2") is False
++    assert cron_runner._model_tools_enabled("system1") is False
++    help_text = " ".join(cron_runner._main_parser().format_help().split())
++    assert "verified model-tool surface" in help_text
++    assert "JEV/hybrid never enables this surface" in help_text
++
++
++def test_scripted_smoke_writes_model_chosen_tool_result_row(tmp_path: Path) -> None:
++    from scripts.smoke_agentic_tools import run_smoke
++
++    output = tmp_path / "run_tools1_smoke.jsonl"
++    rows = run_smoke(output)
++
++    logged = [json.loads(line) for line in output.read_text().splitlines()]
++    assert logged == rows
++    assert logged[0]["event"] == "agent_tool_call"
++    assert logged[0]["decision_mode"] == "llm"
++    assert logged[0]["decision_mode_family"] == "system2"
++    assert logged[0]["agentic_tools_enabled"] is True
++    assert logged[0]["agentic_tool_calls"] >= 1
++    assert logged[0]["tool_name"] == "walk"
++    assert logged[0]["ok"] is True
++    assert logged[0]["verified"] is True
++    assert "Walked right 1 tile" in logged[0]["result"]
++
++
+ def test_agentic_mode_routes_around_jev_without_changing_jev_default(
+     monkeypatch,
+ ) -> None:
+diff --git a/tests/test_cron_runner_metrics.py b/tests/test_cron_runner_metrics.py
+index 3384d73..402044f 100644
+--- a/tests/test_cron_runner_metrics.py
++++ b/tests/test_cron_runner_metrics.py
+@@ -1032,18 +1032,18 @@ class TestPlanEntryRowShape:
+         assert "decision = {**_jev_attempt, **_jev_outcome}" in hit
+         assert "_decision_pipeline = JEV_PIPELINE" in hit
+ 
+-        # JEV miss: the controller path is nested behind the DECISION_MODE
+-        # switch (agentic mode runs the tool loop; classic mode calls
++        # JEV miss: the controller path is nested behind the decision-family
++        # switch (System-Two runs the tool loop; classic modes call
+         # controller_plan), so walk the whole miss subtree structurally.
+         miss_tree = ast.Module(body=node.orelse, type_ignores=[])
+         mode_switches = [
+             sub
+             for sub in ast.walk(miss_tree)
+             if isinstance(sub, ast.If)
+-            and ast.unparse(sub.test) == "DECISION_MODE == 'agentic'"
++            and ast.unparse(sub.test) == "_model_tools_enabled(DECISION_MODE)"
+         ]
+         assert len(mode_switches) == 1, (
+-            "expected one `if DECISION_MODE == 'agentic':` inside the JEV "
++            "expected one model-tool family switch inside the JEV "
+             f"miss, found {len(mode_switches)}"
+         )
+         mode_switch = mode_switches[0]

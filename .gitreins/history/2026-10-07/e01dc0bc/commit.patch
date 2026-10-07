@@ -1,0 +1,526 @@
+commit 19ef95113750d66ec5dc1699ad6d184372c7384d
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Oct 7 01:54:40 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Oct 7 01:54:40 2026 -0500
+
+    feat: cycle-efficiency observables (decisions-per-map-transition + backtrack rate) in run autonomy block. Addresses EFF-1.
+    
+    Co-authored-by: Hermes Agent <totalwindupflightsystems@gmail.com>
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ cron_runner.py                            | 129 ++++++++++++++++++++++++++++--
+ scripts/benchmark_llm_vs_jev.py           |  73 +++++++++++++++++
+ tests/test_benchmark_llm_vs_jev_driver.py |  68 ++++++++++++++++
+ tests/test_cron_runner_metrics.py         |  89 +++++++++++++++++++++
+ 4 files changed, 352 insertions(+), 7 deletions(-)
+
+diff --git a/cron_runner.py b/cron_runner.py
+index eaa8452..27f3061 100644
+--- a/cron_runner.py
++++ b/cron_runner.py
+@@ -3336,6 +3336,35 @@ JEV_DEGRADED_RATE = 0.5
+ JEV_DEGRADED_MIN_DECISIONS = 5
+ 
+ 
++def _decision_map_key(row: dict[str, Any]) -> tuple[str, int | str] | None:
++    """Return a stable map identity from one stamped decision row."""
++    map_id = row.get("map_id")
++    if isinstance(map_id, int) and not isinstance(map_id, bool):
++        return ("id", map_id)
++    map_name = row.get("map_name")
++    if isinstance(map_name, str) and map_name:
++        return ("name", map_name)
++    return None
++
++
++def _decision_tile_state(
++    row: dict[str, Any],
++) -> tuple[str, int | str, int, int] | None:
++    """Return the stamped map/tile state, or None when it is not observable."""
++    map_key = _decision_map_key(row)
++    tile_x = row.get("player_tile_x")
++    tile_y = row.get("player_tile_y")
++    if (
++        map_key is None
++        or not isinstance(tile_x, int)
++        or isinstance(tile_x, bool)
++        or not isinstance(tile_y, int)
++        or isinstance(tile_y, bool)
++    ):
++        return None
++    return (*map_key, tile_x, tile_y)
++
++
+ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
+     """Derive the run's autonomy block from the per-decision rows (JEV-1).
+ 
+@@ -3349,10 +3378,18 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
+     recovery, state_saved), error rows and per-button execution rows never
+     set ``intent`` and move no counter here.
+ 
+-    Returns ``decisions_total``, ``jev_answered``, ``escalated``,
+-    ``autonomy_ratio`` (rounded to 4 dp, ``None`` on an empty population) and
+-    ``escalation_rate_by_missing_class`` (missing_class -> share of escalated
+-    rows, empty when nothing escalated; insertion order follows the rows).
++    EFF-1 derives movement efficiency in the SAME pass and from the SAME
++    stamped decision-row population. The summary printer never increments a
++    transition or backtrack counter: otherwise a repeated wrong decision could
++    still report perfect autonomy without exposing that the player did not
++    move. A map transition is each comparable consecutive decision pair whose
++    stamped map changed, matching S0's per-transition denominator. A backtrack
++    is a comparable map/tile state that is unchanged or was visited earlier.
++
++    Returns the autonomy counters plus ``map_transitions_observed``,
++    ``decisions_per_map_transition``, ``state_comparisons``,
++    ``backtrack_events`` and ``backtrack_rate``. Ratios are rounded to 4 dp and
++    remain ``None`` when their denominator is unavailable or zero.
+     """
+     decisions_total = 0
+     jev_answered = 0
+@@ -3367,11 +3404,40 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
+     memory_navigation_fallbacks = 0
+     agentic_tool_calls = 0
+     pipeline_counts: Counter[str] = Counter()
++    map_transitions_observed = 0
++    map_transition_comparisons = 0
++    previous_map: tuple[str, int | str] | None = None
++    state_comparisons = 0
++    backtrack_events = 0
++    previous_state: tuple[str, int | str, int, int] | None = None
++    visited_states: set[tuple[str, int | str, int, int]] = set()
+ 
+     for row in results:
+         if "intent" not in row:
+             continue
+         decisions_total += 1
++        map_key = _decision_map_key(row)
++        if map_key is None:
++            # Do not bridge an unobservable decision: that would invent a map
++            # transition between two rows that were not consecutive evidence.
++            previous_map = None
++        else:
++            if previous_map is not None:
++                map_transition_comparisons += 1
++                if map_key != previous_map:
++                    map_transitions_observed += 1
++            previous_map = map_key
++
++        state = _decision_tile_state(row)
++        if state is None:
++            previous_state = None
++        else:
++            if previous_state is not None:
++                state_comparisons += 1
++                if state == previous_state or state in visited_states:
++                    backtrack_events += 1
++            visited_states.add(state)
++            previous_state = state
+         pipeline = row.get("pipeline")
+         if isinstance(pipeline, str) and pipeline:
+             pipeline_counts[pipeline] += 1
+@@ -3434,6 +3500,14 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
+         decisions_total >= JEV_DEGRADED_MIN_DECISIONS
+         and raw_jev_failure_rate > JEV_DEGRADED_RATE
+     )
++    decisions_per_map_transition = (
++        round(decisions_total / map_transitions_observed, 4)
++        if decisions_total and map_transitions_observed
++        else None
++    )
++    backtrack_rate = (
++        round(backtrack_events / state_comparisons, 4) if state_comparisons else None
++    )
+     return {
+         "decisions_total": decisions_total,
+         "jev_answered": jev_answered,
+@@ -3455,6 +3529,13 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
+         # benchmark summaries directly comparable with their source rows.
+         "agentic_tool_calls": agentic_tool_calls,
+         "pipeline_counts": dict(pipeline_counts),
++        # EFF-1: evidence-bearing cycle efficiency, counted from decision rows.
++        "map_transitions_observed": map_transitions_observed,
++        "map_transition_comparisons": map_transition_comparisons,
++        "decisions_per_map_transition": decisions_per_map_transition,
++        "state_comparisons": state_comparisons,
++        "backtrack_events": backtrack_events,
++        "backtrack_rate": backtrack_rate,
+     }
+ 
+ 
+@@ -3478,7 +3559,10 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
+     at zero) so the metric is visible without a separate probe.
+     """
+     if not autonomy:
+-        return "autonomy=n/a (0 decisions, 0 escalated) | nav-mem: 0 hits/0 fallbacks"
++        return (
++            "autonomy=n/a (0 decisions, 0 escalated) | efficiency: n/a "
++            "dec/map-transition, backtrack n/a | nav-mem: 0 hits/0 fallbacks"
++        )
+     decisions_total = _as_int(autonomy.get("decisions_total"))
+     jev_answered = _as_int(autonomy.get("jev_answered"))
+     escalated = _as_int(autonomy.get("escalated"))
+@@ -3486,8 +3570,29 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
+         f" | nav-mem: {_as_int(autonomy.get('memory_navigation_hits'))} hits/"
+         f"{_as_int(autonomy.get('memory_navigation_fallbacks'))} fallbacks"
+     )
++    raw_decisions_per_transition = autonomy.get("decisions_per_map_transition")
++    decisions_per_transition = (
++        f"{float(raw_decisions_per_transition):.2f}"
++        if isinstance(raw_decisions_per_transition, (int, float))
++        and not isinstance(raw_decisions_per_transition, bool)
++        else "n/a"
++    )
++    raw_backtrack_rate = autonomy.get("backtrack_rate")
++    backtrack = (
++        f"{float(raw_backtrack_rate):.0%}"
++        if isinstance(raw_backtrack_rate, (int, float))
++        and not isinstance(raw_backtrack_rate, bool)
++        else "n/a"
++    )
++    efficiency_tail = (
++        f" | efficiency: {decisions_per_transition} dec/map-transition, "
++        f"backtrack {backtrack}"
++    )
+     if not decisions_total:
+-        return f"autonomy=n/a (0 decisions, {escalated} escalated){nav_tail}"
++        return (
++            f"autonomy=n/a (0 decisions, {escalated} escalated)"
++            f"{efficiency_tail}{nav_tail}"
++        )
+     tail = f"autonomy={jev_answered}/{decisions_total} ({escalated} escalated)"
+     if autonomy.get("degraded"):
+         failures = _as_int(autonomy.get("jev_transport_failures"))
+@@ -3496,7 +3601,7 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
+             f" | JEV DEGRADED: {failures}/{decisions_total} transport failures "
+             f"({rate:.0%})"
+         )
+-    return tail + nav_tail
++    return tail + efficiency_tail + nav_tail
+ 
+ 
+ def _write_autonomy_row(
+@@ -3546,6 +3651,16 @@ def _write_autonomy_row(
+         "agentic_tool_calls": _as_int(autonomy.get("agentic_tool_calls")),
+         "pipeline": pipeline,
+         "pipeline_counts": pipeline_counts,
++        # EFF-1 mirrors the counted movement evidence onto the run-level row
++        # consumed by BENCH-PAR; benchmark episodes need no second inference.
++        "map_transitions_observed": _as_int(autonomy.get("map_transitions_observed")),
++        "map_transition_comparisons": _as_int(
++            autonomy.get("map_transition_comparisons")
++        ),
++        "decisions_per_map_transition": autonomy.get("decisions_per_map_transition"),
++        "state_comparisons": _as_int(autonomy.get("state_comparisons")),
++        "backtrack_events": _as_int(autonomy.get("backtrack_events")),
++        "backtrack_rate": autonomy.get("backtrack_rate"),
+         "handoff_policy": dict(HANDOFF_POLICY),
+         # Which triggers fired this run, and how often the policy refused one.
+         # Counted from the decision rows by _autonomy_counters.
+diff --git a/scripts/benchmark_llm_vs_jev.py b/scripts/benchmark_llm_vs_jev.py
+index e962a94..847c8b2 100644
+--- a/scripts/benchmark_llm_vs_jev.py
++++ b/scripts/benchmark_llm_vs_jev.py
+@@ -225,6 +225,12 @@ def _episode_skeleton() -> dict[str, Any]:
+         "lock_total_cycles": None,
+         "lock_rate": None,
+         "autonomy": None,
++        "map_transitions_observed": None,
++        "map_transition_comparisons": None,
++        "decisions_per_map_transition": None,
++        "state_comparisons": None,
++        "backtrack_events": None,
++        "backtrack_rate": None,
+         "decision_mode": None,
+         "decision_mode_log": None,
+         "decision_mode_family": None,
+@@ -280,7 +286,24 @@ def episode_metrics_from_log(log_path: Path, stdout_path: Path | None = None) ->
+                 "escalated": r.get("escalated"),
+                 "autonomy_ratio": r.get("autonomy_ratio"),
+                 "teacher_escalations": r.get("teacher_escalations"),
++                "map_transitions_observed": r.get("map_transitions_observed"),
++                "map_transition_comparisons": r.get("map_transition_comparisons"),
++                "decisions_per_map_transition": r.get("decisions_per_map_transition"),
++                "state_comparisons": r.get("state_comparisons"),
++                "backtrack_events": r.get("backtrack_events"),
++                "backtrack_rate": r.get("backtrack_rate"),
+             }
++            # BENCH-PAR episode rows mirror the runner's counted efficiency
++            # fields instead of re-deriving them from a different population.
++            for field in (
++                "map_transitions_observed",
++                "map_transition_comparisons",
++                "decisions_per_map_transition",
++                "state_comparisons",
++                "backtrack_events",
++                "backtrack_rate",
++            ):
++                m[field] = r.get(field)
+             m["decision_mode_log"] = r.get("decision_mode")
+             summary_surface = {
+                 "decision_mode": r.get("decision_mode"),
+@@ -698,6 +721,28 @@ def _arm_aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
+     mode_families = {r.get("decision_mode_family") for r in rows}
+     tools_enabled = {r.get("agentic_tools_enabled") for r in rows}
+     pipelines = {r.get("pipeline") for r in rows}
++    transition_counts_known = all(
++        r.get("map_transitions_observed") is not None for r in rows
++    )
++    state_counts_known = all(
++        r.get("state_comparisons") is not None and r.get("backtrack_events") is not None
++        for r in rows
++    )
++    map_transitions_observed = (
++        sum(int(r.get("map_transitions_observed") or 0) for r in rows)
++        if transition_counts_known
++        else None
++    )
++    state_comparisons = (
++        sum(int(r.get("state_comparisons") or 0) for r in rows)
++        if state_counts_known
++        else None
++    )
++    backtrack_events = (
++        sum(int(r.get("backtrack_events") or 0) for r in rows)
++        if state_counts_known
++        else None
++    )
+     pipeline_counts: dict[str, int] = {}
+     for row in rows:
+         for pipeline, count in (row.get("pipeline_counts") or {}).items():
+@@ -714,6 +759,19 @@ def _arm_aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
+         "agentic_tool_calls": sum(int(r.get("agentic_tool_calls") or 0) for r in rows),
+         "pipeline": next(iter(pipelines)) if len(pipelines) == 1 else "mixed",
+         "pipeline_counts": pipeline_counts,
++        "map_transitions_observed": map_transitions_observed,
++        "decisions_per_map_transition": (
++            round(decisions / map_transitions_observed, 4)
++            if decisions and map_transitions_observed
++            else None
++        ),
++        "state_comparisons": state_comparisons,
++        "backtrack_events": backtrack_events,
++        "backtrack_rate": (
++            round(backtrack_events / state_comparisons, 4)
++            if backtrack_events is not None and state_comparisons
++            else None
++        ),
+         "episodes": len(rows),
+         "episodes_completed": completed,
+         "decisions": decisions,
+@@ -749,6 +807,19 @@ def _arm_aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
+             "runner stdout carried no lock-rate line (no completed summary); "
+             "rate is null, not zero"
+         )
++    if not transition_counts_known:
++        arm_row["decisions_per_map_transition_reason"] = (
++            "one or more episode run_autonomy rows lack EFF-1 transition counts"
++        )
++    elif not map_transitions_observed:
++        arm_row["decisions_per_map_transition_reason"] = (
++            "no map transition occurred; decisions per transition is undefined "
++            "(null), not zero"
++        )
++    if not state_counts_known or not state_comparisons:
++        arm_row["backtrack_rate_reason"] = (
++            "no comparable consecutive stamped map/tile states were available"
++        )
+     return arm_row
+ 
+ 
+@@ -868,6 +939,8 @@ def cmd_report(episode_log: Path) -> int:
+         "teacher_calls",
+         "cost_usd_observed",
+         "tiles_visited_distinct",
++        "decisions_per_map_transition",
++        "backtrack_rate",
+         "first_map_transition_cycle",
+         "errors",
+     )
+diff --git a/tests/test_benchmark_llm_vs_jev_driver.py b/tests/test_benchmark_llm_vs_jev_driver.py
+index bd98229..d6e7be3 100644
+--- a/tests/test_benchmark_llm_vs_jev_driver.py
++++ b/tests/test_benchmark_llm_vs_jev_driver.py
+@@ -281,6 +281,28 @@ class TestPlanRuns:
+ 
+ 
+ class TestEpisodeMetricsFromLog:
++    def test_efficiency_fields_mirror_the_run_autonomy_row(self, tmp_path):
++        autonomy = {
++            **_autonomy_row(decisions=4, mode="llm"),
++            "map_transitions_observed": 2,
++            "decisions_per_map_transition": 2.0,
++            "state_comparisons": 3,
++            "backtrack_events": 1,
++            "backtrack_rate": 0.3333,
++        }
++
++        metrics = bench.episode_metrics_from_log(
++            _write_log(tmp_path, [_llm_decision_row(), autonomy])
++        )
++
++        assert metrics["map_transitions_observed"] == 2
++        assert metrics["decisions_per_map_transition"] == 2.0
++        assert metrics["state_comparisons"] == 3
++        assert metrics["backtrack_events"] == 1
++        assert metrics["backtrack_rate"] == 0.3333
++        assert metrics["autonomy"]["decisions_per_map_transition"] == 2.0
++        assert metrics["autonomy"]["backtrack_rate"] == 0.3333
++
+     def test_both_modes_stamp_comparable_tool_loop_fields(self, tmp_path):
+         llm_rows = [
+             _llm_decision_row(agentic_tool_calls=1),
+@@ -585,9 +607,55 @@ class TestCmdReport:
+             "lock_rate",
+             "fallback_decisions",
+             "errors",
++            "map_transitions_observed",
++            "decisions_per_map_transition",
++            "state_comparisons",
++            "backtrack_events",
++            "backtrack_rate",
+         ):
+             assert field in row, f"comparison table missing required field {field}"
+ 
++    def test_table_aggregates_efficiency_as_weighted_counts(
++        self, tmp_path, monkeypatch
++    ):
++        monkeypatch.setattr(bench, "REPO", tmp_path)
++        rows = _battery_rows()
++        for row in rows:
++            if row["arm"] == "llm":
++                row.update(
++                    map_transitions_observed=1,
++                    state_comparisons=4,
++                    backtrack_events=3,
++                    decisions_per_map_transition=float(row["decisions"]),
++                    backtrack_rate=0.75,
++                )
++            else:
++                row.update(
++                    map_transitions_observed=2,
++                    state_comparisons=6,
++                    backtrack_events=1,
++                    decisions_per_map_transition=row["decisions"] / 2,
++                    backtrack_rate=round(1 / 6, 4),
++                )
++        ep_log = self._write_battery(tmp_path, rows)
++
++        assert bench.cmd_report(ep_log) == 0
++        artifact = json.loads(
++            (
++                tmp_path
++                / "data"
++                / "baselines"
++                / f"bench1_headtohead_{bench.today()}.json"
++            ).read_text()
++        )
++        llm_row, jev_row = artifact["comparison"]["table"]
++        assert llm_row["map_transitions_observed"] == 2
++        assert llm_row["decisions_per_map_transition"] == 5.5
++        assert llm_row["backtrack_rate"] == 0.75
++        assert jev_row["map_transitions_observed"] == 4
++        assert jev_row["decisions_per_map_transition"] == 3.75
++        assert jev_row["backtrack_rate"] == pytest.approx(1 / 6, abs=1e-4)
++
+     def test_null_measurements_carry_reasons(self, tmp_path, monkeypatch):
+         """A censored measurement is null WITH a reason, never hand-entered."""
+         monkeypatch.setattr(bench, "REPO", tmp_path)
+diff --git a/tests/test_cron_runner_metrics.py b/tests/test_cron_runner_metrics.py
+index 402044f..b02d1b0 100644
+--- a/tests/test_cron_runner_metrics.py
++++ b/tests/test_cron_runner_metrics.py
+@@ -1149,3 +1149,92 @@ class TestMainLoadsDotenvBeforePreflight:
+         with pytest.raises(SystemExit):
+             cr.main()
+         assert calls == ["dotenv", "preflight"], calls
++
++
++class TestCycleEfficiencyObservables:
++    """EFF-1: autonomy must say whether its decisions moved the player."""
++
++    @staticmethod
++    def _row(cycle: int, map_id: int, tile_x: int, tile_y: int) -> dict[str, Any]:
++        return {
++            "cycle": cycle,
++            "screen": "overworld",
++            "intent": "move",
++            "jev_answered": True,
++            "escalated": False,
++            "map_id": map_id,
++            "map_name": f"Map {map_id}",
++            "player_tile_x": tile_x,
++            "player_tile_y": tile_y,
++        }
++
++    def test_treadmill_run_reports_no_transition_and_full_backtrack_rate(self) -> None:
++        rows = [self._row(cycle, 1, 4, 7) for cycle in range(1, 6)]
++
++        block = cron_runner._autonomy_counters(rows)
++
++        assert block["decisions_total"] == 5
++        assert block["map_transitions_observed"] == 0
++        assert block["decisions_per_map_transition"] is None
++        assert block["state_comparisons"] == 4
++        assert block["backtrack_events"] == 4
++        assert block["backtrack_rate"] == 1.0
++        tail = cron_runner._format_autonomy_tail(block)
++        assert "efficiency: n/a dec/map-transition, backtrack 100%" in tail
++
++    def test_healthy_run_reports_transition_efficiency_and_limited_backtracking(
++        self,
++    ) -> None:
++        rows = [
++            self._row(1, 1, 0, 0),
++            self._row(2, 1, 1, 0),
++            self._row(3, 2, 5, 5),
++            self._row(4, 2, 6, 5),
++            self._row(5, 1, 1, 0),
++        ]
++
++        block = cron_runner._autonomy_counters(rows)
++
++        assert block["map_transitions_observed"] == 2
++        assert block["decisions_per_map_transition"] == 2.5
++        assert block["state_comparisons"] == 4
++        assert block["backtrack_events"] == 1
++        assert block["backtrack_rate"] == 0.25
++        assert "efficiency: 2.50 dec/map-transition, backtrack 25%" in (
++            cron_runner._format_autonomy_tail(block)
++        )
++
++    def test_no_decisions_reports_unknown_efficiency_everywhere(self) -> None:
++        block = cron_runner._autonomy_counters(
++            [{"cycle": 1, "event": "state_saved", "map_id": 1}]
++        )
++
++        assert block["decisions_total"] == 0
++        assert block["decisions_per_map_transition"] is None
++        assert block["backtrack_rate"] is None
++        assert "efficiency: n/a dec/map-transition, backtrack n/a" in (
++            cron_runner._format_autonomy_tail(block)
++        )
++
++        buffer = io.StringIO()
++        row = cron_runner._write_autonomy_row(buffer, "eff-1-empty", block)
++        assert row["decisions_per_map_transition"] is None
++        assert row["backtrack_rate"] is None
++
++    def test_run_autonomy_row_mirrors_efficiency_from_counted_rows(self) -> None:
++        rows = [
++            self._row(1, 1, 0, 0),
++            self._row(2, 2, 0, 0),
++            self._row(3, 2, 0, 0),
++        ]
++        block = cron_runner._autonomy_counters(rows)
++        buffer = io.StringIO()
++
++        row = cron_runner._write_autonomy_row(buffer, "eff-1", block)
++
++        assert row["map_transitions_observed"] == 1
++        assert row["decisions_per_map_transition"] == 3.0
++        assert row["state_comparisons"] == 2
++        assert row["backtrack_events"] == 1
++        assert row["backtrack_rate"] == 0.5
++        assert json.loads(buffer.getvalue()) == row

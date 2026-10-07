@@ -1,0 +1,26 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 0859ba6..c917bfe 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -966,7 +966,7 @@ tasks:
+     measured < 300MB
+   status: complete
+   created_at: '2026-10-06T15:17:46.335719+00:00'
+-  completed_at: '2026-10-06T15:47:41.073288+00:00'
++  completed_at: '2026-10-06T23:03:04.256039+00:00'
+ - id: AGENT-1
+   title: Give the agent an agentic context window, tool calls, and bounded delegation
+   criteria:
+@@ -1197,3 +1197,12 @@ tasks:
+   status: complete
+   created_at: '2026-10-06T20:53:25.887922+00:00'
+   completed_at: '2026-10-06T21:31:59.374965+00:00'
++- id: MEM-3
++  title: Backfill run JSONLs into DuckBrain /game/runs + /game/mechanics
++  criteria:
++  - A one-shot script distills cron_logs run JSONLs into pokemon-global DuckBrain
++    keys /game/runs/<run_id>/summary + rolling index + seeded /game/mechanics, folding
++    /game/save/current; counts reported and every write verified (201/UUID)
++  status: complete
++  created_at: '2026-10-06T23:33:19.635850+00:00'
++  completed_at: '2026-10-07T00:12:44.070655+00:00'

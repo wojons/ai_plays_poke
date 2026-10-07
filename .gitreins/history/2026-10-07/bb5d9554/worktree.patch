@@ -1,0 +1,58 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 4ef1336..e9f2433 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1215,3 +1215,53 @@ tasks:
+   status: complete
+   created_at: '2026-10-07T00:38:09.212459+00:00'
+   completed_at: '2026-10-07T01:14:27.670825+00:00'
++- id: SYNC-COVERAGE-1
++  title: 'Sync lane writes nothing: destination coverage broken since 2026-10-03'
++  criteria:
++  - Destination coverage to DuckBrain ai-plays-poke proven fresh (new marker within
++    cadence) OR the row premise corrected with evidence; closure cites verify artifact
++  status: complete
++  created_at: '2026-10-07T02:32:50.745628+00:00'
++  completed_at: '2026-10-07T02:33:03.581085+00:00'
++- id: FLK-1
++  title: Harden flaky game-bridge retry/serialization test
++  criteria:
++  - tests/test_game_bridge.py::test_console_raw_retry_path_is_bounded_and_game_access_is_serialized
++    passes under repeated CI-like load (10 local runs) with no timing races; no assertion
++    relies on wall-clock sleep windows; suite still green
++  status: complete
++  created_at: '2026-10-07T02:40:28.684807+00:00'
++  completed_at: '2026-10-07T03:13:58.069531+00:00'
++- id: TOOLS-1
++  title: "S4 tool calling \u2014 model-chosen tool calls logged with results, failures\
++    \ visible to model"
++  criteria:
++  - Log shows >=1 model-chosen tool call with its result; a failed call's error is
++    visible to the model; jev mode untouched; pytest+ruff+mypy clean
++  status: complete
++  created_at: '2026-10-07T03:26:06.947491+00:00'
++  completed_at: '2026-10-07T03:52:47.967985+00:00'
++- id: BENCH-PAR
++  title: 'S7 benchmark parity: both decision modes run the tool loop, mode stamped,
++    logs comparable'
++  criteria:
++  - Running cron_runner.py with --decision-mode jev and --decision-mode llm both execute
++    the agentic tool loop where enabled, every decision row stamps decision_mode,
++    decision_mode_family and agentic_tools_enabled/agentic_tool_calls, jev-mode rows
++    show agentic_tools_enabled=false, llm-mode rows show true with >=1 tool call field
++    present, and the benchmark driver (tests/test_benchmark_llm_vs_jev_driver.py surface)
++    produces logs whose mode fields are comparable across the two modes; ./venv/bin/pytest
++    on touched test files passes
++  status: complete
++  created_at: '2026-10-07T04:44:05.852223+00:00'
++  completed_at: '2026-10-07T05:05:01.932141+00:00'
++- id: DELEG-1
++  title: 'S5 delegation: delegated finding written to memory and consumed in a later
++    cycle'
++  criteria:
++  - A live agentic run log shows >=1 model-chosen delegate_research call, its finding
++    persisted to memory, and a later cycle's context carrying the finding (delegated_findings>=1),
++    with commands and output quoted
++  status: complete
++  created_at: '2026-10-07T06:07:02.135942+00:00'
++  completed_at: '2026-10-07T06:22:12.574498+00:00'

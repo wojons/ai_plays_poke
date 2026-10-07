@@ -1,0 +1,22 @@
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index d1a644e..d7fa0e8 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -536,3 +536,4 @@
+ {"id": 452, "ts": "2026-10-06T21:35:00Z", "tick_number": null, "task_id": "AUD-DEADCODE-0930-APP", "event": "closed", "detail": "Worker (gpt-5.6-sol/openai-codex) eliminated 351 ARG violations (170 ARG002/104 ARG005/77 ARG001) via underscore renames, no behavior change. Verified: ruff base+ARG green, mypy src/ 0, pytest 4411 passed/14 skipped. Branch deadcode-aud-0930-app, commit f3495e4 pushed to origin (rev-list 0). ch:trace row=AUD-DEADCODE-0930-APP evidence=ruff-statistics-before/after witness=none:local-run commit=f3495e4"}
+ {"id": 453, "ts": "2026-10-06T21:35:01Z", "tick_number": null, "task_id": "PYDC-AI-PLAYS-POKE", "event": "closed", "detail": "Duplicate deadcode row; same sweep as AUD-DEADCODE-0930-APP (commit f3495e4). ch:trace row=PYDC-AI-PLAYS-POKE witness=none:duplicate-of-aud commit=f3495e4"}
+ {"id": 454, "ts": "2026-10-06T22:20:00Z", "type": "task_closed", "task_id": "BASE-REPIN", "detail": "commit 912a036 pushed to main: data/boot.state re-pinned to known-good md5 81e4ec4e from base-1_boot.state; pin file + drift-guard test added (2 passed); dry-run validated checkpoint boot (T4); gitreins tier1 FAIL = load artifact (secrets 120s timeout) — gitleaks re-run clean; tier2 = deepseek 402 provider artifact; CI green on 912a036; judge verdict 25568fe9"}
++{"id": 455, "ts": "2026-10-06T22:47:00Z", "type": "fixture_run", "task_id": "E2E-001", "actor": "foreman", "detail": "Tick ai-plays-poke-foreman-2026-10-06-22-27-01: E2E fixture run e2e_t293_20261006_1730 exit 0, 80 cycles, autonomy 80/80 (61 escalated), lock-rate 2/80 (2%), movement-progress 44/79 cycles changed tile (56%), peak RSS 86MB flat (no leak), HSM spam 0, run JSONL + screenshots landed. No battle reached this window (JEV Oak Lab limit, T137 variance precedent). gitreins tier2 judge running. ch:trace row=E2E-001 witness=/var/tmp/aipp_e2e_t293_20261006_1730.log+cron_logs/run_e2e_t293_20261006_1730.jsonl"}
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 0859ba6..ee169ae 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -966,7 +966,7 @@ tasks:
+     measured < 300MB
+   status: complete
+   created_at: '2026-10-06T15:17:46.335719+00:00'
+-  completed_at: '2026-10-06T15:47:41.073288+00:00'
++  completed_at: '2026-10-06T22:55:59.564528+00:00'
+ - id: AGENT-1
+   title: Give the agent an agentic context window, tool calls, and bounded delegation
+   criteria:
