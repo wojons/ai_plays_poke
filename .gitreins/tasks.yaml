@@ -1149,15 +1149,13 @@ tasks:
   created_at: '2026-10-06T14:07:00.460272+00:00'
   completed_at: '2026-10-06T14:15:26.852600+00:00'
 - id: CLN-1
-  title: 'Repo hygiene: clean up project folder structure'
+  title: 'Repo hygiene: move root _*.py to tools/'
   criteria:
-  - 'Inventory tracked root files/dirs vs documented layout; find junk/misplaced artifacts;
-    grep tests/ and CI before removing; move or archive the rest; record intentional
-    exceptions in repo docs. Do not touch auto-generated provider registries or perpetual
-    fixtures (NEVER-DONE/E2E-001). PASS: root tree matches documented layout, no orphan
-    outputs/scripts, SPEC_STATUS.md or equivalent documents wired vs design-only modules.'
-  status: in_progress
-  created_at: '2026-10-06T17:07:43.349367+00:00'
+  - Move 28 root-level _*.py files (foreman/CI diagnostics) to tools/ or scripts/
+    after verifying no test/CI references; document scratch-home convention in CONTRIBUTING.md
+  status: complete
+  created_at: '2026-10-08T01:48:16.156402+00:00'
+  completed_at: '2026-10-08T01:58:19.304878+00:00'
 - id: DEPS-AIPP-001
   title: Safe grouped upgrades of outdated Python packages
   criteria:

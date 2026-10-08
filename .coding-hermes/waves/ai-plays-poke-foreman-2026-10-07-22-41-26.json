@@ -1,0 +1,28 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-07-22-41-26",
+  "wave_budget": 3,
+  "status": "dispatched",
+  "workers": [
+    {
+      "task": "PXC-AI-PLAYS-POKE-COMPLEXITY",
+      "slug": "pxc-cronrunner",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-pxc-cronrunner",
+      "branch": "wt/pxc-cronrunner",
+      "base_sha": "d05ae43",
+      "brief": "/tmp/brief-20261007-2241-pxc-cronrunner.txt",
+      "gitreins_task": "PXC-AI-PLAYS-POKE-COMPLEXITY",
+      "note": "row already partially landed via PXC-SRC2/PYCMP (src/ clean, 120->34); this leg finishes cron_runner.py + tests/"
+    },
+    {
+      "task": "QA-AI-PLAYS-POKE-13",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-QA-AI-PLAYS-POKE-13",
+      "branch": "wt/QA-AI-PLAYS-POKE-13",
+      "base_sha": "d05ae43",
+      "brief": "/tmp/brief-20261007-2241-qa13-failsafe.txt",
+      "gitreins_task": "QA-AI-PLAYS-POKE-13"
+    }
+  ],
+  "independence": "no depends_on edges between the two rows; disjoint file sets (cron_runner.py+test_gameplay_escape.py vs tests/test_failsafe.py+src failsafe path)",
+  "dispatched_at": "2026-10-07T22:41:00-05:00",
+  "pre_solve": "off-by-one discover API: both classes not_found; corpus grep found 1472 vitest-suite-load-flake (per-test isolation pattern) passed to QA-13 worker"
+}
