@@ -1,0 +1,17 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index a1aeec5..35eea76 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1388,3 +1388,12 @@ tasks:
+   status: complete
+   created_at: '2026-10-07T20:43:43.373160+00:00'
+   completed_at: '2026-10-07T21:24:01.491819+00:00'
++- id: PXC-SRC2
++  title: Refactor remaining src/core complexity violations (C901/PLR0912/PLR0915)
++  criteria:
++  - 'ruff check src/ --select C901,PLR0912,PLR0915 returns 0 findings for the 5 files
++    state_projection.py map_integrator.py inventory.py duckbrain_client.py ai_client.py;
++    behavior preserved: pytest fast tier green for the touched modules'
++  status: complete
++  created_at: '2026-10-07T21:48:11.214026+00:00'
++  completed_at: '2026-10-07T22:22:48.597401+00:00'

@@ -1,0 +1,40 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 2f05be5..cc11b4d 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1339,3 +1339,35 @@ tasks:
+   status: complete
+   created_at: '2026-10-07T14:07:09.791544+00:00'
+   completed_at: '2026-10-07T14:28:18.761554+00:00'
++- id: AIPP-DEPS-001
++  title: "Python deps outdated (130) \u2014 batch minor/patch upgrades in requirements.txt"
++  criteria:
++  - requirements.txt upgrades applied non-major (anthropic/botocore etc. majors deferred
++    with rationale); ./venv/bin/pytest -x --tb=short fast tier green; mypy src/ --ignore-missing-imports
++    clean; ruff clean; commit pushed origin/main
++  status: complete
++  created_at: '2026-10-07T14:45:55.057412+00:00'
++  completed_at: '2026-10-07T15:05:56.850339+00:00'
++- id: PYSEC-AI-PLAYS-POKE
++  title: Security hazards audit S/PT rules
++  criteria:
++  - ruff --select S110,S324,S112 clean in src/ and tests/; full suite passes
++  status: complete
++  created_at: '2026-10-07T16:39:42.240557+00:00'
++  completed_at: '2026-10-07T16:44:02.307655+00:00'
++- id: PYTYP-AI-PLAYS-POKE
++  title: 'Typing audit bounded increment: annotate one src/core module'
++  criteria:
++  - ruff passes, mypy src/ 0 errors, pytest targeted file suite green, zero behavior
++    change, commit pushed
++  status: complete
++  created_at: '2026-10-07T17:19:07.521846+00:00'
++  completed_at: '2026-10-07T17:33:15.976939+00:00'
++- id: PYLINT-AI-PLAYS-POKE
++  title: Ruff modernization sweep UP006/UP045 (PEP 585/604 annotations)
++  criteria:
++  - ruff check . --isolated --select UP006,UP045 returns 0 errors on src/, mypy src/
++    clean, tests green, committed and pushed
++  status: complete
++  created_at: '2026-10-07T19:40:31.972758+00:00'
++  completed_at: '2026-10-07T20:08:37.733014+00:00'

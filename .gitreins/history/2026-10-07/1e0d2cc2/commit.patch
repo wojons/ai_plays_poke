@@ -1,0 +1,31 @@
+commit 7998a8a512650dbcf39fdb071a166f4a4a51777d
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Oct 7 08:42:04 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Oct 7 08:42:04 2026 -0500
+
+    ci: fire CI on version tags (v*) — RELEASE-002 gate 1
+    
+    Adds tags:['v*'] to ci.yml on.push so a release tag gets a CI run on
+    the tag commit before any Release object is created (releng NO-GO
+    condition removed). Non-breaking: main/PR triggers unchanged.
+    
+    ch:trace row=RELEASE-002 spec=.github/workflows/ci.yml wave=gate-1 witness=none:trigger-config — verification is the next tag push firing a run; deferred until an authorized cut
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ .github/workflows/ci.yml | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 1bf1875..ed5d7c8 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -3,6 +3,7 @@ name: CI
+ on:
+   push:
+     branches: [main]
++    tags: ['v*']
+   pull_request:
+     branches: [main]
+ 

@@ -1,0 +1,846 @@
+commit c1ce32343ebcba0a415f8f3c497aea84e4660042
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Oct 7 11:14:11 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Oct 7 11:14:11 2026 -0500
+
+    fix(security): PYSEC-AI-PLAYS-POKE — fix S108/PT018/S110 violations (144 fixes)
+    
+    Premise reconciled before coding: S108 (109) and PT018 (21) from the 2026-09-27
+    audit were already eliminated by 99a8bda/90f24cc (PYSEC-AI-PLAYS-POKE-20261001,
+    merged 2026-10-01; t311 closed that duplicate as premise-stale). Remaining real
+    hazards fixed here, scoped by the row's own title: "violations that are not
+    test-assert noise" — S101 (8504 pytest asserts) is that noise and is left alone.
+    
+    - S110 11x -> 0: 5 src try-except-pass now log at debug level (ai_client parse
+      fallback, state_window DuckBrain x2, ocr template fallback) or carry a
+      re-entrancy noqa (logger._compress_file: logging inside the logging handler
+      would deadlock); 3 test cleanup sites narrowed to sqlite3.Error/OSError;
+      3 deliberate test except-passes noqa-annotated (the pass IS the test).
+    - S112 3x -> 0: corrupt-JSONL skip loops in duckbrain_client now debug-log the
+      skipped file before continue (behavior unchanged).
+    - S324 10x -> 0: non-crypto md5 (cache keys, backoff jitter, pHash IDs,
+      integrity pins) annotated usedforsecurity=False.
+    - S603/S607 11x -> 0: explicit shell=False everywhere, partial "node"/"bash"
+      resolved via shutil.which, remaining derived-argv audit flags noqa-annotated.
+    - S105 1x -> 0: fake fixture token annotated.
+    - PT001/PT006/PT017/PT019 11x -> 0: fixture paren style; tuple parametrize
+      names; in-except assertion guard noqa; fixture rename _require_live ->
+      require_live (value-returning fixture, underscore convention misfired PT019).
+    - PT011/PT012/PT028 19x -> 0: deliberate broad-catch/multi-statement robustness
+      tests and a standalone script helper annotated — narrowing them would change
+      what the tests assert, which the task forbids.
+    
+    src/ is now 0 violations under ruff --select S,PT. tests/ retains only S101.
+    
+    Gates: ruff --select S,PT src/ = 0; pytest tests/ = 4458 passed, 14 skipped;
+    mypy src/ --ignore-missing-imports = 0 errors (68 files).
+    
+    ch:trace row=PYSEC-AI-PLAYS-POKE spec=SECURITY-FIXES.md witness=none:local-execution
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ src/core/ai_client.py               | 17 ++++++++++++++---
+ src/core/duckbrain_client.py        |  9 ++++++---
+ src/core/frame_cache.py             |  2 +-
+ src/core/logger.py                  |  4 ++--
+ src/core/state_window.py            | 18 +++++++++++-------
+ src/core/vision.py                  |  2 +-
+ src/test_all_roms.py                | 10 ++++++++--
+ src/vision/ocr.py                   |  9 +++++++--
+ src/vision/pipeline.py              |  2 +-
+ tests/test_ai_client.py             |  2 +-
+ tests/test_base1_baseline.py        |  2 +-
+ tests/test_boot_memory_injection.py |  2 +-
+ tests/test_boot_state_pin.py        |  6 ++++--
+ tests/test_ci_scope.py              |  3 ++-
+ tests/test_duckbrain_client.py      |  6 ++++--
+ tests/test_edge_cases.py            | 34 +++++++++++++++++-----------------
+ tests/test_exceptions.py            |  2 +-
+ tests/test_full_gameplay.py         |  2 +-
+ tests/test_game_bridge.py           |  5 +++--
+ tests/test_integration.py           |  8 ++++----
+ tests/test_jev403_degradation.py    |  2 +-
+ tests/test_live_demo.py             | 18 +++++++++---------
+ tests/test_logger.py                |  2 +-
+ tests/test_long_run_boot.py         |  2 +-
+ tests/test_precommit_hook.py        |  8 +++++---
+ tests/test_system_modes.py          |  2 +-
+ 26 files changed, 108 insertions(+), 71 deletions(-)
+
+diff --git a/src/core/ai_client.py b/src/core/ai_client.py
+index 8935210..f31ebd5 100644
+--- a/src/core/ai_client.py
++++ b/src/core/ai_client.py
+@@ -9,6 +9,7 @@ import os
+ import time
+ import base64
+ import json
++import logging
+ import re
+ import threading
+ import warnings
+@@ -938,8 +939,10 @@ class JSONResponseParser:
+             if result:
+                 self.parse_success_count += 1
+                 return result
+-        except Exception:
+-            pass
++        except Exception as exc:  # noqa: BLE001 — any parse failure falls through to retry
++            logging.getLogger(__name__).debug(
++                "JSON parse attempt failed; falling back to retry/fallback: %s", exc
++            )
+ 
+         self.parse_failure_count += 1
+ 
+@@ -1099,7 +1102,15 @@ class RateLimiter:
+     def get_delay(self, retry_count: int) -> float:
+         """Calculate exponential backoff delay"""
+         delay = min(self.base_delay * (2**retry_count), self.max_delay)
+-        random_value = int(hashlib.md5(str(time.time()).encode()).hexdigest(), 16) % 100
++        random_value = (
++            int(
++                hashlib.md5(
++                    str(time.time()).encode(), usedforsecurity=False
++                ).hexdigest(),
++                16,
++            )
++            % 100
++        )
+         jitter = delay * 0.1 * (random_value / 100)
+         return float(delay + jitter)
+ 
+diff --git a/src/core/duckbrain_client.py b/src/core/duckbrain_client.py
+index f8aa541..2b24889 100644
+--- a/src/core/duckbrain_client.py
++++ b/src/core/duckbrain_client.py
+@@ -131,7 +131,8 @@ def recall(
+                     results.append(record)
+                     if len(results) >= limit:
+                         return results
+-        except Exception:
++        except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
++            logger.debug("recall: skipping unreadable %s: %s", jsonl_path, exc)
+             continue
+ 
+     return results
+@@ -176,7 +177,8 @@ def list_keys(
+                         keys.add(k)
+             if truncated:
+                 break
+-        except Exception:
++        except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
++            logger.debug("list_keys: skipping unreadable %s: %s", jsonl_path, exc)
+             continue
+ 
+     if truncated:
+@@ -242,7 +244,8 @@ def search(
+                         results.append(record)
+                         if len(results) >= limit:
+                             return results
+-        except Exception:
++        except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
++            logger.debug("search: skipping unreadable %s: %s", jsonl_path, exc)
+             continue
+ 
+     return results
+diff --git a/src/core/frame_cache.py b/src/core/frame_cache.py
+index bf65aaa..2c1399c 100644
+--- a/src/core/frame_cache.py
++++ b/src/core/frame_cache.py
+@@ -73,7 +73,7 @@ class FrameCache:
+     @staticmethod
+     def hash_frame(frame_bytes: bytes) -> str:
+         """Return the md5 hex digest for raw screenshot bytes."""
+-        return hashlib.md5(frame_bytes).hexdigest()
++        return hashlib.md5(frame_bytes, usedforsecurity=False).hexdigest()
+ 
+     def lookup(self, frame_hash: str) -> dict[str, Any] | None:
+         """Return the cached entry for *frame_hash*, or None on miss."""
+diff --git a/src/core/logger.py b/src/core/logger.py
+index 2e07aad..00b747c 100644
+--- a/src/core/logger.py
++++ b/src/core/logger.py
+@@ -235,8 +235,8 @@ class RotationFileHandler(logging.FileHandler):
+                 with gzip.open(filename + ".gz", "wb") as f_out:
+                     shutil.copyfileobj(f_in, f_out)
+             os.remove(filename)
+-        except Exception:
+-            pass  # Ignore compression errors
++        except Exception:  # noqa: S110,BLE001 — we ARE the logger's handler: re-entrant
++            pass  # logging here would deadlock the logging lock; silent skip is intended
+ 
+     def _clean_old_backups(self) -> None:
+         """Clean old backup files"""
+diff --git a/src/core/state_window.py b/src/core/state_window.py
+index 0771c3a..cca0ace 100644
+--- a/src/core/state_window.py
++++ b/src/core/state_window.py
+@@ -35,19 +35,21 @@ from src.core.tools import (
+ import subprocess
+ import os
+ import logging
++import shutil
+ 
+ logger = logging.getLogger(__name__)
+ 
+ # ── DuckBrain CLI wrapper ──────────────────────────────────────────────────
+ 
+ _DUCKBRAIN_CLI = os.path.expanduser("~/duckbrain/bin/duckbrain.js")
++_NODE = shutil.which("node") or "node"
+ 
+ 
+ def _duckbrain_remember(key: str, fact: str, namespace: str = "pokemon-global") -> str:
+     """Store a discovery via DuckBrain CLI."""
+-    result = subprocess.run(
++    result = subprocess.run(  # noqa: S603 — literal local CLI argv, no shell
+         [
+-            "node",
++            _NODE,
+             _DUCKBRAIN_CLI,
+             "remember",
+             key,
+@@ -59,15 +61,16 @@ def _duckbrain_remember(key: str, fact: str, namespace: str = "pokemon-global")
+         text=True,
+         timeout=10,
+         cwd=os.path.expanduser("~/duckbrain"),
++        shell=False,
+     )
+     return result.stdout.strip() or result.stderr.strip()
+ 
+ 
+ def _duckbrain_recall(query: str, namespace: str = "pokemon-global") -> str:
+     """Query memories via DuckBrain CLI."""
+-    result = subprocess.run(
++    result = subprocess.run(  # noqa: S603 — literal local CLI argv, no shell
+         [
+-            "node",
++            _NODE,
+             _DUCKBRAIN_CLI,
+             "recall",
+             f"--prefix={query}",
+@@ -77,6 +80,7 @@ def _duckbrain_recall(query: str, namespace: str = "pokemon-global") -> str:
+         text=True,
+         timeout=10,
+         cwd=os.path.expanduser("~/duckbrain"),
++        shell=False,
+     )
+     return result.stdout.strip() or "nothing found"
+ 
+@@ -627,7 +631,7 @@ class StateWindow:
+                         embedding_text=f"Current goal: {goal}",
+                     )
+                 except Exception as _e:  # memory persistence is best-effort
+-                    pass
++                    logger.debug("DuckBrain goal persistence failed (ignored): %s", _e)
+                 self._history.append({"role": "set_goal", "goal": goal})
+                 continue
+ 
+@@ -1251,9 +1255,9 @@ class StateWindow:
+                 fact=entry,
+                 namespace="pokemon-global",
+             )
+-        except Exception:
++        except Exception as exc:
+             # DuckBrain is best-effort — never crash the game loop
+-            pass
++            logger.debug("DuckBrain HSM transition log failed (ignored): %s", exc)
+ 
+     @staticmethod
+     def _hsm_type_to_state_type(state_type: str) -> str:
+diff --git a/src/core/vision.py b/src/core/vision.py
+index 31d91f0..f2f3df0 100644
+--- a/src/core/vision.py
++++ b/src/core/vision.py
+@@ -207,7 +207,7 @@ class VisionClient:
+     def _compute_hash(screenshot: np.ndarray) -> str:
+         """MD5 hash of the first 1 KB of pixel data."""
+         head = screenshot.tobytes()[:1024]
+-        return hashlib.md5(head).hexdigest()
++        return hashlib.md5(head, usedforsecurity=False).hexdigest()
+ 
+     # A Game Boy frame is 160x144 px. Measured on this repo's own frames, SAME prompt and
+     # SAME frame, changing only the scaling - run twice, because the two runs disagreed:
+diff --git a/src/test_all_roms.py b/src/test_all_roms.py
+index dfce83b..6f7a93e 100644
+--- a/src/test_all_roms.py
++++ b/src/test_all_roms.py
+@@ -9,7 +9,10 @@ from PIL import Image
+ 
+ 
+ def test_rom(
+-    rom_path: str, rom_name: str, num_ticks: int = 500, screenshot_interval: int = 100
++    rom_path: str,
++    rom_name: str,
++    num_ticks: int = 500,  # noqa: PT028 — helper of this standalone script, never pytest-collected
++    screenshot_interval: int = 100,  # noqa: PT028 — helper of this standalone script, never pytest-collected
+ ) -> bool:
+     """Run PyBoy test for a specific ROM"""
+ 
+@@ -82,7 +85,10 @@ def main() -> None:
+     # ROM configurations
+     roms = [
+         ("data/rom/pokemon_red.gb", "pokemon_red"),
+-        ("data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb", "pokemon_blue"),
++        (
++            "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb",
++            "pokemon_blue",
++        ),
+         ("data/rom/pokemon_green.gb", "pokemon_green"),
+         ("data/rom/pokemon_yellow.gb", "pokemon_yellow"),
+         ("data/rom/pokemon_gold.gbc", "pokemon_gold"),
+diff --git a/src/vision/ocr.py b/src/vision/ocr.py
+index b4ca4a9..37e9ab2 100644
+--- a/src/vision/ocr.py
++++ b/src/vision/ocr.py
+@@ -6,6 +6,7 @@ Supports Pokemon names, menu items, and dialog text.
+ """
+ 
+ import json
++import logging
+ import re
+ from typing import Optional, List, Dict, Any, Tuple
+ from dataclasses import dataclass, field
+@@ -14,6 +15,8 @@ from pathlib import Path
+ import numpy as np
+ from PIL import Image
+ 
++logger = logging.getLogger(__name__)
++
+ 
+ @dataclass
+ class OCRResult:
+@@ -139,8 +142,10 @@ class OCREngine:
+                 font = ImageFont.load_default()
+             draw.text((0, 0), char, fill=1, font=font)
+             template = np.array(img)
+-        except Exception:
+-            pass
++        except Exception as exc:  # noqa: BLE001 — template gen is best-effort; zeros fallback
++            logger.debug(
++                "Font template generation failed for %r, using zeros: %s", char, exc
++            )
+ 
+         return template
+ 
+diff --git a/src/vision/pipeline.py b/src/vision/pipeline.py
+index 11715aa..4763c94 100644
+--- a/src/vision/pipeline.py
++++ b/src/vision/pipeline.py
+@@ -274,7 +274,7 @@ class VisionPipeline:
+         median = np.median(dct_low)
+         hash_bits = (dct_low > median).astype(int)
+         hash_str = "".join(str(b) for b in hash_bits.flatten())
+-        return hashlib.md5(hash_str.encode()).hexdigest()[:16]
++        return hashlib.md5(hash_str.encode(), usedforsecurity=False).hexdigest()[:16]
+ 
+     def _simple_dct_2d(self, block: np.ndarray) -> np.ndarray:
+         """Simple 2D DCT implementation using numpy"""
+diff --git a/tests/test_ai_client.py b/tests/test_ai_client.py
+index 7c411f3..1335ab5 100644
+--- a/tests/test_ai_client.py
++++ b/tests/test_ai_client.py
+@@ -109,7 +109,7 @@ class TestGetModelPricing:
+ 
+         assert get_model_pricing("openai/gpt-4o-mini") == (0.15, 0.6)
+ 
+-    @pytest.mark.parametrize("model, expected", EXPECTED_MODEL_PRICING.items())
++    @pytest.mark.parametrize(("model", "expected"), EXPECTED_MODEL_PRICING.items())
+     def test_every_documented_table_entry(
+         self, model: str, expected: tuple[float, float]
+     ) -> None:
+diff --git a/tests/test_base1_baseline.py b/tests/test_base1_baseline.py
+index 6894acd..677c42f 100644
+--- a/tests/test_base1_baseline.py
++++ b/tests/test_base1_baseline.py
+@@ -345,7 +345,7 @@ class TestLoadEnvAbs:
+         run_base1_baseline.load_env_abs(tmp_path / "nope.env", ("OPENROUTER_API_KEY",))
+ 
+ 
+-@pytest.mark.parametrize("n,cycles", [(0, 5), (6, 5), (5, 0), (5, 31)])
++@pytest.mark.parametrize(("n", "cycles"), [(0, 5), (6, 5), (5, 0), (5, 31)])
+ def test_cmd_run_rejects_out_of_contract_invocations(n, cycles, monkeypatch, tmp_path):
+     monkeypatch.setattr(run_base1_baseline, "REPO", tmp_path)
+     # Pin the paths the guards check so no real ROM/boot state is consulted;
+diff --git a/tests/test_boot_memory_injection.py b/tests/test_boot_memory_injection.py
+index 3e4f5f9..d310d22 100644
+--- a/tests/test_boot_memory_injection.py
++++ b/tests/test_boot_memory_injection.py
+@@ -18,7 +18,7 @@ import cron_runner
+ from src.core import duckbrain_client
+ 
+ 
+-@pytest.fixture()
++@pytest.fixture
+ def temp_store(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+     """Point duckbrain_client's namespace root at a throwaway temp dir."""
+ 
+diff --git a/tests/test_boot_state_pin.py b/tests/test_boot_state_pin.py
+index 6bad254..cb6084d 100644
+--- a/tests/test_boot_state_pin.py
++++ b/tests/test_boot_state_pin.py
+@@ -20,7 +20,9 @@ def test_boot_state_matches_pin():
+     pin = json.loads(PIN_PATH.read_text())
+     assert pin["file"] == "data/boot.state"
+     assert BOOT_STATE_PATH.is_file(), f"default boot state missing: {BOOT_STATE_PATH}"
+-    digest = hashlib.md5(BOOT_STATE_PATH.read_bytes()).hexdigest()
++    digest = hashlib.md5(
++        BOOT_STATE_PATH.read_bytes(), usedforsecurity=False
++    ).hexdigest()
+     assert digest == pin["md5"], (
+         f"data/boot.state md5 drifted: expected {pin['md5']}, found {digest}. "
+         "A run re-saved the default checkpoint. Restore from "
+@@ -31,7 +33,7 @@ def test_boot_state_matches_pin():
+ def test_known_good_baseline_survives():
+     baseline = REPO_ROOT / "data" / "baselines" / "base-1_boot.state"
+     assert baseline.is_file(), f"known-good baseline missing: {baseline}"
+-    digest = hashlib.md5(baseline.read_bytes()).hexdigest()
++    digest = hashlib.md5(baseline.read_bytes(), usedforsecurity=False).hexdigest()
+     assert digest == "81e4ec4e8d1b62002bc78f619c5fc79c", (
+         f"base-1_boot.state moved ({digest}) — the documented baseline is gone "
+         "and future baselines would cite an md5 that no longer exists on disk."
+diff --git a/tests/test_ci_scope.py b/tests/test_ci_scope.py
+index 51ad28b..2012c6c 100644
+--- a/tests/test_ci_scope.py
++++ b/tests/test_ci_scope.py
+@@ -39,13 +39,14 @@ def test_ci_mypy_covers_runtime_scripts_without_duplicate_modules() -> None:
+         f"{Path(sys.executable).parent}{os.pathsep}{environment.get('PATH', '')}"
+     )
+ 
+-    completed = subprocess.run(
++    completed = subprocess.run(  # noqa: S603 — repo-defined mypy command, test harness
+         shlex.split(command),
+         cwd=REPO_ROOT,
+         env=environment,
+         capture_output=True,
+         text=True,
+         check=False,
++        shell=False,
+     )
+ 
+     assert completed.returncode == 0, (
+diff --git a/tests/test_duckbrain_client.py b/tests/test_duckbrain_client.py
+index 091398f..3fe08f6 100644
+--- a/tests/test_duckbrain_client.py
++++ b/tests/test_duckbrain_client.py
+@@ -533,13 +533,14 @@ dbc.remember(
+     labels=["world", "visited"],
+ )
+ """
+-        subprocess.run(
++        subprocess.run(  # noqa: S603 — sys.executable on a repo child, test harness
+             [sys.executable, "-c", writer],
+             cwd=repo_root,
+             env=env,
+             check=True,
+             capture_output=True,
+             text=True,
++            shell=False,
+         )
+ 
+         reader = """
+@@ -552,13 +553,14 @@ print(json.dumps({
+     "by_similarity": dbc.search("northern exit"),
+ }))
+ """
+-        completed = subprocess.run(
++        completed = subprocess.run(  # noqa: S603 — sys.executable on a repo child, test harness
+             [sys.executable, "-c", reader],
+             cwd=repo_root,
+             env=env,
+             check=True,
+             capture_output=True,
+             text=True,
++            shell=False,
+         )
+         retrieved = json.loads(completed.stdout)
+ 
+diff --git a/tests/test_edge_cases.py b/tests/test_edge_cases.py
+index d1cb816..707dc3e 100644
+--- a/tests/test_edge_cases.py
++++ b/tests/test_edge_cases.py
+@@ -41,7 +41,7 @@ class TestROMHandling:
+         try:
+             from src.core.emulator import Emulator
+ 
+-            with pytest.raises(Exception):
++            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
+                 Emulator(rom_path=temp_path)
+         finally:
+             os.unlink(temp_path)
+@@ -55,7 +55,7 @@ class TestROMHandling:
+         try:
+             from src.core.emulator import Emulator
+ 
+-            with pytest.raises(Exception):
++            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
+                 Emulator(rom_path=temp_path)
+         finally:
+             if os.path.exists(temp_path):
+@@ -156,7 +156,7 @@ class TestROMHandling:
+ 
+             from src.core.emulator import Emulator
+ 
+-            with pytest.raises(Exception):
++            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
+                 Emulator(rom_path=temp_path)
+         finally:
+             os.chmod(temp_path, 0o644)
+@@ -170,7 +170,7 @@ class TestROMHandling:
+         try:
+             from src.core.emulator import Emulator
+ 
+-            with pytest.raises(Exception):
++            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
+                 Emulator(rom_path=temp_path)
+         finally:
+             os.unlink(temp_path)
+@@ -184,7 +184,7 @@ class TestROMHandling:
+         try:
+             from src.core.emulator import Emulator
+ 
+-            with pytest.raises(Exception):
++            with pytest.raises(Exception):  # noqa: PT011 — any emulator failure counts
+                 Emulator(rom_path=temp_path)
+         finally:
+             os.unlink(temp_path)
+@@ -221,7 +221,7 @@ class TestAPIKeyHandling:
+ 
+             client = AIModelClient(api_key="invalid-key-format")
+ 
+-            with pytest.raises(Exception):
++            with pytest.raises(Exception):  # noqa: PT011 — any validation failure counts
+                 client._validate_api_key()
+ 
+     def test_api_key_expired(self) -> None:
+@@ -236,7 +236,7 @@ class TestAPIKeyHandling:
+ 
+             from src.core.ai_client import AIModelClient
+ 
+-            with pytest.raises(Exception) as exc_info:
++            with pytest.raises(Exception) as exc_info:  # noqa: PT011,PT012 — type-agnostic; import+build+call raise together
+                 client = AIModelClient(api_key="sk-expired-key")
+                 client._validate_api_key()
+ 
+@@ -330,7 +330,7 @@ class TestNetworkHandling:
+ 
+             from src.core.ai_client import AIModelClient
+ 
+-            with pytest.raises((ConnectionRefusedError, Exception)):
++            with pytest.raises((ConnectionRefusedError, Exception)):  # noqa: PT012 — import+build+call raise together
+                 client = AIModelClient(api_key="sk-test")
+                 client._make_request_with_retry("test", {}, max_retries=0)
+ 
+@@ -343,7 +343,7 @@ class TestNetworkHandling:
+ 
+             from src.core.ai_client import AIModelClient
+ 
+-            with pytest.raises(Exception) as exc_info:
++            with pytest.raises(Exception) as exc_info:  # noqa: PT011,PT012 — type-agnostic; import+build+call raise together
+                 client = AIModelClient(api_key="sk-test")
+                 client._make_request_with_retry("test", {})
+ 
+@@ -364,7 +364,7 @@ class TestNetworkHandling:
+ 
+             from src.core.ai_client import AIModelClient
+ 
+-            with pytest.raises((ssl.SSLCertVerificationError, Exception)):
++            with pytest.raises((ssl.SSLCertVerificationError, Exception)):  # noqa: PT012 — import+build+call raise together
+                 client = AIModelClient(api_key="sk-test")
+                 client._make_request_with_retry("test", {})
+ 
+@@ -375,7 +375,7 @@ class TestNetworkHandling:
+ 
+             from src.core.ai_client import AIModelClient
+ 
+-            with pytest.raises((ConnectionResetError, Exception)):
++            with pytest.raises((ConnectionResetError, Exception)):  # noqa: PT012 — import+build+call raise together
+                 client = AIModelClient(api_key="sk-test")
+                 client._make_request_with_retry("test", {}, max_retries=0)
+ 
+@@ -391,7 +391,7 @@ class TestNetworkHandling:
+ 
+             from src.core.ai_client import AIModelClient
+ 
+-            with pytest.raises((json.JSONDecodeError, Exception)):
++            with pytest.raises((json.JSONDecodeError, Exception)):  # noqa: PT012 — import+build+call raise together
+                 client = AIModelClient(api_key="sk-test")
+                 client._make_request_with_retry("test", {})
+ 
+@@ -402,7 +402,7 @@ class TestNetworkHandling:
+ 
+             from src.core.ai_client import AIModelClient
+ 
+-            with pytest.raises(Exception) as exc_info:
++            with pytest.raises(Exception) as exc_info:  # noqa: PT011,PT012 — type-agnostic; import+build+call raise together
+                 client = AIModelClient(api_key="sk-test")
+                 client._make_request_with_retry("test", {})
+ 
+@@ -448,12 +448,12 @@ class TestDatabaseHandling:
+                 time.sleep(0.2)
+                 try:
+                     conn.close()
+-                except Exception:
++                except sqlite3.Error:
+                     pass
+ 
+             threading.Thread(target=release_lock, daemon=True).start()
+ 
+-            with pytest.raises((sqlite3.OperationalError, Exception)):
++            with pytest.raises((sqlite3.OperationalError, Exception)):  # noqa: PT012 — import+build+call raise together
+                 from src.db.database import GameDatabase
+ 
+                 GameDatabase(db_path=db_path)
+@@ -461,7 +461,7 @@ class TestDatabaseHandling:
+             if os.path.exists(db_path):
+                 try:
+                     conn.close()
+-                except Exception:
++                except sqlite3.Error:
+                     pass
+                 os.unlink(db_path)
+ 
+@@ -506,7 +506,7 @@ class TestDatabaseHandling:
+             if os.path.exists(db_path):
+                 try:
+                     os.unlink(db_path)
+-                except Exception:
++                except OSError:
+                     pass
+ 
+     def test_database_missing_table(self) -> None:
+diff --git a/tests/test_exceptions.py b/tests/test_exceptions.py
+index 17123c4..cc3100d 100644
+--- a/tests/test_exceptions.py
++++ b/tests/test_exceptions.py
+@@ -303,7 +303,7 @@ class TestExceptionEdgeCases:
+             exc = cls("test")
+             try:
+                 raise exc
+-            except Exception:
++            except Exception:  # noqa: S110 — the pass IS the test: proving Exception catches it
+                 pass
+             else:
+                 pytest.fail(f"{cls.__name__} was not caught by Exception")
+diff --git a/tests/test_full_gameplay.py b/tests/test_full_gameplay.py
+index 800d247..301b5c5 100644
+--- a/tests/test_full_gameplay.py
++++ b/tests/test_full_gameplay.py
+@@ -171,7 +171,7 @@ class TestStarterSelection:
+             "species_hint": "Charmander",
+         }
+ 
+-    @pytest.mark.parametrize("before,after", [(0, 0), (1, 1), (1, 2)])
++    @pytest.mark.parametrize(("before", "after"), [(0, 0), (1, 1), (1, 2)])
+     def test_non_starter_transitions_do_not_build_milestone(
+         self, before: int, after: int
+     ) -> None:
+diff --git a/tests/test_game_bridge.py b/tests/test_game_bridge.py
+index 1763902..394477e 100644
+--- a/tests/test_game_bridge.py
++++ b/tests/test_game_bridge.py
+@@ -22,7 +22,7 @@ from typing import Any
+ from scripts import game_bridge
+ 
+ 
+-TOKEN = "test-token-that-is-long-enough"
++TOKEN = "test-token-that-is-long-enough"  # noqa: S105 — fake fixture token, not a secret
+ WORKER_POLL_INTERVAL = 0.02
+ WORKER_ADMISSION_TIMEOUT = 2.0
+ # Admission + busy observation together must stay inside the fake Game's 3s
+@@ -232,7 +232,7 @@ def test_token_authentication_and_one_request_per_connection_are_preserved() ->
+ 
+ def test_soak_watchdog_uses_fake_game_and_enforces_process_thread_ceiling() -> None:
+     repo = Path(__file__).resolve().parents[1]
+-    completed = subprocess.run(
++    completed = subprocess.run(  # noqa: S603 — sys.executable on a repo script, test harness
+         [
+             sys.executable,
+             str(repo / "scripts" / "verify_game_bridge_concurrency.py"),
+@@ -248,6 +248,7 @@ def test_soak_watchdog_uses_fake_game_and_enforces_process_thread_ceiling() -> N
+         text=True,
+         timeout=10,
+         check=False,
++        shell=False,
+     )
+ 
+     assert completed.returncode == 0, completed.stderr
+diff --git a/tests/test_integration.py b/tests/test_integration.py
+index b842c58..46a0202 100644
+--- a/tests/test_integration.py
++++ b/tests/test_integration.py
+@@ -934,8 +934,8 @@ class TestErrorRecovery:
+ 
+             try:
+                 game_loop.run_single_tick()
+-            except Exception:
+-                pass
++            except Exception as _exc:  # noqa: S110,BLE001 — crash-tolerance IS the test
++                pass  # the assertion below checks liveness, not the exception
+ 
+             assert game_loop.is_running == initial_running or mock_emulator.stop.called
+ 
+@@ -984,8 +984,8 @@ class TestErrorRecovery:
+                     game_loop._execute_pending_commands()
+                     if not game_loop.pending_commands:
+                         break
+-                except Exception:
+-                    pass
++                except Exception as _exc:  # noqa: S110,BLE001 — retry-on-error IS the test
++                    pass  # loop retries; success is implied by pending_commands draining
+ 
+     def test_invalid_command_handling(  # type: ignore[no-untyped-def]
+         self, mock_emulator, mock_ai_client, temp_session, mock_db_connection
+diff --git a/tests/test_jev403_degradation.py b/tests/test_jev403_degradation.py
+index 01418d3..7219cef 100644
+--- a/tests/test_jev403_degradation.py
++++ b/tests/test_jev403_degradation.py
+@@ -344,7 +344,7 @@ class TestMainPreflightGate:
+         return calls, log_dir / "run_gate.jsonl"
+ 
+     @pytest.mark.parametrize(
+-        "argv,expected_calls,expected_status",
++        ("argv", "expected_calls", "expected_status"),
+         [
+             pytest.param([], [15], "pass", id="default-jev"),
+             pytest.param(["--decision-mode", "jev"], [15], "pass", id="jev"),
+diff --git a/tests/test_live_demo.py b/tests/test_live_demo.py
+index 108649e..bbd3e3d 100644
+--- a/tests/test_live_demo.py
++++ b/tests/test_live_demo.py
+@@ -61,7 +61,7 @@ def _live_enabled() -> bool:
+ 
+ 
+ @pytest.fixture(scope="session")
+-def _require_live(request: pytest.FixtureRequest) -> Path:
++def require_live(request: pytest.FixtureRequest) -> Path:
+     """Skip all live-demo tests unless opted in AND ROM + API key present."""
+     if not (request.config.getoption("--live-api") or _live_enabled()):
+         pytest.skip("live-API tests are opt-in: set PTP_LIVE=1 or run with --live-api")
+@@ -79,9 +79,9 @@ def _require_live(request: pytest.FixtureRequest) -> Path:
+ @pytest.mark.heavy
+ @pytest.mark.integration
+ @pytest.mark.live_api
+-def test_live_completes_one_cycle(_require_live: Path) -> None:
++def test_live_completes_one_cycle(require_live: Path) -> None:
+     """AC-010: DemoRunner.run() with real ROM + owl-alpha completes ≥1 cycle."""
+-    rom_path = _require_live
++    rom_path = require_live
+     runner = DemoRunner(str(rom_path))
+     try:
+         result = runner.run(max_cycles=1, screenshot_interval=30, skip_intro=True)
+@@ -106,9 +106,9 @@ def test_live_completes_one_cycle(_require_live: Path) -> None:
+ @pytest.mark.heavy
+ @pytest.mark.integration
+ @pytest.mark.live_api
+-def test_tool_calls_are_valid(_require_live: Path) -> None:
++def test_tool_calls_are_valid(require_live: Path) -> None:
+     """AC-011: Decision loop produces valid tool calls (press_button, wait) from AI response."""
+-    rom_path = _require_live
++    rom_path = require_live
+     runner = DemoRunner(str(rom_path))
+     try:
+         result = runner.run(max_cycles=5, screenshot_interval=30, skip_intro=True)
+@@ -157,13 +157,13 @@ def test_tool_calls_are_valid(_require_live: Path) -> None:
+ @pytest.mark.heavy
+ @pytest.mark.integration
+ @pytest.mark.live_api
+-def test_screenshots_valid_numpy_arrays(_require_live: Path) -> None:
++def test_screenshots_valid_numpy_arrays(require_live: Path) -> None:
+     """AC-012: Screenshots captured at each interval are valid numpy arrays.
+ 
+     GB:  (144, 160, 3)   — SGB border cropped
+     GBA: (160, 240, 3)   — full GBA frame
+     """
+-    rom_path = _require_live
++    rom_path = require_live
+     # Determine expected dimensions from the ROM platform
+     emu = Emulator(str(rom_path))
+     try:
+@@ -217,9 +217,9 @@ def test_screenshots_valid_numpy_arrays(_require_live: Path) -> None:
+ @pytest.mark.heavy
+ @pytest.mark.integration
+ @pytest.mark.live_api
+-def test_demo_summary_fields(_require_live: Path) -> None:
++def test_demo_summary_fields(require_live: Path) -> None:
+     """AC-013: Demo summary includes screen_types_seen, success_rate, elapsed_s."""
+-    rom_path = _require_live
++    rom_path = require_live
+     runner = DemoRunner(str(rom_path))
+     try:
+         result = runner.run(max_cycles=3, screenshot_interval=30, skip_intro=True)
+diff --git a/tests/test_logger.py b/tests/test_logger.py
+index 715dc1d..e4c4d42 100644
+--- a/tests/test_logger.py
++++ b/tests/test_logger.py
+@@ -1005,7 +1005,7 @@ class TestLogFunctionCall:
+         try:
+             fail()
+         except ValueError as e:
+-            assert "expected failure" in str(e)
++            assert "expected failure" in str(e)  # noqa: PT017 — message guard, not a raises-test
+         except KeyError:
+             pass  # pre-existing logging collision, exception still tried to propagate
+ 
+diff --git a/tests/test_long_run_boot.py b/tests/test_long_run_boot.py
+index 8570663..7bc90ef 100644
+--- a/tests/test_long_run_boot.py
++++ b/tests/test_long_run_boot.py
+@@ -42,7 +42,7 @@ def test_default_boot_resolves_to_pallet_town_map_0():
+     import hashlib
+ 
+     assert (
+-        hashlib.md5(long_run.BOOT.read_bytes()).hexdigest()
++        hashlib.md5(long_run.BOOT.read_bytes(), usedforsecurity=False).hexdigest()
+         == "81e4ec4e8d1b62002bc78f619c5fc79c"
+     )
+ 
+diff --git a/tests/test_precommit_hook.py b/tests/test_precommit_hook.py
+index 4ab04bd..5fc71a0 100644
+--- a/tests/test_precommit_hook.py
++++ b/tests/test_precommit_hook.py
+@@ -11,12 +11,13 @@ WRAPPER = REPO_ROOT / "scripts" / "hooks" / "pre-commit"
+ 
+ 
+ def _run(*args: str, cwd: Path) -> subprocess.CompletedProcess[str]:
+-    return subprocess.run(
++    return subprocess.run(  # noqa: S603 — explicit-argv test helper for the tracked wrapper
+         args,
+         cwd=cwd,
+         check=True,
+         capture_output=True,
+         text=True,
++        shell=False,
+     )
+ 
+ 
+@@ -78,13 +79,14 @@ def _invoke_wrapper(
+             "FAKE_GITREINS_RC": str(rc),
+         }
+     )
+-    return subprocess.run(
+-        ["bash", str(WRAPPER)],
++    return subprocess.run(  # noqa: S603 — resolved bash on the repo's own wrapper, test harness
++        [shutil.which("bash") or "bash", str(WRAPPER)],
+         cwd=repo,
+         env=env,
+         capture_output=True,
+         text=True,
+         check=False,
++        shell=False,
+     )
+ 
+ 
+diff --git a/tests/test_system_modes.py b/tests/test_system_modes.py
+index dabc08d..77476fd 100644
+--- a/tests/test_system_modes.py
++++ b/tests/test_system_modes.py
+@@ -106,7 +106,7 @@ def test_system1_does_invoke_the_fast_tier(monkeypatch):
+ 
+ # ─────────────────────────────────────────── M3: triggers are classifiable
+ @pytest.mark.parametrize(
+-    "reason,expected",
++    ("reason", "expected"),
+     [
+         ("failure: last action changed nothing", "failure"),
+         ("insufficient_state (0.20) missing=map_topology", "gap"),

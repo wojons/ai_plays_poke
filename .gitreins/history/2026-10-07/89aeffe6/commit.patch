@@ -1,0 +1,2574 @@
+commit 8d12659d9f1ac48ad703e4f311a88e07a4b46d20
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Oct 7 16:10:50 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Oct 7 16:10:50 2026 -0500
+
+    refactor(complexity): PYCMP-AI-PLAYS-POKE — decompose high-complexity functions in src/core (C901/PLR0912/PLR0915 64→29)
+    
+    Pure structural refactors, zero behavior change:
+    
+    - entity.py (7→0): extract _boss_type_bonus, _party_move_types,
+      _covered_types, _critical_type_gaps, _counter_defensive_score,
+      _counter_offensive_score, _apply_matchup_adjustments, _level_delta_priority,
+      _suggest_bench_replacements
+    - obs_patch.py (5→0): split parse_obs_patch into per-section _parse_* helpers;
+      extract _validate_moved/_validate_blocked from validate_patch
+    - ram_reader.py (7→0): _decode_char table-driven text decode;
+      _render_grid_cell/_cell_symbol/_object_tag from render_tile_grid;
+      _fill_*_observation dispatch from observe
+    - state_window.py (6→0): decompose run() into _maybe_auto_advance,
+      _apply_auto_advance, _obtain_tool_call, _maybe_handle_query_global,
+      _maybe_handle_memory_tool (+_handle_memory_keys_tool/_handle_memory_get),
+      _execute_tool_step, _post_battle_action_wait, _settled_outcome,
+      _finalize_outcome; _build_keyboard_section/_add_next_letter_lines;
+      _render_battle_template; _map_vision_to_hsm_state via _HSM_VISION_STATES
+      table and _hsm_menu_state
+    - combat.py (4→0): _effectiveness_multiplier, _accuracy_factor,
+      _priority_factor, _setup_factor from score_move; _can_ko_opponent,
+      _would_be_koed from should_switch
+    - navigation.py (4→0): _edge_traversable/_hm_usable/_ledge_passable from
+      get_neighbors; _terrain_cost_multiplier + edge-cost helpers from
+      _astar_search/_calculate_movement_cost
+    - goap.py, global_context.py (2→0): _precondition_met; _party_summaries
+    
+    Witness (live ruff counts at HEAD a13508c vs this tree):
+    ruff check --select C901,PLR0912,PLR0915 src/: before=64, after=29
+    Gates: ruff check src/ PASS; mypy src/ --ignore-missing-imports PASS;
+    pytest -k "entity or obs_patch or ram_reader or state_window or combat or
+    navigation or goap or global_context": 847 passed.
+    
+    ch:trace row=PYCMP-AI-PLAYS-POKE spec=pyproject.toml#wave=complexity witness=live:ruff-count-before-after
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ config/assist_inventory.json |  15 +-
+ src/core/combat.py           | 122 ++++--
+ src/core/entity.py           | 358 ++++++++++--------
+ src/core/global_context.py   |  33 +-
+ src/core/goap.py             |  28 +-
+ src/core/navigation.py       | 122 +++---
+ src/core/obs_patch.py        | 233 ++++++------
+ src/core/ram_reader.py       | 302 +++++++++------
+ src/core/state_window.py     | 856 ++++++++++++++++++++++---------------------
+ 9 files changed, 1154 insertions(+), 915 deletions(-)
+
+diff --git a/config/assist_inventory.json b/config/assist_inventory.json
+index 35ff350..3aabef3 100644
+--- a/config/assist_inventory.json
++++ b/config/assist_inventory.json
+@@ -387,24 +387,17 @@
+         },
+         {
+             "file": "src/core/state_window.py",
+-            "context": "StateWindow.run",
++            "context": "StateWindow._maybe_auto_advance",
+             "button": "a",
+             "call": "press_button('a', frames=30)",
+-            "reason": "Legacy bounded dialog/name-entry advancement: retained for non-overworld state handling and capped before AI deliberation resumes."
++            "reason": "Bounded dialog fast-forward: auto-A press for non-interactive dialogs, capped before AI deliberation resumes."
+         },
+         {
+             "file": "src/core/state_window.py",
+-            "context": "StateWindow.run",
++            "context": "StateWindow._maybe_auto_advance",
+             "button": "a",
+             "call": "press_button('a', frames=30)",
+-            "reason": "Legacy bounded dialog/name-entry advancement: retained for non-overworld state handling and capped before AI deliberation resumes."
+-        },
+-        {
+-            "file": "src/core/state_window.py",
+-            "context": "StateWindow.run",
+-            "button": "button",
+-            "call": "press_button(button, frames=dur)",
+-            "reason": "Legacy name-entry transport: executes the keyboard action derived from the observed cursor and target name."
++            "reason": "Bounded name-entry advancement: A-mash for the naming screen before AI deliberation resumes."
+         },
+         {
+             "file": "src/core/tools.py",
+diff --git a/src/core/combat.py b/src/core/combat.py
+index 49f8aa0..e53e5f8 100644
+--- a/src/core/combat.py
++++ b/src/core/combat.py
+@@ -697,11 +697,8 @@ class MoveSelector:
+ 
+         base_score = move.power / 10.0
+ 
+-        effectiveness_multiplier = effectiveness
+-        if effectiveness >= 2.0:
+-            notes.append("Super effective!")
+-            effectiveness_multiplier = 2.0
+-        elif effectiveness == 0.0:
++        effectiveness_multiplier = self._effectiveness_multiplier(effectiveness, notes)
++        if effectiveness == 0.0:
+             notes.append("Immune - avoid!")
+             return MoveScore(
+                 move=move,
+@@ -712,9 +709,6 @@ class MoveSelector:
+                 has_stab=has_stab,
+                 notes=notes,
+             )
+-        elif effectiveness <= 0.5:
+-            notes.append("Not very effective")
+-            effectiveness_multiplier = 0.5
+ 
+         if has_stab:
+             base_score *= 1.5
+@@ -729,24 +723,11 @@ class MoveSelector:
+             notes.append("Likely KO")
+             ko_likely = True
+ 
+-        accuracy_factor = move.accuracy / 100.0
+-        if risk_averse and move.accuracy < 80:
+-            accuracy_factor *= 0.8
+-            notes.append(f"Low accuracy ({move.accuracy}%)")
+-
+-        if move.priority > 0:
+-            if attacker.speed < defender.speed:
+-                base_score *= 1.5
+-                notes.append("Priority advantage")
+-            else:
+-                base_score *= 1.1
+-                notes.append("Priority move")
+-
+-        if setup_opportunity:
+-            if self._is_setup_move(move):
+-                if damage_range.expected_damage < defender.current_hp * 0.3:
+-                    base_score *= 2.0
+-                    notes.append("Good setup opportunity")
++        accuracy_factor = self._accuracy_factor(move, risk_averse, notes)
++        base_score *= self._priority_factor(move, attacker, defender, notes)
++        base_score *= self._setup_factor(
++            move, setup_opportunity, damage_range, defender, notes
++        )
+ 
+         coverage_bonus = 1.0
+         attacker_move_types = [m.move_type for m in attacker.moves if m != move]
+@@ -768,6 +749,60 @@ class MoveSelector:
+             notes=notes,
+         )
+ 
++    @staticmethod
++    def _effectiveness_multiplier(effectiveness: float, notes: list[str]) -> float:
++        """Effectiveness scoring multiplier, with a note when it is clamped."""
++        if effectiveness == 0.0:
++            # Immune — the caller appends the "Immune" note and scores zero.
++            return effectiveness
++        if effectiveness >= 2.0:
++            notes.append("Super effective!")
++            return 2.0
++        if effectiveness <= 0.5:
++            notes.append("Not very effective")
++            return 0.5
++        return effectiveness
++
++    @staticmethod
++    def _accuracy_factor(move: Move, risk_averse: bool, notes: list[str]) -> float:
++        """Accuracy as a scoring factor, dampened for risky low-accuracy moves."""
++        accuracy_factor = move.accuracy / 100.0
++        if risk_averse and move.accuracy < 80:
++            accuracy_factor *= 0.8
++            notes.append(f"Low accuracy ({move.accuracy}%)")
++        return accuracy_factor
++
++    @staticmethod
++    def _priority_factor(
++        move: Move, attacker: Pokemon, defender: Pokemon, notes: list[str]
++    ) -> float:
++        """Score bonus for priority moves, stronger when the user is slower."""
++        if move.priority <= 0:
++            return 1.0
++        if attacker.speed < defender.speed:
++            notes.append("Priority advantage")
++            return 1.5
++        notes.append("Priority move")
++        return 1.1
++
++    def _setup_factor(
++        self,
++        move: Move,
++        setup_opportunity: bool,
++        damage_range: DamageRange,
++        defender: Pokemon,
++        notes: list[str],
++    ) -> float:
++        """Score bonus for a good setup opportunity on this move."""
++        if (
++            setup_opportunity
++            and self._is_setup_move(move)
++            and damage_range.expected_damage < defender.current_hp * 0.3
++        ):
++            notes.append("Good setup opportunity")
++            return 2.0
++        return 1.0
++
+     def _score_status_move(
+         self, move: Move, defender: Pokemon, notes: list[str]
+     ) -> MoveScore:
+@@ -1104,6 +1139,23 @@ class BattleStrategist:
+         if current.current_hp / current.max_hp < 0.1:
+             return True, "Critical HP - emergency switch", None
+ 
++        if self._can_ko_opponent(current, opponent):
++            return False, "Can KO opponent", None
++
++        if self._would_be_koed(current, opponent):
++            return True, "Type disadvantage - switch recommended", None
++
++        candidates = self.evaluate_switch_candidates(
++            current, opponent, party, move_selector
++        )
++
++        if candidates and candidates[0].score > 0.5:
++            return True, f"Better matchup: {candidates[0].reasoning}", candidates[0]
++
++        return False, "Current Pokemon is optimal", None
++
++    def _can_ko_opponent(self, current: Pokemon, opponent: Pokemon) -> bool:
++        """True when any of the current Pokemon's damaging moves can KO the opponent."""
+         move_calculator = DamageCalculator(self.type_chart)
+         for move in current.moves:
+             if move.category != MoveCategory.STATUS and move.pp > 0:
+@@ -1114,8 +1166,12 @@ class BattleStrategist:
+                     damage_range, opponent.current_hp
+                 )
+                 if guaranteed_ko:
+-                    return False, "Can KO opponent", None
++                    return True
++        return False
+ 
++    def _would_be_koed(self, current: Pokemon, opponent: Pokemon) -> bool:
++        """True when the opponent's best move could KO the current Pokemon."""
++        move_calculator = DamageCalculator(self.type_chart)
+         threat_calculator = EnemyPredictor(self.type_chart)
+         threat_calculator.predict_threat_level(opponent, current)
+ 
+@@ -1137,16 +1193,8 @@ class BattleStrategist:
+                 most_threatening_move_type, current.types
+             )
+             if type_disadvantage >= 2.0:
+-                return True, "Type disadvantage - switch recommended", None
+-
+-        candidates = self.evaluate_switch_candidates(
+-            current, opponent, party, move_selector
+-        )
+-
+-        if candidates and candidates[0].score > 0.5:
+-            return True, f"Better matchup: {candidates[0].reasoning}", candidates[0]
+-
+-        return False, "Current Pokemon is optimal", None
++                return True
++        return False
+ 
+     def evaluate_switch_candidates(
+         self,
+diff --git a/src/core/entity.py b/src/core/entity.py
+index a34ddbe..6718e68 100644
+--- a/src/core/entity.py
++++ b/src/core/entity.py
+@@ -918,25 +918,35 @@ class CarryScoreCalculator:
+ 
+         quality_bonus = sum(self.type_values.get_weight(t) * 4.0 for t in unique_types)
+ 
+-        boss_bonus = 0.0
+-        if upcoming_battles:
+-            for battle in upcoming_battles:
+-                boss_types = battle.get("boss_types", [])
+-                for unique_type in unique_types:
+-                    for boss_type_name in boss_types:
+-                        try:
+-                            boss_type = PokemonType(boss_type_name)
+-                            effectiveness = self.type_chart.get_effectiveness(
+-                                unique_type, [boss_type]
+-                            )
+-                            if effectiveness >= 2.0:
+-                                boss_bonus += 2.0
+-                        except ValueError:
+-                            continue
++        boss_bonus = self._boss_type_bonus(unique_types, upcoming_battles)
+ 
+         final_score = base_uniqueness + quality_bonus + min(boss_bonus, 6.0)
+         return max(0.0, min(30.0, final_score))
+ 
++    def _boss_type_bonus(
++        self,
++        unique_types: list[PokemonType],
++        upcoming_battles: list[dict[str, Any]] | None,
++    ) -> float:
++        """Bonus for unique types that are super-effective against upcoming bosses."""
++        bonus = 0.0
++        if not upcoming_battles:
++            return bonus
++        for battle in upcoming_battles:
++            boss_types = battle.get("boss_types", [])
++            for unique_type in unique_types:
++                for boss_type_name in boss_types:
++                    try:
++                        boss_type = PokemonType(boss_type_name)
++                    except ValueError:
++                        continue
++                    effectiveness = self.type_chart.get_effectiveness(
++                        unique_type, [boss_type]
++                    )
++                    if effectiveness >= 2.0:
++                        bonus += 2.0
++        return bonus
++
+     def calculate_move_coverage(
+         self,
+         pokemon: PokemonData,
+@@ -1268,6 +1278,19 @@ class EvolutionManager:
+         }
+ 
+ 
++def _level_delta_priority(level_delta: float) -> float:
++    """Base battle-usage priority from how the pokemon's level compares to the party."""
++    if level_delta > 5:
++        return 30.0
++    if level_delta > 3:
++        return 50.0
++    if level_delta > -3:
++        return 80.0
++    if level_delta > -5:
++        return 100.0
++    return 130.0
++
++
+ class TeamCompositionOptimizer:
+     """Optimizes team composition for current and upcoming content."""
+ 
+@@ -1287,55 +1310,70 @@ class TeamCompositionOptimizer:
+         upcoming_battles: list[dict[str, Any]] | None = None,
+     ) -> TypeCoverage:
+         all_types = set(PokemonType)
+-        covered_types: set[PokemonType] = set()
+-        party_move_types: set[PokemonType] = set()
++        party_move_types = self._party_move_types(party)
++        covered_types = self._covered_types(party_move_types)
+ 
++        uncovered = all_types - covered_types
++
++        critical_gaps = self._critical_type_gaps(party_move_types, upcoming_battles)
++
++        coverage_pct = len(covered_types) / len(all_types) if all_types else 0.0
++
++        return TypeCoverage(
++            covered_types=covered_types,
++            uncovered_types=uncovered,
++            critical_gaps=critical_gaps,
++            coverage_percentage=coverage_pct,
++        )
++
++    def _party_move_types(self, party: list[PokemonData | None]) -> set[PokemonType]:
++        """Usable (non-status, PP>0) move types present in the party."""
++        move_types: set[PokemonType] = set()
+         for pokemon in party:
+             if pokemon is None:
+                 continue
+             for move in pokemon.moves:
+                 if move.pp > 0 and move.category != MoveCategory.STATUS:
+-                    party_move_types.add(move.move_type)
++                    move_types.add(move.move_type)
++        return move_types
+ 
++    def _covered_types(self, party_move_types: set[PokemonType]) -> set[PokemonType]:
++        """All types that any party move is at least super-effective against."""
++        covered: set[PokemonType] = set()
+         for move_type in party_move_types:
+-            for target_type in all_types:
++            for target_type in PokemonType:
+                 effectiveness = self.type_chart.get_effectiveness(
+                     move_type, [target_type]
+                 )
+                 if effectiveness >= 2.0:
+-                    covered_types.add(target_type)
+-                    break
+-
+-        uncovered = all_types - covered_types
+-
+-        critical_gaps: set[PokemonType] = set()
+-        if upcoming_battles:
+-            for battle in upcoming_battles:
+-                boss_types = battle.get("boss_types", [])
+-                for boss_type_name in boss_types:
+-                    try:
+-                        boss_type = PokemonType(boss_type_name)
+-                        effective_counters = [
+-                            t
+-                            for t in all_types
+-                            if self.type_chart.get_effectiveness(t, [boss_type]) >= 2.0
+-                        ]
+-                        if not any(
+-                            counter in party_move_types
+-                            for counter in effective_counters
+-                        ):
+-                            critical_gaps.add(boss_type)
+-                    except ValueError:
+-                        continue
+-
+-        coverage_pct = len(covered_types) / len(all_types) if all_types else 0.0
++                    covered.add(target_type)
++        return covered
+ 
+-        return TypeCoverage(
+-            covered_types=covered_types,
+-            uncovered_types=uncovered,
+-            critical_gaps=critical_gaps,
+-            coverage_percentage=coverage_pct,
+-        )
++    def _critical_type_gaps(
++        self,
++        party_move_types: set[PokemonType],
++        upcoming_battles: list[dict[str, Any]] | None,
++    ) -> set[PokemonType]:
++        """Boss types that no party move can counter super-effectively."""
++        gaps: set[PokemonType] = set()
++        if not upcoming_battles:
++            return gaps
++        for battle in upcoming_battles:
++            for boss_type_name in battle.get("boss_types", []):
++                try:
++                    boss_type = PokemonType(boss_type_name)
++                except ValueError:
++                    continue
++                effective_counters = [
++                    t
++                    for t in PokemonType
++                    if self.type_chart.get_effectiveness(t, [boss_type]) >= 2.0
++                ]
++                if not any(
++                    counter in party_move_types for counter in effective_counters
++                ):
++                    gaps.add(boss_type)
++        return gaps
+ 
+     def calculate_stat_distribution(
+         self, party: list[PokemonData | None]
+@@ -1438,48 +1476,8 @@ class TeamCompositionOptimizer:
+             best_score = -1.0
+ 
+             for candidate in available_pokemon:
+-                candidate_types = list(candidate.types)
+-
+-                defensive_effectiveness: list[float] = []
+-                for boss_type_name in boss_types:
+-                    try:
+-                        boss_type = PokemonType(boss_type_name)
+-                        for cand_type in candidate_types:
+-                            if cand_type:
+-                                eff = self.type_chart.get_effectiveness(
+-                                    boss_type, [cand_type]
+-                                )
+-                                defensive_effectiveness.append(eff)
+-                    except ValueError:
+-                        continue
+-
+-                if defensive_effectiveness:
+-                    def_score = max(defensive_effectiveness)
+-                    if def_score <= 0.5:
+-                        defensive_score = 3.0
+-                    elif def_score <= 1.0:
+-                        defensive_score = 2.0
+-                    else:
+-                        defensive_score = 1.0
+-                else:
+-                    defensive_score = 2.0
+-
+-                offensive_score = 0.0
+-                for boss_type_name in boss_types:
+-                    try:
+-                        boss_type = PokemonType(boss_type_name)
+-                        for cand_type in candidate_types:
+-                            if cand_type:
+-                                eff = self.type_chart.get_effectiveness(
+-                                    cand_type, [boss_type]
+-                                )
+-                                if eff >= 2.0:
+-                                    offensive_score = 3.0
+-                                    break
+-                                elif eff >= 1.0:
+-                                    offensive_score = max(offensive_score, 2.0)
+-                    except ValueError:
+-                        continue
++                defensive_score = self._counter_defensive_score(candidate, boss_types)
++                offensive_score = self._counter_offensive_score(candidate, boss_types)
+ 
+                 level_score = (
+                     min(candidate.level / boss_level, 1.5) if boss_level > 0 else 1.0
+@@ -1506,6 +1504,54 @@ class TeamCompositionOptimizer:
+ 
+         return counters
+ 
++    def _counter_defensive_score(
++        self, candidate: PokemonData, boss_types: list[str]
++    ) -> float:
++        """Score how well the candidate DEFENDS against the boss's types (0-3)."""
++        candidate_types = list(candidate.types)
++        defensive_effectiveness: list[float] = []
++        for boss_type_name in boss_types:
++            try:
++                boss_type = PokemonType(boss_type_name)
++            except ValueError:
++                continue
++            for cand_type in candidate_types:
++                if cand_type:
++                    eff = self.type_chart.get_effectiveness(boss_type, [cand_type])
++                    defensive_effectiveness.append(eff)
++
++        if not defensive_effectiveness:
++            return 2.0
++        def_score = max(defensive_effectiveness)
++        if def_score <= 0.5:
++            return 3.0
++        if def_score <= 1.0:
++            return 2.0
++        return 1.0
++
++    def _counter_offensive_score(
++        self, candidate: PokemonData, boss_types: list[str]
++    ) -> float:
++        """Score how well the candidate OFFENDS the boss's types (0-3)."""
++        offensive_score = 0.0
++        candidate_types = list(candidate.types)
++        for boss_type_name in boss_types:
++            try:
++                boss_type = PokemonType(boss_type_name)
++            except ValueError:
++                continue
++            for cand_type in candidate_types:
++                if cand_type:
++                    eff = self.type_chart.get_effectiveness(cand_type, [boss_type])
++                    if eff >= 2.0:
++                        offensive_score = 3.0
++                        break
++                    if eff >= 1.0:
++                        offensive_score = max(offensive_score, 2.0)
++            if offensive_score >= 3.0:
++                break
++        return offensive_score
++
+     def calculate_battle_usage_priorities(
+         self, party: list[PokemonData | None], enemy_party: list[dict[str, Any]]
+     ) -> list[tuple[PokemonData | None, float]]:
+@@ -1522,43 +1568,47 @@ class TeamCompositionOptimizer:
+                 continue
+ 
+             level_delta = pokemon.level - party_avg_level
+-
+-            if level_delta > 5:
+-                base_priority = 30.0
+-            elif level_delta > 3:
+-                base_priority = 50.0
+-            elif level_delta > -3:
+-                base_priority = 80.0
+-            elif level_delta > -5:
+-                base_priority = 100.0
+-            else:
+-                base_priority = 130.0
++            base_priority = _level_delta_priority(level_delta)
+ 
+             if not pokemon.can_battle():
+                 base_priority = 0.0
+             else:
+-                for enemy in enemy_party:
+-                    enemy_types = enemy.get("types", [])
+-                    for move in pokemon.moves:
+-                        if move.category != MoveCategory.STATUS:
+-                            for enemy_type_name in enemy_types:
+-                                try:
+-                                    enemy_type = PokemonType(enemy_type_name)
+-                                    effectiveness = self.type_chart.get_effectiveness(
+-                                        move.move_type, [enemy_type]
+-                                    )
+-                                    if effectiveness >= 2.0:
+-                                        base_priority += 20.0
+-                                        break
+-                                    elif effectiveness <= 0.5:
+-                                        base_priority = max(20.0, base_priority - 15.0)
+-                                except ValueError:
+-                                    continue
++                base_priority = self._apply_matchup_adjustments(
++                    base_priority, pokemon, enemy_party
++                )
+ 
+             priorities.append((pokemon, max(0.0, min(150.0, base_priority))))
+ 
+         return priorities
+ 
++    def _apply_matchup_adjustments(
++        self,
++        base_priority: float,
++        pokemon: PokemonData,
++        enemy_party: list[dict[str, Any]],
++    ) -> float:
++        """Apply move-matchup adjustments to the running base priority."""
++        delta = base_priority
++        for enemy in enemy_party:
++            enemy_types = enemy.get("types", [])
++            for move in pokemon.moves:
++                if move.category == MoveCategory.STATUS:
++                    continue
++                for enemy_type_name in enemy_types:
++                    try:
++                        enemy_type = PokemonType(enemy_type_name)
++                    except ValueError:
++                        continue
++                    effectiveness = self.type_chart.get_effectiveness(
++                        move.move_type, [enemy_type]
++                    )
++                    if effectiveness >= 2.0:
++                        delta += 20.0
++                        break
++                    if effectiveness <= 0.5:
++                        delta = max(20.0, delta - 15.0)
++        return delta
++
+     def optimize_party_order(
+         self, party: list[PokemonData | None], battle_type: str
+     ) -> list[PartySlot]:
+@@ -1755,13 +1805,14 @@ class TeamCompositionOptimizer:
+             best_score = -1.0
+ 
+             for pokemon in box_pokemon:
+-                if gap_type in pokemon.types:
+-                    score, _ = self.carry_calculator.calculate_carry_score(
+-                        pokemon, current_party
+-                    )
+-                    if score > best_score:
+-                        best_score = score
+-                        best_candidate = pokemon
++                if gap_type not in pokemon.types:
++                    continue
++                score, _ = self.carry_calculator.calculate_carry_score(
++                    pokemon, current_party
++                )
++                if score > best_score:
++                    best_score = score
++                    best_candidate = pokemon
+ 
+             if best_candidate:
+                 suggestions.append(
+@@ -1775,29 +1826,42 @@ class TeamCompositionOptimizer:
+ 
+         for party_member in current_party:
+             if party_member is not None:
+-                score, _ = self.carry_calculator.calculate_carry_score(
+-                    party_member, current_party
++                self._suggest_bench_replacements(
++                    suggestions, party_member, current_party, box_pokemon
+                 )
+-                bench_status = self.carry_calculator.should_bench(score)
+-                if bench_status == "immediate_bench":
+-                    for box_mon in box_pokemon:
+-                        box_score, _ = self.carry_calculator.calculate_carry_score(
+-                            box_mon, current_party
+-                        )
+-                        if box_score > score:
+-                            suggestions.append(
+-                                {
+-                                    "action": "replace",
+-                                    "remove": party_member.species_id,
+-                                    "add": box_mon.species_id,
+-                                    "reason": f"{box_mon.species_id} has higher carry score ({box_score:.1f} vs {score:.1f})",
+-                                    "priority": "medium",
+-                                }
+-                            )
+-                            break
+ 
+         return suggestions
+ 
++    def _suggest_bench_replacements(
++        self,
++        suggestions: list[dict[str, Any]],
++        party_member: PokemonData,
++        current_party: list[PokemonData | None],
++        box_pokemon: list[PokemonData],
++    ) -> None:
++        """Suggest replacing a party member flagged for immediate benching."""
++        score, _ = self.carry_calculator.calculate_carry_score(
++            party_member, current_party
++        )
++        bench_status = self.carry_calculator.should_bench(score)
++        if bench_status != "immediate_bench":
++            return
++        for box_mon in box_pokemon:
++            box_score, _ = self.carry_calculator.calculate_carry_score(
++                box_mon, current_party
++            )
++            if box_score > score:
++                suggestions.append(
++                    {
++                        "action": "replace",
++                        "remove": party_member.species_id,
++                        "add": box_mon.species_id,
++                        "reason": f"{box_mon.species_id} has higher carry score ({box_score:.1f} vs {score:.1f})",
++                        "priority": "medium",
++                    }
++                )
++                break
++
+ 
+ class EntityManager:
+     """Main entity management class coordinating all sub-components."""
+diff --git a/src/core/global_context.py b/src/core/global_context.py
+index 24293fc..751fb89 100644
+--- a/src/core/global_context.py
++++ b/src/core/global_context.py
+@@ -72,20 +72,11 @@ class GlobalContext:
+             lines.append(f"RIVAL: {self.rival_name}")
+ 
+         # Party
+-        if self.party:
+-            party_strs = []
+-            for p in self.party:
+-                hp = p.get("hp_pct", "?")
+-                lvl = p.get("level", "?")
+-                name = p.get("name", "?")
+-                status = p.get("status", "")
+-                s = f"{name} Lv{lvl} HP:{hp}%"
+-                if status:
+-                    s += f" [{status}]"
+-                party_strs.append(s)
+-            lines.append(f"PARTY: {' | '.join(party_strs)}")
+-        else:
+-            lines.append("PARTY: none")
++        lines.append(
++            f"PARTY: {' | '.join(self._party_summaries())}"
++            if self.party
++            else "PARTY: none"
++        )
+ 
+         # Goals
+         if self.goals:
+@@ -108,6 +99,20 @@ class GlobalContext:
+ 
+         return "\n".join(lines)
+ 
++    def _party_summaries(self) -> list[str]:
++        """One-line summaries for each party member."""
++        party_strs = []
++        for p in self.party:
++            hp = p.get("hp_pct", "?")
++            lvl = p.get("level", "?")
++            name = p.get("name", "?")
++            status = p.get("status", "")
++            s = f"{name} Lv{lvl} HP:{hp}%"
++            if status:
++                s += f" [{status}]"
++            party_strs.append(s)
++        return party_strs
++
+     # ──────────────────────────────────────────────────────────────────
+     # Mutations
+     # ──────────────────────────────────────────────────────────────────
+diff --git a/src/core/goap.py b/src/core/goap.py
+index 2b36d21..1e9a135 100644
+--- a/src/core/goap.py
++++ b/src/core/goap.py
+@@ -378,19 +378,21 @@ class Action(ABC):
+         preconditions = self.get_preconditions()
+         if not preconditions:
+             return True
+-        for key, required in preconditions.items():
+-            if key == "location":
+-                if state.location != required:
+-                    return False
+-            elif key == "in_battle":
+-                if not state.is_battle:
+-                    return False
+-            elif key == "not_in_battle":
+-                if state.is_battle:
+-                    return False
+-            elif key == "money":
+-                if state.money < required:
+-                    return False
++        return all(
++            self._precondition_met(state, key, required)
++            for key, required in preconditions.items()
++        )
++
++    @staticmethod
++    def _precondition_met(state: GameState, key: str, required: Any) -> bool:
++        if key == "location":
++            return bool(state.location == required)
++        if key == "in_battle":
++            return bool(state.is_battle)
++        if key == "not_in_battle":
++            return not state.is_battle
++        if key == "money":
++            return bool(state.money >= required)
+         return True
+ 
+ 
+diff --git a/src/core/navigation.py b/src/core/navigation.py
+index 6eebd98..d58c4b1 100644
+--- a/src/core/navigation.py
++++ b/src/core/navigation.py
+@@ -216,37 +216,46 @@ class WorldGraph:
+         valid_neighbors = []
+ 
+         for edge in neighbors:
+-            to_pos = edge.to_node
++            if self._edge_traversable(edge, context):
++                valid_neighbors.append(edge)
+ 
+-            if edge.requires_hm:
+-                if not context.allow_hm_usage:
+-                    continue
+-                hm_move = edge.requires_hm
+-                if hm_move == HMMove.CUT and not context.has_flash:
+-                    pass
+-                elif hm_move not in [HMMove.FLY]:
+-                    continue
++        return valid_neighbors
+ 
+-            if edge.is_ledge:
+-                if context.avoid_encounters:
+-                    continue
+-                ledge_info = self.ledges.get(edge.from_node)
+-                if ledge_info:
+-                    direction = ledge_info[0]
+-                    if direction != edge.direction:
+-                        continue
+-
+-            node = self.nodes.get(to_pos)
+-            if node and node.tile_type == TileType.BLOCKING:
+-                continue
++    def _edge_traversable(self, edge: GraphEdge, context: PathfindingContext) -> bool:
++        """Check HM requirements, ledge rules, and tile restrictions for an edge."""
++        if edge.requires_hm and not self._hm_usable(edge.requires_hm, context):
++            return False
+ 
+-            if node and node.tile_type == TileType.TRAINER_VISION:
+-                if context.avoid_trainers:
+-                    continue
++        if edge.is_ledge:
++            if context.avoid_encounters or not self._ledge_passable(edge):
++                return False
+ 
+-            valid_neighbors.append(edge)
++        node = self.nodes.get(edge.to_node)
++        if node and node.tile_type == TileType.BLOCKING:
++            return False
+ 
+-        return valid_neighbors
++        if node and node.tile_type == TileType.TRAINER_VISION:
++            if context.avoid_trainers:
++                return False
++
++        return True
++
++    @staticmethod
++    def _hm_usable(hm_move: HMMove, context: PathfindingContext) -> bool:
++        """Whether the context permits using this HM edge."""
++        if not context.allow_hm_usage:
++            return False
++        if hm_move == HMMove.CUT and not context.has_flash:
++            return True
++        return hm_move in [HMMove.FLY]
++
++    def _ledge_passable(self, edge: GraphEdge) -> bool:
++        """Whether a ledge edge may be crossed in its own direction."""
++        ledge_info = self.ledges.get(edge.from_node)
++        if ledge_info:
++            direction = ledge_info[0]
++            return direction == edge.direction
++        return True
+ 
+     def is_accessible(self, position: Position, context: PathfindingContext) -> bool:
+         """Check if a position is accessible"""
+@@ -371,13 +380,9 @@ class AStarPathfinder:
+                     g_score[neighbor] = tentative_g
+                     f_score[neighbor] = tentative_g + neighbor.manhattan_heuristic(goal)
+ 
+-                    if node:
+-                        if edge.requires_hm:
+-                            hm_requirements.add(edge.requires_hm)
+-                        if node.tile_type == TileType.TALL_GRASS:
+-                            total_encounters += int(node.encounter_rate * 10)
+-                        if node.danger_level > 0:
+-                            total_danger += node.danger_level
++                    self._accumulate_edge_costs(edge, node, hm_requirements)
++                    total_encounters += self._edge_encounter_cost(node)
++                    total_danger += self._edge_danger_cost(node)
+ 
+                     heappush(open_set, (f_score[neighbor], neighbor))
+ 
+@@ -385,6 +390,28 @@ class AStarPathfinder:
+             success=False, warnings=["No path found from {start} to {goal}"]
+         )
+ 
++    @staticmethod
++    def _accumulate_edge_costs(
++        edge: GraphEdge, node: GraphNode | None, hm_requirements: set[HMMove]
++    ) -> None:
++        """Record the HM an edge requires, when present."""
++        if node and edge.requires_hm:
++            hm_requirements.add(edge.requires_hm)
++
++    @staticmethod
++    def _edge_encounter_cost(node: GraphNode | None) -> int:
++        """Expected encounter weight for stepping onto a node."""
++        if node and node.tile_type == TileType.TALL_GRASS:
++            return int(node.encounter_rate * 10)
++        return 0
++
++    @staticmethod
++    def _edge_danger_cost(node: GraphNode | None) -> int:
++        """Danger weight for stepping onto a node."""
++        if node and node.danger_level > 0:
++            return node.danger_level
++        return 0
++
+     def _calculate_movement_cost(
+         self,
+         _current: Position,
+@@ -393,10 +420,28 @@ class AStarPathfinder:
+         context: PathfindingContext,
+         node: GraphNode | None,
+     ) -> float:
+-        base_cost = edge.cost
+-
+         if node is None:
+-            return base_cost
++            return edge.cost
++
++        base_cost = self._terrain_cost_multiplier(edge, node, context)
++        if base_cost == float("inf"):
++            return float("inf")
++
++        if node.danger_level > 0:
++            hp_ratio = context.current_party_hp / context.max_party_hp
++            if hp_ratio < 0.3:
++                base_cost *= 1 + node.danger_level * 0.5
++
++        return base_cost
++
++    def _terrain_cost_multiplier(
++        self,
++        edge: GraphEdge,
++        node: GraphNode,
++        context: PathfindingContext,
++    ) -> float:
++        """Multiply the edge cost by terrain rules; inf when impassable."""
++        base_cost = edge.cost
+ 
+         if node.tile_type == TileType.TALL_GRASS:
+             if context.avoid_encounters:
+@@ -418,11 +463,6 @@ class AStarPathfinder:
+             else:
+                 base_cost *= 2.0
+ 
+-        if node.danger_level > 0:
+-            hp_ratio = context.current_party_hp / context.max_party_hp
+-            if hp_ratio < 0.3:
+-                base_cost *= 1 + node.danger_level * 0.5
+-
+         return base_cost
+ 
+     def _reconstruct_path(
+diff --git a/src/core/obs_patch.py b/src/core/obs_patch.py
+index 128377d..57d7285 100644
+--- a/src/core/obs_patch.py
++++ b/src/core/obs_patch.py
+@@ -147,7 +147,20 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
+     patch.prev_tick = data.get("prev_tick", 0)
+     patch.tick = data.get("tick", 0)
+ 
+-    # Movement
++    _parse_movement(patch, data)
++    _parse_viewport(patch, data)
++    _parse_strip(patch, data)
++    _parse_visited(patch, data)
++    _parse_edges(patch, data)
++    _parse_actor_updates(patch, data)
++    _parse_corrections(patch, data)
++    _parse_resync(patch, data)
++
++    patch.raw["_errors"] = errors
++    return patch
++
++
++def _parse_movement(patch: ObsPatch, data: dict[str, Any]) -> None:
+     mov = data.get("movement")
+     if isinstance(mov, dict):
+         patch.movement = Movement(
+@@ -158,7 +171,8 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
+             mode=mov.get("mode", "walk"),
+         )
+ 
+-    # Viewport
++
++def _parse_viewport(patch: ObsPatch, data: dict[str, Any]) -> None:
+     vp = data.get("viewport")
+     if isinstance(vp, dict):
+         patch.viewport = ViewportDelta(
+@@ -166,99 +180,96 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
+             new_edge=vp.get("new_edge", "none"),
+         )
+ 
+-    # Strip
++
++def _parse_strip(patch: ObsPatch, data: dict[str, Any]) -> None:
+     strip = data.get("strip")
+-    if isinstance(strip, dict):
+-        edge = strip.get("edge", "")
+-        # Accept terrain_tsv (tab-separated) as an alternative to terrain (packed)
+-        terrain_raw = strip.get("terrain", "")
+-        terrain_tsv = strip.get("terrain_tsv", "")
+-        if terrain_tsv and not terrain_raw:
+-            from .tile_utils import tsv_to_strip
+-
+-            terrain_raw = tsv_to_strip(terrain_tsv)
+-
+-        objects_raw = strip.get("objects", "")
+-        objects_tsv = strip.get("objects_tsv", "")
+-        if objects_tsv and not objects_raw:
+-            from .tile_utils import tsv_to_strip
+-
+-            objects_raw = tsv_to_strip(objects_tsv)
+-
+-        actors_raw = strip.get("actors", "")
+-        actors_tsv = strip.get("actors_tsv", "")
+-        if actors_tsv and not actors_raw:
+-            from .tile_utils import tsv_to_strip
+-
+-            actors_raw = tsv_to_strip(actors_tsv)
+-
+-        patch.strip = StripUpdate(
+-            edge=edge,
+-            global_y=strip.get("global_y", 0),
+-            global_x=strip.get("global_x", 0),
+-            x_start=strip.get("x_start", 0),
+-            y_start=strip.get("y_start", 0),
+-            terrain=terrain_raw,
+-            objects=objects_raw,
+-            actors=actors_raw,
+-        )
++    if not isinstance(strip, dict):
++        return
++    patch.strip = StripUpdate(
++        edge=strip.get("edge", ""),
++        global_y=strip.get("global_y", 0),
++        global_x=strip.get("global_x", 0),
++        x_start=strip.get("x_start", 0),
++        y_start=strip.get("y_start", 0),
++        terrain=_strip_field(strip, "terrain"),
++        objects=_strip_field(strip, "objects"),
++        actors=_strip_field(strip, "actors"),
++    )
++
++
++def _strip_field(strip: dict[str, Any], name: str) -> str:
++    """Read a strip field, accepting a <name>_tsv alternative to packed data."""
++    raw: str = strip.get(name, "")
++    tsv = strip.get(f"{name}_tsv", "")
++    if tsv and not raw:
++        from .tile_utils import tsv_to_strip
++
++        converted: str = tsv_to_strip(tsv)
++        return converted
++    return raw
++
+ 
+-    # Visited
++def _parse_visited(patch: ObsPatch, data: dict[str, Any]) -> None:
+     visited = data.get("visited", data.get("visited_add"))
+     if isinstance(visited, dict):
+         patch.visited_add = visited.get("add", [])
+     elif isinstance(visited, list):
+         patch.visited_add = visited
+ 
+-    # Edges
++
++def _parse_edges(patch: ObsPatch, data: dict[str, Any]) -> None:
+     edges = data.get("edges")
+-    if isinstance(edges, list):
+-        for e in edges:
+-            if isinstance(e, dict):
+-                patch.edges.append(
+-                    EdgeUpdate(
+-                        from_pos=cast(
+-                            list[int], e.get("from", e.get("from_pos", [0, 0]))
+-                        ),
+-                        dir=cast(str, e.get("dir", e.get("direction", "N"))),
+-                        outcome=e.get("outcome", "unknown"),
+-                        reason=e.get("reason", ""),
+-                    )
++    if not isinstance(edges, list):
++        return
++    for e in edges:
++        if isinstance(e, dict):
++            patch.edges.append(
++                EdgeUpdate(
++                    from_pos=cast(list[int], e.get("from", e.get("from_pos", [0, 0]))),
++                    dir=cast(str, e.get("dir", e.get("direction", "N"))),
++                    outcome=e.get("outcome", "unknown"),
++                    reason=e.get("reason", ""),
+                 )
++            )
++
+ 
+-    # Actor updates
++def _parse_actor_updates(patch: ObsPatch, data: dict[str, Any]) -> None:
+     actors = data.get("actor_updates", data.get("actors"))
+-    if isinstance(actors, list):
+-        for a in actors:
+-            if isinstance(a, dict):
+-                patch.actor_updates.append(
+-                    ActorUpdate(
+-                        id=a.get("id", f"actor_{len(patch.actor_updates)}"),
+-                        kind=a.get("kind", "u"),
+-                        symbol=a.get("symbol", ""),
+-                        pos=a.get("pos", [0, 0]),
+-                        facing=a.get("facing", "S"),
+-                        confidence=a.get("confidence", 0.5),
+-                    )
++    if not isinstance(actors, list):
++        return
++    for a in actors:
++        if isinstance(a, dict):
++            patch.actor_updates.append(
++                ActorUpdate(
++                    id=a.get("id", f"actor_{len(patch.actor_updates)}"),
++                    kind=a.get("kind", "u"),
++                    symbol=a.get("symbol", ""),
++                    pos=a.get("pos", [0, 0]),
++                    facing=a.get("facing", "S"),
++                    confidence=a.get("confidence", 0.5),
+                 )
++            )
+ 
+-    # Corrections
++
++def _parse_corrections(patch: ObsPatch, data: dict[str, Any]) -> None:
+     corrections = data.get("corrections")
+-    if isinstance(corrections, list):
+-        for c in corrections:
+-            if isinstance(c, dict):
+-                patch.corrections.append(
+-                    Correction(
+-                        layer=c.get("layer", "terrain"),
+-                        at=c.get("at", [0, 0]),
+-                        from_char=c.get("from", "?"),
+-                        to_char=c.get("to", "?"),
+-                        confidence=c.get("confidence", 0.5),
+-                        reason=c.get("reason", ""),
+-                    )
++    if not isinstance(corrections, list):
++        return
++    for c in corrections:
++        if isinstance(c, dict):
++            patch.corrections.append(
++                Correction(
++                    layer=c.get("layer", "terrain"),
++                    at=c.get("at", [0, 0]),
++                    from_char=c.get("from", "?"),
++                    to_char=c.get("to", "?"),
++                    confidence=c.get("confidence", 0.5),
++                    reason=c.get("reason", ""),
+                 )
++            )
++
+ 
+-    # Resync
++def _parse_resync(patch: ObsPatch, data: dict[str, Any]) -> None:
+     resync = data.get("resync")
+     if resync is True:
+         # Boolean resync — signal to re-observe without full data
+@@ -273,9 +284,6 @@ def parse_obs_patch(data: dict[str, Any] | str) -> ObsPatch:
+             full_viewport=resync.get("full_viewport", {}),
+         )
+ 
+-    patch.raw["_errors"] = errors
+-    return patch
+-
+ 
+ # ── Validator ───────────────────────────────────────────────────────────────
+ 
+@@ -302,43 +310,48 @@ def validate_patch(patch: ObsPatch) -> list[str]:
+     result = mov.result
+ 
+     if result == "moved":
+-        # Player must move at most 1 tile
+-        dx, dy = mov.player_delta
+-        if abs(dx) > 1 or abs(dy) > 1:
+-            errors.append(f"Player moved more than 1 tile: delta={mov.player_delta}")
+-
+-        # If viewport scrolled, strip must be present
+-        vp = patch.viewport
+-        if vp and vp.new_edge != "none":
+-            if not patch.strip:
+-                errors.append("Viewport scrolled but no 'strip' provided")
+-            elif not patch.strip.terrain:
+-                errors.append("Strip has no terrain data")
+-
+-        # Strip should only contain one new row/column
+-        if patch.strip and patch.strip.edge and patch.strip.edge.upper() in ("N", "S"):
+-            if patch.strip.terrain and len(patch.strip.terrain) > 30:
+-                errors.append(
+-                    f"Strip terrain too long for single row: {len(patch.strip.terrain)} chars"
+-                )
+-
++        _validate_moved(patch, mov, errors)
+     elif result == "blocked":
+-        # Should not shift viewport
+-        vp = patch.viewport
+-        if vp and vp.origin_delta != [0, 0]:
+-            errors.append("Blocked movement should not shift viewport")
+-        # Should record blocked edge
+-        if not patch.edges:
+-            errors.append("Blocked movement should record at least one blocked edge")
+-
++        _validate_blocked(patch, errors)
+     elif result == "turned_only":
+         # Player delta must be [0, 0]
+         if mov.player_delta != [0, 0]:
+             errors.append("turned_only should have player_delta [0, 0]")
+-
+     elif result in ("warp", "battle", "dialog", "menu", "cutscene"):
+         # These should trigger a resync, not a normal patch
+         if not patch.resync:
+             errors.append(f"'{result}' movement result should include 'resync' section")
+ 
+     return errors
++
++
++def _validate_moved(patch: ObsPatch, mov: Movement, errors: list[str]) -> None:
++    # Player must move at most 1 tile
++    dx, dy = mov.player_delta
++    if abs(dx) > 1 or abs(dy) > 1:
++        errors.append(f"Player moved more than 1 tile: delta={mov.player_delta}")
++
++    # If viewport scrolled, strip must be present
++    vp = patch.viewport
++    if vp and vp.new_edge != "none":
++        if not patch.strip:
++            errors.append("Viewport scrolled but no 'strip' provided")
++        elif not patch.strip.terrain:
++            errors.append("Strip has no terrain data")
++
++    # Strip should only contain one new row/column
++    if patch.strip and patch.strip.edge and patch.strip.edge.upper() in ("N", "S"):
++        if patch.strip.terrain and len(patch.strip.terrain) > 30:
++            errors.append(
++                f"Strip terrain too long for single row: {len(patch.strip.terrain)} chars"
++            )
++
++
++def _validate_blocked(patch: ObsPatch, errors: list[str]) -> None:
++    # Should not shift viewport
++    vp = patch.viewport
++    if vp and vp.origin_delta != [0, 0]:
++        errors.append("Blocked movement should not shift viewport")
++    # Should record blocked edge
++    if not patch.edges:
++        errors.append("Blocked movement should record at least one blocked edge")
+diff --git a/src/core/ram_reader.py b/src/core/ram_reader.py
+index e5b887d..b98429f 100644
+--- a/src/core/ram_reader.py
++++ b/src/core/ram_reader.py
+@@ -416,9 +416,7 @@ class _MapDB:
+         )
+         if offsets[-1] >= len(self._rom):
+             return None
+-        return tuple(
+-            self._rom[offset] for offset in offsets
+-        )  # type: ignore[return-value]
++        return tuple(self._rom[offset] for offset in offsets)  # type: ignore[return-value]
+ 
+     def _map_quadrant_tiles(
+         self, map_id: int, tile_x: int, tile_y: int
+@@ -978,6 +976,31 @@ TYPE_NAMES: dict[int, str] = {
+ # ── Text decode ──
+ 
+ 
++_TEXT_SPECIAL: dict[int, str] = {
++    0x4E: "PK",  # PK
++    0x54: "POKé",  # POKé
++    0x5E: "™",  # ™
++    0x6D: "/",  # /
++    0x6E: ".",  # .
++    0x7F: " ",  # space
++}
++
++
++def _decode_char(b: int) -> str:
++    """Decode one Pokémon Gen 1 text byte."""
++    if 0x80 <= b <= 0x99:
++        return chr(ord("A") + (b - 0x80))
++    if 0xA0 <= b <= 0xB9:
++        return chr(ord("a") + (b - 0xA0))
++    if 0x00 <= b <= 0x09:
++        return str(b)
++    if b in _TEXT_SPECIAL:
++        return _TEXT_SPECIAL[b]
++    if 32 <= b < 127:
++        return chr(b)
++    return f"\\x{b:02x}"
++
++
+ def _decode_text(data: bytes, offset: int, max_len: int = 20) -> str:
+     """Decode Pokémon Gen 1 text encoding from RAM bytes."""
+     chars: list[str] = []
+@@ -985,28 +1008,7 @@ def _decode_text(data: bytes, offset: int, max_len: int = 20) -> str:
+         b = data[offset + i] if offset + i < len(data) else 0x50
+         if b == 0x50:  # terminator
+             break
+-        if 0x80 <= b <= 0x99:
+-            chars.append(chr(ord("A") + (b - 0x80)))
+-        elif 0xA0 <= b <= 0xB9:
+-            chars.append(chr(ord("a") + (b - 0xA0)))
+-        elif 0x00 <= b <= 0x09:
+-            chars.append(str(b))
+-        elif b == 0x4E:  # PK
+-            chars.append("PK")
+-        elif b == 0x54:  # POKé
+-            chars.append("POKé")
+-        elif b == 0x5E:  # ™
+-            chars.append("™")
+-        elif b == 0x6D:  # /
+-            chars.append("/")
+-        elif b == 0x6E:  # .
+-            chars.append(".")
+-        elif b == 0x7F:  # space
+-            chars.append(" ")
+-        elif 32 <= b < 127:
+-            chars.append(chr(b))
+-        else:
+-            chars.append(f"\\x{b:02x}")
++        chars.append(_decode_char(b))
+     return "".join(chars)
+ 
+ 
+@@ -1446,56 +1448,24 @@ class RAMReader:
+             row = ""
+             for c in range(cols):
+                 cx, cy = ox + c, oy + r
+-                if not (0 <= cx < tw and 0 <= cy < th):
+-                    row += "?"
+-                    unknown += 1
+-                    continue
+-                if (cx, cy) == (tx, ty):
+-                    row += glyph
+-                    continue
+-                walkable = self._mapdb.tile_walkability(mid, cx, cy)
+-                bid = int(block_data[(cy // 2) * bw + (cx // 2)])
+-                if tileset == _OVERWORLD_TILESET:
+-                    cls = self._mapdb.tile_terrain(mid, cx, cy)
+-                else:
+-                    cls = self._mapdb.classify_block(bid, tileset)
+-                if walkable is None or cls is None:
+-                    row += "?"
++                symbol, is_unknown = self._render_grid_cell(
++                    cx,
++                    cy,
++                    mid=mid,
++                    tx=tx,
++                    ty=ty,
++                    tw=tw,
++                    th=th,
++                    bw=bw,
++                    tileset=tileset,
++                    block_data=block_data,
++                    glyph=glyph,
++                    object_numbers=object_numbers,
++                    legend_objects=legend_objects,
++                )
++                row += symbol
++                if is_unknown:
+                     unknown += 1
+-                elif cls == "water":
+-                    # Not plain floor and not "blocked wall" either: water changes the
+-                    # rules.
+-                    # Impassable on foot now, crossable later, so it keeps its own
+-                    # symbol.
+-                    row += "W"
+-                elif cls == "grass":
+-                    # WALKABLE, but never a bare '.': stepping in can trigger an
+-                    # encounter.
+-                    # A hazard, not an obstacle - the distinction the agent needs.
+-                    row += "G"
+-                elif cls == "door":
+-                    row += "D"
+-                elif walkable:
+-                    row += (
+-                        "D"
+-                        if tileset != _OVERWORLD_TILESET
+-                        and self._is_doorway(mid, cx, cy)
+-                        else "."
+-                    )
+-                elif cls == "tree":
+-                    row += "T"
+-                elif cls == "object":
+-                    if bid not in object_numbers:
+-                        object_numbers[bid] = len(object_numbers) + 1
+-                        n = object_numbers[bid]
+-                        tag = str(n) if n <= 9 else chr(ord("A") + n - 10)
+-                        legend_objects.append(
+-                            f"  {tag} = object (unnamed, block {bid:#04x})"
+-                        )
+-                    n = object_numbers[bid]
+-                    row += str(n) if n <= 9 else chr(ord("A") + n - 10)
+-                else:
+-                    row += "B"
+             grid_rows.append(row)
+ 
+         head = [
+@@ -1515,6 +1485,86 @@ class RAMReader:
+         tail.append(f"Unknown cells: {unknown}")
+         return "\n".join(head + body + tail)
+ 
++    def _render_grid_cell(
++        self,
++        cx: int,
++        cy: int,
++        *,
++        mid: int,
++        tx: int,
++        ty: int,
++        tw: int,
++        th: int,
++        bw: int,
++        tileset: int,
++        block_data: Any,
++        glyph: str,
++        object_numbers: dict[int, int],
++        legend_objects: list[str],
++    ) -> tuple[str, bool]:
++        """Render one grid cell. Returns (symbol, is_unknown)."""
++        if not (0 <= cx < tw and 0 <= cy < th):
++            return "?", True
++        if (cx, cy) == (tx, ty):
++            return glyph, False
++        walkable = self._mapdb.tile_walkability(mid, cx, cy)
++        bid = int(block_data[(cy // 2) * bw + (cx // 2)])
++        if tileset == _OVERWORLD_TILESET:
++            cls = self._mapdb.tile_terrain(mid, cx, cy)
++        else:
++            cls = self._mapdb.classify_block(bid, tileset)
++        if walkable is None or cls is None:
++            return "?", True
++        return self._cell_symbol(
++            cx, cy, mid, tileset, walkable, cls, bid, object_numbers, legend_objects
++        ), False
++
++    def _cell_symbol(
++        self,
++        cx: int,
++        cy: int,
++        mid: int,
++        tileset: int,
++        walkable: bool | None,
++        cls: str | None,
++        bid: int,
++        object_numbers: dict[int, int],
++        legend_objects: list[str],
++    ) -> str:
++        """Map a known (walkable, terrain-class) cell to its display symbol."""
++        if cls == "grass":
++            # WALKABLE, but never a bare '.': stepping in can trigger an encounter.
++            # A hazard, not an obstacle - the distinction the agent needs.
++            return "G"
++        if cls == "door":
++            return "D"
++        if cls == "water":
++            # Not plain floor and not "blocked wall" either: water changes the
++            # rules. Impassable on foot now, crossable later, so it keeps its
++            # own symbol.
++            return "W"
++        if walkable:
++            is_doorway = tileset != _OVERWORLD_TILESET and self._is_doorway(mid, cx, cy)
++            return "D" if is_doorway else "."
++        if cls == "tree":
++            return "T"
++        if cls == "object":
++            return self._object_tag(bid, object_numbers, legend_objects)
++        return "B"
++
++    @staticmethod
++    def _object_tag(
++        bid: int, object_numbers: dict[int, int], legend_objects: list[str]
++    ) -> str:
++        """Assign (or reuse) a numbered tag for a blocked object block."""
++        if bid not in object_numbers:
++            object_numbers[bid] = len(object_numbers) + 1
++            n = object_numbers[bid]
++            tag = str(n) if n <= 9 else chr(ord("A") + n - 10)
++            legend_objects.append(f"  {tag} = object (unnamed, block {bid:#04x})")
++        n = object_numbers[bid]
++        return str(n) if n <= 9 else chr(ord("A") + n - 10)
++
+     def _is_doorway(self, map_id: int, x: int, y: int) -> bool:
+         """True when a walkable cell sits in a GAP IN A WALL - a doorway or an opening.
+ 
+@@ -1952,8 +2002,7 @@ class RAMReader:
+             "wild Pokémon."
+         ),
+         "Route 2": (
+-            "Route 2. North to Pewter City (through forest), south to Viridian "
+-            "City."
++            "Route 2. North to Pewter City (through forest), south to Viridian City."
+         ),
+         "Pewter City": "Pewter City. Exit east to Route 3. Gym is in the northeast.",
+     }
+@@ -2065,47 +2114,7 @@ class RAMReader:
+             obs["map_dimensions"] = f"{info['width']}×{info['height']}"
+             obs["map_tileset"] = info["tileset"]
+ 
+-        if st == SCREEN_BATTLE:
+-            obs["suggested_action"] = "choose a battle action"
+-            obs["battle_state"] = self.read_battle_state()
+-            obs["render"] = self.render_battle()
+-        elif st == SCREEN_MENU:
+-            obs["suggested_action"] = "choose a menu item"
+-            obs["menu_state"] = self.read_menu_state()
+-            obs["menu_items"] = [
+-                f"Item {i}" for i in range(obs["menu_state"]["num_items"])
+-            ]
+-            obs["render"] = self.render_menu()
+-        elif st == SCREEN_DIALOG:
+-            obs["suggested_action"] = "advance the dialogue"
+-            obs["text_content"] = [self.read_dialog_text()]
+-            obs["render"] = self.render_dialog()
+-        elif st == SCREEN_NAME_ENTRY:
+-            ne = self.read_name_entry()
+-            obs["name_field"] = ne["name_so_far"]
+-            obs["keyboard_grid"] = {"rows": ne["grid_rows"]}
+-            obs["render"] = self.render_name_entry()
+-            obs["suggested_action"] = "enter a name and press START"
+-        elif st == SCREEN_OVERWORLD:
+-            obs["adjacent"] = self.adjacent_blocks()
+-            obs["adjacent_walkability"] = self.adjacent_walkability()
+-            obs["collision_grid"] = self.build_collision_grid(radius=2)
+-            obs["minimap"] = self.build_minimap(radius=2)
+-            obs["overworld_grid"] = self.render_overworld()
+-            obs["render"] = self.render_overworld()
+-
+-            # Use map-specific hint for suggested_action
+-            hint = self._suggested_map_action(mname)
+-            if hint:
+-                obs["suggested_action"] = hint
+-            else:
+-                obs["suggested_action"] = "explore the area"
+-            # Highlight non-floor adjacent tiles as potential exits
+-            adj = obs["adjacent"]
+-            exits = [d for d, t in adj.items() if t in ("stairs", "door", "warp")]
+-            if exits:
+-                obs["visible_exits"] = exits
+-                obs["suggested_action"] = f"explore: exits at {', '.join(exits)}"
++        self._fill_screen_observation(obs, st, mname)
+         # Also check menu-like overlay states
+         menu_data = self.read_menu_state()
+         if menu_data["num_items"] > 0:
+@@ -2117,3 +2126,62 @@ class RAMReader:
+                 obs["render"] = obs.get("render", "") + "\n" + self.render_menu()
+ 
+         return obs
++
++    def _fill_screen_observation(
++        self, obs: dict[str, Any], st: str, mname: str
++    ) -> None:
++        """Fill screen-type-specific observation fields."""
++        if st == SCREEN_BATTLE:
++            self._fill_battle_observation(obs)
++        elif st == SCREEN_MENU:
++            self._fill_menu_observation(obs)
++        elif st == SCREEN_DIALOG:
++            self._fill_dialog_observation(obs)
++        elif st == SCREEN_NAME_ENTRY:
++            self._fill_name_entry_observation(obs)
++        elif st == SCREEN_OVERWORLD:
++            self._fill_overworld_observation(obs, mname)
++
++    def _fill_battle_observation(self, obs: dict[str, Any]) -> None:
++        obs["suggested_action"] = "choose a battle action"
++        obs["battle_state"] = self.read_battle_state()
++        obs["render"] = self.render_battle()
++
++    def _fill_menu_observation(self, obs: dict[str, Any]) -> None:
++        obs["suggested_action"] = "choose a menu item"
++        obs["menu_state"] = self.read_menu_state()
++        obs["menu_items"] = [f"Item {i}" for i in range(obs["menu_state"]["num_items"])]
++        obs["render"] = self.render_menu()
++
++    def _fill_dialog_observation(self, obs: dict[str, Any]) -> None:
++        obs["suggested_action"] = "advance the dialogue"
++        obs["text_content"] = [self.read_dialog_text()]
++        obs["render"] = self.render_dialog()
++
++    def _fill_name_entry_observation(self, obs: dict[str, Any]) -> None:
++        ne = self.read_name_entry()
++        obs["name_field"] = ne["name_so_far"]
++        obs["keyboard_grid"] = {"rows": ne["grid_rows"]}
++        obs["render"] = self.render_name_entry()
++        obs["suggested_action"] = "enter a name and press START"
++
++    def _fill_overworld_observation(self, obs: dict[str, Any], mname: str) -> None:
++        obs["adjacent"] = self.adjacent_blocks()
++        obs["adjacent_walkability"] = self.adjacent_walkability()
++        obs["collision_grid"] = self.build_collision_grid(radius=2)
++        obs["minimap"] = self.build_minimap(radius=2)
++        obs["overworld_grid"] = self.render_overworld()
++        obs["render"] = self.render_overworld()
++
++        # Use map-specific hint for suggested_action
++        hint = self._suggested_map_action(mname)
++        if hint:
++            obs["suggested_action"] = hint
++        else:
++            obs["suggested_action"] = "explore the area"
++        # Highlight non-floor adjacent tiles as potential exits
++        adj = obs["adjacent"]
++        exits = [d for d, t in adj.items() if t in ("stairs", "door", "warp")]
++        if exits:
++            obs["visible_exits"] = exits
++            obs["suggested_action"] = f"explore: exits at {', '.join(exits)}"
+diff --git a/src/core/state_window.py b/src/core/state_window.py
+index cca0ace..54c0baf 100644
+--- a/src/core/state_window.py
++++ b/src/core/state_window.py
+@@ -226,6 +226,18 @@ _QUERY_GLOBAL_TOOL = {
+     },
+ }
+ 
++# Map vision screen_type labels to HSM state names (RAM reader path preferred).
++_HSM_VISION_STATES = {
++    "battle": "BATTLE.BATTLE_MENU",
++    "menu": "MENU.MAIN_MENU",
++    "dialog": "DIALOG.TEXT_DISPLAY",
++    "text": "DIALOG.TEXT_DISPLAY",
++    "overworld": "OVERWORLD.IDLE",
++    "navigation": "OVERWORLD.IDLE",
++    "title": "TITLE.WAITING_FOR_START",
++    "name_entry": "BOOT.CHARACTER_NAMING",
++}
++
+ # ── State workflow loading ───────────────────────────────────────────────
+ 
+ _STATES_DIR = Path("configs/states")
+@@ -380,35 +392,125 @@ class StateWindow:
+         for _ in range(self.max_steps):
+             self._step_count += 1
+ 
+-            # ── Fast-forward shortcut for non-interactive dialog ─────
+-            if self.state_type == "dialog" and not self._is_interactive():
+-                if _auto_a_count < _MAX_AUTO_A:
+-                    self.emulator.press_button("a", frames=30)
+-                    self.emulator.wait(10)  # let game register
+-                    self.emulator.fast_forward(120)
+-                    self._history.append(
+-                        {
+-                            "step": self._step_count,
+-                            "tool_call": {
+-                                "name": "press_button",
+-                                "arguments": {
+-                                    "button": "a",
+-                                    "duration": 30,
+-                                    "fast_forward": 120,
+-                                },
+-                            },
+-                            "action": "auto_a",
+-                            "auto": True,
+-                        }
+-                    )
+-                    _auto_a_count += 1
+-                    continue
+-                else:
+-                    # Safety cap: fall back to AI deliberation
+-                    pass
+-            elif self.state_type == "name_entry":
++            auto_handled = self._maybe_auto_advance(_auto_a_count, _MAX_AUTO_A)
++            _auto_a_count = self._apply_auto_advance(auto_handled, _auto_a_count)
++            if auto_handled == "continue":
++                continue
++
++            preselected_battle_action = (
++                self._battle_tool_call if self._step_count == 1 else None
++            )
++            tool_call, preselected_battle_action = self._obtain_tool_call(
++                preselected_battle_action
++            )
++
++            query_handled = self._maybe_handle_query_global(tool_call)
++            if query_handled:
++                if query_handled == "return":
++                    settled = self._settled_outcome()
++                    if settled:
++                        return settled
++                continue
++
++            if self._maybe_handle_memory_tool(tool_call):
++                continue
++
++            outcome = self._execute_tool_step(tool_call)
++            settled = self._finalize_outcome(outcome) if outcome else None
++            if settled:
++                return settled
++
++            # A JEV choice is one complete normal battle turn. Return control to
++            # cron_runner so the next turn starts from a fresh RAM observation.
++            if preselected_battle_action is not None:
++                break
++
++        # Max steps reached without resolution
++        result: dict[str, Any] = {
++            "outcome": "max_steps",
++            "steps": self._step_count,
++            "_battle_events": self._battle_events,
++            "_failed_flee_attempts": self._failed_flee_attempts,
++        }
++        return result
++
++    @staticmethod
++    def _apply_auto_advance(auto_handled: str, auto_a_count: int) -> int:
++        """Update the auto-A counter from a _maybe_auto_advance() result."""
++        if auto_handled == "continue":
++            return auto_a_count + 1
++        if auto_handled == "reset":
++            return 0
++        return auto_a_count
++
++    def _settled_outcome(self) -> dict[str, Any] | None:
++        """Check for a loop-ending outcome, with battle bookkeeping attached."""
++        outcome = self._check_outcome()
++        return self._finalize_outcome(outcome) if outcome else None
++
++    def _execute_tool_step(self, tool_call: dict[str, Any]) -> dict[str, Any] | None:
++        """Execute an emulator tool call and return the outcome (if the loop ends).
++
++        Bounds repeated flee requests (the counter is supplied by the outer cron
++        loop, so it survives fresh StateWindow instances on subsequent cycles of
++        the same battle), records history, waits out battle animations, and
++        updates the HSM state.
++        """
++        if self.state_type == "battle":
++            tool_call = decide_battle_tool_call(tool_call, self._failed_flee_attempts)
++
++        # Execute on emulator
++        action_result = execute_tool_call(
++            self.emulator,
++            tool_name=tool_call["name"],
++            arguments=tool_call.get("arguments", {}),
++        )
++
++        self._history.append(
++            {
++                "step": self._step_count,
++                "tool_call": tool_call,
++                "action": action_result,
++            }
++        )
++
++        self._record_recent_action(tool_call, action_result)
++        self._post_battle_action_wait(tool_call)
++
++        # ── HSM state update ──────────────────────────────────
++        new_hsm_state = self._map_vision_to_hsm_state()
++        if new_hsm_state and new_hsm_state != self.hsm.get_current_state_name():
++            self.hsm.transition_to(new_hsm_state, reason=f"Step {self._step_count}")
++
++        # Check for state transition
++        return self._check_outcome()
++
++    def _finalize_outcome(self, outcome: dict[str, Any]) -> dict[str, Any]:
++        """Attach battle event bookkeeping to a loop-ending outcome."""
++        if self._in_battle:
++            self._battle_events.append(
++                {
++                    "event": "battle_end",
++                    "outcome": outcome.get("outcome", "unknown"),
++                    "to_type": outcome.get("to_type", "unknown"),
++                }
++            )
++        outcome["_battle_events"] = self._battle_events
++        outcome["_failed_flee_attempts"] = self._failed_flee_attempts
++        return outcome
++
++    def _maybe_auto_advance(self, auto_a_count: int, max_auto_a: int) -> str:
++        """Handle auto-A dialog fast-forward and name-entry mashing.
++
++        Returns "continue" when a step action was taken, "reset" when the
++        auto-A counter should reset, or "" when the caller should proceed to
++        the LLM decision path.
++        """
++        # ── Fast-forward shortcut for non-interactive dialog ─────
++        if self.state_type == "dialog" and not self._is_interactive():
++            if auto_a_count < max_auto_a:
+                 self.emulator.press_button("a", frames=30)
+-                self.emulator.wait(10)
++                self.emulator.wait(10)  # let game register
+                 self.emulator.fast_forward(120)
+                 self._history.append(
+                     {
+@@ -421,340 +523,246 @@ class StateWindow:
+                                 "fast_forward": 120,
+                             },
+                         },
+-                        "action": "name_entry_a_mash",
++                        "action": "auto_a",
++                        "auto": True,
+                     }
+                 )
+-                _auto_a_count += 1
+-                continue
+-
+-                # ── Programmatic name entry keyboard navigation ────
+-                # DeepSeek ignores keyboard_grid instructions, so we
+-                # compute the correct button press here directly.
+-                kg = self.vision.get("keyboard_grid", {})
+-                if kg:
+-                    rows = kg.get("rows", [])
+-                    cursor = kg.get("current_cursor", {"row": 0, "col": 0})
+-                    cr, cc = cursor.get("row", 0), cursor.get("col", 0)
+-                    name_field = self.vision.get("name_field", "")
+-                    target_name = "ASH"
+-
+-                    # Determine what to do
+-                    if name_field and len(name_field) >= len(target_name):
+-                        # All letters typed — navigate to END
+-                        button, dur = "down", 10
+-                    elif name_field:
+-                        # Find next letter
+-                        next_letter = target_name[len(name_field)]
+-                        tr, tc = -1, -1
+-                        for ri, row in enumerate(rows):
+-                            for ci, letter in enumerate(row):
+-                                if letter.upper() == next_letter.upper():
+-                                    tr, tc = ri, ci
+-                                    break
+-                            if tr >= 0:
+-                                break
+-                        if tr >= 0:
+-                            if tr == cr and tc == cc:
+-                                button, dur = "a", 30
+-                            elif tr > cr:
+-                                button, dur = "down", 10
+-                            elif tr < cr:
+-                                button, dur = "up", 10
+-                            elif tc > cc:
+-                                button, dur = "right", 10
+-                            elif tc < cc:
+-                                button, dur = "left", 10
+-                            else:
+-                                button, dur = "a", 30
+-                        else:
+-                            button, dur = "down", 10
+-                    else:
+-                        # Nothing typed yet — cursor should be on A, press it
+-                        button, dur = "a", 30
+-
+-                    self.emulator.press_button(button, frames=dur)
+-                    self.emulator.wait(10)
+-                    self._history.append(
+-                        {
+-                            "step": self._step_count,
+-                            "tool_call": {
+-                                "name": "press_button",
+-                                "arguments": {"button": button, "duration": dur},
+-                            },
+-                            "action": f"name_entry_auto_{button}",
+-                        }
+-                    )
+-                    continue
+-                # No keyboard_grid — fall through to LLM
+-            else:
+-                _auto_a_count = 0  # reset on interactive or non-dialog states
++                return "continue"
++            # Safety cap: fall back to AI deliberation
++            return ""
+ 
+-            preselected_battle_action = (
+-                self._battle_tool_call if self._step_count == 1 else None
++        if self.state_type == "name_entry":
++            self.emulator.press_button("a", frames=30)
++            self.emulator.wait(10)
++            self.emulator.fast_forward(120)
++            self._history.append(
++                {
++                    "step": self._step_count,
++                    "tool_call": {
++                        "name": "press_button",
++                        "arguments": {
++                            "button": "a",
++                            "duration": 30,
++                            "fast_forward": 120,
++                        },
++                    },
++                    "action": "name_entry_a_mash",
++                }
+             )
+-            if preselected_battle_action is not None:
+-                tool_call = preselected_battle_action
+-            else:
+-                # Build the focused prompt
+-                prompt = self._build_prompt()
+-
+-                # Get action from thinking model
+-                response = self.client.send_tool_request(
+-                    prompt=prompt,
+-                    tools=TOOL_SCHEMA + _DUCKBRAIN_TOOLS + [_QUERY_GLOBAL_TOOL],
+-                    model=self.thinking_model,
+-                    max_tokens=2000,
+-                    temperature=0.3,
+-                )
+-
+-                self._raw_responses.append(response or "")
++            return "continue"
++
++        return "reset"
++
++    def _obtain_tool_call(
++        self, preselected_battle_action: dict[str, Any] | None
++    ) -> tuple[dict[str, Any], dict[str, Any] | None]:
++        """Get the next tool call, from preselection or from the thinking model."""
++        if preselected_battle_action is not None:
++            return preselected_battle_action, preselected_battle_action
++
++        # Build the focused prompt
++        prompt = self._build_prompt()
++
++        # Get action from thinking model
++        response = self.client.send_tool_request(
++            prompt=prompt,
++            tools=TOOL_SCHEMA + _DUCKBRAIN_TOOLS + [_QUERY_GLOBAL_TOOL],
++            model=self.thinking_model,
++            max_tokens=2000,
++            temperature=0.3,
++        )
+ 
+-                # Parse tool call
+-                from src.core.tools import parse_tool_call
++        self._raw_responses.append(response or "")
+ 
+-                parsed_tool_call = parse_tool_call(response) if response else None
+-                if parsed_tool_call is None:
+-                    tool_call = {
+-                        "name": "press_button",
+-                        "arguments": {"button": "a", "duration": 5},
+-                    }
+-                else:
+-                    tool_call = parsed_tool_call
+-                # Normalize arguments to dict
+-                if isinstance(tool_call.get("arguments"), str):
+-                    try:
+-                        tool_call["arguments"] = json.loads(tool_call["arguments"])
+-                    except (json.JSONDecodeError, TypeError):
+-                        tool_call["arguments"] = {"raw": tool_call["arguments"]}
+-
+-            # Handle query_global calls
+-            if tool_call["name"] == "query_global":
+-                question = tool_call.get("arguments", {}).get("question", "")
+-                self._query_count += 1
+-                if self._query_count > 2:
+-                    # Query bound: the LLM would loop forever asking.
+-                    # Force a deterministic battle action (or dialog A).
+-                    if self.state_type == "battle":
+-                        forced = execute_tool_call(
+-                            self.emulator,
+-                            tool_name="select_move",
+-                            arguments={"move_number": 1},
+-                        )
+-                        self._history.append(
+-                            {
+-                                "step": self._step_count,
+-                                "forced": True,
+-                                "tool_call": {
+-                                    "name": "select_move",
+-                                    "arguments": {"move_number": 1},
+-                                },
+-                                "action": forced,
+-                            }
+-                        )
+-                        self._record_recent_action(
+-                            {"name": "select_move", "arguments": {"move_number": 1}},
+-                            forced,
+-                        )
+-                        self.emulator.wait(60)
+-                        self.emulator.fast_forward(180)
+-                    else:
+-                        # Non-battle: plain A to keep the game advancing
+-                        action_result = execute_tool_call(
+-                            self.emulator,
+-                            tool_name="press_button",
+-                            arguments={"button": "a", "duration": 30},
+-                        )
+-                        self._history.append(
+-                            {
+-                                "step": self._step_count,
+-                                "forced": True,
+-                                "tool_call": {
+-                                    "name": "press_button",
+-                                    "arguments": {"button": "a"},
+-                                },
+-                                "action": action_result,
+-                            }
+-                        )
+-                        self._record_recent_action(
+-                            {"name": "press_button", "arguments": {"button": "a"}},
+-                            action_result,
+-                        )
+-                    self._step_count += 1
+-                    # Check outcome (battle may have ended from the forced action)
+-                    outcome = self._check_outcome()
+-                    if outcome:
+-                        if self._in_battle:
+-                            self._battle_events.append(
+-                                {
+-                                    "event": "battle_end",
+-                                    "outcome": outcome.get("outcome", "unknown"),
+-                                    "to_type": outcome.get("to_type", "unknown"),
+-                                }
+-                            )
+-                        outcome["_battle_events"] = self._battle_events
+-                        outcome["_failed_flee_attempts"] = self._failed_flee_attempts
+-                        return outcome
+-                    continue
+-                answer = self._answer_global_query(question)
+-                self._history.append(
+-                    {"role": "query_global", "question": question, "answer": answer}
+-                )
+-                continue  # re-loop with answer in history
+-
+-            # Handle DuckBrain calls (no emulator action)
+-            if tool_call["name"] == "remember":
+-                key = tool_call.get("arguments", {}).get("key", "/discoveries/unknown")
+-                fact = tool_call.get("arguments", {}).get("fact", "")
+-                rid = _duckbrain_remember(key=key, fact=fact)
+-                self._history.append({"role": "remember", "key": key, "id": rid})
+-                continue
++        # Parse tool call
++        from src.core.tools import parse_tool_call
+ 
+-            if tool_call["name"] == "recall":
+-                query = tool_call.get("arguments", {}).get("query", "/")
+-                results = _duckbrain_recall(query=query)
+-                self._history.append(
+-                    {"role": "recall", "query": query, "results": results[:200]}
+-                )
+-                continue
++        parsed_tool_call = parse_tool_call(response) if response else None
++        tool_call = (
++            parsed_tool_call
++            if parsed_tool_call is not None
++            else {"name": "press_button", "arguments": {"button": "a", "duration": 5}}
++        )
++        # Normalize arguments to dict
++        raw_args = tool_call.get("arguments")
++        if isinstance(raw_args, str):
++            try:
++                tool_call["arguments"] = json.loads(raw_args)
++            except (json.JSONDecodeError, TypeError):
++                tool_call["arguments"] = {"raw": raw_args}
++        return tool_call, None
+ 
+-            if tool_call["name"] == "set_goal":
+-                goal = tool_call.get("arguments", {}).get("goal", "")
+-                self.global_ctx.add_goal(goal)
+-                # Persist across runs so /goals/current survives sessions
+-                try:
+-                    from src.core import duckbrain_client as _dbc
+-
+-                    _dbc.remember(
+-                        key="/goals/current",
+-                        domain="goal",
+-                        attributes={"goal": goal, "source": "agent"},
+-                        embedding_text=f"Current goal: {goal}",
+-                    )
+-                except Exception as _e:  # memory persistence is best-effort
+-                    logger.debug("DuckBrain goal persistence failed (ignored): %s", _e)
+-                self._history.append({"role": "set_goal", "goal": goal})
+-                continue
++    def _maybe_handle_query_global(self, tool_call: dict[str, Any]) -> str:
++        """Handle a query_global tool call.
+ 
+-            if tool_call["name"] == "list_keys":
+-                prefix = tool_call.get("arguments", {}).get("prefix", "/")
+-                try:
+-                    from src.core import duckbrain_client as _dbc
+-
+-                    # Agent memory browsing needs a deliberate near-full census;
+-                    # list_keys still warns loudly if this higher safety cap truncates.
+-                    keys = _dbc.list_keys(prefix=prefix, limit=2000)
+-                    answer = (
+-                        "\n".join(keys)
+-                        if keys
+-                        else "(nothing stored under this prefix)"
+-                    )
+-                except Exception as _e:
+-                    answer = f"(list_keys failed: {_e})"
++        Returns "" (not a query), "answered" (answer recorded, re-loop),
++        "continue" (forced action executed and outcome clear, re-loop), or
++        "return" (forced action executed; caller must check the outcome).
++        """
++        if tool_call["name"] != "query_global":
++            return ""
++        question = tool_call.get("arguments", {}).get("question", "")
++        self._query_count += 1
++        if self._query_count > 2:
++            # Query bound: the LLM would loop forever asking.
++            # Force a deterministic battle action (or dialog A).
++            if self.state_type == "battle":
++                forced = execute_tool_call(
++                    self.emulator,
++                    tool_name="select_move",
++                    arguments={"move_number": 1},
++                )
+                 self._history.append(
+-                    {"role": "list_keys", "prefix": prefix, "keys": answer[:400]}
++                    {
++                        "step": self._step_count,
++                        "forced": True,
++                        "tool_call": {
++                            "name": "select_move",
++                            "arguments": {"move_number": 1},
++                        },
++                        "action": forced,
++                    }
++                )
++                self._record_recent_action(
++                    {"name": "select_move", "arguments": {"move_number": 1}},
++                    forced,
++                )
++                self.emulator.wait(60)
++                self.emulator.fast_forward(180)
++            else:
++                # Non-battle: plain A to keep the game advancing
++                action_result = execute_tool_call(
++                    self.emulator,
++                    tool_name="press_button",
++                    arguments={"button": "a", "duration": 30},
+                 )
+-                continue
+-
+-            if tool_call["name"] == "get":
+-                key = tool_call.get("arguments", {}).get("key", "/")
+-                try:
+-                    from src.core import duckbrain_client as _dbc
+-
+-                    rec = _dbc.get(key=key)
+-                    if rec:
+-                        attrs = rec.get("attributes", {})
+-                        body = (
+-                            attrs.get("fact")
+-                            or attrs.get("goal")
+-                            or rec.get("embedding_text", "")
+-                        )
+-                        answer = f"{rec.get('key')}: {body}"[:400]
+-                    else:
+-                        answer = f"(no memory at {key})"
+-                except Exception as _e:
+-                    answer = f"(get failed: {_e})"
+                 self._history.append(
+-                    {"role": "get", "key": key, "content": answer[:400]}
++                    {
++                        "step": self._step_count,
++                        "forced": True,
++                        "tool_call": {
++                            "name": "press_button",
++                            "arguments": {"button": "a"},
++                        },
++                        "action": action_result,
++                    }
+                 )
+-                continue
+-
+-            # Bound repeated flee requests. The counter is supplied by the
+-            # outer cron loop, so it survives fresh StateWindow instances on
+-            # subsequent cycles of the same battle.
+-            requested_tool_call = tool_call
+-            if self.state_type == "battle":
+-                tool_call = decide_battle_tool_call(
+-                    requested_tool_call, self._failed_flee_attempts
++                self._record_recent_action(
++                    {"name": "press_button", "arguments": {"button": "a"}},
++                    action_result,
+                 )
++            self._step_count += 1
++            return "return"
++        answer = self._answer_global_query(question)
++        self._history.append(
++            {"role": "query_global", "question": question, "answer": answer}
++        )
++        return "answered"
+ 
+-            # Execute on emulator
+-            action_result = execute_tool_call(
+-                self.emulator,
+-                tool_name=tool_call["name"],
+-                arguments=tool_call.get("arguments", {}),
+-            )
++    def _maybe_handle_memory_tool(self, tool_call: dict[str, Any]) -> bool:
++        """Handle DuckBrain memory tool calls (no emulator action).
+ 
++        Returns True when the call was consumed and the loop should continue.
++        """
++        if tool_call["name"] == "remember":
++            key = tool_call.get("arguments", {}).get("key", "/discoveries/unknown")
++            fact = tool_call.get("arguments", {}).get("fact", "")
++            rid = _duckbrain_remember(key=key, fact=fact)
++            self._history.append({"role": "remember", "key": key, "id": rid})
++            return True
++
++        if tool_call["name"] == "recall":
++            query = tool_call.get("arguments", {}).get("query", "/")
++            results = _duckbrain_recall(query=query)
+             self._history.append(
+-                {
+-                    "step": self._step_count,
+-                    "tool_call": tool_call,
+-                    "action": action_result,
+-                }
++                {"role": "recall", "query": query, "results": results[:200]}
+             )
++            return True
+ 
+-            # ── Recent actions memory window ──────────────────────
+-            self._record_recent_action(tool_call, action_result)
++        if tool_call["name"] in ("set_goal", "list_keys"):
++            return self._handle_memory_keys_tool(tool_call)
+ 
+-            # ── Battle animation wait ──────────────────────────────
+-            # After executing a battle action (FIGHT, move select),
+-            # wait for the attack/HP-drain animation before re-reading.
+-            if self.state_type == "battle":
+-                self.emulator.wait(60)
+-                self.emulator.fast_forward(180)
+-                current_battle_status = battle_status(self.emulator)
+-                if tool_call["name"] == "run_from_battle" and current_battle_status in (
+-                    "wild",
+-                    "trainer",
+-                ):
+-                    self._failed_flee_attempts += 1
+-                elif current_battle_status == "ended":
+-                    self._failed_flee_attempts = 0
+-
+-            # ── HSM state update ──────────────────────────────────
+-            new_hsm_state = self._map_vision_to_hsm_state()
+-            if new_hsm_state and new_hsm_state != self.hsm.get_current_state_name():
+-                self.hsm.transition_to(new_hsm_state, reason=f"Step {self._step_count}")
+-
+-            # Check for state transition
+-            outcome = self._check_outcome()
+-            if outcome:
+-                # ── Battle end logging ──────────────────────────
+-                if self._in_battle:
+-                    self._battle_events.append(
+-                        {
+-                            "event": "battle_end",
+-                            "outcome": outcome.get("outcome", "unknown"),
+-                            "to_type": outcome.get("to_type", "unknown"),
+-                        }
+-                    )
+-                # ── Include battle events and flee policy state in result ──
+-                outcome["_battle_events"] = self._battle_events
+-                outcome["_failed_flee_attempts"] = self._failed_flee_attempts
+-                return outcome
++        if tool_call["name"] == "get":
++            return self._handle_memory_get(tool_call)
+ 
+-            # A JEV choice is one complete normal battle turn. Return control to
+-            # cron_runner so the next turn starts from a fresh RAM observation.
+-            if preselected_battle_action is not None:
+-                break
++        return False
+ 
+-        # Max steps reached without resolution
+-        result: dict[str, Any] = {
+-            "outcome": "max_steps",
+-            "steps": self._step_count,
+-            "_battle_events": self._battle_events,
+-            "_failed_flee_attempts": self._failed_flee_attempts,
+-        }
+-        return result
++    def _handle_memory_keys_tool(self, tool_call: dict[str, Any]) -> bool:
++        """Handle set_goal and list_keys tool calls."""
++        if tool_call["name"] == "set_goal":
++            goal = tool_call.get("arguments", {}).get("goal", "")
++            self.global_ctx.add_goal(goal)
++            # Persist across runs so /goals/current survives sessions
++            try:
++                from src.core import duckbrain_client as _dbc
++
++                _dbc.remember(
++                    key="/goals/current",
++                    domain="goal",
++                    attributes={"goal": goal, "source": "agent"},
++                    embedding_text=f"Current goal: {goal}",
++                )
++            except Exception as _e:  # memory persistence is best-effort
++                logger.debug("DuckBrain goal persistence failed (ignored): %s", _e)
++            self._history.append({"role": "set_goal", "goal": goal})
++            return True
++
++        # list_keys
++        prefix = tool_call.get("arguments", {}).get("prefix", "/")
++        try:
++            from src.core import duckbrain_client as _dbc
++
++            # Agent memory browsing needs a deliberate near-full census;
++            # list_keys still warns loudly if this higher safety cap truncates.
++            keys = _dbc.list_keys(prefix=prefix, limit=2000)
++            answer = "\n".join(keys) if keys else "(nothing stored under this prefix)"
++        except Exception as _e:
++            answer = f"(list_keys failed: {_e})"
++        self._history.append(
++            {"role": "list_keys", "prefix": prefix, "keys": answer[:400]}
++        )
++        return True
++
++    def _handle_memory_get(self, tool_call: dict[str, Any]) -> bool:
++        """Handle the get tool call (read one memory record)."""
++        key = tool_call.get("arguments", {}).get("key", "/")
++        try:
++            from src.core import duckbrain_client as _dbc
++
++            rec = _dbc.get(key=key)
++            if rec:
++                attrs = rec.get("attributes", {})
++                body = (
++                    attrs.get("fact")
++                    or attrs.get("goal")
++                    or rec.get("embedding_text", "")
++                )
++                answer = f"{rec.get('key')}: {body}"[:400]
++            else:
++                answer = f"(no memory at {key})"
++        except Exception as _e:
++            answer = f"(get failed: {_e})"
++        self._history.append({"role": "get", "key": key, "content": answer[:400]})
++        return True
++
++    def _post_battle_action_wait(self, tool_call: dict[str, Any]) -> None:
++        """Wait for battle animation and track failed flee attempts.
++
++        After executing a battle action (FIGHT, move select), wait for the
++        attack/HP-drain animation before re-reading.
++        """
++        if self.state_type != "battle":
++            return
++        self.emulator.wait(60)
++        self.emulator.fast_forward(180)
++        current_battle_status = battle_status(self.emulator)
++        if tool_call["name"] == "run_from_battle" and current_battle_status in (
++            "wild",
++            "trainer",
++        ):
++            self._failed_flee_attempts += 1
++        elif current_battle_status == "ended":
++            self._failed_flee_attempts = 0
+ 
+     # ── Prompt building ─────────────────────────────────────────────
+ 
+@@ -776,32 +784,7 @@ class StateWindow:
+ 
+         target_name = "ASH"
+         if name_field and len(name_field) > 0:
+-            typed_count = len(name_field)
+-            if typed_count < len(target_name):
+-                next_letter = target_name[typed_count]
+-                tr, tc = self._find_letter_in_grid(rows, next_letter)
+-                if tr >= 0:
+-                    dirs = self._compute_directions(cr, cc, tr, tc)
+-                    parts.append(
+-                        f"  NEXT LETTER TO TYPE: '{next_letter}' at row={tr}, col={tc}"
+-                    )
+-                    if not dirs:
+-                        parts.append(
+-                            f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!"
+-                        )
+-                    else:
+-                        parts.append(
+-                            f"  TO REACH '{next_letter}': {' then '.join(dirs)}"
+-                        )
+-                        parts.append("  After reaching it, press A to type the letter.")
+-                else:
+-                    parts.append(
+-                        f"  NEXT LETTER '{next_letter}' not found — navigate to END"
+-                    )
+-            else:
+-                parts.append(
+-                    "  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A."
+-                )
++            self._add_next_letter_lines(parts, rows, cr, cc, name_field, target_name)
+         else:
+             first_letter = target_name[0]
+             tr, tc = self._find_letter_in_grid(rows, first_letter)
+@@ -824,6 +807,35 @@ class StateWindow:
+         parts.append(f"  Bottom row: {kg.get('bottom_row', [])}")
+         return parts
+ 
++    def _add_next_letter_lines(
++        self,
++        parts: list[str],
++        rows: list,
++        cr: int,
++        cc: int,
++        name_field: str,
++        target_name: str,
++    ) -> None:
++        """Add guidance lines for typing the next letter (or finishing)."""
++        typed_count = len(name_field)
++        if typed_count >= len(target_name):
++            parts.append(
++                "  ✓ ALL LETTERS TYPED! Navigate to END: press DOWN past all rows to bottom row, then RIGHT to END, then A."
++            )
++            return
++        next_letter = target_name[typed_count]
++        tr, tc = self._find_letter_in_grid(rows, next_letter)
++        if tr < 0:
++            parts.append(f"  NEXT LETTER '{next_letter}' not found — navigate to END")
++            return
++        dirs = self._compute_directions(cr, cc, tr, tc)
++        parts.append(f"  NEXT LETTER TO TYPE: '{next_letter}' at row={tr}, col={tc}")
++        if not dirs:
++            parts.append(f"  ⚡ CURSOR IS ON '{next_letter}' — press A NOW to type it!")
++        else:
++            parts.append(f"  TO REACH '{next_letter}': {' then '.join(dirs)}")
++            parts.append("  After reaching it, press A to type the letter.")
++
+     def _find_letter_in_grid(self, rows: list, letter: str) -> tuple[int, int]:
+         """Find a letter's position in the keyboard grid."""
+         for ri, row in enumerate(rows):
+@@ -1053,47 +1065,7 @@ class StateWindow:
+         # Get battle state from vision dict (populated by ram_reader.observe())
+         battle_state = self.vision.get("battle_state", {})
+         battle_type = str(battle_state.get("battle_type", "unknown"))
+-        prompt = ""
+-        if battle_state:
+-            p = battle_state.get("player", {})
+-            e = battle_state.get("enemy", {})
+-
+-            # Build moves list. pp_max and power are not currently
+-            # returned by read_battle_state() but are accepted if
+-            # present (tests / future schema), so format adaptively.
+-            moves_parts = []
+-            for i, move in enumerate(p.get("moves", [])):
+-                slot = move.get("slot", i + 1)
+-                pp = move.get("pp", 0)
+-                pp_max = move.get("pp_max")
+-                power = move.get("power")
+-                pp_str = f"PP: {pp}/{pp_max}" if pp_max else f"PP:{pp}"
+-                power_str = f", Power: {power}" if power else ""
+-                moves_parts.append(
+-                    f"  {slot}. {move.get('name', '?')} ({pp_str}{power_str})"
+-                )
+-            moves_str = "\n".join(moves_parts) if moves_parts else "  (no moves)"
+-
+-            if tmpl:
+-                try:
+-                    prompt = tmpl.format(
+-                        battle_type=battle_type,
+-                        enemy_name=e.get("name", "Unknown"),
+-                        player_name=p.get("name", "Pokémon"),
+-                        player_level=p.get("level", "?"),
+-                        player_hp_pct=p.get("hp_pct", "?"),
+-                        player_hp=p.get("hp", "?"),
+-                        player_max_hp=p.get("max_hp", "?"),
+-                        player_type=p.get("type", "Unknown"),
+-                        enemy_level=e.get("level", "?"),
+-                        enemy_hp_pct=e.get("hp_pct", "?"),
+-                        enemy_hp=e.get("hp", "?"),
+-                        enemy_max_hp=e.get("max_hp", "?"),
+-                        enemy_type=e.get("type", "Unknown"),
+-                        moves_list=moves_str,
+-                    )
+-                except (KeyError, ValueError, AttributeError):
+-                    pass
++        prompt = self._render_battle_template(tmpl, battle_state, battle_type)
+ 
+         if not prompt:
+             render = str(self.vision.get("render", ""))
+@@ -1129,6 +1101,51 @@ class StateWindow:
+             prompt += "\n\n" + recent
+         return prompt
+ 
++    def _render_battle_template(
++        self, tmpl: str, battle_state: dict, battle_type: str
++    ) -> str:
++        """Render the battle RAM template (empty when no template or state)."""
++        if not battle_state or not tmpl:
++            return ""
++        p = battle_state.get("player", {})
++        e = battle_state.get("enemy", {})
++
++        # Build moves list. pp_max and power are not currently
++        # returned by read_battle_state() but are accepted if
++        # present (tests / future schema), so format adaptively.
++        moves_parts = []
++        for i, move in enumerate(p.get("moves", [])):
++            slot = move.get("slot", i + 1)
++            pp = move.get("pp", 0)
++            pp_max = move.get("pp_max")
++            power = move.get("power")
++            pp_str = f"PP: {pp}/{pp_max}" if pp_max else f"PP:{pp}"
++            power_str = f", Power: {power}" if power else ""
++            moves_parts.append(
++                f"  {slot}. {move.get('name', '?')} ({pp_str}{power_str})"
++            )
++        moves_str = "\n".join(moves_parts) if moves_parts else "  (no moves)"
++
++        try:
++            return tmpl.format(
++                battle_type=battle_type,
++                enemy_name=e.get("name", "Unknown"),
++                player_name=p.get("name", "Pokémon"),
++                player_level=p.get("level", "?"),
++                player_hp_pct=p.get("hp_pct", "?"),
++                player_hp=p.get("hp", "?"),
++                player_max_hp=p.get("max_hp", "?"),
++                player_type=p.get("type", "Unknown"),
++                enemy_level=e.get("level", "?"),
++                enemy_hp_pct=e.get("hp_pct", "?"),
++                enemy_hp=e.get("hp", "?"),
++                enemy_max_hp=e.get("max_hp", "?"),
++                enemy_type=e.get("type", "Unknown"),
++                moves_list=moves_str,
++            )
++        except (KeyError, ValueError, AttributeError):
++            return ""
++
+     def _build_ram_fallback(self) -> str:
+         """Fallback: use the 'render' field from ram_reader as the prompt."""
+         render: str = str(self.vision.get("render", ""))
+@@ -1207,9 +1224,7 @@ class StateWindow:
+         # Menu detection via RAM reader
+         if result == "menu" or (menu_items and result != "overworld"):
+             # If menu items contain battle commands, we're in battle menu
+-            if any(item in ["FIGHT", "BAG", "PKMN", "RUN"] for item in menu_items):
+-                return "BATTLE.BATTLE_MENU"
+-            return "MENU.MAIN_MENU"
++            return self._hsm_menu_state(menu_items)
+ 
+         # Dialog/text detection
+         if result == "dialog" or (
+@@ -1223,23 +1238,14 @@ class StateWindow:
+ 
+         # ── Vision-based fallback ─────────────────────────────────────
+         st = self.vision.get("screen_type", "")
+-        _subtype = self.vision.get("screen_subtype", "")
++        return _HSM_VISION_STATES.get(st)
+ 
+-        if st == "battle":
++    @staticmethod
++    def _hsm_menu_state(menu_items: list) -> str:
++        """Classify a RAM menu: battle commands mean battle menu, else main menu."""
++        if any(item in ["FIGHT", "BAG", "PKMN", "RUN"] for item in menu_items):
+             return "BATTLE.BATTLE_MENU"
+-        if st == "menu":
+-            return "MENU.MAIN_MENU"
+-        if st in ("dialog", "text"):
+-            return "DIALOG.TEXT_DISPLAY"
+-        if st in ("overworld", "navigation"):
+-            return "OVERWORLD.IDLE"
+-        if st == "title":
+-            return "TITLE.WAITING_FOR_START"
+-        if st == "name_entry":
+-            return "BOOT.CHARACTER_NAMING"
+-
+-        # Can't map
+-        return None
++        return "MENU.MAIN_MENU"
+ 
+     def _log_hsm_transition(self, from_state: Any, to_state: Any) -> None:  # noqa: ANN401 — HSM callback passes enum or None
+         """Callback: log HSM state transitions to DuckBrain.

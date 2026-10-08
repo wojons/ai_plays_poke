@@ -1,0 +1,2279 @@
+commit 7301174793d70f3a9da4f5aeb80f6f847d269d9e
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Oct 7 17:18:14 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Oct 7 17:18:14 2026 -0500
+
+    refactor(complexity): PXC-SRC2 — decompose remaining src/core complexity violations (C901/PLR0912/PLR0915)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ config/assist_inventory.json |  47 +------
+ src/core/ai_client.py        | 319 +++++++++++++++++++++++++------------------
+ src/core/dialogue.py         |  67 +++++----
+ src/core/duckbrain_client.py | 144 +++++++++----------
+ src/core/emulator.py         | 175 +++++++++++-------------
+ src/core/inventory.py        | 181 ++++++++++++------------
+ src/core/jev_scenarios.py    |  34 ++++-
+ src/core/map_integrator.py   | 128 ++++++++++-------
+ src/core/memory.py           |  55 +++++---
+ src/core/state_machine.py    | 102 ++++++++------
+ src/core/state_projection.py |  88 +++++++++---
+ src/core/teacher_client.py   | 144 +++++++++++--------
+ src/core/tile_utils.py       |  87 +++++++-----
+ src/core/tools.py            | 134 ++++++++++--------
+ src/vision/location.py       |  69 ++++++----
+ 15 files changed, 1003 insertions(+), 771 deletions(-)
+
+diff --git a/config/assist_inventory.json b/config/assist_inventory.json
+index 3aabef3..4df2935 100644
+--- a/config/assist_inventory.json
++++ b/config/assist_inventory.json
+@@ -282,70 +282,35 @@
+         },
+         {
+             "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
++            "context": "Emulator._move_cursor",
+             "button": "right",
+             "call": "press_button('right', frames=5)",
+             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+         },
+         {
+             "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
++            "context": "Emulator._move_cursor",
+             "button": "left",
+             "call": "press_button('left', frames=5)",
+             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+         },
+         {
+             "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
++            "context": "Emulator._move_cursor",
+             "button": "down",
+             "call": "press_button('down', frames=5)",
+             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+         },
+         {
+             "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
++            "context": "Emulator._move_cursor",
+             "button": "up",
+             "call": "press_button('up', frames=5)",
+             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+         },
+         {
+             "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
+-            "button": "a",
+-            "call": "press_button('a', frames=15)",
+-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+-        },
+-        {
+-            "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
+-            "button": "right",
+-            "call": "press_button('right', frames=5)",
+-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+-        },
+-        {
+-            "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
+-            "button": "left",
+-            "call": "press_button('left', frames=5)",
+-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+-        },
+-        {
+-            "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
+-            "button": "down",
+-            "call": "press_button('down', frames=5)",
+-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+-        },
+-        {
+-            "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
+-            "button": "up",
+-            "call": "press_button('up', frames=5)",
+-            "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+-        },
+-        {
+-            "file": "src/core/emulator.py",
+-            "context": "Emulator.enter_name",
++            "context": "Emulator._confirm_cursor",
+             "button": "a",
+             "call": "press_button('a', frames=15)",
+             "reason": "Name-entry transport: deterministic keyboard navigation enacts a supplied name; it is setup rather than a gameplay decision."
+@@ -442,4 +407,4 @@
+             "reason": "Legacy command transport: executes the button parsed from the pending model command rather than choosing one deterministically."
+         }
+     ]
+-}
+\ No newline at end of file
++}
+diff --git a/src/core/ai_client.py b/src/core/ai_client.py
+index f727b17..db20f52 100644
+--- a/src/core/ai_client.py
++++ b/src/core/ai_client.py
+@@ -562,39 +562,83 @@ class OpenRouterClient:
+         self.circuit_breaker = CircuitBreaker()
+         self._last_usage: dict[str, Any] = {}
+ 
+-    def chat_completion(
++    def _resolve_endpoint(self, model: str) -> tuple[str, str]:
++        """Return (base_url, api_key), routing DeepSeek models to the direct API."""
++        deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
++        if deepseek_key and "deepseek" in model.lower():
++            return "https://api.deepseek.com", deepseek_key
++        return self.base_url, self.api_key  # type: ignore
++
++    def _attach_images(
++        self,
++        payload: dict[str, Any],
++        images: list[np.ndarray] | None,
++    ) -> None:
++        """Convert ndarray images to base64 PNG parts on the first user message."""
++        if not images:
++            return
++
++        image_content = []
++        for img in images:
++            if isinstance(img, np.ndarray):
++                pil_img = Image.fromarray(img)
++
++                if pil_img.size[0] > 1024:
++                    pil_img = pil_img.resize(
++                        (1024, int(1024 * pil_img.size[1] / pil_img.size[0]))
++                    )
++
++                import io
++
++                buffered = io.BytesIO()
++                pil_img.save(buffered, format="PNG")
++                image_base64 = base64.b64encode(buffered.getvalue()).decode()
++
++                image_content.append(
++                    {
++                        "type": "image_url",
++                        "image_url": f"data:image/png;base64,{image_base64}",
++                    }
++                )
++
++        user_message_found = False
++        for message in payload["messages"]:
++            if message.get("role") == "user":
++                user_message = message
++
++                original_content = user_message.get("content", "")
++                if not original_content:
++                    original_content = "Analyze this game screenshot."
++
++                user_message["content"] = [
++                    {"type": "text", "text": original_content},
++                    *image_content,
++                ]
++                user_message_found = True
++                break
++
++        if not user_message_found:
++            payload["messages"].append(
++                {
++                    "role": "user",
++                    "content": [
++                        {"type": "text", "text": "Analyze this game screenshot."},
++                        *image_content,
++                    ],
++                }
++            )
++
++    def _build_chat_payload(
+         self,
+         model: str,
+         messages: list[dict[str, Any]],
+-        images: list[np.ndarray] | None = None,
+-        max_tokens: int | None = 500,
+-        temperature: float = 0.3,
+-        stream: bool = False,
+-        _retry_count: int = 0,
+-        tools: list[dict[str, Any]] | None = None,
+-        thinking: dict[str, Any] | None = None,
++        images: list[np.ndarray] | None,
++        max_tokens: int | None,
++        temperature: float,
++        stream: bool,
++        tools: list[dict[str, Any]] | None,
++        thinking: dict[str, Any] | None,
+     ) -> dict[str, Any]:
+-        """
+-        Make a chat completion request to OpenRouter (or DeepSeek direct).
+-        DeepSeek models are routed through api.deepseek.com for lower cost.
+-        """
+-        if not self.circuit_breaker.allow_request():
+-            raise Exception("Circuit breaker open - too many failures")
+-
+-        # Route DeepSeek models through DeepSeek API directly
+-        deepseek_key = os.environ.get("DEEPSEEK_API_KEY", "")
+-        if deepseek_key and "deepseek" in model.lower():
+-            base_url = "https://api.deepseek.com"
+-            api_key = deepseek_key
+-        else:
+-            base_url = self.base_url
+-            api_key = self.api_key  # type: ignore
+-        headers = {
+-            "Authorization": f"Bearer {api_key}",
+-            "Content-Type": "application/json",
+-            "HTTP-Referer": "https://ai-plays-pokemon.com",
+-        }
+-
+         payload: dict[str, Any] = {
+             "model": model,
+             "messages": messages,
+@@ -613,58 +657,127 @@ class OpenRouterClient:
+         if thinking is not None:
+             payload["thinking"] = thinking
+ 
+-        if images and len(images) > 0:
+-            image_content = []
+-            for img in images:
+-                if isinstance(img, np.ndarray):
+-                    pil_img = Image.fromarray(img)
++        self._attach_images(payload, images)
++        return payload
+ 
+-                    if pil_img.size[0] > 1024:
+-                        pil_img = pil_img.resize(
+-                            (1024, int(1024 * pil_img.size[1] / pil_img.size[0]))
+-                        )
++    def _extract_tool_call_content(self, message: dict[str, Any]) -> str | None:
++        """Serialize OpenAI-style tool_calls into the legacy JSON content form.
+ 
+-                    import io
++        Returns None when the message has no tool_calls.
++        """
++        tool_calls = message.get("tool_calls", [])
++        if not tool_calls:
++            return None
++        first_tool = tool_calls[0]
++        func = first_tool.get("function", {})
++        raw_args = func.get("arguments", "{}")
++        if isinstance(raw_args, str):
++            try:
++                parsed_args = json.loads(raw_args)
++            except (json.JSONDecodeError, TypeError):
++                parsed_args = raw_args
++        else:
++            parsed_args = raw_args
++        return json.dumps(
++            {
++                "name": func.get("name", ""),
++                "arguments": parsed_args,
++            }
++        )
+ 
+-                    buffered = io.BytesIO()
+-                    pil_img.save(buffered, format="PNG")
+-                    image_base64 = base64.b64encode(buffered.getvalue()).decode()
++    def _parse_success_response(
++        self, result: dict[str, Any], model: str, duration_ms: float
++    ) -> dict[str, Any]:
++        usage = result.get("usage", {})
++        choices = result.get("choices", [])
++        first_choice = choices[0] if choices else {}
++        message = first_choice.get("message", {})
+ 
+-                    image_content.append(
+-                        {
+-                            "type": "image_url",
+-                            "image_url": f"data:image/png;base64,{image_base64}",
+-                        }
+-                    )
++        content = self._extract_tool_call_content(message)
++        if content is None:
++            content = message.get("content", "")
+ 
+-            user_message_found = False
+-            for i, message in enumerate(payload["messages"]):
+-                if message.get("role") == "user":
+-                    user_message = message
++        return {
++            "content": content,
++            "finish_reason": first_choice.get("finish_reason", "stop"),
++            "model": result.get("model", model),
++            "usage": usage,
++            "duration_ms": duration_ms,
++            "request_id": result.get("id", ""),
++        }
+ 
+-                    original_content = user_message.get("content", "")
+-                    if not original_content:
+-                        original_content = "Analyze this game screenshot."
++    def _log_success(
++        self, model: str, duration_ms: float, usage: dict[str, Any]
++    ) -> float:
++        """Record success, log the API call, return the computed cost."""
++        input_tokens = usage.get("prompt_tokens", 0)
++        output_tokens = usage.get("completion_tokens", 0)
++        cost = calculate_cost(model, input_tokens, output_tokens)
+ 
+-                    content_array = [
+-                        {"type": "text", "text": original_content},
+-                        *image_content,
+-                    ]
++        self.circuit_breaker.record_success()
++        log_api_call(model, duration_ms, input_tokens, output_tokens, cost, True)
++        return cost
+ 
+-                    user_message["content"] = content_array
+-                    user_message_found = True
+-                    break
++    def _handle_retry_response(
++        self,
++        response: "requests.Response",
++        attempt: int,
++    ) -> bool:
++        """Handle 429/5xx backoff. Return True if the caller should retry."""
++        if response.status_code == 429:
++            wait = 2**attempt  # 1s, 2s, 4s
++            print(
++                f"  [API] Rate limited (429), backing off {wait}s (attempt {attempt + 1}/3)"
++            )
++            time.sleep(wait)
++            return True
+ 
+-            if not user_message_found:
+-                payload["messages"].append(
+-                    {
+-                        "role": "user",
+-                        "content": [
+-                            {"type": "text", "text": "Analyze this game screenshot."},
+-                            *image_content,
+-                        ],
+-                    }
+-                )
++        if response.status_code >= 500 and attempt < 2:
++            wait = 1 * (attempt + 1)
++            print(
++                f"  [API] Server error {response.status_code}, retrying in {wait}s (attempt {attempt + 1}/3)"
++            )
++            time.sleep(wait)
++            return True
++
++        return False
++
++    def chat_completion(
++        self,
++        model: str,
++        messages: list[dict[str, Any]],
++        images: list[np.ndarray] | None = None,
++        max_tokens: int | None = 500,
++        temperature: float = 0.3,
++        stream: bool = False,
++        _retry_count: int = 0,
++        tools: list[dict[str, Any]] | None = None,
++        thinking: dict[str, Any] | None = None,
++    ) -> dict[str, Any]:
++        """
++        Make a chat completion request to OpenRouter (or DeepSeek direct).
++        DeepSeek models are routed through api.deepseek.com for lower cost.
++        """
++        if not self.circuit_breaker.allow_request():
++            raise Exception("Circuit breaker open - too many failures")
++
++        base_url, api_key = self._resolve_endpoint(model)
++        headers = {
++            "Authorization": f"Bearer {api_key}",
++            "Content-Type": "application/json",
++            "HTTP-Referer": "https://ai-plays-pokemon.com",
++        }
++
++        payload = self._build_chat_payload(
++            model,
++            messages,
++            images,
++            max_tokens,
++            temperature,
++            stream,
++            tools,
++            thinking,
++        )
+ 
+         start_time = time.time()
+         last_error = None
+@@ -679,20 +792,7 @@ class OpenRouterClient:
+                 )
+                 duration_ms = (time.time() - start_time) * 1000
+ 
+-                if response.status_code == 429:
+-                    wait = 2**attempt  # 1s, 2s, 4s
+-                    print(
+-                        f"  [API] Rate limited (429), backing off {wait}s (attempt {attempt + 1}/3)"
+-                    )
+-                    time.sleep(wait)
+-                    continue
+-
+-                if response.status_code >= 500 and attempt < 2:
+-                    wait = 1 * (attempt + 1)
+-                    print(
+-                        f"  [API] Server error {response.status_code}, retrying in {wait}s (attempt {attempt + 1}/3)"
+-                    )
+-                    time.sleep(wait)
++                if self._handle_retry_response(response, attempt):
+                     continue
+ 
+                 if response.status_code != 200:
+@@ -703,52 +803,9 @@ class OpenRouterClient:
+                     )
+ 
+                 result = response.json()
+-
+                 usage = result.get("usage", {})
+-                input_tokens = usage.get("prompt_tokens", 0)
+-                output_tokens = usage.get("completion_tokens", 0)
+-                cost = calculate_cost(model, input_tokens, output_tokens)
+-
+-                self.circuit_breaker.record_success()
+-
+-                log_api_call(
+-                    model, duration_ms, input_tokens, output_tokens, cost, True
+-                )
+-
+-                choices = result.get("choices", [])
+-                first_choice = choices[0] if choices else {}
+-                message = first_choice.get("message", {})
+-
+-                # Check for tool_calls FIRST (proper OpenAI function calling)
+-                tool_calls = message.get("tool_calls", [])
+-                if tool_calls:
+-                    first_tool = tool_calls[0]
+-                    func = first_tool.get("function", {})
+-                    raw_args = func.get("arguments", "{}")
+-                    if isinstance(raw_args, str):
+-                        try:
+-                            parsed_args = json.loads(raw_args)
+-                        except (json.JSONDecodeError, TypeError):
+-                            parsed_args = raw_args
+-                    else:
+-                        parsed_args = raw_args
+-                    content = json.dumps(
+-                        {
+-                            "name": func.get("name", ""),
+-                            "arguments": parsed_args,
+-                        }
+-                    )
+-                else:
+-                    content = message.get("content", "")
+-
+-                return {
+-                    "content": content,
+-                    "finish_reason": first_choice.get("finish_reason", "stop"),
+-                    "model": result.get("model", model),
+-                    "usage": usage,
+-                    "duration_ms": duration_ms,
+-                    "request_id": result.get("id", ""),
+-                }
++                self._log_success(model, duration_ms, usage)
++                return self._parse_success_response(result, model, duration_ms)
+ 
+             except Exception as e:
+                 last_error = e
+diff --git a/src/core/dialogue.py b/src/core/dialogue.py
+index fe567cd..4446f9c 100644
+--- a/src/core/dialogue.py
++++ b/src/core/dialogue.py
+@@ -695,6 +695,42 @@ class DialogParser:
+ 
+         return None
+ 
++    _ACTION_KEYWORDS = [
++        "battle",
++        "fight",
++        "shop",
++        "buy",
++        "sell",
++        "heal",
++        "catch",
++        "trade",
++        "gift",
++    ]
++
++    def _extract_word_entities(self, text: str, entities: dict[str, list[str]]) -> None:
++        """Append pokemon/location/item names found as whole words."""
++        words = text.split()
++        for word in words:
++            clean_word = re.sub(r"[^\w]", "", word).upper()
++            if clean_word in self._pokemon_names:
++                entities["pokemon"].append(clean_word)
++            if clean_word in self._location_names:
++                entities["locations"].append(clean_word)
++            if clean_word in self._item_names:
++                entities["items"].append(clean_word)
++
++    def _extract_tm_entity(
++        self, text_upper: str, entities: dict[str, list[str]]
++    ) -> None:
++        """Append the TM reference (with number when present)."""
++        if "TM" not in text_upper:
++            return
++        tm_match = re.search(r"TM\s*(\d+)", text_upper)
++        if tm_match:
++            entities["items"].append(f"TM{tm_match.group(1)}")
++        else:
++            entities["items"].append("TM")
++
+     def _extract_entities(self, text: str) -> dict[str, list[str]]:
+         """Extract entities from text"""
+         entities: dict[str, list[str]] = {
+@@ -708,22 +744,8 @@ class DialogParser:
+         text_upper = text.upper()
+         text_lower = text.lower()
+ 
+-        words = text.split()
+-        for word in words:
+-            clean_word = re.sub(r"[^\w]", "", word).upper()
+-            if clean_word in self._pokemon_names:
+-                entities["pokemon"].append(clean_word)
+-            if clean_word in self._location_names:
+-                entities["locations"].append(clean_word)
+-            if clean_word in self._item_names:
+-                entities["items"].append(clean_word)
+-
+-        if "TM" in text_upper:
+-            tm_match = re.search(r"TM\s*(\d+)", text_upper)
+-            if tm_match:
+-                entities["items"].append(f"TM{tm_match.group(1)}")
+-            else:
+-                entities["items"].append("TM")
++        self._extract_word_entities(text, entities)
++        self._extract_tm_entity(text_upper, entities)
+ 
+         for location in self._location_names:
+             if location in text_upper:
+@@ -734,18 +756,7 @@ class DialogParser:
+                 if item not in entities["items"]:
+                     entities["items"].append(item)
+ 
+-        action_keywords = [
+-            "battle",
+-            "fight",
+-            "shop",
+-            "buy",
+-            "sell",
+-            "heal",
+-            "catch",
+-            "trade",
+-            "gift",
+-        ]
+-        for keyword in action_keywords:
++        for keyword in self._ACTION_KEYWORDS:
+             if keyword in text_lower:
+                 entities["actions"].append(keyword)
+ 
+diff --git a/src/core/duckbrain_client.py b/src/core/duckbrain_client.py
+index 2b24889..8584268 100644
+--- a/src/core/duckbrain_client.py
++++ b/src/core/duckbrain_client.py
+@@ -14,7 +14,7 @@ import uuid
+ import warnings
+ from datetime import datetime, timezone
+ from pathlib import Path
+-from typing import Any
++from typing import Any, Iterator
+ 
+ 
+ DUCKBRAIN_ROOT = Path(os.path.expanduser("~/duckbrain/namespaces"))
+@@ -73,27 +73,15 @@ def remember(
+     return memory_id
+ 
+ 
+-def recall(
+-    key: str | None = None,
+-    key_prefix: str | None = None,
+-    domain: str | None = None,
+-    limit: int = 10,
+-    namespace: str = "pokemon-global",
+-    labels: list[str] | None = None,
+-) -> list[dict[str, Any]]:
+-    """Query memories by key, prefix, domain, or labels.
++def _iter_active_records(
++    data_dir: Path,
++    op: str,
++) -> "Iterator[dict[str, Any]]":
++    """Yield parsed, non-deleted records from a namespace's JSONL files.
+ 
+-    Label filters use AND semantics: every requested label must match an exact
+-    string in the record's labels list or equal the record's domain, which is
+-    treated as an implicit label.
++    Files are scanned newest-first; unreadable files are skipped with a debug
++    log so scanning continues.
+     """
+-    data_dir = _ensure_namespace(namespace)
+-    results: list[dict[str, Any]] = []
+-
+-    if not data_dir.exists():
+-        return results
+-
+-    # Read all JSONL files (newest first)
+     jsonl_files = sorted(data_dir.glob("memories-*.jsonl"), reverse=True)
+     for jsonl_path in jsonl_files:
+         try:
+@@ -106,34 +94,65 @@ def recall(
+                         record = json.loads(line)
+                     except json.JSONDecodeError:
+                         continue
+-
+-                    # Skip tombstones
+                     if record.get("status") == "deleted":
+                         continue
+-
+-                    # Filter
+-                    if key and record.get("key") != key:
+-                        continue
+-                    if key_prefix and not record.get("key", "").startswith(key_prefix):
+-                        continue
+-                    if domain and record.get("domain") != domain:
+-                        continue
+-                    if labels is not None:
+-                        record_labels = record.get("labels", [])
+-                        if not isinstance(record_labels, list):
+-                            record_labels = []
+-                        if not all(
+-                            label == record.get("domain") or label in record_labels
+-                            for label in labels
+-                        ):
+-                            continue
+-
+-                    results.append(record)
+-                    if len(results) >= limit:
+-                        return results
++                    yield record
+         except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
+-            logger.debug("recall: skipping unreadable %s: %s", jsonl_path, exc)
++            logger.debug("%s: skipping unreadable %s: %s", op, jsonl_path, exc)
++            continue
++
++
++def _record_matches(
++    record: dict[str, Any],
++    key: str | None,
++    key_prefix: str | None,
++    domain: str | None,
++    labels: list[str] | None,
++) -> bool:
++    """Exact key / prefix / domain / AND-semantics label filter."""
++    if key and record.get("key") != key:
++        return False
++    if key_prefix and not record.get("key", "").startswith(key_prefix):
++        return False
++    if domain and record.get("domain") != domain:
++        return False
++    if labels is not None:
++        record_labels = record.get("labels", [])
++        if not isinstance(record_labels, list):
++            record_labels = []
++        if not all(
++            label == record.get("domain") or label in record_labels for label in labels
++        ):
++            return False
++    return True
++
++
++def recall(
++    key: str | None = None,
++    key_prefix: str | None = None,
++    domain: str | None = None,
++    labels: list[str] | None = None,
++    limit: int = 50,
++    namespace: str = "pokemon-global",
++) -> list[dict[str, Any]]:
++    """Retrieve memories by exact key, key prefix, domain, and/or labels.
++
++    Label filters use AND semantics: every requested label must match an exact
++    string in the record's labels list or equal the record's domain, which is
++    treated as an implicit label.
++    """
++    data_dir = _ensure_namespace(namespace)
++    results: list[dict[str, Any]] = []
++
++    if not data_dir.exists():
++        return results
++
++    for record in _iter_active_records(data_dir, "recall"):
++        if not _record_matches(record, key, key_prefix, domain, labels):
+             continue
++        results.append(record)
++        if len(results) >= limit:
++            return results
+ 
+     return results
+ 
+@@ -150,36 +169,17 @@ def list_keys(
+     if not data_dir.exists():
+         return []
+ 
+-    jsonl_files = sorted(data_dir.glob("memories-*.jsonl"), reverse=True)
+     truncated = False
+-    for jsonl_path in jsonl_files:
+-        try:
+-            with open(jsonl_path) as f:
+-                for line in f:
+-                    line = line.strip()
+-                    if not line:
+-                        continue
+-                    try:
+-                        record = json.loads(line)
+-                    except json.JSONDecodeError:
+-                        continue
+-
+-                    if record.get("status") == "deleted":
+-                        continue
+-
+-                    k = record.get("key", "")
+-                    if k.startswith(prefix) and k not in keys:
+-                        # Read one unique key beyond the cap so a partial census
+-                        # is always observable without changing the returned keys.
+-                        if len(keys) >= limit:
+-                            truncated = True
+-                            break
+-                        keys.add(k)
+-            if truncated:
+-                break
+-        except Exception as exc:  # noqa: BLE001 — skip unreadable store, keep scanning
+-            logger.debug("list_keys: skipping unreadable %s: %s", jsonl_path, exc)
++    for record in _iter_active_records(data_dir, "list_keys"):
++        k = record.get("key", "")
++        if not k.startswith(prefix) or k in keys:
+             continue
++        # Read one unique key beyond the cap so a partial census
++        # is always observable without changing the returned keys.
++        if len(keys) >= limit:
++            truncated = True
++            break
++        keys.add(k)
+ 
+     if truncated:
+         message = (
+diff --git a/src/core/emulator.py b/src/core/emulator.py
+index ad085fa..93fdd75 100644
+--- a/src/core/emulator.py
++++ b/src/core/emulator.py
+@@ -200,99 +200,10 @@ class Emulator:
+         self.press_button("start", frames=15)
+         self.wait(60)
+ 
+-    def enter_name(self, name: str = "ASH") -> None:
+-        """Mechanically enter a name on the Gen 1 keyboard screen."""
+-        name = name.upper()[:7]
+-
+-        _grid: dict[str, tuple[int, int]] = {
+-            "A": (0, 0),
+-            "B": (0, 1),
+-            "C": (0, 2),
+-            "D": (0, 3),
+-            "E": (0, 4),
+-            "F": (0, 5),
+-            "G": (0, 6),
+-            "H": (0, 7),
+-            "I": (0, 8),
+-            "J": (0, 9),
+-            "K": (1, 0),
+-            "L": (1, 1),
+-            "M": (1, 2),
+-            "N": (1, 3),
+-            "O": (1, 4),
+-            "P": (1, 5),
+-            "Q": (1, 6),
+-            "R": (1, 7),
+-            "S": (1, 8),
+-            "T": (1, 9),
+-            "U": (2, 0),
+-            "V": (2, 1),
+-            "W": (2, 2),
+-            "X": (2, 3),
+-            "Y": (2, 4),
+-            "Z": (2, 5),
+-            "a": (3, 2),
+-            "b": (3, 3),
+-            "c": (3, 4),
+-            "d": (3, 5),
+-            "e": (3, 6),
+-            "f": (3, 7),
+-            "g": (3, 8),
+-            "h": (3, 9),
+-            "i": (4, 0),
+-            "j": (4, 1),
+-            "k": (4, 2),
+-            "l": (4, 3),
+-            "m": (4, 4),
+-            "n": (4, 5),
+-            "o": (4, 6),
+-            "p": (4, 7),
+-            "q": (4, 8),
+-            "r": (4, 9),
+-            "s": (5, 0),
+-            "t": (5, 1),
+-            "u": (5, 2),
+-            "v": (5, 3),
+-            "w": (5, 4),
+-            "x": (5, 5),
+-            "y": (5, 6),
+-            "z": (5, 7),
+-        }
+-        _END_POS = (4, 8)
+-
+-        cur_r, cur_c = 0, 0
+-
+-        for ch in name:
+-            target = _grid.get(ch)
+-            if target is None:
+-                continue
+-            tr, tc = target
+-            dr = tr - cur_r
+-            dc = tc - cur_c
+-            if dc > 0:
+-                for _ in range(dc):
+-                    self.press_button("right", frames=5)
+-                    self.wait(15)
+-            elif dc < 0:
+-                for _ in range(-dc):
+-                    self.press_button("left", frames=5)
+-                    self.wait(15)
+-            if dr > 0:
+-                for _ in range(dr):
+-                    self.press_button("down", frames=5)
+-                    self.wait(15)
+-            elif dr < 0:
+-                for _ in range(-dr):
+-                    self.press_button("up", frames=5)
+-                    self.wait(15)
+-            self.wait(6)
+-            self.press_button("a", frames=15)
+-            self.wait(12)
+-            cur_r, cur_c = tr, tc
+-
+-        # Navigate to END and confirm
+-        dr = _END_POS[0] - cur_r
+-        dc = _END_POS[1] - cur_c
++    def _move_cursor(self, cur_r: int, cur_c: int, tr: int, tc: int) -> tuple[int, int]:
++        """Press arrows to walk the keyboard cursor to (tr, tc); return new pos."""
++        dr = tr - cur_r
++        dc = tc - cur_c
+         if dc > 0:
+             for _ in range(dc):
+                 self.press_button("right", frames=5)
+@@ -309,8 +220,86 @@ class Emulator:
+             for _ in range(-dr):
+                 self.press_button("up", frames=5)
+                 self.wait(15)
++        return tr, tc
++
++    def _confirm_cursor(self) -> None:
++        """Press A on the current cursor position."""
+         self.wait(6)
+         self.press_button("a", frames=15)
++        self.wait(12)
++
++    _NAME_GRID: dict[str, tuple[int, int]] = {
++        "A": (0, 0),
++        "B": (0, 1),
++        "C": (0, 2),
++        "D": (0, 3),
++        "E": (0, 4),
++        "F": (0, 5),
++        "G": (0, 6),
++        "H": (0, 7),
++        "I": (0, 8),
++        "J": (0, 9),
++        "K": (1, 0),
++        "L": (1, 1),
++        "M": (1, 2),
++        "N": (1, 3),
++        "O": (1, 4),
++        "P": (1, 5),
++        "Q": (1, 6),
++        "R": (1, 7),
++        "S": (1, 8),
++        "T": (1, 9),
++        "U": (2, 0),
++        "V": (2, 1),
++        "W": (2, 2),
++        "X": (2, 3),
++        "Y": (2, 4),
++        "Z": (2, 5),
++        "a": (3, 2),
++        "b": (3, 3),
++        "c": (3, 4),
++        "d": (3, 5),
++        "e": (3, 6),
++        "f": (3, 7),
++        "g": (3, 8),
++        "h": (3, 9),
++        "i": (4, 0),
++        "j": (4, 1),
++        "k": (4, 2),
++        "l": (4, 3),
++        "m": (4, 4),
++        "n": (4, 5),
++        "o": (4, 6),
++        "p": (4, 7),
++        "q": (4, 8),
++        "r": (4, 9),
++        "s": (5, 0),
++        "t": (5, 1),
++        "u": (5, 2),
++        "v": (5, 3),
++        "w": (5, 4),
++        "x": (5, 5),
++        "y": (5, 6),
++        "z": (5, 7),
++    }
++    _NAME_END_POS = (4, 8)
++
++    def enter_name(self, name: str = "ASH") -> None:
++        """Mechanically enter a name on the Gen 1 keyboard screen."""
++        name = name.upper()[:7]
++
++        cur_r, cur_c = 0, 0
++
++        for ch in name:
++            target = self._NAME_GRID.get(ch)
++            if target is None:
++                continue
++            cur_r, cur_c = self._move_cursor(cur_r, cur_c, *target)
++            self._confirm_cursor()
++
++        # Navigate to END and confirm
++        cur_r, cur_c = self._move_cursor(cur_r, cur_c, *self._NAME_END_POS)
++        self._confirm_cursor()
+         self.wait(30)
+ 
+     def submit_name(self) -> None:
+diff --git a/src/core/inventory.py b/src/core/inventory.py
+index 8302823..ac8f465 100644
+--- a/src/core/inventory.py
++++ b/src/core/inventory.py
+@@ -1640,6 +1640,68 @@ class ItemUsageStrategy:
+     def __init__(self, inventory: InventoryState):
+         self._inventory = inventory
+ 
++    _STATUS_HEAL_MAP: dict[str, ItemType] = {
++        "PARALYZED": ItemType.PARALYZE_HEAL,
++        "ASLEEP": ItemType.AWAKENING,
++        "FROZEN": ItemType.ICE_HEAL,
++        "POISONED": ItemType.ANTIDOTE,
++        "BURNED": ItemType.BURN_HEAL,
++    }
++
++    def _select_potion(
++        self,
++        active_index: int,
++        include_full_restore: bool,
++    ) -> tuple[ItemType | None, int | None]:
++        """Return the strongest available healing item, or (None, None)."""
++        candidates = [
++            ItemType.MAX_POTION,
++            ItemType.HYPER_POTION,
++            ItemType.SUPER_POTION,
++            ItemType.POTION,
++        ]
++        if include_full_restore:
++            candidates.append(ItemType.FULL_RESTORE)
++        for item in candidates:
++            if self._inventory.has_item(item):
++                return item, active_index
++        return None, None
++
++    def _select_pp_or_buff_item(
++        self,
++        active_pokemon: Any,
++        active_index: int,
++        is_trainer_battle: bool,
++    ) -> tuple[ItemType | None, int | None]:
++        """PP restoration first, then trainer-battle stat buffs."""
++        total_pp = sum(active_pokemon.move_pp.values())
++        if total_pp == 0:
++            if self._inventory.has_item(ItemType.ELIXIR):
++                return ItemType.ELIXIR, active_index
++            elif self._inventory.has_item(ItemType.ETHER):
++                return ItemType.ETHER, active_index
++
++        if is_trainer_battle:
++            if self._inventory.has_item(ItemType.X_ATTACK):
++                return ItemType.X_ATTACK, active_index
++            elif self._inventory.has_item(ItemType.X_DEFEND):
++                return ItemType.X_DEFEND, active_index
++            elif self._inventory.has_item(ItemType.X_SPEED):
++                return ItemType.X_SPEED, active_index
++
++        return None, None
++
++    def _select_status_heal(
++        self,
++        status: str,
++        active_index: int,
++    ) -> tuple[ItemType | None, int | None]:
++        """Return the heal item for this status if available, or (None, None)."""
++        item = self._STATUS_HEAL_MAP.get(status)
++        if item is not None and self._inventory.has_item(item):
++            return item, active_index
++        return None, None
++
+     def select_battle_item(
+         self,
+         party_state: PartyState,
+@@ -1673,68 +1735,31 @@ class ItemUsageStrategy:
+         healthy_count = party_state.get_healthy_count()
+ 
+         if hp_percent < 0.10:
+-            if healthy_count > 1:
+-                if self._inventory.has_item(ItemType.MAX_POTION):
+-                    return ItemType.MAX_POTION, active_index
+-                elif self._inventory.has_item(ItemType.HYPER_POTION):
+-                    return ItemType.HYPER_POTION, active_index
+-                elif self._inventory.has_item(ItemType.SUPER_POTION):
+-                    return ItemType.SUPER_POTION, active_index
+-                elif self._inventory.has_item(ItemType.POTION):
+-                    return ItemType.POTION, active_index
+-            else:
+-                if self._inventory.has_item(ItemType.MAX_POTION):
+-                    return ItemType.MAX_POTION, active_index
+-                elif self._inventory.has_item(ItemType.HYPER_POTION):
+-                    return ItemType.HYPER_POTION, active_index
+-                elif self._inventory.has_item(ItemType.SUPER_POTION):
+-                    return ItemType.SUPER_POTION, active_index
+-                elif self._inventory.has_item(ItemType.POTION):
+-                    return ItemType.POTION, active_index
+-                elif self._inventory.has_item(ItemType.FULL_RESTORE):
+-                    return ItemType.FULL_RESTORE, active_index
+-
+-        if status in ["PARALYZED", "ASLEEP", "FROZEN"]:
+-            if status == "PARALYZED" and self._inventory.has_item(
+-                ItemType.PARALYZE_HEAL
+-            ):
+-                return ItemType.PARALYZE_HEAL, active_index
+-            elif status == "ASLEEP" and self._inventory.has_item(ItemType.AWAKENING):
+-                return ItemType.AWAKENING, active_index
+-            elif status == "FROZEN" and self._inventory.has_item(ItemType.ICE_HEAL):
+-                return ItemType.ICE_HEAL, active_index
+-
+-        if hp_percent < 0.50 and hp_percent >= 0.10:
+-            if self._inventory.has_item(ItemType.MAX_POTION):
+-                return ItemType.MAX_POTION, active_index
+-            elif self._inventory.has_item(ItemType.HYPER_POTION):
+-                return ItemType.HYPER_POTION, active_index
+-            elif self._inventory.has_item(ItemType.SUPER_POTION):
+-                return ItemType.SUPER_POTION, active_index
+-            elif self._inventory.has_item(ItemType.POTION):
+-                return ItemType.POTION, active_index
+-
+-        if status in ["POISONED", "BURNED"]:
+-            if status == "POISONED" and self._inventory.has_item(ItemType.ANTIDOTE):
+-                return ItemType.ANTIDOTE, active_index
+-            elif status == "BURNED" and self._inventory.has_item(ItemType.BURN_HEAL):
+-                return ItemType.BURN_HEAL, active_index
+-
+-        total_pp = sum(active_pokemon.move_pp.values())
+-        if total_pp == 0 and self._inventory.has_item(ItemType.ELIXIR):
+-            return ItemType.ELIXIR, active_index
+-        elif total_pp == 0 and self._inventory.has_item(ItemType.ETHER):
+-            return ItemType.ETHER, active_index
+-
+-        if is_trainer_battle:
+-            if self._inventory.has_item(ItemType.X_ATTACK):
+-                return ItemType.X_ATTACK, active_index
+-            elif self._inventory.has_item(ItemType.X_DEFEND):
+-                return ItemType.X_DEFEND, active_index
+-            elif self._inventory.has_item(ItemType.X_SPEED):
+-                return ItemType.X_SPEED, active_index
+-
+-        return None, None
++            # With multiple healthy pokemon, FULL_RESTORE is saved; when the
++            # active is the last healthy one it joins the candidates.
++            include_full_restore = healthy_count <= 1
++            found = self._select_potion(active_index, include_full_restore)
++            if found != (None, None):
++                return found
++
++        if status in ("PARALYZED", "ASLEEP", "FROZEN"):
++            found = self._select_status_heal(status, active_index)
++            if found != (None, None):
++                return found
++
++        if 0.10 <= hp_percent < 0.50:
++            found = self._select_potion(active_index, include_full_restore=False)
++            if found != (None, None):
++                return found
++
++        if status in ("POISONED", "BURNED"):
++            found = self._select_status_heal(status, active_index)
++            if found != (None, None):
++                return found
++
++        return self._select_pp_or_buff_item(
++            active_pokemon, active_index, is_trainer_battle
++        )
+ 
+     def should_use_potion(
+         self,
+@@ -1988,34 +2013,22 @@ class ItemUsageStrategy:
+             (should_use, repel_type, reason)
+         """
+         avg_level = party_state.get_avg_level()
++        route_data = ShoppingHeuristic.ROUTE_SHOPPING_NEEDS.get(upcoming_route)
+ 
+-        if upcoming_route in ShoppingHeuristic.ROUTE_SHOPPING_NEEDS:
+-            route_data = ShoppingHeuristic.ROUTE_SHOPPING_NEEDS[upcoming_route]
++        if route_data is not None:
+             max_wild_level = route_data.get("max_wild_level", 99)
+ 
+             if avg_level > max_wild_level + 10:
+-                if self._inventory.has_item(ItemType.MAX_REPEL):
+-                    return (
+-                        True,
+-                        ItemType.MAX_REPEL,
+-                        f"Party level {avg_level} >> wild levels",
+-                    )
+-                elif self._inventory.has_item(ItemType.SUPER_REPEL):
+-                    return (
+-                        True,
+-                        ItemType.SUPER_REPEL,
+-                        f"Party level {avg_level} >> wild levels",
+-                    )
+-                elif self._inventory.has_item(ItemType.REPEL):
+-                    return (
+-                        True,
+-                        ItemType.REPEL,
+-                        f"Party level {avg_level} >> wild levels",
+-                    )
++                for repel in (ItemType.MAX_REPEL, ItemType.SUPER_REPEL, ItemType.REPEL):
++                    if self._inventory.has_item(repel):
++                        return (
++                            True,
++                            repel,
++                            f"Party level {avg_level} >> wild levels",
++                        )
+ 
+         route_length = 50
+-        if upcoming_route in ShoppingHeuristic.ROUTE_SHOPPING_NEEDS:
+-            route_data = ShoppingHeuristic.ROUTE_SHOPPING_NEEDS[upcoming_route]
++        if route_data is not None:
+             route_length = route_data.get("recommended_potions", 50)
+ 
+         if route_length > 100:
+diff --git a/src/core/jev_scenarios.py b/src/core/jev_scenarios.py
+index 8521472..a1e1a46 100644
+--- a/src/core/jev_scenarios.py
++++ b/src/core/jev_scenarios.py
+@@ -158,19 +158,16 @@ def _scenario_id(missing_class: str, applies_when: str, instruction_patch: str)
+     return f"{slug}-{hashlib.sha256(fingerprint).hexdigest()[:12]}"
+ 
+ 
+-def promote_teacher_record(
++def _validate_promotion_args(
+     record: dict[str, Any],
+-    *,
+     missing_class: str,
+     knowledge_layer: str,
+     run_id: str,
+     cycle: int,
+-    artifact_path: str | Path,
+ ) -> dict[str, Any]:
+-    """Explicitly promote one successful teacher record into the artifact.
++    """Validate the caller-supplied record and promotion metadata.
+ 
+-    Evidence comes only from the caller. Re-promoting the same patch appends a
+-    distinct evidence pair instead of creating a duplicate scenario.
++    Returns the successful patch dict; raises ValueError on any violation.
+     """
+     if not record.get("ok") or not record.get("improved"):
+         raise ValueError("only a successful, improved teacher record can be promoted")
+@@ -192,6 +189,31 @@ def promote_teacher_record(
+         raise ValueError("successful patch has no instruction_patch")
+     if not isinstance(condition, str) or not condition.strip():
+         raise ValueError("successful patch has no applies_when condition")
++    return patch
++
++
++def promote_teacher_record(
++    record: dict[str, Any],
++    *,
++    missing_class: str,
++    knowledge_layer: str,
++    run_id: str,
++    cycle: int,
++    artifact_path: str | Path,
++) -> dict[str, Any]:
++    """Explicitly promote one successful teacher record into the artifact.
++
++    Evidence comes only from the caller. Re-promoting the same patch appends a
++    distinct evidence pair instead of creating a duplicate scenario.
++    """
++    patch = _validate_promotion_args(
++        record, missing_class, knowledge_layer, run_id, cycle
++    )
++
++    instruction = patch.get("instruction_patch")
++    condition = patch.get("applies_when")
++    assert isinstance(instruction, str) and instruction.strip()
++    assert isinstance(condition, str) and condition.strip()
+     confidence = patch.get("confidence")
+     entry = _validate_scenario(
+         {
+diff --git a/src/core/map_integrator.py b/src/core/map_integrator.py
+index 2332823..4055845 100644
+--- a/src/core/map_integrator.py
++++ b/src/core/map_integrator.py
+@@ -102,32 +102,11 @@ class MapIntegrator:
+         for corr in patch.corrections:
+             self._apply_correction(corr)
+ 
+-        # Movement
+         if patch.movement:
+-            mov = patch.movement
+-            w.last_button = mov.input
+-            w.last_result = mov.result
+-            w.player.facing = mov.facing
+-            w.player.mode = mov.mode
+-
+-            if mov.result == "moved":
+-                w.player.pos = (
+-                    w.player.pos[0] + mov.player_delta[0],
+-                    w.player.pos[1] + mov.player_delta[1],
+-                )
+-                # Mark visited
+-                self._mark_visited(w.player.pos[0], w.player.pos[1], "@")
+-                if patch.visited_add:
+-                    for vpos in patch.visited_add:
+-                        self._mark_visited(vpos[0], vpos[1], "+")
+-
+-        # Viewport
++            self._apply_movement(patch)
++
+         if patch.viewport:
+-            vp = patch.viewport
+-            w.viewport.origin = (
+-                w.viewport.origin[0] + vp.origin_delta[0],
+-                w.viewport.origin[1] + vp.origin_delta[1],
+-            )
++            self._apply_viewport_delta(patch)
+ 
+         # Strip (new row/column)
+         if patch.strip:
+@@ -150,6 +129,37 @@ class MapIntegrator:
+ 
+         w.tick = patch.tick
+ 
++    def _apply_movement(self, patch: ObsPatch) -> None:
++        """Apply a movement observation: player delta + visited marks."""
++        w = self.world
++        mov = patch.movement
++        assert mov is not None
++        w.last_button = mov.input
++        w.last_result = mov.result
++        w.player.facing = mov.facing
++        w.player.mode = mov.mode
++
++        if mov.result == "moved":
++            w.player.pos = (
++                w.player.pos[0] + mov.player_delta[0],
++                w.player.pos[1] + mov.player_delta[1],
++            )
++            # Mark visited
++            self._mark_visited(w.player.pos[0], w.player.pos[1], "@")
++            if patch.visited_add:
++                for vpos in patch.visited_add:
++                    self._mark_visited(vpos[0], vpos[1], "+")
++
++    def _apply_viewport_delta(self, patch: ObsPatch) -> None:
++        """Shift the viewport origin by the observed delta."""
++        w = self.world
++        vp = patch.viewport
++        assert vp is not None
++        w.viewport.origin = (
++            w.viewport.origin[0] + vp.origin_delta[0],
++            w.viewport.origin[1] + vp.origin_delta[1],
++        )
++
+     def _apply_resync(self, patch: ObsPatch) -> None:
+         """Full resync — clear and rebuild from full_viewport."""
+         resync = patch.resync
+@@ -181,13 +191,48 @@ class MapIntegrator:
+ 
+         w.tick = patch.tick
+ 
++    def _write_strip_row(
++        self, y: int, x_start: int, terrain_str: str, objects_str: str
++    ) -> None:
++        """Write one N/S strip row of terrain and objects characters."""
++        w = self.world
++        if terrain_str:
++            for i, ch in enumerate(terrain_str):
++                x = x_start + i
++                if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
++                    if ch != "?" or w.terrain[y][x] == "?":
++                        w.terrain[y][x] = ch
++        if objects_str:
++            for i, ch in enumerate(objects_str):
++                x = x_start + i
++                if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
++                    if ch != " " or w.objects[y][x] == " ":
++                        w.objects[y][x] = ch
++
++    def _write_strip_column(
++        self, x: int, y_start: int, terrain_str: str, objects_str: str
++    ) -> None:
++        """Write one E/W strip column of terrain and objects characters."""
++        w = self.world
++        if terrain_str:
++            for i, ch in enumerate(terrain_str):
++                y = y_start + i
++                if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
++                    if ch != "?" or w.terrain[y][x] == "?":
++                        w.terrain[y][x] = ch
++        if objects_str:
++            for i, ch in enumerate(objects_str):
++                y = y_start + i
++                if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
++                    if ch != " " or w.objects[y][x] == " ":
++                        w.objects[y][x] = ch
++
+     def _apply_strip(self, strip: StripUpdate) -> None:
+         """Apply a single row/column of new data.
+ 
+         Handles both packed strings (``"TTT....ggg"``) and TSV format
+         (``"T\\tT\\tT\\t.\\t.\\t.\\t.\\tg\\tg\\tg"``) transparently.
+         """
+-        w = self.world
+         edge = strip.edge.upper()
+ 
+         # Normalize terrain/objects — accept TSV or packed
+@@ -195,34 +240,13 @@ class MapIntegrator:
+         objects_str = normalize_strip_terrain(strip.objects) if strip.objects else ""
+ 
+         if edge in ("N", "S"):
+-            y = strip.global_y
+-            if terrain_str:
+-                for i, ch in enumerate(terrain_str):
+-                    x = strip.x_start + i
+-                    if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
+-                        if ch != "?" or w.terrain[y][x] == "?":
+-                            w.terrain[y][x] = ch
+-            if objects_str:
+-                for i, ch in enumerate(objects_str):
+-                    x = strip.x_start + i
+-                    if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
+-                        if ch != " " or w.objects[y][x] == " ":
+-                            w.objects[y][x] = ch
+-
++            self._write_strip_row(
++                strip.global_y, strip.x_start, terrain_str, objects_str
++            )
+         elif edge in ("E", "W"):
+-            x = strip.global_x
+-            if terrain_str:
+-                for i, ch in enumerate(terrain_str):
+-                    y = strip.y_start + i
+-                    if 0 <= y < len(w.terrain) and 0 <= x < len(w.terrain[0]):
+-                        if ch != "?" or w.terrain[y][x] == "?":
+-                            w.terrain[y][x] = ch
+-            if objects_str:
+-                for i, ch in enumerate(objects_str):
+-                    y = strip.y_start + i
+-                    if 0 <= y < len(w.objects) and 0 <= x < len(w.objects[0]):
+-                        if ch != " " or w.objects[y][x] == " ":
+-                            w.objects[y][x] = ch
++            self._write_strip_column(
++                strip.global_x, strip.y_start, terrain_str, objects_str
++            )
+ 
+     def _apply_correction(self, corr: Correction) -> None:
+         """Apply a correction to a previously-written tile."""
+diff --git a/src/core/memory.py b/src/core/memory.py
+index 445652e..8ee61ea 100644
+--- a/src/core/memory.py
++++ b/src/core/memory.py
+@@ -1208,27 +1208,10 @@ class MemoryConsolidator:
+         result.details["pending_patterns"] = len(self._pending_patterns)
+         return result
+ 
+-    def consolidate_strategist_to_tactician(self) -> ConsolidationResult:
+-        """
+-        Extract learned strategies from session to long-term memory
+-
+-        - Identify battle patterns with high success rates
+-        - Extract successful move sequences
+-        - Record mistakes with high severity
+-        - Update preferences based on behavior
+-        """
+-        result = ConsolidationResult(success=True)
+-
+-        if not self.strategist or not self.tactician:
+-            result.success = False
+-            result.details["error"] = "Missing strategist or tactician memory"
+-            return result
+-
+-        battles = self.strategist.battle_history
+-        if not battles:
+-            result.details["message"] = "No battles to consolidate"
+-            return result
+-
++    def _tally_battle_outcomes(
++        self, battles: list[Any]
++    ) -> dict[str, dict[str, object]]:
++        """Aggregate battles into per-matchup win/loss/move tallies."""
+         battle_outcomes: dict[str, dict[str, object]] = defaultdict(
+             lambda: {"wins": 0, "losses": 0, "moves": []}
+         )
+@@ -1244,7 +1227,14 @@ class MemoryConsolidator:
+                 battle_outcomes[key]["losses"] = (
+                     cast(int, battle_outcomes[key]["losses"]) + 1
+                 )
++        return battle_outcomes
+ 
++    def _create_strategies_from_outcomes(
++        self,
++        battle_outcomes: dict[str, dict[str, object]],
++        result: ConsolidationResult,
++    ) -> None:
++        """Create tactician strategies for high-win-rate matchups."""
+         for key, outcome in battle_outcomes.items():
+             total = cast(int, outcome["wins"]) + cast(int, outcome["losses"])
+             win_rate = cast(int, outcome["wins"]) / total if total > 0 else 0.0
+@@ -1266,6 +1256,29 @@ class MemoryConsolidator:
+                     strategy.record_use(True)
+                     result.strategies_created += 1
+ 
++    def consolidate_strategist_to_tactician(self) -> ConsolidationResult:
++        """
++        Extract learned strategies from session to long-term memory
++
++        - Identify battle patterns with high success rates
++        - Extract successful move sequences
++        - Record mistakes with high severity
++        - Update preferences based on behavior
++        """
++        result = ConsolidationResult(success=True)
++
++        if not self.strategist or not self.tactician:
++            result.success = False
++            result.details["error"] = "Missing strategist or tactician memory"
++            return result
++
++        battles = self.strategist.battle_history
++        if not battles:
++            result.details["message"] = "No battles to consolidate"
++            return result
++
++        battle_outcomes = self._tally_battle_outcomes(battles)
++        self._create_strategies_from_outcomes(battle_outcomes, result)
+         for battle in battles:
+             if battle.outcome == "defeat":
+                 mistake_key = f"mistake_{battle.enemy_pokemon}_{battle.player_pokemon}_{battle.turns_taken}"
+diff --git a/src/core/state_machine.py b/src/core/state_machine.py
+index c4fc46d..0c93319 100644
+--- a/src/core/state_machine.py
++++ b/src/core/state_machine.py
+@@ -606,46 +606,30 @@ class HierarchicalStateMachine:
+         self._emergency_reason = None
+         logger.info("Emergency state cleared")
+ 
+-    def transition_to(
+-        self, state_name: str, reason: str = "", tick: int | None = None
+-    ) -> StateTransitionResult:
+-        """
+-        Transition to a new state
+-        Returns the result of the transition attempt
+-        """
+-        target_state = self._states.get(state_name)
+-        if target_state is None:
+-            raise ValueError(f"State not found: {state_name}")
+-
+-        if tick is not None and tick < self._tick:
+-            raise ValueError(
+-                f"Invalid tick value: {tick} < {self._tick}. Ticks must be non-decreasing."
+-            )
+-
+-        from_state = self._current_state.name if self._current_state else "None"
+-
+-        if self._current_state == target_state:
+-            if tick is not None:
+-                self._tick = tick
+-            else:
+-                self._tick += 1
+-            return StateTransitionResult.SUCCESS
+-
+-        if not self.can_transition(from_state, state_name):
+-            logger.warning(
+-                f"Invalid transition attempted: {from_state} -> {state_name}"
+-            )
+-
+-            if "EMERGENCY" in state_name:
+-                if self._current_state:
+-                    self._current_state.on_exit(target_state)
+-                self._previous_state = self._current_state
+-                self._current_state = target_state
+-                target_state.on_enter(self._previous_state)
+-                return StateTransitionResult.EMERGENCY_INTERRUPT
+-
+-            return StateTransitionResult.INVALID_TRANSITION
++    def _advance_tick(self, tick: int | None) -> None:
++        """Set the tick explicitly or increment it."""
++        if tick is not None:
++            self._tick = tick
++        else:
++            self._tick += 1
+ 
++    def _emergency_bypass(self, target_state: "State") -> StateTransitionResult:
++        """Force an EMERGENCY transition, ignoring the allowed-transition table."""
++        if self._current_state:
++            self._current_state.on_exit(target_state)
++        self._previous_state = self._current_state
++        self._current_state = target_state
++        target_state.on_enter(self._previous_state)
++        return StateTransitionResult.EMERGENCY_INTERRUPT
++
++    def _execute_transition(
++        self,
++        from_state: str,
++        state_name: str,
++        target_state: "State",
++        reason: str,
++    ) -> StateTransitionResult:
++        """Perform the exit/enter, record history, and fire callbacks."""
+         start_time = time.time()
+ 
+         if self._current_state:
+@@ -654,11 +638,6 @@ class HierarchicalStateMachine:
+         self._previous_state = self._current_state
+         self._current_state = target_state
+ 
+-        if tick is not None:
+-            self._tick = tick
+-        else:
+-            self._tick += 1
+-
+         target_state.on_enter(self._previous_state)
+ 
+         duration_ms = (time.time() - start_time) * 1000
+@@ -685,6 +664,41 @@ class HierarchicalStateMachine:
+ 
+         return StateTransitionResult.SUCCESS
+ 
++    def transition_to(
++        self, state_name: str, reason: str = "", tick: int | None = None
++    ) -> StateTransitionResult:
++        """
++        Transition to a new state
++        Returns the result of the transition attempt
++        """
++        target_state = self._states.get(state_name)
++        if target_state is None:
++            raise ValueError(f"State not found: {state_name}")
++
++        if tick is not None and tick < self._tick:
++            raise ValueError(
++                f"Invalid tick value: {tick} < {self._tick}. Ticks must be non-decreasing."
++            )
++
++        from_state = self._current_state.name if self._current_state else "None"
++
++        if self._current_state == target_state:
++            self._advance_tick(tick)
++            return StateTransitionResult.SUCCESS
++
++        if not self.can_transition(from_state, state_name):
++            logger.warning(
++                f"Invalid transition attempted: {from_state} -> {state_name}"
++            )
++
++            if "EMERGENCY" in state_name:
++                return self._emergency_bypass(target_state)
++
++            return StateTransitionResult.INVALID_TRANSITION
++
++        self._advance_tick(tick)
++        return self._execute_transition(from_state, state_name, target_state, reason)
++
+     def push_state(self, state_name: str) -> bool:
+         """Push a state onto the stack (for temporary interrupts)"""
+         target_state = self._states.get(state_name)
+diff --git a/src/core/state_projection.py b/src/core/state_projection.py
+index bd7fd05..a60d680 100644
+--- a/src/core/state_projection.py
++++ b/src/core/state_projection.py
+@@ -99,26 +99,10 @@ def _recent_lines(events: Iterable[Any] | None) -> list[str]:
+     return out
+ 
+ 
+-def build(
+-    obs: dict[str, Any],
+-    *,
+-    goal: str = "",
+-    visited: Iterable[tuple[int, int]] | dict[Any, int] | None = None,
+-    recent_events: Iterable[Any] | None = None,
+-    last_action: str = "",
+-    last_action_changed_state: bool | None = None,
+-    mechanics: Iterable[str] | None = None,
+-    extra_facts: Iterable[str] | None = None,
+-) -> str:
+-    """Render a RAM observation into a bounded, factual state text for Jev.
+-
+-    The caller owns `goal`, `visited`, `recent_events` and `mechanics` because
+-    they are cross-cycle/session state, not readable from a single RAM snapshot.
+-    """
+-    st = obs.get("result", "unknown")
++def _header_lines(obs: dict[str, Any], st: str, ptx: Any, pty: Any) -> list[str]:
++    """Game/map/player/party/screen header block."""
+     mid = obs.get("map_id")
+     mname = obs.get("map_name") or "unknown"
+-    ptx, pty = obs.get("player_tile_x"), obs.get("player_tile_y")
+     facing = obs.get("player_facing") or "?"
+     party = obs.get("party_count")
+     species = obs.get("first_party_species")
+@@ -143,8 +127,12 @@ def build(
+     else:
+         lines.append("PARTY: empty (no Pokemon yet)")
+     lines.append(f"SCREEN: {st}")
++    return lines
+ 
+-    # ── topology: this is the section Jev said was missing ──────────────────
++
++def _topology_lines(obs: dict[str, Any]) -> list[str]:
++    """ROM-collision topology, local maps, and visible exits."""
++    lines: list[str] = []
+     walkability = obs.get("adjacent_walkability") or {}
+     lines.append("TOPOLOGY (ROM collision truth for the next move):")
+     lines.append(_adjacent_line(walkability or obs.get("adjacent") or {}))
+@@ -176,8 +164,12 @@ def build(
+ 
+     exits = obs.get("visible_exits") or []
+     lines.append(f"VISIBLE EXITS: {', '.join(exits) if exits else '(none adjacent)'}")
++    return lines
++
+ 
+-    # ── conversation / menu / battle content, only when on that screen ─────
++def _screen_content_lines(obs: dict[str, Any], st: str) -> list[str]:
++    """Conversation / menu / battle content, only when on that screen."""
++    lines: list[str] = []
+     if st in ("dialog", "menu", "battle", "name_entry"):
+         render = obs.get("render") or ""
+         if render:
+@@ -190,8 +182,22 @@ def build(
+                 f"MENU: {ms.get('num_items')} items, "
+                 f"cursor {ms.get('current_item')}, kind {ms.get('menu_kind')}"
+             )
+-
+-    # ── cross-cycle state (caller-supplied, factual) ───────────────────────
++    return lines
++
++
++def _cross_cycle_lines(
++    visited: Iterable[tuple[int, int]] | dict[Any, int] | None,
++    recent_events: Iterable[Any] | None,
++    ptx: Any,
++    pty: Any,
++    last_action: str,
++    last_action_changed_state: bool | None,
++    goal: str,
++    mechanics: Iterable[str] | None,
++    extra_facts: Iterable[str] | None,
++) -> list[str]:
++    """Caller-supplied, factual cross-cycle state."""
++    lines: list[str] = []
+     lines.append("TILES VISITED THIS RUN (tile xCount, * = now):")
+     lines.append(_visited_line(visited, (ptx or 0, pty or 0)))
+ 
+@@ -220,6 +226,44 @@ def build(
+         lines.append("SUPPLIED FACTS:")
+         for f in extra_facts:
+             lines.append("  - " + _cap(str(f), 240))
++    return lines
++
++
++def build(
++    obs: dict[str, Any],
++    *,
++    goal: str = "",
++    visited: Iterable[tuple[int, int]] | dict[Any, int] | None = None,
++    recent_events: Iterable[Any] | None = None,
++    last_action: str = "",
++    last_action_changed_state: bool | None = None,
++    mechanics: Iterable[str] | None = None,
++    extra_facts: Iterable[str] | None = None,
++) -> str:
++    """Render a RAM observation into a bounded, factual state text for Jev.
++
++    The caller owns `goal`, `visited`, `recent_events` and `mechanics` because
++    they are cross-cycle/session state, not readable from a single RAM snapshot.
++    """
++    st = obs.get("result", "unknown")
++    ptx, pty = obs.get("player_tile_x"), obs.get("player_tile_y")
++
++    lines = _header_lines(obs, st, ptx, pty)
++    lines.extend(_topology_lines(obs))
++    lines.extend(_screen_content_lines(obs, st))
++    lines.extend(
++        _cross_cycle_lines(
++            visited,
++            recent_events,
++            ptx,
++            pty,
++            last_action,
++            last_action_changed_state,
++            goal,
++            mechanics,
++            extra_facts,
++        )
++    )
+ 
+     proj = "\n".join(lines)
+     # hard ceiling so a pathological map cannot blow the per-decision budget
+diff --git a/src/core/teacher_client.py b/src/core/teacher_client.py
+index ca52665..5a8380f 100644
+--- a/src/core/teacher_client.py
++++ b/src/core/teacher_client.py
+@@ -131,36 +131,45 @@ def build_teacher_prompt(
+     )
+ 
+ 
++def _find_balanced_json(cleaned: str, start: int) -> int:
++    """End index (exclusive) of the balanced object starting at *start*, or -1."""
++    depth = 0
++    in_string = False
++    escaped = False
++    for index in range(start, len(cleaned)):
++        char = cleaned[index]
++        if in_string:
++            if escaped:
++                escaped = False
++            elif char == "\\":
++                escaped = True
++            elif char == '"':
++                in_string = False
++            continue
++        if char == '"':
++            in_string = True
++        elif char == "{":
++            depth += 1
++        elif char == "}":
++            depth -= 1
++            if depth == 0:
++                return index + 1
++    return -1
++
++
+ def _extract_json(text: str) -> dict[str, Any] | None:
+     """Take the first balanced JSON object after stripping reasoning markers."""
+     cleaned = _END_MARKER_RE.sub("", _REASONING_BLOCK_RE.sub("", text)).strip()
+     start = cleaned.find("{")
+     while start >= 0:
+-        depth = 0
+-        in_string = False
+-        escaped = False
+-        for index in range(start, len(cleaned)):
+-            char = cleaned[index]
+-            if in_string:
+-                if escaped:
+-                    escaped = False
+-                elif char == "\\":
+-                    escaped = True
+-                elif char == '"':
+-                    in_string = False
+-                continue
+-            if char == '"':
+-                in_string = True
+-            elif char == "{":
+-                depth += 1
+-            elif char == "}":
+-                depth -= 1
+-                if depth == 0:
+-                    try:
+-                        parsed = json.loads(cleaned[start : index + 1])
+-                    except (json.JSONDecodeError, ValueError):
+-                        break
+-                    return parsed if isinstance(parsed, dict) else None
++        end = _find_balanced_json(cleaned, start)
++        if end >= 0:
++            try:
++                parsed = json.loads(cleaned[start:end])
++            except (json.JSONDecodeError, ValueError):
++                pass
++            else:
++                return parsed if isinstance(parsed, dict) else None
+         start = cleaned.find("{", start + 1)
+     return None
+ 
+@@ -255,6 +264,55 @@ def _response_parts(
+     )
+ 
+ 
++def _validate_teacher_request(
++    client: Any,
++    teacher_model: str | None,
++    max_tokens: int,
++) -> None:
++    """Fail loud on a mis-specified teacher request."""
++    if client is None:
++        raise ValueError("teacher client was not supplied")
++    if not teacher_model:
++        raise ValueError("teacher model was not supplied")
++    if max_tokens < 1:
++        raise ValueError("teacher max_tokens must be positive")
++
++
++def _call_teacher_with_retry(
++    client: Any,
++    teacher_model: str,
++    messages: list[dict[str, str]],
++    max_tokens: int,
++) -> tuple[str | None, str | None, float | None]:
++    """Call the teacher, doubling the budget once on a length-capped empty reply."""
++    content: str | None = None
++    finish_reason: str | None = None
++    cost_usd: float | None = None
++    budget = max_tokens
++    for attempt in range(TEACHER_REASONING_RETRY_LIMIT + 1):
++        response = client.chat_completion(
++            model=teacher_model,
++            messages=messages,
++            max_tokens=budget,
++            temperature=0.2,
++            # Reasoning models bill thinking tokens against max_tokens;
++            # parseable teacher patches need thinking OFF + headroom.
++            # Repo diagnostics: docs/dogfood/diagnostics.md (judge finding b).
++            thinking={"type": "disabled"},
++        )
++        content, finish_reason, _usage, cost_usd = _response_parts(response)
++        if (content is None or not content.strip()) and finish_reason == "length":
++            if attempt < TEACHER_REASONING_RETRY_LIMIT:
++                budget *= 2
++                continue
++            raise ValueError(
++                "teacher token budget exhausted by reasoning tokens "
++                "(finish_reason=length)"
++            )
++        break
++    return content, finish_reason, cost_usd
++
++
+ def request_patch(
+     *,
+     distributions: dict[str, Any] | None = None,
+@@ -276,12 +334,8 @@ def request_patch(
+     started = time.monotonic()
+     prompt: str | None = None
+     try:
+-        if client is None:
+-            raise ValueError("teacher client was not supplied")
+-        if not teacher_model:
+-            raise ValueError("teacher model was not supplied")
+-        if max_tokens < 1:
+-            raise ValueError("teacher max_tokens must be positive")
++        _validate_teacher_request(client, teacher_model, max_tokens)
++        assert teacher_model is not None
+         prompt = build_teacher_prompt(
+             distributions=distributions,
+             missing_class=missing_class,
+@@ -301,31 +355,9 @@ def request_patch(
+             },
+             {"role": "user", "content": prompt},
+         ]
+-        content: str | None = None
+-        finish_reason: str | None = None
+-        cost_usd: float | None = None
+-        budget = max_tokens
+-        for attempt in range(TEACHER_REASONING_RETRY_LIMIT + 1):
+-            response = client.chat_completion(
+-                model=teacher_model,
+-                messages=messages,
+-                max_tokens=budget,
+-                temperature=0.2,
+-                # Reasoning models bill thinking tokens against max_tokens;
+-                # parseable teacher patches need thinking OFF + headroom.
+-                # Repo diagnostics: docs/dogfood/diagnostics.md (judge finding b).
+-                thinking={"type": "disabled"},
+-            )
+-            content, finish_reason, _usage, cost_usd = _response_parts(response)
+-            if (content is None or not content.strip()) and finish_reason == "length":
+-                if attempt < TEACHER_REASONING_RETRY_LIMIT:
+-                    budget *= 2
+-                    continue
+-                raise ValueError(
+-                    "teacher token budget exhausted by reasoning tokens "
+-                    "(finish_reason=length)"
+-                )
+-            break
++        content, finish_reason, cost_usd = _call_teacher_with_retry(
++            client, teacher_model, messages, max_tokens
++        )
+ 
+         if not isinstance(content, str) or not content.strip():
+             raise ValueError("teacher response has no text content")
+diff --git a/src/core/tile_utils.py b/src/core/tile_utils.py
+index a6ea6ff..4fb184b 100644
+--- a/src/core/tile_utils.py
++++ b/src/core/tile_utils.py
+@@ -90,6 +90,56 @@ def normalize_strip_terrain(raw: str) -> str:
+ # ── Tile extraction from screenshots ─────────────────────────────────────────
+ 
+ 
++def _extract_tile_row(
++    screenshot: np.ndarray,
++    row_px: int,
++    start: int,
++    length: int,
++    tile_px: int,
++) -> np.ndarray | None:
++    """Extract one horizontal row of tiles (N/S edges)."""
++    h, w = screenshot.shape[:2]
++    if row_px < 0 or row_px + tile_px > h:
++        return None
++
++    full_row = screenshot[row_px : row_px + tile_px, :, :]
++    tiles: list[np.ndarray] = []
++    for i in range(start, start + length):
++        x_px = i * tile_px
++        if x_px < 0 or x_px + tile_px > w:
++            break
++        tiles.append(full_row[:, x_px : x_px + tile_px, :])
++
++    if not tiles:
++        return None
++    return np.concatenate(tiles, axis=1)
++
++
++def _extract_tile_column(
++    screenshot: np.ndarray,
++    col_px: int,
++    start: int,
++    length: int,
++    tile_px: int,
++) -> np.ndarray | None:
++    """Extract one vertical column of tiles, arranged horizontally (E/W edges)."""
++    h, w = screenshot.shape[:2]
++    if col_px < 0 or col_px + tile_px > w:
++        return None
++
++    tiles = []
++    for i in range(start, start + length):
++        y_px = i * tile_px
++        if y_px < 0 or y_px + tile_px > h:
++            break
++        tile = screenshot[y_px : y_px + tile_px, col_px : col_px + tile_px, :]
++        tiles.append(tile)
++
++    if not tiles:
++        return None
++    return np.concatenate(tiles, axis=1)
++
++
+ def extract_tile_strip(
+     screenshot: np.ndarray,
+     edge: str,
+@@ -123,45 +173,12 @@ def extract_tile_strip(
+         strip of tile images laid out left-to-right, or *None* if the
+         requested region is out of bounds.
+     """
+-    h, w = screenshot.shape[:2]
+-
+     edge_upper = edge.upper()
+ 
+     if edge_upper in ("N", "S"):
+-        # Horizontal strip: extract one row of tiles
+-        row_px = y_or_x
+-        if row_px < 0 or row_px + tile_px > h:
+-            return None
+-
+-        full_row = screenshot[row_px : row_px + tile_px, :, :]
+-        tiles: list[np.ndarray] = []
+-        for i in range(start, start + length):
+-            x_px = i * tile_px
+-            if x_px < 0 or x_px + tile_px > w:
+-                break
+-            tiles.append(full_row[:, x_px : x_px + tile_px, :])
+-
+-        if not tiles:
+-            return None
+-        return np.concatenate(tiles, axis=1)
+-
++        return _extract_tile_row(screenshot, y_or_x, start, length, tile_px)
+     elif edge_upper in ("E", "W"):
+-        # Vertical strip: extract one column of tiles, arrange horizontally
+-        col_px = y_or_x
+-        if col_px < 0 or col_px + tile_px > w:
+-            return None
+-
+-        tiles = []
+-        for i in range(start, start + length):
+-            y_px = i * tile_px
+-            if y_px < 0 or y_px + tile_px > h:
+-                break
+-            tile = screenshot[y_px : y_px + tile_px, col_px : col_px + tile_px, :]
+-            tiles.append(tile)
+-
+-        if not tiles:
+-            return None
+-        return np.concatenate(tiles, axis=1)
++        return _extract_tile_column(screenshot, y_or_x, start, length, tile_px)
+ 
+     return None
+ 
+diff --git a/src/core/tools.py b/src/core/tools.py
+index e889db6..8456756 100644
+--- a/src/core/tools.py
++++ b/src/core/tools.py
+@@ -551,6 +551,70 @@ def _execute_switch_pokemon(emulator: EmulatorLike, arguments: dict[str, Any]) -
+ _TOOL_CALL_JSON_RE = re.compile(r"```(?:json)?\s*(\{.*?\})\s*```", re.DOTALL)
+ 
+ 
++def _parse_openai_tool_calls(text: str) -> dict[str, Any] | None:
++    """Parse an OpenAI-style ``tool_calls`` array (first element is used)."""
++    if '"tool_calls"' not in text and "'tool_calls'" not in text:
++        return None
++    try:
++        data = json.loads(text)
++    except json.JSONDecodeError:
++        data = None
++    if isinstance(data, dict) and "tool_calls" in data:
++        calls = data["tool_calls"]
++        if isinstance(calls, list) and calls:
++            call = calls[0]
++            if isinstance(call, dict):
++                func = call.get("function", call)
++                return {
++                    "name": func.get("name", ""),
++                    "arguments": func.get("arguments", {}),
++                }
++    return None
++
++
++def _parse_longcat_tool_call(text: str) -> dict[str, Any] | None:
++    """Parse the Owl-alpha XML ``<longcat_tool_call>`` format."""
++    # <longcat_tool_call>press_button<longcat_arg_key>button</longcat_arg_key>
++    # <longcat_arg_value>a</longcat_arg_value></longcat_tool_call>
++    xml_tool = re.search(
++        r"<longcat_tool_call>(.*?)</longcat_tool_call>", text, re.DOTALL
++    )
++    if not xml_tool:
++        return None
++    inner = xml_tool.group(1)
++    # Extract tool name (first text before any longcat tag)
++    tool_name = re.match(r"([^<]+)", inner)
++    name = tool_name.group(1).strip() if tool_name else ""
++    # Extract key-value pairs
++    args: dict[str, Any] = {}
++    for match in re.finditer(
++        r"<longcat_arg_key>(.*?)</longcat_arg_key>\s*<longcat_arg_value>(.*?)</longcat_arg_value>",
++        inner,
++        re.DOTALL,
++    ):
++        k = match.group(1).strip()
++        v = match.group(2).strip()
++        # Try to parse int values
++        try:
++            v = int(v)
++        except ValueError:
++            pass
++        args[k] = v
++    if name:
++        return {"name": name, "arguments": args}
++    return None
++
++
++def _parse_json_payload(payload: Any) -> dict[str, Any] | None:
++    """Normalize a parsed JSON object into a tool-call dict, or None."""
++    if isinstance(payload, dict) and "name" in payload:
++        return {
++            "name": payload["name"],
++            "arguments": payload.get("arguments", payload.get("parameters", {})),
++        }
++    return None
++
++
+ def parse_tool_call(response_text: str) -> dict[str, Any] | None:
+     """
+     Extract a tool-call payload from a model response string.
+@@ -571,76 +635,32 @@ def parse_tool_call(response_text: str) -> dict[str, Any] | None:
+     text = response_text.strip()
+ 
+     # --- OpenAI-style tool_calls array ---------------------------------------
+-    if '"tool_calls"' in text or "'tool_calls'" in text:
+-        try:
+-            data = json.loads(text)
+-        except json.JSONDecodeError:
+-            data = None
+-        if isinstance(data, dict) and "tool_calls" in data:
+-            calls = data["tool_calls"]
+-            if isinstance(calls, list) and calls:
+-                call = calls[0]
+-                if isinstance(call, dict):
+-                    func = call.get("function", call)
+-                    return {
+-                        "name": func.get("name", ""),
+-                        "arguments": func.get("arguments", {}),
+-                    }
++    result = _parse_openai_tool_calls(text)
++    if result is not None:
++        return result
+ 
+     # --- Owl-alpha XML tool call format --------------------------------------
+-    # <longcat_tool_call>press_button<longcat_arg_key>button</longcat_arg_key>
+-    # <longcat_arg_value>a</longcat_arg_value></longcat_tool_call>
+-    xml_tool = re.search(
+-        r"<longcat_tool_call>(.*?)</longcat_tool_call>", text, re.DOTALL
+-    )
+-    if xml_tool:
+-        inner = xml_tool.group(1)
+-        # Extract tool name (first text before any longcat tag)
+-        tool_name = re.match(r"([^<]+)", inner)
+-        name = tool_name.group(1).strip() if tool_name else ""
+-        # Extract key-value pairs
+-        args: dict[str, Any] = {}
+-        for match in re.finditer(
+-            r"<longcat_arg_key>(.*?)</longcat_arg_key>\s*<longcat_arg_value>(.*?)</longcat_arg_value>",
+-            inner,
+-            re.DOTALL,
+-        ):
+-            k = match.group(1).strip()
+-            v = match.group(2).strip()
+-            # Try to parse int values
+-            try:
+-                v = int(v)
+-            except ValueError:
+-                pass
+-            args[k] = v
+-        if name:
+-            return {"name": name, "arguments": args}
++    result = _parse_longcat_tool_call(text)
++    if result is not None:
++        return result
+ 
+     # --- Code-fenced JSON ----------------------------------------------------
+     m = _TOOL_CALL_JSON_RE.search(text)
+     if m:
+         try:
+             payload = json.loads(m.group(1))
+-            if isinstance(payload, dict) and "name" in payload:
+-                return {
+-                    "name": payload["name"],
+-                    "arguments": payload.get(
+-                        "arguments", payload.get("parameters", {})
+-                    ),
+-                }
+         except json.JSONDecodeError:
+-            pass
++            payload = None
++        result = _parse_json_payload(payload)
++        if result is not None:
++            return result
+ 
+     # --- Bare JSON -----------------------------------------------------------
+     # Try extracting the first JSON object from the text.
+     for candidate in _iter_json_objects(text):
+-        if isinstance(candidate, dict) and "name" in candidate:
+-            return {
+-                "name": candidate["name"],
+-                "arguments": candidate.get(
+-                    "arguments", candidate.get("parameters", {})
+-                ),
+-            }
++        result = _parse_json_payload(candidate)
++        if result is not None:
++            return result
+ 
+     return None
+ 
+diff --git a/src/vision/location.py b/src/vision/location.py
+index 4a6ed08..5fde611 100644
+--- a/src/vision/location.py
++++ b/src/vision/location.py
+@@ -210,45 +210,30 @@ class LocationDetector:
+ 
+         tile_mean = np.mean(tile)
+         tile_std = np.std(tile)
++        center_mean = self._center_mean(tile)
++        edge_mean = self._edge_mean(tile)
+ 
+-        h, w = tile.shape
++        return _classify_tile_stats(tile_mean, tile_std, center_mean, edge_mean)
+ 
++    @staticmethod
++    def _center_mean(tile: np.ndarray) -> float:
++        h, w = tile.shape
+         center_region = tile[h // 4 : 3 * h // 4, w // 4 : 3 * w // 4]
+-        center_mean = np.mean(center_region)
++        return float(np.mean(center_region))
+ 
++    @staticmethod
++    def _edge_mean(tile: np.ndarray) -> float:
+         edge_top = tile[0, :]
+         edge_bottom = tile[-1, :]
+         edge_left = tile[:, 0]
+         edge_right = tile[:, -1]
+-
+-        edge_mean = (
+-            np.mean(edge_top)
+-            + np.mean(edge_bottom)
+-            + np.mean(edge_left)
+-            + np.mean(edge_right)
++        return (
++            float(np.mean(edge_top))
++            + float(np.mean(edge_bottom))
++            + float(np.mean(edge_left))
++            + float(np.mean(edge_right))
+         ) / 4
+ 
+-        if center_mean > 150 and tile_std < 30:
+-            return "wall"
+-        elif center_mean > 100 and tile_std < 50:
+-            if edge_mean < 80:
+-                return "door"
+-            return "path"
+-        elif tile_mean > 80 and tile_mean < 120 and tile_std > 40:
+-            return "grass"
+-        elif tile_mean > 60 and tile_mean < 100 and tile_std > 50:
+-            return "tall_grass"
+-        elif tile_mean < 80:
+-            return "water"
+-        elif tile_mean > 120:
+-            if tile_std > 60:
+-                return "tree"
+-            return "rock"
+-        elif edge_mean < center_mean - 20:
+-            return "sign"
+-
+-        return "path"
+-
+     def _compute_pattern_hash(self, pattern_counts: dict[str, int]) -> str:
+         sorted_patterns = sorted(pattern_counts.items(), key=lambda x: x[0])
+         pattern_str = "_".join([f"{name}:{count}" for name, count in sorted_patterns])
+@@ -445,3 +430,29 @@ class LocationDetector:
+             return "dialog"
+         else:
+             return "overworld"
++
++
++def _classify_tile_stats(
++    tile_mean: float, tile_std: float, center_mean: float, edge_mean: float
++) -> str:
++    """Map tile statistics to a tile-class label."""
++    if center_mean > 150 and tile_std < 30:
++        return "wall"
++    elif center_mean > 100 and tile_std < 50:
++        if edge_mean < 80:
++            return "door"
++        return "path"
++    elif tile_mean > 80 and tile_mean < 120 and tile_std > 40:
++        return "grass"
++    elif tile_mean > 60 and tile_mean < 100 and tile_std > 50:
++        return "tall_grass"
++    elif tile_mean < 80:
++        return "water"
++    elif tile_mean > 120:
++        if tile_std > 60:
++            return "tree"
++        return "rock"
++    elif edge_mean < center_mean - 20:
++        return "sign"
++
++    return "path"
