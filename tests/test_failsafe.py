@@ -15,9 +15,8 @@ Total: 62 tests for comprehensive coverage
 import pytest
 import time
 import threading
-import os
 import json
-import tempfile
+import os
 
 from src.core.failsafe import (
     ConfidenceScorer,
@@ -461,9 +460,9 @@ class TestSoftlockDetector:
 class TestEmergencyRecovery:
     """Tests for EmergencyRecovery class (10 tests)"""
 
-    def test_initiate_recovery_success(self) -> None:
+    def test_initiate_recovery_success(self, tmp_path: "os.PathLike[str]") -> None:
         """Test successful recovery initiation"""
-        recovery = EmergencyRecovery()
+        recovery = EmergencyRecovery(snapshot_dir=str(tmp_path / "snaps"))
 
         result = recovery.initiate_recovery(
             reason="Test recovery", softlock_info=None, current_state={"test": "state"}
@@ -513,64 +512,81 @@ class TestEmergencyRecovery:
 
         assert result.success is True
 
-    def test_snapshot_saved_to_file(self) -> None:
-        """Test that snapshots are saved to file"""
-        with tempfile.TemporaryDirectory() as snapshot_dir:
-            recovery = EmergencyRecovery(snapshot_dir=snapshot_dir)
+    def test_snapshot_saved_to_file(self, tmp_path: "os.PathLike[str]") -> None:
+        """Test that snapshots are saved to file.
 
-            recovery.initiate_recovery("Test", None, {"test": "data"})
+        ROOT CAUSE (QA-AI-PLAYS-POKE-13 / rows -11/-12/-13 clean-machine flake):
+        this test (and its siblings) used to construct EmergencyRecovery() with
+        the DEFAULT snapshot_dir, which is the CWD-RELATIVE shared path
+        "data/emergency_snapshots" — a git-tracked directory inside the
+        checkout that every other test process / prior run on the machine also
+        writes into (it accumulates emergency_report_*.json artifacts under
+        git). Under full-suite load on fresh agents that shared dir is a race:
+        (a) other suite processes create/conflict in it concurrently, (b) CI
+        chaos cells with read-only or 3G-throttled workspaces make the write
+        fail (EmergencyRecovery swallows it into snapshot_failed), so the
+        expected snapshot_*.json never appears. Same class as the T101
+        saves-dir pollution trap known in this repo (game saves dir).
 
-            files = os.listdir(snapshot_dir)
-            snapshot_files = [f for f in files if f.startswith("snapshot_")]
-            assert len(snapshot_files) >= 1
+        FIX: per-test isolation — each test passes its own tmp_path-based
+        snapshot dir, so no fixed absolute path, no cross-test shared files,
+        no other test or prior run can pre-create or conflict with the
+        snapshot file. tmp_path is unique per test and process-safe.
+        """
+        recovery = EmergencyRecovery(snapshot_dir=str(tmp_path / "emergency_snaps"))
 
-    def test_emergency_report_created(self) -> None:
-        """Test that emergency reports are created"""
-        with tempfile.TemporaryDirectory() as snapshot_dir:
-            recovery = EmergencyRecovery(snapshot_dir=snapshot_dir)
+        recovery.initiate_recovery("Test", None, {"test": "data"})
 
-            recovery.initiate_recovery("Test", None, {})
+        files = os.listdir(recovery.snapshot_dir)
+        snapshot_files = [f for f in files if f.startswith("snapshot_")]
+        assert len(snapshot_files) >= 1
 
-            files = os.listdir(snapshot_dir)
-            report_files = [f for f in files if f.startswith("emergency_report_")]
-            assert len(report_files) >= 1
+    def test_emergency_report_created(self, tmp_path: "os.PathLike[str]") -> None:
+        """Test that emergency reports are created (isolated via tmp_path —
+        see test_snapshot_saved_to_file root-cause note)"""
+        recovery = EmergencyRecovery(snapshot_dir=str(tmp_path / "emergency_snaps"))
+
+        recovery.initiate_recovery("Test", None, {})
+
+        files = os.listdir(recovery.snapshot_dir)
+        report_files = [f for f in files if f.startswith("emergency_report_")]
+        assert len(report_files) >= 1
 
     def test_snapshot_write_failure_is_reported(
-        self, monkeypatch: pytest.MonkeyPatch
+        self, tmp_path: "os.PathLike[str]", monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Test that a snapshot write failure is observable on the recovery result"""
-        with tempfile.TemporaryDirectory() as snapshot_dir:
-            recovery = EmergencyRecovery(snapshot_dir=snapshot_dir)
+        recovery = EmergencyRecovery(snapshot_dir=str(tmp_path / "snap_fail"))
 
-            def _raise_oserror(*args: object, **kwargs: object) -> None:
-                _ = (args, kwargs)
-                raise OSError("permission denied by test injection")
+        def _raise_oserror(*args: object, **kwargs: object) -> None:
+            _ = (args, kwargs)
+            raise OSError("permission denied by test injection")
 
-            monkeypatch.setattr(
-                "src.core.failsafe.json.dump", _raise_oserror, raising=True
-            )
+        monkeypatch.setattr(
+            "src.core.failsafe.json.dump", _raise_oserror, raising=True
+        )
 
-            result = recovery.initiate_recovery("Test", None, {"test": "data"})
+        result = recovery.initiate_recovery("Test", None, {"test": "data"})
 
-            # Recovery still completes (snapshot failure must not abort it)
-            assert result.success is True
-            # The failure is named in the actions taken on the result itself
-            failed_actions = [
-                a for a in result.actions_taken if a.startswith("snapshot_failed")
-            ]
-            assert failed_actions, "snapshot failure missing from result.actions_taken"
-            assert "permission denied by test injection" in failed_actions[0]
-            # And it is recorded on the recovery instance
-            assert recovery.last_snapshot_error is not None, (
-                "snapshot failure not recorded on the EmergencyRecovery instance"
-            )
-            assert "permission denied by test injection" in (
-                recovery.last_snapshot_error
-            )
+        # Recovery still completes (snapshot failure must not abort it)
+        assert result.success is True
+        # The failure is named in the actions taken on the result itself
+        failed_actions = [
+            a for a in result.actions_taken if a.startswith("snapshot_failed")
+        ]
+        assert failed_actions, "snapshot failure missing from result.actions_taken"
+        assert "permission denied by test injection" in failed_actions[0]
+        # And it is recorded on the recovery instance
+        assert recovery.last_snapshot_error is not None, (
+            "snapshot failure not recorded on the EmergencyRecovery instance"
+        )
+        assert "permission denied by test injection" in (
+            recovery.last_snapshot_error
+        )
 
-    def test_get_recovery_history(self) -> None:
+    def test_get_recovery_history(self, tmp_path: "os.PathLike[str]") -> None:
         """Test retrieving recovery history"""
-        recovery = EmergencyRecovery()
+        recovery = EmergencyRecovery(snapshot_dir=str(tmp_path / "snaps"))
 
         recovery.initiate_recovery("Test 1", None, {})
         recovery.initiate_recovery("Test 2", None, {})
@@ -578,9 +594,11 @@ class TestEmergencyRecovery:
         history = recovery.get_recovery_history(count=10)
         assert len(history) == 2
 
-    def test_is_recovering_during_recovery(self) -> None:
+    def test_is_recovering_during_recovery(
+        self, tmp_path: "os.PathLike[str]"
+    ) -> None:
         """Test is_recovering flag during active recovery"""
-        recovery = EmergencyRecovery()
+        recovery = EmergencyRecovery(snapshot_dir=str(tmp_path / "snaps"))
 
         assert recovery.is_recovering() is False
 
@@ -588,9 +606,9 @@ class TestEmergencyRecovery:
 
         assert recovery.is_recovering() is True
 
-    def test_recovery_history_limit(self) -> None:
+    def test_recovery_history_limit(self, tmp_path: "os.PathLike[str]") -> None:
         """Test that recovery history is maintained"""
-        recovery = EmergencyRecovery()
+        recovery = EmergencyRecovery(snapshot_dir=str(tmp_path / "snaps"))
 
         for i in range(25):
             recovery.initiate_recovery(f"Test {i}", None, {})
@@ -598,12 +616,16 @@ class TestEmergencyRecovery:
         history = recovery.get_recovery_history(count=10)
         assert len(history) == 10  # Limited to requested count
 
-    def test_snapshot_contains_state_machine_info(self) -> None:
+    def test_snapshot_contains_state_machine_info(
+        self, tmp_path: "os.PathLike[str]"
+    ) -> None:
         """Test that snapshots contain state machine info"""
         state_machine = HierarchicalStateMachine()
         state_machine.transition_to("OVERWORLD.IDLE", tick=1)
-
-        recovery = EmergencyRecovery(state_machine=state_machine)
+        recovery = EmergencyRecovery(
+            state_machine=state_machine,
+            snapshot_dir=str(tmp_path / "sm_snaps"),
+        )
         recovery.initiate_recovery("Test", None, {"test": "state"})
 
         files = [
@@ -614,9 +636,11 @@ class TestEmergencyRecovery:
             data = json.load(f)
             assert "state_machine" in data
 
-    def test_recovery_with_empty_game_state(self) -> None:
+    def test_recovery_with_empty_game_state(
+        self, tmp_path: "os.PathLike[str]"
+    ) -> None:
         """Test recovery with minimal game state"""
-        recovery = EmergencyRecovery()
+        recovery = EmergencyRecovery(snapshot_dir=str(tmp_path / "snaps"))
 
         result = recovery.initiate_recovery(
             reason="Minimal state test", softlock_info=None, current_state={}
