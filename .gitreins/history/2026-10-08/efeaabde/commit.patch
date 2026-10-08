@@ -1,0 +1,725 @@
+commit 4316983cc2f3e499fb4292fcb77cc1a5fdbdaf27
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Oct 7 21:43:21 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Oct 7 21:43:21 2026 -0500
+
+    feat(env): env/agent split increment 1 — HTTP observe/act service + example client (CH-SPLIT)
+    
+    Adds src/env_service.py (FastAPI: boot/observe/act/reset/health over Emulator+RAMReader,
+    single-instance guard, MAX_BUTTONS bound), examples/simple_agent_client.py (non-cron_runner
+    client), docs/api/env_service.md contract, tests/test_env_service.py (12 tests, mocked emulator).
+    ADDITIVE ONLY — cron_runner.py and src/core untouched.
+    
+    ch:trace row=CH-SPLIT spec=docs/api/env_service.md test=tests/test_env_service.py evidence=/tmp/chsplit_smoke.log witness=live:observe-pallet-town+act commit=HEAD
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ config/assist_inventory.json    |   7 ++
+ docs/api/env_service.md         | 178 ++++++++++++++++++++++++++++++++
+ examples/simple_agent_client.py |  85 ++++++++++++++++
+ src/env_service.py              | 220 ++++++++++++++++++++++++++++++++++++++++
+ tests/test_env_service.py       | 176 ++++++++++++++++++++++++++++++++
+ 5 files changed, 666 insertions(+)
+
+diff --git a/config/assist_inventory.json b/config/assist_inventory.json
+index 091bcc5..b7a590a 100644
+--- a/config/assist_inventory.json
++++ b/config/assist_inventory.json
+@@ -391,6 +391,13 @@
+       "button": "a",
+       "call": "press_button('a', frames=S.R._A_FRAMES)",
+       "reason": "Dialog fast-path recovery: A-advances a dialog box that is not a stuck state; the generic ladder trapped the agent (DF history)."
++    },
++    {
++      "file": "src/env_service.py",
++      "context": "act",
++      "button": "button",
++      "call": "emu.press_button(button, frames=request.frames)",
++      "reason": "Environment service /env/act: presses client-supplied buttons verbatim as transport; the external agent owns every button decision."
+     }
+   ]
+ }
+diff --git a/docs/api/env_service.md b/docs/api/env_service.md
+new file mode 100644
+index 0000000..4c987f1
+--- /dev/null
++++ b/docs/api/env_service.md
+@@ -0,0 +1,178 @@
++# Environment Service API (CH-SPLIT increment 1)
++
++Status: Active (increment 1)
++Date: 2026-10-07
++Module: `src/env_service.py`
++Example client: `examples/simple_agent_client.py`
++Related: [emulator_interface.md](emulator_interface.md), [cron_runner.md](cron_runner.md)
++
++The environment service exposes the PyBoy emulator and RAM reader as a local
++HTTP service so an agent can drive the game purely through an observe/act
++contract — no `cron_runner.py` import, no in-process emulator access. All
++state lives in the service process (one emulator instance per service).
++`cron_runner.py` and `src/core/*` behavior are untouched: the service
++reuses `src.core.emulator.Emulator` and `src.core.ram_reader.RAMReader`
++as-is.
++
++## Running
++
++From the repo root with the project venv activated:
++
++```bash
++source .venv/bin/activate   # or: source venv/bin/activate
++uvicorn src.env_service:app --port 8765
++```
++
++The service is single-user and local by design (no auth); bind it to
++`127.0.0.1` only.
++
++## Contract
++
++Base URL: `http://127.0.0.1:<port>`. All bodies are JSON.
++
++### `GET /env/health`
++
++Liveness + boot state. Always 200.
++
++```json
++{
++  "status": "ok",            // "ok" when booted, "idle" before boot
++  "booted": true,
++  "rom_path": "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb",
++  "boot_state": "data/boot.state"
++}
++```
++
++### `POST /env/boot`
++
++Boot a fresh emulator instance, optionally loading a `.state` checkpoint.
++
++Request:
++
++```json
++{
++  "rom_path": "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb",
++  "boot_state": "data/boot.state"
++}
++```
++
++Both fields optional (defaults are the Blue SGB ROM and `data/boot.state`;
++pass `"boot_state": null` to boot from the title screen). Response is the
++same shape as `/env/health` with `"status": "booted"`.
++
++Errors:
++
++| Code | When |
++|------|------|
++| 409  | Environment already booted. `POST /env/reset` to reload, or stop the service to reboot from scratch. |
++| 400  | ROM or boot-state file not found (detail carries the path). |
++
++### `GET /env/observe`
++
++Current RAM-derived game state plus the last screenshot.
++
++```json
++{
++  "location": "Pallet Town",
++  "map_id": 40,
++  "player_x": 37,
++  "player_y": 5,
++  "player_tile_x": 9,
++  "player_tile_y": 7,
++  "player_facing": "down",
++  "screen_type": "overworld",
++  "party_count": 1,
++  "is_moving": false,
++  "screenshot_base64": "iVBORw0KGgo...",
++  "screenshot_format": "png",
++  "emulated_platform": "gb"
++}
++```
++
++- `screenshot_base64` is a base64-encoded PNG of the 144x160 RGB frame.
++- Any RAM read that fails (e.g. mid-transition memory layout) comes back as
++  `null` for that field instead of failing the request; the screenshot is
++  always populated when booted.
++- `location` is the map name resolved from the ROM map DB (may be `null`
++  for maps missing from the DB).
++
++Errors:
++
++| Code | When |
++|------|------|
++| 409  | Environment not booted. |
++
++### `POST /env/act`
++
++Press buttons (sequentially, each held for `frames` emulator frames), then
++return the new observation.
++
++Request:
++
++```json
++{ "buttons": ["up", "a"], "frames": 8 }
++```
++
++- `buttons` defaults to `[]`; an empty list just advances `frames` (wait).
++- `frames` defaults to 8, clamped to 1..600.
++- Buttons are the Gen-1 joypad names accepted by
++  `Emulator.press_button`: `up`, `down`, `left`, `right`, `a`, `b`,
++  `start`, `select`.
++- Per-request button cap: 16.
++
++Response:
++
++```json
++{
++  "pressed": ["up", "a"],
++  "frames": 8,
++  "observation": { ...same shape as /env/observe... }
++}
++```
++
++Errors:
++
++| Code | When |
++|------|------|
++| 409  | Environment not booted. |
++| 422  | `frames` outside 1..600, more than 16 buttons, or malformed body. |
++
++### `POST /env/reset`
++
++Reload the boot checkpoint into the live emulator (restores the exact
++boot-time position; no re-construction of the emulator instance).
++
++Response: same shape as `/env/health` with `"status": "reset"`.
++
++Errors:
++
++| Code | When |
++|------|------|
++| 409  | Environment not booted. |
++| 400  | Boot-state file missing (only possible if it was deleted after boot). |
++
++## Error body shape
++
++All non-2xx responses use FastAPI's default error envelope:
++
++```json
++{ "detail": "Environment already booted. POST /env/reset first." }
++```
++
++## Concurrency
++
++All endpoints serialize on a single in-process lock — an `/env/act` blocks
++`/env/observe` until the button sequence finishes. Clients should treat the
++service as single-agent.
++
++## Example
++
++`examples/simple_agent_client.py` boots (if needed), then performs a
++scripted 20-step walk (`up/left/down/right` x 5), printing the RAM-derived
++location and tile per step — proving a non-`cron_runner` client can drive
++the environment end-to-end:
++
++```bash
++uvicorn src.env_service:app --port 8765 &
++python examples/simple_agent_client.py --base-url http://127.0.0.1:8765
++```
+diff --git a/examples/simple_agent_client.py b/examples/simple_agent_client.py
+new file mode 100644
+index 0000000..deafa30
+--- /dev/null
++++ b/examples/simple_agent_client.py
+@@ -0,0 +1,85 @@
++"""CH-SPLIT increment 1: minimal NON-cron_runner agent client.
++
++Proves an external agent can drive the environment purely through the HTTP
++observe/act contract (see docs/api/env_service.md):
++
++1. GET  /env/health
++2. POST /env/boot    (if not already booted)
++3. loop: GET /env/observe -> POST /env/act  (scripted 20-step walk)
++
++Run from the repo root with the service up::
++
++    uvicorn src.env_service:app --port 8765
++    python examples/simple_agent_client.py --base-url http://127.0.0.1:8765
++"""
++
++from __future__ import annotations
++
++import argparse
++import json
++
++import httpx
++
++WALK_SCRIPT: list[str] = ["up", "left", "down", "right"] * 5  # 20 steps
++ACT_FRAMES = 8
++HTTP_TIMEOUT = 60.0
++
++
++def boot_if_needed(client: httpx.Client, base_url: str) -> None:
++    health = client.get(f"{base_url}/env/health").json()
++    if health.get("booted"):
++        print(f"[agent] already booted: {health.get('rom_path')}")
++        return
++    response = client.post(f"{base_url}/env/boot", json={})
++    if response.status_code >= 400:
++        raise SystemExit(f"[agent] boot failed: {response.status_code} {response.text}")
++    print(f"[agent] booted: {response.json().get('rom_path')}")
++
++
++def observe_act(
++    client: httpx.Client, base_url: str, step: int, button: str
++) -> dict[str, object]:
++    response = client.post(
++        f"{base_url}/env/act",
++        json={"buttons": [button], "frames": ACT_FRAMES},
++    )
++    if response.status_code >= 400:
++        raise SystemExit(
++            f"[agent] act failed at step {step}: {response.status_code} {response.text}"
++        )
++    result: dict[str, object] = response.json()
++    obs: dict[str, object] = result["observation"]  # type: ignore[assignment]
++    print(
++        f"[agent] step {step:02d} button={button:<5s} "
++        f"location={obs.get('location')} "
++        f"tile=({obs.get('player_tile_x')},{obs.get('player_tile_y')}) "
++        f"screen={obs.get('screen_type')}"
++    )
++    return obs
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser(
++        description="Scripted 20-step agent over the env HTTP contract",
++    )
++    parser.add_argument("--base-url", default="http://127.0.0.1:8765")
++    args = parser.parse_args()
++
++    with httpx.Client(timeout=HTTP_TIMEOUT) as client:
++        base_url = args.base_url.rstrip("/")
++        boot_if_needed(client, base_url)
++        observe = client.get(f"{base_url}/env/observe").json()
++        print(
++            f"[agent] start: location={observe.get('location')} "
++            f"tile=({observe.get('player_tile_x')},"
++            f"{observe.get('player_tile_y')})"
++        )
++        for step, button in enumerate(WALK_SCRIPT, start=1):
++            observe_act(client, base_url, step, button)
++        observe = client.get(f"{base_url}/env/observe").json()
++        print("[agent] final observation:")
++        print(json.dumps(observe, indent=2))
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/src/env_service.py b/src/env_service.py
+new file mode 100644
+index 0000000..efd8fe9
+--- /dev/null
++++ b/src/env_service.py
+@@ -0,0 +1,220 @@
++"""env/agent split increment 1 (CH-SPLIT): expose the emulator as an HTTP
++environment service with a documented observe/act contract.
++
++ADDITIVE ONLY — reuses ``src.core.emulator.Emulator`` and
++``src.core.ram_reader.RAMReader`` as-is; cron_runner.py and src/core behavior
++are untouched. Run from the repo root::
++
++    uvicorn src.env_service:app --port 8765
++
++Contract details: docs/api/env_service.md
++"""
++
++from __future__ import annotations
++
++import base64
++import io
++import threading
++from typing import Any, Optional
++
++from fastapi import FastAPI, HTTPException
++from PIL import Image
++from pydantic import BaseModel, Field
++
++from src.core.emulator import Emulator
++from src.core.ram_reader import RAMReader
++
++DEFAULT_ROM_PATH = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
++DEFAULT_BOOT_STATE = "data/boot.state"
++DEFAULT_ACT_FRAMES = 8
++MAX_ACT_FRAMES = 600
++MAX_BUTTONS = 16
++
++app = FastAPI(
++    title="PTP-01X Environment Service",
++    description="HTTP observe/act environment for Pokémon AI agents "
++    "(CH-SPLIT increment 1).",
++    version="0.1.0",
++)
++
++_lock = threading.Lock()
++_emulator: Optional[Emulator] = None
++_ram_reader: Optional[RAMReader] = None
++_rom_path: str = ""
++_boot_state: Optional[str] = None
++
++
++# ── request / response models ────────────────────────────────────────────
++
++
++class BootRequest(BaseModel):
++    rom_path: str = Field(default=DEFAULT_ROM_PATH)
++    boot_state: Optional[str] = Field(default=DEFAULT_BOOT_STATE)
++
++
++class ActRequest(BaseModel):
++    buttons: list[str] = Field(default_factory=list)
++    frames: int = Field(default=DEFAULT_ACT_FRAMES, ge=1, le=MAX_ACT_FRAMES)
++
++
++class Observation(BaseModel):
++    """RAM-derived game state + last screenshot, base64-encoded PNG."""
++
++    location: Optional[str] = None
++    map_id: Optional[int] = None
++    player_x: Optional[int] = None
++    player_y: Optional[int] = None
++    player_tile_x: Optional[int] = None
++    player_tile_y: Optional[int] = None
++    player_facing: Optional[str] = None
++    screen_type: Optional[str] = None
++    party_count: Optional[int] = None
++    is_moving: Optional[bool] = None
++    screenshot_base64: Optional[str] = None
++    screenshot_format: str = "png"
++    emulated_platform: str = "gb"
++
++
++class ActResponse(BaseModel):
++    pressed: list[str]
++    frames: int
++    observation: Observation
++
++
++class HealthResponse(BaseModel):
++    status: str
++    booted: bool
++    rom_path: Optional[str] = None
++    boot_state: Optional[str] = None
++
++
++# ── internals ────────────────────────────────────────────────────────────
++
++
++def _require_emulator() -> tuple[Emulator, RAMReader]:
++    if _emulator is None or _ram_reader is None:
++        raise HTTPException(
++            status_code=409,
++            detail="Environment not booted. POST /env/boot first.",
++        )
++    return _emulator, _ram_reader
++
++
++def _png_base64(emu: Emulator) -> str:
++    frame = emu.capture()
++    image = Image.fromarray(frame)
++    buffer = io.BytesIO()
++    image.save(buffer, format="PNG")
++    return base64.b64encode(buffer.getvalue()).decode("ascii")
++
++
++def _safe_read(reader: RAMReader, attr: str) -> Any:
++    try:
++        return getattr(reader, attr)()
++    except Exception:
++        return None
++
++
++def _build_observation() -> Observation:
++    _, reader = _require_emulator()
++    data: dict[str, Any] = {
++        "location": _safe_read(reader, "current_map_name"),
++        "map_id": _safe_read(reader, "current_map_id"),
++        "player_x": _safe_read(reader, "player_x"),
++        "player_y": _safe_read(reader, "player_y"),
++        "player_tile_x": _safe_read(reader, "player_tile_x"),
++        "player_tile_y": _safe_read(reader, "player_tile_y"),
++        "player_facing": _safe_read(reader, "player_facing"),
++        "screen_type": _safe_read(reader, "screen_type"),
++        "party_count": _safe_read(reader, "party_count"),
++        "is_moving": _safe_read(reader, "is_moving"),
++    }
++    data["screenshot_base64"] = _png_base64(_emulator)  # type: ignore[arg-type]
++    return Observation(**data)
++
++
++def _boot_locked(rom_path: str, boot_state: Optional[str]) -> None:
++    global _emulator, _ram_reader, _rom_path, _boot_state
++    _emulator = Emulator(rom_path)
++    _ram_reader = RAMReader(_emulator, rom_path)
++    _rom_path = rom_path
++    _boot_state = boot_state
++    if boot_state:
++        _emulator.load_state(boot_state)
++        _emulator.wait(30)  # settle after state restore (cron_runner parity)
++
++
++# ── endpoints ────────────────────────────────────────────────────────────
++
++
++@app.post("/env/boot", response_model=HealthResponse)
++def boot(request: BootRequest) -> HealthResponse:
++    """Boot a fresh PyBoy instance (optionally loading a boot checkpoint)."""
++    with _lock:
++        if _emulator is not None:
++            raise HTTPException(
++                status_code=409,
++                detail="Environment already booted. POST /env/reset first.",
++            )
++        try:
++            _boot_locked(request.rom_path, request.boot_state)
++        except FileNotFoundError as exc:
++            raise HTTPException(status_code=400, detail=str(exc)) from exc
++        return HealthResponse(
++            status="booted",
++            booted=True,
++            rom_path=_rom_path,
++            boot_state=_boot_state,
++        )
++
++
++@app.get("/env/observe", response_model=Observation)
++def observe() -> Observation:
++    with _lock:
++        return _build_observation()
++
++
++@app.post("/env/act", response_model=ActResponse)
++def act(request: ActRequest) -> ActResponse:
++    if len(request.buttons) > MAX_BUTTONS:
++        raise HTTPException(
++            status_code=422,
++            detail=f"Too many buttons in one act (max {MAX_BUTTONS}).",
++        )
++    with _lock:
++        emu, _ = _require_emulator()
++        for button in request.buttons:
++            emu.press_button(button, frames=request.frames)
++        if not request.buttons:
++            emu.wait(request.frames)
++        return ActResponse(
++            pressed=request.buttons,
++            frames=request.frames,
++            observation=_build_observation(),
++        )
++
++
++@app.post("/env/reset", response_model=HealthResponse)
++def reset() -> HealthResponse:
++    """Reload the boot state in the live emulator instance."""
++    with _lock:
++        emu, _ = _require_emulator()
++        if _boot_state:
++            emu.load_state(_boot_state)
++            emu.wait(30)  # settle after state restore (cron_runner parity)
++        return HealthResponse(
++            status="reset",
++            booted=True,
++            rom_path=_rom_path,
++            boot_state=_boot_state,
++        )
++
++
++@app.get("/env/health", response_model=HealthResponse)
++def health() -> HealthResponse:
++    return HealthResponse(
++        status="ok" if _emulator is not None else "idle",
++        booted=_emulator is not None,
++        rom_path=_rom_path or None,
++        boot_state=_boot_state,
++    )
+diff --git a/tests/test_env_service.py b/tests/test_env_service.py
+new file mode 100644
+index 0000000..1997f8e
+--- /dev/null
++++ b/tests/test_env_service.py
+@@ -0,0 +1,176 @@
++"""Tests for the CH-SPLIT env service (increment 1).
++
++All emulator behavior is mocked — no ROM or PyBoy needed in CI.
++"""
++
++from __future__ import annotations
++
++import base64
++from typing import Any
++from unittest.mock import MagicMock, patch
++
++import numpy
++import pytest
++from fastapi.testclient import TestClient
++
++import src.env_service as env_service
++from src.env_service import app
++
++
++@pytest.fixture
++def client() -> Any:
++    env_service._emulator = None
++    env_service._ram_reader = None
++    env_service._rom_path = ""
++    env_service._boot_state = None
++    with TestClient(app) as test_client:
++        yield test_client
++    env_service._emulator = None
++    env_service._ram_reader = None
++
++
++def _make_emulator() -> MagicMock:
++    emu = MagicMock()
++    emu.capture.return_value = numpy.zeros((144, 160, 3), dtype=numpy.uint8)
++    emu.wait.return_value = None
++    emu.press_button.return_value = None
++    return emu
++
++
++def _make_ram_reader() -> MagicMock:
++    reader = MagicMock()
++    reader.current_map_name.return_value = "Pallet Town"
++    reader.current_map_id.return_value = 40
++    reader.player_x.return_value = 37
++    reader.player_y.return_value = 5
++    reader.player_tile_x.return_value = 9
++    reader.player_tile_y.return_value = 7
++    reader.player_facing.return_value = "down"
++    reader.screen_type.return_value = "overworld"
++    reader.party_count.return_value = 1
++    reader.is_moving.return_value = False
++    return reader
++
++
++def _boot(client: Any) -> Any:
++    with patch.object(env_service, "Emulator", return_value=_make_emulator()):
++        with patch.object(env_service, "RAMReader", return_value=_make_ram_reader()):
++            return client.post(
++                "/env/boot",
++                json={
++                    "rom_path": "/tmp/fake.gb",
++                    "boot_state": "/tmp/fake.state",
++                },
++            )
++
++
++def test_health_idle_then_booted(client: Any) -> None:
++    response = client.get("/env/health")
++    assert response.status_code == 200
++    assert response.json() == {
++        "status": "idle",
++        "booted": False,
++        "rom_path": None,
++        "boot_state": None,
++    }
++    assert _boot(client).status_code == 200
++    health = client.get("/env/health").json()
++    assert health["booted"] is True
++    assert health["rom_path"] == "/tmp/fake.gb"
++
++
++def test_boot_guard_returns_409(client: Any) -> None:
++    assert _boot(client).status_code == 200
++    second = _boot(client)
++    assert second.status_code == 409
++    assert "already booted" in second.json()["detail"]
++
++
++def test_boot_missing_rom_returns_400(client: Any) -> None:
++    with patch.object(
++        env_service, "Emulator", side_effect=FileNotFoundError("no such rom")
++    ):
++        response = client.post("/env/boot", json={})
++    assert response.status_code == 400
++    assert "no such rom" in response.json()["detail"]
++
++
++def test_observe_shape_before_boot_409(client: Any) -> None:
++    response = client.get("/env/observe")
++    assert response.status_code == 409
++
++
++def test_observe_shape(client: Any) -> None:
++    assert _boot(client).status_code == 200
++    response = client.get("/env/observe")
++    assert response.status_code == 200
++    body = response.json()
++    assert body["location"] == "Pallet Town"
++    assert body["map_id"] == 40
++    assert body["player_tile_x"] == 9
++    assert body["player_tile_y"] == 7
++    assert body["screen_type"] == "overworld"
++    assert body["party_count"] == 1
++    assert body["is_moving"] is False
++    assert body["screenshot_format"] == "png"
++    assert base64.b64decode(body["screenshot_base64"])[:8] == (b"\x89PNG\r\n\x1a\n")
++
++
++def test_observe_ram_failure_fields_null(client: Any) -> None:
++    assert _boot(client).status_code == 200
++    reader = env_service._ram_reader
++    reader.current_map_name.side_effect = RuntimeError("ram glitch")
++    response = client.get("/env/observe")
++    assert response.status_code == 200
++    assert response.json()["location"] is None
++
++
++def test_act_presses_buttons_and_returns_observation(client: Any) -> None:
++    assert _boot(client).status_code == 200
++    response = client.post("/env/act", json={"buttons": ["a", "up"], "frames": 5})
++    assert response.status_code == 200
++    body = response.json()
++    assert body["pressed"] == ["a", "up"]
++    assert body["frames"] == 5
++    assert body["observation"]["location"] == "Pallet Town"
++    emu = env_service._emulator
++    emu.press_button.assert_any_call("a", frames=5)
++    emu.press_button.assert_any_call("up", frames=5)
++
++
++def test_act_without_buttons_still_advances(client: Any) -> None:
++    assert _boot(client).status_code == 200
++    waits_before = env_service._emulator.wait.call_count
++    response = client.post("/env/act", json={"buttons": [], "frames": 30})
++    assert response.status_code == 200
++    env_service._emulator.wait.assert_called_with(30)
++    assert env_service._emulator.wait.call_count == waits_before + 1
++
++
++def test_act_before_boot_409(client: Any) -> None:
++    response = client.post("/env/act", json={"buttons": ["a"], "frames": 5})
++    assert response.status_code == 409
++
++
++def test_act_frames_out_of_range_422(client: Any) -> None:
++    response = client.post("/env/act", json={"buttons": ["a"], "frames": 0})
++    assert response.status_code == 422
++    response = client.post("/env/act", json={"buttons": ["a"], "frames": 100000})
++    assert response.status_code == 422
++
++
++def test_reset_reloads_boot_state(client: Any) -> None:
++    assert _boot(client).status_code == 200
++    response = client.post("/env/reset")
++    assert response.status_code == 200
++    body = response.json()
++    assert body["status"] == "reset"
++    assert body["booted"] is True
++    emu = env_service._emulator
++    emu.load_state.assert_called_with("/tmp/fake.state")
++    assert emu.wait.call_count >= 1  # boot settle + reset settle
++
++
++def test_reset_before_boot_409(client: Any) -> None:
++    response = client.post("/env/reset")
++    assert response.status_code == 409

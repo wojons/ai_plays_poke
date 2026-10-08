@@ -1394,3 +1394,13 @@ tasks:
   status: complete
   created_at: '2026-10-07T22:43:53.863789+00:00'
   completed_at: '2026-10-08T01:29:12.922094+00:00'
+- id: CH-SPLIT
+  title: 'Split environment from agent: emulator+RAM reader as an HTTP service with
+    observe/act contract'
+  criteria:
+  - Emulator + RAM reader reachable as a service with a documented observe/act contract;
+    at least one agent implementation that is NOT cron_runner.py drives the same environment;
+    bounded increment = service + contract doc + tests, cron_runner untouched/additive
+  status: complete
+  created_at: '2026-10-08T02:31:20.847366+00:00'
+  completed_at: '2026-10-08T02:51:32.090194+00:00'
