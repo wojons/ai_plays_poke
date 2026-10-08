@@ -44,62 +44,77 @@ class BattleMenuStub:
         self.forwarded: list[int] = []
         self.load_state = MagicMock()
 
-    def read_u8(self, address: int) -> int:
-        if address == ADDR_IS_IN_BATTLE:
-            return self.battle_code
+    _MAIN_MENU_ADDRS = {
+        ADDR_TOP_MENU_ITEM_Y: 14,
+        ADDR_MAX_MENU_ITEM: 1,
+    }
+    _MOVES_MENU_ADDRS = {
+        ADDR_TOP_MENU_ITEM_Y: 12,
+        ADDR_TOP_MENU_ITEM_X: 5,
+        ADDR_CURRENT_MENU_ITEM: 0,
+        ADDR_MAX_MENU_ITEM: 3,
+    }
+    _DIRECTION_MOVES = {"up": (0, 0), "down": (0, 1), "left": (1, 0), "right": (1, 1)}
+
+    def _menu_register(self, address: int) -> int:
+        """Return the fixed menu-register value for the active menu mode."""
+        if self.mode == "main" and address == ADDR_TOP_MENU_ITEM_X:
+            return 9 if self.cursor[1] == 0 else 15
         if self.mode == "main":
-            if address == ADDR_TOP_MENU_ITEM_Y:
-                return 14
-            if address == ADDR_TOP_MENU_ITEM_X:
-                return 9 if self.cursor[1] == 0 else 15
             if address == ADDR_CURRENT_MENU_ITEM:
                 return self.cursor[0]
             if address == ADDR_MAX_MENU_ITEM:
                 return 1
-        if self.mode == "moves":
-            if address == ADDR_TOP_MENU_ITEM_Y:
-                return 12
-            if address == ADDR_TOP_MENU_ITEM_X:
-                return 5
-            if address == ADDR_CURRENT_MENU_ITEM:
-                return 0
-            if address == ADDR_MAX_MENU_ITEM:
-                return 3
-        return 0
+        table = self._MAIN_MENU_ADDRS if self.mode == "main" else self._MOVES_MENU_ADDRS
+        return table.get(address, 0)
+
+    def read_u8(self, address: int) -> int:
+        if address == ADDR_IS_IN_BATTLE:
+            return self.battle_code
+        return self._menu_register(address)
 
     def press_button(self, button: str, frames: int = 5) -> None:
         del frames
         self.pressed.append(button)
         if self.battle_code not in (1, 2):
             return
+        self._dispatch_button(button)
 
+    def _dispatch_button(self, button: str) -> None:
+        """Route a button press to the handler for the active menu mode."""
         if button == "b":
-            if self.mode != "main":
-                self.mode = "main"
-                self.cursor = [0, 0]
+            self._handle_b_button()
             return
-
         if self.mode == "main":
-            if button == "up":
-                self.cursor[0] = 0
-            elif button == "down":
-                self.cursor[0] = 1
-            elif button == "left":
-                self.cursor[1] = 0
-            elif button == "right":
-                self.cursor[1] = 1
-            elif button == "a":
-                if self.cursor == [1, 1]:
-                    if self.battle_code == 1 and self.escape_succeeds:
-                        self.battle_code = 0
-                        self.mode = "ended"
-                    else:
-                        self.mode = "text"
-                elif self.cursor == [0, 0]:
-                    self.mode = "moves"
+            self._handle_main_button(button)
             return
-
         if self.mode == "moves" and button == "a":
+            self.mode = "text"
+
+    def _handle_b_button(self) -> None:
+        if self.mode != "main":
+            self.mode = "main"
+            self.cursor = [0, 0]
+
+    def _handle_main_button(self, button: str) -> None:
+        if button in self._DIRECTION_MOVES:
+            axis, value = self._DIRECTION_MOVES[button]
+            self.cursor[axis] = value
+        elif button == "a":
+            self._confirm_cursor()
+
+    def _confirm_cursor(self) -> None:
+        if self.cursor == [1, 1]:
+            self._confirm_battle_menu()
+        elif self.cursor == [0, 0]:
+            self.mode = "moves"
+
+    def _confirm_battle_menu(self) -> None:
+        """Resolve a RUN confirm: escape succeeds (code 1) or falls into text."""
+        if self.battle_code == 1 and self.escape_succeeds:
+            self.battle_code = 0
+            self.mode = "ended"
+        else:
             self.mode = "text"
 
     def wait(self, frames: int) -> None:

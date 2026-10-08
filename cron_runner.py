@@ -1188,6 +1188,54 @@ def _select_starter_from_menu(
     party_count = ram_reader.party_count()
     dialog_text = ram_reader.read_dialog_text()
     visible_species = _starter_species_from_dialog(dialog_text)
+    llm_blocked = _llm_mode_fast_tier_blocked()
+    decision, valid_choice = _ask_jev_starter_choice(
+        dialog_text,
+        visible_species,
+        llm_blocked=llm_blocked,
+    )
+    if decision_out is not None:
+        _record_starter_decision_outcome(
+            decision_out,
+            visible_species,
+            valid_choice,
+            decision,
+            llm_blocked=llm_blocked,
+        )
+    if valid_choice is None or not decision.get("ok"):
+        return party_count
+
+    if valid_choice != visible_species:
+        if not _travel_to_starter_ball(
+            emu,
+            ram_reader,
+            visible_species,
+            valid_choice,
+            max_advances=max_advances,
+        ):
+            return party_count
+
+    return _confirm_starter_and_decline_nickname(
+        emu,
+        ram_reader,
+        initial_party_count=party_count,
+        max_advances=max_advances,
+        decline_presses=decline_presses,
+    )
+
+
+def _ask_jev_starter_choice(
+    dialog_text: str,
+    visible_species: str | None,
+    *,
+    llm_blocked: bool,
+) -> tuple[dict[str, Any], str | None]:
+    """Ask JEV which starter ball to pick; return (decision, valid_choice).
+
+    BENCH-1: in the pure-LLM benchmark mode the fast tier is never
+    consulted — the gate below fails closed (no ball is accepted, the
+    caller's own fallback flow decides).
+    """
     questions = jev_client.starter_questions(visible_species=visible_species)
     state = json.dumps(
         {
@@ -1198,11 +1246,6 @@ def _select_starter_from_menu(
         },
         sort_keys=True,
     )
-    # BENCH-1: in the pure-LLM benchmark mode the fast tier is never
-    # consulted — the gate below fails closed (no ball is accepted, the
-    # caller's own fallback flow decides) and the row stamps WHY it is null
-    # instead of a bare transport failure.
-    llm_blocked = _llm_mode_fast_tier_blocked()
     if llm_blocked:
         decision: dict[str, Any] = {"ok": False, "error": "llm benchmark mode"}
     else:
@@ -1214,79 +1257,120 @@ def _select_starter_from_menu(
     raw_choice = decision.get("next_action")
     choice = raw_choice.upper() if isinstance(raw_choice, str) else None
     valid_choice = choice if choice in STARTER_BALL_X else None
-    if decision_out is not None:
-        # Same transport-evidence convention as the battle gate: a blocked ask
-        # stamps ``jev_ok=None`` (no attempt), never a transport failure.
-        _jev_outcome = (
-            {"jev_ok": None} if llm_blocked else _jev_outcome_fields(decision)
-        )
-        decision_out.update(
-            {
-                "phase": "STARTER",
-                "starter_choice": valid_choice,
-                "visible_species": visible_species,
-                "raw_distribution": decision.get("raw"),
-                "jev_answered": bool(
-                    not llm_blocked and decision.get("ok") and valid_choice
-                ),
-                "escalated": bool(decision.get("escalate", False)),
-                "missing_class": decision.get("missing_class"),
-                "jev_blocked_reason": (
-                    f"decision_mode={DECISION_MODE} (fast tier not consulted)"
-                    if llm_blocked
-                    else None
-                ),
-                **_jev_outcome,
-            }
-        )
-    if valid_choice is None or not decision.get("ok"):
-        return party_count
+    return decision, valid_choice
 
-    if valid_choice != visible_species:
-        # Decline the currently visible ball, return to the floor, then move to
-        # the selected ball. Oak's three balls sit at x=6/8/10 on the same row.
+
+def _record_starter_decision_outcome(
+    decision_out: dict[str, Any],
+    visible_species: str | None,
+    valid_choice: str | None,
+    decision: dict[str, Any],
+    *,
+    llm_blocked: bool,
+) -> None:
+    """Mirror the JEV starter ask into ``decision_out`` using transport evidence."""
+    # Same transport-evidence convention as the battle gate: a blocked ask
+    # stamps ``jev_ok=None`` (no attempt), never a transport failure.
+    _jev_outcome = {"jev_ok": None} if llm_blocked else _jev_outcome_fields(decision)
+    decision_out.update(
+        {
+            "phase": "STARTER",
+            "starter_choice": valid_choice,
+            "visible_species": visible_species,
+            "raw_distribution": decision.get("raw"),
+            "jev_answered": bool(
+                not llm_blocked and decision.get("ok") and valid_choice
+            ),
+            "escalated": bool(decision.get("escalate", False)),
+            "missing_class": decision.get("missing_class"),
+            "jev_blocked_reason": (
+                f"decision_mode={DECISION_MODE} (fast tier not consulted)"
+                if llm_blocked
+                else None
+            ),
+            **_jev_outcome,
+        }
+    )
+
+
+def _return_to_floor(emu: Any, ram_reader: RAMReader, max_advances: int) -> bool:
+    """Decline the visible ball and walk back to the floor; True once there."""
+    emu.press_button("b", frames=STARTER_ACTION_FRAMES)
+    emu.fast_forward(STARTER_ADVANCE_FRAMES)
+    for _ in range(max_advances):
+        if ram_reader.screen_type() == "overworld":
+            return True
         emu.press_button("b", frames=STARTER_ACTION_FRAMES)
         emu.fast_forward(STARTER_ADVANCE_FRAMES)
-        for _ in range(max_advances):
-            if ram_reader.screen_type() == "overworld":
-                break
-            emu.press_button("b", frames=STARTER_ACTION_FRAMES)
-            emu.fast_forward(STARTER_ADVANCE_FRAMES)
-        else:
-            return party_count
+    return False
 
-        current_x = ram_reader.player_tile_x()
-        target_x = STARTER_BALL_X[valid_choice]
-        direction = "right" if target_x > current_x else "left"
-        for _ in range(abs(target_x - current_x)):
-            emu.press_button(direction, frames=PRESS_FRAMES)
-            _settle_directional_step(emu, ram_reader)
-        emu.press_button("up", frames=PRESS_FRAMES)
+
+def _walk_to_ball_x(emu: Any, ram_reader: RAMReader, target_x: int) -> None:
+    """Move horizontally to a starter ball column (Oak's balls: x=6/8/10)."""
+    current_x = ram_reader.player_tile_x()
+    direction = "right" if target_x > current_x else "left"
+    for _ in range(abs(target_x - current_x)):
+        emu.press_button(direction, frames=PRESS_FRAMES)
         _settle_directional_step(emu, ram_reader)
+
+
+def _open_starter_dialog(emu: Any, ram_reader: RAMReader, max_advances: int) -> bool:
+    """Walk up and confirm until the starter YES/NO dialog opens; else False."""
+    emu.press_button("up", frames=PRESS_FRAMES)
+    _settle_directional_step(emu, ram_reader)
+    emu.press_button("a", frames=STARTER_ACTION_FRAMES)
+    emu.fast_forward(STARTER_ADVANCE_FRAMES)
+    for _ in range(max_advances):
+        current_screen = ram_reader.screen_type()
+        current_menu = ram_reader.read_menu_state()
+        if (
+            current_screen in ("menu", "list_menu")
+            or int(current_menu.get("menu_id", 0)) > 0
+        ):
+            return True
         emu.press_button("a", frames=STARTER_ACTION_FRAMES)
         emu.fast_forward(STARTER_ADVANCE_FRAMES)
+    return False
 
-        for _ in range(max_advances):
-            current_screen = ram_reader.screen_type()
-            current_menu = ram_reader.read_menu_state()
-            if (
-                current_screen in ("menu", "list_menu")
-                or int(current_menu.get("menu_id", 0)) > 0
-            ):
-                break
-            emu.press_button("a", frames=STARTER_ACTION_FRAMES)
-            emu.fast_forward(STARTER_ADVANCE_FRAMES)
-        else:
-            return party_count
 
-        # The dialog is the ground truth: never confirm if movement landed on
-        # a different ball than the species JEV selected.
-        selected_species = _starter_species_from_dialog(ram_reader.read_dialog_text())
-        if selected_species is not None and selected_species != valid_choice:
-            emu.press_button("b", frames=STARTER_ACTION_FRAMES)
-            emu.fast_forward(STARTER_ADVANCE_FRAMES)
-            return party_count
+def _travel_to_starter_ball(
+    emu: Any,
+    ram_reader: RAMReader,
+    visible_species: str | None,
+    valid_choice: str,
+    *,
+    max_advances: int,
+) -> bool:
+    """Decline the visible ball and walk to the selected one, verifying by dialog.
 
+    Oak's three balls sit at x=6/8/10 on the same row. Returns True only when
+    the dialog ground truth confirms the movement landed on ``valid_choice``.
+    """
+    if not _return_to_floor(emu, ram_reader, max_advances):
+        return False
+    _walk_to_ball_x(emu, ram_reader, STARTER_BALL_X[valid_choice])
+    if not _open_starter_dialog(emu, ram_reader, max_advances):
+        return False
+    # The dialog is the ground truth: never confirm if movement landed on
+    # a different ball than the species JEV selected.
+    selected_species = _starter_species_from_dialog(ram_reader.read_dialog_text())
+    if selected_species is not None and selected_species != valid_choice:
+        emu.press_button("b", frames=STARTER_ACTION_FRAMES)
+        emu.fast_forward(STARTER_ADVANCE_FRAMES)
+        return False
+    return True
+
+
+def _confirm_starter_and_decline_nickname(
+    emu: Any,
+    ram_reader: RAMReader,
+    *,
+    initial_party_count: int,
+    max_advances: int,
+    decline_presses: int,
+) -> int:
+    """Confirm the starter, then B-spam through the default-YES nickname prompt."""
+    party_count = initial_party_count
     emu.press_button("a", frames=STARTER_ACTION_FRAMES)
     emu.fast_forward(STARTER_ADVANCE_FRAMES)
 
@@ -1871,13 +1955,40 @@ def _memory_navigation_route(
         namespace=WORLD_MEMORY_NAMESPACE,
         limit=PATH_MEMORY_RECALL_LIMIT,
     )
+    visited_slugs = _memory_visited_slugs(from_slug, visited_maps)
+
+    current_tile = _observation_tile(observation)
+    walkability = _memory_walkability(observation)
+    candidates = _memory_route_candidates(records, visited_slugs)
+    if not candidates:
+        return None
+
+    # The newest record wins: a later crossing is the more recent proof.
+    _, record, direction, door = max(candidates, key=lambda item: item[0])
+    plan_result = _memory_route_plan(current_tile, door, direction, walkability)
+    if plan_result is None:
+        return None
+    plan, mechanism = plan_result
+    return _memory_route_payload(record, direction, door, plan, mechanism)
+
+
+def _memory_visited_slugs(
+    from_slug: str,
+    visited_maps: tuple[tuple[int, str], ...] | None,
+) -> set[str]:
+    """Collect map slugs already visited this run, seeded with the current map."""
     visited_slugs = {from_slug}
     for visited_id, visited_name in visited_maps or ():
         if isinstance(visited_id, int) and visited_id >= 0:
             visited_slugs.add(_map_slug(str(visited_name or ""), visited_id))
+    return visited_slugs
 
-    current_tile = _observation_tile(observation)
-    walkability = _memory_walkability(observation)
+
+def _memory_route_candidates(
+    records: list[dict[str, Any]],
+    visited_slugs: set[str],
+) -> list[tuple[str, dict[str, Any], str, tuple[int, int] | None]]:
+    """Turn stored path-memory records into sortable route candidates."""
     candidates: list[tuple[str, dict[str, Any], str, tuple[int, int] | None]] = []
     for record in records:
         if not isinstance(record, dict):
@@ -1896,15 +2007,17 @@ def _memory_navigation_route(
                 _tile_from_point(attributes.get("door_tile")),
             )
         )
-    if not candidates:
-        return None
+    return candidates
 
-    # The newest record wins: a later crossing is the more recent proof.
-    _, record, direction, door = max(candidates, key=lambda item: item[0])
-    plan_result = _memory_route_plan(current_tile, door, direction, walkability)
-    if plan_result is None:
-        return None
-    plan, mechanism = plan_result
+
+def _memory_route_payload(
+    record: dict[str, Any],
+    direction: str,
+    door: tuple[int, int] | None,
+    plan: Any,
+    mechanism: Any,
+) -> dict[str, Any] | None:
+    """Build the navigation-route payload from the winning memory record."""
     parsed = _parse_path_memory_key(record.get("key"))
     if parsed is None:
         return None
@@ -2157,6 +2270,133 @@ def _jev_overworld_decision(
     the per-decision rows stamp: ``jev_answered``, ``escalated``,
     ``missing_class`` and ``raw_distribution`` (the full answer distribution).
     """
+    err, decision, projection, world_memory_keys = _jev_build_projection_decision(
+        obs,
+        goal=goal,
+        visited=visited,
+        recent_events=recent_events,
+        last_action=last_action,
+        last_action_changed_state=last_action_changed_state,
+        world_facts=world_facts,
+        scenario_path=scenario_path,
+    )
+    if err is not None:
+        return cast(dict[str, Any], err)
+
+    assert decision is not None
+    initial_decision = decision
+    teacher_one_shot: str | None = None
+    teacher_missing_facts: list[str] = []
+    teacher_memory_targets: list[str] = []
+    memory_navigation, memory_hit = _jev_consult_memory_navigation(
+        obs,
+        decision,
+        visited_maps=visited_maps,
+    )
+    missing_class = decision.get("missing_class")
+    escalation_class = (
+        missing_class if isinstance(missing_class, str) and missing_class else "unknown"
+    )
+    handoff_trigger, policy, handoff_ok, handoff_why = _jev_handoff_gate(
+        decision,
+        handoff_policy=handoff_policy,
+        teacher_budget=teacher_budget,
+        escalation_class=escalation_class,
+    )
+    can_call_teacher = (
+        bool(decision.get("escalate"))
+        and handoff_ok
+        and teacher_api_client is not None
+        and bool(teacher_model)
+        and escalated_classes is not None
+        and escalation_class not in escalated_classes
+        # S6 NAV-MEM: a proven route already answered this navigation gap, so
+        # the teacher (LLM) is never called for it.
+        and memory_hit is None
+    )
+    if can_call_teacher:
+        (
+            decision,
+            _teacher_record,
+            teacher_one_shot,
+            teacher_missing_facts,
+            teacher_memory_targets,
+        ) = _jev_teacher_escalation(
+            decision,
+            projection=projection,
+            obs=obs,
+            teacher_memory=teacher_memory,
+            recent_events=recent_events,
+            recent_decisions=recent_decisions,
+            last_action_changed_state=last_action_changed_state,
+            teacher_log_file=teacher_log_file,
+            teacher_cycle=teacher_cycle,
+            teacher_results=teacher_results,
+            teacher_model=teacher_model,
+            teacher_api_client=teacher_api_client,
+            escalated_classes=escalated_classes,
+            teacher_budget=teacher_budget,
+        )
+
+    escalate = bool(initial_decision.get("escalate", False))
+    # A policy-blocked trigger is NOT an escalation: no teacher was called, so
+    # the row must not claim one. This is what makes system1 (handoff off)
+    # measurable — `escalated` means "handed back", not "wanted to".
+    if escalate and not handoff_ok:
+        escalate = False
+    reason = initial_decision.get("escalate_reason")
+    plan, intent, jev_answered, escalate, decision = _jev_resolve_action_plan(
+        decision,
+        initial_decision,
+        teacher_one_shot=teacher_one_shot,
+        memory_hit=memory_hit,
+        escalate=escalate,
+    )
+    if plan is None:
+        # Return the JEV attempt, not an empty sentinel: the caller still
+        # takes the controller fallback, but can stamp whether this was a
+        # transport failure or a healthy response with no usable action.
+        return decision
+    return _jev_decision_row(
+        decision,
+        initial_decision,
+        plan=plan,
+        intent=intent,
+        jev_answered=jev_answered,
+        escalate=escalate,
+        reason=reason,
+        projection=projection,
+        handoff_trigger=handoff_trigger,
+        handoff_ok=handoff_ok,
+        handoff_why=handoff_why,
+        policy=policy,
+        teacher_missing_facts=teacher_missing_facts,
+        teacher_memory_targets=teacher_memory_targets,
+        memory_navigation=memory_navigation,
+        world_memory_keys=world_memory_keys,
+    )
+
+
+def _jev_build_projection_decision(
+    obs: dict[str, Any],
+    *,
+    goal: str,
+    visited: dict[tuple[int, int], int] | None,
+    recent_events: list[dict[str, Any]] | None,
+    last_action: str,
+    last_action_changed_state: bool | None,
+    world_facts: list[str] | None,
+    scenario_path: str | Path | None,
+) -> tuple[Any, dict[str, Any] | None, str, list[str]]:
+    """Build the bounded projection and ask JEV; fail closed on any raise.
+
+    Returns ``(error, decision, projection, world_memory_keys)`` — ``error`` is
+    the fail-closed row when the tier raised, and the remaining values are
+    ``None``/empty in that case. Callers must treat ``decision`` as non-None
+    after the error check (JEV's contract: any raising tier is replaced by the
+    fail-closed row, never left unwritten).
+    """
+    world_memory_keys: list[str] = []
     try:
         bounded_world_facts = _bounded_world_facts(world_facts)
         world_memory_keys = [
@@ -2182,62 +2422,92 @@ def _jev_overworld_decision(
             last_action_failed=last_action_changed_state is False,
             scenario_path=scenario_path,
         )
-        reason = decision.get("escalate_reason")
-        topology_gap = (
-            isinstance(reason, str)
-            and (
-                reason.startswith("insufficient_state")
-                or reason.startswith("missing_class=map_topology")
-            )
-            and decision.get("missing_class") == "map_topology"
-        )
-        if topology_gap and _map_topology_resolved(obs, world_facts):
-            # JEV repeatedly self-reported this gap after the projection carried
-            # both the recalled map and exact ROM collision truth. Preserve the
-            # raw answer but reconcile the effective gate with deterministic data.
-            decision["reported_missing_class"] = "map_topology"
-            decision["missing_class"] = "none"
-            decision["escalate"] = False
-            decision["escalate_reason"] = "map_topology_resolved_by_rom"
+        _reconcile_map_topology_gap(decision, obs, world_facts)
+        return None, decision, projection, world_memory_keys
     except Exception as exc:  # noqa: BLE001 - fail closed, but never silently
         # A raising tier must not kill the cycle AND must not hide itself: the
         # run keeps playing through the controller, and the transport outcome
         # is carried into the fallback decision row for run-level degradation.
         safe_print(f"  [JEV] overworld decision failed: {exc!r} - falling back")
-        return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+        return (
+            cast(dict[str, Any], {"ok": False, "error": f"{type(exc).__name__}: {exc}"}),
+            None,
+            "",
+            [],
+        )
 
-    initial_decision = decision
-    teacher_record: dict[str, Any] | None = None
-    teacher_one_shot: str | None = None
-    teacher_missing_facts: list[str] = []
-    teacher_memory_targets: list[str] = []
-    # ── S6 NAV-MEM: consult proven routes BEFORE the teacher ────────────
-    # Only a navigation gap reads ``world/path/*``; a hit replaces the teacher
-    # call entirely and stamps the cited memory key on the row. A miss leaves
-    # the existing hand-off byte-identical, so an empty store cannot change a
-    # run's behaviour.
+
+def _reconcile_map_topology_gap(
+    decision: dict[str, Any],
+    obs: dict[str, Any],
+    world_facts: list[str] | None,
+) -> None:
+    """Downgrade a self-reported map_topology gap the ROM data disproves.
+
+    JEV repeatedly self-reported this gap after the projection carried
+    both the recalled map and exact ROM collision truth. Preserve the
+    raw answer but reconcile the effective gate with deterministic data.
+    """
+    reason = decision.get("escalate_reason")
+    topology_gap = (
+        isinstance(reason, str)
+        and (
+            reason.startswith("insufficient_state")
+            or reason.startswith("missing_class=map_topology")
+        )
+        and decision.get("missing_class") == "map_topology"
+    )
+    if topology_gap and _map_topology_resolved(obs, world_facts):
+        decision["reported_missing_class"] = "map_topology"
+        decision["missing_class"] = "none"
+        decision["escalate"] = False
+        decision["escalate_reason"] = "map_topology_resolved_by_rom"
+
+
+def _jev_consult_memory_navigation(
+    obs: dict[str, Any],
+    decision: dict[str, Any],
+    *,
+    visited_maps: tuple[tuple[int, str], ...] | None,
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Consult proven path-memory routes for a navigation gap (S6 NAV-MEM).
+
+    Only a navigation gap reads ``world/path/*``; a hit replaces the teacher
+    call entirely and stamps the cited memory key on the row. A miss leaves
+    the existing hand-off byte-identical, so an empty store cannot change a
+    run's behaviour.
+    """
     memory_navigation: dict[str, Any] | None = None
     memory_hit: dict[str, Any] | None = None
-    if _is_navigation_gap(initial_decision):
-        memory_navigation = _memory_navigation_decision(obs, visited_maps=visited_maps)
-        if memory_navigation.get("result") == "hit":
-            memory_hit = memory_navigation
-            safe_print(
-                f"  [NAV-MEM] {memory_hit['key']} "
-                f"({memory_hit['mechanism']}) -> {memory_hit['plan']} | no LLM call"
-            )
-        else:
-            safe_print(
-                f"  [NAV-MEM] no proven route ({memory_navigation.get('reason')}) "
-                "- keeping the existing path"
-            )
-    missing_class = decision.get("missing_class")
-    escalation_class = (
-        missing_class if isinstance(missing_class, str) and missing_class else "unknown"
-    )
-    # Which trigger fired, and does THIS run's policy allow it to hand back?
-    # The trigger families are the ones jev_client.should_escalate() already
-    # fires; the policy only selects among them.
+    if not _is_navigation_gap(decision):
+        return memory_navigation, memory_hit
+    memory_navigation = _memory_navigation_decision(obs, visited_maps=visited_maps)
+    if memory_navigation.get("result") == "hit":
+        memory_hit = memory_navigation
+        safe_print(
+            f"  [NAV-MEM] {memory_hit['key']} "
+            f"({memory_hit['mechanism']}) -> {memory_hit['plan']} | no LLM call"
+        )
+    else:
+        safe_print(
+            f"  [NAV-MEM] no proven route ({memory_navigation.get('reason')}) "
+            "- keeping the existing path"
+        )
+    return memory_navigation, memory_hit
+
+
+def _jev_handoff_gate(
+    decision: dict[str, Any],
+    *,
+    handoff_policy: dict[str, Any] | None,
+    teacher_budget: dict[str, int] | None,
+    escalation_class: str,
+) -> tuple[str, dict[str, Any], bool, str | None]:
+    """Classify the trigger and check the run's handoff policy + teacher budget.
+
+    The trigger families are the ones jev_client.should_escalate() already
+    fires; the policy only selects among them.
+    """
     handoff_trigger = classify_handoff_trigger(decision.get("escalate_reason"))
     policy = handoff_policy if isinstance(handoff_policy, dict) else HANDOFF_POLICY
     handoff_ok, handoff_why = handoff_allowed(policy, handoff_trigger, escalation_class)
@@ -2248,108 +2518,167 @@ def _jev_overworld_decision(
             handoff_why = (
                 f"teacher budget exhausted ({teacher_budget.get('used', 0)}/{cap})"
             )
-    can_call_teacher = (
-        bool(decision.get("escalate"))
-        and handoff_ok
-        and teacher_api_client is not None
-        and bool(teacher_model)
-        and escalated_classes is not None
-        and escalation_class not in escalated_classes
-        # S6 NAV-MEM: a proven route already answered this navigation gap, so
-        # the teacher (LLM) is never called for it.
-        and memory_hit is None
-    )
-    if can_call_teacher:
-        # The predicate above narrows this for readers; the assertion also makes
-        # the Optional contract explicit to static analyzers.
-        assert escalated_classes is not None
-        # Consume the per-class allowance before the API boundary so a failed or
-        # raising teacher cannot be retried on every subsequent game cycle.
-        escalated_classes.add(escalation_class)
-        if teacher_budget is not None:
-            # Counted at the same boundary as the class allowance: a call that
-            # fails still spent the budget.
-            teacher_budget["used"] = teacher_budget.get("used", 0) + 1
-        prior_turn_count = len(
-            (recent_decisions or [])[-jev_client.RECENT_DECISION_LIMIT :]
-        )
-        if prior_turn_count:
-            safe_print(
-                f"  [CTX] teacher request carried {prior_turn_count} prior turns"
-            )
-        try:
-            teacher_record = jev_client.escalate_and_reask(
-                decision,
-                projection=projection,
-                memory=teacher_memory,
-                recent_events=recent_events,
-                recent_decisions=recent_decisions,
-                milestones=[],
-                teacher_model=teacher_model,
-                client=teacher_api_client,
-                last_action_failed=last_action_changed_state is False,
-                log_file=teacher_log_file,
-                cycle=teacher_cycle,
-                results=teacher_results,
-            )
-        except Exception as exc:  # noqa: BLE001 - fail closed to normal decision
-            safe_print(
-                f"  [TEACHER] escalation failed: {exc!r} - using normal decision"
-            )
-        if teacher_record and teacher_record.get("ok"):
-            patch = teacher_record.get("patch")
-            post_ask = teacher_record.get("post_ask")
-            if isinstance(patch, dict):
-                teacher_missing_facts, teacher_memory_targets = (
-                    _teacher_world_memory_targets(patch, obs)
-                )
-                raw_one_shot = patch.get("one_shot_action")
-                if isinstance(raw_one_shot, str):
-                    normalized_one_shot = raw_one_shot.upper()
-                    if normalized_one_shot in OVERWORLD_ACTIONS:
-                        teacher_one_shot = normalized_one_shot
-            if isinstance(post_ask, dict) and post_ask.get("ok"):
-                decision = post_ask
+    return handoff_trigger, policy, handoff_ok, handoff_why
 
-    escalate = bool(initial_decision.get("escalate", False))
-    # A policy-blocked trigger is NOT an escalation: no teacher was called, so
-    # the row must not claim one. This is what makes system1 (handoff off)
-    # measurable — `escalated` means "handed back", not "wanted to".
-    if escalate and not handoff_ok:
-        escalate = False
-    reason = initial_decision.get("escalate_reason")
-    # S6 NAV-MEM: a memory-resolved navigation gap neither handed back to the
-    # teacher nor carries a JEV-authored plan, so the row reports
-    # `escalated=False` / `jev_answered=False` and cites the path-memory key.
+
+def _jev_teacher_escalation(
+    decision: dict[str, Any],
+    *,
+    projection: str,
+    obs: dict[str, Any],
+    teacher_memory: str | None,
+    recent_events: list[dict[str, Any]] | None,
+    recent_decisions: list[dict[str, Any]] | None,
+    last_action_changed_state: bool | None,
+    teacher_log_file: TextIO | None,
+    teacher_cycle: int | None,
+    teacher_results: list[dict[str, Any]] | None,
+    teacher_model: str | None,
+    teacher_api_client: Any,
+    escalated_classes: set[str] | None,
+    teacher_budget: dict[str, int] | None,
+) -> tuple[
+    dict[str, Any],
+    dict[str, Any] | None,
+    str | None,
+    list[str],
+    list[str],
+]:
+    """Escalate to the teacher LLM and fold its patch back into the decision.
+
+    Consumes the per-class allowance before the API boundary so a failed or
+    raising teacher cannot be retried on every subsequent game cycle, and
+    counts the budget at the same boundary (a call that fails still spent it).
+    """
+    teacher_record: dict[str, Any] | None = None
+    teacher_one_shot: str | None = None
+    teacher_missing_facts: list[str] = []
+    teacher_memory_targets: list[str] = []
+    # The predicate above narrows this for readers; the assertion also makes
+    # the Optional contract explicit to static analyzers.
+    assert escalated_classes is not None
+    escalated_classes.add(escalation_class_of(decision))
+    if teacher_budget is not None:
+        teacher_budget["used"] = teacher_budget.get("used", 0) + 1
+    prior_turn_count = len(
+        (recent_decisions or [])[-jev_client.RECENT_DECISION_LIMIT :]
+    )
+    if prior_turn_count:
+        safe_print(f"  [CTX] teacher request carried {prior_turn_count} prior turns")
+    try:
+        teacher_record = jev_client.escalate_and_reask(
+            decision,
+            projection=projection,
+            memory=teacher_memory,
+            recent_events=recent_events,
+            recent_decisions=recent_decisions,
+            milestones=[],
+            teacher_model=teacher_model,
+            client=teacher_api_client,
+            last_action_failed=last_action_changed_state is False,
+            log_file=teacher_log_file,
+            cycle=teacher_cycle,
+            results=teacher_results,
+        )
+    except Exception as exc:  # noqa: BLE001 - fail closed to normal decision
+        safe_print(f"  [TEACHER] escalation failed: {exc!r} - using normal decision")
+    if teacher_record and teacher_record.get("ok"):
+        decision, teacher_one_shot, teacher_missing_facts, teacher_memory_targets = (
+            _apply_teacher_patch(decision, teacher_record, obs)
+        )
+    return decision, teacher_record, teacher_one_shot, teacher_missing_facts, teacher_memory_targets
+
+
+def escalation_class_of(decision: dict[str, Any]) -> str:
+    """Return the escalation class for a decision that is about to escalate."""
+    missing_class = decision.get("missing_class")
+    return (
+        missing_class if isinstance(missing_class, str) and missing_class else "unknown"
+    )
+
+
+def _apply_teacher_patch(
+    decision: dict[str, Any],
+    teacher_record: dict[str, Any],
+    obs: dict[str, Any],
+) -> tuple[dict[str, Any], str | None, list[str], list[str]]:
+    """Fold a successful teacher patch (one-shot + post-ask) into the decision."""
+    teacher_one_shot: str | None = None
+    teacher_missing_facts: list[str] = []
+    teacher_memory_targets: list[str] = []
+    patch = teacher_record.get("patch")
+    post_ask = teacher_record.get("post_ask")
+    if isinstance(patch, dict):
+        teacher_missing_facts, teacher_memory_targets = (
+            _teacher_world_memory_targets(patch, obs)
+        )
+        raw_one_shot = patch.get("one_shot_action")
+        if isinstance(raw_one_shot, str):
+            normalized_one_shot = raw_one_shot.upper()
+            if normalized_one_shot in OVERWORLD_ACTIONS:
+                teacher_one_shot = normalized_one_shot
+    if isinstance(post_ask, dict) and post_ask.get("ok"):
+        decision = post_ask
+    return decision, teacher_one_shot, teacher_missing_facts, teacher_memory_targets
+
+
+def _jev_resolve_action_plan(
+    decision: dict[str, Any],
+    initial_decision: dict[str, Any],
+    *,
+    teacher_one_shot: str | None,
+    memory_hit: dict[str, Any] | None,
+    escalate: bool,
+) -> tuple[list[str] | None, str, bool, bool, dict[str, Any]]:
+    """Turn the JEV/teacher/memory answer into an executable plan.
+
+    Returns ``(plan, intent, jev_answered, escalate, decision)``. ``plan`` is
+    ``None`` when no usable action exists — the caller then returns the
+    (possibly degraded) decision so the controller fallback can stamp it.
+    S6 NAV-MEM: a memory-resolved navigation gap neither handed back to the
+    teacher nor carries a JEV-authored plan, so the row reports
+    ``escalated=False`` / ``jev_answered=False`` and cites the path-memory key.
+    """
     jev_answered = True
     if memory_hit is not None:
-        plan = list(memory_hit["plan"])
-        intent = f"memory-nav {memory_hit['key']}"
-        escalate = False
-        jev_answered = False
-    else:
-        raw_action = teacher_one_shot or decision.get("next_action")
+        return list(memory_hit["plan"]), f"memory-nav {memory_hit['key']}", False, False, decision
+    raw_action = teacher_one_shot or decision.get("next_action")
+    action = raw_action.upper() if isinstance(raw_action, str) else None
+    if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
+        # A failed escalation degrades to the original JEV decision. If that
+        # is unusable too, the caller takes its existing controller fallback.
+        decision = initial_decision
+        raw_action = decision.get("next_action")
         action = raw_action.upper() if isinstance(raw_action, str) else None
-        if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
-            # A failed escalation degrades to the original JEV decision. If that
-            # is unusable too, the caller takes its existing controller fallback.
-            decision = initial_decision
-            raw_action = decision.get("next_action")
-            action = raw_action.upper() if isinstance(raw_action, str) else None
-        if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
-            # Return the JEV attempt, not an empty sentinel: the caller still
-            # takes the controller fallback, but can stamp whether this was a
-            # transport failure or a healthy response with no usable action.
-            return decision
-        if teacher_one_shot is not None:
-            plan = [teacher_one_shot]
-            intent = f"teacher one-shot {teacher_one_shot}"
-        elif action == OVERWORLD_WAIT:
-            plan = []
-            intent = "jev WAIT (no press)"
-        else:
-            plan = [action]
-            intent = f"jev {action}"
+    if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
+        return None, "", jev_answered, escalate, decision
+    if teacher_one_shot is not None:
+        return [teacher_one_shot], f"teacher one-shot {teacher_one_shot}", jev_answered, escalate, decision
+    if action == OVERWORLD_WAIT:
+        return [], "jev WAIT (no press)", jev_answered, escalate, decision
+    return [action], f"jev {action}", jev_answered, escalate, decision
+
+
+def _jev_decision_row(
+    decision: dict[str, Any],
+    initial_decision: dict[str, Any],
+    *,
+    plan: list[str],
+    intent: str,
+    jev_answered: bool,
+    escalate: bool,
+    reason: Any,
+    projection: str,
+    handoff_trigger: str,
+    handoff_ok: bool,
+    handoff_why: str | None,
+    policy: dict[str, Any],
+    teacher_missing_facts: list[str],
+    teacher_memory_targets: list[str],
+    memory_navigation: dict[str, Any] | None,
+    world_memory_keys: list[str],
+) -> dict[str, Any]:
+    """Assemble the per-cycle JEV decision row (the loop's contract)."""
     return {
         "ok": bool(decision.get("ok")),
         "plan": plan,
@@ -2444,62 +2773,8 @@ def _escalating_recovery(
     """
     if _is_battle_game_state(game_state):
         assert game_state is not None
-        llm_blocked = _llm_mode_fast_tier_blocked()
-        if llm_blocked:
-            decision: dict[str, Any] = {"ok": False, "error": "llm benchmark mode"}
-        else:
-            decision = jev_client.decide(
-                json.dumps(game_state, default=str, sort_keys=True),
-                in_battle=True,
-                act_phase=True,
-            )
-        raw_action = decision.get("next_action")
-        action = raw_action.upper() if isinstance(raw_action, str) else None
-        jev_action = action if action in BATTLE_ACTIONS else None
-        battle_action = jev_action or _battle_fallback_action(game_state)
-        # Transport evidence follows the overworld convention: a blocked ask
-        # stamps ``jev_ok=None`` (no attempt was made), NOT ``False`` — a
-        # False would count as a JEV transport failure and could trip the
-        # degradation gate on a mode that never touches the tier.
-        _jev_outcome = (
-            {"jev_ok": None} if llm_blocked else _jev_outcome_fields(decision)
-        )
-        if decision_out is not None:
-            decision_out.update(
-                {
-                    "phase": "BATTLE",
-                    "battle_action": battle_action,
-                    "intent": (
-                        f"battle action {battle_action}"
-                        if battle_action is not None
-                        else None
-                    ),
-                    "raw_distribution": decision.get("raw"),
-                    "jev_answered": bool(
-                        not llm_blocked and decision.get("ok") and jev_action
-                    ),
-                    "escalated": bool(decision.get("escalate", False)),
-                    "missing_class": decision.get("missing_class"),
-                    "jev_blocked_reason": (
-                        f"decision_mode={DECISION_MODE} (fast tier not consulted)"
-                        if llm_blocked
-                        else None
-                    ),
-                    **_jev_outcome,
-                }
-            )
-        if battle_action is None:
-            return (
-                "battle_jev_unavailable",
-                "JEV returned no valid battle action and RAM exposed no usable move",
-            )
-        tool_name, arguments = _battle_tool_call(battle_action, game_state)
-        result = execute_tool_call(emu, tool_name, arguments)
-        action_description = _battle_action_description(tool_name, arguments)
-        source = "JEV" if jev_action is not None else "RAM fallback"
-        return (
-            "battle_jev_action",
-            f"{action_description} chosen by {source} — {result}",
+        return _battle_recovery_action(
+            emu, game_state, decision_out=decision_out
         )
 
     # Clamp level
@@ -2511,62 +2786,22 @@ def _escalating_recovery(
         emu.fast_forward(120)
         return ("alternate_direction", f"rotated from {last_direction} → {alt}")
 
-    elif level == 1:
-        # Menu redraw: open menu, close it — forces screen re-render
-        emu.press_button("start", frames=30)
-        emu.wait(60)
-        emu.press_button("b", frames=10)
-        emu.wait(30)
-        emu.press_button("b", frames=10)
-        emu.wait(30)
-        return ("menu_redraw", "START → B → B (force screen redraw)")
+    if level == 1:
+        return _menu_redraw_recovery(emu)
 
-    elif level == 2 and last_direction in _OPPOSITE_DIR:
-        opp = _OPPOSITE_DIR[last_direction]
-        forbidden = {direction.upper() for direction in (forbidden_directions or set())}
-        if opp in forbidden:
-            replacement = _DIR_ROTATION[opp]
-            for _ in range(4):
-                if replacement not in forbidden:
-                    break
-                replacement = _DIR_ROTATION[replacement]
-            if replacement in forbidden:
-                return (
-                    "navigation_hold_recovery_skipped",
-                    f"refused {opp}; every recovery direction is forbidden",
-                )
-            emu.press_button(replacement.lower(), frames=60)
-            emu.fast_forward(120)
-            if decision_out is not None:
-                decision_out["navigation_hold_recovery"] = {
-                    "mechanism": "reverse_edge_guard",
-                    "blocked_direction": opp,
-                    "replacement_direction": replacement,
-                }
-            return (
-                "navigation_hold_recovery",
-                f"refused reverse-edge {opp}; pressed {replacement} instead",
-            )
-        emu.press_button(opp.lower(), frames=60)
-        emu.fast_forward(120)
-        return ("step_back", f"pressed {opp} (opposite of {last_direction})")
+    if level == 2 and last_direction in _OPPOSITE_DIR:
+        return _step_back_recovery(
+            emu,
+            last_direction,
+            decision_out=decision_out,
+            forbidden_directions=forbidden_directions,
+        )
 
-    elif level == 3 and last_saved_slot is not None:
-        try:
-            emu.load_state(last_saved_slot)
-            return ("load_checkpoint", f"loaded slot {last_saved_slot}")
-        except Exception as exc:
-            return ("load_checkpoint_failed", f"slot {last_saved_slot}: {exc}")
+    if level == 3 and last_saved_slot is not None:
+        return _load_checkpoint_recovery(emu, last_saved_slot)
 
-    elif level >= 4 or (level >= 2 and last_direction not in _OPPOSITE_DIR):
-        # A-mash: 20 rapid A presses (dialog stuck) then B to close menus
-        for _ in range(20):
-            emu.press_button("a", frames=3)
-            emu.fast_forward(1)
-        emu.wait(30)
-        emu.press_button("b", frames=30)
-        emu.wait(30)
-        return ("a_mash", "20× A + B (dialog/menu escape)")
+    if level >= 4 or (level >= 2 and last_direction not in _OPPOSITE_DIR):
+        return _a_mash_recovery(emu)
 
     # Fallback: try next level
     return _escalating_recovery(
@@ -2578,6 +2813,148 @@ def _escalating_recovery(
         decision_out=decision_out,
         forbidden_directions=forbidden_directions,
     )
+
+
+def _battle_recovery_action(
+    emu,
+    game_state: dict[str, Any],
+    *,
+    decision_out: dict[str, Any] | None,
+) -> tuple[str, str]:
+    """Run the battle recovery rung: JEV decides, translated into a tool call.
+
+    Battles bypass every generic rung. Loading a checkpoint can erase the
+    encounter, START/B/direction recovery is not a legal turn, and blind A-mash
+    can choose an unintended move. Ask JEV against the live battle state and
+    translate its battle vocabulary choice into the corresponding tool call —
+    except in the pure-LLM benchmark mode, where the fast tier is never
+    consulted (BENCH-1: the benchmark arm must not be contaminated) and the
+    RAM fallback below decides the battle fail-closed.
+    """
+    llm_blocked = _llm_mode_fast_tier_blocked()
+    if llm_blocked:
+        decision: dict[str, Any] = {"ok": False, "error": "llm benchmark mode"}
+    else:
+        decision = jev_client.decide(
+            json.dumps(game_state, default=str, sort_keys=True),
+            in_battle=True,
+            act_phase=True,
+        )
+    raw_action = decision.get("next_action")
+    action = raw_action.upper() if isinstance(raw_action, str) else None
+    jev_action = action if action in BATTLE_ACTIONS else None
+    battle_action = jev_action or _battle_fallback_action(game_state)
+    # Transport evidence follows the overworld convention: a blocked ask
+    # stamps ``jev_ok=None`` (no attempt was made), NOT ``False`` — a
+    # False would count as a JEV transport failure and could trip the
+    # degradation gate on a mode that never touches the tier.
+    _jev_outcome = {"jev_ok": None} if llm_blocked else _jev_outcome_fields(decision)
+    if decision_out is not None:
+        decision_out.update(
+            {
+                "phase": "BATTLE",
+                "battle_action": battle_action,
+                "intent": (
+                    f"battle action {battle_action}"
+                    if battle_action is not None
+                    else None
+                ),
+                "raw_distribution": decision.get("raw"),
+                "jev_answered": bool(
+                    not llm_blocked and decision.get("ok") and jev_action
+                ),
+                "escalated": bool(decision.get("escalate", False)),
+                "missing_class": decision.get("missing_class"),
+                "jev_blocked_reason": (
+                    f"decision_mode={DECISION_MODE} (fast tier not consulted)"
+                    if llm_blocked
+                    else None
+                ),
+                **_jev_outcome,
+            }
+        )
+    if battle_action is None:
+        return (
+            "battle_jev_unavailable",
+            "JEV returned no valid battle action and RAM exposed no usable move",
+        )
+    tool_name, arguments = _battle_tool_call(battle_action, game_state)
+    result = execute_tool_call(emu, tool_name, arguments)
+    action_description = _battle_action_description(tool_name, arguments)
+    source = "JEV" if jev_action is not None else "RAM fallback"
+    return (
+        "battle_jev_action",
+        f"{action_description} chosen by {source} — {result}",
+    )
+
+
+def _menu_redraw_recovery(emu) -> tuple[str, str]:
+    """Level 1: open menu, close it — forces screen re-render."""
+    emu.press_button("start", frames=30)
+    emu.wait(60)
+    emu.press_button("b", frames=10)
+    emu.wait(30)
+    emu.press_button("b", frames=10)
+    emu.wait(30)
+    return ("menu_redraw", "START → B → B (force screen redraw)")
+
+
+def _step_back_recovery(
+    emu,
+    last_direction: str,
+    *,
+    decision_out: dict[str, Any] | None,
+    forbidden_directions: set[str] | None,
+) -> tuple[str, str]:
+    """Level 2: press opposite of last direction, honouring forbidden edges."""
+    opp = _OPPOSITE_DIR[last_direction]
+    forbidden = {direction.upper() for direction in (forbidden_directions or set())}
+    if opp in forbidden:
+        replacement = _DIR_ROTATION[opp]
+        for _ in range(4):
+            if replacement not in forbidden:
+                break
+            replacement = _DIR_ROTATION[replacement]
+        if replacement in forbidden:
+            return (
+                "navigation_hold_recovery_skipped",
+                f"refused {opp}; every recovery direction is forbidden",
+            )
+        emu.press_button(replacement.lower(), frames=60)
+        emu.fast_forward(120)
+        if decision_out is not None:
+            decision_out["navigation_hold_recovery"] = {
+                "mechanism": "reverse_edge_guard",
+                "blocked_direction": opp,
+                "replacement_direction": replacement,
+            }
+        return (
+            "navigation_hold_recovery",
+            f"refused reverse-edge {opp}; pressed {replacement} instead",
+        )
+    emu.press_button(opp.lower(), frames=60)
+    emu.fast_forward(120)
+    return ("step_back", f"pressed {opp} (opposite of {last_direction})")
+
+
+def _load_checkpoint_recovery(emu, last_saved_slot: int) -> tuple[str, str]:
+    """Level 3: restore the last saved state."""
+    try:
+        emu.load_state(last_saved_slot)
+        return ("load_checkpoint", f"loaded slot {last_saved_slot}")
+    except Exception as exc:
+        return ("load_checkpoint_failed", f"slot {last_saved_slot}: {exc}")
+
+
+def _a_mash_recovery(emu) -> tuple[str, str]:
+    """Level 4: 20 rapid A presses (dialog stuck) then B to close menus."""
+    for _ in range(20):
+        emu.press_button("a", frames=3)
+        emu.fast_forward(1)
+    emu.wait(30)
+    emu.press_button("b", frames=30)
+    emu.wait(30)
+    return ("a_mash", "20× A + B (dialog/menu escape)")
 
 
 def _extract_vision_usage(response: Any) -> dict[str, Any] | None:
@@ -2869,28 +3246,36 @@ def _extract_first_json_object(text: str) -> str | None:
     """
     start = text.find("{")
     while start != -1:
-        depth = 0
-        in_string = False
-        escaped = False
-        for index in range(start, len(text)):
-            char = text[index]
-            if in_string:
-                if escaped:
-                    escaped = False
-                elif char == "\\":
-                    escaped = True
-                elif char == '"':
-                    in_string = False
-                continue
-            if char == '"':
-                in_string = True
-            elif char == "{":
-                depth += 1
-            elif char == "}":
-                depth -= 1
-                if depth == 0:
-                    return text[start : index + 1]
+        extracted = _balanced_object_from(text, start)
+        if extracted is not None:
+            return extracted
         start = text.find("{", start + 1)
+    return None
+
+
+def _balanced_object_from(text: str, start: int) -> str | None:
+    """Scan ``text`` from ``start`` for a balanced ``{...}`` (string-aware)."""
+    depth = 0
+    in_string = False
+    escaped = False
+    for index in range(start, len(text)):
+        char = text[index]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
     return None
 
 
@@ -3053,12 +3438,77 @@ def controller_plan(
     falling back to a blind A-press; one retry with a larger completion
     budget is made when the first answer yields no plan.
     """
-    # GAP-052: the model this call will use — explicit arg, else env override,
-    # else the default Luna string. A '*deepseek*' id routes to
-    # api.deepseek.com through the same client (src/core/ai_client.py).
     resolved_model = resolve_controller_model(model)
+    spatial_summary = _controller_spatial_summary(spatial_desc)
+    system = _controller_system_prompt(max_actions=max_actions, boot_memory=boot_memory)
+    msg = _controller_user_message(
+        spatial_summary,
+        last_button=last_button,
+        last_result=last_result,
+        blocked_dir=blocked_dir,
+        blocked_count=blocked_count,
+        goal=goal,
+        notes=notes,
+        last_dialog=last_dialog,
+        study_result=study_result,
+        world_facts=world_facts,
+        running_summary=running_summary,
+        recent_decisions=recent_decisions,
+        max_actions=max_actions,
+    )
+    user_content = _controller_user_content(msg, screenshot=screenshot, frame_ref=frame_ref)
 
-    # Build a compact spatial summary string
+    response = client.chat_completion(
+        model=resolved_model,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_content},
+        ],
+        temperature=0.3,
+        max_tokens=CONTROLLER_MAX_TOKENS,
+        thinking={"type": "disabled"},
+    )
+
+    # PERCEPT-1: keep the provider's usage block for the run rollup. On the
+    # retry path the usage from BOTH attempts is summed so the plan's cost
+    # reflects every API call it took.
+    plan_usage = _extract_vision_usage(response)
+
+    text = _strip_model_noise(response.get("content") or "")
+    kind, payload = _interpret_controller_response(text)
+    if kind in ("unreadable", "unparseable"):
+        # GAP-052(c): ONE retry with a larger completion budget — a truncated
+        # or plan-less answer often completes on the second attempt. Exactly
+        # one retry, then the same blind A-press fallback as before.
+        retry = client.chat_completion(
+            model=resolved_model,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_content},
+            ],
+            temperature=0.3,
+            max_tokens=CONTROLLER_MAX_TOKENS + CONTROLLER_RETRY_TOKEN_BUMP,
+            thinking={"type": "disabled"},
+        )
+        retry_text = _strip_model_noise(retry.get("content") or "")
+        retry_usage = _extract_vision_usage(retry)
+        if retry_usage is not None:
+            plan_usage = _sum_vision_usage(plan_usage, retry_usage)
+        if retry_text:
+            text = retry_text
+            kind, payload = _interpret_controller_response(text)
+
+    return _controller_plan_result(
+        kind,
+        payload,
+        text=text,
+        plan_usage=plan_usage,
+        spatial_desc=spatial_desc,
+    )
+
+
+def _controller_spatial_summary(spatial_desc: dict[str, Any]) -> str:
+    """Build the compact spatial summary string (map, tile, facing, exits)."""
     facing = spatial_desc.get("player_facing", "?")
     adj = spatial_desc.get("adjacent", {})
     exits = spatial_desc.get("visible_exits", [])
@@ -3096,7 +3546,15 @@ def controller_plan(
             "that traverses the completed edge backward. "
             f"Visited maps: {visited_maps or 'none'}."
         )
+    return spatial_summary
 
+
+def _controller_system_prompt(*, max_actions: int, boot_memory: str) -> str:
+    """Assemble the controller system prompt (+ MEM-2 boot-memory injection).
+
+    MEM-2: the run-start memory blocks ride in the system prompt (built once
+    by the caller), never in the per-cycle user message.
+    """
     system = (
         load_system_prompt(hint_level=HINT_LEVEL)
         + "\n\n"
@@ -3140,12 +3598,28 @@ def controller_plan(
             '- "goal" → /goals/current + this run\'s lessons (your current intent).\n'
         )
     )
-
-    # MEM-2 boot injection: the run-start memory blocks ride in the system
-    # prompt (built once by the caller), never in the per-cycle user message.
     if boot_memory:
         system = f"{system}\n\n{boot_memory}"
+    return system
 
+
+def _controller_user_message(
+    spatial_summary: str,
+    *,
+    last_button: str,
+    last_result: str,
+    blocked_dir: str,
+    blocked_count: int,
+    goal: str,
+    notes: str,
+    last_dialog: str,
+    study_result: str,
+    world_facts: list[str] | None,
+    running_summary: str,
+    recent_decisions: list[dict[str, Any]] | None,
+    max_actions: int,
+) -> str:
+    """Assemble the per-cycle controller user message (memory + history)."""
     blocked_msg = ""
     if blocked_dir and blocked_count >= 2:
         blocked_msg = (
@@ -3180,11 +3654,22 @@ def controller_plan(
     msg += "\nOutput a movement plan (max {max_actions} actions). JSON only.\n".format(
         max_actions=max_actions
     )
+    return msg
 
-    # Build user message — include live screenshot for Luna's own vision.
-    # On a FrameCache hit (frame_ref set), attach a text marker instead of
-    # the image: Luna has seen this exact frame before, so the spatial
-    # summary + reference carry the same information at ~zero image tokens.
+
+def _controller_user_content(
+    msg: str,
+    *,
+    screenshot: Any,
+    frame_ref: str | None,
+) -> Any:
+    """Build the user message content — image attach or text-only forms.
+
+    Include the live screenshot for Luna's own vision. On a FrameCache hit
+    (frame_ref set), attach a text marker instead of the image: Luna has seen
+    this exact frame before, so the spatial summary + reference carry the same
+    information at ~zero image tokens.
+    """
     user_content: Any
     if frame_ref:
         ref_marker = (
@@ -3207,47 +3692,18 @@ def controller_plan(
             user_content = msg
     else:
         user_content = msg
+    return user_content
 
-    response = client.chat_completion(
-        model=resolved_model,
-        messages=[
-            {"role": "system", "content": system},
-            {"role": "user", "content": user_content},
-        ],
-        temperature=0.3,
-        max_tokens=CONTROLLER_MAX_TOKENS,
-        thinking={"type": "disabled"},
-    )
 
-    # PERCEPT-1: keep the provider's usage block for the run rollup. On the
-    # retry path the usage from BOTH attempts is summed so the plan's cost
-    # reflects every API call it took.
-    plan_usage = _extract_vision_usage(response)
-
-    text = _strip_model_noise(response.get("content") or "")
-    kind, payload = _interpret_controller_response(text)
-    if kind in ("unreadable", "unparseable"):
-        # GAP-052(c): ONE retry with a larger completion budget — a truncated
-        # or plan-less answer often completes on the second attempt. Exactly
-        # one retry, then the same blind A-press fallback as before.
-        retry = client.chat_completion(
-            model=resolved_model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user_content},
-            ],
-            temperature=0.3,
-            max_tokens=CONTROLLER_MAX_TOKENS + CONTROLLER_RETRY_TOKEN_BUMP,
-            thinking={"type": "disabled"},
-        )
-        retry_text = _strip_model_noise(retry.get("content") or "")
-        retry_usage = _extract_vision_usage(retry)
-        if retry_usage is not None:
-            plan_usage = _sum_vision_usage(plan_usage, retry_usage)
-        if retry_text:
-            text = retry_text
-            kind, payload = _interpret_controller_response(text)
-
+def _controller_plan_result(
+    kind: str,
+    payload: dict[str, Any] | None,
+    *,
+    text: str,
+    plan_usage: dict[str, Any] | None,
+    spatial_desc: dict[str, Any],
+) -> dict[str, Any]:
+    """Normalize the parsed controller answer into the plan dict the loop runs."""
     if kind == "plan" and payload is not None:
         payload["raw_response"] = text
         payload["vision_usage"] = plan_usage
@@ -3419,67 +3875,157 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         if "intent" not in row:
             continue
         decisions_total += 1
-        map_key = _decision_map_key(row)
-        if map_key is None:
-            # Do not bridge an unobservable decision: that would invent a map
-            # transition between two rows that were not consecutive evidence.
-            previous_map = None
-        else:
-            if previous_map is not None:
-                map_transition_comparisons += 1
-                if map_key != previous_map:
-                    map_transitions_observed += 1
-            previous_map = map_key
-
-        state = _decision_tile_state(row)
-        if state is None:
-            previous_state = None
-        else:
-            if previous_state is not None:
-                state_comparisons += 1
-                if state == previous_state or state in visited_states:
-                    backtrack_events += 1
-            visited_states.add(state)
-            previous_state = state
+        map_transitions_observed, map_transition_comparisons, previous_map = (
+            _count_map_transition(
+                row,
+                map_transitions_observed,
+                map_transition_comparisons,
+                previous_map,
+            )
+        )
+        state_comparisons, backtrack_events, previous_state, visited_states = (
+            _count_tile_state(
+                row,
+                state_comparisons,
+                backtrack_events,
+                previous_state,
+                visited_states,
+            )
+        )
         pipeline = row.get("pipeline")
         if isinstance(pipeline, str) and pipeline:
             pipeline_counts[pipeline] += 1
         agentic_tool_calls += _as_int(row.get("agentic_tool_calls"))
         if row.get("jev_answered"):
             jev_answered += 1
-        if row.get("jev_ok") is False:
-            jev_transport_failures += 1
-            error = row.get("jev_error")
-            if isinstance(error, str) and error and error not in jev_errors:
-                jev_errors.append(error)
-        # Handoff provenance: which trigger fired, and how often the run's
-        # policy refused it. Counted from the rows, never incremented by the
-        # printer — the same rule the other counters follow.
-        trigger = row.get("handoff_trigger")
-        if isinstance(trigger, str) and trigger not in ("", "none"):
-            handoff_triggers[trigger] += 1
-        if row.get("handoff_allowed") is False:
-            handoff_blocked += 1
-        reported_class = row.get("reported_missing_class")
-        if row.get("scenario_patch_applied") and isinstance(reported_class, str):
-            scenario_resolved_classes.add(reported_class)
-        if row.get("escalated"):
-            escalated += 1
-            missing_class = row.get("missing_class")
-            escalated_by_class[
-                missing_class if isinstance(missing_class, str) else None
-            ] += 1
-        # S6 NAV-MEM: a navigation decision either replayed a proven route from
-        # ``world/path/*`` (hit) or was consulted and fell through to the
-        # existing path (miss/error). Counted from the rows, never incremented
-        # by the summary printer.
-        route = row.get("memory_navigation")
-        if isinstance(route, dict):
-            if route.get("result") == "hit" and route.get("key"):
-                memory_navigation_hits += 1
-            elif route.get("result") in ("miss", "error"):
-                memory_navigation_fallbacks += 1
+        jev_transport_failures, jev_errors = _count_jev_failure(
+            row, jev_transport_failures, jev_errors
+        )
+        handoff_blocked, handoff_triggers = _count_handoff(row, handoff_triggers, handoff_blocked)
+        scenario_resolved_classes = _count_scenario_resolution(row, scenario_resolved_classes)
+        escalated, escalated_by_class = _count_escalation(row, escalated, escalated_by_class)
+        memory_navigation_hits, memory_navigation_fallbacks = (
+            _count_memory_navigation(row, memory_navigation_hits, memory_navigation_fallbacks)
+        )
 
+    ratio, rates, jev_failure_rate, degraded, decisions_per_map_transition, backtrack_rate = _autonomy_rates(
+        decisions_total=decisions_total,
+        jev_answered=jev_answered,
+        jev_transport_failures=jev_transport_failures,
+        escalated=escalated,
+        escalated_by_class=escalated_by_class,
+        scenario_resolved_classes=scenario_resolved_classes,
+        map_transitions_observed=map_transitions_observed,
+        state_comparisons=state_comparisons,
+        backtrack_events=backtrack_events,
+    )
+    return {
+        "decisions_total": decisions_total,
+        "jev_answered": jev_answered,
+        "escalated": escalated,
+        "autonomy_ratio": ratio,
+        "escalation_rate_by_missing_class": rates,
+        "jev_transport_failures": jev_transport_failures,
+        "jev_transport_failure_rate": jev_failure_rate,
+        "jev_errors": jev_errors[:3],
+        "degraded": degraded,
+        "handoff_trigger_counts": dict(handoff_triggers),
+        "handoff_blocked": handoff_blocked,
+        # S6 NAV-MEM: navigation decisions answered from ``world/path/*`` memory
+        # vs those that were consulted and fell through to the existing path.
+        "memory_navigation_hits": memory_navigation_hits,
+        "memory_navigation_fallbacks": memory_navigation_fallbacks,
+        # S7 BENCH-PAR: derive the run-level tool-surface stamp from the same
+        # decision-row population as every other autonomy counter. This keeps
+        # benchmark summaries directly comparable with their source rows.
+        "agentic_tool_calls": agentic_tool_calls,
+        "pipeline_counts": dict(pipeline_counts),
+        # EFF-1: evidence-bearing cycle efficiency, counted from decision rows.
+        "map_transitions_observed": map_transitions_observed,
+        "map_transition_comparisons": map_transition_comparisons,
+        "decisions_per_map_transition": decisions_per_map_transition,
+        "state_comparisons": state_comparisons,
+        "backtrack_events": backtrack_events,
+        "backtrack_rate": backtrack_rate,
+    }
+
+
+def _count_jev_failure(
+    row: dict[str, Any],
+    failures: int,
+    errors: list[str],
+) -> tuple[int, list[str]]:
+    """Count a JEV transport failure and collect its (unique) error text."""
+    if row.get("jev_ok") is not False:
+        return failures, errors
+    failures += 1
+    error = row.get("jev_error")
+    if isinstance(error, str) and error and error not in errors:
+        errors.append(error)
+    return failures, errors
+
+
+def _count_handoff(
+    row: dict[str, Any],
+    triggers: Counter[str],
+    blocked: int,
+) -> tuple[int, Counter[str]]:
+    """Count handoff provenance: which trigger fired, how often policy refused it.
+
+    Counted from the rows, never incremented by the printer — the same rule
+    the other counters follow.
+    """
+    trigger = row.get("handoff_trigger")
+    if isinstance(trigger, str) and trigger not in ("", "none"):
+        triggers[trigger] += 1
+    if row.get("handoff_allowed") is False:
+        blocked += 1
+    return blocked, triggers
+
+
+def _count_scenario_resolution(
+    row: dict[str, Any],
+    resolved_classes: set[str],
+) -> set[str]:
+    """Record the class a scenario patch actually resolved (evidence-bearing)."""
+    reported_class = row.get("reported_missing_class")
+    if row.get("scenario_patch_applied") and isinstance(reported_class, str):
+        resolved_classes.add(reported_class)
+    return resolved_classes
+
+
+def _count_escalation(
+    row: dict[str, Any],
+    escalated: int,
+    by_class: Counter[str | None],
+) -> tuple[int, Counter[str | None]]:
+    """Count an escalated decision row, bucketed by its missing class."""
+    if not row.get("escalated"):
+        return escalated, by_class
+    escalated += 1
+    missing_class = row.get("missing_class")
+    by_class[missing_class if isinstance(missing_class, str) else None] += 1
+    return escalated, by_class
+
+
+def _autonomy_rates(
+    *,
+    decisions_total: int,
+    jev_answered: int,
+    jev_transport_failures: int,
+    escalated: int,
+    escalated_by_class: Counter[str | None],
+    scenario_resolved_classes: set[str],
+    map_transitions_observed: int,
+    state_comparisons: int,
+    backtrack_events: int,
+) -> tuple[float | None, dict[str | None, float], float, bool, float | None, float | None]:
+    """Derive the ratio/rate tail of the autonomy block.
+
+    Returns ``(autonomy_ratio, rates, jev_failure_rate, degraded,
+    decisions_per_map_transition, backtrack_rate)``. Ratios are rounded to 4 dp
+    and remain ``None`` when their denominator is unavailable or zero.
+    """
     ratio: float | None = (
         round(jev_answered / decisions_total, 4) if decisions_total else None
     )
@@ -3511,35 +4057,75 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     backtrack_rate = (
         round(backtrack_events / state_comparisons, 4) if state_comparisons else None
     )
-    return {
-        "decisions_total": decisions_total,
-        "jev_answered": jev_answered,
-        "escalated": escalated,
-        "autonomy_ratio": ratio,
-        "escalation_rate_by_missing_class": rates,
-        "jev_transport_failures": jev_transport_failures,
-        "jev_transport_failure_rate": jev_failure_rate,
-        "jev_errors": jev_errors[:3],
-        "degraded": degraded,
-        "handoff_trigger_counts": dict(handoff_triggers),
-        "handoff_blocked": handoff_blocked,
-        # S6 NAV-MEM: navigation decisions answered from ``world/path/*`` memory
-        # vs those that were consulted and fell through to the existing path.
-        "memory_navigation_hits": memory_navigation_hits,
-        "memory_navigation_fallbacks": memory_navigation_fallbacks,
-        # S7 BENCH-PAR: derive the run-level tool-surface stamp from the same
-        # decision-row population as every other autonomy counter. This keeps
-        # benchmark summaries directly comparable with their source rows.
-        "agentic_tool_calls": agentic_tool_calls,
-        "pipeline_counts": dict(pipeline_counts),
-        # EFF-1: evidence-bearing cycle efficiency, counted from decision rows.
-        "map_transitions_observed": map_transitions_observed,
-        "map_transition_comparisons": map_transition_comparisons,
-        "decisions_per_map_transition": decisions_per_map_transition,
-        "state_comparisons": state_comparisons,
-        "backtrack_events": backtrack_events,
-        "backtrack_rate": backtrack_rate,
-    }
+    return (
+        ratio,
+        rates,
+        jev_failure_rate,
+        degraded,
+        decisions_per_map_transition,
+        backtrack_rate,
+    )
+
+
+def _count_map_transition(
+    row: dict[str, Any],
+    transitions: int,
+    comparisons: int,
+    previous_map: tuple[str, int | str] | None,
+) -> tuple[int, int, tuple[str, int | str] | None]:
+    """Count one decision row's map transition against the previous row.
+
+    Do not bridge an unobservable decision: that would invent a map
+    transition between two rows that were not consecutive evidence.
+    """
+    map_key = _decision_map_key(row)
+    if map_key is None:
+        return transitions, comparisons, None
+    if previous_map is not None:
+        comparisons += 1
+        if map_key != previous_map:
+            transitions += 1
+    return transitions, comparisons, map_key
+
+
+def _count_tile_state(
+    row: dict[str, Any],
+    comparisons: int,
+    backtracks: int,
+    previous_state: tuple[str, int | str, int, int] | None,
+    visited_states: set[tuple[str, int | str, int, int]],
+) -> tuple[int, int, tuple[str, int | str, int, int] | None, set[tuple[str, int | str, int, int]]]:
+    """Count one decision row's tile state against history for backtracking."""
+    state = _decision_tile_state(row)
+    if state is None:
+        return comparisons, backtracks, None, visited_states
+    if previous_state is not None:
+        comparisons += 1
+        if state == previous_state or state in visited_states:
+            backtracks += 1
+    visited_states.add(state)
+    return comparisons, backtracks, state, visited_states
+
+
+def _count_memory_navigation(
+    row: dict[str, Any],
+    hits: int,
+    fallbacks: int,
+) -> tuple[int, int]:
+    """Count a row's S6 NAV-MEM route outcome (hit vs miss/error fallback).
+
+    A navigation decision either replayed a proven route from
+    ``world/path/*`` (hit) or was consulted and fell through to the
+    existing path (miss/error). Counted from the rows, never incremented
+    by the summary printer.
+    """
+    route = row.get("memory_navigation")
+    if isinstance(route, dict):
+        if route.get("result") == "hit" and route.get("key"):
+            hits += 1
+        elif route.get("result") in ("miss", "error"):
+            fallbacks += 1
+    return hits, fallbacks
 
 
 def teacher_escalation_records(results: list[dict[str, Any]]) -> dict[str, int]:
@@ -3802,89 +4388,29 @@ def _record_run_memory(
             if isinstance((screen := row.get("screen")), str) and screen
         )
 
-        distinct_maps: list[str] = []
-        for row in results:
-            map_name = row.get("map_name")
-            if isinstance(map_name, str) and map_name and map_name not in distinct_maps:
-                distinct_maps.append(map_name)
-        distinct_maps = distinct_maps[-40:]
-
-        # DF-AIPP-2: count the TOP-LEVEL battle event rows only. Every battle
-        # transition writes its own row straight into ``results`` — one
-        # ``battle_start`` when the battle screen is entered and one
-        # ``battle_end`` when it is left — while the cycle row of that same
-        # iteration ALSO carries the StateWindow transitions in its nested
-        # ``battle_events`` list. Counting both described the same battles
-        # twice (run dgf_0923b: 2 top-level rows + 4 nested events summed to a
-        # ladder of 6 for a single battle), so the nested lists are skipped
-        # entirely: the top-level rows cover the start+end transitions
-        # deterministically. The ladder key stays present (0 when no battle).
-        battle_events = sum(
-            1 for row in results if str(row.get("event", "")).startswith("battle_")
-        )
+        distinct_maps = _distinct_map_names(results)
+        battle_events = _count_battle_events(results)
 
         # GAP-053: split controller decisions by intent class so a run that
         # burned its budget on blind A-presses is visible as such.
         real_decisions, fallback_decisions = _classify_decision_intents(results)
         autonomy = _autonomy_counters(results)
 
-        ladder = {
-            "memory_events": sum(
-                events[name] for name in ("memory_note", "memory_goal", "memory_study")
-            ),
-            "battle_events": battle_events,
-            "map_progress": distinct_maps[-1] if distinct_maps else None,
-            "starter_picked": events["starter_picked"] > 0,
-        }
-        summary_attributes: dict[str, Any] = {
-            "events": dict(events),
-            "screens": dict(screens),
-            "n_actions": int(
-                extra.get(
-                    "n_actions",
-                    sum(bool(row.get("action")) for row in results),
-                )
-            ),
-            "real_decisions": real_decisions,
-            "fallback_decisions": fallback_decisions,
-            "autonomy": autonomy,
-            "degraded": bool(autonomy.get("degraded")),
-            "degradation": (
-                {
-                    "event": JEV_DEGRADATION_LOG_EVENT,
-                    "jev_transport_failures": autonomy["jev_transport_failures"],
-                    "decisions": autonomy["decisions_total"],
-                    "rate": autonomy["jev_transport_failure_rate"],
-                    "threshold": JEV_DEGRADED_RATE,
-                    "errors": autonomy["jev_errors"],
-                }
-                if autonomy.get("degraded")
-                else None
-            ),
-            "distinct_maps": distinct_maps,
-            "battle_events": battle_events,
-            "cycles": len(results),
-            "log_path": str(extra.get("log_path", log_path)),
-            "ladder": ladder,
-        }
-        if "distinct_tiles" in extra:
-            summary_attributes["distinct_tiles"] = int(extra["distinct_tiles"])
-        if "movement_progress_cycles" in extra or "movement_observed_cycles" in extra:
-            movement_progress_cycles = int(extra.get("movement_progress_cycles", 0))
-            movement_observed_cycles = int(extra.get("movement_observed_cycles", 0))
-            summary_attributes.update(
-                {
-                    "movement_progress_cycles": movement_progress_cycles,
-                    "movement_observed_cycles": movement_observed_cycles,
-                    "movement_progress_rate": round(
-                        movement_progress_cycles / movement_observed_cycles, 4
-                    )
-                    if movement_observed_cycles
-                    else 0.0,
-                }
-            )
-        if "summary" in extra:
-            summary_attributes["summary"] = str(extra["summary"])
+        ladder = _run_ladder(events, battle_events, distinct_maps)
+        log_path = str(extra.get("log_path", ""))
+        summary_attributes = _run_summary_attributes(
+            results,
+            extra,
+            events=events,
+            screens=screens,
+            real_decisions=real_decisions,
+            fallback_decisions=fallback_decisions,
+            autonomy=autonomy,
+            distinct_maps=distinct_maps,
+            battle_events=battle_events,
+            log_path=log_path,
+            ladder=ladder,
+        )
 
         duckbrain_client.remember(
             key=f"/game/runs/{run_id}/summary",
@@ -3898,118 +4424,260 @@ def _record_run_memory(
             namespace="pokemon-global",
         )
 
-        notes = [
-            str(row["note"])
-            for row in results
-            if row.get("event") == "memory_note" and row.get("note")
-        ][-20:]
-        goals = [
-            str(row["goal"])
-            for row in results
-            if row.get("event") == "memory_goal" and row.get("goal")
-        ][-20:]
-        if notes or goals:
-            duckbrain_client.remember(
-                key=f"/game/runs/{run_id}/lessons",
-                domain="game/runs",
-                attributes={"notes": notes, "goals": goals},
-                embedding_text=" | ".join([*notes, *goals])[:2000],
-                namespace="pokemon-global",
-            )
-
+        _record_run_lessons(duckbrain_client, run_id, results)
         if ram_reader is not None:
-            try:
-                party = {
-                    "party_count": ram_reader.party_count(),
-                    "species_hint": ram_reader.first_party_species_hint(),
-                }
-                duckbrain_client.remember(
-                    key="/game/save/party",
-                    domain="game/save",
-                    attributes=party,
-                    embedding_text=(
-                        f"Party count {party['party_count']}; "
-                        f"first species {party['species_hint'] or 'unknown'}"
-                    ),
-                    namespace="pokemon-global",
-                )
-            except Exception as exc:
-                safe_print(f"[MEM] save party skipped: {exc}")
+            _record_ram_truth(duckbrain_client, ram_reader)
+        _record_run_index(duckbrain_client, run_id, results, ladder)
+    except Exception as exc:
+        safe_print(f"[MEM] recorder failed: {exc}")
 
-            item_reader = next(
-                (
-                    method
-                    for name in ("read_items", "read_inventory", "inventory")
-                    if callable((method := getattr(ram_reader, name, None)))
-                ),
-                None,
+
+def _distinct_map_names(results: list[dict[str, Any]]) -> list[str]:
+    """Ordered distinct map names visited during the run (last 40 kept)."""
+    distinct_maps: list[str] = []
+    for row in results:
+        map_name = row.get("map_name")
+        if isinstance(map_name, str) and map_name and map_name not in distinct_maps:
+            distinct_maps.append(map_name)
+    return distinct_maps[-40:]
+
+
+def _count_battle_events(results: list[dict[str, Any]]) -> int:
+    """Count TOP-LEVEL battle event rows (DF-AIPP-2).
+
+    Every battle transition writes its own row straight into ``results`` — one
+    ``battle_start`` when the battle screen is entered and one
+    ``battle_end`` when it is left — while the cycle row of that same
+    iteration ALSO carries the StateWindow transitions in its nested
+    ``battle_events`` list. Counting both described the same battles
+    twice (run dgf_0923b: 2 top-level rows + 4 nested events summed to a
+    ladder of 6 for a single battle), so the nested lists are skipped
+    entirely: the top-level rows cover the start+end transitions
+    deterministically. The ladder key stays present (0 when no battle).
+    """
+    return sum(
+        1 for row in results if str(row.get("event", "")).startswith("battle_")
+    )
+
+
+def _run_ladder(
+    events: Counter[str],
+    battle_events: int,
+    distinct_maps: list[str],
+) -> dict[str, Any]:
+    """Build the run's ladder summary (memory/battle progress + starter)."""
+    return {
+        "memory_events": sum(
+            events[name] for name in ("memory_note", "memory_goal", "memory_study")
+        ),
+        "battle_events": battle_events,
+        "map_progress": distinct_maps[-1] if distinct_maps else None,
+        "starter_picked": events["starter_picked"] > 0,
+    }
+
+
+def _run_summary_attributes(
+    results: list[dict[str, Any]],
+    extra: dict[str, Any],
+    *,
+    events: Counter[str],
+    screens: Counter[str],
+    real_decisions: int,
+    fallback_decisions: int,
+    autonomy: dict[str, Any],
+    distinct_maps: list[str],
+    battle_events: int,
+    log_path: str,
+    ladder: dict[str, Any],
+) -> dict[str, Any]:
+    """Assemble the /game/runs/<id>/summary attribute payload."""
+    summary_attributes: dict[str, Any] = {
+        "events": dict(events),
+        "screens": dict(screens),
+        "n_actions": int(
+            extra.get(
+                "n_actions",
+                sum(bool(row.get("action")) for row in results),
             )
-            if item_reader is not None:
-                try:
-                    items = item_reader()
-                    if isinstance(items, list):
-                        items = items[-40:]
-                    duckbrain_client.remember(
-                        key="/game/save/items",
-                        domain="game/save",
-                        attributes={"items": items},
-                        embedding_text=f"Current items: {items}",
-                        namespace="pokemon-global",
-                    )
-                except Exception as exc:
-                    safe_print(f"[MEM] save items skipped: {exc}")
-            else:
-                safe_print("[MEM] save items skipped: no public item reader")
-
-            try:
-                location = {
-                    "map_id": ram_reader.current_map_id(),
-                    "map_name": ram_reader.current_map_name(),
-                    "pos": {
-                        "x": ram_reader.player_tile_x(),
-                        "y": ram_reader.player_tile_y(),
-                    },
-                }
-                duckbrain_client.remember(
-                    key="/game/save/location",
-                    domain="game/save",
-                    attributes=location,
-                    embedding_text=(
-                        f"At {location['map_name']} map {location['map_id']} "
-                        f"tile {location['pos']['x']},{location['pos']['y']}"
-                    ),
-                    namespace="pokemon-global",
+        ),
+        "real_decisions": real_decisions,
+        "fallback_decisions": fallback_decisions,
+        "autonomy": autonomy,
+        "degraded": bool(autonomy.get("degraded")),
+        "degradation": (
+            {
+                "event": JEV_DEGRADATION_LOG_EVENT,
+                "jev_transport_failures": autonomy["jev_transport_failures"],
+                "decisions": autonomy["decisions_total"],
+                "rate": autonomy["jev_transport_failure_rate"],
+                "threshold": JEV_DEGRADED_RATE,
+                "errors": autonomy["jev_errors"],
+            }
+            if autonomy.get("degraded")
+            else None
+        ),
+        "distinct_maps": distinct_maps,
+        "battle_events": battle_events,
+        "cycles": len(results),
+        "log_path": str(extra.get("log_path", log_path)),
+        "ladder": ladder,
+    }
+    if "distinct_tiles" in extra:
+        summary_attributes["distinct_tiles"] = int(extra["distinct_tiles"])
+    if "movement_progress_cycles" in extra or "movement_observed_cycles" in extra:
+        movement_progress_cycles = int(extra.get("movement_progress_cycles", 0))
+        movement_observed_cycles = int(extra.get("movement_observed_cycles", 0))
+        summary_attributes.update(
+            {
+                "movement_progress_cycles": movement_progress_cycles,
+                "movement_observed_cycles": movement_observed_cycles,
+                "movement_progress_rate": round(
+                    movement_progress_cycles / movement_observed_cycles, 4
                 )
-            except Exception as exc:
-                safe_print(f"[MEM] save location skipped: {exc}")
+                if movement_observed_cycles
+                else 0.0,
+            }
+        )
+    if "summary" in extra:
+        summary_attributes["summary"] = str(extra["summary"])
+    return summary_attributes
 
-        previous = duckbrain_client.get(
-            key="/game/runs/index",
+
+def _record_run_lessons(
+    duckbrain_client: Any,
+    run_id: str,
+    results: list[dict[str, Any]],
+) -> None:
+    """Persist the run's collected notes and goals (last 20 of each)."""
+    notes = [
+        str(row["note"])
+        for row in results
+        if row.get("event") == "memory_note" and row.get("note")
+    ][-20:]
+    goals = [
+        str(row["goal"])
+        for row in results
+        if row.get("event") == "memory_goal" and row.get("goal")
+    ][-20:]
+    if notes or goals:
+        duckbrain_client.remember(
+            key=f"/game/runs/{run_id}/lessons",
+            domain="game/runs",
+            attributes={"notes": notes, "goals": goals},
+            embedding_text=" | ".join([*notes, *goals])[:2000],
             namespace="pokemon-global",
         )
-        previous_attributes = previous.get("attributes", {}) if previous else {}
-        previous_runs = previous_attributes.get("runs", [])
-        if not isinstance(previous_runs, list):
-            previous_runs = []
-        run_digest = {
-            "run_id": run_id,
-            "ts": datetime.now(timezone.utc).isoformat(),
-            "cycles": len(results),
-            "ladder": ladder,
+
+
+def _record_ram_truth(duckbrain_client: Any, ram_reader: Any) -> None:
+    """Persist readable RAM truth: party, items, and current location."""
+    try:
+        party = {
+            "party_count": ram_reader.party_count(),
+            "species_hint": ram_reader.first_party_species_hint(),
         }
-        runs = [run_digest, *previous_runs][:10]
         duckbrain_client.remember(
-            key="/game/runs/index",
-            domain="game/runs",
-            attributes={"runs": runs},
+            key="/game/save/party",
+            domain="game/save",
+            attributes=party,
             embedding_text=(
-                "Recent Pokemon runs: "
-                + ", ".join(str(run.get("run_id", "unknown")) for run in runs)
+                f"Party count {party['party_count']}; "
+                f"first species {party['species_hint'] or 'unknown'}"
             ),
             namespace="pokemon-global",
         )
     except Exception as exc:
-        safe_print(f"[MEM] recorder failed: {exc}")
+        safe_print(f"[MEM] save party skipped: {exc}")
+
+    _record_items(duckbrain_client, ram_reader)
+    _record_location(duckbrain_client, ram_reader)
+
+
+def _record_items(duckbrain_client: Any, ram_reader: Any) -> None:
+    """Persist the readable inventory snapshot (best-effort)."""
+    item_reader = next(
+        (
+            method
+            for name in ("read_items", "read_inventory", "inventory")
+            if callable((method := getattr(ram_reader, name, None)))
+        ),
+        None,
+    )
+    if item_reader is not None:
+        try:
+            items = item_reader()
+            if isinstance(items, list):
+                items = items[-40:]
+            duckbrain_client.remember(
+                key="/game/save/items",
+                domain="game/save",
+                attributes={"items": items},
+                embedding_text=f"Current items: {items}",
+                namespace="pokemon-global",
+            )
+        except Exception as exc:
+            safe_print(f"[MEM] save items skipped: {exc}")
+    else:
+        safe_print("[MEM] save items skipped: no public item reader")
+
+
+def _record_location(duckbrain_client: Any, ram_reader: Any) -> None:
+    """Persist the current map/position snapshot (best-effort)."""
+    try:
+        location = {
+            "map_id": ram_reader.current_map_id(),
+            "map_name": ram_reader.current_map_name(),
+            "pos": {
+                "x": ram_reader.player_tile_x(),
+                "y": ram_reader.player_tile_y(),
+            },
+        }
+        duckbrain_client.remember(
+            key="/game/save/location",
+            domain="game/save",
+            attributes=location,
+            embedding_text=(
+                f"At {location['map_name']} map {location['map_id']} "
+                f"tile {location['pos']['x']},{location['pos']['y']}"
+            ),
+            namespace="pokemon-global",
+        )
+    except Exception as exc:
+        safe_print(f"[MEM] save location skipped: {exc}")
+
+
+def _record_run_index(
+    duckbrain_client: Any,
+    run_id: str,
+    results: list[dict[str, Any]],
+    ladder: dict[str, Any],
+) -> None:
+    """Prepend this run's digest to the recent-runs index (last 10 kept)."""
+    previous = duckbrain_client.get(
+        key="/game/runs/index",
+        namespace="pokemon-global",
+    )
+    previous_attributes = previous.get("attributes", {}) if previous else {}
+    previous_runs = previous_attributes.get("runs", [])
+    if not isinstance(previous_runs, list):
+        previous_runs = []
+    run_digest = {
+        "run_id": run_id,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "cycles": len(results),
+        "ladder": ladder,
+    }
+    runs = [run_digest, *previous_runs][:10]
+    duckbrain_client.remember(
+        key="/game/runs/index",
+        domain="game/runs",
+        attributes={"runs": runs},
+        embedding_text=(
+            "Recent Pokemon runs: "
+            + ", ".join(str(run.get("run_id", "unknown")) for run in runs)
+        ),
+        namespace="pokemon-global",
+    )
 
 
 WORLD_MEMORY_NAMESPACE = "pokemon-global"
@@ -4166,35 +4834,78 @@ def _world_fact_text(
         return f"{key}: {text}" if text else key
 
     parts = [text] if text else []
+    parts.extend(_world_fact_tile_parts(attributes))
+    walkability, collision_grid = _world_fact_walkability(
+        attributes,
+        fresh_walkability=fresh_walkability,
+        fresh_tile=fresh_tile,
+        fresh_collision_grid=fresh_collision_grid,
+    )
+    if walkability:
+        parts.append(f"walkability={_walkability_text(walkability)}")
+
+    parts.extend(_world_fact_terrain_part(attributes))
+    if isinstance(collision_grid, str) and collision_grid.strip():
+        parts.append(f"local_collision={collision_grid.strip().replace(chr(10), '/')}")
+
+    parts.extend(_world_fact_exit_parts(attributes))
+    parts.extend(_world_fact_route_parts(attributes))
+    return f"{key}: {'; '.join(parts)}" if parts else key
+
+
+def _world_fact_tile_parts(attributes: dict[str, Any]) -> list[str]:
+    """Render the recorded player tile as projection parts."""
+    parts: list[str] = []
     player_tile = attributes.get("player_tile")
     if isinstance(player_tile, dict):
         x, y = player_tile.get("x"), player_tile.get("y")
         if isinstance(x, int) and isinstance(y, int):
             parts.append(f"tile={x},{y}")
+    return parts
 
+
+def _world_fact_walkability(
+    attributes: dict[str, Any],
+    *,
+    fresh_walkability: dict[str, str] | None,
+    fresh_tile: tuple[int, int] | None,
+    fresh_collision_grid: str | None,
+) -> tuple[dict[str, str], str | None]:
+    """Merge stored walkability with live ROM truth for the CURRENT tile.
+
+    When the record is for the tile the player is standing on right now, the
+    live ROM read for that tile outranks the stored one. A record for a
+    different tile keeps its own known values and never borrows the current
+    tile's (that would misattribute truth to the wrong tile).
+    """
     walkability = _known_walkability(attributes.get("adjacent_walkability"))
     collision_grid = attributes.get("local_collision_grid")
     if fresh_tile is not None and _record_tile(attributes) == fresh_tile:
         walkability.update(_known_walkability(fresh_walkability))
         if isinstance(fresh_collision_grid, str) and fresh_collision_grid.strip():
             collision_grid = fresh_collision_grid
-    if walkability:
-        parts.append(f"walkability={_walkability_text(walkability)}")
+    return walkability, collision_grid
 
+
+def _world_fact_terrain_part(attributes: dict[str, Any]) -> list[str]:
+    """Render known adjacent terrain as a projection part."""
     terrain = attributes.get("adjacent_tiles")
-    if isinstance(terrain, dict) and terrain:
-        rendered_terrain = ",".join(
-            f"{short}:{terrain[direction]}"
-            for direction, short in _WALK_DIRECTION_LABELS
-            if direction in terrain
-            and str(terrain[direction]).lower() not in {"unknown", "void"}
-        )
-        if rendered_terrain:
-            parts.append(f"terrain={rendered_terrain}")
+    if not (isinstance(terrain, dict) and terrain):
+        return []
+    rendered_terrain = ",".join(
+        f"{short}:{terrain[direction]}"
+        for direction, short in _WALK_DIRECTION_LABELS
+        if direction in terrain
+        and str(terrain[direction]).lower() not in {"unknown", "void"}
+    )
+    if not rendered_terrain:
+        return []
+    return [f"terrain={rendered_terrain}"]
 
-    if isinstance(collision_grid, str) and collision_grid.strip():
-        parts.append(f"local_collision={collision_grid.strip().replace(chr(10), '/')}")
 
+def _world_fact_exit_parts(attributes: dict[str, Any]) -> list[str]:
+    """Render visible and proven exits as projection parts."""
+    parts: list[str] = []
     exits = attributes.get("visible_exits")
     if isinstance(exits, list):
         parts.append(
@@ -4206,16 +4917,22 @@ def _world_fact_text(
     door = _tile_from_point(attributes.get("door_tile"))
     if door is not None:
         parts.append(f"door_tile={door[0]},{door[1]}")
+    return parts
+
+
+def _world_fact_route_parts(attributes: dict[str, Any]) -> list[str]:
+    """Render recorded route tiles as a projection part."""
     route_tiles = attributes.get("route_tiles")
-    if isinstance(route_tiles, list) and route_tiles:
-        rendered_route = [
-            f"{tile[0]},{tile[1]}"
-            for item in route_tiles
-            if (tile := _tile_from_point(item)) is not None
-        ]
-        if rendered_route:
-            parts.append(f"route_tiles={'|'.join(rendered_route)}")
-    return f"{key}: {'; '.join(parts)}" if parts else key
+    if not (isinstance(route_tiles, list) and route_tiles):
+        return []
+    rendered_route = [
+        f"{tile[0]},{tile[1]}"
+        for item in route_tiles
+        if (tile := _tile_from_point(item)) is not None
+    ]
+    if not rendered_route:
+        return []
+    return [f"route_tiles={'|'.join(rendered_route)}"]
 
 
 def _populate_world_memory(
@@ -4236,6 +4953,86 @@ def _populate_world_memory(
     started; facts first written by this run on cycle N-1 become available to
     the JEV projection on the next cycle.
     """
+    ctx = _world_memory_context(observation, retrieval_targets)
+    if ctx is None:
+        return []
+
+    typed_map_id = ctx["map_id"]
+    typed_tile_x = ctx["tile_x"]
+    typed_tile_y = ctx["tile_y"]
+    map_name = ctx["map_name"]
+    map_key = ctx["map_key"]
+
+    from src.core import duckbrain_client as _dbc
+
+    retrieved_facts, current_map_record, transition_source_record = (
+        _retrieve_world_facts(
+            _dbc,
+            ctx,
+            observation=observation,
+            cycle=cycle,
+            results=results,
+            log_file=log_file,
+            transition=transition,
+        )
+    )
+
+    evidence = {
+        "run_id": run_id,
+        "cycle": cycle,
+        "map": {"id": typed_map_id, "name": map_name},
+        "tile": {"x": typed_tile_x, "y": typed_tile_y},
+    }
+    confidence = 1.0 if USE_RAM_READER else 0.75
+    map_attributes = _map_observation_attributes(
+        observation,
+        current_map_record,
+        map_id=typed_map_id,
+        map_name=map_name,
+        tile_x=typed_tile_x,
+        tile_y=typed_tile_y,
+        fresh_walkability=ctx["fresh_walkability"],
+    )
+    writes: list[dict[str, Any]] = [
+        {
+            "key": map_key,
+            "domain": ctx["map_domain"],
+            "attributes": map_attributes,
+            "embedding_text": (
+                f"Observed {map_name} (map {typed_map_id}) at tile "
+                f"({typed_tile_x},{typed_tile_y})"
+            ),
+            "labels": ["world", ctx["map_domain"]],
+            "confidence": confidence,
+            "evidence": evidence,
+        }
+    ]
+    writes.extend(_tile_object_writes(observation, map_attributes, evidence, confidence))
+    writes.extend(_transition_writes(
+        transition,
+        observation=observation,
+        evidence=evidence,
+        confidence=confidence,
+        existing=transition_source_record,
+    ))
+
+    _commit_world_writes(
+        _dbc,
+        writes,
+        transition=transition,
+        written_keys=written_keys,
+        cycle=cycle,
+        results=results,
+        log_file=log_file,
+    )
+    return retrieved_facts
+
+
+def _world_memory_context(
+    observation: dict[str, Any],
+    retrieval_targets: list[str] | None,
+) -> dict[str, Any] | None:
+    """Derive typed map/tile identity and fresh ROM facts for world memory."""
     map_id = observation.get("map_id")
     player_tile_x = observation.get("player_tile_x")
     player_tile_y = observation.get("player_tile_y")
@@ -4244,19 +5041,13 @@ def _populate_world_memory(
         or not isinstance(player_tile_x, int)
         or not isinstance(player_tile_y, int)
     ):
-        return []
+        return None
 
     typed_map_id = map_id
     typed_tile_x = player_tile_x
     typed_tile_y = player_tile_y
     map_name = str(observation.get("map_name") or f"Map_{typed_map_id:02X}")
     map_domain = f"world/map/{typed_map_id}"
-    map_key = f"/{map_domain}"
-    object_prefix = f"/world/object/{typed_map_id}/"
-    path_prefix = f"{PATH_MEMORY_PREFIX}{_map_slug(map_name, typed_map_id)}->"
-
-    from src.core import duckbrain_client as _dbc
-
     fresh_grid = observation.get("collision_grid")
     # Movement truth is derived from RAMReader's collision grid. The adjacent
     # terrain labels may come from vision and are metadata only.
@@ -4270,6 +5061,50 @@ def _populate_world_memory(
             and target not in normalized_targets
         ):
             normalized_targets.append(target)
+    return {
+        "map_id": typed_map_id,
+        "tile_x": typed_tile_x,
+        "tile_y": typed_tile_y,
+        "map_name": map_name,
+        "map_domain": map_domain,
+        "map_key": f"/{map_domain}",
+        "object_prefix": f"/world/object/{typed_map_id}/",
+        "path_prefix": f"{PATH_MEMORY_PREFIX}{_map_slug(map_name, typed_map_id)}->",
+        "fresh_grid": fresh_grid,
+        "fresh_walkability": fresh_walkability,
+        "fresh_topology": fresh_topology,
+        "targets": normalized_targets,
+    }
+
+
+def _retrieve_world_facts(
+    duckbrain_client: Any,
+    ctx: dict[str, Any],
+    *,
+    observation: dict[str, Any],
+    cycle: int,
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+    transition: dict[str, Any] | None,
+) -> tuple[list[str], dict[str, Any] | None, dict[str, Any] | None]:
+    """Recall and render world-memory facts; never raise (memory must not stop gameplay).
+
+    Retrieval deliberately runs before writes. Therefore a retrieval event for
+    cycle N can only contain a fact that was already in DuckBrain when cycle N
+    started; facts first written by this run on cycle N-1 become available to
+    the JEV projection on the next cycle.
+
+    Returns ``(retrieved_facts, current_map_record, transition_source_record)``.
+    """
+    typed_map_id = ctx["map_id"]
+    typed_tile_x = ctx["tile_x"]
+    typed_tile_y = ctx["tile_y"]
+    map_name = ctx["map_name"]
+    map_key = ctx["map_key"]
+    fresh_grid = ctx["fresh_grid"]
+    fresh_walkability = ctx["fresh_walkability"]
+    fresh_topology = ctx["fresh_topology"]
+    normalized_targets = ctx["targets"]
 
     retrieved_facts: list[str] = []
     current_map_record: dict[str, Any] | None = None
@@ -4278,34 +5113,17 @@ def _populate_world_memory(
         targeted_records: list[dict[str, Any]] = []
         for target in normalized_targets:
             targeted_records.extend(
-                _dbc.recall(
+                duckbrain_client.recall(
                     key=target,
                     namespace=WORLD_MEMORY_NAMESPACE,
                     limit=8,
                 )
             )
-        recalled = [
-            *_dbc.recall(
-                key=map_key,
-                namespace=WORLD_MEMORY_NAMESPACE,
-                limit=WORLD_MEMORY_TOP_K,
-            ),
-            *_dbc.recall(
-                key_prefix=path_prefix,
-                namespace=WORLD_MEMORY_NAMESPACE,
-                limit=WORLD_MEMORY_TOP_K,
-            ),
-            *_dbc.recall(
-                key_prefix=object_prefix,
-                namespace=WORLD_MEMORY_NAMESPACE,
-                limit=WORLD_MEMORY_TOP_K,
-            ),
-            *targeted_records,
-        ]
+        recalled = _recall_world_records(duckbrain_client, ctx, targeted_records)
         if isinstance(transition, dict):
             source_id = transition.get("from_map_id")
             if isinstance(source_id, int) and source_id >= 0:
-                source_records = _dbc.recall(
+                source_records = duckbrain_client.recall(
                     key=f"/world/map/{source_id}",
                     namespace=WORLD_MEMORY_NAMESPACE,
                     limit=WORLD_MEMORY_TOP_K,
@@ -4315,36 +5133,15 @@ def _populate_world_memory(
                         source_records,
                         key=lambda record: str(record.get("created_at") or ""),
                     )
-        recalled_by_key: dict[str, dict[str, Any]] = {}
-        for record in recalled:
-            key = record.get("key")
-            if not isinstance(key, str):
-                continue
-            current = recalled_by_key.get(key)
-            if current is None or str(record.get("created_at") or "") > str(
-                current.get("created_at") or ""
-            ):
-                recalled_by_key[key] = record
+        recalled_by_key = _dedupe_recall_by_key(recalled)
         current_map_record = recalled_by_key.get(map_key)
-        if normalized_targets:
-            matched_keys = [
-                target for target in normalized_targets if target in recalled_by_key
-            ]
-            _append_run_event(
-                {
-                    "cycle": cycle,
-                    "event": "world_memory_teacher_targets_consumed",
-                    "namespace": WORLD_MEMORY_NAMESPACE,
-                    "targets": normalized_targets,
-                    "matched_keys": matched_keys,
-                },
-                results=results,
-                log_file=log_file,
-            )
-            safe_print(
-                f"  [MEM-WORLD] consumed {len(normalized_targets)} teacher target(s); "
-                f"matched {len(matched_keys)}"
-            )
+        _report_teacher_targets(
+            ctx,
+            recalled_by_key,
+            cycle=cycle,
+            results=results,
+            log_file=log_file,
+        )
         retrieved_facts = [
             _world_fact_text(
                 record,
@@ -4356,33 +5153,18 @@ def _populate_world_memory(
             )
             for record in list(recalled_by_key.values())[:WORLD_MEMORY_TOP_K]
         ]
-        if fresh_topology is not None:
-            # Live ROM collision truth leads the supplied facts: memory is a
-            # snapshot from whenever it was written, the collision read is this
-            # cycle's. It also gives a freshly entered map (retrieval runs
-            # before writes, so it has no recalled record yet) a factual
-            # topology entry instead of leaving the projection with none.
-            _append_run_event(
-                {
-                    "cycle": cycle,
-                    "event": "world_memory_topology_refresh",
-                    "namespace": WORLD_MEMORY_NAMESPACE,
-                    "map_id": typed_map_id,
-                    "map_name": map_name,
-                    "tile": {"x": typed_tile_x, "y": typed_tile_y},
-                    "walkability": dict(fresh_walkability),
-                    "fact": fresh_topology,
-                },
-                results=results,
-                log_file=log_file,
-            )
-            retrieved_facts.insert(0, fresh_topology)
-            retrieved_facts = _bounded_world_facts(retrieved_facts)
-            safe_print(
-                f"  [MEM-WORLD] cycle {cycle} live ROM topology fact -> JEV projection"
-            )
-        else:
-            retrieved_facts = _bounded_world_facts(retrieved_facts)
+        retrieved_facts = _apply_fresh_topology(
+            fresh_topology,
+            retrieved_facts,
+            map_id=typed_map_id,
+            map_name=map_name,
+            tile_x=typed_tile_x,
+            tile_y=typed_tile_y,
+            walkability=fresh_walkability,
+            cycle=cycle,
+            results=results,
+            log_file=log_file,
+        )
         if recalled_by_key:
             retrieval_event = {
                 "cycle": cycle,
@@ -4412,20 +5194,140 @@ def _populate_world_memory(
             log_file=log_file,
         )
         safe_print(f"  [MEM-WORLD] retrieval failed: {exc}")
+    return retrieved_facts, current_map_record, transition_source_record
 
-    # Fail-closed contract (MEM-PROJ T3): a failed retrieval supplies NO facts,
-    # so the projection keeps its previous bytes. The live ROM topology fact is
-    # deliberately withheld here too - "retrieval failed" must stay observable
-    # as an empty fact list rather than being masked by a partially-populated
-    # projection.
 
-    evidence = {
-        "run_id": run_id,
-        "cycle": cycle,
-        "map": {"id": typed_map_id, "name": map_name},
-        "tile": {"x": typed_tile_x, "y": typed_tile_y},
-    }
-    confidence = 1.0 if USE_RAM_READER else 0.75
+def _recall_world_records(
+    duckbrain_client: Any,
+    ctx: dict[str, Any],
+    targeted_records: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Recall map, path, object, and targeted records for the current map."""
+    return [
+        *duckbrain_client.recall(
+            key=ctx["map_key"],
+            namespace=WORLD_MEMORY_NAMESPACE,
+            limit=WORLD_MEMORY_TOP_K,
+        ),
+        *duckbrain_client.recall(
+            key_prefix=ctx["path_prefix"],
+            namespace=WORLD_MEMORY_NAMESPACE,
+            limit=WORLD_MEMORY_TOP_K,
+        ),
+        *duckbrain_client.recall(
+            key_prefix=ctx["object_prefix"],
+            namespace=WORLD_MEMORY_NAMESPACE,
+            limit=WORLD_MEMORY_TOP_K,
+        ),
+        *targeted_records,
+    ]
+
+
+def _dedupe_recall_by_key(
+    recalled: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """Keep the newest record per recalled key."""
+    recalled_by_key: dict[str, dict[str, Any]] = {}
+    for record in recalled:
+        key = record.get("key")
+        if not isinstance(key, str):
+            continue
+        current = recalled_by_key.get(key)
+        if current is None or str(record.get("created_at") or "") > str(
+            current.get("created_at") or ""
+        ):
+            recalled_by_key[key] = record
+    return recalled_by_key
+
+
+def _report_teacher_targets(
+    ctx: dict[str, Any],
+    recalled_by_key: dict[str, dict[str, Any]],
+    *,
+    cycle: int,
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+) -> None:
+    """Log which teacher retrieval targets were actually matched in memory."""
+    normalized_targets = ctx["targets"]
+    if not normalized_targets:
+        return
+    matched_keys = [
+        target for target in normalized_targets if target in recalled_by_key
+    ]
+    _append_run_event(
+        {
+            "cycle": cycle,
+            "event": "world_memory_teacher_targets_consumed",
+            "namespace": WORLD_MEMORY_NAMESPACE,
+            "targets": normalized_targets,
+            "matched_keys": matched_keys,
+        },
+        results=results,
+        log_file=log_file,
+    )
+    safe_print(
+        f"  [MEM-WORLD] consumed {len(normalized_targets)} teacher target(s); "
+        f"matched {len(matched_keys)}"
+    )
+
+
+def _apply_fresh_topology(
+    fresh_topology: str | None,
+    retrieved_facts: list[str],
+    *,
+    map_id: int,
+    map_name: str,
+    tile_x: int,
+    tile_y: int,
+    walkability: dict[str, str],
+    cycle: int,
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+) -> list[str]:
+    """Lead the supplied facts with live ROM topology truth when available.
+
+    Live ROM collision truth leads the supplied facts: memory is a snapshot
+    from whenever it was written, the collision read is this cycle's. It also
+    gives a freshly entered map (retrieval runs before writes, so it has no
+    recalled record yet) a factual topology entry instead of leaving the
+    projection with none.
+    """
+    if fresh_topology is None:
+        return _bounded_world_facts(retrieved_facts)
+    _append_run_event(
+        {
+            "cycle": cycle,
+            "event": "world_memory_topology_refresh",
+            "namespace": WORLD_MEMORY_NAMESPACE,
+            "map_id": map_id,
+            "map_name": map_name,
+            "tile": {"x": tile_x, "y": tile_y},
+            "walkability": dict(walkability),
+            "fact": fresh_topology,
+        },
+        results=results,
+        log_file=log_file,
+    )
+    retrieved_facts.insert(0, fresh_topology)
+    retrieved_facts = _bounded_world_facts(retrieved_facts)
+    safe_print(
+        f"  [MEM-WORLD] cycle {cycle} live ROM topology fact -> JEV projection"
+    )
+    return retrieved_facts
+
+
+def _map_observation_attributes(
+    observation: dict[str, Any],
+    current_map_record: dict[str, Any] | None,
+    *,
+    map_id: int,
+    map_name: str,
+    tile_x: int,
+    tile_y: int,
+    fresh_walkability: dict[str, str],
+) -> dict[str, Any]:
+    """Build the map-observation write attributes (merge over recalled attrs)."""
     map_attributes: dict[str, Any] = {}
     if isinstance(current_map_record, dict) and isinstance(
         current_map_record.get("attributes"), dict
@@ -4449,13 +5351,13 @@ def _populate_world_memory(
         if isinstance(existing_tiles, list)
         else []
     )
-    current_point = {"x": typed_tile_x, "y": typed_tile_y}
+    current_point = {"x": tile_x, "y": tile_y}
     if current_point not in tiles_visited:
         tiles_visited.append(current_point)
     map_attributes.update(
         {
             "fact_type": "map_observation",
-            "map_id": typed_map_id,
+            "map_id": map_id,
             "map_name": map_name,
             "player_tile": current_point,
             "map_dimensions": observation.get("map_dimensions"),
@@ -4469,91 +5371,126 @@ def _populate_world_memory(
             "local_collision_grid": str(observation.get("collision_grid") or ""),
         }
     )
-    writes: list[dict[str, Any]] = [
-        {
-            "key": map_key,
-            "domain": map_domain,
-            "attributes": map_attributes,
-            "embedding_text": (
-                f"Observed {map_name} (map {typed_map_id}) at tile "
-                f"({typed_tile_x},{typed_tile_y})"
-            ),
-            "labels": ["world", map_domain],
-            "confidence": confidence,
-            "evidence": evidence,
-        }
-    ]
+    return map_attributes
 
+
+def _tile_object_writes(
+    observation: dict[str, Any],
+    map_attributes: dict[str, Any],
+    evidence: dict[str, Any],
+    confidence: float,
+) -> list[dict[str, Any]]:
+    """Build per-tile object writes for remarkable adjacent tiles."""
+    typed_map_id = evidence["map"]["id"]
+    map_name = evidence["map"]["name"]
+    map_domain = evidence["map"]["id"]
+    domain = f"world/map/{map_domain}"
     adjacent = observation.get("adjacent")
     player_x = observation.get("player_x")
     player_y = observation.get("player_y")
-    if (
+    if not (
         isinstance(adjacent, dict)
         and isinstance(player_x, int)
         and isinstance(player_y, int)
     ):
-        for direction, (dx, dy) in _WORLD_TILE_OFFSETS.items():
-            tile_type = str(adjacent.get(direction) or "").lower()
-            if tile_type in _WORLD_UNREMARKABLE_TILES:
-                continue
-            object_x = player_x + dx
-            object_y = player_y + dy
-            landmark = {
-                "tile": {"x": object_x, "y": object_y},
-                "kind": tile_type,
-            }
-            landmarks = map_attributes["landmarks"]
-            if isinstance(landmarks, list) and landmark not in landmarks:
-                landmarks.append(landmark)
-            object_domain = f"world/object/{typed_map_id}/{object_x}_{object_y}"
-            writes.append(
-                {
-                    "key": f"/{object_domain}",
-                    "domain": object_domain,
-                    "attributes": {
-                        "fact_type": "tile_observation",
-                        "map_id": typed_map_id,
-                        "map_name": map_name,
-                        "position": {
-                            "x": object_x,
-                            "y": object_y,
-                            "coordinate_space": "map_block",
-                        },
-                        "tile_type": tile_type,
-                        "relative_direction": direction,
+        return []
+
+    writes: list[dict[str, Any]] = []
+    for direction, (dx, dy) in _WORLD_TILE_OFFSETS.items():
+        tile_type = str(adjacent.get(direction) or "").lower()
+        if tile_type in _WORLD_UNREMARKABLE_TILES:
+            continue
+        object_x = player_x + dx
+        object_y = player_y + dy
+        landmark = {
+            "tile": {"x": object_x, "y": object_y},
+            "kind": tile_type,
+        }
+        landmarks = map_attributes["landmarks"]
+        if isinstance(landmarks, list) and landmark not in landmarks:
+            landmarks.append(landmark)
+        object_domain = f"world/object/{typed_map_id}/{object_x}_{object_y}"
+        writes.append(
+            {
+                "key": f"/{object_domain}",
+                "domain": object_domain,
+                "attributes": {
+                    "fact_type": "tile_observation",
+                    "map_id": typed_map_id,
+                    "map_name": map_name,
+                    "position": {
+                        "x": object_x,
+                        "y": object_y,
+                        "coordinate_space": "map_block",
                     },
-                    "embedding_text": (
-                        f"{map_name} map block ({object_x},{object_y}) is "
-                        f"{tile_type}, observed {direction} of the player"
-                    ),
-                    "labels": ["world", map_domain, object_domain],
-                    "confidence": confidence,
-                    "evidence": evidence,
-                    "applies_when": {"map_id": typed_map_id},
-                }
-            )
-
-    if isinstance(transition, dict):
-        # S6 NAV-MEM: an observed map transition IS a proven edge. Storing it
-        # as ``/world/path/<from>-><to>`` lets a later navigation gap replay the
-        # route instead of re-deriving it (or paying a teacher for it).
-        path_write = _path_memory_write(
-            transition,
-            observation=observation,
-            evidence=evidence,
-            confidence=confidence,
+                    "tile_type": tile_type,
+                    "relative_direction": direction,
+                },
+                "embedding_text": (
+                    f"{map_name} map block ({object_x},{object_y}) is "
+                    f"{tile_type}, observed {direction} of the player"
+                ),
+                "labels": ["world", domain, object_domain],
+                "confidence": confidence,
+                "evidence": evidence,
+                "applies_when": {"map_id": typed_map_id},
+            }
         )
-        if path_write is not None:
-            writes.append(path_write)
-        source_map_write = _transition_map_exit_write(
-            transition,
-            existing=transition_source_record,
-            evidence=evidence,
-            confidence=confidence,
-        )
-        if source_map_write is not None:
-            writes.append(source_map_write)
+    return writes
 
+
+def _transition_writes(
+    transition: dict[str, Any] | None,
+    *,
+    observation: dict[str, Any],
+    evidence: dict[str, Any],
+    confidence: float,
+    existing: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Build the S6 NAV-MEM path/exit writes for an observed map transition.
+
+    An observed map transition IS a proven edge. Storing it as
+    ``/world/path/<from>-><to>`` lets a later navigation gap replay the
+    route instead of re-deriving it (or paying a teacher for it).
+    """
+    if not isinstance(transition, dict):
+        return []
+    writes: list[dict[str, Any]] = []
+    path_write = _path_memory_write(
+        transition,
+        observation=observation,
+        evidence=evidence,
+        confidence=confidence,
+    )
+    if path_write is not None:
+        writes.append(path_write)
+    source_map_write = _transition_map_exit_write(
+        transition,
+        existing=existing,
+        evidence=evidence,
+        confidence=confidence,
+    )
+    if source_map_write is not None:
+        writes.append(source_map_write)
+    return writes
+
+
+def _commit_world_writes(
+    duckbrain_client: Any,
+    writes: list[dict[str, Any]],
+    *,
+    transition: dict[str, Any] | None,
+    written_keys: set[str],
+    cycle: int,
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+) -> None:
+    """Persist world-memory writes, deduped per run unless transition-forced.
+
+    Fail-closed contract (MEM-PROJ T3): a failed retrieval supplies NO facts,
+    so the projection keeps its previous bytes. Write failures are logged and
+    never stop gameplay.
+    """
     forced_keys = {
         str(write["key"])
         for write in writes
@@ -4565,7 +5502,7 @@ def _populate_world_memory(
         if key in written_keys and key not in forced_keys:
             continue
         try:
-            memory_id = _dbc.remember(
+            memory_id = duckbrain_client.remember(
                 **write,
                 namespace=WORLD_MEMORY_NAMESPACE,
             )
@@ -4596,8 +5533,6 @@ def _populate_world_memory(
                 log_file=log_file,
             )
             safe_print(f"  [MEM-WORLD] write failed for {key}: {exc}")
-
-    return retrieved_facts
 
 
 # DF-AIPP-3 category mapping for the two durable knowledge layers. Agent notes
@@ -4703,115 +5638,191 @@ def _apply_agent_memory_outputs(
     _mem_new_goal = (decision.get("goal") or "").strip()
     _mem_study_key = (decision.get("study") or "").strip()
     if _mem_note:
+        mem_notes = _process_memory_note(
+            _dbc,
+            _mem_note,
+            map_name=map_name,
+            cycle=cycle,
+            mem_notes=mem_notes,
+            results=results,
+            log_file=log_file,
+        )
+    if _mem_new_goal:
+        mem_goal = _process_memory_goal(
+            _dbc,
+            _mem_new_goal,
+            cycle=cycle,
+            results=results,
+            log_file=log_file,
+        )
+    if _mem_study_key:
+        pending_study_result = _process_memory_study(
+            _dbc,
+            _mem_study_key,
+            cycle=cycle,
+            results=results,
+            log_file=log_file,
+        )
+    return mem_goal, mem_notes, pending_study_result
+
+
+def _append_event(
+    evt: dict[str, Any],
+    *,
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+) -> None:
+    """Append one memory event to results and to the run log."""
+    results.append(evt)
+    log_file.write(json.dumps(evt, default=str) + "\n")
+    log_file.flush()
+
+
+def _process_memory_note(
+    duckbrain_client: Any,
+    note: str,
+    *,
+    map_name: str,
+    cycle: int,
+    mem_notes: list[str],
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+) -> list[str]:
+    """Persist an agent note (+ learning mirror) and prepend it to mem_notes."""
+    try:
+        duckbrain_client.remember(
+            key=f"/notes/overworld-{cycle}",
+            domain="concept",
+            attributes={
+                "fact": note[:300],
+                "source": "agent",
+                "map": map_name,
+                "cycle": cycle,
+            },
+            embedding_text=note[:300],
+            namespace="pokemon-global",
+        )
+        learning_category = _learning_category(note, map_name)
         try:
-            _dbc.remember(
-                key=f"/notes/overworld-{cycle}",
-                domain="concept",
+            duckbrain_client.remember(
+                key=f"/game/learning/{learning_category}",
+                domain="game/learning",
                 attributes={
-                    "fact": _mem_note[:300],
-                    "source": "agent",
+                    "fact": note[:300],
+                    "category": learning_category,
+                    "source": "agent-note",
                     "map": map_name,
                     "cycle": cycle,
                 },
-                embedding_text=_mem_note[:300],
+                embedding_text=note[:300],
                 namespace="pokemon-global",
             )
-            learning_category = _learning_category(_mem_note, map_name)
-            try:
-                _dbc.remember(
-                    key=f"/game/learning/{learning_category}",
-                    domain="game/learning",
-                    attributes={
-                        "fact": _mem_note[:300],
-                        "category": learning_category,
-                        "source": "agent-note",
-                        "map": map_name,
-                        "cycle": cycle,
-                    },
-                    embedding_text=_mem_note[:300],
-                    namespace="pokemon-global",
-                )
-            except Exception as learning_error:
-                safe_print(f"  [MEM] learning mirror failed: {learning_error}")
-            mem_notes.insert(0, f"[{map_name}] {_mem_note[:120]}")
-            mem_notes = mem_notes[:6]
-            safe_print(f"  [MEM] note: {_mem_note[:80]}")
-            evt = {
-                "cycle": cycle,
-                "event": "memory_note",
-                "map": map_name,
-                "note": _mem_note[:300],
-            }
-            results.append(evt)
-            log_file.write(json.dumps(evt, default=str) + "\n")
-            log_file.flush()
-        except Exception as _e:
-            safe_print(f"  [MEM] note failed: {_e}")
-    if _mem_new_goal:
-        mem_goal = _mem_new_goal[:200]
-        try:
-            _dbc.remember(
-                key="/goals/current",
-                domain="goal",
-                attributes={"goal": mem_goal, "source": "agent"},
-                embedding_text=f"Current goal: {mem_goal}",
+        except Exception as learning_error:
+            safe_print(f"  [MEM] learning mirror failed: {learning_error}")
+        mem_notes.insert(0, f"[{map_name}] {note[:120]}")
+        mem_notes = mem_notes[:6]
+        safe_print(f"  [MEM] note: {note[:80]}")
+        evt = {
+            "cycle": cycle,
+            "event": "memory_note",
+            "map": map_name,
+            "note": note[:300],
+        }
+        _append_event(evt, results=results, log_file=log_file)
+    except Exception as _e:
+        safe_print(f"  [MEM] note failed: {_e}")
+    return mem_notes
+
+
+def _process_memory_goal(
+    duckbrain_client: Any,
+    new_goal: str,
+    *,
+    cycle: int,
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+) -> str:
+    """Persist the agent's current goal and log the memory_goal event."""
+    mem_goal = new_goal[:200]
+    try:
+        duckbrain_client.remember(
+            key="/goals/current",
+            domain="goal",
+            attributes={"goal": mem_goal, "source": "agent"},
+            embedding_text=f"Current goal: {mem_goal}",
+        )
+        safe_print(f"  [MEM] goal: {mem_goal[:80]}")
+        evt = {"cycle": cycle, "event": "memory_goal", "goal": mem_goal}
+        _append_event(evt, results=results, log_file=log_file)
+    except Exception as _e:
+        safe_print(f"  [MEM] goal failed: {_e}")
+    return mem_goal
+
+
+def _process_memory_study(
+    duckbrain_client: Any,
+    study_key: str,
+    *,
+    cycle: int,
+    results: list[dict[str, Any]],
+    log_file: TextIO,
+) -> str:
+    """Read a memory key, mirror mechanics content, and log memory_study."""
+    pending_study_result: str
+    try:
+        _rec = duckbrain_client.get(key=study_key)
+        if _rec:
+            pending_study_result = _mirror_studied_content(
+                duckbrain_client, study_key, _rec, cycle=cycle
             )
-            safe_print(f"  [MEM] goal: {mem_goal[:80]}")
-            evt = {"cycle": cycle, "event": "memory_goal", "goal": mem_goal}
-            results.append(evt)
-            log_file.write(json.dumps(evt, default=str) + "\n")
-            log_file.flush()
-        except Exception as _e:
-            safe_print(f"  [MEM] goal failed: {_e}")
-    if _mem_study_key:
+        else:
+            pending_study_result = (
+                f"(nothing at {study_key} — you haven't "
+                f"learned it yet; explore and remember it)"
+            )
+        safe_print(f"  [MEM] study {study_key} -> {pending_study_result[:60]}")
+        evt = {
+            "cycle": cycle,
+            "event": "memory_study",
+            "key": study_key,
+            "result": pending_study_result[:250],
+        }
+        _append_event(evt, results=results, log_file=log_file)
+    except Exception as _e:
+        pending_study_result = f"(study failed: {_e})"
+    return pending_study_result
+
+
+def _mirror_studied_content(
+    duckbrain_client: Any,
+    study_key: str,
+    record: dict[str, Any],
+    *,
+    cycle: int,
+) -> str:
+    """Copy studied content into the canonical mechanics key for boot reads."""
+    _attrs = record.get("attributes", {})
+    _body = _attrs.get("fact") or _attrs.get("goal") or record.get("embedding_text", "")
+    studied_content = str(_body).strip()[:300]
+    pending = f"{record.get('key')}: {studied_content[:250]}"
+    if studied_content:
+        mechanics_category = _mechanics_category(study_key, studied_content)
         try:
-            _rec = _dbc.get(key=_mem_study_key)
-            if _rec:
-                _attrs = _rec.get("attributes", {})
-                _body = (
-                    _attrs.get("fact")
-                    or _attrs.get("goal")
-                    or _rec.get("embedding_text", "")
-                )
-                studied_content = str(_body).strip()[:300]
-                pending_study_result = f"{_rec.get('key')}: {studied_content[:250]}"
-                if studied_content:
-                    mechanics_category = _mechanics_category(
-                        _mem_study_key, studied_content
-                    )
-                    try:
-                        _dbc.remember(
-                            key=f"/game/mechanics/{mechanics_category}",
-                            domain="game/mechanics",
-                            attributes={
-                                "fact": studied_content,
-                                "source": "agent-study",
-                                "source_key": _mem_study_key,
-                                "cycle": cycle,
-                            },
-                            embedding_text=studied_content,
-                            namespace="pokemon-global",
-                        )
-                    except Exception as mechanics_error:
-                        safe_print(f"  [MEM] mechanics write failed: {mechanics_error}")
-            else:
-                pending_study_result = (
-                    f"(nothing at {_mem_study_key} — you haven't "
-                    f"learned it yet; explore and remember it)"
-                )
-            safe_print(f"  [MEM] study {_mem_study_key} -> {pending_study_result[:60]}")
-            evt = {
-                "cycle": cycle,
-                "event": "memory_study",
-                "key": _mem_study_key,
-                "result": pending_study_result[:250],
-            }
-            results.append(evt)
-            log_file.write(json.dumps(evt, default=str) + "\n")
-            log_file.flush()
-        except Exception as _e:
-            pending_study_result = f"(study failed: {_e})"
-    return mem_goal, mem_notes, pending_study_result
+            duckbrain_client.remember(
+                key=f"/game/mechanics/{mechanics_category}",
+                domain="game/mechanics",
+                attributes={
+                    "fact": studied_content,
+                    "source": "agent-study",
+                    "source_key": study_key,
+                    "cycle": cycle,
+                },
+                embedding_text=studied_content,
+                namespace="pokemon-global",
+            )
+        except Exception as mechanics_error:
+            safe_print(f"  [MEM] mechanics write failed: {mechanics_error}")
+    return pending
 
 
 # ── Boot memory injection (MEM-2, PRD_v2_lifecycle.md §R3) ──────────
@@ -5027,6 +6038,23 @@ def _render_save_current(record: dict[str, Any]) -> str:
     attributes = record.get("attributes") or {}
     if not isinstance(attributes, dict):
         attributes = {}
+    text = _save_location_text(attributes)
+    party_count = attributes.get("party_count")
+    if party_count is not None:
+        if text:
+            text += "; "
+        text += f"{_as_int(party_count)} party member(s)"
+    if text:
+        return text
+    # Defensive fallback: truncated JSON dump so *some* truth still rides.
+    body = _memory_record_body(record)
+    if not body:
+        body = json.dumps(record.get("attributes") or {}, default=str)
+    return body[:200]
+
+
+def _save_location_text(attributes: dict[str, Any]) -> str:
+    """Render map/position truth from a save record's attributes."""
     text = ""
     name = attributes.get("map_name")
     map_id = attributes.get("map_id")
@@ -5041,18 +6069,7 @@ def _render_save_current(record: dict[str, Any]) -> str:
                 text += f" at {x},{y}"
         elif isinstance(pos, (list, tuple)) and len(pos) == 2:
             text += f" at {pos[0]},{pos[1]}"
-    party_count = attributes.get("party_count")
-    if party_count is not None:
-        if text:
-            text += "; "
-        text += f"{_as_int(party_count)} party member(s)"
-    if text:
-        return text
-    # Defensive fallback: truncated JSON dump so *some* truth still rides.
-    body = _memory_record_body(record)
-    if not body:
-        body = json.dumps(record.get("attributes") or {}, default=str)
-    return body[:200]
+    return text
 
 
 def _gather_save_state(client: Any) -> list[str]:
@@ -5421,7 +6438,8 @@ def _main_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    global CYCLES, ROM, run_id, log_path, SCREENSHOT_DIR, DECISION_MODE, HANDOFF_POLICY
+    """Entry point: parse args, preflight, boot, run all cycles, finalize."""
+    global CYCLES, ROM, run_id, log_path
 
     # Load the clone's .env BEFORE the JEV preflight reads os.environ (REV-4
     # regression fix): _load_dotenv_stdlib is no-override, so real environment
@@ -5431,6 +6449,36 @@ def main() -> None:
     # preflight with "controller key OPENROUTER_API_KEY is not set".
     _load_dotenv_stdlib()
 
+    args = _main_parse_and_dry_run()
+    if args is None:
+        # --dry-run: setup validation already printed its summary.
+        return
+    if args.rom:
+        ROM = args.rom
+    CYCLES = max(1, args.cycles)
+    run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_path = LOG_DIR / f"run_{run_id}.jsonl"
+    preflight_row = _run_jev_preflight(
+        decision_mode=DECISION_MODE,
+        skip_preflight=args.skip_preflight,
+        current_run_id=run_id,
+        current_log_path=log_path,
+    )
+    if preflight_row.get("status") == "auth_failure":
+        raise SystemExit(2)
+
+    R = _main_runtime_setup(args)
+    ctx = _main_boot(R, args)
+    _main_run(R, args, preflight_row, ctx)
+
+
+def _main_parse_and_dry_run():
+    """Parse CLI args, set DECISION_MODE/HANDOFF_POLICY, handle --dry-run.
+
+    Returns the parsed args, or None when a dry run already completed (the
+    caller must return without touching runtime dependencies).
+    """
+    global DECISION_MODE, HANDOFF_POLICY
     parser = _main_parser()
     args = parser.parse_args()
     # Decision mode (flag > env > default). Stamped into every decision row,
@@ -5461,35 +6509,27 @@ def main() -> None:
         )
         if dry_run_status:
             raise SystemExit(dry_run_status)
-        return
-    if args.rom:
-        ROM = args.rom
-    CYCLES = max(1, args.cycles)
-    run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
-    log_path = LOG_DIR / f"run_{run_id}.jsonl"
-    preflight_row = _run_jev_preflight(
-        decision_mode=DECISION_MODE,
-        skip_preflight=args.skip_preflight,
-        current_run_id=run_id,
-        current_log_path=log_path,
-    )
-    if preflight_row.get("status") == "auth_failure":
-        raise SystemExit(2)
+        return None
+    return args
 
-    # Runtime-only dependencies stay behind argparse and the fail-fast preflight.
-    # In particular, Emulator imports PyBoy/SDL and PIL imports numpy transitively.
+
+def _main_runtime_setup(args):
+    """Runtime-only imports + emulator/pipeline/client initialization.
+
+    Runtime-only dependencies stay behind argparse and the fail-fast preflight.
+    In particular, Emulator imports PyBoy/SDL and PIL imports numpy transitively.
+    """
+    global SCREENSHOT_DIR
+    global SimpleNamespace, Emulator, GlobalContext, run_agentic_cycle
+    from types import SimpleNamespace
+
     from PIL import Image
-    from src.core.agentic_loop import (
-        BoundedAgentContext,
-        DuckBrainAgentMemory,
-        ModelResearchDelegate,
-        run_agentic_cycle,
-    )
     from src.core.ai_client import OpenRouterClient
     from src.core.emulator import Emulator
     from src.core.frame_cache import FrameCache
     from src.core.global_context import GlobalContext
     from src.core.ram_reader import RAMReader
+    from src.core.agentic_loop import run_agentic_cycle
 
     if USE_VISION_CLIENT:
         from src.core.vision import VisionClient
@@ -5499,21 +6539,72 @@ def main() -> None:
     SCREENSHOT_DIR = Path("screenshots") / f"run_{run_id}"
     SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
 
-    results: list[dict[str, Any]] = []
-    emu = Emulator(ROM)
+    R = SimpleNamespace()
+    R.image_module = Image
+    R.emu = Emulator(ROM)
+    _apply_boot_checkpoint(R, args)
 
-    # ── Boot state (GAP-028) ────────────────────────────────────────
-    # A fresh run that boots from the title screen and A-mashes through
-    # the intro can land in a degenerate overworld state (player facing
-    # a wall) that direction-locks on every cycle. When a known-good
-    # checkpoint is available, boot from it instead so the run starts
-    # from a verified overworld position with the starter already picked.
+    # Init RAM reader (instant state reads) or fall back to vision cartographer
+    if USE_RAM_READER:
+        R.ram_reader = RAMReader(R.emu, ROM)
+        R.pipeline_name = "RAM reader"
+        safe_print(f"[{run_id}] Starting run with RAM reader pipeline...")
+    else:
+        R.ram_reader = None
+        R.pipeline_name = "cartographer"
+        safe_print(
+            f"[{run_id}] Starting run with visual-reference cartographer pipeline..."
+        )
+        safe_print("  Reference image: reference/bedroom_overworld.png")
+
+    # Persistent frame cache — UUID references for repeated screenshots.
+    # Survives runs, so revisiting a map in a later session also hits.
+    R.frame_cache = FrameCache("data/frame_cache.json")
+    safe_print(
+        f"[{run_id}] Frame cache: {R.frame_cache.unique_frames} known frames "
+        f"({R.frame_cache.total_seen} total references) — {R.frame_cache.MAX_ENTRIES} max"
+    )
+
+    # Init AI clients
+    if USE_VISION_CLIENT:
+        vision = VisionClient()  # noqa: F841 — conditionally enabled debug classifier
+    R.controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
+    # GAP-052: flag > CRON_CONTROLLER_MODEL/POKE_CONTROLLER_MODEL > default
+    # Luna. Deepseek models reach their own API through this same client.
+    # GAP-052: the controller model is resolved once here — explicit arg, else
+    # env override, else the default Luna string — and this resolution feeds
+    # controller_plan, whose ``model=controller_model`` argument is the wiring
+    # every decision path inherits. A '*deepseek*' id routes to
+    # api.deepseek.com through the same client (src/core/ai_client.py).
+    resolved_model = resolve_controller_model(args.controller_model)
+    R.controller_model = resolved_model
+    safe_print(f"[{run_id}] Controller model: {R.controller_model}")
+
+    # A-mash batch constants — also used by the main-loop name_entry
+    # handler, so they live OUTSIDE the guarded intro block (booting from
+    # a checkpoint skips the intro but can still re-enter name_entry).
+    R._A_BURST = 10  # A-presses per batch — Gen 1 text advances in a few presses
+    R._A_FRAMES = 5  # hold A for 5 frames each press
+    R._FF_FRAMES = 30  # fast-forward between presses (~350 frames per burst total)
+    R._NAME_ENTRY_STUCK_MAX = 3  # after 3 cycles → programmatic entry
+    return R
+
+
+def _apply_boot_checkpoint(R, args):
+    """Boot from a known-good checkpoint when one resolves (GAP-028).
+
+    A fresh run that boots from the title screen and A-mashes through
+    the intro can land in a degenerate overworld state (player facing
+    a wall) that direction-locks on every cycle. When a known-good
+    checkpoint is available, boot from it instead so the run starts
+    from a verified overworld position with the starter already picked.
+    """
     boot_path = _resolve_boot_state(args.boot_state)
-    boot_from_state = boot_path is not None
+    R.boot_from_state = boot_path is not None
     _warn_boot_state_rom_mismatch(run_id, boot_path, ROM)
-    if boot_from_state:
-        emu.load_state(cast(Path, boot_path))
-        emu.wait(30)  # settle after state restore
+    if R.boot_from_state:
+        R.emu.load_state(cast(Path, boot_path))
+        R.emu.wait(30)  # settle after state restore
         safe_print(
             f"[{run_id}] Booting from checkpoint {boot_path} — skipping intro bypass"
         )
@@ -5522,365 +6613,392 @@ def main() -> None:
             f"[{run_id}] Boot checkpoint {args.boot_state} not found — falling back to intro bypass"
         )
 
-    # Init RAM reader (instant state reads) or fall back to vision cartographer
-    pipeline_name: str
-    if USE_RAM_READER:
-        ram_reader = RAMReader(emu, ROM)
-        pipeline_name = "RAM reader"
-        safe_print(f"[{run_id}] Starting run with RAM reader pipeline...")
+
+def _main_boot(R, args):
+    """Boot the game world: checkpoint or intro bypass, then GlobalContext."""
+    if R.boot_from_state:
+        R._player_named = False
+        R._rival_named = False
     else:
-        pipeline_name = "cartographer"
-        safe_print(
-            f"[{run_id}] Starting run with visual-reference cartographer pipeline..."
-        )
-        safe_print("  Reference image: reference/bedroom_overworld.png")
-
-    # Persistent frame cache — UUID references for repeated screenshots.
-    # Survives runs, so revisiting a map in a later session also hits.
-    _frame_cache = FrameCache("data/frame_cache.json")
-    safe_print(
-        f"[{run_id}] Frame cache: {_frame_cache.unique_frames} known frames "
-        f"({_frame_cache.total_seen} total references) — {_frame_cache.MAX_ENTRIES} max"
-    )
-
-    # Init AI clients
-    if USE_VISION_CLIENT:
-        vision = VisionClient()  # noqa: F841 — conditionally enabled debug classifier
-    controller_client = OpenRouterClient()  # uses DEEPSEEK_API_KEY from .env
-    # GAP-052: flag > CRON_CONTROLLER_MODEL/POKE_CONTROLLER_MODEL > default
-    # Luna. Deepseek models reach their own API through this same client.
-    controller_model = resolve_controller_model(args.controller_model)
-    safe_print(f"[{run_id}] Controller model: {controller_model}")
-
-    # ── Checkpoint / recovery state (STUCK-RECOVER) ─────────────────
-    _checkpoint_slot: int = 0
-    _last_saved_slot: int | None = None
-    _dir_blacklist: set[str] = set()  # directions that caused checkpoint recovery
-    _last_direction: str = ""  # last direction pressed (for controller context)
-    _last_result: str = "unknown"  # last movement result
-    # The teacher gets one attempt per missing-information class for this run.
-    # Membership is recorded before the API call, so failures remain bounded.
-    _teacher_escalated_classes: set[str] = set()
-    # Per-episode teacher budget (--teacher-max-per-episode). Counted at the API
-    # boundary so a failing call still spends it; None cap means unlimited.
-    _teacher_budget: dict[str, int] = {"used": 0}
-    # A teacher patch's missing facts are bound to exact /world/* keys after the
-    # decision, then consumed once by the following cycle's memory retrieval.
-    _pending_teacher_memory_targets: list[str] = []
-
-    # ── Stuck detection (4 independent dimensions) ──────────────────
-    _same_dir: str | None = None  # last repeated direction
-    _same_dir_count: int = 0  # consecutive same-direction presses
-    _same_screen_count: int = 0  # consecutive cycles on same screen type
-    _last_screen_type: str = ""  # for same-screen detection
-    _same_tile_count: int = 0  # consecutive cycles on same RAM tile
-    _last_tile: tuple[int, int, int] | None = None
-    # S6 NAV-MEM: the tile stood on before this cycle's observation — the door
-    # tile of any map transition observed this cycle.
-    _departure_tile: tuple[int, int, int] | None = None
-    _void_tile_pct: float = 0.0  # % of tiles classified as unknown/void
-    _void_cycles: int = 0  # consecutive cycles with >95% void tiles
-
-    # ── A-press loop detection (STUCK-A-LOOP) ──────────────────────
-    _a_press_count: int = 0  # consecutive A presses without direction change
-    _MAX_A_PRESS = 3  # after 3 consecutive A presses → trigger recovery
-    _last_action_button: str = ""  # last non-direction button pressed
-
-    # ── Escalating recovery ────────────────────────────────────────
-    _recovery_level: int = 0  # current rung of the escalation ladder
-    _recovery_attempts: int = 0  # total recovery escalations (capped at MAX)
-    _last_state_key: str = ""  # composite key for state-change detection
-    _gave_up: bool = False  # True once max recovery attempts exhausted
-    _same_frame_count: int = (
-        0  # consecutive pixel-identical frames (dialog-loop detector)
-    )
-    _prev_frame_hash: str = ""  # previous cycle's frame hash for the counter above
-    _last_saved_frame_hash: str = ""  # empty guarantees the first cycle is saved
-    _last_plan_sig: str = ""  # signature of last executed plan (no-op plan guard)
-    _same_plan_count: int = (
-        0  # consecutive cycles with identical plan + unchanged position
-    )
-    _last_pos_key: str = ""  # last cycle's map:tile position key
-
-    # ── Frame hashing for cartographer cache ───────────────────────
-    _last_frame_hash: str = (
-        ""  # for frame hashing — skip cartographer on identical frames
-    )
-    _cached_patch: dict[str, Any] = {}  # cached cartographer output
-    _cached_carto_raw: str = ""  # cached raw cartographer text
-
-    # ── Frame hashing for Luna vision (controller screenshot dedup) ─
-    # Only attach the screenshot to the controller prompt when the
-    # frame CHANGED since the last call. Identical frames (standing
-    # still, dialog open) re-send the same ~2500 image tokens every
-    # cycle — pure waste. RAM text still flows every cycle.
-    _last_controller_frame_hash: str = ""
-
-    # ── Persistent frame cache (UUID references across runs) ──────
-    # Screenshots are md5-hashed and stored in a disk-backed LRU cache
-    # (max 1000). First sighting sends the image; any repeat sighting
-    # (battle loop, re-walking the same tile, same dialog box) sends a
-    # short text reference "<uuid>" instead of the image bytes — same
-    # visual info, ~zero image tokens. Survives restarts, so revisiting
-    # a map in a later session still hits.
-    # NOTE: bound at line ~543 in the pipeline-init block, before the
-    # main loop. Do NOT declare here — an assignment would wipe it.
-    assert _frame_cache is not None  # bound in pipeline-init block above
-
-    # ── Deterministic intro bypass ──────────────────────────────────
-    # Only runs when no boot checkpoint was loaded (GAP-028): the intro
-    # A-mash can land in a degenerate wall-facing overworld state that
-    # direction-locks on the very first cycles. Booting from a known-good
-    # checkpoint skips all of this.
-    # A-mash batch constants — also used by the main-loop name_entry
-    # handler, so they live OUTSIDE the guarded intro block (booting from
-    # a checkpoint skips the intro but can still re-enter name_entry).
-    _A_BURST = 10  # A-presses per batch — Gen 1 text advances in a few presses
-    _A_FRAMES = 5  # hold A for 5 frames each press
-    _FF_FRAMES = 30  # fast-forward between presses (~350 frames per burst total)
-    _NAME_ENTRY_STUCK_MAX = 3  # after 3 cycles → programmatic entry
-    if not boot_from_state:
-        # ── Deterministic intro bypass ──────────────────────────────────
-        # Decoupled: A-mash aggressively in large batches, sparse
-        # observation checks (RAM reader is instant, cartographer has 1-60s latency).
-        # RAM reader path: instant state reads, no LLM calls.
-        safe_print(f"[{run_id}] Bypassing intro via {pipeline_name}...")
-
-        # Step 1: Title screen → press START. PyBoy starts before the title is
-        # ready for input, so let it finish drawing before sending START.
-        emu.wait(180)
-        emu.bypass_title()
-        # Brief settle — intro loop detects state changes via RAM, no need for long waits.
-        emu.wait(30)
-        # Press A — if no save file, this selects NEW GAME directly.
-        # If save exists, cursor is on CONTINUE — we'll detect old save below.
-        emu.press_button("a", frames=15)
-        emu.fast_forward(60)  # let game load (or Oak appear)
-
-        _player_named = False
-        _rival_named = False
-        _intro_checks = 0
-        _MAX_INTRO_CHECKS = (
-            15  # raised from 12 — programmatic name entry takes fewer cycles
-        )
-        _save_detected = False  # set True if we loaded a save file by mistake
-        _name_entry_stuck = 0  # consecutive name_entry cycles without progress
-        _last_intro_phase = None  # track phase transitions for logging
-
-        while _intro_checks < _MAX_INTRO_CHECKS:
-            _intro_checks += 1
-            screenshot = emu.capture()
-
-            # Use RAM reader or cartographer for screen classification
-            if USE_RAM_READER:
-                patch_data = ram_reader.observe()
-                carto_raw = json.dumps(
-                    {"source": "ram_reader", "result": patch_data.get("result")}
-                )
-            else:
-                patch_data, carto_raw = cartographer_analyze(
-                    controller_client, screenshot
-                )
-            st = patch_data.get("result", "unknown")
-
-            # ── Save file detection: if we're in overworld without naming ──
-            if st == "overworld" and not _player_named:
-                tc = patch_data.get("text_content", [])
-                if (
-                    not tc and not USE_RAM_READER
-                ):  # RAM reader always returns empty text_content
-                    if not _save_detected:
-                        _save_detected = True
-                        print("  [intro] SAVE DETECTED — restarting with NEW GAME")
-                        # Reset the emulator from scratch
-                        emu.stop()
-                        emu = Emulator(ROM)
-                        emu.bypass_title()
-                        emu.wait(120)
-                        # Move cursor from CONTINUE (default) to NEW GAME
-                        emu.press_button("down", frames=15)
-                        emu.wait(15)
-                        emu.press_button("a", frames=15)
-                        emu.wait(120)
-                        _intro_checks = 0  # reset counter
-                        continue
-
-            if st == "overworld":
-                if _last_intro_phase != "overworld":
-                    safe_print(
-                        f"  [intro] Phase: {_last_intro_phase} → overworld — intro complete ({_intro_checks} checks)"
-                    )
-                print(
-                    f"  [intro] {pipeline_name} says overworld — intro complete ({_intro_checks} checks)"
-                )
-                break
-            elif st == "name_entry":
-                _name_entry_stuck += 1
-                if _name_entry_stuck >= _NAME_ENTRY_STUCK_MAX:
-                    # A-mashing may already have filled the name. Navigate from
-                    # the default A key directly to END and accept it.
-                    if not _player_named:
-                        safe_print("  [intro] Name entry stuck — accepting player name")
-                        emu.submit_name()
-                        _player_named = True
-                    elif not _rival_named:
-                        safe_print("  [intro] Rival name stuck — accepting rival name")
-                        emu.submit_name()
-                        _rival_named = True
-                    _name_entry_stuck = 0
-                else:
-                    # Not stuck yet — A-mash to advance through any pending dialog
-                    # that sits between cycles (e.g. "So, your name is X?" confirmation).
-                    # NOTE: do NOT set _player_named/_rival_named here — only programmatic
-                    # typing actually writes the name, so flags must wait until enter_name()
-                    # has run. Setting them prematurely caused the second name_entry
-                    # cycle to be skipped and the rival to be named "----" (default).
-                    for _ in range(_A_BURST):
-                        emu.press_button("a", frames=_A_FRAMES)
-                        emu.fast_forward(_FF_FRAMES)
-            elif st == "title":
-                _name_entry_stuck = 0  # reset — we're not in name entry
-                emu.press_button("start", frames=30)
-                emu.wait(90)
-            else:
-                # dialog / name_confirm / cutscene / unknown — A-mash aggressively
-                _name_entry_stuck = 0  # reset — out of name entry
-                for _ in range(_A_BURST):
-                    emu.press_button("a", frames=_A_FRAMES)
-                    emu.fast_forward(_FF_FRAMES)
-
-            # ── Phase transition logging ───────────────────────────
-            if st != _last_intro_phase:
-                if _last_intro_phase is not None:
-                    safe_print(
-                        f"  [intro] Phase: {_last_intro_phase} → {st} (check {_intro_checks})"
-                    )
-                _last_intro_phase = st
-
-        if _intro_checks >= _MAX_INTRO_CHECKS:
-            print(
-                f"  [!] Intro bypass hit {_MAX_INTRO_CHECKS} check cap — proceeding anyway"
-            )
-        else:
-            print(f"  Intro bypass complete in {_intro_checks} checks")
-
-        # ── Save state at center of bedroom (before moving) ──────────
-        # The bedroom start position faces the TV; saving before we move
-        # gives the controller a clean starting position to navigate from.
-        try:
-            emu.save_state(0)
-            _last_saved_slot = 0
-            print("  [CKPT] Post-intro state saved to slot 0")
-        except Exception as exc:
-            print(f"  [CKPT] Failed to save post-intro state: {exc}")
-
-        # ── Step away from what we're facing ─────────────────────────
-        # Walk LEFT (toward the bed/stairs area). The stairs down are on
-        # the left side of the bedroom; walking LEFT avoids the TV loop
-        # AND positions the character near the exit.
-        safe_print("  [intro] Stepping away from TV...")
-        emu.press_button("up", frames=15)  # face away from TV
-        emu.fast_forward(30)
-        # Clear any lingering dialog box
-        emu.press_button("b", frames=30)
-        emu.wait(30)
-
-        # ── Leave bedroom ────────────────────────────────────────────
-        # A 30-frame press advances roughly two tiles. The collision-verified path
-        # from spawn (3,6) to the bedroom warp (7,1) is R,U,U,U,R.
-        safe_print("  [intro] Walking to bedroom stairs (R,U,U,U,R)...")
-        for button in ("right", "up", "up", "up", "right"):
-            emu.press_button(button, frames=30)
-            emu.fast_forward(60)
-        emu.wait(90)
-
-        # Continue through the ground floor so the controller starts outdoors.
-        if emu.read_u8(0xD35E) == 0x25:  # wCurMap: Red's House 1F
-            safe_print("  [intro] Leaving ground floor for Pallet Town...")
-            for button in ("down", "down", "down", "left", "left", "down"):
-                emu.press_button(button, frames=30)
-                emu.fast_forward(60)
-            emu.wait(90)
-    else:
-        _player_named = False
-        _rival_named = False
+        R._player_named, R._rival_named = _intro_bypass(R)
+        _intro_walk_out(R)
 
     ctx = GlobalContext(
-        generation="gen1", location="pallet_town" if boot_from_state else "bedroom"
+        generation="gen1", location="pallet_town" if R.boot_from_state else "bedroom"
     )
     # If we bypassed the intro, set player/rival names
-    if _player_named:
+    if R._player_named:
         ctx.player_name = "ASH"
-    if _rival_named:
+    if R._rival_named:
         ctx.rival_name = "GARY"
+    return ctx
 
+
+def _intro_bypass(R):
+    """Deterministic intro bypass: A-mash through the intro to the overworld.
+
+    Decoupled: A-mash aggressively in large batches, sparse observation checks
+    (RAM reader is instant, cartographer has 1-60s latency). RAM reader path:
+    instant state reads, no LLM calls.
+
+    Returns (player_named, rival_named).
+    """
+    safe_print(f"[{run_id}] Bypassing intro via {R.pipeline_name}...")
+
+    # Step 1: Title screen → press START. PyBoy starts before the title is
+    # ready for input, so let it finish drawing before sending START.
+    R.emu.wait(180)
+    R.emu.bypass_title()
+    # Brief settle — intro loop detects state changes via RAM, no need for long waits.
+    R.emu.wait(30)
+    # Press A — if no save file, this selects NEW GAME directly.
+    # If save exists, cursor is on CONTINUE — we'll detect old save below.
+    R.emu.press_button("a", frames=15)
+    R.emu.fast_forward(60)  # let game load (or Oak appear)
+
+    intro = SimpleNamespace(
+        checks=0,
+        player_named=False,
+        rival_named=False,
+        save_detected=False,
+        name_entry_stuck=0,
+        last_phase=None,
+    )
+    max_checks = 15  # raised from 12 — programmatic name entry takes fewer cycles
+
+    while intro.checks < max_checks:
+        intro.checks += 1
+        screenshot = R.emu.capture()
+
+        # Use RAM reader or cartographer for screen classification
+        patch_data, _carto_raw = _intro_observe(R, screenshot)
+        st = patch_data.get("result", "unknown")
+
+        # ── Save file detection: if we're in overworld without naming ──
+        if st == "overworld" and not intro.player_named and _intro_save_restart(R, intro, patch_data):
+            continue
+
+        if st == "overworld":
+            if intro.last_phase != "overworld":
+                safe_print(
+                    f"  [intro] Phase: {intro.last_phase} → overworld — intro complete ({intro.checks} checks)"
+                )
+            print(
+                f"  [intro] {R.pipeline_name} says overworld — intro complete ({intro.checks} checks)"
+            )
+            break
+        elif st == "name_entry":
+            _intro_name_entry_step(R, intro)
+        elif st == "title":
+            intro.name_entry_stuck = 0  # reset — we're not in name entry
+            R.emu.press_button("start", frames=30)
+            R.emu.wait(90)
+        else:
+            # dialog / name_confirm / cutscene / unknown — A-mash aggressively
+            intro.name_entry_stuck = 0  # reset — out of name entry
+            _intro_mash(R)
+
+        # ── Phase transition logging ───────────────────────────
+        if st != intro.last_phase:
+            if intro.last_phase is not None:
+                safe_print(
+                    f"  [intro] Phase: {intro.last_phase} → {st} (check {intro.checks})"
+                )
+            intro.last_phase = st
+
+    if intro.checks >= max_checks:
+        print(
+            f"  [!] Intro bypass hit {max_checks} check cap — proceeding anyway"
+        )
+    else:
+        print(f"  Intro bypass complete in {intro.checks} checks")
+
+    return intro.player_named, intro.rival_named
+
+
+def _intro_observe(R, screenshot):
+    """Classify one intro screen via RAM reader or cartographer."""
+    if USE_RAM_READER:
+        patch_data = R.ram_reader.observe()
+        carto_raw = json.dumps(
+            {"source": "ram_reader", "result": patch_data.get("result")}
+        )
+    else:
+        patch_data, carto_raw = cartographer_analyze(
+            R.controller_client, screenshot
+        )
+    return patch_data, carto_raw
+
+
+def _intro_save_restart(R, intro, patch_data):
+    """Restart from scratch when an old save was loaded by mistake.
+
+    Returns True only when the restart happened (the caller must re-classify).
+    """
+    tc = patch_data.get("text_content", [])
+    if not (not tc and not USE_RAM_READER):
+        # RAM reader always returns empty text_content
+        return False
+    if intro.save_detected:
+        return False
+    intro.save_detected = True
+    print("  [intro] SAVE DETECTED — restarting with NEW GAME")
+    # Reset the emulator from scratch
+    R.emu.stop()
+    R.emu = Emulator(ROM)
+    R.emu.bypass_title()
+    R.emu.wait(120)
+    # Move cursor from CONTINUE (default) to NEW GAME
+    R.emu.press_button("down", frames=15)
+    R.emu.wait(15)
+    R.emu.press_button("a", frames=15)
+    R.emu.wait(120)
+    intro.checks = 0  # reset counter
+    return True
+
+
+def _intro_name_entry_step(R, intro):
+    """One name_entry cycle: accept programmatically when stuck, else A-mash."""
+    intro.name_entry_stuck += 1
+    if intro.name_entry_stuck >= R._NAME_ENTRY_STUCK_MAX:
+        # A-mashing may already have filled the name. Navigate from
+        # the default A key directly to END and accept it.
+        if not intro.player_named:
+            safe_print("  [intro] Name entry stuck — accepting player name")
+            R.emu.submit_name()
+            intro.player_named = True
+        elif not intro.rival_named:
+            safe_print("  [intro] Rival name stuck — accepting rival name")
+            R.emu.submit_name()
+            intro.rival_named = True
+        intro.name_entry_stuck = 0
+    else:
+        # Not stuck yet — A-mash to advance through any pending dialog
+        # that sits between cycles (e.g. "So, your name is X?" confirmation).
+        # NOTE: do NOT set player_named/rival_named here — only programmatic
+        # typing actually writes the name, so flags must wait until enter_name()
+        # has run. Setting them prematurely caused the second name_entry
+        # cycle to be skipped and the rival to be named "----" (default).
+        _intro_mash(R)
+
+
+def _intro_mash(R):
+    """A-mash one burst to advance intro/name-entry dialog."""
+    for _ in range(R._A_BURST):
+        R.emu.press_button("a", frames=R._A_FRAMES)
+        R.emu.fast_forward(R._FF_FRAMES)
+
+
+def _intro_walk_out(R):
+    """Post-intro: save checkpoint, step away from the TV, leave the bedroom."""
+    # ── Save state at center of bedroom (before moving) ──────────
+    # The bedroom start position faces the TV; saving before we move
+    # gives the controller a clean starting position to navigate from.
+    try:
+        R.emu.save_state(0)
+        R._last_saved_slot = 0
+        print("  [CKPT] Post-intro state saved to slot 0")
+    except Exception as exc:
+        print(f"  [CKPT] Failed to save post-intro state: {exc}")
+
+    # ── Step away from what we're facing ─────────────────────────
+    # Walk LEFT (toward the bed/stairs area). The stairs down are on
+    # the left side of the bedroom; walking LEFT avoids the TV loop
+    # AND positions the character near the exit.
+    safe_print("  [intro] Stepping away from TV...")
+    R.emu.press_button("up", frames=15)  # face away from TV
+    R.emu.fast_forward(30)
+    # Clear any lingering dialog box
+    R.emu.press_button("b", frames=30)
+    R.emu.wait(30)
+
+    # ── Leave bedroom ────────────────────────────────────────────
+    # A 30-frame press advances roughly two tiles. The collision-verified path
+    # from spawn (3,6) to the bedroom warp (7,1) is R,U,U,U,R.
+    safe_print("  [intro] Walking to bedroom stairs (R,U,U,U,R)...")
+    for button in ("right", "up", "up", "up", "right"):
+        R.emu.press_button(button, frames=30)
+        R.emu.fast_forward(60)
+    R.emu.wait(90)
+
+    # Continue through the ground floor so the controller starts outdoors.
+    if R.emu.read_u8(0xD35E) == 0x25:  # wCurMap: Red's House 1F
+        safe_print("  [intro] Leaving ground floor for Pallet Town...")
+        for button in ("down", "down", "down", "left", "left", "down"):
+            R.emu.press_button(button, frames=30)
+            R.emu.fast_forward(60)
+        R.emu.wait(90)
+
+
+def _main_run(R, args, preflight_row, ctx):
+    """Open the run log, initialize loop state, run all cycles, finalize."""
     # Open log file for incremental writing (web viewer polls this). The
     # preflight row was written before emulator construction, so append here;
     # final closeout still rewrites the complete in-memory result list.
     log_file = open(log_path, "a")
     log_file.flush()
 
+    S = _main_loop_state(R, ctx, log_file)
+    S.preflight_row = preflight_row
+    S.args = args
+    _run_cycles(S)
+    _finalize_run(S)
+
+
+def _main_loop_state(R, ctx, log_file):
+    """Initialize the per-run mutable state namespace for the main loop."""
+    S = SimpleNamespace()
+    S.R = R
+    S.ctx = ctx
+    S.log_file = log_file
+    S.results = []
+    S.run_id = run_id
+    _init_recovery_trackers(S)
+    _init_memory_state(S)
+    return S
+
+
+def _init_recovery_trackers(S):
+    """Per-run stuck-detection / recovery / frame-hash trackers."""
+    # ── Checkpoint / recovery state (STUCK-RECOVER) ─────────────────
+    S._checkpoint_slot = 0
+    S._last_saved_slot = None
+    S._dir_blacklist = set()  # directions that caused checkpoint recovery
+    S._last_direction = ""  # last direction pressed (for controller context)
+    S._last_result = "unknown"  # last movement result
+    # The teacher gets one attempt per missing-information class for this run.
+    # Membership is recorded before the API call, so failures remain bounded.
+    S._teacher_escalated_classes = set()
+    # Per-episode teacher budget (--teacher-max-per-episode). Counted at the API
+    # boundary so a failing call still spends it; None cap means unlimited.
+    S._teacher_budget = {"used": 0}
+    # A teacher patch's missing facts are bound to exact /world/* keys after the
+    # decision, then consumed once by the following cycle's memory retrieval.
+    S._pending_teacher_memory_targets = []
+
+    # ── Stuck detection (4 independent dimensions) ──────────────────
+    S._same_dir = None  # last repeated direction
+    S._same_dir_count = 0  # consecutive same-direction presses
+    S._same_screen_count = 0  # consecutive cycles on same screen type
+    S._last_screen_type = ""  # for same-screen detection
+    S._same_tile_count = 0  # consecutive cycles on same RAM tile
+    S._last_tile = None
+    # S6 NAV-MEM: the tile stood on before this cycle's observation — the door
+    # tile of any map transition observed this cycle.
+    S._departure_tile = None
+    S._void_tile_pct = 0.0  # % of tiles classified as unknown/void
+    S._void_cycles = 0  # consecutive cycles with >95% void tiles
+
+    # ── A-press loop detection (STUCK-A-LOOP) ──────────────────────
+    S._a_press_count = 0  # consecutive A presses without direction change
+    S._MAX_A_PRESS = 3  # after 3 consecutive A presses → trigger recovery
+    S._last_action_button = ""  # last non-direction button pressed
+
+    # ── Escalating recovery ────────────────────────────────────────
+    S._recovery_level = 0  # current rung of the escalation ladder
+    S._recovery_attempts = 0  # total recovery escalations (capped at MAX)
+    S._last_state_key = ""  # composite key for state-change detection
+    S._gave_up = False  # True once max recovery attempts exhausted
+    S._same_frame_count = 0  # consecutive pixel-identical frames (dialog-loop detector)
+    S._prev_frame_hash = ""  # previous cycle's frame hash for the counter above
+    S._last_saved_frame_hash = ""  # empty guarantees the first cycle is saved
+    S._last_plan_sig = ""  # signature of last executed plan (no-op plan guard)
+    S._same_plan_count = 0  # consecutive cycles with identical plan + unchanged position
+    S._last_pos_key = ""  # last cycle's map:tile position key
+
+    # ── Frame hashing for cartographer cache ───────────────────────
+    S._last_frame_hash = ""  # for frame hashing — skip cartographer on identical frames
+    S._cached_patch = {}  # cached cartographer output
+    S._cached_carto_raw = ""  # cached raw cartographer text
+
+    # ── Frame hashing for Luna vision (controller screenshot dedup) ─
+    # Only attach the screenshot to the controller prompt when the
+    # frame CHANGED since the last call. Identical frames (standing
+    # still, dialog open) re-send the same ~2500 image tokens every
+    # cycle — pure waste. RAM text still flows every cycle.
+    S._last_controller_frame_hash = ""
+
     # Persistent counter for the main loop's name_entry handler. The
-    # intro loop has its own `_name_entry_stuck`; this list-of-one is
+    # intro loop has its own name-entry-stuck counter; this list-of-one is
     # scoped to the main loop so a re-entry into name_entry outside
     # the intro phase still escalates to programmatic typing after 3
     # cycles.
-    _main_ne_stuck_box: list[int] = [0]
-    _last_party_count = ram_reader.party_count() if USE_RAM_READER else 0
-    # One-shot starter-pick milestone flag: the milestone fires once per run,
-    # either on an in-run 0→1 transition or from a post-pick boot baseline.
-    _starter_milestone_emitted = False
-    _failed_flee_attempts = 0
+    S._main_ne_stuck_box = [0]
+    S._player_named = S.R._player_named
+    S._rival_named = S.R._rival_named
+
+
+def _init_memory_state(S):
+    """Agent memory, metrics, navigation hold, and boot-memory state."""
+    global run_agentic_cycle
+    from src.core.agentic_loop import (
+        BoundedAgentContext,
+        DuckBrainAgentMemory,
+        ModelResearchDelegate,
+        run_agentic_cycle,
+    )
 
     # ── Per-run metrics (GAP-028, DF-USE-1) ───────────────────────
-    _dir_lock_warn_cycles = 0  # cycles with >=1 direction-lock warning
-    _visited_tiles: set[tuple[int, int, int]] = set()  # (map_id, x, y) seen
+    S._dir_lock_warn_cycles = 0  # cycles with >=1 direction-lock warning
+    S._visited_tiles: set[tuple[int, int, int]] = set()  # (map_id, x, y) seen
     # Ordered unique source-map tiles become the proven route on a transition.
-    _route_map_id: int | None = None
-    _route_tiles: list[dict[str, int]] = []
-    _movement_progress_cycles = 0  # comparable cycles whose RAM tile changed
-    _movement_observed_cycles = 0  # cycles with current + previous RAM tiles
+    S._route_map_id = None
+    S._route_tiles = []
+    S._movement_progress_cycles = 0  # comparable cycles whose RAM tile changed
+    S._movement_observed_cycles = 0  # cycles with current + previous RAM tiles
     # JEV projection cross-cycle material (DF-JEV-1, PRD v3 §3.4): how many
     # times each tile of the CURRENT map has been stood on. Repeat counts are
     # the projection's stuck signal, so they are reset on a map change.
-    _tile_visits: dict[tuple[int, int], int] = {}
-    _tile_visits_map_id: int | None = None
+    S._tile_visits = {}
+    S._tile_visits_map_id = None
+
+    S._last_party_count = S.R.ram_reader.party_count() if USE_RAM_READER else 0
+    # One-shot starter-pick milestone flag: the milestone fires once per run,
+    # either on an in-run 0→1 transition or from a post-pick boot baseline.
+    S._starter_milestone_emitted = False
+    S._failed_flee_attempts = 0
 
     # ── Agent memory state (self-maintained, DuckBrain-backed) ──
     # The agent tracks its own goal, notes, and world map across cycles
     # AND across runs. goal/notes/last_dialog/study are injected into the
     # controller prompt each cycle; note/goal/study outputs are executed
     # here and persisted to DuckBrain (namespace pokemon-global).
-    _mem_goal = ""
-    _mem_notes: list[str] = []  # most recent first, capped at 6
-    _last_dialog_text = ""
-    _pending_study_key = ""  # controller asked to study a key
-    _pending_study_result = ""  # fetched content, injected once
+    S._mem_goal = ""
+    S._mem_notes: list[str] = []  # most recent first, capped at 6
+    S._last_dialog_text = ""
+    S._pending_study_key = ""  # controller asked to study a key
+    S._pending_study_result = ""  # fetched content, injected once
     # Deduplicate deterministic world facts within this run. DuckBrain remains
     # the source of truth; retrieval still reads the store on every cycle.
-    _world_memory_written_keys: set[str] = set()
+    S._world_memory_written_keys: set[str] = set()
     # S3 context is deliberately run-local: cheap scalar summaries survive the
     # cycle loop, but a new main() invocation starts with no prior turns.
-    _recent_decisions: list[dict[str, Any]] = []
-    _agent_context = BoundedAgentContext()
-    _agent_memory = DuckBrainAgentMemory()
-    _research_delegate = ModelResearchDelegate(controller_client, controller_model)
+    S._recent_decisions: list[dict[str, Any]] = []
+    S._agent_context = BoundedAgentContext()
+    S._agent_memory = DuckBrainAgentMemory()
+    S._research_delegate = ModelResearchDelegate(
+        S.R.controller_client, S.R.controller_model
+    )
     # HOLD-1: unlike the bounded transcript, map-edge memory is authoritative
     # run state. It survives every decision cycle and owns the anti-regression
     # goal plus the reverse edge that must not be traversed.
-    _navigation_state = _NavigationHoldState()
+    S._navigation_state = _NavigationHoldState()
 
     # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
     # Built ONCE here (not per cycle) from the four DuckBrain layers
     # MEM-1 writes: MECHANICS + SAVE + RUN HISTORY + LEARNING. The
     # rendered string rides in the controller system prompt every cycle;
     # a fresh/empty store yields "" so the prompt is unchanged.
-    _boot_memory = _boot_memory_prompt(_build_boot_memory_blocks())
-    if _boot_memory:
+    S._boot_memory = _boot_memory_prompt(_build_boot_memory_blocks())
+    if S._boot_memory:
         safe_print(
-            f"  [MEM] boot injection: {len(_boot_memory)} chars across "
-            f"{_boot_memory.count('[')} block markers"
+            f"  [MEM] boot injection: {len(S._boot_memory)} chars across "
+            f"{S._boot_memory.count('[')} block markers"
         )
+
+    # NOTE: the frame cache is bound in the pipeline-init block, before the
+    # main loop. Do NOT re-assign it here — an assignment would wipe it.
+    assert S.R.frame_cache is not None  # bound in pipeline-init block above
 
     if USE_RAM_READER:
         try:
@@ -5889,1514 +7007,1703 @@ def main() -> None:
             _goal_rec = _dbc.get(key="/goals/current")
             if _goal_rec:
                 attrs = _goal_rec.get("attributes", {})
-                _mem_goal = str(
+                S._mem_goal = str(
                     attrs.get("goal") or _goal_rec.get("embedding_text", "")
                 )[:200]
         except Exception as _e:
             safe_print(f"  [MEM] goal load failed: {_e}")
 
+
+def _run_cycles(S):
+    """Run every cycle: shared header, per-screen handling, cycle tail."""
     for cycle in range(CYCLES):
         try:
-            _cycle_dir_lock_warned = False  # per-cycle flag (GAP-028 metric)
-            screenshot = emu.capture()
-            frame_hash = _cycle_frame_hash(screenshot)
-
-            # PNG encoding/writes measured 0.692ms on a static screen versus
-            # 0.080ms with this gate. Keep ``img`` for the unconditional battle
-            # milestone capture below, but write progress frames only on change.
-            img = Image.fromarray(screenshot)
-            _last_saved_frame_hash = _save_cycle_screenshot(
-                img,
-                cycle=cycle + 1,
-                frame_hash=frame_hash,
-                last_saved_frame_hash=_last_saved_frame_hash,
-                screenshot_dir=SCREENSHOT_DIR,
-            )
-
-            # Step 1: Classify screen + spatial analysis
-            # RAM reader: instant reads; the cycle hash still gates progress saves.
-            # Cartographer: Gemma 12B vision model with frame hashing cache.
-            if USE_RAM_READER:
-                # RAM reader is instant — always re-observe for accurate state
-                patch_data = ram_reader.observe()
-                carto_raw = json.dumps(
-                    {"source": "ram_reader", "result": patch_data.get("result")}
-                )
-            else:
-                # ── Frame hashing: skip cartographer if nothing changed ──
-                # Hash the raw screenshot bytes. If identical to last frame,
-                # the character hasn't moved — reuse cached observation.
-                # Works for ALL screen types including battles. During battle idle
-                # (both Pokémon standing, same HP), the frame is identical and
-                # the cached observation is still valid. The Controller/StateWindow
-                # still runs and makes decisions — we just skip re-observing.
-                if _last_frame_hash != frame_hash or not _cached_patch:
-                    # Frame changed (or first cycle) — call cartographer
-                    patch_data, carto_raw = cartographer_analyze(
-                        controller_client, screenshot
-                    )
-                    _cached_patch = patch_data
-                    _cached_carto_raw = carto_raw
-                    _last_frame_hash = frame_hash
-                else:
-                    # Frame unchanged — reuse cached observation
-                    patch_data = _cached_patch
-                    carto_raw = _cached_carto_raw
-                    safe_print(
-                        f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result', '?')})"
-                    )
-
-                # ── Frame-locked detection (pixel-identical, not just same screen TYPE) ──
-                # l2_accept_1 failure mode: "My POKéMON looks a..." dialog page
-                # recurred 50+ cycles — same screen_type ('dialog') so the
-                # same-screen tracker never fired, recovery exhausted, then
-                # passive A-mash. Identical pixels = nothing is changing.
-                if frame_hash == _prev_frame_hash:
-                    _same_frame_count += 1
-                else:
-                    _same_frame_count = 0
-                _prev_frame_hash = frame_hash
-            st = patch_data.get("result", "unknown")
-            if st != "battle":
-                _failed_flee_attempts = 0
-
-            # ── Dialog text carry-over ──
-            # When a dialog box is on screen, capture its text so the NEXT
-            # overworld decision can see what was said (Oak's instructions,
-            # NPC hints). This is the agent's information channel.
-            if st == "dialog" and patch_data.get("text_content"):
-                _last_dialog_text = str(patch_data["text_content"][0])[:200]
-
-            raw_map_id = patch_data.get("map_id")
-            raw_tile_x = patch_data.get("player_tile_x")
-            raw_tile_y = patch_data.get("player_tile_y")
-            current_tile = None
-            if (
-                isinstance(raw_map_id, int)
-                and isinstance(raw_tile_x, int)
-                and isinstance(raw_tile_y, int)
-            ):
-                current_tile = (raw_map_id, raw_tile_x, raw_tile_y)
-            if current_tile is not None:
-                _visited_tiles.add(current_tile)
-                if _route_map_id is None:
-                    _route_map_id = current_tile[0]
-                if current_tile[0] == _route_map_id:
-                    route_tile = {"x": current_tile[1], "y": current_tile[2]}
-                    if route_tile not in _route_tiles:
-                        _route_tiles.append(route_tile)
-                # JEV projection (DF-JEV-1): repeat counts for the map the
-                # player is standing on right now.
-                if _tile_visits_map_id != current_tile[0]:
-                    _tile_visits.clear()
-                    _tile_visits_map_id = current_tile[0]
-                _tile_visits_key = (current_tile[1], current_tile[2])
-                _tile_visits[_tile_visits_key] = (
-                    _tile_visits.get(_tile_visits_key, 0) + 1
-                )
-            _progress_delta, _observed_delta = _movement_progress_delta(
-                current_tile, _last_tile
-            )
-            _movement_progress_cycles += _progress_delta
-            _movement_observed_cycles += _observed_delta
-            # S6 NAV-MEM: keep the tile stood on BEFORE this cycle's update —
-            # it is the door tile of any transition detected just below.
-            _departure_tile = _last_tile
-            _last_tile, _same_tile_count = _track_same_tile(
-                current_tile, _last_tile, _same_tile_count
-            )
-            tile_recovery_reason = _tile_lock_reason(_last_tile, _same_tile_count)
-
-            map_id = int(raw_map_id) if isinstance(raw_map_id, int) else -1
-
-            # HOLD-1: detect the edge before asking either decision path. The
-            # resulting goal and reverse-edge guard persist for every later
-            # cycle on the destination map. Saving an anchor here also ensures
-            # the recovery ladder cannot roll a held transition back to an old
-            # checkpoint on the source map.
-            _navigation_transition = _navigation_state.observe(
-                map_id,
-                str(patch_data.get("map_name") or ""),
-                _last_direction,
-            )
-            if _navigation_transition is not None:
-                # S6 NAV-MEM: the departure tile is the door tile of the proven
-                # edge, and only counts when it was on the SOURCE map.
-                if (
-                    _departure_tile is not None
-                    and _departure_tile[0] == _navigation_transition["from_map_id"]
-                ):
-                    _navigation_transition["departure_tile"] = {
-                        "x": _departure_tile[1],
-                        "y": _departure_tile[2],
-                    }
-                _navigation_transition["route_tiles"] = list(_route_tiles)
-                if current_tile is not None:
-                    _route_map_id = current_tile[0]
-                    _route_tiles = [{"x": current_tile[1], "y": current_tile[2]}]
-                _mem_goal = _navigation_state.goal
-                _same_dir = None
-                _same_dir_count = 0
-                _recovery_level = 0
-                _recovery_attempts = 0
-                _dir_blacklist.clear()
-                if not _navigation_transition["regression"] and st == "overworld":
-                    try:
-                        emu.save_state(_checkpoint_slot)
-                        _navigation_transition["anchor_checkpoint_slot"] = (
-                            _checkpoint_slot
-                        )
-                        _last_saved_slot = _checkpoint_slot
-                        _checkpoint_slot = (_checkpoint_slot + 1) % CHECKPOINT_SLOTS
-                    except Exception as exc:
-                        _navigation_transition["anchor_checkpoint_error"] = str(exc)
-                _navigation_transition = {
-                    "cycle": cycle + 1,
-                    **_navigation_transition,
-                }
-                results.append(_navigation_transition)
-                log_file.write(json.dumps(_navigation_transition, default=str) + "\n")
-                log_file.flush()
-                safe_print(
-                    "  [NAV-HOLD] "
-                    f"{_navigation_transition['from_map_name']} -> "
-                    f"{_navigation_transition['to_map_name']} | "
-                    f"block={_navigation_transition['blocked_return_direction']} | "
-                    f"regression={_navigation_transition['regression']}"
-                )
-
-            # S2 world memory: retrieve facts already present at cycle start,
-            # then persist this observation. The ordering makes next-cycle use
-            # observable in the JEV projection.
-            _teacher_targets_for_cycle = _pending_teacher_memory_targets
-            _pending_teacher_memory_targets = []
-            _world_facts = _populate_world_memory(
-                observation=patch_data,
-                run_id=run_id,
-                cycle=cycle + 1,
-                results=results,
-                log_file=log_file,
-                written_keys=_world_memory_written_keys,
-                retrieval_targets=_teacher_targets_for_cycle,
-                transition=_navigation_transition,
-            )
-
-            # ── Default exploration goal (GAP-038) ──────────────
-            # Fresh boot states (no stored DuckBrain goal) leave the
-            # controller with an empty goal; seed a context-aware
-            # default so the agent doesn't wander aimlessly.
-            if not _mem_goal:
-                if map_id == OAKS_LAB_MAP_ID:
-                    _mem_goal = (
-                        "Leave Oaks Lab and head toward Route 1 to begin your "
-                        "Pokemon journey."
-                    )
-                else:
-                    _mem_goal = "Explore the current area and look for exits or points of interest."
-
-            if USE_RAM_READER:
-                party_count = ram_reader.party_count()
-                menu_state = ram_reader.read_menu_state()
-            else:
-                raw_party_count = patch_data.get("party_count", 0)
-                party_count = (
-                    int(raw_party_count) if isinstance(raw_party_count, int) else 0
-                )
-                raw_menu_state = patch_data.get("menu_state", {})
-                menu_state = raw_menu_state if isinstance(raw_menu_state, dict) else {}
-
-            starter_event, _starter_milestone_emitted = _starter_milestone_for_cycle(
-                previous_party_count=_last_party_count,
-                current_party_count=party_count,
-                species_hint=(
-                    ram_reader.first_party_species_hint() if USE_RAM_READER else None
-                ),
-                baseline_starter_name=(
-                    ram_reader.first_party_starter_name() if USE_RAM_READER else None
-                ),
-                milestone_emitted=_starter_milestone_emitted,
-            )
-            if starter_event is not None:
-                milestone = {"cycle": cycle + 1, **starter_event}
-                results.append(milestone)
-                log_file.write(json.dumps(milestone, default=str) + "\n")
-                log_file.flush()
-                safe_print(
-                    "  [STARTER-PICKED] "
-                    f"party_count={party_count} "
-                    f"species_hint={starter_event['species_hint']}"
-                )
-            _last_party_count = party_count
-
+            header = _cycle_header(S, cycle)
             t0 = time.time()
 
             # Oak's empty-party menu routes to JEV's starter-species choice.
             if USE_RAM_READER and _should_select_starter(
-                map_id=map_id,
-                party_count=party_count,
-                screen_type=st,
-                menu_state=menu_state,
+                map_id=header["map_id"],
+                party_count=header["party_count"],
+                screen_type=header["st"],
+                menu_state=header["menu_state"],
             ):
-                safe_print(
-                    f"  [STARTER] Oak's Lab menu detected at cycle {cycle + 1}; "
-                    "asking JEV to choose a species"
-                )
-                starter_decision: dict[str, Any] = {}
-                selected_party_count = _select_starter_from_menu(
-                    emu,
-                    ram_reader,
-                    decision_out=starter_decision,
-                )
-                starter_choice = starter_decision.get("starter_choice")
-                selection_entry = {
-                    "cycle": cycle + 1,
-                    "screen": st,
-                    "event": "starter_selection",
-                    "action": "jev_starter_choice",
-                    "intent": f"select starter {starter_choice or 'unavailable'}",
-                    "map_id": map_id,
-                    "party_count_before": party_count,
-                    "party_count_after": selected_party_count,
-                    "player_tile_x": raw_tile_x,
-                    "player_tile_y": raw_tile_y,
-                    **starter_decision,
-                }
-                results.append(selection_entry)
-                log_file.write(json.dumps(selection_entry, default=str) + "\n")
-                log_file.flush()
-
-                starter_event, _starter_milestone_emitted = (
-                    _starter_milestone_for_cycle(
-                        previous_party_count=party_count,
-                        current_party_count=selected_party_count,
-                        species_hint=ram_reader.first_party_species_hint(),
-                        baseline_starter_name=None,
-                        milestone_emitted=_starter_milestone_emitted,
-                    )
-                )
-                if starter_event is not None:
-                    milestone = {"cycle": cycle + 1, **starter_event}
-                    results.append(milestone)
-                    log_file.write(json.dumps(milestone, default=str) + "\n")
-                    log_file.flush()
-                    safe_print(
-                        "  [STARTER-PICKED] "
-                        f"party_count={selected_party_count} "
-                        f"species_hint={starter_event['species_hint']}"
-                    )
-                _last_party_count = selected_party_count
-                _record_recent_decision(
-                    _recent_decisions,
-                    selection_entry,
-                    outcome=(
-                        f"party count {party_count} -> {selected_party_count}; "
-                        f"starter={starter_choice or 'unavailable'}"
-                    ),
-                )
-                safe_print(
-                    f"  [{cycle + 1}/{CYCLES}] starter_selection | "
-                    f"party={selected_party_count} | {time.time() - t0:.1f}s"
-                )
+                _starter_selection(S, cycle, header, t0)
                 continue
 
-            if st == "overworld":
-                # Out of name_entry — reset stuck counter for any future re-entry.
-                _main_ne_stuck_box[0] = 0
-                # ── Visual-Reference Pipeline ──────────────────────
-                # Cartographer already gave us spatial info (adjacent tiles,
-                # visible_exits, player_facing, suggested_action).
-                # Feed this directly to the controller — no MapIntegrator needed.
-
-                # ── Stuck detection: track void tiles from cartographer output ──
-                adj = patch_data.get("adjacent", {})
-                if adj:
-                    unknown_tiles = sum(
-                        1 for v in adj.values() if v in ("unknown", "?", "")
-                    )
-                    total_tiles = len(adj)
-                    _void_tile_pct = (
-                        unknown_tiles / total_tiles if total_tiles > 0 else 0.0
-                    )
-                    if _void_tile_pct > 0.95:
-                        _void_cycles += 1
-                        safe_print(
-                            f"  [VOID] {unknown_tiles}/{total_tiles} tiles unknown ({_void_tile_pct:.0%}) — cycle {_void_cycles}/{MAX_VOID_CYCLES} | map_id={patch_data.get('map_id')} map={patch_data.get('map_name')} player=({patch_data.get('player_tile_x')},{patch_data.get('player_tile_y')})"
-                        )
-                    else:
-                        _void_cycles = 0
-                else:
-                    _void_tile_pct = 0.0
-                    _void_cycles = 0
-
-                # ── Same-screen tracking ───────────────────────────
-                if st == _last_screen_type:
-                    _same_screen_count += 1
-                else:
-                    _same_screen_count = 0
-                _last_screen_type = st
-
-                # ── State-change detection (resets recovery counter) ──
-                state_key = f"{st}:{patch_data.get('screen_subtype', '')}:{adj.get('up', '')}{adj.get('down', '')}{adj.get('left', '')}{adj.get('right', '')}"
-                if state_key != _last_state_key and _last_state_key != "":
-                    _recovery_attempts = 0
-                    _recovery_level = 0
-                    safe_print(f"  [STATE] Changed → {st} — recovery counter reset")
-                _last_state_key = state_key
-
-                # ── Recovery check: any stuck condition triggers escalation ──
-                needs_recovery = False
-                recovery_reason = ""
-                if _gave_up:
-                    pass  # already exhausted — no more recovery
-                elif tile_recovery_reason:
-                    needs_recovery = True
-                    recovery_reason = tile_recovery_reason
-                elif _same_dir_count >= MAX_STUCK_SAME_DIR:
-                    needs_recovery = True
-                    recovery_reason = (
-                        f"direction-locked ({_same_dir} x{_same_dir_count})"
-                    )
-                elif (
-                    _same_screen_count >= MAX_SAME_SCREEN_CYCLES
-                    and _last_screen_type != "overworld"
-                ):
-                    needs_recovery = True
-                    recovery_reason = (
-                        f"screen-locked ({_last_screen_type} x{_same_screen_count})"
-                    )
-                elif _same_frame_count >= MAX_SAME_FRAME_CYCLES:
-                    needs_recovery = True
-                    recovery_reason = (
-                        f"frame-locked (identical pixels x{_same_frame_count})"
-                    )
-                elif _void_cycles >= MAX_VOID_CYCLES:
-                    needs_recovery = True
-                    recovery_reason = f"void-locked ({_void_cycles} cycles, {_void_tile_pct:.0%} unknown)"
-                elif _a_press_count >= _MAX_A_PRESS:
-                    needs_recovery = True
-                    recovery_reason = f"A-press locked (A x{_a_press_count})"
-
-                starter_approached = False
-                if needs_recovery:
-                    if _recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
-                        if not _gave_up:
-                            _gave_up = True
-                            safe_print(
-                                f"  [RECOVER] GIVING UP after {_recovery_attempts} recovery attempts ({recovery_reason})"
-                            )
-                            evt = {
-                                "cycle": cycle + 1,
-                                "event": "recovery_exhausted",
-                                "reason": recovery_reason,
-                                "attempts": _recovery_attempts,
-                            }
-                            results.append(evt)
-                            log_file.write(json.dumps(evt, default=str) + "\n")
-                            log_file.flush()
-                    else:
-                        _recovery_attempts += 1
-                        if (
-                            "tile-locked" in recovery_reason
-                            and USE_RAM_READER
-                            and map_id == OAKS_LAB_MAP_ID
-                            and party_count == 0
-                        ):
-                            starter_approached = _approach_first_starter(
-                                emu, ram_reader
-                            )
-                        recovery_decision: dict[str, Any] = {}
-                        if starter_approached:
-                            strategy, desc = (
-                                "starter_approach",
-                                "moved to the nearest Poké Ball and opened its dialog",
-                            )
-                        else:
-                            strategy, desc = _escalating_recovery(
-                                emu,
-                                _recovery_level,
-                                _last_direction,
-                                _last_saved_slot,
-                                game_state=patch_data,
-                                decision_out=recovery_decision,
-                                forbidden_directions=(
-                                    {_navigation_state.blocked_return_direction}
-                                    if _navigation_state.blocked_return_direction
-                                    else None
-                                ),
-                            )
-                        _recovery_level += 1
-                        # Blacklist the blocked direction on checkpoint restore
-                        if (
-                            strategy == "load_checkpoint"
-                            and _same_dir
-                            and _same_dir in _DIR_ROTATION
-                        ):
-                            _dir_blacklist.add(_same_dir)
-                            safe_print(
-                                f"  [BLACKLIST] {_same_dir} added to blacklist: {_dir_blacklist}"
-                            )
-                        safe_print(
-                            f"  [RECOVER] Level {_recovery_level - 1}: {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]"
-                        )
-                        evt = {
-                            "cycle": cycle + 1,
-                            "event": "recovery",
-                            "level": _recovery_level - 1,
-                            "strategy": strategy,
-                            "reason": recovery_reason,
-                            "attempt": _recovery_attempts,
-                            "description": desc,
-                            **recovery_decision,
-                        }
-                        results.append(evt)
-                        log_file.write(json.dumps(evt, default=str) + "\n")
-                        log_file.flush()
-                        trackers = _reset_recovery_trackers(
-                            recovery_reason,
-                            same_dir=_same_dir,
-                            same_dir_count=_same_dir_count,
-                            same_screen_count=_same_screen_count,
-                            same_tile_count=_same_tile_count,
-                            void_cycles=_void_cycles,
-                            a_press_count=_a_press_count,
-                        )
-                        _same_dir = trackers.same_dir
-                        _same_dir_count = trackers.same_dir_count
-                        _same_screen_count = trackers.same_screen_count
-                        _same_tile_count = trackers.same_tile_count
-                        _void_cycles = trackers.void_cycles
-                        _a_press_count = trackers.a_press_count
-                        if starter_approached:
-                            continue
-
-                # Frame-cache dedup: hash the raw screenshot; if this exact
-                # frame was seen before (same tile, same dialog box, battle
-                # idle, looping flow), pass a text UUID reference instead of
-                # re-sending the image bytes. First sighting → send image.
-                _ctrl_frame_hash = frame_hash
-                _frame_ref = None
-                _cached_entry = (
-                    _frame_cache.lookup(_ctrl_frame_hash) if _frame_cache else None
-                )
-                if _cached_entry is not None:
-                    # Repeat sighting — reference, don't re-send the image
-                    _frame_cache.touch(_cached_entry, cycle + 1)
-                    _vision_frame = None
-                    _frame_ref = _cached_entry["uuid"]
-                    _seen_n = _cached_entry.get("seen_count", 1)
-                    safe_print(
-                        f"  [CACHE-HIT] frame {_ctrl_frame_hash[:8]} → ref {_frame_ref} (seen {_seen_n}x)"
-                    )
-                else:
-                    # New frame — send the image, remember it
-                    _vision_frame = screenshot
-                    _frame_ref = None
-                    if _frame_cache is not None:
-                        _frame_cache.register(
-                            _ctrl_frame_hash,
-                            cycle + 1,
-                            map_name=patch_data.get("map_name", ""),
-                            screen=st,
-                        )
-                # HOLD-1 projects the run-local map history into the reasoning
-                # path while the fast tier receives the same persistent goal.
-                _navigation_context = _navigation_state.context()
-                _controller_spatial = {
-                    **patch_data,
-                    "navigation_hold": _navigation_context,
-                }
-
-                # ── Step 2a: JEV tier (DF-JEV-1, PRD v3 stages 5-6) ────
-                # The cheap System-One tier decides this overworld cycle from
-                # the bounded RAM projection BEFORE the reasoning controller is
-                # consulted at all, so a JEV hit skips the controller call and
-                # its image tokens. A miss (invalid action, transport error)
-                # falls through to controller_plan() exactly as before; the only
-                # way JEV can express "press nothing" is an empty plan, and the
-                # loop never invents a press for an answer it could not read.
-                _jev_attempt = _jev_or_none(
-                    patch_data,
-                    goal=_mem_goal,
-                    visited=_tile_visits,
-                    recent_events=results,
-                    recent_decisions=_recent_decisions,
-                    world_facts=_world_facts,
-                    last_action=_last_direction or "",
-                    # PRD v3 §3.2 trigger 1 (failure): a DIRECTION press that
-                    # left the player on the same (map, tile) changed nothing,
-                    # so the gate must escalate regardless of confidence. A
-                    # non-movement last action leaves the result UNKNOWN.
-                    last_action_changed_state=(
-                        _same_tile_count == 1
-                        if _last_direction in _DIR_ROTATION
-                        else None
-                    ),
-                    teacher_api_client=controller_client,
-                    teacher_model=controller_model,
-                    teacher_memory=_boot_memory or None,
-                    teacher_log_file=log_file,
-                    teacher_cycle=cycle + 1,
-                    teacher_results=results,
-                    escalated_classes=_teacher_escalated_classes,
-                    handoff_policy=HANDOFF_POLICY,
-                    teacher_budget=_teacher_budget,
-                    scenario_path=DEFAULT_JEV_SCENARIO_PATH,
-                    # S6 NAV-MEM: the maps this run has already entered, so a
-                    # proven route is only replayed toward NEW ground.
-                    visited_maps=_navigation_state.visited_maps,
-                )
-                if isinstance(_jev_attempt, dict):
-                    raw_targets = _jev_attempt.get("teacher_memory_targets")
-                    if isinstance(raw_targets, list):
-                        _pending_teacher_memory_targets = [
-                            target
-                            for target in raw_targets
-                            if isinstance(target, str) and target.startswith("/world/")
-                        ]
-                        if _pending_teacher_memory_targets:
-                            safe_print(
-                                "  [MEM-WORLD] queued teacher targets for next cycle: "
-                                + ", ".join(_pending_teacher_memory_targets)
-                            )
-                _jev_outcome = (
-                    _jev_outcome_fields(_jev_attempt)
-                    if isinstance(_jev_attempt, dict)
-                    else {"jev_ok": None}
-                )
-                # ── Step 2a-pre: S6 NAV-MEM result ─────────────────────
-                # A proven route from ``world/path/*`` already answered this
-                # navigation decision, so neither the teacher (LLM) nor the
-                # reasoning controller is consulted; the row is stamped with the
-                # memory pipeline and the cited key.
-                _memory_route = (
-                    _jev_attempt.get("memory_navigation")
-                    if isinstance(_jev_attempt, dict)
-                    else None
-                )
-                _memory_hit = bool(
-                    isinstance(_memory_route, dict)
-                    and _memory_route.get("result") == "hit"
-                )
-                if (
-                    _memory_hit
-                    and isinstance(_jev_attempt, dict)
-                    and isinstance(_memory_route, dict)
-                ):
-                    decision = {**_jev_attempt, **_jev_outcome}
-                    _decision_pipeline = MEMORY_NAV_PIPELINE
-                    safe_print(
-                        f"  [NAV-MEM] {decision['intent']} | no LLM call | "
-                        f"cited {_memory_route['key']}"
-                    )
-                elif _jev_attempt and _jev_attempt.get("jev_answered"):
-                    decision = {**_jev_attempt, **_jev_outcome}
-                    _decision_pipeline = JEV_PIPELINE
-                    safe_print(
-                        f"  [JEV] {decision['intent']} | projection "
-                        f"{decision['jev_projection_chars']} chars | "
-                        f"escalated={decision['escalated']} "
-                        f"({decision.get('jev_escalate_reason')})"
-                    )
-                else:
-                    # ── Step 2b: controller outputs the movement PLAN ──
-                    # from the spatial description (JEV miss / unavailable).
-                    if _model_tools_enabled(DECISION_MODE):
-                        agentic_result = run_agentic_cycle(
-                            client=controller_client,
-                            emulator=emu,
-                            observe=(
-                                ram_reader.observe
-                                if USE_RAM_READER
-                                else lambda: dict(patch_data)
-                            ),
-                            projection=patch_data,
-                            context=_agent_context,
-                            memory=_agent_memory,
-                            delegate=_research_delegate,
-                            model=controller_model,
-                            cycle=cycle + 1,
-                            decision_mode=DECISION_MODE,
-                            decision_mode_family=current_mode_family(),
-                            run_id=run_id,
-                        )
-                        decision = agentic_result.decision
-                        for tool_event in agentic_result.events:
-                            results.append(tool_event)
-                            log_file.write(json.dumps(tool_event, default=str) + "\n")
-                        if agentic_result.events:
-                            log_file.flush()
-                        _decision_pipeline = "agentic_tools"
-                    else:
-                        decision = controller_plan(
-                            controller_client,
-                            _controller_spatial,
-                            _last_direction or "",
-                            _last_result,
-                            blocked_dir=_same_dir or "",
-                            blocked_count=_same_dir_count,
-                            max_actions=CART_STEPS,
-                            screenshot=_vision_frame,  # None on cache hit → no image cost
-                            frame_ref=_frame_ref,  # UUID text ref on cache hit
-                            goal=_mem_goal,
-                            notes=" | ".join(_mem_notes[:6])[:300],
-                            last_dialog=_last_dialog_text,
-                            study_result=_pending_study_result,
-                            boot_memory=_boot_memory,  # MEM-2: built once at boot
-                            recent_decisions=_recent_decisions,
-                            running_summary=_agent_context.summary,
-                            world_facts=_world_facts,
-                            model=controller_model,  # GAP-052: flag/env-resolved
-                        )
-                        _decision_pipeline = pipeline_name
-                    decision.update(_jev_outcome)
-                # Study result is injected once, then cleared
-                _pending_study_result = ""
-                plan = decision.get("plan", ["A"])
-                intent = decision.get("intent", "")
-
-                # ── Agent memory outputs: note / goal / study ──────
-                # The controller maintains its own knowledge. These fields
-                # are optional; when present they are executed here and
-                # persisted to DuckBrain (namespace pokemon-global).
-                if USE_RAM_READER:
-                    _mem_goal, _mem_notes, _pending_study_result = (
-                        _apply_agent_memory_outputs(
-                            decision=decision,
-                            results=results,
-                            log_file=log_file,
-                            cycle=cycle,
-                            map_name=patch_data.get("map_name", "unknown"),
-                            mem_goal=_mem_goal,
-                            mem_notes=_mem_notes,
-                            pending_study_result=_pending_study_result,
-                        )
-                    )
-
-                # ── Programmatic direction override ───────────────
-                # Chain-rotate through blacklist. If ALL 4 directions
-                # blacklisted, use A (interact) instead — stop walking.
-                if _dir_blacklist:
-                    filtered_plan = []
-                    for btn in plan:
-                        btn_upper = btn.upper()
-                        direction = btn_upper
-                        if direction in ("UP", "DOWN", "LEFT", "RIGHT"):
-                            for _ in range(4):
-                                if (
-                                    direction in _dir_blacklist
-                                    and direction in _DIR_ROTATION
-                                ):
-                                    direction = _DIR_ROTATION[direction]
-                                else:
-                                    break
-                            # If we cycled back to a blacklisted direction, all 4 blocked
-                            if direction in _dir_blacklist:
-                                direction = "A"  # interact instead
-                        filtered_plan.append(direction)
-                    if filtered_plan != [b.upper() for b in plan]:
-                        safe_print(
-                            f"  [OVERRIDE] Blacklisted {_dir_blacklist}, plan {plan[:6]}→{filtered_plan[:6]}..."
-                        )
-                    plan = filtered_plan
-
-                # ── Spatial pre-filter: strip wall/object directions ──
-                # The cartographer tells us what's actually adjacent. If it says
-                # a tile is "wall" or "object", walking there is impossible.
-                # Strip those directions BEFORE execution regardless of LLM output.
-                _blocked_spatial = _blocked_spatial_directions(patch_data)
-                if _blocked_spatial:
-                    _before_filter = plan[:]
-                    _blocked_upper = {d.upper() for d in _blocked_spatial}
-                    _filtered = [
-                        b
-                        for b in plan
-                        if b.upper() not in _blocked_upper
-                        or b.upper() not in ("UP", "DOWN", "LEFT", "RIGHT")
-                    ]
-                    # If filtering removed everything, keep the original plan.
-                    # The cartographer's adjacent data can be wrong (e.g. bed
-                    # mislabeled as "wall"), and the LLM may know better.
-                    if _filtered:
-                        plan = _filtered
-                    if len(plan) < len(_before_filter):
-                        safe_print(
-                            f"  [SPATIAL] Removed {_blocked_spatial} from "
-                            f"plan {_before_filter[:3]}→{plan[:3]}..."
-                        )
-
-                # ── No-op plan guard (Bane 09-11: 'repeated screens being the
-                # same → try something else') — identical plan + unchanged
-                # position = the last plan did nothing. Force variation
-                # instead of re-sending the same false presses.
-                _pos_key = f"{patch_data.get('map_id')}:{patch_data.get('player_tile_x')},{patch_data.get('player_tile_y')}"
-                _plan_sig = ",".join(b.upper() for b in plan[:6])
-                if _plan_sig == _last_plan_sig and _pos_key == _last_pos_key:
-                    _same_plan_count += 1
-                else:
-                    _same_plan_count = 0
-                _last_plan_sig = _plan_sig
-                _last_pos_key = _pos_key
-                _agentic_tool_cycle = bool(
-                    _model_tools_enabled(DECISION_MODE)
-                    and int(decision.get("agentic_tool_calls", 0)) > 0
-                )
-                if _same_plan_count >= 2 and not _agentic_tool_cycle:
-                    _alt = _GIVEUP_SEQUENCE[_same_plan_count % len(_GIVEUP_SEQUENCE)]
-                    plan = [_alt, "A"]
-                    safe_print(
-                        f"  [NOOP-GUARD] identical plan x{_same_plan_count} + no movement — forcing [{_alt}, A]"
-                    )
-                    evt = {
-                        "cycle": cycle + 1,
-                        "event": "noop_plan_guard",
-                        "identical_plan": _plan_sig,
-                        "pos": _pos_key,
-                        "forced": [_alt, "A"],
-                    }
-                    results.append(evt)
-                    log_file.write(json.dumps(evt, default=str) + "\n")
-                    log_file.flush()
-
-                # ── Run-length cap: max 3 consecutive same direction ──
-                # The cartographer only sees the immediate adjacent tile.
-                # Long plans (6x RIGHT) walk into walls 2-3 tiles away.
-                # Cap consecutive same-direction moves to 3 regardless of LLM.
-                _rle = 1
-                for i in range(1, len(plan)):
-                    if plan[i].upper() == plan[i - 1].upper() and plan[i].upper() in (
-                        "UP",
-                        "DOWN",
-                        "LEFT",
-                        "RIGHT",
-                    ):
-                        _rle += 1
-                    else:
-                        _rle = 1
-                    if _rle > 3:
-                        plan[i] = "A"  # replace with interact
-                        _rle = 1
-                        safe_print(
-                            f"  [CAP] Truncated same-direction run at position {i}"
-                        )
-
-                # ── Post-exhaustion movement injection ─────────────
-                # recovery_exhausted used to mean passive A-mash until the
-                # run ended (l2_accept_1: ~50 wasted cycles). Instead:
-                # rotate real inputs — walk, open menu, back out. The
-                # injected presses can also RESET a stuck state, which
-                # re-enables normal recovery on later cycles.
-                if _gave_up and not _agentic_tool_cycle:
-                    plan = [_GIVEUP_SEQUENCE[cycle % len(_GIVEUP_SEQUENCE)]]
-                    safe_print(
-                        f"  [GIVEUP-WALK] injecting {plan} (post-exhaustion rotation)"
-                    )
-                    evt = {"cycle": cycle + 1, "event": "giveup_walk", "injected": plan}
-                    results.append(evt)
-                    log_file.write(json.dumps(evt, default=str) + "\n")
-                    log_file.flush()
-
-                # HOLD-1 is the final movement filter so blacklist rotation,
-                # no-op recovery, and post-exhaustion injection cannot
-                # reintroduce the completed edge's reverse direction.
-                _controller_hold_event = decision.get("navigation_hold_event")
-                plan, _final_hold_event = _guard_navigation_plan(
-                    plan,
-                    _navigation_context,
-                )
-                _navigation_hold_event = (
-                    _final_hold_event
-                    if _final_hold_event is not None
-                    else (
-                        _controller_hold_event
-                        if isinstance(_controller_hold_event, dict)
-                        else None
-                    )
-                )
-                if _navigation_hold_event is not None:
-                    _navigation_hold_event = {
-                        "cycle": cycle + 1,
-                        "event": "navigation_hold_guard",
-                        **_navigation_hold_event,
-                        "executed_plan": plan,
-                    }
-                    results.append(_navigation_hold_event)
-                    log_file.write(
-                        json.dumps(_navigation_hold_event, default=str) + "\n"
-                    )
-                    log_file.flush()
-                    safe_print(
-                        "  [NAV-HOLD] blocked "
-                        f"{_navigation_hold_event['blocked_direction']} -> "
-                        f"{_navigation_hold_event['replacement_direction']} | "
-                        f"plan={plan}"
-                    )
-
-                # JEV-1: JEV's missing-information taxonomy for this decision
-                # (only meaningful when the hand-back gate escalated it).
-                _missing_class = decision.get("missing_class")
-
-                plan_entry = {
-                    "cycle": cycle + 1,
-                    "screen": st,
-                    "pipeline": _decision_pipeline,
-                    "decision_mode": DECISION_MODE,
-                    # The family the spelling means. `decision_mode` keeps its
-                    # historical value so existing logs stay comparable (M6);
-                    # this field is the branchable one.
-                    "decision_mode_family": current_mode_family(),
-                    "agentic_tools_enabled": _model_tools_enabled(DECISION_MODE),
-                    "agentic_tool_calls": int(decision.get("agentic_tool_calls", 0)),
-                    "context_evidence": _agent_context.evidence(),
-                    "context_snapshot": _agent_context.render(),
-                    "plan": plan,
-                    "intent": intent,
-                    "navigation_hold": _navigation_context,
-                    "navigation_hold_applied": _navigation_hold_event is not None,
-                    # JEV-1 (PRD v3 AC-1): every decision row carries the
-                    # autonomy fields. DF-JEV-1 wired the JEV tier into this
-                    # loop, so a row JEV decided (`pipeline="jev"`) fills them
-                    # from JEV's real payload, `raw_distribution` included; a
-                    # row from the controller fallback path carries none of
-                    # these keys and reports the defaults, which is exactly the
-                    # split `_autonomy_counters` counts at closeout.
-                    "jev_answered": bool(decision.get("jev_answered", False)),
-                    "escalated": bool(decision.get("escalated", False)),
-                    # PERCEPT-1: this decision's own API usage (tokens +
-                    # provider cost), None when the provider reported none.
-                    "vision_usage": decision.get("vision_usage"),
-                    "_cartographer_usage": patch_data.get("_cartographer_usage"),
-                    "missing_class": (
-                        _missing_class if isinstance(_missing_class, str) else None
-                    ),
-                    "reported_missing_class": decision.get("reported_missing_class"),
-                    # S6 NAV-MEM: the path-memory outcome of this navigation
-                    # decision — a hit cites the exact ``/world/path/...`` key
-                    # the route came from; a miss names why no route was used.
-                    "memory_navigation": decision.get("memory_navigation"),
-                    "raw_distribution": decision.get("raw_distribution"),
-                    "scenario_post_distribution": decision.get(
-                        "scenario_post_distribution"
-                    ),
-                    "scenario_patch_id": decision.get("scenario_patch_id"),
-                    "scenario_patch_evidence": decision.get("scenario_patch_evidence"),
-                    "scenario_patch_applied": bool(
-                        decision.get("scenario_patch_applied", False)
-                    ),
-                    # Handoff provenance (M3/M5): which trigger fired, whether
-                    # this run's policy allowed it, and why not when it did not.
-                    "handoff_trigger": decision.get("handoff_trigger"),
-                    "handoff_allowed": decision.get("handoff_allowed"),
-                    "handoff_blocked_reason": decision.get("handoff_blocked_reason"),
-                    **_jev_outcome,
-                    "jev_projection_chars": decision.get("jev_projection_chars"),
-                    "controller_raw": decision.get("raw_response", ""),
-                    "frame_cache": "hit" if _frame_ref else "miss",
-                    "frame_uuid": _frame_ref,
-                    "cartographer_raw": carto_raw,
-                    "map_id": patch_data.get("map_id"),
-                    "map_name": patch_data.get("map_name"),
-                    "player_x": patch_data.get("player_x"),
-                    "player_y": patch_data.get("player_y"),
-                    "player_tile_x": patch_data.get("player_tile_x"),
-                    "player_tile_y": patch_data.get("player_tile_y"),
-                }
-                results.append(plan_entry)
-                log_file.write(json.dumps(plan_entry, default=str) + "\n")
-                log_file.flush()
-
-                # ── Execute the plan ──────────────────────────────
-                btn_map = {
-                    "UP": "up",
-                    "DOWN": "down",
-                    "LEFT": "left",
-                    "RIGHT": "right",
-                    "A": "a",
-                    "B": "b",
-                    "START": "start",
-                    "SELECT": "select",
-                }
-                for button in plan:
-                    button = button.upper()
-                    btn = btn_map.get(button, "a")
-                    emu.press_button(btn, frames=PRESS_FRAMES)
-                    if button in ("UP", "DOWN", "LEFT", "RIGHT"):
-                        _settle_directional_step(emu, ram_reader)
-                    else:
-                        emu.fast_forward(STEP_FORWARD)
-                    _last_direction = button
-
-                    # Blocked-direction tracking (per-button for recovery)
-                    if button in ("UP", "DOWN", "LEFT", "RIGHT"):
-                        if button == _same_dir:
-                            _same_dir_count += 1
-                        else:
-                            _same_dir = button
-                            _same_dir_count = 1
-                        # Direction press resets A-press counter
-                        _a_press_count = 0
-                    elif button == "A":
-                        _same_dir = None
-                        _same_dir_count = 0
-                        _a_press_count += 1
-                        _last_action_button = "A"
-                        if _a_press_count == 3:
-                            safe_print(
-                                "  [WARN] A-press lock detected: A x3 — triggering recovery"
-                            )
-                    else:
-                        _same_dir = None
-                        _same_dir_count = 0
-                        _a_press_count = 0
-
-                    if _same_dir_count == 3:
-                        safe_print(
-                            f"  [WARN] Direction-locking detected: {_same_dir} x3"
-                        )
-                        _cycle_dir_lock_warned = True
-                    # Recovery is now handled centrally in the stuck-detection block
-                    # after cartographer analysis, using the escalating recovery ladder.
-
-                if plan:
-                    _last_result = f"executed {len(plan)} input(s): " + ", ".join(
-                        str(button).upper() for button in plan
-                    )
-                else:
-                    _last_result = "no input executed (WAIT)"
-                _record_recent_decision(
-                    _recent_decisions,
-                    plan_entry,
-                    outcome=_last_result,
-                    agent_context=_agent_context,
-                    text_facts=(
-                        patch_data.get("text_content")
-                        or patch_data.get("text_lines")
-                        or []
-                    ),
-                )
-
-                elapsed = time.time() - t0
-                safe_print(
-                    f"  [{cycle + 1}/{CYCLES}] {st} | {_decision_pipeline} x{CART_STEPS} | {elapsed:.1f}s"
-                )
-
-            elif st == "name_entry":
-                # ── Name entry bypass (main loop) ──────────────────
-                # Use programmatic typing after 3 stuck cycles. The intro
-                # loop handles the first two name_entry screens; if we
-                # hit one again here (e.g. New Game from title without
-                # intro), drive the keyboard directly. A-mashing alone
-                # fills the name field with "AAAAAAAA" / "A..." rather
-                # than the canonical ASH/BLUE, so always prefer enter_name.
-                # Counter held in a single-element list so it persists
-                # across main-loop cycles without adding new state attrs
-                # to emu/ctx or a new import.
-                _main_ne_stuck_box[0] += 1
-                _main_ne_stuck = _main_ne_stuck_box[0]
-
-                if _main_ne_stuck >= _NAME_ENTRY_STUCK_MAX:
-                    if not _player_named:
-                        safe_print("  [main] Name entry stuck — accepting player name")
-                        emu.submit_name()
-                        _player_named = True
-                        ctx.player_name = "ASH"
-                    elif not _rival_named:
-                        safe_print("  [main] Rival name stuck — accepting rival name")
-                        emu.submit_name()
-                        _rival_named = True
-                        ctx.rival_name = "GARY"
-                    _main_ne_stuck_box[0] = 0
-                else:
-                    # Not yet stuck — A-mash briefly to give dialog time to advance
-                    for _ in range(_A_BURST):
-                        emu.press_button("a", frames=_A_FRAMES)
-                        emu.fast_forward(_FF_FRAMES)
-
-                elapsed = time.time() - t0
-                entry = {
-                    "cycle": cycle + 1,
-                    "screen": st,
-                    "action": "name_bypass",
-                    "elapsed_s": round(elapsed, 1),
-                    "cartographer_raw": carto_raw,
-                }
-                results.append(entry)
-                _record_recent_decision(
-                    _recent_decisions,
-                    entry,
-                    outcome=f"name-entry bypass attempt {_main_ne_stuck}",
-                )
-                log_file.write(json.dumps(entry, default=str) + "\n")
-                log_file.flush()
-                safe_print(
-                    f"  [{cycle + 1}/{CYCLES}] {st} | name_bypass "
-                    f"(stuck={_main_ne_stuck}/{_NAME_ENTRY_STUCK_MAX}) | {elapsed:.1f}s"
-                )
-
+            if header["st"] == "overworld":
+                if _overworld_cycle(S, cycle, header, t0):
+                    continue
+            elif header["st"] == "name_entry":
+                _name_entry_cycle(S, cycle, header, t0)
             else:
-                # ── Traditional StateWindow flow ───────────────────
-                # Reset name_entry stuck counter — we've left name_entry.
-                _main_ne_stuck_box[0] = 0
-                # Build StateWindow-compatible vision dict from cartographer output
-                vis_dict = {
-                    "screen_type": st,
-                    "screen_subtype": patch_data.get("screen_subtype", ""),
-                    "name_field": patch_data.get("name_field", ""),
-                    "text_lines": patch_data.get("text_lines", []),
-                    "text_content": patch_data.get(
-                        "text_content", patch_data.get("text_lines", [])
-                    ),
-                    "menu_items": patch_data.get("menu_items", []),
-                    "adjacent_tiles": patch_data.get("adjacent_tiles", {}),
-                    "keyboard_grid": patch_data.get("keyboard_grid", {}),
-                }
-
-                # ── RAM reader enrichment for battle/dialog screens ──
-                # When USE_RAM_READER is True, inject live RAM state into
-                # the StateWindow vision dict so it can build compact prompts.
-                if USE_RAM_READER:
-                    if st == "battle":
-                        bs = ram_reader.read_battle_state()
-                        vis_dict["battle_state"] = bs
-                        vis_dict["render"] = ram_reader.render_battle()
-                        vis_dict["result"] = "battle"
-                    elif st == "dialog":
-                        vis_dict["render"] = ram_reader.render_dialog()
-                        vis_dict["result"] = "dialog"
-                    elif st == "menu" or st == "list_menu":
-                        ms = ram_reader.read_menu_state()
-                        if ms.get("menu_id", 0) > 0:
-                            vis_dict["render"] = ram_reader.render_menu()
-                            vis_dict["result"] = "menu"
-
-                # ── Battle start/end logging ──────────────────────
-                if st == "battle" and _last_screen_type != "battle":
-                    evt = {
-                        "cycle": cycle + 1,
-                        "event": "battle_start",
-                        "battle_type": vis_dict.get("battle_state", {}).get(
-                            "battle_type", "unknown"
-                        ),
-                    }
-                    results.append(evt)
-                    log_file.write(json.dumps(evt, default=str) + "\n")
-                    log_file.flush()
-                    safe_print(
-                        f"  [BATTLE-START] {vis_dict.get('battle_state', {}).get('battle_type', 'unknown')} battle began"
-                    )
-                elif st != "battle" and _last_screen_type == "battle":
-                    evt = {"cycle": cycle + 1, "event": "battle_end", "next_screen": st}
-                    results.append(evt)
-                    log_file.write(json.dumps(evt, default=str) + "\n")
-                    log_file.flush()
-                    safe_print(f"  [BATTLE-END] → {st}")
-
-                # ── Stuck detection: unified tracking + escalating recovery ──
-                # Track same-screen (already tracked in overworld pipeline, but
-                # StateWindow path handles other screen types — dialog, battle, menu)
-                if st == _last_screen_type:
-                    _same_screen_count += 1
-                else:
-                    _same_screen_count = 0
-                _last_screen_type = st
-
-                # State-change detection resets recovery counter
-                state_key = f"{st}:{vis_dict.get('screen_subtype', '')}"
-                if state_key != _last_state_key and _last_state_key != "":
-                    _recovery_attempts = 0
-                    _recovery_level = 0
-                    safe_print(f"  [STATE] Changed → {st} — recovery counter reset")
-                _last_state_key = state_key
-
-                # Check if recovery needed
-                needs_recovery = False
-                recovery_reason = ""
-                if _gave_up:
-                    pass
-                elif tile_recovery_reason:
-                    needs_recovery = True
-                    recovery_reason = tile_recovery_reason
-                elif _same_screen_count >= MAX_SAME_SCREEN_CYCLES and st != "overworld":
-                    needs_recovery = True
-                    recovery_reason = f"screen-locked ({st} x{_same_screen_count})"
-                elif _same_dir_count >= MAX_STUCK_SAME_DIR:
-                    needs_recovery = True
-                    recovery_reason = (
-                        f"direction-locked ({_same_dir} x{_same_dir_count})"
-                    )
-
-                starter_approached = False
-                if needs_recovery:
-                    if _recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
-                        if not _gave_up:
-                            _gave_up = True
-                            safe_print(
-                                f"  [RECOVER] GIVING UP after {_recovery_attempts} attempts ({recovery_reason})"
-                            )
-                            evt = {
-                                "cycle": cycle + 1,
-                                "event": "recovery_exhausted",
-                                "reason": recovery_reason,
-                                "attempts": _recovery_attempts,
-                            }
-                            results.append(evt)
-                            log_file.write(json.dumps(evt, default=str) + "\n")
-                            log_file.flush()
-                    else:
-                        _recovery_attempts += 1
-                        if (
-                            "tile-locked" in recovery_reason
-                            and USE_RAM_READER
-                            and map_id == OAKS_LAB_MAP_ID
-                            and party_count == 0
-                        ):
-                            starter_approached = _approach_first_starter(
-                                emu, ram_reader
-                            )
-                        # ── Dialog fast-path ─────────────────────────
-                        # A dialog box is NOT a stuck state — it needs A
-                        # presses to advance the text. The generic ladder
-                        # (START→B→B menu_redraw) is wrong here and was
-                        # keeping the agent trapped in Oak's dialog for
-                        # 70+ cycles. A-mash to advance the conversation.
-                        if st == "dialog" and not starter_approached:
-                            for _ in range(12):
-                                emu.press_button("a", frames=_A_FRAMES)
-                                emu.fast_forward(_FF_FRAMES)
-                            strategy, desc = (
-                                "dialog_advance",
-                                "12× A — advancing dialog text",
-                            )
-                            safe_print(
-                                f"  [RECOVER] {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]"
-                            )
-                            evt = {
-                                "cycle": cycle + 1,
-                                "event": "recovery",
-                                "level": _recovery_level,
-                                "strategy": strategy,
-                                "reason": recovery_reason,
-                                "attempt": _recovery_attempts,
-                                "description": desc,
-                            }
-                            results.append(evt)
-                            log_file.write(json.dumps(evt, default=str) + "\n")
-                            log_file.flush()
-                            trackers = _reset_recovery_trackers(
-                                recovery_reason,
-                                same_dir=_same_dir,
-                                same_dir_count=_same_dir_count,
-                                same_screen_count=_same_screen_count,
-                                same_tile_count=_same_tile_count,
-                                void_cycles=_void_cycles,
-                                a_press_count=_a_press_count,
-                            )
-                            _same_dir = trackers.same_dir
-                            _same_dir_count = trackers.same_dir_count
-                            _same_screen_count = trackers.same_screen_count
-                            _same_tile_count = trackers.same_tile_count
-                            _void_cycles = trackers.void_cycles
-                            _a_press_count = trackers.a_press_count
-                            continue  # skip StateWindow, let next cycle re-classify
-                        recovery_decision = {}
-                        if starter_approached:
-                            strategy, desc = (
-                                "starter_approach",
-                                "moved to the nearest Poké Ball and opened its dialog",
-                            )
-                        else:
-                            strategy, desc = _escalating_recovery(
-                                emu,
-                                _recovery_level,
-                                _last_direction,
-                                _last_saved_slot,
-                                game_state=patch_data,
-                                decision_out=recovery_decision,
-                                forbidden_directions=(
-                                    {_navigation_state.blocked_return_direction}
-                                    if _navigation_state.blocked_return_direction
-                                    else None
-                                ),
-                            )
-                        _recovery_level += 1
-                        # Blacklist the blocked direction on checkpoint restore
-                        if (
-                            strategy == "load_checkpoint"
-                            and _same_dir
-                            and _same_dir in _DIR_ROTATION
-                        ):
-                            _dir_blacklist.add(_same_dir)
-                            safe_print(
-                                f"  [BLACKLIST] {_same_dir} added to blacklist: {_dir_blacklist}"
-                            )
-                        safe_print(
-                            f"  [RECOVER] Level {_recovery_level - 1}: {strategy} — {desc} ({recovery_reason}) [attempt {_recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]"
-                        )
-                        evt = {
-                            "cycle": cycle + 1,
-                            "event": "recovery",
-                            "level": _recovery_level - 1,
-                            "strategy": strategy,
-                            "reason": recovery_reason,
-                            "attempt": _recovery_attempts,
-                            "description": desc,
-                            **recovery_decision,
-                        }
-                        results.append(evt)
-                        log_file.write(json.dumps(evt, default=str) + "\n")
-                        log_file.flush()
-                        trackers = _reset_recovery_trackers(
-                            recovery_reason,
-                            same_dir=_same_dir,
-                            same_dir_count=_same_dir_count,
-                            same_screen_count=_same_screen_count,
-                            same_tile_count=_same_tile_count,
-                            void_cycles=_void_cycles,
-                            a_press_count=_a_press_count,
-                        )
-                        _same_dir = trackers.same_dir
-                        _same_dir_count = trackers.same_dir_count
-                        _same_screen_count = trackers.same_screen_count
-                        _same_tile_count = trackers.same_tile_count
-                        _void_cycles = trackers.void_cycles
-                        _a_press_count = trackers.a_press_count
-                        continue  # skip StateWindow, let next cycle re-classify
-
-                state_type = st
-                if vis_dict.get("screen_subtype") == "keyboard":
-                    state_type = "name_entry"
-
-                # ── Rival battle detection ────────────────────────
-                if vis_dict.get("screen_subtype") == "rival_battle":
-                    ctx.set_location("rival_battle")
-                    battle_png = SCREENSHOT_DIR / f"BATTLE_{cycle + 1:04d}.png"
-                    img.save(battle_png)
-                    evt = {
-                        "cycle": cycle + 1,
-                        "event": "RIVAL_BATTLE_REACHED",
-                    }
-                    results.append(evt)
-                    log_file.write(json.dumps(evt, default=str) + "\n")
-                    log_file.flush()
-                    safe_print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle + 1}")
-
-                # Normal battle turns ask JEV first. StateWindow executes the typed
-                # choice directly; its established model/select_move(1) path remains
-                # the fallback when JEV is disabled, unavailable, or malformed.
-                battle_jev_decision = (
-                    _observe_battle_decision(vis_dict)
-                    if state_type == "battle"
-                    else None
-                )
-
-                # Battle windows execute one action against one fresh RAM read.
-                # The former 12-step loop reused a stale cycle-20 move-menu
-                # snapshot and generated multiple empty-arg RUN calls before
-                # cron_runner could observe the next battle phase.
-                from src.core.state_window import (
-                    StateWindow,
-                )  # deferred: ~592ms import, sys.path[0] ordering not relied on
-
-                win = StateWindow(
-                    state_type,
-                    ctx,
-                    emu,
-                    vis_dict,
-                    generation="gen1",
-                    max_steps=(
-                        # Battle needs room to act: query → attack → verify
-                        # within one window. max_steps=1 meant a single
-                        # query_global consumed the whole budget each cycle
-                        # and the battle never progressed (T192/T197 stall).
-                        5
-                        if state_type == "battle"
-                        else (1 if state_type == "name_entry" else STATE_STEPS)
-                    ),
-                    hint_level=HINT_LEVEL,
-                    use_ram_prompts=True,
-                    failed_flee_attempts=_failed_flee_attempts,
-                    battle_tool_call=(
-                        _jev_battle_tool_call(battle_jev_decision, vis_dict)
-                        if state_type == "battle"
-                        else None
-                    ),
-                )
-                result = win.run()
-                if state_type == "battle":
-                    _failed_flee_attempts = int(
-                        result.get("_failed_flee_attempts", _failed_flee_attempts)
-                    )
-                emu.fast_forward(FAST_FORWARD_FRAMES)
-                elapsed = time.time() - t0
-
-                # --- Battle event logging ---
-                battle_events = result.get("_battle_events", [])
-                for be in battle_events:
-                    safe_print(
-                        f"  [BATTLE] {be.get('event')}: {be.get('screen_type', be.get('outcome', '?'))}"
-                    )
-
-                # Extract last action
-                last_action = "?"
-                for h in reversed(win._history):
-                    tc = h.get("tool_call", {})
-                    if tc:
-                        last_action = (
-                            f"{tc.get('name', '?')}({tc.get('arguments', {})})"
-                        )
-                        break
-
-                entry = {
-                    "cycle": cycle + 1,
-                    "screen": st,
-                    "state": state_type,
-                    "action": last_action,
-                    "elapsed_s": round(elapsed, 1),
-                    "cartographer_raw": carto_raw,
-                    "state_window_raw": "\n\n---\n".join(win._raw_responses)
-                    if getattr(win, "_raw_responses", None)
-                    else "",
-                    "battle_events": battle_events,
-                    "failed_flee_attempts": _failed_flee_attempts,
-                }
-                _stamp_battle_observability(
-                    entry,
-                    state_type=state_type,
-                    history=win._history,
-                    jev_decision=battle_jev_decision,
-                )
-                _state_outcome = next(
-                    (
-                        str(item["action"])
-                        for item in reversed(win._history)
-                        if item.get("action") not in (None, "")
-                    ),
-                    f"executed {last_action}",
-                )
-                _record_recent_decision(
-                    _recent_decisions,
-                    entry,
-                    outcome=_state_outcome,
-                )
-                results.append(entry)
-                log_file.write(json.dumps(entry, default=str) + "\n")
-                log_file.flush()
-                safe_print(
-                    f"  [{cycle + 1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s"
-                )
-
-            # Handle progression
-            if _cycle_dir_lock_warned:
-                _dir_lock_warn_cycles += 1  # GAP-028 per-run lock-rate metric
-            if st == "name_confirm" and patch_data.get("name_field"):
-                if not ctx.player_name:
-                    ctx.player_name = patch_data["name_field"]
-                elif not ctx.rival_name:
-                    ctx.rival_name = patch_data["name_field"]
-
-            if st == "overworld" and ctx.location in ("title", "intro"):
-                ctx.set_location("bedroom")
-                ctx.add_goal("leave bedroom")
-                ctx.add_goal("reach rival battle")
-
-            # ── Checkpoint save every N cycles ────────────────────
-            if (cycle + 1) % CHECKPOINT_INTERVAL == 0:
-                try:
-                    emu.save_state(_checkpoint_slot)
-                    evt = {
-                        "cycle": cycle + 1,
-                        "event": "state_saved",
-                        "slot": _checkpoint_slot,
-                    }
-                    results.append(evt)
-                    log_file.write(json.dumps(evt, default=str) + "\n")
-                    log_file.flush()
-                    safe_print(f"  [CKPT] Saved state to slot {_checkpoint_slot}")
-                    _last_saved_slot = _checkpoint_slot
-                    _checkpoint_slot = (_checkpoint_slot + 1) % CHECKPOINT_SLOTS
-                except Exception as exc:
-                    safe_print(f"  [CKPT] Failed to save state: {exc}")
-
+                _state_window_cycle(S, cycle, header, t0)
+            _cycle_tail(S, cycle, header)
         except Exception:
             traceback.print_exc()
             err_entry = {"cycle": cycle + 1, "error": traceback.format_exc()}
-            results.append(err_entry)
-            log_file.write(json.dumps(err_entry, default=str) + "\n")
-            log_file.flush()
+            S.results.append(err_entry)
+            S.log_file.write(json.dumps(err_entry, default=str) + "\n")
+            S.log_file.flush()
 
-    emu.stop()
+
+def _cycle_capture(S, cycle):
+    """Capture the emulator frame and save the progress screenshot on change."""
+    S._cycle_dir_lock_warned = False  # per-cycle flag (GAP-028 metric)
+    screenshot = S.R.emu.capture()
+    frame_hash = _cycle_frame_hash(screenshot)
+
+    # PNG encoding/writes measured 0.692ms on a static screen versus
+    # 0.080ms with this gate. Keep ``img`` for the unconditional battle
+    # milestone capture below, but write progress frames only on change.
+    img = S.R.image_module.fromarray(screenshot)
+    S._img = img
+    S._last_saved_frame_hash = _save_cycle_screenshot(
+        img,
+        cycle=cycle + 1,
+        frame_hash=frame_hash,
+        last_saved_frame_hash=S._last_saved_frame_hash,
+        screenshot_dir=SCREENSHOT_DIR,
+    )
+    return screenshot, frame_hash
+
+
+def _cycle_observe(S, screenshot, frame_hash):
+    """Classify the screen: RAM reader, or cartographer with frame hashing."""
+    if USE_RAM_READER:
+        # RAM reader: instant reads; the cycle hash still gates progress saves.
+        # RAM reader is instant — always re-observe for accurate state
+        patch_data = S.R.ram_reader.observe()
+        carto_raw = json.dumps(
+            {"source": "ram_reader", "result": patch_data.get("result")}
+        )
+        return patch_data, carto_raw
+
+    # ── Frame hashing: skip cartographer if nothing changed ──
+    # Hash the raw screenshot bytes. If identical to last frame,
+    # the character hasn't moved — reuse cached observation.
+    # Works for ALL screen types including battles. During battle idle
+    # (both Pokémon standing, same HP), the frame is identical and
+    # the cached observation is still valid. The Controller/StateWindow
+    # still runs and makes decisions — we just skip re-observing.
+    if S._last_frame_hash != frame_hash or not S._cached_patch:
+        # Frame changed (or first cycle) — call cartographer
+        patch_data, carto_raw = cartographer_analyze(
+            S.R.controller_client, screenshot
+        )
+        S._cached_patch = patch_data
+        S._cached_carto_raw = carto_raw
+        S._last_frame_hash = frame_hash
+    else:
+        # Frame unchanged — reuse cached observation
+        patch_data = S._cached_patch
+        carto_raw = S._cached_carto_raw
+        safe_print(
+            f"  [SKIP] Frame unchanged, reusing cached cartographer ({patch_data.get('result', '?')})"
+        )
+
+    # ── Frame-locked detection (pixel-identical, not just same screen TYPE) ──
+    # l2_accept_1 failure mode: "My POKéMON looks a..." dialog page
+    # recurred 50+ cycles — same screen_type ('dialog') so the
+    # same-screen tracker never fired, recovery exhausted, then
+    # passive A-mash. Identical pixels = nothing is changing.
+    if frame_hash == S._prev_frame_hash:
+        S._same_frame_count += 1
+    else:
+        S._same_frame_count = 0
+    S._prev_frame_hash = frame_hash
+    return patch_data, carto_raw
+
+
+def _cycle_track_tiles(S, patch_data):
+    """Track visited tiles, proven routes, tile-visit counts, and movement."""
+    raw_map_id = patch_data.get("map_id")
+    raw_tile_x = patch_data.get("player_tile_x")
+    raw_tile_y = patch_data.get("player_tile_y")
+    current_tile = None
+    if (
+        isinstance(raw_map_id, int)
+        and isinstance(raw_tile_x, int)
+        and isinstance(raw_tile_y, int)
+    ):
+        current_tile = (raw_map_id, raw_tile_x, raw_tile_y)
+    if current_tile is not None:
+        S._visited_tiles.add(current_tile)
+        if S._route_map_id is None:
+            S._route_map_id = current_tile[0]
+        if current_tile[0] == S._route_map_id:
+            route_tile = {"x": current_tile[1], "y": current_tile[2]}
+            if route_tile not in S._route_tiles:
+                S._route_tiles.append(route_tile)
+        _update_tile_visits(S, current_tile)
+    progress_delta, observed_delta = _movement_progress_delta(
+        current_tile, S._last_tile
+    )
+    S._movement_progress_cycles += progress_delta
+    S._movement_observed_cycles += observed_delta
+    # S6 NAV-MEM: keep the tile stood on BEFORE this cycle's update —
+    # it is the door tile of any transition detected just below.
+    S._departure_tile = S._last_tile
+    S._last_tile, S._same_tile_count = _track_same_tile(
+        current_tile, S._last_tile, S._same_tile_count
+    )
+    tile_recovery_reason = _tile_lock_reason(S._last_tile, S._same_tile_count)
+
+    map_id = int(raw_map_id) if isinstance(raw_map_id, int) else -1
+    return {
+        "raw_map_id": raw_map_id,
+        "raw_tile_x": raw_tile_x,
+        "raw_tile_y": raw_tile_y,
+        "current_tile": current_tile,
+        "tile_recovery_reason": tile_recovery_reason,
+        "map_id": map_id,
+    }
+
+
+def _update_tile_visits(S, current_tile):
+    """JEV projection (DF-JEV-1): repeat counts for the current map's tiles."""
+    if S._tile_visits_map_id != current_tile[0]:
+        S._tile_visits.clear()
+        S._tile_visits_map_id = current_tile[0]
+    tile_visits_key = (current_tile[1], current_tile[2])
+    S._tile_visits[tile_visits_key] = (
+        S._tile_visits.get(tile_visits_key, 0) + 1
+    )
+
+
+def _handle_navigation_transition(S, cycle, st, patch_data, current_tile, map_id):
+    """Detect a map-edge crossing and persist the navigation-hold state.
+
+    HOLD-1: detect the edge before asking either decision path. The
+    resulting goal and reverse-edge guard persist for every later
+    cycle on the destination map. Saving an anchor here also ensures
+    the recovery ladder cannot roll a held transition back to an old
+    checkpoint on the source map.
+    """
+    _navigation_transition = S._navigation_state.observe(
+        map_id,
+        str(patch_data.get("map_name") or ""),
+        S._last_direction,
+    )
+    if _navigation_transition is None:
+        return None
+    # S6 NAV-MEM: the departure tile is the door tile of the proven
+    # edge, and only counts when it was on the SOURCE map.
+    if (
+        S._departure_tile is not None
+        and S._departure_tile[0] == _navigation_transition["from_map_id"]
+    ):
+        _navigation_transition["departure_tile"] = {
+            "x": S._departure_tile[1],
+            "y": S._departure_tile[2],
+        }
+    _navigation_transition["route_tiles"] = list(S._route_tiles)
+    if current_tile is not None:
+        S._route_map_id = current_tile[0]
+        S._route_tiles = [{"x": current_tile[1], "y": current_tile[2]}]
+    S._mem_goal = S._navigation_state.goal
+    S._same_dir = None
+    S._same_dir_count = 0
+    S._recovery_level = 0
+    S._recovery_attempts = 0
+    S._dir_blacklist.clear()
+    if not _navigation_transition["regression"] and st == "overworld":
+        try:
+            S.R.emu.save_state(S._checkpoint_slot)
+            _navigation_transition["anchor_checkpoint_slot"] = (
+                S._checkpoint_slot
+            )
+            S._last_saved_slot = S._checkpoint_slot
+            S._checkpoint_slot = (S._checkpoint_slot + 1) % CHECKPOINT_SLOTS
+        except Exception as exc:
+            _navigation_transition["anchor_checkpoint_error"] = str(exc)
+    _navigation_transition = {
+        "cycle": cycle + 1,
+        **_navigation_transition,
+    }
+    S.results.append(_navigation_transition)
+    S.log_file.write(json.dumps(_navigation_transition, default=str) + "\n")
+    S.log_file.flush()
+    safe_print(
+        "  [NAV-HOLD] "
+        f"{_navigation_transition['from_map_name']} -> "
+        f"{_navigation_transition['to_map_name']} | "
+        f"block={_navigation_transition['blocked_return_direction']} | "
+        f"regression={_navigation_transition['regression']}"
+    )
+    return _navigation_transition
+
+
+def _cycle_world_and_goal(S, cycle, patch_data, map_id, transition):
+    """Populate world memory and seed the default exploration goal (GAP-038)."""
+    # S2 world memory: retrieve facts already present at cycle start,
+    # then persist this observation. The ordering makes next-cycle use
+    # observable in the JEV projection.
+    _teacher_targets_for_cycle = S._pending_teacher_memory_targets
+    S._pending_teacher_memory_targets = []
+    _world_facts = _populate_world_memory(
+        observation=patch_data,
+        run_id=run_id,
+        cycle=cycle + 1,
+        results=S.results,
+        log_file=S.log_file,
+        written_keys=S._world_memory_written_keys,
+        retrieval_targets=_teacher_targets_for_cycle,
+        transition=transition,
+    )
+
+    # ── Default exploration goal (GAP-038) ──────────────
+    # Fresh boot states (no stored DuckBrain goal) leave the
+    # controller with an empty goal; seed a context-aware
+    # default so the agent doesn't wander aimlessly.
+    if not S._mem_goal:
+        if map_id == OAKS_LAB_MAP_ID:
+            S._mem_goal = (
+                "Leave Oaks Lab and head toward Route 1 to begin your "
+                "Pokemon journey."
+            )
+        else:
+            S._mem_goal = "Explore the current area and look for exits or points of interest."
+    return _world_facts
+
+
+def _cycle_party_state(S, patch_data):
+    """Read party count and menu state from RAM or the cartographer patch."""
+    if USE_RAM_READER:
+        party_count = S.R.ram_reader.party_count()
+        menu_state = S.R.ram_reader.read_menu_state()
+    else:
+        raw_party_count = patch_data.get("party_count", 0)
+        party_count = (
+            int(raw_party_count) if isinstance(raw_party_count, int) else 0
+        )
+        raw_menu_state = patch_data.get("menu_state", {})
+        menu_state = raw_menu_state if isinstance(raw_menu_state, dict) else {}
+    return party_count, menu_state
+
+
+def _cycle_starter_milestone(S, cycle, party_count):
+    """Emit the one-shot starter-picked milestone when the party grows."""
+    starter_event, S._starter_milestone_emitted = _starter_milestone_for_cycle(
+        previous_party_count=S._last_party_count,
+        current_party_count=party_count,
+        species_hint=(
+            S.R.ram_reader.first_party_species_hint() if USE_RAM_READER else None
+        ),
+        baseline_starter_name=(
+            S.R.ram_reader.first_party_starter_name() if USE_RAM_READER else None
+        ),
+        milestone_emitted=S._starter_milestone_emitted,
+    )
+    if starter_event is not None:
+        milestone = {"cycle": cycle + 1, **starter_event}
+        S.results.append(milestone)
+        S.log_file.write(json.dumps(milestone, default=str) + "\n")
+        S.log_file.flush()
+        safe_print(
+            "  [STARTER-PICKED] "
+            f"party_count={party_count} "
+            f"species_hint={starter_event['species_hint']}"
+        )
+    S._last_party_count = party_count
+
+
+def _cycle_header(S, cycle):
+    """Run the shared per-cycle prologue: capture, observe, track, remember.
+
+    Returns the cycle bundle (observation, screen type, tiles, party state)
+    consumed by the per-screen handlers and the cycle tail.
+    """
+    screenshot, frame_hash = _cycle_capture(S, cycle)
+    patch_data, carto_raw = _cycle_observe(S, screenshot, frame_hash)
+    st = patch_data.get("result", "unknown")
+    if st != "battle":
+        S._failed_flee_attempts = 0
+
+    # ── Dialog text carry-over ──
+    # When a dialog box is on screen, capture its text so the NEXT
+    # overworld decision can see what was said (Oak's instructions,
+    # NPC hints). This is the agent's information channel.
+    if st == "dialog" and patch_data.get("text_content"):
+        S._last_dialog_text = str(patch_data["text_content"][0])[:200]
+
+    tiles = _cycle_track_tiles(S, patch_data)
+    transition = _handle_navigation_transition(
+        S, cycle, st, patch_data, tiles["current_tile"], tiles["map_id"]
+    )
+    world_facts = _cycle_world_and_goal(
+        S, cycle, patch_data, tiles["map_id"], transition
+    )
+    party_count, menu_state = _cycle_party_state(S, patch_data)
+    _cycle_starter_milestone(S, cycle, party_count)
+    return {
+        "cycle": cycle,
+        "screenshot": screenshot,
+        "frame_hash": frame_hash,
+        "patch_data": patch_data,
+        "carto_raw": carto_raw,
+        "st": st,
+        "world_facts": world_facts,
+        "party_count": party_count,
+        "menu_state": menu_state,
+        "pipeline_name": S.R.pipeline_name,
+        "img": S._img,
+        **tiles,
+    }
+
+
+def _starter_selection(S, cycle, header, t0):
+    """Handle Oak's Lab starter selection; always consumes the cycle."""
+    safe_print(
+        f"  [STARTER] Oak's Lab menu detected at cycle {cycle + 1}; "
+        "asking JEV to choose a species"
+    )
+    starter_decision: dict[str, Any] = {}
+    selected_party_count = _select_starter_from_menu(
+        S.R.emu,
+        S.R.ram_reader,
+        decision_out=starter_decision,
+    )
+    starter_choice = starter_decision.get("starter_choice")
+    selection_entry = {
+        "cycle": cycle + 1,
+        "screen": header["st"],
+        "event": "starter_selection",
+        "action": "jev_starter_choice",
+        "intent": f"select starter {starter_choice or 'unavailable'}",
+        "map_id": header["map_id"],
+        "party_count_before": header["party_count"],
+        "party_count_after": selected_party_count,
+        "player_tile_x": header["raw_tile_x"],
+        "player_tile_y": header["raw_tile_y"],
+        **starter_decision,
+    }
+    S.results.append(selection_entry)
+    S.log_file.write(json.dumps(selection_entry, default=str) + "\n")
+    S.log_file.flush()
+
+    starter_event, S._starter_milestone_emitted = (
+        _starter_milestone_for_cycle(
+            previous_party_count=header["party_count"],
+            current_party_count=selected_party_count,
+            species_hint=S.R.ram_reader.first_party_species_hint(),
+            baseline_starter_name=None,
+            milestone_emitted=S._starter_milestone_emitted,
+        )
+    )
+    if starter_event is not None:
+        milestone = {"cycle": cycle + 1, **starter_event}
+        S.results.append(milestone)
+        S.log_file.write(json.dumps(milestone, default=str) + "\n")
+        S.log_file.flush()
+        safe_print(
+            "  [STARTER-PICKED] "
+            f"party_count={selected_party_count} "
+            f"species_hint={starter_event['species_hint']}"
+        )
+    S._last_party_count = selected_party_count
+    _record_recent_decision(
+        S._recent_decisions,
+        selection_entry,
+        outcome=(
+            f"party count {header['party_count']} -> {selected_party_count}; "
+            f"starter={starter_choice or 'unavailable'}"
+        ),
+    )
+    safe_print(
+        f"  [{cycle + 1}/{CYCLES}] starter_selection | "
+        f"party={selected_party_count} | {time.time() - t0:.1f}s"
+    )
+
+
+def _overworld_cycle(S, cycle, header, t0):
+    """One overworld cycle: stuck tracking, decision tiers, plan filters, execution.
+
+    Returns True when the caller must skip the cycle tail (recovery consumed
+    the cycle via the starter approach).
+    """
+    patch_data = header["patch_data"]
+    st = header["st"]
+    # Out of name_entry — reset stuck counter for any future re-entry.
+    S._main_ne_stuck_box[0] = 0
+    # ── Visual-Reference Pipeline ──────────────────────
+    # Cartographer already gave us spatial info (adjacent tiles,
+    # visible_exits, player_facing, suggested_action).
+    # Feed this directly to the controller — no MapIntegrator needed.
+    _ow_track_stuck(S, patch_data, st)
+    if _ow_recovery_gate(S, cycle, header):
+        return True
+
+    # Frame-cache dedup: hash the raw screenshot; if this exact
+    # frame was seen before (same tile, same dialog box, battle
+    # idle, looping flow), pass a text UUID reference instead of
+    # re-sending the image bytes. First sighting → send image.
+    vision_frame, frame_ref = _ow_frame_cache(S, cycle, header)
+
+    decision, pipeline, _jev_outcome, navigation_context = _ow_decide(
+        S, cycle, header, vision_frame, frame_ref
+    )
+    _decision_pipeline = pipeline
+    _missing_class = decision.get("missing_class")
+    # Study result is injected once, then cleared
+    S._pending_study_result = ""
+    plan = decision.get("plan", ["A"])
+    intent = decision.get("intent", "")
+
+    # ── Agent memory outputs: note / goal / study ──────
+    # The controller maintains its own knowledge. These fields
+    # are optional; when present they are executed here and
+    # persisted to DuckBrain (namespace pokemon-global).
+    if USE_RAM_READER:
+        S._mem_goal, S._mem_notes, S._pending_study_result = (
+            _apply_agent_memory_outputs(
+                decision=decision,
+                results=S.results,
+                log_file=S.log_file,
+                cycle=cycle,
+                map_name=patch_data.get("map_name", "unknown"),
+                mem_goal=S._mem_goal,
+                mem_notes=S._mem_notes,
+                pending_study_result=S._pending_study_result,
+            )
+        )
+
+    # ── Programmatic direction override ───────────────
+    # Chain-rotate through blacklist. If ALL 4 directions
+    # blacklisted, use A (interact) instead — stop walking.
+    plan = _apply_dir_blacklist(S, plan)
+
+    # ── Spatial pre-filter: strip wall/object directions ──
+    # The cartographer tells us what's actually adjacent. If it says
+    # a tile is "wall" or "object", walking there is impossible.
+    # Strip those directions BEFORE execution regardless of LLM output.
+    plan = _apply_spatial_filter(S, plan, patch_data)
+
+    # ── No-op plan guard (Bane 09-11: 'repeated screens being the
+    # same → try something else') — identical plan + unchanged
+    # position = the last plan did nothing. Force variation
+    # instead of re-sending the same false presses.
+    plan, agentic_tool_cycle = _ow_noop_guard(S, cycle, plan, decision, patch_data)
+
+    # ── Run-length cap: max 3 consecutive same direction ──
+    # The cartographer only sees the immediate adjacent tile.
+    # Long plans (6x RIGHT) walk into walls 2-3 tiles away.
+    # Cap consecutive same-direction moves to 3 regardless of LLM.
+    plan = _cap_direction_runs(S, plan)
+
+    # ── Post-exhaustion movement injection ─────────────
+    # recovery_exhausted used to mean passive A-mash until the
+    # run ended (l2_accept_1: ~50 wasted cycles). Instead:
+    # rotate real inputs — walk, open menu, back out. The
+    # injected presses can also RESET a stuck state, which
+    # re-enables normal recovery on later cycles.
+    plan = _ow_giveup_plan(S, cycle, plan, agentic_tool_cycle)
+
+    # HOLD-1 is the final movement filter so blacklist rotation,
+    # no-op recovery, and post-exhaustion injection cannot
+    # reintroduce the completed edge's reverse direction.
+    plan = _ow_navigation_guard(S, cycle, plan, decision, navigation_context)
+
+    plan_entry = {
+        "cycle": cycle + 1,
+        "screen": header["st"],
+        "pipeline": _decision_pipeline,
+        # The family the spelling means. `decision_mode` keeps its
+        # historical value so existing logs stay comparable (M6);
+        # this field is the branchable one.
+        "decision_mode_family": current_mode_family(),
+        "agentic_tools_enabled": _model_tools_enabled(DECISION_MODE),
+        "agentic_tool_calls": int(decision.get("agentic_tool_calls", 0)),
+        "context_evidence": S._agent_context.evidence(),
+        "context_snapshot": S._agent_context.render(),
+        "plan": plan,
+        "intent": intent,
+        "navigation_hold": navigation_context,
+        "navigation_hold_applied": decision.get("_navigation_hold_applied", False),
+        # JEV-1 (PRD v3 AC-1): every decision row carries the
+        # autonomy fields. DF-JEV-1 wired the JEV tier into this
+        # loop, so a row JEV decided (`pipeline="jev"`) fills them
+        # from JEV's real payload, `raw_distribution` included; a
+        # row from the controller fallback path carries none of
+        # these keys and reports the defaults, which is exactly the
+        # split `_autonomy_counters` counts at closeout.
+        "jev_answered": bool(decision.get("jev_answered", False)),
+        "escalated": bool(decision.get("escalated", False)),
+        # PERCEPT-1: this decision's own API usage (tokens +
+        # provider cost), None when the provider reported none.
+        "vision_usage": decision.get("vision_usage"),
+        "_cartographer_usage": header["patch_data"].get("_cartographer_usage"),
+        "missing_class": (
+            _missing_class if isinstance(_missing_class, str) else None
+        ),
+        "reported_missing_class": decision.get("reported_missing_class"),
+        # S6 NAV-MEM: the path-memory outcome of this navigation
+        # decision — a hit cites the exact ``/world/path/...`` key
+        # the route came from; a miss names why no route was used.
+        "memory_navigation": decision.get("memory_navigation"),
+        "raw_distribution": decision.get("raw_distribution"),
+        "scenario_post_distribution": decision.get(
+            "scenario_post_distribution"
+        ),
+        "scenario_patch_id": decision.get("scenario_patch_id"),
+        "scenario_patch_evidence": decision.get("scenario_patch_evidence"),
+        "scenario_patch_applied": bool(
+            decision.get("scenario_patch_applied", False)
+        ),
+        # Handoff provenance (M3/M5): which trigger fired, whether
+        # this run's policy allowed it, and why not when it did not.
+        "handoff_trigger": decision.get("handoff_trigger"),
+        "handoff_allowed": decision.get("handoff_allowed"),
+        "handoff_blocked_reason": decision.get("handoff_blocked_reason"),
+        **_jev_outcome,
+        "jev_projection_chars": decision.get("jev_projection_chars"),
+        "controller_raw": decision.get("raw_response", ""),
+        "frame_cache": "hit" if frame_ref else "miss",
+        "frame_uuid": frame_ref,
+        "cartographer_raw": header["carto_raw"],
+        "map_id": header["patch_data"].get("map_id"),
+        "map_name": header["patch_data"].get("map_name"),
+        "player_x": header["patch_data"].get("player_x"),
+        "player_y": header["patch_data"].get("player_y"),
+        "player_tile_x": header["patch_data"].get("player_tile_x"),
+        "player_tile_y": header["patch_data"].get("player_tile_y"),
+    }
+
+    S.results.append(plan_entry)
+    S.log_file.write(json.dumps(plan_entry, default=str) + "\n")
+    S.log_file.flush()
+
+    # ── Execute the plan ──────────────────────────────
+    _ow_execute_plan(S, plan)
+
+    if plan:
+        S._last_result = f"executed {len(plan)} input(s): " + ", ".join(
+            str(button).upper() for button in plan
+        )
+    else:
+        S._last_result = "no input executed (WAIT)"
+    _record_recent_decision(
+        S._recent_decisions,
+        plan_entry,
+        outcome=S._last_result,
+        agent_context=S._agent_context,
+        text_facts=(
+            patch_data.get("text_content") or patch_data.get("text_lines") or []
+        ),
+    )
+
+    elapsed = time.time() - t0
+    safe_print(
+        f"  [{cycle + 1}/{CYCLES}] {st} | {pipeline} x{CART_STEPS} | {elapsed:.1f}s"
+    )
+    return False
+
+
+def _ow_track_stuck(S, patch_data, st):
+    """Track void tiles, same-screen streaks, and state changes (overworld)."""
+    # ── Stuck detection: track void tiles from cartographer output ──
+    adj = patch_data.get("adjacent", {})
+    if adj:
+        unknown_tiles = sum(
+            1 for v in adj.values() if v in ("unknown", "?", "")
+        )
+        total_tiles = len(adj)
+        S._void_tile_pct = (
+            unknown_tiles / total_tiles if total_tiles > 0 else 0.0
+        )
+        if S._void_tile_pct > 0.95:
+            S._void_cycles += 1
+            safe_print(
+                f"  [VOID] {unknown_tiles}/{total_tiles} tiles unknown ({S._void_tile_pct:.0%}) — cycle {S._void_cycles}/{MAX_VOID_CYCLES} | map_id={patch_data.get('map_id')} map={patch_data.get('map_name')} player=({patch_data.get('player_tile_x')},{patch_data.get('player_tile_y')})"
+            )
+        else:
+            S._void_cycles = 0
+    else:
+        S._void_tile_pct = 0.0
+        S._void_cycles = 0
+
+    # ── Same-screen tracking ───────────────────────────
+    if st == S._last_screen_type:
+        S._same_screen_count += 1
+    else:
+        S._same_screen_count = 0
+    S._last_screen_type = st
+
+    # ── State-change detection (resets recovery counter) ──
+    state_key = f"{st}:{patch_data.get('screen_subtype', '')}:{adj.get('up', '')}{adj.get('down', '')}{adj.get('left', '')}{adj.get('right', '')}"
+    if state_key != S._last_state_key and S._last_state_key != "":
+        S._recovery_attempts = 0
+        S._recovery_level = 0
+        safe_print(f"  [STATE] Changed → {st} — recovery counter reset")
+    S._last_state_key = state_key
+
+
+def _ow_needs_recovery(S, tile_recovery_reason, st):
+    """Evaluate the overworld stuck conditions; returns (needs, reason)."""
+    del st  # kept for signature symmetry with the StateWindow variant
+    # ── Recovery check: any stuck condition triggers escalation ──
+    if S._gave_up:
+        return False, ""  # already exhausted — no more recovery
+    if tile_recovery_reason:
+        return True, tile_recovery_reason
+    if S._same_dir_count >= MAX_STUCK_SAME_DIR:
+        return True, (
+            f"direction-locked ({S._same_dir} x{S._same_dir_count})"
+        )
+    if (
+        S._same_screen_count >= MAX_SAME_SCREEN_CYCLES
+        and S._last_screen_type != "overworld"
+    ):
+        return True, (
+            f"screen-locked ({S._last_screen_type} x{S._same_screen_count})"
+        )
+    if S._same_frame_count >= MAX_SAME_FRAME_CYCLES:
+        return True, (
+            f"frame-locked (identical pixels x{S._same_frame_count})"
+        )
+    if S._void_cycles >= MAX_VOID_CYCLES:
+        return True, f"void-locked ({S._void_cycles} cycles, {S._void_tile_pct:.0%} unknown)"
+    if S._a_press_count >= S._MAX_A_PRESS:
+        return True, f"A-press locked (A x{S._a_press_count})"
+    return False, ""
+
+
+def _ow_recovery_gate(S, cycle, header):
+    """Check the overworld stuck conditions and run one recovery attempt.
+
+    Returns True when the recovery consumed the cycle (starter approach).
+    """
+    needs, reason = _ow_needs_recovery(S, header["tile_recovery_reason"], header["st"])
+    if not needs:
+        return False
+    if S._recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
+        _recovery_give_up(S, cycle, reason, label="recovery attempts")
+        return False
+    S._recovery_attempts += 1
+    return _execute_recovery(S, cycle, reason, header)
+
+
+def _recovery_give_up(S, cycle, reason, *, label):
+    """Stamp recovery_exhausted once; the run then injects rotation input."""
+    if not S._gave_up:
+        S._gave_up = True
+        safe_print(
+            f"  [RECOVER] GIVING UP after {S._recovery_attempts} {label} ({reason})"
+        )
+        evt = {
+            "cycle": cycle + 1,
+            "event": "recovery_exhausted",
+            "reason": reason,
+            "attempts": S._recovery_attempts,
+        }
+        S.results.append(evt)
+        S.log_file.write(json.dumps(evt, default=str) + "\n")
+        S.log_file.flush()
+
+
+def _maybe_approach_starter(S, reason, header):
+    """Tile-lock in Oaks Lab with an empty party: walk to the first ball."""
+    if (
+        "tile-locked" in reason
+        and USE_RAM_READER
+        and header["map_id"] == OAKS_LAB_MAP_ID
+        and header["party_count"] == 0
+    ):
+        return _approach_first_starter(S.R.emu, S.R.ram_reader)
+    return False
+
+
+def _execute_recovery(S, cycle, reason, header):
+    """Run one escalating-recovery attempt and stamp its event row.
+
+    Returns True when the recovery took the starter-approach shortcut.
+    """
+    starter_approached = _maybe_approach_starter(S, reason, header)
+    recovery_decision: dict[str, Any] = {}
+    if starter_approached:
+        strategy, desc = (
+            "starter_approach",
+            "moved to the nearest Poké Ball and opened its dialog",
+        )
+    else:
+        strategy, desc = _escalating_recovery(
+            S.R.emu,
+            S._recovery_level,
+            S._last_direction,
+            S._last_saved_slot,
+            game_state=header["patch_data"],
+            decision_out=recovery_decision,
+            forbidden_directions=(
+                {S._navigation_state.blocked_return_direction}
+                if S._navigation_state.blocked_return_direction
+                else None
+            ),
+        )
+    S._recovery_level += 1
+    _blacklist_on_checkpoint(S, strategy)
+    safe_print(
+        f"  [RECOVER] Level {S._recovery_level - 1}: {strategy} — {desc} ({reason}) [attempt {S._recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]"
+    )
+    evt = {
+        "cycle": cycle + 1,
+        "event": "recovery",
+        "level": S._recovery_level - 1,
+        "strategy": strategy,
+        "reason": reason,
+        "attempt": S._recovery_attempts,
+        "description": desc,
+        **recovery_decision,
+    }
+    S.results.append(evt)
+    S.log_file.write(json.dumps(evt, default=str) + "\n")
+    S.log_file.flush()
+    _apply_reset_trackers(
+        S,
+        _reset_recovery_trackers(
+            reason,
+            same_dir=S._same_dir,
+            same_dir_count=S._same_dir_count,
+            same_screen_count=S._same_screen_count,
+            same_tile_count=S._same_tile_count,
+            void_cycles=S._void_cycles,
+            a_press_count=S._a_press_count,
+        ),
+    )
+    return starter_approached
+
+
+def _blacklist_on_checkpoint(S, strategy):
+    """Blacklist the blocked direction on checkpoint restore."""
+    if (
+        strategy == "load_checkpoint"
+        and S._same_dir
+        and S._same_dir in _DIR_ROTATION
+    ):
+        S._dir_blacklist.add(S._same_dir)
+        safe_print(
+            f"  [BLACKLIST] {S._same_dir} added to blacklist: {S._dir_blacklist}"
+        )
+
+
+def _apply_reset_trackers(S, trackers):
+    """Rebind the six recovery trackers from a _reset_recovery_trackers result."""
+    S._same_dir = trackers.same_dir
+    S._same_dir_count = trackers.same_dir_count
+    S._same_screen_count = trackers.same_screen_count
+    S._same_tile_count = trackers.same_tile_count
+    S._void_cycles = trackers.void_cycles
+    S._a_press_count = trackers.a_press_count
+
+
+def _ow_frame_cache(S, cycle, header):
+    """Frame-cache dedup for the controller screenshot; returns (frame, ref)."""
+    screenshot = header["screenshot"]
+    st = header["st"]
+    ctrl_frame_hash = header["frame_hash"]
+    frame_ref = None
+    cached_entry = (
+        S.R.frame_cache.lookup(ctrl_frame_hash) if S.R.frame_cache else None
+    )
+    if cached_entry is not None:
+        # Repeat sighting — reference, don't re-send the image
+        S.R.frame_cache.touch(cached_entry, cycle + 1)
+        vision_frame = None
+        frame_ref = cached_entry["uuid"]
+        seen_n = cached_entry.get("seen_count", 1)
+        safe_print(
+            f"  [CACHE-HIT] frame {ctrl_frame_hash[:8]} → ref {frame_ref} (seen {seen_n}x)"
+        )
+    else:
+        # New frame — send the image, remember it
+        vision_frame = screenshot
+        frame_ref = None
+        if S.R.frame_cache is not None:
+            S.R.frame_cache.register(
+                ctrl_frame_hash,
+                cycle + 1,
+                map_name=header["patch_data"].get("map_name", ""),
+                screen=st,
+            )
+    return vision_frame, frame_ref
+
+
+def _ow_jev_attempt(S, header):
+    """Ask the JEV tier for this cycle's plan (DF-JEV-1, PRD v3 stages 5-6).
+
+    The cheap System-One tier decides this overworld cycle from
+    the bounded RAM projection BEFORE the reasoning controller is
+    consulted at all, so a JEV hit skips the controller call and
+    its image tokens. A miss (invalid action, transport error)
+    falls through to controller_plan() exactly as before; the only
+    way JEV can express "press nothing" is an empty plan, and the
+    loop never invents a press for an answer it could not read.
+    """
+    _jev_attempt = _jev_or_none(
+        header["patch_data"],
+        goal=S._mem_goal,
+        visited=S._tile_visits,
+        recent_events=S.results,
+        recent_decisions=S._recent_decisions,
+        world_facts=header["world_facts"],
+        last_action=S._last_direction or "",
+        # PRD v3 §3.2 trigger 1 (failure): a DIRECTION press that
+        # left the player on the same (map, tile) changed nothing,
+        # so the gate must escalate regardless of confidence. A
+        # non-movement last action leaves the result UNKNOWN.
+        last_action_changed_state=(
+            S._same_tile_count == 1
+            if S._last_direction in _DIR_ROTATION
+            else None
+        ),
+        teacher_api_client=S.R.controller_client,
+        teacher_model=S.R.controller_model,
+        teacher_memory=S._boot_memory or None,
+        teacher_log_file=S.log_file,
+        teacher_cycle=header["cycle"] + 1,
+        teacher_results=S.results,
+        escalated_classes=S._teacher_escalated_classes,
+        handoff_policy=HANDOFF_POLICY,
+        teacher_budget=S._teacher_budget,
+        scenario_path=DEFAULT_JEV_SCENARIO_PATH,
+        # S6 NAV-MEM: the maps this run has already entered, so a
+        # proven route is only replayed toward NEW ground.
+        visited_maps=S._navigation_state.visited_maps,
+    )
+    return _jev_attempt
+
+
+def _ow_queue_teacher_targets(S, jev_attempt):
+    """Queue a teacher patch's /world/* retrieval targets for next cycle."""
+    if not isinstance(jev_attempt, dict):
+        return
+    raw_targets = jev_attempt.get("teacher_memory_targets")
+    if isinstance(raw_targets, list):
+        S._pending_teacher_memory_targets = [
+            target
+            for target in raw_targets
+            if isinstance(target, str) and target.startswith("/world/")
+        ]
+        if S._pending_teacher_memory_targets:
+            safe_print(
+                "  [MEM-WORLD] queued teacher targets for next cycle: "
+                + ", ".join(S._pending_teacher_memory_targets)
+            )
+
+
+def _ow_decide(S, cycle, header, vision_frame, frame_ref):
+    """Run the decision tiers for this overworld cycle (Step 2a/2b).
+
+    Returns (decision, pipeline, jev_outcome, navigation_context).
+    """
+    global controller_model
+    controller_model = header["pipeline_name"] and S.R.controller_model
+    pipeline_name = header["pipeline_name"]
+    # HOLD-1 projects the run-local map history into the reasoning
+    # path while the fast tier receives the same persistent goal.
+    navigation_context = S._navigation_state.context()
+    controller_spatial = {
+        **header["patch_data"],
+        "navigation_hold": navigation_context,
+    }
+
+    _jev_attempt = _ow_jev_attempt(S, header)
+    _ow_queue_teacher_targets(S, _jev_attempt)
+    _jev_outcome = (
+        _jev_outcome_fields(_jev_attempt)
+        if isinstance(_jev_attempt, dict)
+        else {"jev_ok": None}
+    )
+    # ── Step 2a-pre: S6 NAV-MEM result ─────────────────────
+    # A proven route from ``world/path/*`` already answered this
+    # navigation decision, so neither the teacher (LLM) nor the
+    # reasoning controller is consulted; the row is stamped with the
+    # memory pipeline and the cited key.
+    _memory_route = (
+        _jev_attempt.get("memory_navigation")
+        if isinstance(_jev_attempt, dict)
+        else None
+    )
+    _memory_hit = bool(
+        isinstance(_memory_route, dict)
+        and _memory_route.get("result") == "hit"
+    )
+    if (
+        _memory_hit
+        and isinstance(_jev_attempt, dict)
+        and isinstance(_memory_route, dict)
+    ):
+        decision = {**_jev_attempt, **_jev_outcome}
+        _decision_pipeline = MEMORY_NAV_PIPELINE
+        pipeline = _decision_pipeline
+        safe_print(
+            f"  [NAV-MEM] {decision['intent']} | no LLM call | "
+            f"cited {_memory_route['key']}"
+        )
+    elif _jev_attempt and _jev_attempt.get("jev_answered"):
+        decision = {**_jev_attempt, **_jev_outcome}
+        _decision_pipeline = JEV_PIPELINE
+        pipeline = _decision_pipeline
+        safe_print(
+            f"  [JEV] {decision['intent']} | projection "
+            f"{decision['jev_projection_chars']} chars | "
+            f"escalated={decision['escalated']} "
+            f"({decision.get('jev_escalate_reason')})"
+        )
+    else:
+        # ── Step 2b: controller outputs the movement PLAN ──
+        # from the spatial description (JEV miss / unavailable).
+        if _model_tools_enabled(DECISION_MODE):
+            agentic_result = run_agentic_cycle(
+                client=S.R.controller_client,
+                emulator=S.R.emu,
+                observe=(
+                    S.R.ram_reader.observe
+                    if USE_RAM_READER
+                    else lambda: dict(header["patch_data"])
+                ),
+                projection=header["patch_data"],
+                context=S._agent_context,
+                memory=S._agent_memory,
+                delegate=S._research_delegate,
+                model=controller_model,
+                cycle=cycle + 1,
+                decision_mode=DECISION_MODE,
+                decision_mode_family=current_mode_family(),
+                run_id=run_id,
+            )
+            decision = agentic_result.decision
+            for tool_event in agentic_result.events:
+                S.results.append(tool_event)
+                S.log_file.write(json.dumps(tool_event, default=str) + "\n")
+            if agentic_result.events:
+                S.log_file.flush()
+            _decision_pipeline = "agentic_tools"
+            pipeline = _decision_pipeline
+        else:
+            decision = controller_plan(
+                S.R.controller_client,
+                controller_spatial,
+                S._last_direction or "",
+                S._last_result,
+                blocked_dir=S._same_dir or "",
+                blocked_count=S._same_dir_count,
+                max_actions=CART_STEPS,
+                screenshot=vision_frame,  # None on cache hit → no image cost
+                frame_ref=frame_ref,  # UUID text ref on cache hit
+                goal=S._mem_goal,
+                notes=" | ".join(S._mem_notes[:6])[:300],
+                last_dialog=S._last_dialog_text,
+                study_result=S._pending_study_result,
+                boot_memory=S._boot_memory,  # MEM-2: built once at boot
+                recent_decisions=S._recent_decisions,
+                running_summary=S._agent_context.summary,
+                world_facts=header["world_facts"],
+                # GAP-052: model=controller_model, resolved once at runtime setup
+                # as S.R.controller_model.
+                model=controller_model,
+            )
+            _decision_pipeline = pipeline_name
+            pipeline = _decision_pipeline
+        decision.update(_jev_outcome)
+    return decision, pipeline, _jev_outcome, navigation_context
+
+
+def _apply_dir_blacklist(S, plan):
+    """Chain-rotate blacklisted directions out of the plan.
+
+    If ALL 4 directions blacklisted, use A (interact) instead — stop walking.
+    """
+    if not S._dir_blacklist:
+        return plan
+    filtered_plan = []
+    for btn in plan:
+        btn_upper = btn.upper()
+        direction = btn_upper
+        if direction in ("UP", "DOWN", "LEFT", "RIGHT"):
+            for _ in range(4):
+                if (
+                    direction in S._dir_blacklist
+                    and direction in _DIR_ROTATION
+                ):
+                    direction = _DIR_ROTATION[direction]
+                else:
+                    break
+            # If we cycled back to a blacklisted direction, all 4 blocked
+            if direction in S._dir_blacklist:
+                direction = "A"  # interact instead
+        filtered_plan.append(direction)
+    if filtered_plan != [b.upper() for b in plan]:
+        safe_print(
+            f"  [OVERRIDE] Blacklisted {S._dir_blacklist}, plan {plan[:6]}→{filtered_plan[:6]}..."
+        )
+    return filtered_plan
+
+
+def _apply_spatial_filter(S, plan, patch_data):
+    """Strip wall/object directions the cartographer says are impossible."""
+    blocked_spatial = _blocked_spatial_directions(patch_data)
+    if not blocked_spatial:
+        return plan
+    before_filter = plan[:]
+    blocked_upper = {d.upper() for d in blocked_spatial}
+    filtered = [
+        b
+        for b in plan
+        if b.upper() not in blocked_upper
+        or b.upper() not in ("UP", "DOWN", "LEFT", "RIGHT")
+    ]
+    # If filtering removed everything, keep the original plan.
+    # The cartographer's adjacent data can be wrong (e.g. bed
+    # mislabeled as "wall"), and the LLM may know better.
+    if filtered:
+        plan = filtered
+    if len(plan) < len(before_filter):
+        safe_print(
+            f"  [SPATIAL] Removed {blocked_spatial} from "
+            f"plan {before_filter[:3]}→{plan[:3]}..."
+        )
+    return plan
+
+
+def _ow_noop_guard(S, cycle, plan, decision, patch_data):
+    """No-op plan guard; returns (plan, agentic_tool_cycle)."""
+    pos_key = f"{patch_data.get('map_id')}:{patch_data.get('player_tile_x')},{patch_data.get('player_tile_y')}"
+    plan_sig = ",".join(b.upper() for b in plan[:6])
+    if plan_sig == S._last_plan_sig and pos_key == S._last_pos_key:
+        S._same_plan_count += 1
+    else:
+        S._same_plan_count = 0
+    S._last_plan_sig = plan_sig
+    S._last_pos_key = pos_key
+    agentic_tool_cycle = bool(
+        _model_tools_enabled(DECISION_MODE)
+        and int(decision.get("agentic_tool_calls", 0)) > 0
+    )
+    if S._same_plan_count >= 2 and not agentic_tool_cycle:
+        alt = _GIVEUP_SEQUENCE[S._same_plan_count % len(_GIVEUP_SEQUENCE)]
+        plan = [alt, "A"]
+        safe_print(
+            f"  [NOOP-GUARD] identical plan x{S._same_plan_count} + no movement — forcing [{alt}, A]"
+        )
+        evt = {
+            "cycle": cycle + 1,
+            "event": "noop_plan_guard",
+            "identical_plan": plan_sig,
+            "pos": pos_key,
+            "forced": [alt, "A"],
+        }
+        S.results.append(evt)
+        S.log_file.write(json.dumps(evt, default=str) + "\n")
+        S.log_file.flush()
+    return plan, agentic_tool_cycle
+
+
+def _cap_direction_runs(S, plan):
+    """Cap consecutive same-direction moves to 3 regardless of LLM output."""
+    del S
+    rle = 1
+    for i in range(1, len(plan)):
+        if plan[i].upper() == plan[i - 1].upper() and plan[i].upper() in (
+            "UP",
+            "DOWN",
+            "LEFT",
+            "RIGHT",
+        ):
+            rle += 1
+        else:
+            rle = 1
+        if rle > 3:
+            plan[i] = "A"  # replace with interact
+            rle = 1
+            safe_print(
+                f"  [CAP] Truncated same-direction run at position {i}"
+            )
+    return plan
+
+
+def _ow_giveup_plan(S, cycle, plan, agentic_tool_cycle):
+    """Post-exhaustion rotation: inject real inputs instead of A-mashing."""
+    if S._gave_up and not agentic_tool_cycle:
+        plan = [_GIVEUP_SEQUENCE[cycle % len(_GIVEUP_SEQUENCE)]]
+        safe_print(
+            f"  [GIVEUP-WALK] injecting {plan} (post-exhaustion rotation)"
+        )
+        evt = {"cycle": cycle + 1, "event": "giveup_walk", "injected": plan}
+        S.results.append(evt)
+        S.log_file.write(json.dumps(evt, default=str) + "\n")
+        S.log_file.flush()
+    return plan
+
+
+def _ow_navigation_guard(S, cycle, plan, decision, navigation_context):
+    """HOLD-1 final movement filter; stamps the navigation_hold_guard row."""
+    controller_hold_event = decision.get("navigation_hold_event")
+    plan, _final_hold_event = _guard_navigation_plan(
+        plan,
+        navigation_context,
+    )
+    navigation_hold_event = (
+        _final_hold_event
+        if _final_hold_event is not None
+        else (
+            controller_hold_event
+            if isinstance(controller_hold_event, dict)
+            else None
+        )
+    )
+    decision["_navigation_hold_applied"] = navigation_hold_event is not None
+    if navigation_hold_event is not None:
+        navigation_hold_event = {
+            "cycle": cycle + 1,
+            "event": "navigation_hold_guard",
+            **navigation_hold_event,
+            "executed_plan": plan,
+        }
+        S.results.append(navigation_hold_event)
+        S.log_file.write(
+            json.dumps(navigation_hold_event, default=str) + "\n"
+        )
+        S.log_file.flush()
+        safe_print(
+            "  [NAV-HOLD] blocked "
+            f"{navigation_hold_event['blocked_direction']} -> "
+            f"{navigation_hold_event['replacement_direction']} | "
+            f"plan={plan}"
+        )
+    return plan
+
+
+def _ow_execute_plan(S, plan):
+    """Press each planned button, tracking stuck/A-press counters per press."""
+    # ── Execute the plan ──────────────────────────────
+    btn_map = {
+        "UP": "up",
+        "DOWN": "down",
+        "LEFT": "left",
+        "RIGHT": "right",
+        "A": "a",
+        "B": "b",
+        "START": "start",
+        "SELECT": "select",
+    }
+    for button in plan:
+        button = button.upper()
+        btn = btn_map.get(button, "a")
+        S.R.emu.press_button(btn, frames=PRESS_FRAMES)
+        if button in ("UP", "DOWN", "LEFT", "RIGHT"):
+            _settle_directional_step(S.R.emu, S.R.ram_reader)
+        else:
+            S.R.emu.fast_forward(STEP_FORWARD)
+        S._last_direction = button
+
+        # Blocked-direction tracking (per-button for recovery)
+        if button in ("UP", "DOWN", "LEFT", "RIGHT"):
+            if button == S._same_dir:
+                S._same_dir_count += 1
+            else:
+                S._same_dir = button
+                S._same_dir_count = 1
+            # Direction press resets A-press counter
+            S._a_press_count = 0
+        elif button == "A":
+            S._same_dir = None
+            S._same_dir_count = 0
+            S._a_press_count += 1
+            S._last_action_button = "A"
+            if S._a_press_count == 3:
+                safe_print(
+                    "  [WARN] A-press lock detected: A x3 — triggering recovery"
+                )
+        else:
+            S._same_dir = None
+            S._same_dir_count = 0
+            S._a_press_count = 0
+
+        if S._same_dir_count == 3:
+            safe_print(
+                f"  [WARN] Direction-locking detected: {S._same_dir} x3"
+            )
+            S._cycle_dir_lock_warned = True
+        # Recovery is now handled centrally in the stuck-detection block
+        # after cartographer analysis, using the escalating recovery ladder.
+
+
+def _name_entry_cycle(S, cycle, header, t0):
+    """Main-loop name-entry bypass: programmatic typing after stuck cycles."""
+    # ── Name entry bypass (main loop) ──────────────────
+    # Use programmatic typing after 3 stuck cycles. The intro
+    # loop handles the first two name_entry screens; if we
+    # hit one again here (e.g. New Game from title without
+    # intro), drive the keyboard directly. A-mashing alone
+    # fills the name field with "AAAAAAAA" / "A..." rather
+    # than the canonical ASH/BLUE, so always prefer enter_name.
+    # Counter held in a single-element list so it persists
+    # across main-loop cycles without adding new state attrs
+    # to emu/ctx or a new import.
+    S._main_ne_stuck_box[0] += 1
+    main_ne_stuck = S._main_ne_stuck_box[0]
+
+    if main_ne_stuck >= S.R._NAME_ENTRY_STUCK_MAX:
+        if not S._player_named:
+            safe_print("  [main] Name entry stuck — accepting player name")
+            S.R.emu.submit_name()
+            S._player_named = True
+            S.ctx.player_name = "ASH"
+        elif not S._rival_named:
+            safe_print("  [main] Rival name stuck — accepting rival name")
+            S.R.emu.submit_name()
+            S._rival_named = True
+            S.ctx.rival_name = "GARY"
+        S._main_ne_stuck_box[0] = 0
+    else:
+        # Not yet stuck — A-mash briefly to give dialog time to advance
+        _intro_mash(S.R)
+
+    elapsed = time.time() - t0
+    entry = {
+        "cycle": cycle + 1,
+        "screen": header["st"],
+        "action": "name_bypass",
+        "elapsed_s": round(elapsed, 1),
+        "cartographer_raw": header["carto_raw"],
+    }
+    S.results.append(entry)
+    _record_recent_decision(
+        S._recent_decisions,
+        entry,
+        outcome=f"name-entry bypass attempt {main_ne_stuck}",
+    )
+    S.log_file.write(json.dumps(entry, default=str) + "\n")
+    S.log_file.flush()
+    safe_print(
+        f"  [{cycle + 1}/{CYCLES}] {header['st']} | name_bypass "
+        f"(stuck={main_ne_stuck}/{S.R._NAME_ENTRY_STUCK_MAX}) | {elapsed:.1f}s"
+    )
+
+
+def _state_window_cycle(S, cycle, header, t0):
+    """Traditional StateWindow flow for dialog/battle/menu/other screens."""
+    st = header["st"]
+    patch_data = header["patch_data"]
+    # ── Traditional StateWindow flow ───────────────────
+    # Reset name_entry stuck counter — we've left name_entry.
+    S._main_ne_stuck_box[0] = 0
+    vis_dict = _sw_vis_dict(S, st, patch_data)
+    _sw_battle_transition_events(S, cycle, st, vis_dict)
+    _sw_track_stuck(S, st, vis_dict)
+    if _sw_recovery(S, cycle, header, st):
+        return
+    state_type = st
+    if vis_dict.get("screen_subtype") == "keyboard":
+        state_type = "name_entry"
+
+    # ── Rival battle detection ────────────────────────
+    if vis_dict.get("screen_subtype") == "rival_battle":
+        _sw_rival_battle(S, cycle)
+
+    # Normal battle turns ask JEV first. StateWindow executes the typed
+    # choice directly; its established model/select_move(1) path remains
+    # the fallback when JEV is disabled, unavailable, or malformed.
+    battle_jev_decision = (
+        _observe_battle_decision(vis_dict)
+        if state_type == "battle"
+        else None
+    )
+    _sw_run_window(S, cycle, header, st, state_type, vis_dict, battle_jev_decision, t0)
+
+
+def _sw_vis_dict(S, st, patch_data):
+    """Build the StateWindow vision dict (with RAM enrichment when enabled)."""
+    # Build StateWindow-compatible vision dict from cartographer output
+    vis_dict = {
+        "screen_type": st,
+        "screen_subtype": patch_data.get("screen_subtype", ""),
+        "name_field": patch_data.get("name_field", ""),
+        "text_lines": patch_data.get("text_lines", []),
+        "text_content": patch_data.get(
+            "text_content", patch_data.get("text_lines", [])
+        ),
+        "menu_items": patch_data.get("menu_items", []),
+        "adjacent_tiles": patch_data.get("adjacent_tiles", {}),
+        "keyboard_grid": patch_data.get("keyboard_grid", {}),
+    }
+
+    # ── RAM reader enrichment for battle/dialog screens ──
+    # When USE_RAM_READER is True, inject live RAM state into
+    # the StateWindow vision dict so it can build compact prompts.
+    if USE_RAM_READER:
+        ram_reader = S.R.ram_reader
+        if st == "battle":
+            bs = ram_reader.read_battle_state()
+            vis_dict["battle_state"] = bs
+            vis_dict["render"] = ram_reader.render_battle()
+            vis_dict["result"] = "battle"
+        elif st == "dialog":
+            vis_dict["render"] = ram_reader.render_dialog()
+            vis_dict["result"] = "dialog"
+        elif st == "menu" or st == "list_menu":
+            ms = ram_reader.read_menu_state()
+            if ms.get("menu_id", 0) > 0:
+                vis_dict["render"] = ram_reader.render_menu()
+                vis_dict["result"] = "menu"
+    return vis_dict
+
+
+def _sw_battle_transition_events(S, cycle, st, vis_dict):
+    """Log battle_start / battle_end transitions from screen-type changes."""
+    # ── Battle start/end logging ──────────────────────
+    if st == "battle" and S._last_screen_type != "battle":
+        evt = {
+            "cycle": cycle + 1,
+            "event": "battle_start",
+            "battle_type": vis_dict.get("battle_state", {}).get(
+                "battle_type", "unknown"
+            ),
+        }
+        S.results.append(evt)
+        S.log_file.write(json.dumps(evt, default=str) + "\n")
+        S.log_file.flush()
+        safe_print(
+            f"  [BATTLE-START] {vis_dict.get('battle_state', {}).get('battle_type', 'unknown')} battle began"
+        )
+    elif st != "battle" and S._last_screen_type == "battle":
+        evt = {"cycle": cycle + 1, "event": "battle_end", "next_screen": st}
+        S.results.append(evt)
+        S.log_file.write(json.dumps(evt, default=str) + "\n")
+        S.log_file.flush()
+        safe_print(f"  [BATTLE-END] → {st}")
+
+
+def _sw_track_stuck(S, st, vis_dict):
+    """Same-screen tracking + state-change reset for StateWindow screens."""
+    # ── Stuck detection: unified tracking + escalating recovery ──
+    # Track same-screen (already tracked in overworld pipeline, but
+    # StateWindow path handles other screen types — dialog, battle, menu)
+    if st == S._last_screen_type:
+        S._same_screen_count += 1
+    else:
+        S._same_screen_count = 0
+    S._last_screen_type = st
+
+    # State-change detection resets recovery counter
+    state_key = f"{st}:{vis_dict.get('screen_subtype', '')}"
+    if state_key != S._last_state_key and S._last_state_key != "":
+        S._recovery_attempts = 0
+        S._recovery_level = 0
+        safe_print(f"  [STATE] Changed → {st} — recovery counter reset")
+    S._last_state_key = state_key
+
+
+def _sw_needs_recovery(S, tile_recovery_reason, st):
+    """Evaluate the StateWindow stuck conditions; returns (needs, reason)."""
+    # Check if recovery needed
+    if S._gave_up:
+        return False, ""
+    if tile_recovery_reason:
+        return True, tile_recovery_reason
+    if S._same_screen_count >= MAX_SAME_SCREEN_CYCLES and st != "overworld":
+        return True, f"screen-locked ({st} x{S._same_screen_count})"
+    if S._same_dir_count >= MAX_STUCK_SAME_DIR:
+        return True, (
+            f"direction-locked ({S._same_dir} x{S._same_dir_count})"
+        )
+    return False, ""
+
+
+def _sw_recovery(S, cycle, header, st):
+    """StateWindow recovery ladder (incl. the dialog fast-path).
+
+    Returns True when the cycle must skip StateWindow (recovery or the
+    dialog fast-path consumed it).
+    """
+    needs, reason = _sw_needs_recovery(S, header["tile_recovery_reason"], st)
+    if not needs:
+        return False
+    if S._recovery_attempts >= MAX_RECOVERY_ATTEMPTS:
+        _recovery_give_up(S, cycle, reason, label="attempts")
+        return False
+    S._recovery_attempts += 1
+    starter_approached = _maybe_approach_starter(S, reason, header)
+    # ── Dialog fast-path ─────────────────────────
+    # A dialog box is NOT a stuck state — it needs A
+    # presses to advance the text. The generic ladder
+    # (START→B→B menu_redraw) is wrong here and was
+    # keeping the agent trapped in Oak's dialog for
+    # 70+ cycles. A-mash to advance the conversation.
+    if st == "dialog" and not starter_approached:
+        for _ in range(12):
+            S.R.emu.press_button("a", frames=S.R._A_FRAMES)
+            S.R.emu.fast_forward(S.R._FF_FRAMES)
+        strategy, desc = (
+            "dialog_advance",
+            "12× A — advancing dialog text",
+        )
+        safe_print(
+            f"  [RECOVER] {strategy} — {desc} ({reason}) [attempt {S._recovery_attempts}/{MAX_RECOVERY_ATTEMPTS}]"
+        )
+        evt = {
+            "cycle": cycle + 1,
+            "event": "recovery",
+            "level": S._recovery_level,
+            "strategy": strategy,
+            "reason": reason,
+            "attempt": S._recovery_attempts,
+            "description": desc,
+        }
+        S.results.append(evt)
+        S.log_file.write(json.dumps(evt, default=str) + "\n")
+        S.log_file.flush()
+        _apply_reset_trackers(
+            S,
+            _reset_recovery_trackers(
+                reason,
+                same_dir=S._same_dir,
+                same_dir_count=S._same_dir_count,
+                same_screen_count=S._same_screen_count,
+                same_tile_count=S._same_tile_count,
+                void_cycles=S._void_cycles,
+                a_press_count=S._a_press_count,
+            ),
+        )
+        return True  # skip StateWindow, let next cycle re-classify
+    _execute_recovery(S, cycle, reason, header)
+    return True  # skip StateWindow, let next cycle re-classify
+
+
+def _sw_rival_battle(S, cycle):
+    """Stamp the RIVAL_BATTLE_REACHED milestone with a screenshot."""
+    S.ctx.set_location("rival_battle")
+    battle_png = SCREENSHOT_DIR / f"BATTLE_{cycle + 1:04d}.png"
+    S._img.save(battle_png)
+    evt = {
+        "cycle": cycle + 1,
+        "event": "RIVAL_BATTLE_REACHED",
+    }
+    S.results.append(evt)
+    S.log_file.write(json.dumps(evt, default=str) + "\n")
+    S.log_file.flush()
+    safe_print(f"  [!] RIVAL BATTLE REACHED at cycle {cycle + 1}")
+
+
+def _sw_run_window(S, cycle, header, st, state_type, vis_dict, battle_jev_decision, t0):
+    """Create and run the StateWindow, then stamp the cycle's entry row."""
+    from src.core.state_window import (
+        StateWindow,
+    )  # deferred: ~592ms import, sys.path[0] ordering not relied on
+
+    win = StateWindow(
+        state_type,
+        S.ctx,
+        S.R.emu,
+        vis_dict,
+        generation="gen1",
+        max_steps=(
+            # Battle needs room to act: query → attack → verify
+            # within one window. max_steps=1 meant a single
+            # query_global consumed the whole budget each cycle
+            # and the battle never progressed (T192/T197 stall).
+            5
+            if state_type == "battle"
+            else (1 if state_type == "name_entry" else STATE_STEPS)
+        ),
+        hint_level=HINT_LEVEL,
+        use_ram_prompts=True,
+        failed_flee_attempts=S._failed_flee_attempts,
+        battle_tool_call=(
+            _jev_battle_tool_call(battle_jev_decision, vis_dict)
+            if state_type == "battle"
+            else None
+        ),
+    )
+    result = win.run()
+    if state_type == "battle":
+        S._failed_flee_attempts = int(
+            result.get("_failed_flee_attempts", S._failed_flee_attempts)
+        )
+    S.R.emu.fast_forward(FAST_FORWARD_FRAMES)
+    elapsed = time.time() - t0
+
+    # --- Battle event logging ---
+    battle_events = result.get("_battle_events", [])
+    for be in battle_events:
+        safe_print(
+            f"  [BATTLE] {be.get('event')}: {be.get('screen_type', be.get('outcome', '?'))}"
+        )
+
+    # Extract last action
+    last_action = "?"
+    for h in reversed(win._history):
+        tc = h.get("tool_call", {})
+        if tc:
+            last_action = (
+                f"{tc.get('name', '?')}({tc.get('arguments', {})})"
+            )
+            break
+
+    entry = {
+        "cycle": cycle + 1,
+        "screen": st,
+        "state": state_type,
+        "action": last_action,
+        "elapsed_s": round(elapsed, 1),
+        "cartographer_raw": header["carto_raw"],
+        "state_window_raw": "\n\n---\n".join(win._raw_responses)
+        if getattr(win, "_raw_responses", None)
+        else "",
+        "battle_events": battle_events,
+        "failed_flee_attempts": S._failed_flee_attempts,
+    }
+    _stamp_battle_observability(
+        entry,
+        state_type=state_type,
+        history=win._history,
+        jev_decision=battle_jev_decision,
+    )
+    state_outcome = next(
+        (
+            str(item["action"])
+            for item in reversed(win._history)
+            if item.get("action") not in (None, "")
+        ),
+        f"executed {last_action}",
+    )
+    _record_recent_decision(
+        S._recent_decisions,
+        entry,
+        outcome=state_outcome,
+    )
+    S.results.append(entry)
+    S.log_file.write(json.dumps(entry, default=str) + "\n")
+    S.log_file.flush()
+    safe_print(
+        f"  [{cycle + 1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s"
+    )
+
+
+def _cycle_tail(S, cycle, header):
+    """Post-branch progression handling: names, location, checkpoint save."""
+    st = header["st"]
+    patch_data = header["patch_data"]
+
+    # Handle progression
+    if S._cycle_dir_lock_warned:
+        S._dir_lock_warn_cycles += 1  # GAP-028 per-run lock-rate metric
+    if st == "name_confirm" and patch_data.get("name_field"):
+        if not S.ctx.player_name:
+            S.ctx.player_name = patch_data["name_field"]
+        elif not S.ctx.rival_name:
+            S.ctx.rival_name = patch_data["name_field"]
+
+    if st == "overworld" and S.ctx.location in ("title", "intro"):
+        S.ctx.set_location("bedroom")
+        S.ctx.add_goal("leave bedroom")
+        S.ctx.add_goal("reach rival battle")
+
+    _cycle_checkpoint_save(S, cycle)
+
+
+def _cycle_checkpoint_save(S, cycle):
+    """Checkpoint save every N cycles (rolling slots)."""
+    # ── Checkpoint save every N cycles ────────────────────
+    if (cycle + 1) % CHECKPOINT_INTERVAL == 0:
+        try:
+            S.R.emu.save_state(S._checkpoint_slot)
+            evt = {
+                "cycle": cycle + 1,
+                "event": "state_saved",
+                "slot": S._checkpoint_slot,
+            }
+            S.results.append(evt)
+            S.log_file.write(json.dumps(evt, default=str) + "\n")
+            S.log_file.flush()
+            safe_print(f"  [CKPT] Saved state to slot {S._checkpoint_slot}")
+            S._last_saved_slot = S._checkpoint_slot
+            S._checkpoint_slot = (S._checkpoint_slot + 1) % CHECKPOINT_SLOTS
+        except Exception as exc:
+            safe_print(f"  [CKPT] Failed to save state: {exc}")
+
+
+def _finalize_run(S):
+    """Stop the emulator, rewrite the run log, print the summary, persist."""
+    S.R.emu.stop()
 
     # JEV-1 (PRD v3 AC-1): per-run autonomy counters, counted from the
     # per-decision rows only (never incremented by the summary printer).
-    autonomy = _autonomy_counters(results)
-    teacher_summary = teacher_escalation_records(results)
+    autonomy = _autonomy_counters(S.results)
+    teacher_summary = teacher_escalation_records(S.results)
 
     # Write log
+    log_file = S.log_file
     log_file.seek(0)
     log_file.truncate()
-    log_file.write(json.dumps(preflight_row, default=str) + "\n")
-    for entry in results:
+    log_file.write(json.dumps(S.preflight_row, default=str) + "\n")
+    for entry in S.results:
         log_file.write(json.dumps(entry, default=str) + "\n")
     # AC-1's proof row: one JSON line carrying decisions_total / jev_answered
     # / escalated / autonomy_ratio, written with the same idiom as every
     # other row. Kept out of `results` so the legacy "Done. N actions."
     # count and the DuckBrain ladder/cycles stay byte-identical.
-    _write_autonomy_row(log_file, run_id, autonomy, teacher_summary)
-    _write_degradation_row(log_file, run_id, autonomy)
+    _write_autonomy_row(log_file, S.run_id, autonomy, teacher_summary)
+    _write_degradation_row(log_file, S.run_id, autonomy)
     log_file.close()
 
     # Summary
-    screens = set(r.get("screen", "unknown") for r in results)
-    real_decisions, fallback_decisions = _classify_decision_intents(results)
+    screens = set(r.get("screen", "unknown") for r in S.results)
+    real_decisions, fallback_decisions = _classify_decision_intents(S.results)
     # PERCEPT-1: per-run vision token/cost rollup, derived from the same
     # per-decision rows the decision trace wrote — no hand-rolled recount.
-    vision_usage = _rollup_vision_usage(results)
+    vision_usage = _rollup_vision_usage(S.results)
     final_summary = _format_summary(
-        run_id,
-        len(results),
+        S.run_id,
+        len(S.results),
         screens,
-        _dir_lock_warn_cycles,
+        S._dir_lock_warn_cycles,
         CYCLES,
-        len(_visited_tiles),
+        len(S._visited_tiles),
         real_decisions=real_decisions,
         fallback_decisions=fallback_decisions,
         autonomy=autonomy,
         teacher=teacher_summary,
-        movement_progress_cycles=_movement_progress_cycles,
-        movement_observed_cycles=_movement_observed_cycles,
+        movement_progress_cycles=S._movement_progress_cycles,
+        movement_observed_cycles=S._movement_observed_cycles,
         vision_usage=vision_usage,
     )
     safe_print(f"\n{final_summary}")
     safe_print(f"Log: {log_path}")
     safe_print(f"Screenshots: {SCREENSHOT_DIR}")
 
-    # Persist machine-written evidence after the emulator and log are finalized.
+    _persist_run_memory(S, final_summary)
+
+    # Persist frame cache for the next run (cross-run dedup)
+    if S.R.frame_cache is not None:
+        S.R.frame_cache.save()
+        safe_print(
+            f"[{S.run_id}] Frame cache saved: {S.R.frame_cache.unique_frames} unique "
+            f"frames / {S.R.frame_cache.total_seen} total references "
+            f"({S.R.frame_cache.stats()['max_entries']} max) — "
+            f"{S.R.frame_cache.stats()['cache_size_mb']} MB on disk, "
+            f"eviction: {S.R.frame_cache.stats()['eviction_policy']}"
+        )
+
+
+def _persist_run_memory(S, final_summary):
+    """Persist machine-written evidence after emulator/log finalization."""
     try:
         _record_run_memory(
-            run_id,
-            results,
-            ram_reader=locals().get("ram_reader"),
+            S.run_id,
+            S.results,
+            ram_reader=S.R.ram_reader,
             extra={
-                "n_actions": len(results),
-                "distinct_tiles": len(_visited_tiles),
-                "movement_progress_cycles": _movement_progress_cycles,
-                "movement_observed_cycles": _movement_observed_cycles,
+                "n_actions": len(S.results),
+                "distinct_tiles": len(S._visited_tiles),
+                "movement_progress_cycles": S._movement_progress_cycles,
+                "movement_observed_cycles": S._movement_observed_cycles,
                 "log_path": str(log_path),
                 "summary": final_summary,
             },
         )
     except Exception as exc:
         safe_print(f"[MEM] recorder failed: {exc}")
-
-    # Persist frame cache for the next run (cross-run dedup)
-    if _frame_cache is not None:
-        _frame_cache.save()
-        safe_print(
-            f"[{run_id}] Frame cache saved: {_frame_cache.unique_frames} unique "
-            f"frames / {_frame_cache.total_seen} total references "
-            f"({_frame_cache.stats()['max_entries']} max) — "
-            f"{_frame_cache.stats()['cache_size_mb']} MB on disk, "
-            f"eviction: {_frame_cache.stats()['eviction_policy']}"
-        )
 
 
 if __name__ == "__main__":
