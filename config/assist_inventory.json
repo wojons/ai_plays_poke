@@ -391,6 +391,13 @@
       "button": "a",
       "call": "press_button('a', frames=S.R._A_FRAMES)",
       "reason": "Dialog fast-path recovery: A-advances a dialog box that is not a stuck state; the generic ladder trapped the agent (DF history)."
+    },
+    {
+      "file": "src/env_service.py",
+      "context": "act",
+      "button": "button",
+      "call": "emu.press_button(button, frames=request.frames)",
+      "reason": "Environment service /env/act: presses client-supplied buttons verbatim as transport; the external agent owns every button decision."
     }
   ]
 }
