@@ -13,6 +13,26 @@ from src.core import duckbrain_client
 
 _ROUTE_KEY = "/world/path/Red-s-House-1F->Red-s-House-2F"
 
+# Map 37 collision truth from the Blue SGB ROM used by data/boot.state. The
+# first 5x5 observation produced from it is byte-for-byte the grid recorded in
+# cron_logs/run_dfarm12_verify_1611.jsonl at cycle 5.
+_MAP_37_COLLISION = (
+    "########",
+    "##.#....",
+    "........",
+    "........",
+    "...##...",
+    "...##...",
+    "........",
+    "........",
+)
+_STEP_DELTA = {
+    "UP": (0, -1),
+    "DOWN": (0, 1),
+    "LEFT": (-1, 0),
+    "RIGHT": (1, 0),
+}
+
 
 def _observation(
     *,
@@ -39,6 +59,34 @@ def _observation(
         },
         "collision_grid": ".....\n.....\n..O..\n.....\n.....",
     }
+
+
+def _map_37_observation(tile: tuple[int, int]) -> dict[str, Any]:
+    """Build the real 5x5 RAM collision window around one map-37 tile."""
+    tile_x, tile_y = tile
+    rows: list[str] = []
+    for y in range(tile_y - 2, tile_y + 3):
+        cells: list[str] = []
+        for x in range(tile_x - 2, tile_x + 3):
+            if (x, y) == tile:
+                cells.append("↑")
+            elif 0 <= y < len(_MAP_37_COLLISION) and 0 <= x < len(_MAP_37_COLLISION[y]):
+                cells.append(_MAP_37_COLLISION[y][x])
+            else:
+                cells.append("?")
+        rows.append("".join(cells))
+
+    observation = _observation(tile=tile)
+    observation["collision_grid"] = "\n".join(rows)
+    observation["adjacent_walkability"] = {
+        direction.lower(): (
+            "walkable"
+            if _MAP_37_COLLISION[tile_y + dy][tile_x + dx] == "."
+            else "blocked"
+        )
+        for direction, (dx, dy) in _STEP_DELTA.items()
+    }
+    return observation
 
 
 @pytest.fixture
@@ -100,6 +148,8 @@ def test_spatial_collision_suppresses_direction_until_tile_changes(
 ) -> None:
     state = cron_runner._MemoryNavigationBlockState()
     blocked_tile = _observation(up_tile="wall")
+    blocked_tile["adjacent_walkability"]["up"] = "blocked"
+    blocked_tile["collision_grid"] = ".....\n..#..\n..O..\n.....\n....."
 
     first = cron_runner._memory_navigation_decision(
         blocked_tile,
@@ -175,3 +225,84 @@ def test_final_plan_guard_cannot_reintroduce_suppressed_step() -> None:
             "guarded_plan": ["RIGHT", "A"],
         }
     ]
+
+
+def test_collision_grid_path_replans_around_blocked_direct_step() -> None:
+    """A blocked shortest-axis step must cause a route search, not suppression."""
+    result = cron_runner._memory_route_plan(
+        (2, 2),
+        (2, 0),
+        "RIGHT",
+        {
+            "up": "blocked",
+            "down": "walkable",
+            "left": "walkable",
+            "right": "walkable",
+        },
+        ".....\n..#..\n..↑..\n.....\n.....",
+    )
+
+    assert result == (["LEFT"], "collision_grid_path")
+
+
+def test_precise_collision_grid_overrides_coarse_object_label(
+    proven_route: None,
+) -> None:
+    """The map-block object label must not veto a walkable world-tile step."""
+    observation = _map_37_observation((6, 3))
+    observation["adjacent"]["up"] = "object"
+    state = cron_runner._MemoryNavigationBlockState()
+
+    decision = cron_runner._memory_navigation_decision(
+        observation,
+        block_state=state,
+    )
+
+    assert (
+        cron_runner._walkability_from_collision_grid(observation["collision_grid"])[
+            "up"
+        ]
+        == "walkable"
+    )
+    assert state.blocked_directions == set()
+    assert decision["result"] == "hit"
+    assert decision["plan"] == ["UP"]
+    assert decision["mechanism"] == "collision_grid_path"
+
+
+def test_map_37_collision_route_reaches_exit_tile(
+    proven_route: None,
+) -> None:
+    """Replanning each real 5x5 window reaches (6,1) without crossing a wall."""
+    tile = (5, 5)
+    state = cron_runner._MemoryNavigationBlockState()
+    visited = [tile]
+
+    assert _map_37_observation(tile)["collision_grid"] == (
+        ".....\n##...\n##↑..\n.....\n....."
+    )
+    for _ in range(8):
+        if tile == (6, 1):
+            break
+        observation = _map_37_observation(tile)
+        decision = cron_runner._memory_navigation_decision(
+            observation,
+            block_state=state,
+        )
+        assert decision["result"] == "hit"
+        assert decision["mechanism"] == "collision_grid_path"
+        step = decision["plan"][0]
+        dx, dy = _STEP_DELTA[step]
+        tile = (tile[0] + dx, tile[1] + dy)
+        assert _MAP_37_COLLISION[tile[1]][tile[0]] == "."
+        visited.append(tile)
+
+    assert tile == (6, 1)
+    assert visited == [(5, 5), (5, 4), (5, 3), (5, 2), (5, 1), (6, 1)]
+
+    crossing = cron_runner._memory_navigation_decision(
+        _map_37_observation(tile),
+        block_state=state,
+    )
+    assert crossing["plan"] == ["RIGHT"]
+    assert crossing["mechanism"] == "proven_crossing"

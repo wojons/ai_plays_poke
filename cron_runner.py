@@ -24,7 +24,7 @@ def safe_print(*args, **kwargs):
 
 
 import argparse
-from collections import Counter
+from collections import Counter, deque
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TextIO, cast
 import sys
@@ -1610,13 +1610,24 @@ def _starter_milestone_for_cycle(
 
 
 def _blocked_spatial_directions(spatial_desc: dict[str, Any]) -> set[str]:
-    """Return blocked directions, preserving known map-edge exits."""
+    """Return blocked directions, preferring world-tile collision truth.
+
+    ``adjacent`` describes neighbouring 2x2 map blocks, not the immediately
+    adjacent world tiles. It remains a fallback for legacy observations, but a
+    resolved collision-grid/walkability value must override it.
+    """
     adjacent = spatial_desc.get("adjacent", {})
     blocked = {
         direction
         for direction, tile_type in adjacent.items()
         if tile_type in ("wall", "object")
     }
+
+    for direction, status in _memory_walkability(spatial_desc).items():
+        if status == "blocked":
+            blocked.add(direction)
+        elif status == "walkable":
+            blocked.discard(direction)
 
     # Route 1 is a map-edge warp, so the coarse 2×2 block classifier sees
     # its north-edge tile as a wall. At the center opening, UP is the exit.
@@ -1931,6 +1942,13 @@ MEMORY_NAV_PIPELINE = "memory_nav"
 # hand-off keeps the existing teacher path untouched.
 NAVIGATION_MISSING_CLASSES: frozenset[str] = frozenset({"map_topology"})
 _WALK_DIRECTIONS: frozenset[str] = frozenset({"UP", "DOWN", "LEFT", "RIGHT"})
+_COLLISION_PLAYER_GLYPHS: frozenset[str] = frozenset({"O", "↑", "↓", "←", "→"})
+_GRID_ROUTE_STEPS: tuple[tuple[str, tuple[int, int]], ...] = (
+    ("UP", (0, -1)),
+    ("DOWN", (0, 1)),
+    ("LEFT", (-1, 0)),
+    ("RIGHT", (1, 0)),
+)
 
 
 def _map_slug(map_name: str | None, map_id: int) -> str:
@@ -2068,20 +2086,103 @@ def _step_toward(
     return None
 
 
+def _collision_grid_step(
+    current: tuple[int, int],
+    door: tuple[int, int],
+    walkability: dict[str, str],
+    collision_grid: Any,
+) -> str | None:
+    """Find the first walkable local-grid step toward ``door``.
+
+    The 5x5 RAM collision window may not contain the door yet. In that case
+    breadth-first search targets the reachable cell closest to the door, then
+    the next cycle replans from the newly centred window. Only ``.`` cells are
+    traversed; ``#`` and unresolved ``?`` cells are never guessed through.
+    Explicit per-tile blocked evidence can additionally close an immediate edge.
+    """
+    if not isinstance(collision_grid, str):
+        return None
+    rows = collision_grid.splitlines()
+    player_cells = [
+        (x, y)
+        for y, row in enumerate(rows)
+        for x, cell in enumerate(row)
+        if cell in _COLLISION_PLAYER_GLYPHS
+    ]
+    if len(player_cells) != 1:
+        return None
+    origin = player_cells[0]
+    traversable = {
+        (x, y)
+        for y, row in enumerate(rows)
+        for x, cell in enumerate(row)
+        if cell == "."
+    }
+    traversable.add(origin)
+    for direction, (dx, dy) in _GRID_ROUTE_STEPS:
+        if walkability.get(direction.lower()) == "blocked":
+            traversable.discard((origin[0] + dx, origin[1] + dy))
+
+    queue: deque[tuple[int, int]] = deque([origin])
+    distance = {origin: 0}
+    first_step: dict[tuple[int, int], str] = {}
+    while queue:
+        cell = queue.popleft()
+        ordered_steps = sorted(
+            _GRID_ROUTE_STEPS,
+            key=lambda item: (
+                abs(current[0] + cell[0] - origin[0] + item[1][0] - door[0])
+                + abs(current[1] + cell[1] - origin[1] + item[1][1] - door[1]),
+                next(
+                    index
+                    for index, candidate in enumerate(_GRID_ROUTE_STEPS)
+                    if candidate[0] == item[0]
+                ),
+            ),
+        )
+        for direction, (dx, dy) in ordered_steps:
+            neighbour = (cell[0] + dx, cell[1] + dy)
+            if neighbour not in traversable or neighbour in distance:
+                continue
+            distance[neighbour] = distance[cell] + 1
+            first_step[neighbour] = first_step.get(cell, direction)
+            queue.append(neighbour)
+
+    candidates = [cell for cell in distance if cell != origin]
+    if not candidates:
+        return None
+    best = min(
+        candidates,
+        key=lambda cell: (
+            abs(current[0] + cell[0] - origin[0] - door[0])
+            + abs(current[1] + cell[1] - origin[1] - door[1]),
+            distance[cell],
+            cell[1],
+            cell[0],
+        ),
+    )
+    return first_step[best]
+
+
 def _memory_route_plan(
     current: tuple[int, int] | None,
     door: tuple[int, int] | None,
     direction: str,
     walkability: dict[str, str],
+    collision_grid: Any,
 ) -> tuple[list[str], str] | None:
     """The button plan that replays a proven edge from the current tile.
 
     On the recorded door tile the proven crossing direction is replayed; away
-    from it, one ROM-legal step toward the door is taken. Returns None when
-    neither is legal, so the caller keeps its existing decision path instead of
-    inventing a press.
+    from it, one collision-grid route step toward the door is taken. The legacy
+    adjacent-only step remains a fallback for observations without a usable
+    grid. Returns None when neither is legal, so the caller keeps its existing
+    decision path instead of inventing a press.
     """
     if door is not None and current is not None and current != door:
+        grid_step = _collision_grid_step(current, door, walkability, collision_grid)
+        if grid_step is not None:
+            return [grid_step], "collision_grid_path"
         step = _step_toward(current, door, walkability)
         if step is None:
             return None
@@ -2127,7 +2228,13 @@ def _memory_navigation_route(
 
     # The newest record wins: a later crossing is the more recent proof.
     _, record, direction, door = max(candidates, key=lambda item: item[0])
-    plan_result = _memory_route_plan(current_tile, door, direction, walkability)
+    plan_result = _memory_route_plan(
+        current_tile,
+        door,
+        direction,
+        walkability,
+        observation.get("collision_grid"),
+    )
     if plan_result is None:
         return None
     plan, mechanism = plan_result
@@ -2618,7 +2725,9 @@ def _jev_build_projection_decision(
         # is carried into the fallback decision row for run-level degradation.
         safe_print(f"  [JEV] overworld decision failed: {exc!r} - falling back")
         return (
-            cast(dict[str, Any], {"ok": False, "error": f"{type(exc).__name__}: {exc}"}),
+            cast(
+                dict[str, Any], {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+            ),
             None,
             "",
             [],
@@ -2782,7 +2891,13 @@ def _jev_teacher_escalation(
         decision, teacher_one_shot, teacher_missing_facts, teacher_memory_targets = (
             _apply_teacher_patch(decision, teacher_record, obs)
         )
-    return decision, teacher_record, teacher_one_shot, teacher_missing_facts, teacher_memory_targets
+    return (
+        decision,
+        teacher_record,
+        teacher_one_shot,
+        teacher_missing_facts,
+        teacher_memory_targets,
+    )
 
 
 def escalation_class_of(decision: dict[str, Any]) -> str:
@@ -2805,8 +2920,8 @@ def _apply_teacher_patch(
     patch = teacher_record.get("patch")
     post_ask = teacher_record.get("post_ask")
     if isinstance(patch, dict):
-        teacher_missing_facts, teacher_memory_targets = (
-            _teacher_world_memory_targets(patch, obs)
+        teacher_missing_facts, teacher_memory_targets = _teacher_world_memory_targets(
+            patch, obs
         )
         raw_one_shot = patch.get("one_shot_action")
         if isinstance(raw_one_shot, str):
@@ -2837,7 +2952,13 @@ def _jev_resolve_action_plan(
     """
     jev_answered = True
     if memory_hit is not None:
-        return list(memory_hit["plan"]), f"memory-nav {memory_hit['key']}", False, False, decision
+        return (
+            list(memory_hit["plan"]),
+            f"memory-nav {memory_hit['key']}",
+            False,
+            False,
+            decision,
+        )
     raw_action = teacher_one_shot or decision.get("next_action")
     action = raw_action.upper() if isinstance(raw_action, str) else None
     if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
@@ -2849,7 +2970,13 @@ def _jev_resolve_action_plan(
     if not decision.get("ok") or action not in OVERWORLD_ACTIONS:
         return None, "", jev_answered, escalate, decision
     if teacher_one_shot is not None:
-        return [teacher_one_shot], f"teacher one-shot {teacher_one_shot}", jev_answered, escalate, decision
+        return (
+            [teacher_one_shot],
+            f"teacher one-shot {teacher_one_shot}",
+            jev_answered,
+            escalate,
+            decision,
+        )
     if action == OVERWORLD_WAIT:
         return [], "jev WAIT (no press)", jev_answered, escalate, decision
     return [action], f"jev {action}", jev_answered, escalate, decision
@@ -2969,9 +3096,7 @@ def _escalating_recovery(
     """
     if _is_battle_game_state(game_state):
         assert game_state is not None
-        return _battle_recovery_action(
-            emu, game_state, decision_out=decision_out
-        )
+        return _battle_recovery_action(emu, game_state, decision_out=decision_out)
 
     # Clamp level
     level = min(recovery_level, 4)
@@ -3652,7 +3777,9 @@ def controller_plan(
         recent_decisions=recent_decisions,
         max_actions=max_actions,
     )
-    user_content = _controller_user_content(msg, screenshot=screenshot, frame_ref=frame_ref)
+    user_content = _controller_user_content(
+        msg, screenshot=screenshot, frame_ref=frame_ref
+    )
 
     response = client.chat_completion(
         model=resolved_model,
@@ -4097,14 +4224,27 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         jev_transport_failures, jev_errors = _count_jev_failure(
             row, jev_transport_failures, jev_errors
         )
-        handoff_blocked, handoff_triggers = _count_handoff(row, handoff_triggers, handoff_blocked)
-        scenario_resolved_classes = _count_scenario_resolution(row, scenario_resolved_classes)
-        escalated, escalated_by_class = _count_escalation(row, escalated, escalated_by_class)
-        memory_navigation_hits, memory_navigation_fallbacks = (
-            _count_memory_navigation(row, memory_navigation_hits, memory_navigation_fallbacks)
+        handoff_blocked, handoff_triggers = _count_handoff(
+            row, handoff_triggers, handoff_blocked
+        )
+        scenario_resolved_classes = _count_scenario_resolution(
+            row, scenario_resolved_classes
+        )
+        escalated, escalated_by_class = _count_escalation(
+            row, escalated, escalated_by_class
+        )
+        memory_navigation_hits, memory_navigation_fallbacks = _count_memory_navigation(
+            row, memory_navigation_hits, memory_navigation_fallbacks
         )
 
-    ratio, rates, jev_failure_rate, degraded, decisions_per_map_transition, backtrack_rate = _autonomy_rates(
+    (
+        ratio,
+        rates,
+        jev_failure_rate,
+        degraded,
+        decisions_per_map_transition,
+        backtrack_rate,
+    ) = _autonomy_rates(
         decisions_total=decisions_total,
         jev_answered=jev_answered,
         jev_transport_failures=jev_transport_failures,
@@ -4215,7 +4355,9 @@ def _autonomy_rates(
     map_transitions_observed: int,
     state_comparisons: int,
     backtrack_events: int,
-) -> tuple[float | None, dict[str | None, float], float, bool, float | None, float | None]:
+) -> tuple[
+    float | None, dict[str | None, float], float, bool, float | None, float | None
+]:
     """Derive the ratio/rate tail of the autonomy block.
 
     Returns ``(autonomy_ratio, rates, jev_failure_rate, degraded,
@@ -4290,7 +4432,12 @@ def _count_tile_state(
     backtracks: int,
     previous_state: tuple[str, int | str, int, int] | None,
     visited_states: set[tuple[str, int | str, int, int]],
-) -> tuple[int, int, tuple[str, int | str, int, int] | None, set[tuple[str, int | str, int, int]]]:
+) -> tuple[
+    int,
+    int,
+    tuple[str, int | str, int, int] | None,
+    set[tuple[str, int | str, int, int]],
+]:
     """Count one decision row's tile state against history for backtracking."""
     state = _decision_tile_state(row)
     if state is None:
@@ -4651,9 +4798,7 @@ def _count_battle_events(results: list[dict[str, Any]]) -> int:
     entirely: the top-level rows cover the start+end transitions
     deterministically. The ladder key stays present (0 when no battle).
     """
-    return sum(
-        1 for row in results if str(row.get("event", "")).startswith("battle_")
-    )
+    return sum(1 for row in results if str(row.get("event", "")).startswith("battle_"))
 
 
 def _run_ladder(
@@ -4727,11 +4872,11 @@ def _run_summary_attributes(
             {
                 "movement_progress_cycles": movement_progress_cycles,
                 "movement_observed_cycles": movement_observed_cycles,
-                "movement_progress_rate": round(
-                    movement_progress_cycles / movement_observed_cycles, 4
-                )
-                if movement_observed_cycles
-                else 0.0,
+                "movement_progress_rate": (
+                    round(movement_progress_cycles / movement_observed_cycles, 4)
+                    if movement_observed_cycles
+                    else 0.0
+                ),
             }
         )
     if "summary" in extra:
@@ -4927,10 +5072,11 @@ def _known_walkability(values: Any) -> dict[str, str]:
 def _walkability_from_collision_grid(value: Any) -> dict[str, str]:
     """Derive adjacent movement truth from a RAMReader collision grid.
 
-    ``RAMReader.build_collision_grid()`` emits exactly one ``O`` for the player,
-    ``.`` for walkable, ``#`` for blocked, and ``?`` where ROM topology cannot
-    resolve a tile. Only the two resolved symbols become facts; unresolved or
-    malformed cells are omitted rather than persisted as sticky ``unknown``.
+    ``RAMReader.build_collision_grid()`` emits one player glyph (``O`` when
+    facing is unknown, otherwise ``↑↓←→``), ``.`` for walkable, ``#`` for
+    blocked, and ``?`` where ROM topology cannot resolve a tile. Only the two
+    resolved terrain symbols become facts; unresolved or malformed cells are
+    omitted rather than persisted as sticky ``unknown``.
     """
     if not isinstance(value, str):
         return {}
@@ -4939,7 +5085,7 @@ def _walkability_from_collision_grid(value: Any) -> dict[str, str]:
         (x, y)
         for y, row in enumerate(rows)
         for x, cell in enumerate(row)
-        if cell == "O"
+        if cell in _COLLISION_PLAYER_GLYPHS
     ]
     if len(player_cells) != 1:
         return {}
@@ -5203,14 +5349,18 @@ def _populate_world_memory(
             "evidence": evidence,
         }
     ]
-    writes.extend(_tile_object_writes(observation, map_attributes, evidence, confidence))
-    writes.extend(_transition_writes(
-        transition,
-        observation=observation,
-        evidence=evidence,
-        confidence=confidence,
-        existing=transition_source_record,
-    ))
+    writes.extend(
+        _tile_object_writes(observation, map_attributes, evidence, confidence)
+    )
+    writes.extend(
+        _transition_writes(
+            transition,
+            observation=observation,
+            evidence=evidence,
+            confidence=confidence,
+            existing=transition_source_record,
+        )
+    )
 
     _commit_world_writes(
         _dbc,
@@ -5507,9 +5657,7 @@ def _apply_fresh_topology(
     )
     retrieved_facts.insert(0, fresh_topology)
     retrieved_facts = _bounded_world_facts(retrieved_facts)
-    safe_print(
-        f"  [MEM-WORLD] cycle {cycle} live ROM topology fact -> JEV projection"
-    )
+    safe_print(f"  [MEM-WORLD] cycle {cycle} live ROM topology fact -> JEV projection")
     return retrieved_facts
 
 
@@ -6871,7 +7019,11 @@ def _intro_bypass(R):
         st = patch_data.get("result", "unknown")
 
         # ── Save file detection: if we're in overworld without naming ──
-        if st == "overworld" and not intro.player_named and _intro_save_restart(R, intro, patch_data):
+        if (
+            st == "overworld"
+            and not intro.player_named
+            and _intro_save_restart(R, intro, patch_data)
+        ):
             continue
 
         if st == "overworld":
@@ -6903,9 +7055,7 @@ def _intro_bypass(R):
             intro.last_phase = st
 
     if intro.checks >= max_checks:
-        print(
-            f"  [!] Intro bypass hit {max_checks} check cap — proceeding anyway"
-        )
+        print(f"  [!] Intro bypass hit {max_checks} check cap — proceeding anyway")
     else:
         print(f"  Intro bypass complete in {intro.checks} checks")
 
@@ -6920,9 +7070,7 @@ def _intro_observe(R, screenshot):
             {"source": "ram_reader", "result": patch_data.get("result")}
         )
     else:
-        patch_data, carto_raw = cartographer_analyze(
-            R.controller_client, screenshot
-        )
+        patch_data, carto_raw = cartographer_analyze(R.controller_client, screenshot)
     return patch_data, carto_raw
 
 
@@ -7099,7 +7247,9 @@ def _init_recovery_trackers(S):
     S._prev_frame_hash = ""  # previous cycle's frame hash for the counter above
     S._last_saved_frame_hash = ""  # empty guarantees the first cycle is saved
     S._last_plan_sig = ""  # signature of last executed plan (no-op plan guard)
-    S._same_plan_count = 0  # consecutive cycles with identical plan + unchanged position
+    S._same_plan_count = (
+        0  # consecutive cycles with identical plan + unchanged position
+    )
     S._last_pos_key = ""  # last cycle's map:tile position key
 
     # ── Frame hashing for cartographer cache ───────────────────────
@@ -7287,9 +7437,7 @@ def _cycle_observe(S, screenshot, frame_hash):
     # still runs and makes decisions — we just skip re-observing.
     if S._last_frame_hash != frame_hash or not S._cached_patch:
         # Frame changed (or first cycle) — call cartographer
-        patch_data, carto_raw = cartographer_analyze(
-            S.R.controller_client, screenshot
-        )
+        patch_data, carto_raw = cartographer_analyze(S.R.controller_client, screenshot)
         S._cached_patch = patch_data
         S._cached_carto_raw = carto_raw
         S._last_frame_hash = frame_hash
@@ -7365,9 +7513,7 @@ def _update_tile_visits(S, current_tile):
         S._tile_visits.clear()
         S._tile_visits_map_id = current_tile[0]
     tile_visits_key = (current_tile[1], current_tile[2])
-    S._tile_visits[tile_visits_key] = (
-        S._tile_visits.get(tile_visits_key, 0) + 1
-    )
+    S._tile_visits[tile_visits_key] = S._tile_visits.get(tile_visits_key, 0) + 1
 
 
 def _handle_navigation_transition(S, cycle, st, patch_data, current_tile, map_id):
@@ -7409,9 +7555,7 @@ def _handle_navigation_transition(S, cycle, st, patch_data, current_tile, map_id
     if not _navigation_transition["regression"] and st == "overworld":
         try:
             S.R.emu.save_state(S._checkpoint_slot)
-            _navigation_transition["anchor_checkpoint_slot"] = (
-                S._checkpoint_slot
-            )
+            _navigation_transition["anchor_checkpoint_slot"] = S._checkpoint_slot
             S._last_saved_slot = S._checkpoint_slot
             S._checkpoint_slot = (S._checkpoint_slot + 1) % CHECKPOINT_SLOTS
         except Exception as exc:
@@ -7458,11 +7602,12 @@ def _cycle_world_and_goal(S, cycle, patch_data, map_id, transition):
     if not S._mem_goal:
         if map_id == OAKS_LAB_MAP_ID:
             S._mem_goal = (
-                "Leave Oaks Lab and head toward Route 1 to begin your "
-                "Pokemon journey."
+                "Leave Oaks Lab and head toward Route 1 to begin your Pokemon journey."
             )
         else:
-            S._mem_goal = "Explore the current area and look for exits or points of interest."
+            S._mem_goal = (
+                "Explore the current area and look for exits or points of interest."
+            )
     return _world_facts
 
 
@@ -7473,9 +7618,7 @@ def _cycle_party_state(S, patch_data):
         menu_state = S.R.ram_reader.read_menu_state()
     else:
         raw_party_count = patch_data.get("party_count", 0)
-        party_count = (
-            int(raw_party_count) if isinstance(raw_party_count, int) else 0
-        )
+        party_count = int(raw_party_count) if isinstance(raw_party_count, int) else 0
         raw_menu_state = patch_data.get("menu_state", {})
         menu_state = raw_menu_state if isinstance(raw_menu_state, dict) else {}
     return party_count, menu_state
@@ -7581,14 +7724,12 @@ def _starter_selection(S, cycle, header, t0):
     S.log_file.write(json.dumps(selection_entry, default=str) + "\n")
     S.log_file.flush()
 
-    starter_event, S._starter_milestone_emitted = (
-        _starter_milestone_for_cycle(
-            previous_party_count=header["party_count"],
-            current_party_count=selected_party_count,
-            species_hint=S.R.ram_reader.first_party_species_hint(),
-            baseline_starter_name=None,
-            milestone_emitted=S._starter_milestone_emitted,
-        )
+    starter_event, S._starter_milestone_emitted = _starter_milestone_for_cycle(
+        previous_party_count=header["party_count"],
+        current_party_count=selected_party_count,
+        species_hint=S.R.ram_reader.first_party_species_hint(),
+        baseline_starter_name=None,
+        milestone_emitted=S._starter_milestone_emitted,
     )
     if starter_event is not None:
         milestone = {"cycle": cycle + 1, **starter_event}
@@ -7737,23 +7878,17 @@ def _overworld_cycle(S, cycle, header, t0):
         # provider cost), None when the provider reported none.
         "vision_usage": decision.get("vision_usage"),
         "_cartographer_usage": header["patch_data"].get("_cartographer_usage"),
-        "missing_class": (
-            _missing_class if isinstance(_missing_class, str) else None
-        ),
+        "missing_class": (_missing_class if isinstance(_missing_class, str) else None),
         "reported_missing_class": decision.get("reported_missing_class"),
         # S6 NAV-MEM: the path-memory outcome of this navigation
         # decision — a hit cites the exact ``/world/path/...`` key
         # the route came from; a miss names why no route was used.
         "memory_navigation": decision.get("memory_navigation"),
         "raw_distribution": decision.get("raw_distribution"),
-        "scenario_post_distribution": decision.get(
-            "scenario_post_distribution"
-        ),
+        "scenario_post_distribution": decision.get("scenario_post_distribution"),
         "scenario_patch_id": decision.get("scenario_patch_id"),
         "scenario_patch_evidence": decision.get("scenario_patch_evidence"),
-        "scenario_patch_applied": bool(
-            decision.get("scenario_patch_applied", False)
-        ),
+        "scenario_patch_applied": bool(decision.get("scenario_patch_applied", False)),
         # Handoff provenance (M3/M5): which trigger fired, whether
         # this run's policy allowed it, and why not when it did not.
         "handoff_trigger": decision.get("handoff_trigger"),
@@ -7812,13 +7947,9 @@ def _ow_track_stuck(S, patch_data, st):
     # ── Stuck detection: track void tiles from cartographer output ──
     adj = patch_data.get("adjacent", {})
     if adj:
-        unknown_tiles = sum(
-            1 for v in adj.values() if v in ("unknown", "?", "")
-        )
+        unknown_tiles = sum(1 for v in adj.values() if v in ("unknown", "?", ""))
         total_tiles = len(adj)
-        S._void_tile_pct = (
-            unknown_tiles / total_tiles if total_tiles > 0 else 0.0
-        )
+        S._void_tile_pct = unknown_tiles / total_tiles if total_tiles > 0 else 0.0
         if S._void_tile_pct > 0.95:
             S._void_cycles += 1
             safe_print(
@@ -7855,22 +7986,19 @@ def _ow_needs_recovery(S, tile_recovery_reason, st):
     if tile_recovery_reason:
         return True, tile_recovery_reason
     if S._same_dir_count >= MAX_STUCK_SAME_DIR:
-        return True, (
-            f"direction-locked ({S._same_dir} x{S._same_dir_count})"
-        )
+        return True, (f"direction-locked ({S._same_dir} x{S._same_dir_count})")
     if (
         S._same_screen_count >= MAX_SAME_SCREEN_CYCLES
         and S._last_screen_type != "overworld"
     ):
-        return True, (
-            f"screen-locked ({S._last_screen_type} x{S._same_screen_count})"
-        )
+        return True, (f"screen-locked ({S._last_screen_type} x{S._same_screen_count})")
     if S._same_frame_count >= MAX_SAME_FRAME_CYCLES:
-        return True, (
-            f"frame-locked (identical pixels x{S._same_frame_count})"
-        )
+        return True, (f"frame-locked (identical pixels x{S._same_frame_count})")
     if S._void_cycles >= MAX_VOID_CYCLES:
-        return True, f"void-locked ({S._void_cycles} cycles, {S._void_tile_pct:.0%} unknown)"
+        return (
+            True,
+            f"void-locked ({S._void_cycles} cycles, {S._void_tile_pct:.0%} unknown)",
+        )
     if S._a_press_count >= S._MAX_A_PRESS:
         return True, f"A-press locked (A x{S._a_press_count})"
     return False, ""
@@ -7982,11 +8110,7 @@ def _execute_recovery(S, cycle, reason, header):
 
 def _blacklist_on_checkpoint(S, strategy):
     """Blacklist the blocked direction on checkpoint restore."""
-    if (
-        strategy == "load_checkpoint"
-        and S._same_dir
-        and S._same_dir in _DIR_ROTATION
-    ):
+    if strategy == "load_checkpoint" and S._same_dir and S._same_dir in _DIR_ROTATION:
         S._dir_blacklist.add(S._same_dir)
         safe_print(
             f"  [BLACKLIST] {S._same_dir} added to blacklist: {S._dir_blacklist}"
@@ -8009,9 +8133,7 @@ def _ow_frame_cache(S, cycle, header):
     st = header["st"]
     ctrl_frame_hash = header["frame_hash"]
     frame_ref = None
-    cached_entry = (
-        S.R.frame_cache.lookup(ctrl_frame_hash) if S.R.frame_cache else None
-    )
+    cached_entry = S.R.frame_cache.lookup(ctrl_frame_hash) if S.R.frame_cache else None
     if cached_entry is not None:
         # Repeat sighting — reference, don't re-send the image
         S.R.frame_cache.touch(cached_entry, cycle + 1)
@@ -8059,9 +8181,7 @@ def _ow_jev_attempt(S, header):
         # so the gate must escalate regardless of confidence. A
         # non-movement last action leaves the result UNKNOWN.
         last_action_changed_state=(
-            S._same_tile_count == 1
-            if S._last_direction in _DIR_ROTATION
-            else None
+            S._same_tile_count == 1 if S._last_direction in _DIR_ROTATION else None
         ),
         teacher_api_client=S.R.controller_client,
         teacher_model=S.R.controller_model,
@@ -8133,8 +8253,7 @@ def _ow_decide(S, cycle, header, vision_frame, frame_ref):
         else None
     )
     _memory_hit = bool(
-        isinstance(_memory_route, dict)
-        and _memory_route.get("result") == "hit"
+        isinstance(_memory_route, dict) and _memory_route.get("result") == "hit"
     )
     if (
         _memory_hit
@@ -8230,10 +8349,7 @@ def _apply_dir_blacklist(S, plan):
         direction = btn_upper
         if direction in ("UP", "DOWN", "LEFT", "RIGHT"):
             for _ in range(4):
-                if (
-                    direction in S._dir_blacklist
-                    and direction in _DIR_ROTATION
-                ):
+                if direction in S._dir_blacklist and direction in _DIR_ROTATION:
                     direction = _DIR_ROTATION[direction]
                 else:
                     break
@@ -8353,9 +8469,7 @@ def _cap_direction_runs(S, plan):
         if rle > 3:
             plan[i] = "A"  # replace with interact
             rle = 1
-            safe_print(
-                f"  [CAP] Truncated same-direction run at position {i}"
-            )
+            safe_print(f"  [CAP] Truncated same-direction run at position {i}")
     return plan
 
 
@@ -8363,9 +8477,7 @@ def _ow_giveup_plan(S, cycle, plan, agentic_tool_cycle):
     """Post-exhaustion rotation: inject real inputs instead of A-mashing."""
     if S._gave_up and not agentic_tool_cycle:
         plan = [_GIVEUP_SEQUENCE[cycle % len(_GIVEUP_SEQUENCE)]]
-        safe_print(
-            f"  [GIVEUP-WALK] injecting {plan} (post-exhaustion rotation)"
-        )
+        safe_print(f"  [GIVEUP-WALK] injecting {plan} (post-exhaustion rotation)")
         evt = {"cycle": cycle + 1, "event": "giveup_walk", "injected": plan}
         S.results.append(evt)
         S.log_file.write(json.dumps(evt, default=str) + "\n")
@@ -8384,9 +8496,7 @@ def _ow_navigation_guard(S, cycle, plan, decision, navigation_context):
         _final_hold_event
         if _final_hold_event is not None
         else (
-            controller_hold_event
-            if isinstance(controller_hold_event, dict)
-            else None
+            controller_hold_event if isinstance(controller_hold_event, dict) else None
         )
     )
     decision["_navigation_hold_applied"] = navigation_hold_event is not None
@@ -8398,9 +8508,7 @@ def _ow_navigation_guard(S, cycle, plan, decision, navigation_context):
             "executed_plan": plan,
         }
         S.results.append(navigation_hold_event)
-        S.log_file.write(
-            json.dumps(navigation_hold_event, default=str) + "\n"
-        )
+        S.log_file.write(json.dumps(navigation_hold_event, default=str) + "\n")
         S.log_file.flush()
         safe_print(
             "  [NAV-HOLD] blocked "
@@ -8496,18 +8604,14 @@ def _ow_execute_plan(S, plan):
             S._a_press_count += 1
             S._last_action_button = "A"
             if S._a_press_count == 3:
-                safe_print(
-                    "  [WARN] A-press lock detected: A x3 — triggering recovery"
-                )
+                safe_print("  [WARN] A-press lock detected: A x3 — triggering recovery")
         else:
             S._same_dir = None
             S._same_dir_count = 0
             S._a_press_count = 0
 
         if S._same_dir_count == 3:
-            safe_print(
-                f"  [WARN] Direction-locking detected: {S._same_dir} x3"
-            )
+            safe_print(f"  [WARN] Direction-locking detected: {S._same_dir} x3")
             S._cycle_dir_lock_warned = True
         # Recovery is now handled centrally in the stuck-detection block
         # after cartographer analysis, using the escalating recovery ladder.
@@ -8590,9 +8694,7 @@ def _state_window_cycle(S, cycle, header, t0):
     # choice directly; its established model/select_move(1) path remains
     # the fallback when JEV is disabled, unavailable, or malformed.
     battle_jev_decision = (
-        _observe_battle_decision(vis_dict)
-        if state_type == "battle"
-        else None
+        _observe_battle_decision(vis_dict) if state_type == "battle" else None
     )
     _sw_run_window(S, cycle, header, st, state_type, vis_dict, battle_jev_decision, t0)
 
@@ -8689,9 +8791,7 @@ def _sw_needs_recovery(S, tile_recovery_reason, st):
     if S._same_screen_count >= MAX_SAME_SCREEN_CYCLES and st != "overworld":
         return True, f"screen-locked ({st} x{S._same_screen_count})"
     if S._same_dir_count >= MAX_STUCK_SAME_DIR:
-        return True, (
-            f"direction-locked ({S._same_dir} x{S._same_dir_count})"
-        )
+        return True, (f"direction-locked ({S._same_dir} x{S._same_dir_count})")
     return False, ""
 
 
@@ -8820,9 +8920,7 @@ def _sw_run_window(S, cycle, header, st, state_type, vis_dict, battle_jev_decisi
     for h in reversed(win._history):
         tc = h.get("tool_call", {})
         if tc:
-            last_action = (
-                f"{tc.get('name', '?')}({tc.get('arguments', {})})"
-            )
+            last_action = f"{tc.get('name', '?')}({tc.get('arguments', {})})"
             break
 
     entry = {
@@ -8832,9 +8930,11 @@ def _sw_run_window(S, cycle, header, st, state_type, vis_dict, battle_jev_decisi
         "action": last_action,
         "elapsed_s": round(elapsed, 1),
         "cartographer_raw": header["carto_raw"],
-        "state_window_raw": "\n\n---\n".join(win._raw_responses)
-        if getattr(win, "_raw_responses", None)
-        else "",
+        "state_window_raw": (
+            "\n\n---\n".join(win._raw_responses)
+            if getattr(win, "_raw_responses", None)
+            else ""
+        ),
         "battle_events": battle_events,
         "failed_flee_attempts": S._failed_flee_attempts,
     }
@@ -8860,9 +8960,7 @@ def _sw_run_window(S, cycle, header, st, state_type, vis_dict, battle_jev_decisi
     S.results.append(entry)
     S.log_file.write(json.dumps(entry, default=str) + "\n")
     S.log_file.flush()
-    safe_print(
-        f"  [{cycle + 1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s"
-    )
+    safe_print(f"  [{cycle + 1}/{CYCLES}] {st} | {last_action} | {elapsed:.1f}s")
 
 
 def _cycle_tail(S, cycle, header):
