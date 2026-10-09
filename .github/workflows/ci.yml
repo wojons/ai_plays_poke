@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     # Keep local act runs on an image whose glibc can load setup-python's
     # cached interpreter, matching the hosted runner's runtime baseline.
-    container: catthehacker/ubuntu:act-latest
+    container: ghcr.io/snooptheone/act-ubuntu-custom:latest
     defaults:
       run:
         shell: bash

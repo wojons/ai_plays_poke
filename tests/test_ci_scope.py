@@ -66,5 +66,5 @@ def test_ci_uses_a_glibc_compatible_act_container() -> None:
     """The act image must load the interpreter installed by setup-python."""
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
-    assert "    container: catthehacker/ubuntu:act-latest" in workflow
+    assert "    container: ghcr.io/snooptheone/act-ubuntu-custom:latest" in workflow
     assert "        shell: bash" in workflow
