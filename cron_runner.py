@@ -25,7 +25,7 @@ def safe_print(*args, **kwargs):
 
 import argparse
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TextIO, cast
 import sys
 import os
@@ -763,6 +763,7 @@ MAX_SAME_SCREEN_CYCLES = 5  # same screen for N cycles → stuck
 MAX_SAME_TILE_CYCLES = 8  # same RAM tile across any screen types → stuck
 MAX_VOID_CYCLES = 3  # >95% unknown-tile cycles → void
 MAX_STUCK_SAME_DIR = 4  # same direction N times → direction-locked
+NAV_MEMORY_BLOCK_LIMIT = 3  # failed same-tile route steps before suppression
 MAX_SAME_FRAME_CYCLES = (
     8  # pixel-identical screen N cycles → frame-locked (catches dialog loops)
 )
@@ -812,6 +813,164 @@ class _RecoveryTrackers:
     same_tile_count: int
     void_cycles: int
     a_press_count: int
+
+
+@dataclass
+class _MemoryNavigationBlockState:
+    """Reconcile path-memory steps with per-tile collision evidence.
+
+    A direction becomes suppressed at the current tile when either current
+    spatial truth marks it blocked or three executed memory-navigation steps
+    leave the player on the same tile. Suppression survives fresh observations
+    at that tile and clears as soon as the RAM position changes.
+    """
+
+    current_tile: tuple[int, int, int] | None = None
+    blocked_directions: set[str] = field(default_factory=set)
+    _failure_key: tuple[tuple[int, int, int], str, str] | None = None
+    _failure_count: int = 0
+    _pending_attempt: tuple[tuple[int, int, int], str, str] | None = None
+
+    @staticmethod
+    def _tile_key(observation: dict[str, Any]) -> tuple[int, int, int] | None:
+        map_id = observation.get("map_id")
+        x = observation.get("player_tile_x")
+        y = observation.get("player_tile_y")
+        if isinstance(map_id, int) and isinstance(x, int) and isinstance(y, int):
+            return (map_id, x, y)
+        return None
+
+    def _reset_for_tile(self, tile: tuple[int, int, int] | None) -> None:
+        self.current_tile = tile
+        self.blocked_directions.clear()
+        self._failure_key = None
+        self._failure_count = 0
+        self._pending_attempt = None
+
+    def _remember_blocked(
+        self,
+        direction: str,
+        *,
+        reason: str,
+        route_key: str | None = None,
+    ) -> dict[str, Any] | None:
+        normalized = direction.upper()
+        if normalized not in {"UP", "DOWN", "LEFT", "RIGHT"}:
+            return None
+        if normalized in self.blocked_directions:
+            return None
+        self.blocked_directions.add(normalized)
+        return {
+            "event": "memory_navigation_blocked",
+            "tile": self.current_tile,
+            "route_key": route_key,
+            "blocked_direction": normalized,
+            "blocked_cycles": self._failure_count,
+            "reason": reason,
+        }
+
+    def reconcile(self, observation: dict[str, Any]) -> list[dict[str, Any]]:
+        """Fold the previous outcome and current collision truth into state."""
+        tile = self._tile_key(observation)
+        if tile != self.current_tile:
+            self._reset_for_tile(tile)
+
+        events: list[dict[str, Any]] = []
+        pending = self._pending_attempt
+        self._pending_attempt = None
+        if tile is not None and pending is not None:
+            attempt_tile, route_key, direction = pending
+            if attempt_tile == tile:
+                failure_key = (tile, route_key, direction)
+                if failure_key == self._failure_key:
+                    self._failure_count += 1
+                else:
+                    self._failure_key = failure_key
+                    self._failure_count = 1
+                if self._failure_count >= NAV_MEMORY_BLOCK_LIMIT:
+                    event = self._remember_blocked(
+                        direction,
+                        reason="same_tile_after_memory_navigation_step",
+                        route_key=route_key,
+                    )
+                    if event is not None:
+                        events.append(event)
+            else:
+                self._failure_key = None
+                self._failure_count = 0
+
+        spatial_blocked = set(_blocked_spatial_directions(observation))
+        spatial_blocked.update(
+            direction
+            for direction, status in _memory_walkability(observation).items()
+            if status == "blocked"
+        )
+        for direction in sorted(spatial_blocked):
+            event = self._remember_blocked(
+                direction,
+                reason="current_spatial_collision_truth",
+            )
+            if event is not None:
+                events.append(event)
+        return events
+
+    def remember_teacher_patch(
+        self,
+        observation: dict[str, Any],
+        teacher_record: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        """Remember explicit ``DIRECTION blocked`` teacher instructions."""
+        self.reconcile(observation)
+        patch = teacher_record.get("patch")
+        if not isinstance(patch, dict):
+            return []
+        instruction = patch.get("instruction_patch")
+        if not isinstance(instruction, str):
+            return []
+        events: list[dict[str, Any]] = []
+        for direction in ("UP", "DOWN", "LEFT", "RIGHT"):
+            blocked_pattern = rf"\b{direction}\b\s+(?:is\s+|as\s+)?blocked\b"
+            if re.search(blocked_pattern, instruction, flags=re.IGNORECASE):
+                event = self._remember_blocked(
+                    direction,
+                    reason="teacher_collision_patch",
+                )
+                if event is not None:
+                    events.append(event)
+        return events
+
+    def note_attempt(
+        self,
+        observation: dict[str, Any],
+        memory_navigation: dict[str, Any],
+        executed_plan: list[str],
+    ) -> None:
+        """Remember an actually executed memory step for next-cycle evidence."""
+        tile = self._tile_key(observation)
+        if tile is None or memory_navigation.get("result") != "hit":
+            return
+        route_plan = memory_navigation.get("plan")
+        route_key = memory_navigation.get("key")
+        if not isinstance(route_plan, list) or not isinstance(route_key, str):
+            return
+        intended = next(
+            (
+                str(button).upper()
+                for button in route_plan
+                if str(button).upper() in {"UP", "DOWN", "LEFT", "RIGHT"}
+            ),
+            None,
+        )
+        executed = next(
+            (
+                str(button).upper()
+                for button in executed_plan
+                if str(button).upper() in {"UP", "DOWN", "LEFT", "RIGHT"}
+            ),
+            None,
+        )
+        if intended is not None and executed == intended:
+            self._pending_attempt = (tile, route_key, intended)
 
 
 @dataclass
@@ -1938,6 +2097,7 @@ def _memory_navigation_route(
     observation: dict[str, Any],
     *,
     visited_maps: tuple[tuple[int, str], ...] | None = None,
+    blocked_directions: set[str] | None = None,
 ) -> dict[str, Any] | None:
     """Return a proven route toward a NOT-YET-VISITED map, or None.
 
@@ -1959,6 +2119,8 @@ def _memory_navigation_route(
 
     current_tile = _observation_tile(observation)
     walkability = _memory_walkability(observation)
+    for blocked_direction in blocked_directions or set():
+        walkability[blocked_direction.lower()] = "blocked"
     candidates = _memory_route_candidates(records, visited_slugs)
     if not candidates:
         return None
@@ -2040,6 +2202,7 @@ def _memory_navigation_decision(
     observation: dict[str, Any],
     *,
     visited_maps: tuple[tuple[int, str], ...] | None = None,
+    block_state: _MemoryNavigationBlockState | None = None,
 ) -> dict[str, Any]:
     """Resolve a navigation gap from ``world/path/*`` memory.
 
@@ -2053,17 +2216,39 @@ def _memory_navigation_decision(
     }
     if base["from_map"] is None:
         return {**base, "result": "miss", "reason": "current_map_unknown"}
+    blocked_directions: set[str] = set()
+    if block_state is not None:
+        block_state.reconcile(observation)
+        blocked_directions = set(block_state.blocked_directions)
     try:
-        route = _memory_navigation_route(observation, visited_maps=visited_maps)
+        route = _memory_navigation_route(
+            observation,
+            visited_maps=visited_maps,
+            blocked_directions=blocked_directions,
+        )
     except Exception as exc:  # noqa: BLE001 - memory must not stop gameplay
         safe_print(f"  [NAV-MEM] path memory read failed: {exc!r}")
         return {**base, "result": "error", "reason": type(exc).__name__}
     if route is None:
+        if blocked_directions:
+            blocked = sorted(blocked_directions)
+            return {
+                **base,
+                "result": "suppressed",
+                "reason": "collision_blocked_route_step",
+                "replanned_from_blocked": blocked,
+                "contradiction": (
+                    "nav-memory route conflicts with collision truth at the "
+                    f"current tile: {', '.join(blocked)} blocked"
+                ),
+            }
         return {
             **base,
             "result": "miss",
             "reason": "no_proven_route_to_unvisited_map",
         }
+    if blocked_directions:
+        route = {**route, "replanned_from_blocked": sorted(blocked_directions)}
     return {**base, **route, "result": "hit"}
 
 
@@ -2253,6 +2438,7 @@ def _jev_overworld_decision(
     teacher_budget: dict[str, int] | None = None,
     scenario_path: str | Path | None = None,
     visited_maps: tuple[tuple[int, str], ...] | None = None,
+    memory_navigation_blocks: _MemoryNavigationBlockState | None = None,
 ) -> dict[str, Any]:
     """Ask the JEV tier for this overworld cycle's plan (PRD v3 stages 5-6).
 
@@ -2292,6 +2478,7 @@ def _jev_overworld_decision(
         obs,
         decision,
         visited_maps=visited_maps,
+        block_state=memory_navigation_blocks,
     )
     missing_class = decision.get("missing_class")
     escalation_class = (
@@ -2336,6 +2523,7 @@ def _jev_overworld_decision(
             teacher_api_client=teacher_api_client,
             escalated_classes=escalated_classes,
             teacher_budget=teacher_budget,
+            memory_navigation_blocks=memory_navigation_blocks,
         )
 
     escalate = bool(initial_decision.get("escalate", False))
@@ -2469,6 +2657,7 @@ def _jev_consult_memory_navigation(
     decision: dict[str, Any],
     *,
     visited_maps: tuple[tuple[int, str], ...] | None,
+    block_state: _MemoryNavigationBlockState | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Consult proven path-memory routes for a navigation gap (S6 NAV-MEM).
 
@@ -2481,7 +2670,11 @@ def _jev_consult_memory_navigation(
     memory_hit: dict[str, Any] | None = None
     if not _is_navigation_gap(decision):
         return memory_navigation, memory_hit
-    memory_navigation = _memory_navigation_decision(obs, visited_maps=visited_maps)
+    memory_navigation = _memory_navigation_decision(
+        obs,
+        visited_maps=visited_maps,
+        block_state=block_state,
+    )
     if memory_navigation.get("result") == "hit":
         memory_hit = memory_navigation
         safe_print(
@@ -2537,6 +2730,7 @@ def _jev_teacher_escalation(
     teacher_api_client: Any,
     escalated_classes: set[str] | None,
     teacher_budget: dict[str, int] | None,
+    memory_navigation_blocks: _MemoryNavigationBlockState | None = None,
 ) -> tuple[
     dict[str, Any],
     dict[str, Any] | None,
@@ -2583,6 +2777,8 @@ def _jev_teacher_escalation(
     except Exception as exc:  # noqa: BLE001 - fail closed to normal decision
         safe_print(f"  [TEACHER] escalation failed: {exc!r} - using normal decision")
     if teacher_record and teacher_record.get("ok"):
+        if memory_navigation_blocks is not None:
+            memory_navigation_blocks.remember_teacher_patch(obs, teacher_record)
         decision, teacher_one_shot, teacher_missing_facts, teacher_memory_targets = (
             _apply_teacher_patch(decision, teacher_record, obs)
         )
@@ -6983,6 +7179,9 @@ def _init_memory_state(S):
     # run state. It survives every decision cycle and owns the anti-regression
     # goal plus the reverse edge that must not be traversed.
     S._navigation_state = _NavigationHoldState()
+    # DF-ARM1-2: path-memory directions proven blocked at one RAM tile stay
+    # suppressed until movement changes that tile.
+    S._memory_navigation_blocks = _MemoryNavigationBlockState()
 
     # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
     # Built ONCE here (not per cycle) from the four DuckBrain layers
@@ -7431,6 +7630,7 @@ def _overworld_cycle(S, cycle, header, t0):
     # visible_exits, player_facing, suggested_action).
     # Feed this directly to the controller — no MapIntegrator needed.
     _ow_track_stuck(S, patch_data, st)
+    _ow_reconcile_memory_navigation(S, cycle, patch_data)
     if _ow_recovery_gate(S, cycle, header):
         return True
 
@@ -7499,10 +7699,14 @@ def _overworld_cycle(S, cycle, header, t0):
     # re-enables normal recovery on later cycles.
     plan = _ow_giveup_plan(S, cycle, plan, agentic_tool_cycle)
 
-    # HOLD-1 is the final movement filter so blacklist rotation,
-    # no-op recovery, and post-exhaustion injection cannot
-    # reintroduce the completed edge's reverse direction.
+    # HOLD-1 runs after generic recovery filters so blacklist rotation, no-op
+    # recovery, and post-exhaustion injection cannot reintroduce the completed
+    # edge's reverse direction. Collision truth still gets the final veto below.
     plan = _ow_navigation_guard(S, cycle, plan, decision, navigation_context)
+    # Collision truth is the final authority. HOLD-1 may replace DOWN with the
+    # completed edge's forward direction, so suppress proven-blocked directions
+    # once more after that replacement.
+    plan = _ow_memory_navigation_guard(S, cycle, plan, navigation_context)
 
     plan_entry = {
         "cycle": cycle + 1,
@@ -7572,6 +7776,10 @@ def _overworld_cycle(S, cycle, header, t0):
     S.results.append(plan_entry)
     S.log_file.write(json.dumps(plan_entry, default=str) + "\n")
     S.log_file.flush()
+
+    # Record only the final movement plan: a no-op/spatial/hold override that
+    # replaced the memory step must not count as a failed route attempt.
+    _ow_note_memory_navigation_attempt(S, decision, plan, patch_data)
 
     # ── Execute the plan ──────────────────────────────
     _ow_execute_plan(S, plan)
@@ -7868,6 +8076,7 @@ def _ow_jev_attempt(S, header):
         # S6 NAV-MEM: the maps this run has already entered, so a
         # proven route is only replayed toward NEW ground.
         visited_maps=S._navigation_state.visited_maps,
+        memory_navigation_blocks=S._memory_navigation_blocks,
     )
     return _jev_attempt
 
@@ -8039,6 +8248,35 @@ def _apply_dir_blacklist(S, plan):
     return filtered_plan
 
 
+def _ow_reconcile_memory_navigation(S, cycle, patch_data):
+    """Log newly proven per-tile memory-navigation contradictions."""
+    events = S._memory_navigation_blocks.reconcile(patch_data)
+    for event in events:
+        row = {"cycle": cycle + 1, **event}
+        S.results.append(row)
+        S.log_file.write(json.dumps(row, default=str) + "\n")
+        S.log_file.flush()
+        tile = event.get("tile")
+        tile_text = ":".join(str(value) for value in tile) if tile else "unknown"
+        safe_print(
+            "  [NAV-MEM-BLOCK] "
+            f"tile={tile_text} suppressing {event['blocked_direction']} "
+            f"({event['reason']})"
+        )
+
+
+def _ow_note_memory_navigation_attempt(S, decision, plan, patch_data):
+    """Track an executed memory route step for next-cycle no-movement proof."""
+    memory_navigation = decision.get("memory_navigation")
+    if not isinstance(memory_navigation, dict):
+        return
+    S._memory_navigation_blocks.note_attempt(
+        patch_data,
+        memory_navigation,
+        plan,
+    )
+
+
 def _apply_spatial_filter(S, plan, patch_data):
     """Strip wall/object directions the cartographer says are impossible."""
     blocked_spatial = _blocked_spatial_directions(patch_data)
@@ -8171,6 +8409,53 @@ def _ow_navigation_guard(S, cycle, plan, decision, navigation_context):
             f"plan={plan}"
         )
     return plan
+
+
+def _ow_memory_navigation_guard(S, cycle, plan, navigation_context=None):
+    """Replace directions suppressed at this tile and record the override."""
+    blocked = set(S._memory_navigation_blocks.blocked_directions)
+    if not blocked:
+        return plan
+    forbidden = set(blocked)
+    if isinstance(navigation_context, dict) and navigation_context.get("active"):
+        held_direction = str(
+            navigation_context.get("blocked_return_direction") or ""
+        ).upper()
+        if held_direction in _DIR_ROTATION:
+            forbidden.add(held_direction)
+    original = [str(button).upper() for button in plan]
+    guarded: list[str] = []
+    for button in original:
+        if button not in blocked or button not in _DIR_ROTATION:
+            guarded.append(button)
+            continue
+        replacement = button
+        for _ in range(len(_DIR_ROTATION)):
+            replacement = _DIR_ROTATION[replacement]
+            if replacement not in forbidden:
+                break
+        guarded.append("A" if replacement in forbidden else replacement)
+    if guarded == original:
+        return plan
+
+    event = {
+        "cycle": cycle + 1,
+        "event": "memory_navigation_step_suppressed",
+        "tile": S._memory_navigation_blocks.current_tile,
+        "blocked_directions": sorted(blocked),
+        "forbidden_directions": sorted(forbidden),
+        "original_plan": original,
+        "guarded_plan": guarded,
+    }
+    S.results.append(event)
+    S.log_file.write(json.dumps(event, default=str) + "\n")
+    S.log_file.flush()
+    safe_print(
+        "  [NAV-MEM-BLOCK] final plan "
+        f"{original[:3]}→{guarded[:3]} at "
+        f"{S._memory_navigation_blocks.current_tile}"
+    )
+    return guarded
 
 
 def _ow_execute_plan(S, plan):
