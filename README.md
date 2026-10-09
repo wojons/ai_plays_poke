@@ -192,6 +192,19 @@ Before running the first setup command:
 - `DEEPSEEK_API_KEY` is an optional fallback provider key for DeepSeek models; when it is set,
   those models route directly to DeepSeek instead of OpenRouter.
 
+### System prerequisites
+
+- Runtime deps install cleanly from wheels (`pyboy 2.7.0`, `pysdl2 0.9.17`,
+  `pysdl2-dll 2.32.10`) — verified 2026-10-09 on a fresh `python3` venv:
+  `pip install -r requirements.txt` (exit 0) then `python3 cron_runner.py --dry-run`
+  (exit 0, even with zero API keys).
+- On glibc x86_64 Linux no system packages are required: `pysdl2-dll` bundles the SDL2
+  runtime and PyBoy ships prebuilt wheels.
+- On musl (Alpine) or non-x86_64 without wheels, PyBoy builds from source and needs SDL2
+  dev headers plus a C++ toolchain (`apk add sdl2-dev build-base` /
+  `apt install libsdl2-dev build-essential`).
+- ROMs are not included — supply your own dump (see [ROM Support](#rom-support)).
+
 ```bash
 # 1. Create virtual environment
 python3 -m venv .venv
