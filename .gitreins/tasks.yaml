@@ -1412,3 +1412,23 @@ tasks:
   status: complete
   created_at: '2026-10-09T16:28:34.560858+00:00'
   completed_at: '2026-10-09T16:28:46.908331+00:00'
+- id: DF-ARM1-2
+  title: "Break position-pin at 37:2,7 \u2014 memory_nav re-plan on collision-blocked\
+    \ step"
+  criteria:
+  - 'A 60-cycle boot-state run reaches a THIRD map (Pallet Town -> Red''s House 1F
+    -> Red''s House 2F or outdoors); the pin at 37:2,7 breaks: memory_nav re-plans
+    when its instructed step is collision-blocked for >N cycles, or teacher patch
+    and nav-memory are reconciled so they cannot issue contradictory directions indefinitely'
+  status: complete
+  created_at: '2026-10-09T20:19:52.336946+00:00'
+  completed_at: '2026-10-09T20:54:23.181735+00:00'
+- id: DF-ARM1-3
+  title: memory_nav route Red-s-House-1F->2F never completes
+  criteria:
+  - A 60-cycle boot-state run records navigation_transition into Red's House 2F (map
+    38); memory_nav re-plans a walkable route when its step is collision-blocked;
+    fast pytest tier + mypy src/ + ruff all clean
+  status: complete
+  created_at: '2026-10-09T23:28:45.252055+00:00'
+  completed_at: '2026-10-10T00:14:20.357166+00:00'
