@@ -289,6 +289,6 @@ print(f"Session cost: ${stats['total_cost']:.3f}")
 
 ## See Also
 
-- [AICommand](../ai_command.md) - Command structure
-- [GameState](../game_state.md) - Game state context
-- [BattleState](../battle_state.md) - Battle information
+- [AICommand](ai_command.md) - Command structure
+- [GameState](game_state.md) - Game state context
+- [BattleState](battle_state.md) - Battle information

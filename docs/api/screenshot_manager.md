@@ -282,4 +282,4 @@ screenshot_path = self.screenshot_manager.save_screenshot(
 ## See Also
 
 - [GameLoop](game_loop.md) - Main game loop
-- [Vision Pipeline](not_implemented) - Screenshot analysis
+- [Vision Pipeline](../architecture.md) - Screenshot analysis architecture

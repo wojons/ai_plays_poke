@@ -249,4 +249,4 @@ def analyze_battle(screenshot: np.ndarray) -> BattleState:
 - [GameState](game_state.md) - General game state
 - [AICommand](ai_command.md) - Commands generated from battle state
 - [GameAIManager](game_ai_manager.md) - AI that uses battle state
-- [Combat System](not_implemented) - Damage calculation and type effectiveness
+- [Combat Mechanics & Battle Heuristics](../../specs/ptp_01x_chapter_05_combat_system.md) - Damage calculation and type effectiveness
