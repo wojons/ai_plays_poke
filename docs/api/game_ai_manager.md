@@ -4,7 +4,7 @@ Manages AI models for Pokemon gameplay decisions.
 
 ## Overview
 
-The `GameAIManager` class coordinates between vision models (for reading screens) and text models (for strategic/thinking/reasoning). It integrates with the Vision & Perception Engine for local screen analysis and supports multiple AI providers (OpenRouter, Anthropic Claude).
+The `GameAIManager` class coordinates between vision models (for reading screens) and text models (for strategic/thinking/reasoning). It integrates with the Vision & Perception Engine for local screen analysis. Its router selects OpenRouter or Anthropic model identifiers by task type and priority; client availability still depends on the configured key and installed SDK.
 
 ## Class Signature
 
@@ -190,13 +190,49 @@ ai_manager.reset_session_stats()
 
 ### Model Selection
 
-The AI manager uses a `ModelRouter` to select appropriate models based on task type:
+`GameAIManager` creates a `ModelRouter` and passes its `model_priority` to every
+vision, strategic-thinking, and tactical-acting selection. The default priority is
+`"balanced"`; any priority other than `speed`, `cost`, or `quality` also takes the
+balanced branch.
 
-| Task Type | Balanced Priority | Speed Priority | Quality Priority |
-|-----------|-------------------|----------------|------------------|
-| Vision | openai/gpt-4o | openai/gpt-4o-mini | anthropic/claude-3-sonnet |
-| Thinking | openai/gpt-4o-mini | openai/gpt-4o-mini | anthropic/claude-3-sonnet |
-| Acting | openai/gpt-4o-mini | openai/gpt-4o-mini | anthropic/claude-3-haiku |
+| Task Type | Balanced (default) | Speed | Cost | Quality |
+|-----------|--------------------|-------|------|---------|
+| Vision | OpenRouter — `openai/gpt-5.6-luna` | OpenRouter — `openai/gpt-5.6-luna` | OpenRouter — `openai/gpt-5.6-luna` | Anthropic — `claude-3-sonnet-20240307` |
+| Thinking | OpenRouter — `openai/gpt-4o-mini` | OpenRouter — `openai/gpt-4o-mini` | OpenRouter — `openai/gpt-4o-mini` | Anthropic — `claude-3-haiku-20240307` |
+| Acting | OpenRouter — `openai/gpt-4o-mini` | OpenRouter — `openai/gpt-4o-mini` | OpenRouter — `openai/gpt-4o-mini` | Anthropic — `claude-3-haiku-20240307` |
+
+The manager also records the balanced OpenRouter defaults on `vision_model`,
+`thinking_model`, and `acting_model`: `openai/gpt-5.6-luna`,
+`openai/gpt-4o-mini`, and `openai/gpt-4o-mini`, respectively. A per-call `model`
+argument to `make_strategic_decision` or `make_tactical_decision` overrides the
+router result for that call.
+
+### Key and Provider Behavior
+
+- `api_key` is passed to `AIModelClient`. When it is not supplied, that client
+  checks `OPENROUTER_API_KEY` first, then `OPENAI_API_KEY`. If neither is present,
+  it enters stub mode and has no underlying OpenRouter client.
+- `anthropic_api_key` is used only when the optional Anthropic SDK is available.
+  `ClaudeClient` uses the explicit argument first and otherwise reads
+  `ANTHROPIC_API_KEY`. Constructor failures (including a missing key) leave
+  `claude_client` unset rather than failing `GameAIManager` construction.
+- Router priority is independent of client readiness: `quality` returns an
+  `anthropic` model identifier even if no Claude client was created. In that case,
+  the decision path falls back to the OpenRouter client when one is available.
+- `OpenRouterClient` uses `https://openrouter.ai/api/v1` by default. A request is
+  sent directly to `https://api.deepseek.com` only when its selected model name
+  contains `deepseek` and `DEEPSEEK_API_KEY` is set. None of the router defaults
+  above is a DeepSeek model.
+
+### Source-Line Cross-Check
+
+| Source | Verified behavior |
+|--------|-------------------|
+| `src/core/ai_client.py:1209-1216` | Default task-to-model mapping used by `ModelRouter`. |
+| `src/core/ai_client.py:1218-1225, 1227-1291` | Priority dispatch: speed and cost share OpenRouter selections; quality selects Anthropic; all other priorities use balanced selections. |
+| `src/core/ai_client.py:1303-1322, 1347-1361, 1488-1510, 1590-1665` | `GameAIManager` constructor defaults, router construction, client construction, each routed call, and strategic/tactical per-call overrides. |
+| `src/core/ai_client.py:252-273` | `api_key` lookup order and no-key stub mode. |
+| `src/core/ai_client.py:443-461, 540-570` | Anthropic key handling, OpenRouter endpoint/key behavior, and conditional DeepSeek routing. |
 
 ### Rate Limiting
 
