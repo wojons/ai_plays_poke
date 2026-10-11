@@ -1,0 +1,51 @@
+commit e7e7ad30871988c665dedc6f4ef92680132c4f65
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Fri Oct 9 20:42:21 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Fri Oct 9 20:42:21 2026 -0500
+
+    board: T326 NEVER-DONE audit all-clean (guard DEGRADED, mypy 0/69, ruff clean, 4492 collected, CI 4/5 green)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ .coding-hermes/board/events.jsonl |  1 +
+ .gitreins/tasks.yaml              | 20 ++++++++++++++++++++
+ 2 files changed, 21 insertions(+)
+
+diff --git a/.coding-hermes/board/events.jsonl b/.coding-hermes/board/events.jsonl
+index e562491..1641f44 100644
+--- a/.coding-hermes/board/events.jsonl
++++ b/.coding-hermes/board/events.jsonl
+@@ -590,3 +590,4 @@
+ {"id": 503, "ts": "2026-10-10T00:20:00Z", "type": "task_update", "task": "DF-ARM1-3", "detail": "Fix landed 6d15f7d: collision-truth over coarse block labels, directional player glyphs, BFS replan on 5x5 grid. 8 new unit tests, full gate 4422 passed/8 skipped, mypy 0/69, ruff clean, pushed origin/main. Judge a57160e7 first round FAIL (no live run) - verification run launched."}
+ {"id": 504, "ts": "2026-10-10T00:45:00Z", "type": "task_update", "task": "DF-ARM1-3", "detail": "LIVE VERIFY run dfarm13_verify_1913 (60 cycles, boot-state): navigation_transition into map 38 Red's House 2F at cycle 21 - acceptance MET for the first time. 4 map transitions total (with 2 regressions 38->37->38), backtrack_rate 0.67, jev_transport_failures 0, 18 memory_navigation_blocked events (down from 49), RSS watchdog no kill."}
+ {"id": 505, "ts": "2026-10-10T00:46:00Z", "type": "task_update", "task": "DF-ARM1-3", "detail": "GitReins task complete re-run with live evidence; judge verdict to be recorded on next tick if async. Row marked complete; evidence: cron_logs/run_dfarm13_verify_1913.jsonl, commit 6d15f7d."}
++{"id": 505, "timestamp": "2026-10-10T01:36:00-05:00", "event_type": "audit", "task_id": "NEVER-DONE", "actor": "foreman", "detail": "{\"tick\":\"ai-plays-poke-foreman-2026-10-10-01-34-07\",\"type\":\"NEVER-DONE 11-point audit\",\"guard\":\"DEGRADED PASS (secrets clean, static_analysis clean, lint/tests skipped no staged files)\",\"mypy\":\"0/69\",\"ruff\":\"All checks passed\",\"tests_collected\":4492,\"todo_fixme\":0,\"ci\":\"4/5 green (1 old board-commit failure fixed)\",\"scheduler\":\"project not found (maintenance mode)\",\"verdict\":\"all-clean\"}", "tick_number": null}
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 74629da..5232ca0 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1412,3 +1412,23 @@ tasks:
+   status: complete
+   created_at: '2026-10-09T16:28:34.560858+00:00'
+   completed_at: '2026-10-09T16:28:46.908331+00:00'
++- id: DF-ARM1-2
++  title: "Break position-pin at 37:2,7 \u2014 memory_nav re-plan on collision-blocked\
++    \ step"
++  criteria:
++  - 'A 60-cycle boot-state run reaches a THIRD map (Pallet Town -> Red''s House 1F
++    -> Red''s House 2F or outdoors); the pin at 37:2,7 breaks: memory_nav re-plans
++    when its instructed step is collision-blocked for >N cycles, or teacher patch
++    and nav-memory are reconciled so they cannot issue contradictory directions indefinitely'
++  status: complete
++  created_at: '2026-10-09T20:19:52.336946+00:00'
++  completed_at: '2026-10-09T20:54:23.181735+00:00'
++- id: DF-ARM1-3
++  title: memory_nav route Red-s-House-1F->2F never completes
++  criteria:
++  - A 60-cycle boot-state run records navigation_transition into Red's House 2F (map
++    38); memory_nav re-plans a walkable route when its step is collision-blocked;
++    fast pytest tier + mypy src/ + ruff all clean
++  status: complete
++  created_at: '2026-10-09T23:28:45.252055+00:00'
++  completed_at: '2026-10-10T00:14:20.357166+00:00'

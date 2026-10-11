@@ -2,16 +2,24 @@
 # 2.8.0 renumbered the logging constants NON-monotonically (INFO=4 >
 # CRITICAL=3 > ERROR=2), which inverted the boot-path log suppression
 # pinned by tests/test_emulator_pyboy_logging.py (SGB chatter leaked
-# into captured stdout in CI). Stay below 2.8.0 until that suite is
-# re-verified against the new level ordering.
+# into captured stdout in CI), AND bumped the save-state format to
+# STATE_VERSION 29 with no migration path: every state written by 2.7.0
+# fails to load under 2.8.x with PyBoyAssertException ("'Samples per
+# frame' of saved state ... does not match current configuration").
+# That breaks all 10 tracked *.state files, including the md5-pinned
+# data/boot.state + data/baselines/base-1_boot.state
+# (tests/test_boot_state_pin.py) and the live bridge's boot state
+# play_states/pallet_outside_house_20260929.state.
+# Verified 2026-10-11: tests/test_long_run_boot.py::test_default_boot_probes_pallet_town_map_0_live
+# FAILS under 2.8.1 and passes under 2.7.0. Unblocking needs a state
+# migration (re-derive the boot states from a fresh boot and re-pin
+# base-1 with evidence), not a pin bump. See
+# docs/dependency_review_20261010.md "Batch 4 resolution".
 pyboy>=1.0.0,<2.8.0
 
 # LLM APIs (OpenRouter via requests)
 requests>=2.34.2
 anthropic>=0.117.0
-# Declared in pyproject.toml [project].dependencies but previously missing here
-# (drift noted in docs/dependency_review_20261010.md). litellm also consumes it.
-openai>=1.0.0
 
 # Core Dependencies
 numpy>=1.26.4
@@ -28,12 +36,15 @@ opencv-python-headless>=4.14.0.94
 fastapi>=0.142.2
 uvicorn>=0.54.0
 websockets>=12.0
-# Declared in pyproject.toml [project].dependencies but previously missing here.
-# Vestigial in src/ per docs/dependency_review_20261010.md (no imports found);
-# removal vs. keep decision is deferred to SUP-DEPS batch 4.
-streamlit>=1.0
-pandas>=2.0
-matplotlib>=3.0
+
+# Removed in SUP-DEPS batch 4 (2026-10-11) after the needs-decision the review
+# deferred: openai, streamlit, pandas and matplotlib were declared here and in
+# pyproject [project].dependencies but are imported NOWHERE in this repo
+# (src/, tests/, scripts/, tools/, cron_runner.py => zero import hits); openai
+# only ever appeared as OpenRouter model-name strings ("openai/gpt-5.6-luna").
+# CHANGELOG.md already listed them as unused. Dropping the declaration also
+# drops streamlit's GitPython/altair/pyarrow subtree. Re-add (as an explicit
+# extra) if a visualization or direct-SDK surface returns.
 
 # System Health Monitoring
 psutil>=5.9.8

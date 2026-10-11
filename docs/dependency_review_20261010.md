@@ -100,3 +100,97 @@ Apply to `venv/` (3.11 runtime) and mirror to `.venv/` (3.13 gate) so both envir
 ## Environment note
 
 The scan ran against `venv/` (Python 3.11.15). The repo's guard/test venv is `.venv/` (Python 3.13.13, no pip binary — uv-managed). Version skew between the two venvs is expected to exist but was NOT audited here; the batch plan above mirrors upgrades into both and gates on the 3.13 suite, which is what the pre-commit guard actually runs.
+
+## Batch 4 resolution (executed 2026-10-11, SUP-DEPS-EXEC-20261011-AIP)
+
+Batch 4 was the hold-list. All three items are closed: one DEFERRED with new live evidence, one
+resolved by removal, one not applicable.
+
+### 1. pyboy 2.8.x — DEFERRED (pin unchanged: `>=1.0.0,<2.8.0`)
+
+The review's stated blocker was the non-monotonic log-level renumbering. Live verification found a
+second, harder blocker that package metadata alone cannot show: **pyboy 2.8.x bumps the save-state
+format (STATE_VERSION 15 → 29) and cannot load any state written by 2.7.0.**
+
+| Probe | Action | Result |
+|---|---|---|
+| pyboy 2.7.0 | write state | OK, 167,677 B |
+| pyboy 2.8.1 | write state | OK, 178,100 B (+10,423 B: new sound-section fields) |
+| pyboy 2.8.1 | load its own state | OK |
+| pyboy 2.8.1 | load a 2.7.0-written state | **FAIL** `PyBoyAssertException: ("'Samples per frame' of saved state (%d) does not match current configuration (%d)", 5908722711110090755, 804)` |
+| pyboy 2.8.1 | load tracked `data/boot.state` | **FAIL** (same) |
+| pyboy 2.7.0 | load tracked `data/boot.state` | OK (baseline) |
+| pyboy 2.8.1 | load the other probed tracked states (`play_states/pallet_outside_house_20260929.state`, `play_states/slot1.state`, `data/boot.battle.state`, `data/baselines/base-1_boot.state`) | **FAIL** (same, 4/4) |
+
+The garbage `samples_per_frame` value is a misaligned read: 2.8.1's `sound.load_state` takes its
+`state_version >= 14` branch and reads the new 2.8 layout out of a v15 file. pyboy fails loudly
+rather than silently corrupting — but there is no migration path.
+
+Consequences of the bump: all **10 tracked `*.state` files** become unloadable, including the two
+md5-pinned by `tests/test_boot_state_pin.py` (BASE-REPIN) and the boot state the live
+`aipp-bridge.service` (`Restart=always`) loads on every start. The repo's own live boot probe fails —
+this is the reproduction, not a scratch script:
+
+```
+$ ./.venv/bin/pytest tests/test_long_run_boot.py -q      # under pyboy 2.8.1
+FAILED tests/test_long_run_boot.py::test_default_boot_probes_pallet_town_map_0_live
+AssertionError: {'ok': False, 'map_id': None, 'map_name': None, 'error':
+  'PyBoyAssertException: ("\'Samples per frame\' of saved state (%d) does not match current
+  configuration (%d)", 5908722711110090755, 804)'}
+```
+
+Full suite under 2.8.1: **2 failed, 4476 passed, 14 skipped** — `test_long_run_boot` (state format)
+and `test_emulator_pyboy_logging::test_sgb_info_message_is_not_visible_at_error_level` (log
+renumbering). Under the pinned 2.7.0 the same suite is 4478 passed, 14 skipped.
+
+Log-renumbering mechanism, for the future unblock: 2.8.x declares
+`(DEBUG, WARNING, ERROR, CRITICAL, INFO) = range(5)` and `_log()` suppresses when
+`configured_level > message_level`, so at `log_level="ERROR"` (=2) an INFO record (=4) is PRINTED.
+No single level can hide INFO while showing ERROR; only a value above the maximum constant silences
+the package logger. That is what `tests/test_emulator_pyboy_logging.py` pins, and why it cannot be
+satisfied by choosing a different level string.
+
+Unblock plan (needs its own task, not a dependency bump): either pyboy ships a state migration, or the
+project re-derives its boot states from a fresh boot and re-pins `data/boot.state` /
+`data/baselines/base-1_boot.state` with evidence — a gameplay-baseline change. The pin is therefore
+unchanged and the blocker is re-documented in `requirements.txt` + `pyproject.toml`.
+
+### 2. openai / streamlit / pandas / matplotlib — REMOVED (needs-decision: not needed)
+
+Decision: **remove from both manifests**, per this review's own recommendation, after confirming zero
+usage — a repo-wide `^\s*(import|from)\s+(openai|streamlit|pandas|matplotlib)\b` over every `.py`
+file (src/, tests/, scripts/, tools/, `cron_runner.py`) returns no hits; `openai` appears only as
+OpenRouter model-name strings such as `"openai/gpt-5.6-luna"`; `CHANGELOG.md` already listed them as
+"Unused dependencies"; the `streamlit run src/dashboard/run.py` entry point referenced in AGENTS.md no
+longer exists (the dashboard is FastAPI).
+
+Environment cleanup performed at the same time, so the working set matches the manifests:
+`streamlit` + `matplotlib` uninstalled from both `venv/` and `.venv/` (each was `Required-by:
+ptp-01x-pokemon-ai` only). `pandas` and `openai` stay INSTALLED — `datasets` requires pandas and
+`litellm` requires openai — only this project's declarations were dropped. The editable installs'
+dist-info was refreshed in both venvs so recorded `Requires:` matches the new declaration set.
+
+Side effect: the three `pip check` conflicts this review deferred to batch 4 are gone, because all
+three were streamlit's caps (`streamlit 1.61.1 needs pyarrow<25 / starlette<1.4 / websockets<17`).
+Remaining conflicts are pre-existing and out of scope: `pylint 4.0.6 needs astroid<=4.1.dev0` and
+`readme-renderer 45.0 needs docutils>=0.21.2`.
+
+### 3. mcp 2.x — NOT APPLICABLE (not a direct dependency)
+
+`mcp` is in no manifest (`requirements.txt`, `requirements-dev.txt`, `pyproject.toml`) and
+`pip show mcp` reports `Required-by: gitreins` — it is fleet tooling installed in `venv/` (1.28.1),
+not a project dependency. The project's own MCP surface is a hand-rolled stdlib stdio server
+(`scripts/aipp_mcp.py` imports only base64/json/os/socket/sys/pathlib; wrapped by
+`scripts/aipp-mcp-wrapper.sh`), so no SDK pin applies here. No change made; a 1.x → 2.x move belongs
+to the fleet's gitreins tooling, not this repo.
+
+### Batch 4 env-state after the change
+
+| Item | venv/ (3.11) | .venv/ (3.13, gate) |
+|---|---|---|
+| pyboy | 2.7.0 (pin unchanged) | 2.7.0 (2.8.1 trialled, reverted) |
+| streamlit / matplotlib | uninstalled | uninstalled |
+| pandas | 3.0.3 (via datasets) | 3.0.6 (via datasets) |
+| openai | 2.46.0 (via litellm) | 2.54.0 (via litellm) |
+| full suite | see commit message | 4478 passed, 14 skipped |
+

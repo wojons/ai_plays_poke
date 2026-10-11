@@ -1,0 +1,120 @@
+{
+  "task_id": "DF-ARM1-3",
+  "task_title": "memory_nav route Red-s-House-1F->2F never completes",
+  "task_criteria": [
+    "A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "6d15f7df4078f271124da7ed6fdee1119e28efab",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261009T235741.990733Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n6:59PM INF scanned ~354303718 bytes (354.30 MB) in 16.3s\n6:59PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 98924 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261009T235741.990733Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, platformdirs-4.12.3, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4492 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [485159 chars omitted \u2014 5317 line(s)] \u2026\ntest_bench_pathfinding_find_path               450.9930 (1.07)           1,903.8562 (1.0)             579.3991 (1.25)            332.9062 (1.79)            491.0398 (1.07)          59.8375 (1.99)          1;1  1,725,926.1788 (0.80)         18           1\ntest_bench_vision_pipeline_validate          5,819.8348 (13.86)         21,600.1645 (11.35)         6,450.6247 (13.88)           918.9379 (4.94)          6,191.8981 (13.47)        240.2812 (8.00)    1679;2091    155,023.7464 (0.07)      21909           1\ntest_bench_ram_reader_observe            1,732,008.0660 (>1000.0)  145,680,399.1459 (>1000.0)   2,744,751.7548 (>1000.0)  10,284,515.7553 (>1000.0)   1,936,873.0718 (>1000.0)  138,181.3781 (>1000.0)      3;51        364.3317 (0.00)        532           1\ntest_bench_vision_pipeline_process      34,305,630.0189 (>1000.0)   38,652,823.0738 (>1000.0)  35,739,000.6057 (>1000.0)   1,138,507.0683 (>1000.0)  35,599,607.9743 (>1000.0)  955,915.7188 (>1000.0)       6;3         27.9806 (0.00)         29           1\n--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4478 passed, 14 skipped in 194.10s (0:03:14) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261009T235741.990733Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean: The primary acceptance clause is unmet: NO 60-cycle boot-state run records a navigation_transition into map 38. Commit 6d15f7d (the DF-ARM1-3 fix) contains only cron_runner.py and tests/test_memory_navigation_pin.py \u2014 no run log; `find . -name '*.jsonl' -newermt '2026-10-09 18:00'` returns nothing. The only 60-cycle boot-state log, cron_logs/run_dfarm12_verify_1611.jsonl, has exactly 1 navigation_transition and it is to_map_id=37 (Red's House 1F), never 38; it never even reached the exit tile (6,1), wandering to (7,3)/(6,3). The logs that DO reach map 38 (run_e2e_t293_20261006_1730.jsonl cycle 36, run_e2e_t20261007_1334.jsonl) are dated Oct 6/7 \u2014 BEFORE the Oct 9 18:54 fix \u2014 and use the old visited_map_edge_memory mechanism (0 occurrences of collision_grid_path, 0 memory_navigation_blocked). No log anywhere contains 'collision_grid_path', so the new re-plan mechanism has never fired in a live run. The re-plan logic itself IS implemented (cron_runner.py _collision_grid_step/_memory_route_plan/_MemoryNavigationBlockState.reconcile) and covered by 8 passing unit tests, but only in simulation. Tooling sub-clause PASSES: `./.venv/bin/pytest -m 'not heavy' -q` => '4422 passed, 8 skipped, 62 deselected in 218.88s' EXIT=0; `./.venv/bin/mypy src/ --ignore-missing-imports` => 'Success: no issues found in 69 source files' EXIT=0; `./.venv/bin/ruff check src/ tests/ cron_runner.py` => 'All checks passed!' EXIT=0; LSP diagnostics 0 findings. The commit message itself only claims 'to reach map 37 exit', not map 38.\nTooling is clean and the re-plan logic is unit-tested, but the required live 60-cycle boot-state run recording navigation_transition into Red's House 2F (map 38) does not exist \u2014 the new collision_grid_path mechanism has never fired in any run log.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean: The primary acceptance clause is unmet: NO 60-cycle boot-state run records a navigation_transition into map 38. Commit 6d15f7d (the DF-ARM1-3 fix) contains only cron_runner.py and tests/test_memory_navigation_pin.py \u2014 no run log; `find . -name '*.jsonl' -newermt '2026-10-09 18:00'` returns nothing. The only 60-cycle boot-state log, cron_logs/run_dfarm12_verify_1611.jsonl, has exactly 1 navigation_transition and it is to_map_id=37 (Red's House 1F), never 38; it never even reached the exit tile (6,1), wandering to (7,3)/(6,3). The logs that DO reach map 38 (run_e2e_t293_20261006_1730.jsonl cycle 36, run_e2e_t20261007_1334.jsonl) are dated Oct 6/7 \u2014 BEFORE the Oct 9 18:54 fix \u2014 and use the old visited_map_edge_memory mechanism (0 occurrences of collision_grid_path, 0 memory_navigation_blocked). No log anywhere contains 'collision_grid_path', so the new re-plan mechanism has never fired in a live run. The re-plan logic itself IS implemented (cron_runner.py _collision_grid_step/_memory_route_plan/_MemoryNavigationBlockState.reconcile) and covered by 8 passing unit tests, but only in simulation. Tooling sub-clause PASSES: `./.venv/bin/pytest -m 'not heavy' -q` => '4422 passed, 8 skipped, 62 deselected in 218.88s' EXIT=0; `./.venv/bin/mypy src/ --ignore-missing-imports` => 'Success: no issues found in 69 source files' EXIT=0; `./.venv/bin/ruff check src/ tests/ cron_runner.py` => 'All checks passed!' EXIT=0; LSP diagnostics 0 findings. The commit message itself only claims 'to reach map 37 exit', not map 38.\nTooling is clean and the re-plan logic is unit-tested, but the required live 60-cycle boot-state run recording navigation_transition into Red's House 2F (map 38) does not exist \u2014 the new collision_grid_path mechanism has never fired in any run log.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean",
+                "status": "FAIL",
+                "detail": "The primary acceptance clause is unmet: NO 60-cycle boot-state run records a navigation_transition into map 38. Commit 6d15f7d (the DF-ARM1-3 fix) contains only cron_runner.py and tests/test_memory_navigation_pin.py \u2014 no run log; `find . -name '*.jsonl' -newermt '2026-10-09 18:00'` returns nothing. The only 60-cycle boot-state log, cron_logs/run_dfarm12_verify_1611.jsonl, has exactly 1 navigation_transition and it is to_map_id=37 (Red's House 1F), never 38; it never even reached the exit tile (6,1), wandering to (7,3)/(6,3). The logs that DO reach map 38 (run_e2e_t293_20261006_1730.jsonl cycle 36, run_e2e_t20261007_1334.jsonl) are dated Oct 6/7 \u2014 BEFORE the Oct 9 18:54 fix \u2014 and use the old visited_map_edge_memory mechanism (0 occurrences of collision_grid_path, 0 memory_navigation_blocked). No log anywhere contains 'collision_grid_path', so the new re-plan mechanism has never fired in a live run. The re-plan logic itself IS implemented (cron_runner.py _collision_grid_step/_memory_route_plan/_MemoryNavigationBlockState.reconcile) and covered by 8 passing unit tests, but only in simulation. Tooling sub-clause PASSES: `./.venv/bin/pytest -m 'not heavy' -q` => '4422 passed, 8 skipped, 62 deselected in 218.88s' EXIT=0; `./.venv/bin/mypy src/ --ignore-missing-imports` => 'Success: no issues found in 69 source files' EXIT=0; `./.venv/bin/ruff check src/ tests/ cron_runner.py` => 'All checks passed!' EXIT=0; LSP diagnostics 0 findings. The commit message itself only claims 'to reach map 37 exit', not map 38.",
+                "resolution_probability": 0.07
+              }
+            ],
+            "summary": "Tooling is clean and the re-plan logic is unit-tested, but the required live 60-cycle boot-state run recording navigation_transition into Red's House 2F (map 38) does not exist \u2014 the new collision_grid_path mechanism has never fired in any run log."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-ARM1-3\n\nStage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean: The primary acceptance clause is unmet: NO 60-cycle boot-state run records a navigation_transition into map 38. Commit 6d15f7d (the DF-ARM1-3 fix) contains only cron_runner.py and tests/test_memory_navigation_pin.py \u2014 no run log; `find . -name '*.jsonl' -newermt '2026-10-09 18:00'` returns nothing. The only 60-cycle boot-state log, cron_logs/run_dfarm12_verify_1611.jsonl, has exactly 1 navigation_transition and it is to_map_id=37 (Red's House 1F), never 38; it never even reached the exit tile (6,1), wandering to (7,3)/(6,3). The logs that DO reach map 38 (run_e2e_t293_20261006_1730.jsonl cycle 36, run_e2e_t20261007_1334.jsonl) are dated Oct 6/7 \u2014 BEFORE the Oct 9 18:54 fix \u2014 and use the old visited_map_edge_memory mechanism (0 occurrences of collision_grid_path, 0 memory_navigation_blocked). No log anywhere contains 'collision_grid_path', so the new re-plan mechanism has never fired in a live run. The re-plan logic itself IS implemented (cron_runner.py _collision_grid_step/_memory_route_plan/_MemoryNavigationBlockState.reconcile) and covered by 8 passing unit tests, but only in simulation. Tooling sub-clause PASSES: `./.venv/bin/pytest -m 'not heavy' -q` => '4422 passed, 8 skipped, 62 deselected in 218.88s' EXIT=0; `./.venv/bin/mypy src/ --ignore-missing-imports` => 'Success: no issues found in 69 source files' EXIT=0; `./.venv/bin/ruff check src/ tests/ cron_runner.py` => 'All checks passed!' EXIT=0; LSP diagnostics 0 findings. The commit message itself only claims 'to reach map 37 exit', not map 38.\nTooling is clean and the re-plan logic is unit-tested, but the required live 60-cycle boot-state run recording navigation_transition into Red's House 2F (map 38) does not exist \u2014 the new collision_grid_path mechanism has never fired in any run log.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-10T00:12:39.014057",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-10T00:12:39.053494+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 39787,
+        "truncated": false,
+        "source": "git show 6d15f7df4078"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1326,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-ARM1-3"
+  }
+}

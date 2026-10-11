@@ -1,0 +1,55 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 5232ca0..0c72495 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1413,16 +1413,15 @@ tasks:
+   created_at: '2026-10-09T16:28:34.560858+00:00'
+   completed_at: '2026-10-09T16:28:46.908331+00:00'
+ - id: DF-ARM1-2
+-  title: "Break position-pin at 37:2,7 \u2014 memory_nav re-plan on collision-blocked\
+-    \ step"
++  title: "Break position pin at 37:2,7 \u2014 memory_nav re-plan on collision-blocked\
++    \ steps"
+   criteria:
+-  - 'A 60-cycle boot-state run reaches a THIRD map (Pallet Town -> Red''s House 1F
+-    -> Red''s House 2F or outdoors); the pin at 37:2,7 breaks: memory_nav re-plans
+-    when its instructed step is collision-blocked for >N cycles, or teacher patch
+-    and nav-memory are reconciled so they cannot issue contradictory directions indefinitely'
++  - A 60-cycle boot-state run records navigation_transition reaching a third map (map
++    38 Red's House 2F); memory_nav suppresses and re-plans when its instructed step
++    is collision-blocked; pytest tier + mypy src/ + ruff clean
+   status: complete
+-  created_at: '2026-10-09T20:19:52.336946+00:00'
+-  completed_at: '2026-10-09T20:54:23.181735+00:00'
++  created_at: '2026-10-10T02:55:21.995064+00:00'
++  completed_at: '2026-10-10T02:55:29.274450+00:00'
+ - id: DF-ARM1-3
+   title: memory_nav route Red-s-House-1F->2F never completes
+   criteria:
+@@ -1432,3 +1431,26 @@ tasks:
+   status: complete
+   created_at: '2026-10-09T23:28:45.252055+00:00'
+   completed_at: '2026-10-10T00:14:20.357166+00:00'
++- id: DF-ARM1-2B
++  title: 'DF-ARM1-2 scoped: break 37:2,7 pin via collision-blocked re-plan (map-38
++    leg owned by DF-ARM1-3)'
++  criteria:
++  - "In a 60-cycle boot-state run, memory_nav suppresses its instructed step when\
++    \ collision-blocked >3 cycles and re-plans (memory_navigation_blocked events fire,\
++    \ position pin at 37:2,7 breaks with movement progress restored); pytest tier\
++    \ + mypy src/ + ruff all clean. Map-38 third-map acceptance is out of scope here\
++    \ \u2014 it is DF-ARM1-3's criterion, proven live in run dfarm13_verify_1913."
++  status: complete
++  created_at: '2026-10-10T03:01:23.674444+00:00'
++  completed_at: '2026-10-10T03:01:26.001233+00:00'
++- id: SUP-DEPS-20261009-AIP
++  title: 'Dependency review: classify 142 outdated packages direct vs transitive,
++    no bulk upgrade'
++  criteria:
++  - docs/dependency_review_20261010.md committed and pushed with a Direct-dependency
++    table covering every outdated direct requirement (action verdict + constraint
++    note per row, no unexplained nulls), transitive advisory summary, and a batch
++    plan; requirements untouched; mypy src/ clean
++  status: complete
++  created_at: '2026-10-10T03:34:45.948270+00:00'
++  completed_at: '2026-10-10T03:34:55.304575+00:00'

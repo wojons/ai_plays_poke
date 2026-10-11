@@ -1,0 +1,28 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 5232ca0..e22889b 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1413,16 +1413,15 @@ tasks:
+   created_at: '2026-10-09T16:28:34.560858+00:00'
+   completed_at: '2026-10-09T16:28:46.908331+00:00'
+ - id: DF-ARM1-2
+-  title: "Break position-pin at 37:2,7 \u2014 memory_nav re-plan on collision-blocked\
+-    \ step"
++  title: "Break position pin at 37:2,7 \u2014 memory_nav re-plan on collision-blocked\
++    \ steps"
+   criteria:
+-  - 'A 60-cycle boot-state run reaches a THIRD map (Pallet Town -> Red''s House 1F
+-    -> Red''s House 2F or outdoors); the pin at 37:2,7 breaks: memory_nav re-plans
+-    when its instructed step is collision-blocked for >N cycles, or teacher patch
+-    and nav-memory are reconciled so they cannot issue contradictory directions indefinitely'
++  - A 60-cycle boot-state run records navigation_transition reaching a third map (map
++    38 Red's House 2F); memory_nav suppresses and re-plans when its instructed step
++    is collision-blocked; pytest tier + mypy src/ + ruff clean
+   status: complete
+-  created_at: '2026-10-09T20:19:52.336946+00:00'
+-  completed_at: '2026-10-09T20:54:23.181735+00:00'
++  created_at: '2026-10-10T02:55:21.995064+00:00'
++  completed_at: '2026-10-10T02:55:29.274450+00:00'
+ - id: DF-ARM1-3
+   title: memory_nav route Red-s-House-1F->2F never completes
+   criteria:

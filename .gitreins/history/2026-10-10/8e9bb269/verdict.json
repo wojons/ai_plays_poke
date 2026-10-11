@@ -1,0 +1,121 @@
+{
+  "task_id": "DF-ARM1-3",
+  "task_title": "memory_nav route Red-s-House-1F->2F never completes",
+  "task_criteria": [
+    "A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "6d15f7df4078f271124da7ed6fdee1119e28efab",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261009T235741.990733Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, platformdirs-4.12.3, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2\ncollecting ... collected 4492 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [485171 chars omitted \u2014 5317 line(s)] \u2026\ntest_bench_pathfinding_find_path               580.9125 (1.07)           2,354.8491 (1.26)            822.5208 (1.37)            546.0512 (11.04)           636.5590 (1.08)            139.9312 (4.66)          1;1  1,215,774.7038 (0.73)         10           1\ntest_bench_vision_pipeline_validate          6,902.9629 (12.76)        588,380.0332 (315.84)        9,545.8678 (15.94)         6,348.9748 (128.35)        9,943.4983 (16.82)         2,795.1319 (93.06)     143;270    104,757.3697 (0.06)      31106           1\ntest_bench_ram_reader_observe            2,092,396.8405 (>1000.0)  161,189,009.9011 (>1000.0)   4,449,634.0601 (>1000.0)  12,342,330.4329 (>1000.0)   3,435,414.0516 (>1000.0)     253,744.7726 (>1000.0)      2;59        224.7376 (0.00)        305           1\ntest_bench_vision_pipeline_process      42,408,189.9691 (>1000.0)   68,211,419.9735 (>1000.0)  59,414,207.8917 (>1000.0)   9,452,158.6918 (>1000.0)  62,621,214.5435 (>1000.0)  14,102,363.9590 (>1000.0)       4;0         16.8310 (0.00)         16           1\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4478 passed, 14 skipped in 272.22s (0:04:32) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261009T235741.990733Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean: (1) 60-cycle boot-state run: cron_logs/run_dfarm13_verify_1913.jsonl has 60 decision rows (cycles 1-60), cycle 1 in Pallet Town map 0 with starter_picked source=boot_baseline (confirms data/boot.state load); navigation_transition at cycle 21: from_map_id 37 'Red's House 1F' -> to_map_id 38 'Red's House 2F', crossing_direction UP, regression false. (2) Re-plan on collision-blocked step: cycle 8 plan ['UP'] mechanism collision_grid_path; cycle 9 memory_navigation_blocked tile [37,2,7] blocked_direction UP blocked_cycles 3 reason same_tile_after_memory_navigation_step, and cycle 9 decision re-planned to ['RIGHT'] mechanism collision_grid_path with replanned_from_blocked. Code: cron_runner.py:2089 _collision_grid_step (BFS over 5x5 grid), :2167 _memory_route_plan, :2308 _memory_navigation_decision. (3) Fast tier: ./.venv/bin/pytest tests/ -m 'not heavy' -q => '4422 passed, 8 skipped, 62 deselected in 108.89s' exit 0, including all 8 tests in tests/test_memory_navigation_pin.py. (4) ./.venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 69 source files' exit 0. (5) ./.venv/bin/ruff check src/ tests/ cron_runner.py => 'All checks passed!' exit 0. (6) LSP diagnostics: 0 findings.\nAll three sub-requirements verified: the 60-cycle boot-state run dfarm13_verify_1913 records navigation_transition into map 38 at cycle 21, memory_nav re-plans (UP->RIGHT via collision_grid_path) when its step is collision-blocked, and the fast pytest tier (4422 passed), mypy (0 errors) and ruff (clean) all pass.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean: (1) 60-cycle boot-state run: cron_logs/run_dfarm13_verify_1913.jsonl has 60 decision rows (cycles 1-60), cycle 1 in Pallet Town map 0 with starter_picked source=boot_baseline (confirms data/boot.state load); navigation_transition at cycle 21: from_map_id 37 'Red's House 1F' -> to_map_id 38 'Red's House 2F', crossing_direction UP, regression false. (2) Re-plan on collision-blocked step: cycle 8 plan ['UP'] mechanism collision_grid_path; cycle 9 memory_navigation_blocked tile [37,2,7] blocked_direction UP blocked_cycles 3 reason same_tile_after_memory_navigation_step, and cycle 9 decision re-planned to ['RIGHT'] mechanism collision_grid_path with replanned_from_blocked. Code: cron_runner.py:2089 _collision_grid_step (BFS over 5x5 grid), :2167 _memory_route_plan, :2308 _memory_navigation_decision. (3) Fast tier: ./.venv/bin/pytest tests/ -m 'not heavy' -q => '4422 passed, 8 skipped, 62 deselected in 108.89s' exit 0, including all 8 tests in tests/test_memory_navigation_pin.py. (4) ./.venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 69 source files' exit 0. (5) ./.venv/bin/ruff check src/ tests/ cron_runner.py => 'All checks passed!' exit 0. (6) LSP diagnostics: 0 findings.\nAll three sub-requirements verified: the 60-cycle boot-state run dfarm13_verify_1913 records navigation_transition into map 38 at cycle 21, memory_nav re-plans (UP->RIGHT via collision_grid_path) when its step is collision-blocked, and the fast pytest tier (4422 passed), mypy (0 errors) and ruff (clean) all pass.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean",
+                "status": "PASS",
+                "detail": "(1) 60-cycle boot-state run: cron_logs/run_dfarm13_verify_1913.jsonl has 60 decision rows (cycles 1-60), cycle 1 in Pallet Town map 0 with starter_picked source=boot_baseline (confirms data/boot.state load); navigation_transition at cycle 21: from_map_id 37 'Red's House 1F' -> to_map_id 38 'Red's House 2F', crossing_direction UP, regression false. (2) Re-plan on collision-blocked step: cycle 8 plan ['UP'] mechanism collision_grid_path; cycle 9 memory_navigation_blocked tile [37,2,7] blocked_direction UP blocked_cycles 3 reason same_tile_after_memory_navigation_step, and cycle 9 decision re-planned to ['RIGHT'] mechanism collision_grid_path with replanned_from_blocked. Code: cron_runner.py:2089 _collision_grid_step (BFS over 5x5 grid), :2167 _memory_route_plan, :2308 _memory_navigation_decision. (3) Fast tier: ./.venv/bin/pytest tests/ -m 'not heavy' -q => '4422 passed, 8 skipped, 62 deselected in 108.89s' exit 0, including all 8 tests in tests/test_memory_navigation_pin.py. (4) ./.venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 69 source files' exit 0. (5) ./.venv/bin/ruff check src/ tests/ cron_runner.py => 'All checks passed!' exit 0. (6) LSP diagnostics: 0 findings.",
+                "resolution_probability": 0.07
+              }
+            ],
+            "summary": "All three sub-requirements verified: the 60-cycle boot-state run dfarm13_verify_1913 records navigation_transition into map 38 at cycle 21, memory_nav re-plans (UP->RIGHT via collision_grid_path) when its step is collision-blocked, and the fast pytest tier (4422 passed), mypy (0 errors) and ruff (clean) all pass."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DF-ARM1-3\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 A 60-cycle boot-state run records navigation_transition into Red's House 2F (map 38); memory_nav re-plans a walkable route when its step is collision-blocked; fast pytest tier + mypy src/ + ruff all clean: (1) 60-cycle boot-state run: cron_logs/run_dfarm13_verify_1913.jsonl has 60 decision rows (cycles 1-60), cycle 1 in Pallet Town map 0 with starter_picked source=boot_baseline (confirms data/boot.state load); navigation_transition at cycle 21: from_map_id 37 'Red's House 1F' -> to_map_id 38 'Red's House 2F', crossing_direction UP, regression false. (2) Re-plan on collision-blocked step: cycle 8 plan ['UP'] mechanism collision_grid_path; cycle 9 memory_navigation_blocked tile [37,2,7] blocked_direction UP blocked_cycles 3 reason same_tile_after_memory_navigation_step, and cycle 9 decision re-planned to ['RIGHT'] mechanism collision_grid_path with replanned_from_blocked. Code: cron_runner.py:2089 _collision_grid_step (BFS over 5x5 grid), :2167 _memory_route_plan, :2308 _memory_navigation_decision. (3) Fast tier: ./.venv/bin/pytest tests/ -m 'not heavy' -q => '4422 passed, 8 skipped, 62 deselected in 108.89s' exit 0, including all 8 tests in tests/test_memory_navigation_pin.py. (4) ./.venv/bin/mypy src/ --ignore-missing-imports => 'Success: no issues found in 69 source files' exit 0. (5) ./.venv/bin/ruff check src/ tests/ cron_runner.py => 'All checks passed!' exit 0. (6) LSP diagnostics: 0 findings.\nAll three sub-requirements verified: the 60-cycle boot-state run dfarm13_verify_1913 records navigation_transition into map 38 at cycle 21, memory_nav re-plans (UP->RIGHT via collision_grid_path) when its step is collision-blocked, and the fast pytest tier (4422 passed), mypy (0 errors) and ruff (clean) all pass.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-10T00:26:19.088845",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-10T00:26:19.141260+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 39787,
+        "truncated": false,
+        "source": "git show 6d15f7df4078"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 8543,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DF-ARM1-3"
+  }
+}

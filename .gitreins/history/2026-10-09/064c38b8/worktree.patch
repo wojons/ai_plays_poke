@@ -1,0 +1,19 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 74629da..3dd6ebf 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1412,3 +1412,14 @@ tasks:
+   status: complete
+   created_at: '2026-10-09T16:28:34.560858+00:00'
+   completed_at: '2026-10-09T16:28:46.908331+00:00'
++- id: DF-ARM1-2
++  title: "Break position-pin at 37:2,7 \u2014 memory_nav re-plan on collision-blocked\
++    \ step"
++  criteria:
++  - 'A 60-cycle boot-state run reaches a THIRD map (Pallet Town -> Red''s House 1F
++    -> Red''s House 2F or outdoors); the pin at 37:2,7 breaks: memory_nav re-plans
++    when its instructed step is collision-blocked for >N cycles, or teacher patch
++    and nav-memory are reconciled so they cannot issue contradictory directions indefinitely'
++  status: complete
++  created_at: '2026-10-09T20:19:52.336946+00:00'
++  completed_at: '2026-10-09T20:54:23.181735+00:00'
