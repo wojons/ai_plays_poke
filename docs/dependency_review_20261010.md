@@ -192,5 +192,33 @@ to the fleet's gitreins tooling, not this repo.
 | streamlit / matplotlib | uninstalled | uninstalled |
 | pandas | 3.0.3 (via datasets) | 3.0.6 (via datasets) |
 | openai | 2.46.0 (via litellm) | 2.54.0 (via litellm) |
-| full suite | see commit message | 4478 passed, 14 skipped |
+| full suite | 4478 passed, 14 skipped | 4478 passed, 14 skipped |
+
+### Landing record
+
+The batch-4 result landed in commit `36c58de` — subject "deps: execute
+SUP-DEPS-EXEC-20261011-AIP batch 4 (pyboy pin + unused removal)" — together with a sibling board
+commit's `.gitreins/` artifacts (the foreman folded the staged set into one commit at 02:35:01
+local, before the batch-4 commit command could land its own). The file content in that commit is
+byte-identical to the tree these gates were measured on:
+
+| Gate | Result |
+|---|---|
+| `./.venv/bin/pytest tests/ -q` (gate env) | 4478 passed, 14 skipped in 209.28s |
+| `./venv/bin/pytest tests/ -q` (3.11 parity) | 4478 passed, 14 skipped in 264.98s |
+| `./.venv/bin/mypy src/ --ignore-missing-imports` | 0 errors / 69 files |
+| `mypy --explicit-package-bases src/ scripts/ --ignore-missing-imports` (CI form) | 0 errors / 89 files |
+| `./.venv/bin/ruff check src/ tests/` | All checks passed |
+| `uv pip check --python .venv/bin/python` | All installed packages are compatible (was 3 conflicts) |
+| `venv/bin/pip check` | 2 pre-existing tooling conflicts (pylint/astroid, readme-renderer/docutils) |
+| live boot probe (real ROM + tracked states, pinned pyboy) | 79 passed — the same test fails under 2.8.1 |
+| `cron_runner.py --dry-run` | exit 0; ROM + boot state resolve, keys live |
+
+`.venv` package-set diff for the whole batch-4 change: `matplotlib` + `streamlit` removed
+(157 → 155 packages); pyboy trialled at 2.8.1 then reverted to 2.7.0; no batch 0-3 package moved.
+
+Note on the commit guard: the batch-4 commit attempt ran with an index already identical to HEAD
+(the foreman's fold had committed the same files), so the gitreins guard reported
+`tests — skipped (no staged files)`, i.e. a vacuous pass. The full-suite results above are the real
+gate and were run directly against this tree in both venvs.
 
