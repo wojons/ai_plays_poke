@@ -9,6 +9,9 @@ pyboy>=1.0.0,<2.8.0
 # LLM APIs (OpenRouter via requests)
 requests>=2.34.2
 anthropic>=0.117.0
+# Declared in pyproject.toml [project].dependencies but previously missing here
+# (drift noted in docs/dependency_review_20261010.md). litellm also consumes it.
+openai>=1.0.0
 
 # Core Dependencies
 numpy>=1.26.4
@@ -25,6 +28,12 @@ opencv-python-headless>=4.14.0.94
 fastapi>=0.142.2
 uvicorn>=0.54.0
 websockets>=12.0
+# Declared in pyproject.toml [project].dependencies but previously missing here.
+# Vestigial in src/ per docs/dependency_review_20261010.md (no imports found);
+# removal vs. keep decision is deferred to SUP-DEPS batch 4.
+streamlit>=1.0
+pandas>=2.0
+matplotlib>=3.0
 
 # System Health Monitoring
 psutil>=5.9.8
