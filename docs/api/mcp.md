@@ -1,0 +1,134 @@
+---
+title: MCP Game Tools
+---
+
+# MCP Game Tools
+
+`scripts/aipp_mcp.py` exposes the live Pokémon game as an MCP server over standard input and standard output. It is a JSON-RPC 2.0 server, not an HTTP server: send one JSON object per input line and read one JSON object per output line.
+
+The server reports MCP protocol version `2024-11-05` and server information `aipp-game` version `1.0.0`.
+
+## Prerequisites and startup
+
+The MCP process is a client of the local game bridge. Before calling a game tool:
+
+1. Start and authorize the loopback bridge described in the [bridge runbook](../bridge.md).
+2. Ensure the bridge is listening on `127.0.0.1:$AIPP_BRIDGE_PORT` (default `127.0.0.1:8770`).
+3. Ensure the token file exists at `$AIPP_BRIDGE_TOKEN_FILE` (default `~/.hermes/aipp_bridge/session.token`). The MCP server reads and sends this per-session token to the bridge.
+
+Start the stdio server from the repository root:
+
+```bash
+python3 scripts/aipp_mcp.py
+```
+
+Use `.venv/bin/python` instead of `python3` when the project virtual environment is available:
+
+```bash
+.venv/bin/python scripts/aipp_mcp.py
+```
+
+The process writes no startup banner. Keep it running and exchange newline-delimited JSON-RPC messages on its standard input and output.
+
+The bridge is deliberately loopback-only. The MCP process does not expose or document a remote HTTP endpoint. If the token file is missing, every bridge request fails closed with `bridge is off for this session (no token at <path>)`; it does not start an unauthenticated bridge or silently continue. If the token exists but the bridge cannot be reached, the bridge error names `127.0.0.1:<port>`.
+
+## JSON-RPC session
+
+Initialize before using the server:
+
+```json
+{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"example-client","version":"1.0.0"}}}
+```
+
+The response is local and does not require a running bridge:
+
+```json
+{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"serverInfo":{"name":"aipp-game","version":"1.0.0"}}}
+```
+
+After initialization, clients may send `notifications/initialized` or `initialized`; these notifications intentionally receive no reply.
+
+List the tool definitions with `tools/list`:
+
+```json
+{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}
+```
+
+Call a tool with `tools/call`. This call presses `A` and uses the documented default `settle` behavior:
+
+```json
+{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"game_press","arguments":{"buttons":["A"]}}}
+```
+
+Successful calls return `{"content":[...]}`. Content entries are usually `{ "type": "text", "text": "..." }`; `game_screenshot` also returns `{ "type": "image", "data": "<base64 PNG>", "mimeType": "image/png" }` after its text entry. A Python exception while handling a call returns a JSON-RPC success result with `isError: true` and a text entry of the form `tool error: <ExceptionType>: <message>`.
+
+Unknown JSON-RPC methods return error code `-32601`. Unknown tool names are instead handled as a normal `tools/call` result with text `unknown tool <name>`.
+
+## Reproducible local discovery probe
+
+`initialize` and `tools/list` are served from the MCP process itself, so this probe does not require a ROM, a running bridge, or a bridge token. It writes its captured response only under `/tmp`:
+
+```bash
+PYTHON=.venv/bin/python
+[ -x "$PYTHON" ] || PYTHON=python3
+printf '%s\n%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' \
+  | "$PYTHON" scripts/aipp_mcp.py > /tmp/aipp-mcp-tools-list.jsonl
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+responses = [json.loads(line) for line in Path("/tmp/aipp-mcp-tools-list.jsonl").read_text().splitlines()]
+initialize, tools_list = responses
+assert initialize["result"]["protocolVersion"] == "2024-11-05"
+assert initialize["result"]["serverInfo"] == {"name": "aipp-game", "version": "1.0.0"}
+names = [tool["name"] for tool in tools_list["result"]["tools"]]
+expected = [
+    "game_observe", "game_screenshot", "game_press", "game_step",
+    "game_pause", "game_resume", "game_save", "game_load",
+    "game_list_saves", "game_delete_save", "game_reset", "game_health",
+]
+assert names == expected, names
+print(f"protocol={initialize['result']['protocolVersion']}; tools={','.join(names)}")
+PY
+```
+
+Verify that the returned names still match the source of truth after changing the server:
+
+```bash
+python3 - <<'PY'
+import runpy
+
+names = [tool["name"] for tool in runpy.run_path("scripts/aipp_mcp.py")["TOOLS"]]
+print("source tools=" + ",".join(names))
+PY
+```
+
+The two comma-separated lists must be identical and contain twelve names in the order shown below.
+
+## Tool reference
+
+The `inputSchema` values below are the exact schemas advertised by `tools/list`. They do not declare `additionalProperties: false`, numeric bounds, or string-length constraints beyond what is explicitly listed.
+
+| Tool | Input schema and defaults | Output and error behavior |
+|---|---|---|
+| `game_observe` | Object with no properties; no required fields. | On a successful bridge `observe`, returns one text entry with map/id, screen, tile, facing, party/species/cycle, adjacent walkability, and the bridge projection between `--- model's state text (...) ---` markers. A failed bridge response returns text `error: <bridge error>`. |
+| `game_screenshot` | Object property `scale`: integer, default `3`; no required fields. At execution, the value is converted to an integer and clamped to at least `1`. | On a successful `frame` bridge response, returns a text entry describing the scaled image followed by an inline base64 PNG image entry with `mimeType: image/png`. A failed bridge response returns text `error: <bridge error>`. Image, conversion, or file failures are caught by `tools/call` and return `isError: true`. |
+| `game_press` | Required `buttons`: array of strings, each one of `UP`, `DOWN`, `LEFT`, `RIGHT`, `A`, `B`, `START`, `SELECT`. Optional `settle`: boolean, default `true`. The handler supplies `[]` and `true` when omitted, although `buttons` remains required by the advertised schema. | On a successful `press`, returns one text entry containing pressed buttons, `state_changed`, before/after state, settled-frame count, map, tile, and facing. A failed bridge response returns text `error: <bridge error>`. |
+| `game_step` | Required `n`: integer with default `60`. The handler uses `int(arguments.get("n", 60))`. | Sends bridge command `step` and returns text `stepped. screen=<screen> tile=<player>`. Unlike observe and press, it does not test the bridge `ok` flag before formatting, so a bridge failure can produce values such as `screen=None tile=None`. Bad integer conversion is returned as `isError: true`. |
+| `game_pause` | Object with no properties; no required fields. | Sends bridge command `pause` and returns text `pause: ok=<ok> paused=<paused>`. It formats this result even if the bridge reports failure. |
+| `game_resume` | Object with no properties; no required fields. | Sends bridge command `resume` and returns text `resume: ok=<ok> paused=<paused>`. It formats this result even if the bridge reports failure. |
+| `game_save` | Required `slot`: string with default `"slot1"`. The handler also supplies `"slot1"` when omitted. | Sends bridge command `save` and returns the full bridge reply serialized as compact JSON in one text entry, including any error object. |
+| `game_load` | Required `slot`: string; the advertised schema has no default. The handler nevertheless supplies `"slot1"` when omitted. | Sends bridge command `load` and returns the full bridge reply serialized as compact JSON in one text entry, including any error object. |
+| `game_list_saves` | Object with no properties; no required fields. | Sends bridge command `list_saves` and returns the full bridge reply as indented JSON in one text entry. Successful replies describe available saves, including size and modification time; bridge errors are also serialized rather than raised. |
+| `game_delete_save` | Required `slot`: string; no default. If omitted outside schema validation, the handler sends JSON `null` for `slot`. | Sends bridge command `delete_save` and returns the full bridge reply serialized as compact JSON in one text entry, including any error object. |
+| `game_reset` | Object with no properties; no required fields. | Sends bridge command `reset` and returns one text entry beginning `cold boot: ` followed by the compact JSON bridge reply. This represents a power-on reset, not loading a save. |
+| `game_health` | Object with no properties; no required fields. | Sends bridge command `health` and returns the full bridge reply as indented JSON in one text entry. A successful bridge reply reports bridge status such as ROM, boot state, cycles, and current map; an unavailable bridge is serialized as its error reply. |
+
+## Call semantics and error boundary
+
+All twelve tools call the bridge through the MCP process, which adds the token from the configured token file. Tool calls therefore affect the live emulator or its saves only when the bridge is authorized and reachable.
+
+The server-level `tools/call` handler catches exceptions raised by a tool implementation and returns `result.isError: true`; it does not emit a JSON-RPC `error` object for those exceptions. Several tool implementations intentionally serialize bridge error replies as normal text or JSON content, as specified in the table. Clients should inspect the returned content rather than treating every JSON-RPC success envelope as a successful game action.
