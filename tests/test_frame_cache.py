@@ -65,6 +65,26 @@ def test_persistence_across_instances(cache_path: Path) -> None:
     assert c2.size == 1
 
 
+def test_loaded_cache_rebuilds_lru_order_for_eviction(cache_path: Path) -> None:
+    class TinyCache(FrameCache):
+        MAX_ENTRIES = 2
+
+    first = TinyCache(cache_path)
+    oldest_hash = first.hash_frame(b"oldest")
+    middle_hash = first.hash_frame(b"middle")
+    first.register(oldest_hash, cycle=10)
+    first.register(middle_hash, cycle=20)
+    first.save()
+
+    loaded = TinyCache(cache_path)
+    newest_hash = loaded.hash_frame(b"newest")
+    loaded.register(newest_hash, cycle=30)
+
+    assert loaded.lookup(oldest_hash) is None
+    assert loaded.lookup(middle_hash) is not None
+    assert loaded.lookup(newest_hash) is not None
+
+
 def test_corrupt_cache_starts_fresh(cache_path: Path) -> None:
     cache_path.write_text("{not valid json!!!")
     cache = FrameCache(cache_path)
@@ -72,29 +92,96 @@ def test_corrupt_cache_starts_fresh(cache_path: Path) -> None:
     assert cache.lookup("anything") is None
 
 
-def test_lru_eviction_keeps_newest(cache_path: Path) -> None:
-    # Bypass MAX_ENTRIES via a tiny subclass to test eviction cheaply
+def test_lru_eviction_picks_oldest_entry(cache_path: Path) -> None:
     class TinyCache(FrameCache):
-        MAX_ENTRIES = 3
+        MAX_ENTRIES = 2
 
     tiny = TinyCache(cache_path)
-    for i in range(5):
-        h = tiny.hash_frame(f"frame-{i}".encode())
-        tiny.register(h, cycle=i)
-    assert tiny.size == 3
-    # Oldest two (frame-0, frame-1) evicted
-    assert tiny.lookup(tiny.hash_frame(b"frame-0")) is None
-    assert tiny.lookup(tiny.hash_frame(b"frame-4")) is not None
-    # Touching an old entry keeps it alive (LRU recency)
-    old_h = tiny.hash_frame(b"frame-2")
-    old_entry = tiny.lookup(old_h)
-    assert old_entry is not None
-    tiny.touch(old_entry, cycle=99)
-    for i in range(5, 7):
-        tiny.register(tiny.hash_frame(f"frame-{i}".encode()), cycle=i)
-    # frame-3 should be evicted next; frame-2 was touched → still present
-    assert tiny.lookup(tiny.hash_frame(b"frame-3")) is None
-    assert tiny.lookup(old_h) is not None
+    oldest_hash = tiny.hash_frame(b"oldest")
+    middle_hash = tiny.hash_frame(b"middle")
+    newest_hash = tiny.hash_frame(b"newest")
+
+    tiny.register(oldest_hash, cycle=10)
+    tiny.register(middle_hash, cycle=20)
+    tiny.register(newest_hash, cycle=30)
+
+    assert tiny.lookup(oldest_hash) is None
+    assert tiny.lookup(middle_hash) is not None
+    assert tiny.lookup(newest_hash) is not None
+
+
+def test_lru_eviction_preserves_registration_order_for_equal_cycles(
+    cache_path: Path,
+) -> None:
+    class TinyCache(FrameCache):
+        MAX_ENTRIES = 2
+
+    tiny = TinyCache(cache_path)
+    first_hash = "f" * 32
+    second_hash = "0" * 32
+    newest_hash = "a" * 32
+
+    tiny.register(first_hash, cycle=10)
+    tiny.register(second_hash, cycle=10)
+    tiny.register(newest_hash, cycle=20)
+
+    assert tiny.lookup(first_hash) is None
+    assert tiny.lookup(second_hash) is not None
+    assert tiny.lookup(newest_hash) is not None
+
+
+def test_touch_updates_lru_ordering(cache_path: Path) -> None:
+    class TinyCache(FrameCache):
+        MAX_ENTRIES = 2
+
+    tiny = TinyCache(cache_path)
+    first_hash = tiny.hash_frame(b"first")
+    second_hash = tiny.hash_frame(b"second")
+    touched_entry = tiny.register(first_hash, cycle=10)
+    tiny.register(second_hash, cycle=20)
+
+    tiny.touch(touched_entry, cycle=30)
+    tiny.register(tiny.hash_frame(b"newest"), cycle=40)
+
+    assert tiny.lookup(first_hash) is not None
+    assert tiny.lookup(second_hash) is None
+
+
+def test_lru_eviction_skips_stale_heap_entries(cache_path: Path) -> None:
+    class TinyCache(FrameCache):
+        MAX_ENTRIES = 2
+
+    tiny = TinyCache(cache_path)
+    first_hash = tiny.hash_frame(b"first")
+    second_hash = tiny.hash_frame(b"second")
+    touched_entry = tiny.register(first_hash, cycle=10)
+    tiny.register(second_hash, cycle=20)
+
+    tiny.touch(touched_entry, cycle=30)
+    lru_heap = getattr(tiny, "_lru_heap")
+    assert any(
+        timestamp_key[0] == 10 and frame_hash == first_hash
+        for timestamp_key, frame_hash in lru_heap
+    )
+
+    newest_hash = tiny.hash_frame(b"newest")
+    tiny.register(newest_hash, cycle=40)
+
+    assert tiny.lookup(first_hash) is not None
+    assert tiny.lookup(second_hash) is None
+    assert tiny.lookup(newest_hash) is not None
+
+
+def test_cache_size_stays_bounded_at_max_entries(cache_path: Path) -> None:
+    cache = FrameCache(cache_path)
+
+    for cycle in range(FrameCache.MAX_ENTRIES + 25):
+        cache.register(cache.hash_frame(f"frame-{cycle}".encode()), cycle=cycle)
+        assert cache.size <= FrameCache.MAX_ENTRIES
+
+    assert cache.size == FrameCache.MAX_ENTRIES
+    assert cache.lookup(cache.hash_frame(b"frame-0")) is None
+    assert cache.lookup(cache.hash_frame(b"frame-1024")) is not None
 
 
 def test_stats_report(cache_path: Path) -> None:

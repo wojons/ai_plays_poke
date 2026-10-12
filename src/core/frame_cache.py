@@ -23,6 +23,7 @@ Eviction: LRU by last_seen_cycle, capped at MAX_ENTRIES (1000).
 from __future__ import annotations
 
 import hashlib
+import heapq
 import json
 import uuid as _uuid
 from pathlib import Path
@@ -40,6 +41,21 @@ class FrameCache:
         self._by_uuid: dict[str, dict[str, Any]] = {}  # uuid → entry
         self._seq = 0
         self._load()
+        self._lru_order_by_hash = {
+            frame_hash: order for order, frame_hash in enumerate(self._by_hash)
+        }
+        self._next_lru_order = len(self._lru_order_by_hash)
+        self._lru_heap = [
+            (
+                (
+                    int(entry.get("last_seen_cycle", 0)),
+                    self._lru_order_by_hash[frame_hash],
+                ),
+                frame_hash,
+            )
+            for frame_hash, entry in self._by_hash.items()
+        ]
+        heapq.heapify(self._lru_heap)
 
     # ── Persistence ────────────────────────────────────────────────
 
@@ -99,6 +115,12 @@ class FrameCache:
         }
         self._by_hash[frame_hash] = entry
         self._by_uuid[entry["uuid"]] = entry
+        order = self._lru_order_by_hash.get(frame_hash)
+        if order is None:
+            order = self._next_lru_order
+            self._next_lru_order += 1
+            self._lru_order_by_hash[frame_hash] = order
+        heapq.heappush(self._lru_heap, ((cycle, order), frame_hash))
         self._evict()
         return entry
 
@@ -107,8 +129,15 @@ class FrameCache:
         entry["seen_count"] = int(entry.get("seen_count", 0)) + 1
         entry["last_seen_cycle"] = cycle
         entry["map_name"] = entry.get("map_name", "")
-        # Move to end of LRU order by re-inserting in by_hash
-        self._by_hash[entry["hash"]] = entry
+        frame_hash = entry["hash"]
+        self._by_hash[frame_hash] = entry
+        order = self._lru_order_by_hash.get(frame_hash)
+        if order is None:
+            order = self._next_lru_order
+            self._next_lru_order += 1
+            self._lru_order_by_hash[frame_hash] = order
+        # The prior heap candidate is discarded lazily during eviction.
+        heapq.heappush(self._lru_heap, ((cycle, order), frame_hash))
 
     # ── Eviction ───────────────────────────────────────────────────
 
@@ -116,14 +145,19 @@ class FrameCache:
         """Drop oldest entries (by last_seen_cycle) past MAX_ENTRIES."""
         if len(self._by_hash) <= self.MAX_ENTRIES:
             return
-        # Sort by last_seen_cycle ascending, evict the oldest
-        oldest = sorted(
-            self._by_hash.values(),
-            key=lambda e: int(e.get("last_seen_cycle", 0)),
-        )
-        for entry in oldest[: len(self._by_hash) - self.MAX_ENTRIES]:
-            self._by_hash.pop(entry["hash"], None)
+        while len(self._by_hash) > self.MAX_ENTRIES:
+            (last_seen_cycle, order), frame_hash = heapq.heappop(self._lru_heap)
+            entry = self._by_hash.get(frame_hash)
+            # Touched and already-evicted entries leave stale heap candidates.
+            if (
+                entry is None
+                or int(entry.get("last_seen_cycle", 0)) != last_seen_cycle
+                or self._lru_order_by_hash.get(frame_hash) != order
+            ):
+                continue
+            self._by_hash.pop(frame_hash, None)
             self._by_uuid.pop(entry["uuid"], None)
+            self._lru_order_by_hash.pop(frame_hash, None)
 
     # ── Stats ──────────────────────────────────────────────────────
 
