@@ -236,6 +236,8 @@ def call_tool(name: str, args: dict) -> list[dict]:
         ]
     if name == "game_step":
         r = bridge({"cmd": "step", "n": int(args.get("n", 60))})
+        if not r.get("ok"):
+            return [text(f"error: {r.get('error')}")]
         return [text(f"stepped. screen={r.get('screen')} tile={r.get('player')}")]
     if name in ("game_pause", "game_resume"):
         r = bridge({"cmd": name.split("_")[1]})
