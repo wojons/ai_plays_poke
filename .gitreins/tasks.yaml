@@ -1557,3 +1557,22 @@ tasks:
   status: complete
   created_at: '2026-10-12T23:45:26.105308+00:00'
   completed_at: '2026-10-13T00:46:39.635697+00:00'
+- id: DF-MCP-1
+  title: "P3 \u2014 game_step MCP tool surfaces bridge error instead of success-shaped\
+    \ None text"
+  criteria:
+  - 'When bridge reply has ok=false, game_step returns text ''error: <bridge error>''
+    (matching game_observe pattern); regression test asserts paused-bridge game_step
+    returns error text not ''stepped. screen=None tile=None''; all 12 MCP tools still
+    verified live.'
+  status: complete
+  created_at: '2026-10-13T02:05:02.161060+00:00'
+  completed_at: '2026-10-13T02:18:43.997946+00:00'
+- id: SUP-DEPS-20261012-AIP
+  title: Review 38 outdated Python distributions
+  criteria:
+  - Classify outdated packages, apply justified upgrades, preserve deferrals, pass
+    full suite + ruff + mypy, commit.
+  status: complete
+  created_at: '2026-10-13T02:33:12.062286+00:00'
+  completed_at: '2026-10-13T02:41:10.196720+00:00'
