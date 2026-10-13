@@ -5,7 +5,9 @@ Usage: .venv/bin/python scripts/bench_frame_cache.py [N]
 Prints a single elapsed-seconds figure for N unique registrations with
 MAX_ENTRIES=1000, suitable for hyperfine comparison against the baseline.
 """
-import sys, time, os
+import os
+import sys
+import time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from src.core.frame_cache import FrameCache  # noqa: E402
 
