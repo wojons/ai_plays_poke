@@ -37,6 +37,7 @@ This section documents all public APIs and interfaces for PTP-01X - an orchestra
 | [MCP game tools](mcp.md) | Stdio JSON-RPC MCP interface (`scripts/aipp_mcp.py`) — game-tool discovery, schemas, calls, and bridge prerequisites |
 | [Dashboard](dashboard.md) | Observability dashboard server (`src/dashboard/main.py`) — run instructions, auth, REST + WebSocket route reference |
 | [Environment Service](env_service.md) | Environment service API (`src/env_service.py`, uvicorn on port 8765) — boot/reset lifecycle plus the observe/act contract for driving the emulator over HTTP |
+| [ptp_cli](ptp_cli.md) | PTP-01X CLI (`src/ptp_cli/`) — invocation, complete flag surface from `flags.py`, validation rules |
 
 ### Examples
 
