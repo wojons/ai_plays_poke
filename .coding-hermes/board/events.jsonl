@@ -625,3 +625,4 @@
 {"id": "EVT-DF-MCP-1-DONE", "task_id": "DF-MCP-1", "event": "task_completed", "timestamp": "2026-10-13T02:25:18Z", "commit": "30f18d1", "foreman_note": "Fixed game_step bridge error surfacing. 3 regression tests added. Pushed to main."}
 {"id": 536, "timestamp": "2026-10-13T02:44:14.329272+00:00", "event_type": "task_failed", "task_id": "SUP-DEPS-20261012-AIP", "actor": "foreman", "detail": "{\"reason\": \"worker_exited_no_commit\", \"worker\": \"proc_6ce3a4b34ac9\", \"duration_s\": 180, \"tick\": \"ai-plays-poke-foreman-2026-10-13-02-31-21\"}"}
 {"id": 537, "event": "task_completed", "task_id": "CH-OBJ", "timestamp": "2026-10-13T03:15:00Z"}
+{"id": "evt-sup-deps-20261012-failed", "type": "task_failed", "task_id": "SUP-DEPS-20261012-AIP", "ts": "2026-10-13T03:40:00Z", "note": "Worker dispatch failed twice (18min silent, no commits/artifacts). Deps review not completed this tick."}
