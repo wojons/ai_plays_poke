@@ -1,0 +1,122 @@
+{
+  "task_id": "DOC-15",
+  "task_title": "Document stdio MCP game-tool interface",
+  "task_criteria": [
+    "Canonical main contains docs/api/mcp.md linked from docs/api/index.md; fresh initialize/tools/list probe reports protocol 2024-11-05 and all 12 game tools; relative links resolve."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "15e4baec78f03fbb96b16d5601f6d065ad8c932e",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261011T091254.281959Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2, platformdirs-4.13.0\ncollecting ... collected 4492 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [485163 chars omitted \u2014 5317 line(s)] \u2026\ntest_bench_pathfinding_find_path               461.0047 (1.10)           1,702.9233 (1.0)             578.3125 (1.26)            286.0852 (2.76)            500.9351 (1.11)          50.0586 (1.72)           1;3  1,729,168.8771 (0.79)         18           1\ntest_bench_vision_pipeline_validate          5,679.9036 (13.53)         39,502.9783 (23.20)         7,093.1305 (15.44)         1,661.6594 (16.03)         6,300.8629 (13.97)      1,524.5168 (52.38)    6387;2432    140,981.4754 (0.06)      29221           1\ntest_bench_ram_reader_observe            1,673,741.0333 (>1000.0)  164,602,849.8653 (>1000.0)   2,840,740.0260 (>1000.0)  11,236,353.1873 (>1000.0)   1,973,526.0867 (>1000.0)  182,341.9589 (>1000.0)       3;37        352.0209 (0.00)        559           1\ntest_bench_vision_pipeline_process      34,385,005.0122 (>1000.0)   38,630,150.0257 (>1000.0)  35,607,255.0078 (>1000.0)     926,326.6296 (>1000.0)  35,425,232.0249 (>1000.0)  881,689.5424 (>1000.0)        5;2         28.0842 (0.00)         29           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4478 passed, 14 skipped in 311.73s (0:05:11) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261011T091254.281959Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Canonical main contains docs/api/mcp.md linked from docs/api/index.md; fresh initialize/tools/list probe reports protocol 2024-11-05 and all 12 game tools; relative links resolve.: Canonical main (/home/kara/ai_plays_poke, HEAD=main=15e4bae 'docs: document stdio MCP game tools'; git branch --contains 15e4bae => main) contains docs/api/mcp.md (134 lines). docs/api/index.md links it: '| [MCP game tools](mcp.md) | Stdio JSON-RPC MCP interface (scripts/aipp_mcp.py) ...'. Fresh probe `printf initialize+tools/list | .venv/bin/python scripts/aipp_mcp.py` exit=0, empty stderr, output: {\"protocolVersion\": \"2024-11-05\", \"serverInfo\": {\"name\": \"aipp-game\", \"version\": \"1.0.0\"}} and 12 tools exactly matching the doc's expected list (game_observe, game_screenshot, game_press, game_step, game_pause, game_resume, game_save, game_load, game_list_saves, game_delete_save, game_reset, game_health); the doc's embedded assertion script ran and printed 'protocol=2024-11-05; count=12'. Source of truth scripts/aipp_mcp.py: PROTOCOL_VERSION=\"2024-11-05\" (line 42) and 12 tool \"name\" entries (lines 74-175). mcp.md tool table lists all 12 game_* tools (grep count=12). All relative links resolve: mcp.md ../bridge.md -> docs/bridge.md OK; index.md all 18 relative links (game_loop.md, mcp.md, ../bridge.md, examples/*.md, ../../specs/technical_specifications_v5_complete.md, ../../docs/architecture.md, ../../README.md) resolve with 0 missing. [resolution 0.05; docs/api/mcp.md, docs/api/index.md]\ndocs/api/mcp.md exists on canonical main, is linked from docs/api/index.md, the fresh initialize/tools/list probe reports protocol 2024-11-05 with all 12 game tools, and every relative link resolves.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Canonical main contains docs/api/mcp.md linked from docs/api/index.md; fresh initialize/tools/list probe reports protocol 2024-11-05 and all 12 game tools; relative links resolve.: Canonical main (/home/kara/ai_plays_poke, HEAD=main=15e4bae 'docs: document stdio MCP game tools'; git branch --contains 15e4bae => main) contains docs/api/mcp.md (134 lines). docs/api/index.md links it: '| [MCP game tools](mcp.md) | Stdio JSON-RPC MCP interface (scripts/aipp_mcp.py) ...'. Fresh probe `printf initialize+tools/list | .venv/bin/python scripts/aipp_mcp.py` exit=0, empty stderr, output: {\"protocolVersion\": \"2024-11-05\", \"serverInfo\": {\"name\": \"aipp-game\", \"version\": \"1.0.0\"}} and 12 tools exactly matching the doc's expected list (game_observe, game_screenshot, game_press, game_step, game_pause, game_resume, game_save, game_load, game_list_saves, game_delete_save, game_reset, game_health); the doc's embedded assertion script ran and printed 'protocol=2024-11-05; count=12'. Source of truth scripts/aipp_mcp.py: PROTOCOL_VERSION=\"2024-11-05\" (line 42) and 12 tool \"name\" entries (lines 74-175). mcp.md tool table lists all 12 game_* tools (grep count=12). All relative links resolve: mcp.md ../bridge.md -> docs/bridge.md OK; index.md all 18 relative links (game_loop.md, mcp.md, ../bridge.md, examples/*.md, ../../specs/technical_specifications_v5_complete.md, ../../docs/architecture.md, ../../README.md) resolve with 0 missing. [resolution 0.05; docs/api/mcp.md, docs/api/index.md]\ndocs/api/mcp.md exists on canonical main, is linked from docs/api/index.md, the fresh initialize/tools/list probe reports protocol 2024-11-05 with all 12 game tools, and every relative link resolves.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Canonical main contains docs/api/mcp.md linked from docs/api/index.md; fresh initialize/tools/list probe reports protocol 2024-11-05 and all 12 game tools; relative links resolve.",
+                "status": "PASS",
+                "detail": "Canonical main (/home/kara/ai_plays_poke, HEAD=main=15e4bae 'docs: document stdio MCP game tools'; git branch --contains 15e4bae => main) contains docs/api/mcp.md (134 lines). docs/api/index.md links it: '| [MCP game tools](mcp.md) | Stdio JSON-RPC MCP interface (scripts/aipp_mcp.py) ...'. Fresh probe `printf initialize+tools/list | .venv/bin/python scripts/aipp_mcp.py` exit=0, empty stderr, output: {\"protocolVersion\": \"2024-11-05\", \"serverInfo\": {\"name\": \"aipp-game\", \"version\": \"1.0.0\"}} and 12 tools exactly matching the doc's expected list (game_observe, game_screenshot, game_press, game_step, game_pause, game_resume, game_save, game_load, game_list_saves, game_delete_save, game_reset, game_health); the doc's embedded assertion script ran and printed 'protocol=2024-11-05; count=12'. Source of truth scripts/aipp_mcp.py: PROTOCOL_VERSION=\"2024-11-05\" (line 42) and 12 tool \"name\" entries (lines 74-175). mcp.md tool table lists all 12 game_* tools (grep count=12). All relative links resolve: mcp.md ../bridge.md -> docs/bridge.md OK; index.md all 18 relative links (game_loop.md, mcp.md, ../bridge.md, examples/*.md, ../../specs/technical_specifications_v5_complete.md, ../../docs/architecture.md, ../../README.md) resolve with 0 missing. [resolution 0.05; docs/api/mcp.md, docs/api/index.md]",
+                "resolution_probability": 0.05,
+                "cited_path": "docs/api/mcp.md, docs/api/index.md"
+              }
+            ],
+            "summary": "docs/api/mcp.md exists on canonical main, is linked from docs/api/index.md, the fresh initialize/tools/list probe reports protocol 2024-11-05 with all 12 game tools, and every relative link resolves."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DOC-15\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Canonical main contains docs/api/mcp.md linked from docs/api/index.md; fresh initialize/tools/list probe reports protocol 2024-11-05 and all 12 game tools; relative links resolve.: Canonical main (/home/kara/ai_plays_poke, HEAD=main=15e4bae 'docs: document stdio MCP game tools'; git branch --contains 15e4bae => main) contains docs/api/mcp.md (134 lines). docs/api/index.md links it: '| [MCP game tools](mcp.md) | Stdio JSON-RPC MCP interface (scripts/aipp_mcp.py) ...'. Fresh probe `printf initialize+tools/list | .venv/bin/python scripts/aipp_mcp.py` exit=0, empty stderr, output: {\"protocolVersion\": \"2024-11-05\", \"serverInfo\": {\"name\": \"aipp-game\", \"version\": \"1.0.0\"}} and 12 tools exactly matching the doc's expected list (game_observe, game_screenshot, game_press, game_step, game_pause, game_resume, game_save, game_load, game_list_saves, game_delete_save, game_reset, game_health); the doc's embedded assertion script ran and printed 'protocol=2024-11-05; count=12'. Source of truth scripts/aipp_mcp.py: PROTOCOL_VERSION=\"2024-11-05\" (line 42) and 12 tool \"name\" entries (lines 74-175). mcp.md tool table lists all 12 game_* tools (grep count=12). All relative links resolve: mcp.md ../bridge.md -> docs/bridge.md OK; index.md all 18 relative links (game_loop.md, mcp.md, ../bridge.md, examples/*.md, ../../specs/technical_specifications_v5_complete.md, ../../docs/architecture.md, ../../README.md) resolve with 0 missing. [resolution 0.05; docs/api/mcp.md, docs/api/index.md]\ndocs/api/mcp.md exists on canonical main, is linked from docs/api/index.md, the fresh initialize/tools/list probe reports protocol 2024-11-05 with all 12 game tools, and every relative link resolves.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-12T17:17:56.027854",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-12T17:17:56.058036+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 11353,
+        "truncated": false,
+        "source": "git show 15e4baec78f0"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 262176,
+        "truncated": true,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-15"
+  }
+}

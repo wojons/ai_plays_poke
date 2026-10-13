@@ -1,0 +1,26 @@
+commit 9cd9439c96460b41d7fbd1fe4ff8641ad2c9030a
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Mon Oct 12 19:46:23 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Mon Oct 12 19:46:23 2026 -0500
+
+    lint: split imports in bench harness (PERF-6 tier1 E401).
+---
+ scripts/bench_frame_cache.py | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/bench_frame_cache.py b/scripts/bench_frame_cache.py
+index e0fb3a0..0b96978 100644
+--- a/scripts/bench_frame_cache.py
++++ b/scripts/bench_frame_cache.py
+@@ -5,7 +5,9 @@ Usage: .venv/bin/python scripts/bench_frame_cache.py [N]
+ Prints a single elapsed-seconds figure for N unique registrations with
+ MAX_ENTRIES=1000, suitable for hyperfine comparison against the baseline.
+ """
+-import sys, time, os
++import os
++import sys
++import time
+ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+ from src.core.frame_cache import FrameCache  # noqa: E402
+ 

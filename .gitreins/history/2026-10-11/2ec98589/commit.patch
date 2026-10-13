@@ -1,0 +1,60 @@
+commit adb1246c2ea78ec0f132bdc7a96a838c6ef472f0
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sun Oct 11 03:21:01 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sun Oct 11 03:21:01 2026 -0500
+
+    board: T331 bookkeeping — gitreins tasks + E2E fixture console capture
+    
+    ch:trace tick=ai-plays-poke-foreman-2026-10-11-07-45-50
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ .gitreins/tasks.yaml    |  33 +++++++++++++++++++++++++++++++++
+ play_frames/console.png | Bin 2691 -> 2718 bytes
+ 2 files changed, 33 insertions(+)
+
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 16c67b9..59bc1d1 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1462,3 +1462,36 @@ tasks:
+     2.x. Full suite must pass, mypy clean, ruff clean. Document any breaking changes.'
+   status: in_progress
+   created_at: '2026-10-11T07:17:34.484093+00:00'
++- id: NEVER-DONE
++  title: 11-point audit sweep
++  criteria:
++  - 'All 11 audit checks complete with evidence: guard 5/5, full suite pass/skip/fail,
++    mypy 0 errors, ruff clean, TODO/FIXME count, stash empty, no ghost worktrees,
++    gitreins task counts, off-by-one queue status, scheduler health, CI conclusions'
++  status: complete
++  created_at: '2026-10-11T07:51:15.031812+00:00'
++  completed_at: '2026-10-11T08:06:39.532852+00:00'
++- id: DOC-3
++  title: Architecture honesty sweep
++  criteria:
++  - README.md and AGENTS.md no longer claim GOAP/vision-cartographer/3-tier-memory
++    as live architecture; specs/SPEC_STATUS.md exists with per-chapter wired/design-only/dead
++    classification; no foreign DexDat platform content in specs/
++  status: complete
++  created_at: '2026-10-11T07:51:15.330035+00:00'
++  completed_at: '2026-10-11T08:00:23.619827+00:00'
++- id: REL-READY-1
++  title: Release surface prep
++  criteria:
++  - pyproject.toml version matches CHANGELOG.md latest version header; CHANGELOG.md
++    has a [1.0.0] or [Unreleased] section; CI has a version-check step or CONTRIBUTING.md
++    documents pre-release checklist
++  status: in_progress
++  created_at: '2026-10-11T07:51:15.711945+00:00'
++- id: RELEASE-002
++  title: Tag-triggered CI
++  criteria:
++  - '.github/workflows/ci.yml has on: push: tags: [''v*''] trigger; tag push fires
++    the full CI suite'
++  status: in_progress
++  created_at: '2026-10-11T07:51:16.055880+00:00'
+diff --git a/play_frames/console.png b/play_frames/console.png
+index 24a7d0e..ae3a7c6 100644
+Binary files a/play_frames/console.png and b/play_frames/console.png differ

@@ -1,0 +1,120 @@
+{
+  "task_id": "PERF-6",
+  "task_title": "FrameCache LRU heap eviction",
+  "task_criteria": [
+    "FrameCache eviction uses a min-heap instead of full-cache sort; correctness (touch/eviction ordering, persistence) proven by full pytest suite; hyperfine re-measure in-repo shows the heap candidate at least 2x faster than baseline at N=5000."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "9cd9439c96460b41d7fbd1fe4ff8641ad2c9030a",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261012T195800.208949Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, requests-mock-1.12.1, anyio-4.14.2, platformdirs-4.13.0\ncollecting ... collected 4497 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [485613 chars omitted \u2014 5322 line(s)] \u2026\ntest_bench_pathfinding_find_path               742.0313 (1.16)           4,157.8896 (1.0)           1,285.4580 (1.66)          1,028.5557 (2.63)            971.4859 (1.35)           330.1539 (2.75)          1;1    777,932.8556 (0.60)         10           1\ntest_bench_vision_pipeline_validate          6,882.9395 (10.72)        263,337.9772 (63.33)        11,003.4144 (14.20)         3,856.7654 (9.88)         10,779.9424 (14.95)        1,041.6843 (8.69)      335;570     90,880.8817 (0.07)      19904           1\ntest_bench_ram_reader_observe            3,048,217.1569 (>1000.0)  191,077,176.9471 (>1000.0)   4,350,439.1704 (>1000.0)  11,279,907.7815 (>1000.0)   3,573,911.0317 (>1000.0)    417,661.4457 (>1000.0)      1;19        229.8619 (0.00)        277           1\ntest_bench_vision_pipeline_process      60,097,996.8440 (>1000.0)   74,659,092.8175 (>1000.0)  68,270,156.5946 (>1000.0)   3,585,201.1807 (>1000.0)  68,142,049.0146 (>1000.0)  4,223,346.4192 (>1000.0)       4;0         14.6477 (0.00)         15           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4483 passed, 14 skipped in 230.87s (0:03:50) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261012T195800.208949Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 FrameCache eviction uses a min-heap instead of full-cache sort; correctness (touch/eviction ordering, persistence) proven by full pytest suite; hyperfine re-measure in-repo shows the heap candidate at least 2x faster than baseline at N=5000.: Min-heap: src/core/frame_cache.py imports heapq, builds self._lru_heap via heapq.heapify in __init__, uses heapq.heappush in register()/touch(), and _evict() uses heapq.heappop with lazy invalidation (checks last_seen_cycle + order); git show f9d3e91 diff confirms removal of the old `sorted(self._by_hash.values(), key=lambda e: int(e.get('last_seen_cycle',0)))` full-cache sort. Correctness: tests/test_frame_cache.py 14/14 PASSED (touch ordering, eviction ordering, equal-cycle tie-break, stale-heap skip, persistence across instances, loaded-cache rebuild, bounded size). Full suite: `.venv/bin/python -m pytest tests/ -k 'not benchmark' -q` => '4433 passed, 14 skipped, 50 deselected in 214.48s', 0 failed. Hyperfine re-measure at N=5000: `hyperfine --warmup 3 --runs 20 <baseline> <heap>` => baseline 317.2 ms \u00b1 64.0 ms vs heap 50.7 ms \u00b1 1.4 ms, '6.25 \u00b1 1.27 times faster' (>=2x). In-repo artifacts: scripts/bench_frame_cache.py harness + benchmarks/perf6_frame_cache_after.json (heap mean 0.058s); baseline figure documented in commit f9d3e91 (291.6 ms vs 111.1 ms, 2.62x).\nFrameCache now evicts via a lazy-invalidated min-heap (heapq) replacing the full-cache sort, with 14/14 frame-cache tests and the full suite (4433 passed, 0 failed) green and a fresh hyperfine re-measure showing the heap 6.25x faster than baseline at N=5000.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 FrameCache eviction uses a min-heap instead of full-cache sort; correctness (touch/eviction ordering, persistence) proven by full pytest suite; hyperfine re-measure in-repo shows the heap candidate at least 2x faster than baseline at N=5000.: Min-heap: src/core/frame_cache.py imports heapq, builds self._lru_heap via heapq.heapify in __init__, uses heapq.heappush in register()/touch(), and _evict() uses heapq.heappop with lazy invalidation (checks last_seen_cycle + order); git show f9d3e91 diff confirms removal of the old `sorted(self._by_hash.values(), key=lambda e: int(e.get('last_seen_cycle',0)))` full-cache sort. Correctness: tests/test_frame_cache.py 14/14 PASSED (touch ordering, eviction ordering, equal-cycle tie-break, stale-heap skip, persistence across instances, loaded-cache rebuild, bounded size). Full suite: `.venv/bin/python -m pytest tests/ -k 'not benchmark' -q` => '4433 passed, 14 skipped, 50 deselected in 214.48s', 0 failed. Hyperfine re-measure at N=5000: `hyperfine --warmup 3 --runs 20 <baseline> <heap>` => baseline 317.2 ms \u00b1 64.0 ms vs heap 50.7 ms \u00b1 1.4 ms, '6.25 \u00b1 1.27 times faster' (>=2x). In-repo artifacts: scripts/bench_frame_cache.py harness + benchmarks/perf6_frame_cache_after.json (heap mean 0.058s); baseline figure documented in commit f9d3e91 (291.6 ms vs 111.1 ms, 2.62x).\nFrameCache now evicts via a lazy-invalidated min-heap (heapq) replacing the full-cache sort, with 14/14 frame-cache tests and the full suite (4433 passed, 0 failed) green and a fresh hyperfine re-measure showing the heap 6.25x faster than baseline at N=5000.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "FrameCache eviction uses a min-heap instead of full-cache sort; correctness (touch/eviction ordering, persistence) proven by full pytest suite; hyperfine re-measure in-repo shows the heap candidate at least 2x faster than baseline at N=5000.",
+                "status": "PASS",
+                "detail": "Min-heap: src/core/frame_cache.py imports heapq, builds self._lru_heap via heapq.heapify in __init__, uses heapq.heappush in register()/touch(), and _evict() uses heapq.heappop with lazy invalidation (checks last_seen_cycle + order); git show f9d3e91 diff confirms removal of the old `sorted(self._by_hash.values(), key=lambda e: int(e.get('last_seen_cycle',0)))` full-cache sort. Correctness: tests/test_frame_cache.py 14/14 PASSED (touch ordering, eviction ordering, equal-cycle tie-break, stale-heap skip, persistence across instances, loaded-cache rebuild, bounded size). Full suite: `.venv/bin/python -m pytest tests/ -k 'not benchmark' -q` => '4433 passed, 14 skipped, 50 deselected in 214.48s', 0 failed. Hyperfine re-measure at N=5000: `hyperfine --warmup 3 --runs 20 <baseline> <heap>` => baseline 317.2 ms \u00b1 64.0 ms vs heap 50.7 ms \u00b1 1.4 ms, '6.25 \u00b1 1.27 times faster' (>=2x). In-repo artifacts: scripts/bench_frame_cache.py harness + benchmarks/perf6_frame_cache_after.json (heap mean 0.058s); baseline figure documented in commit f9d3e91 (291.6 ms vs 111.1 ms, 2.62x)."
+              }
+            ],
+            "summary": "FrameCache now evicts via a lazy-invalidated min-heap (heapq) replacing the full-cache sort, with 14/14 frame-cache tests and the full suite (4433 passed, 0 failed) green and a fresh hyperfine re-measure showing the heap 6.25x faster than baseline at N=5000."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: PERF-6\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 FrameCache eviction uses a min-heap instead of full-cache sort; correctness (touch/eviction ordering, persistence) proven by full pytest suite; hyperfine re-measure in-repo shows the heap candidate at least 2x faster than baseline at N=5000.: Min-heap: src/core/frame_cache.py imports heapq, builds self._lru_heap via heapq.heapify in __init__, uses heapq.heappush in register()/touch(), and _evict() uses heapq.heappop with lazy invalidation (checks last_seen_cycle + order); git show f9d3e91 diff confirms removal of the old `sorted(self._by_hash.values(), key=lambda e: int(e.get('last_seen_cycle',0)))` full-cache sort. Correctness: tests/test_frame_cache.py 14/14 PASSED (touch ordering, eviction ordering, equal-cycle tie-break, stale-heap skip, persistence across instances, loaded-cache rebuild, bounded size). Full suite: `.venv/bin/python -m pytest tests/ -k 'not benchmark' -q` => '4433 passed, 14 skipped, 50 deselected in 214.48s', 0 failed. Hyperfine re-measure at N=5000: `hyperfine --warmup 3 --runs 20 <baseline> <heap>` => baseline 317.2 ms \u00b1 64.0 ms vs heap 50.7 ms \u00b1 1.4 ms, '6.25 \u00b1 1.27 times faster' (>=2x). In-repo artifacts: scripts/bench_frame_cache.py harness + benchmarks/perf6_frame_cache_after.json (heap mean 0.058s); baseline figure documented in commit f9d3e91 (291.6 ms vs 111.1 ms, 2.62x).\nFrameCache now evicts via a lazy-invalidated min-heap (heapq) replacing the full-cache sort, with 14/14 frame-cache tests and the full suite (4433 passed, 0 failed) green and a fresh hyperfine re-measure showing the heap 6.25x faster than baseline at N=5000.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-13T01:02:14.365126",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-13T01:02:14.430250+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 1021,
+        "truncated": false,
+        "source": "git show 9cd9439c9646"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 45361,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "PERF-6"
+  }
+}

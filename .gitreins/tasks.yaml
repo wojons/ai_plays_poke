@@ -1525,3 +1525,35 @@ tasks:
   status: complete
   created_at: '2026-10-11T21:52:47.007646+00:00'
   completed_at: '2026-10-11T22:05:25.406814+00:00'
+- id: DOC-12
+  title: Add environment service API to the documentation index
+  criteria:
+  - The docs API index links docs/api/env_service.md, and that page's five registered
+    routes are verified against src/env_service.py.
+  status: in_progress
+  created_at: '2026-10-11T23:58:34.497285+00:00'
+- id: CH-OBJ
+  title: Structured objective data and immutable win condition
+  criteria:
+  - Objectives are structured data with types and sequences; the real Viridian/ladders
+    win condition is not model-writable; active objective derives from measured progress;
+    tests prove the contract.
+  status: in_progress
+  created_at: '2026-10-11T23:59:58.447848+00:00'
+- id: DOC-15
+  title: Document stdio MCP game-tool interface
+  criteria:
+  - Canonical main contains docs/api/mcp.md linked from docs/api/index.md; fresh initialize/tools/list
+    probe reports protocol 2024-11-05 and all 12 game tools; relative links resolve.
+  status: complete
+  created_at: '2026-10-12T17:09:14.186080+00:00'
+  completed_at: '2026-10-12T17:09:46.321734+00:00'
+- id: PERF-6
+  title: FrameCache LRU heap eviction
+  criteria:
+  - FrameCache eviction uses a min-heap instead of full-cache sort; correctness (touch/eviction
+    ordering, persistence) proven by full pytest suite; hyperfine re-measure in-repo
+    shows the heap candidate at least 2x faster than baseline at N=5000.
+  status: complete
+  created_at: '2026-10-12T23:45:26.105308+00:00'
+  completed_at: '2026-10-13T00:46:39.635697+00:00'

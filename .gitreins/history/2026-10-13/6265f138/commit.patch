@@ -1,0 +1,12 @@
+commit b1885eebbb038b22194a3d1f9fe886f56d6650a0
+Merge: 359824c f9d3e91
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Mon Oct 12 18:58:16 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Mon Oct 12 18:58:16 2026 -0500
+
+    perf: merge FrameCache heap eviction (PERF-6, worker f9d3e91)
+
+ src/core/frame_cache.py   |  52 +++++++++++++++----
+ tests/test_frame_cache.py | 127 ++++++++++++++++++++++++++++++++++++++--------
+ 2 files changed, 150 insertions(+), 29 deletions(-)

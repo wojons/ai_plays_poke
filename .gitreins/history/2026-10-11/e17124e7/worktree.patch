@@ -1,0 +1,59 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index 59bc1d1..6949a0e 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -896,8 +896,9 @@ tasks:
+     cycle count, --decision-mode jev fast tier) recorded to data/baselines/base1_control_<date>.json
+     with escalations-per-map-transition, wall time, and cycles per episode; a re-run
+     script under scripts/ or docs note; full suite + mypy + ruff green'
+-  status: in_progress
++  status: complete
+   created_at: '2026-09-27T11:43:09.200731+00:00'
++  completed_at: '2026-10-11T08:38:19.650748+00:00'
+ - id: CTRL-WIN
+   title: Measure the controller path head-to-head vs the locked S0 jev baseline
+   criteria:
+@@ -947,8 +948,9 @@ tasks:
+   - mypy scripts/game_bridge.py --ignore-missing-imports passes; the guard's full-tree
+     static_analysis and CI mypy scope are aligned or the discrepancy is explicitly
+     documented
+-  status: in_progress
++  status: complete
+   created_at: '2026-09-30T01:21:32.466045+00:00'
++  completed_at: '2026-10-11T08:41:19.839590+00:00'
+ - id: LOAD-BRIDGE-1
+   title: Bound aipp-bridge connection concurrency
+   criteria:
+@@ -989,8 +991,9 @@ tasks:
+   - The exact-head CI test suite passes all but the TestPlanEntryRowShape JEV miss
+     assertion; update implementation or test so the pipeline assignment contract is
+     correct and the focused test plus repository gates pass.
+-  status: in_progress
++  status: complete
+   created_at: '2026-10-01T20:51:46.793657+00:00'
++  completed_at: '2026-10-11T08:44:20.174360+00:00'
+ - id: VIS-PEOPLE-1
+   title: People-identification prompt with sprite-cell-scored measurement
+   criteria:
+@@ -1460,8 +1463,9 @@ tasks:
+   - 'Batch 4 deferred items from SUP-DEPS-20261009-AIP: pyboy 2.8.x upgrade, openai/streamlit/pandas/matplotlib
+     reconciliation (declared in pyproject but missing from requirements.txt), mcp
+     2.x. Full suite must pass, mypy clean, ruff clean. Document any breaking changes.'
+-  status: in_progress
++  status: complete
+   created_at: '2026-10-11T07:17:34.484093+00:00'
++  completed_at: '2026-10-11T08:47:20.548823+00:00'
+ - id: NEVER-DONE
+   title: 11-point audit sweep
+   criteria:
+@@ -1486,8 +1490,9 @@ tasks:
+   - pyproject.toml version matches CHANGELOG.md latest version header; CHANGELOG.md
+     has a [1.0.0] or [Unreleased] section; CI has a version-check step or CONTRIBUTING.md
+     documents pre-release checklist
+-  status: in_progress
++  status: complete
+   created_at: '2026-10-11T07:51:15.711945+00:00'
++  completed_at: '2026-10-11T08:53:56.298423+00:00'
+ - id: RELEASE-002
+   title: Tag-triggered CI
+   criteria:

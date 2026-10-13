@@ -1,0 +1,16 @@
+commit df50f6c0ebb3124050fb79df0981000a0e5cd4ef
+Merge: f0e1029 cf6c525
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sun Oct 11 17:07:55 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sun Oct 11 17:07:55 2026 -0500
+
+    docs: merge API documentation link repairs — Addresses DOC-16.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ docs/api/battle_state.md       | 2 +-
+ docs/api/game_ai_manager.md    | 6 +++---
+ docs/api/screenshot_manager.md | 2 +-
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
