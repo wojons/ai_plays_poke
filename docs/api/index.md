@@ -36,6 +36,7 @@ This section documents all public APIs and interfaces for PTP-01X - an orchestra
 | [Bridge](../bridge.md) | Live-play bridge (`scripts/game_bridge.py`) — operator input-side inspection of a live emulator; enable/revoke steps and security model |
 | [MCP game tools](mcp.md) | Stdio JSON-RPC MCP interface (`scripts/aipp_mcp.py`) — game-tool discovery, schemas, calls, and bridge prerequisites |
 | [Dashboard](dashboard.md) | Observability dashboard server (`src/dashboard/main.py`) — run instructions, auth, REST + WebSocket route reference |
+| [ptp_cli](ptp_cli.md) | PTP-01X CLI (`src/ptp_cli/`) — invocation, complete flag surface from `flags.py`, validation rules |
 
 ### Examples
 
