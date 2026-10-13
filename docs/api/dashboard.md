@@ -2,7 +2,7 @@
 
 PTP-01X Observability Dashboard — a FastAPI server for real-time monitoring and control of gameplay sessions: session status and metrics, screenshots, command history, and session control (start/pause/resume/stop).
 
-> **Note:** `src/dashboard/run.py` (mentioned in AGENTS.md) does not exist. The server lives entirely in `src/dashboard/main.py`.
+> **Note:** the legacy Streamlit entry point `src/dashboard/run.py` no longer exists. The server lives entirely in `src/dashboard/main.py`.
 
 ## Running
 

@@ -403,10 +403,21 @@ import pdb; pdb.set_trace()
 
 # Use ipdb for better debugging (install: pip install ipdb)
 import ipdb; ipdb.set_trace()
-
-# Use streamlit for runtime visualization (if available)
-streamlit run src/dashboard/run.py
 ```
+
+### Dashboard (runtime visualization)
+
+The observability dashboard is a FastAPI server (`src/dashboard/main.py`), not Streamlit. Run it
+from the repo root with the project venv activated:
+
+```bash
+source .venv/bin/activate
+python3 -m src.dashboard.main   # binds 127.0.0.1:8000 by default
+```
+
+Settings: `PTP_DASHBOARD_HOST` (default `127.0.0.1`), `PTP_DASHBOARD_PORT` (default `8000`), and
+`PTP_API_KEY` for the authenticated routes. See [docs/api/dashboard.md](docs/api/dashboard.md) for
+the route catalog, auth model and WebSocket streams.
 
 ## Performance Guidelines
 
