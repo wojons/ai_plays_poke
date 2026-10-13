@@ -1579,3 +1579,12 @@ tasks:
   status: complete
   created_at: '2026-10-13T07:54:26.280067+00:00'
   completed_at: '2026-10-13T08:07:29.725323+00:00'
+- id: SUP-DEPS-20261013-AIP-RESIDUAL
+  title: Residual outdated deps reconciliation after six-package review
+  criteria:
+  - A committed reconciliation doc classifies all residual outdated packages vs the
+    six already reviewed; only justified candidates updated, tests green (guard 5/5),
+    no bulk upgrades; verdict PASS
+  status: complete
+  created_at: '2026-10-13T09:11:47.313466+00:00'
+  completed_at: '2026-10-13T09:20:28.054044+00:00'
