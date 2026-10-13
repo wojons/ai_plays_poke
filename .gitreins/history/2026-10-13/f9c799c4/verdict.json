@@ -1,0 +1,120 @@
+{
+  "task_id": "DOC-12",
+  "task_title": "Add environment service API to documentation index",
+  "task_criteria": [
+    "docs/api/index.md lists env_service.md with a correct link"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "cbd52396f6a4e855c57cc5ea5658cc614c838108",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261013T161154.184726Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, anyio-4.15.1, requests-mock-1.12.1, platformdirs-4.13.0\ncollecting ... collected 4506 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [486638 chars omitted \u2014 5331 line(s)] \u2026\ntest_bench_pathfinding_find_path               891.9742 (1.75)           3,527.1514 (1.0)           1,344.6668 (1.95)            817.4597 (1.32)            996.9808 (1.78)           370.8992 (1.24)          1;1    743,678.6480 (0.51)         10           1\ntest_bench_vision_pipeline_validate          6,861.9847 (13.43)        746,973.0917 (211.78)        9,893.3598 (14.33)         6,028.3923 (9.72)         10,408.9268 (18.55)        3,586.9889 (11.96)     261;240    101,077.8970 (0.07)      26441           1\ntest_bench_ram_reader_observe            2,237,382.8106 (>1000.0)  223,856,331.0821 (>1000.0)   4,489,056.9651 (>1000.0)  15,504,316.0982 (>1000.0)   3,205,465.5021 (>1000.0)    596,770.2018 (>1000.0)       2;8        222.7639 (0.00)        324           1\ntest_bench_vision_pipeline_process      53,733,587.0322 (>1000.0)   77,014,680.0205 (>1000.0)  63,817,882.7940 (>1000.0)   5,434,477.4830 (>1000.0)  63,905,012.9103 (>1000.0)  6,413,212.6281 (>1000.0)       3;1         15.6696 (0.00)         16           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4492 passed, 14 skipped in 270.93s (0:04:30) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261013T161154.184726Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 docs/api/index.md lists env_service.md with a correct link: docs/api/index.md:39 contains `| [Environment Service](env_service.md) | Environment service API (`src/env_service.py`, uvicorn on port 8765) ... |` (added by commit a980329). Link target verified: resolving env_service.md relative to docs/api/index.md yields docs/api/env_service.md, which EXISTS (4739 bytes). Referenced module src/env_service.py also exists.\ndocs/api/index.md lists env_service.md with a valid, resolving relative link to the existing docs/api/env_service.md page.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 docs/api/index.md lists env_service.md with a correct link: docs/api/index.md:39 contains `| [Environment Service](env_service.md) | Environment service API (`src/env_service.py`, uvicorn on port 8765) ... |` (added by commit a980329). Link target verified: resolving env_service.md relative to docs/api/index.md yields docs/api/env_service.md, which EXISTS (4739 bytes). Referenced module src/env_service.py also exists.\ndocs/api/index.md lists env_service.md with a valid, resolving relative link to the existing docs/api/env_service.md page.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "docs/api/index.md lists env_service.md with a correct link",
+                "status": "PASS",
+                "detail": "docs/api/index.md:39 contains `| [Environment Service](env_service.md) | Environment service API (`src/env_service.py`, uvicorn on port 8765) ... |` (added by commit a980329). Link target verified: resolving env_service.md relative to docs/api/index.md yields docs/api/env_service.md, which EXISTS (4739 bytes). Referenced module src/env_service.py also exists."
+              }
+            ],
+            "summary": "docs/api/index.md lists env_service.md with a valid, resolving relative link to the existing docs/api/env_service.md page."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DOC-12\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 docs/api/index.md lists env_service.md with a correct link: docs/api/index.md:39 contains `| [Environment Service](env_service.md) | Environment service API (`src/env_service.py`, uvicorn on port 8765) ... |` (added by commit a980329). Link target verified: resolving env_service.md relative to docs/api/index.md yields docs/api/env_service.md, which EXISTS (4739 bytes). Referenced module src/env_service.py also exists.\ndocs/api/index.md lists env_service.md with a valid, resolving relative link to the existing docs/api/env_service.md page.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-13T16:18:31.191521",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-13T16:18:31.208924+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 497,
+        "truncated": false,
+        "source": "git show cbd52396f6a4"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 2237,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-12"
+  }
+}

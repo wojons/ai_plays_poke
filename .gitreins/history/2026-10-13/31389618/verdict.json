@@ -1,0 +1,122 @@
+{
+  "task_id": "DOC-11",
+  "task_title": "Replace dead Streamlit dashboard command with FastAPI startup",
+  "task_criteria": [
+    "AGENTS.md and live docs contain no reference to 'streamlit run src/dashboard/run'; the documented dashboard startup is the real FastAPI uvicorn entry"
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "cbd52396f6a4e855c57cc5ea5658cc614c838108",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261013T161154.184726Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, anyio-4.15.1, requests-mock-1.12.1, platformdirs-4.13.0\ncollecting ... collected 4506 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [486634 chars omitted \u2014 5331 line(s)] \u2026\ntest_bench_pathfinding_find_path               772.0664 (1.51)           3,256.1366 (1.0)           1,210.2071 (1.59)           734.5252 (2.15)            981.8468 (1.20)           291.0383 (1.0)           1;1    826,304.8397 (0.63)         10           1\ntest_bench_vision_pipeline_validate          6,633.1122 (12.98)        136,863.9059 (42.03)         9,869.5385 (12.97)        2,310.9623 (6.77)         10,468.9971 (12.75)        3,455.9052 (11.87)    7115;234    101,321.8604 (0.08)      26274           1\ntest_bench_ram_reader_observe            2,187,150.0649 (>1000.0)  163,841,721.1361 (>1000.0)   3,885,762.3080 (>1000.0)  9,696,707.4589 (>1000.0)   3,243,295.9415 (>1000.0)    580,444.8738 (>1000.0)       1;7        257.3498 (0.00)        275           1\ntest_bench_vision_pipeline_process      55,209,249.9565 (>1000.0)   73,946,098.0985 (>1000.0)  64,092,703.6584 (>1000.0)  4,189,434.1061 (>1000.0)  64,649,260.6029 (>1000.0)  5,142,322.5086 (>1000.0)       2;0         15.6024 (0.00)         16           1\n---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4492 passed, 14 skipped in 278.97s (0:04:38) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261013T161154.184726Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 AGENTS.md and live docs contain no reference to 'streamlit run src/dashboard/run'; the documented dashboard startup is the real FastAPI uvicorn entry: AGENTS.md:410-419 now documents the FastAPI server ('The observability dashboard is a FastAPI server (src/dashboard/main.py), not Streamlit') with startup `python3 -m src.dashboard.main`; the dead `streamlit run src/dashboard/run.py` line was removed in commit d45e0d2. Live docs are clean: docs/api/dashboard.md:1,5,13 (FastAPI entry, notes legacy Streamlit run.py no longer exists), docs/api/index.md:38, README.md:704 ('FastAPI dashboard (src.dashboard.main:app)'). `grep -rn 'streamlit run src/dashboard/run' AGENTS.md README.md docs/api/ docs/architecture.md` => NONE. The documented entry is real: src/dashboard/main.py:509-518 contains the uvicorn `__main__` startup (`uvicorn.run(app, host=host, port=port)`), and src/dashboard/run.py does not exist. The only remaining occurrence of the exact string is docs/dependency_review_20261010.md:164, a dated historical dependency-review audit record (2026-10-09 scan, 'Analysis only') that is not a live doc and is not linked from README/index/AGENTS. Docs-only change; no test suite applies. [resolution 0.21; AGENTS.md]\nAGENTS.md and all live docs document the real FastAPI uvicorn dashboard startup with no 'streamlit run src/dashboard/run' reference; the sole residual hit is a dated historical audit record, not a live doc.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 AGENTS.md and live docs contain no reference to 'streamlit run src/dashboard/run'; the documented dashboard startup is the real FastAPI uvicorn entry: AGENTS.md:410-419 now documents the FastAPI server ('The observability dashboard is a FastAPI server (src/dashboard/main.py), not Streamlit') with startup `python3 -m src.dashboard.main`; the dead `streamlit run src/dashboard/run.py` line was removed in commit d45e0d2. Live docs are clean: docs/api/dashboard.md:1,5,13 (FastAPI entry, notes legacy Streamlit run.py no longer exists), docs/api/index.md:38, README.md:704 ('FastAPI dashboard (src.dashboard.main:app)'). `grep -rn 'streamlit run src/dashboard/run' AGENTS.md README.md docs/api/ docs/architecture.md` => NONE. The documented entry is real: src/dashboard/main.py:509-518 contains the uvicorn `__main__` startup (`uvicorn.run(app, host=host, port=port)`), and src/dashboard/run.py does not exist. The only remaining occurrence of the exact string is docs/dependency_review_20261010.md:164, a dated historical dependency-review audit record (2026-10-09 scan, 'Analysis only') that is not a live doc and is not linked from README/index/AGENTS. Docs-only change; no test suite applies. [resolution 0.21; AGENTS.md]\nAGENTS.md and all live docs document the real FastAPI uvicorn dashboard startup with no 'streamlit run src/dashboard/run' reference; the sole residual hit is a dated historical audit record, not a live doc.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "AGENTS.md and live docs contain no reference to 'streamlit run src/dashboard/run'; the documented dashboard startup is the real FastAPI uvicorn entry",
+                "status": "PASS",
+                "detail": "AGENTS.md:410-419 now documents the FastAPI server ('The observability dashboard is a FastAPI server (src/dashboard/main.py), not Streamlit') with startup `python3 -m src.dashboard.main`; the dead `streamlit run src/dashboard/run.py` line was removed in commit d45e0d2. Live docs are clean: docs/api/dashboard.md:1,5,13 (FastAPI entry, notes legacy Streamlit run.py no longer exists), docs/api/index.md:38, README.md:704 ('FastAPI dashboard (src.dashboard.main:app)'). `grep -rn 'streamlit run src/dashboard/run' AGENTS.md README.md docs/api/ docs/architecture.md` => NONE. The documented entry is real: src/dashboard/main.py:509-518 contains the uvicorn `__main__` startup (`uvicorn.run(app, host=host, port=port)`), and src/dashboard/run.py does not exist. The only remaining occurrence of the exact string is docs/dependency_review_20261010.md:164, a dated historical dependency-review audit record (2026-10-09 scan, 'Analysis only') that is not a live doc and is not linked from README/index/AGENTS. Docs-only change; no test suite applies. [resolution 0.21; AGENTS.md]",
+                "resolution_probability": 0.21,
+                "cited_path": "AGENTS.md"
+              }
+            ],
+            "summary": "AGENTS.md and all live docs document the real FastAPI uvicorn dashboard startup with no 'streamlit run src/dashboard/run' reference; the sole residual hit is a dated historical audit record, not a live doc."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DOC-11\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 AGENTS.md and live docs contain no reference to 'streamlit run src/dashboard/run'; the documented dashboard startup is the real FastAPI uvicorn entry: AGENTS.md:410-419 now documents the FastAPI server ('The observability dashboard is a FastAPI server (src/dashboard/main.py), not Streamlit') with startup `python3 -m src.dashboard.main`; the dead `streamlit run src/dashboard/run.py` line was removed in commit d45e0d2. Live docs are clean: docs/api/dashboard.md:1,5,13 (FastAPI entry, notes legacy Streamlit run.py no longer exists), docs/api/index.md:38, README.md:704 ('FastAPI dashboard (src.dashboard.main:app)'). `grep -rn 'streamlit run src/dashboard/run' AGENTS.md README.md docs/api/ docs/architecture.md` => NONE. The documented entry is real: src/dashboard/main.py:509-518 contains the uvicorn `__main__` startup (`uvicorn.run(app, host=host, port=port)`), and src/dashboard/run.py does not exist. The only remaining occurrence of the exact string is docs/dependency_review_20261010.md:164, a dated historical dependency-review audit record (2026-10-09 scan, 'Analysis only') that is not a live doc and is not linked from README/index/AGENTS. Docs-only change; no test suite applies. [resolution 0.21; AGENTS.md]\nAGENTS.md and all live docs document the real FastAPI uvicorn dashboard startup with no 'streamlit run src/dashboard/run' reference; the sole residual hit is a dated historical audit record, not a live doc.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-13T16:19:20.807101",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-13T16:19:20.826177+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 497,
+        "truncated": false,
+        "source": "git show cbd52396f6a4"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 2286,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-11"
+  }
+}

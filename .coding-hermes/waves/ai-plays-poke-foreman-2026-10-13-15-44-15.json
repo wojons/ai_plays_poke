@@ -1,0 +1,10 @@
+{
+  "scheduler_tick_id": "ai-plays-poke-foreman-2026-10-13-15-44-15",
+  "created": "2026-10-13T15:50:00Z",
+  "budget": 3,
+  "tasks": [
+    {"id": "DOC-11", "brief": "/tmp/aip-wave-doc11.md", "worktree": "/home/kara/worktrees/ai-plays-poke-wt-doc-11", "branch": "wt/wt-doc-11"},
+    {"id": "DOC-12", "brief": "/tmp/aip-wave-doc12.md", "worktree": "/home/kara/worktrees/ai-plays-poke-wt-doc-12", "branch": "wt/wt-doc-12"},
+    {"id": "DOC-13", "brief": "/tmp/aip-wave-doc13.md", "worktree": "/home/kara/worktrees/ai-plays-poke-wt-doc-13", "branch": "wt/wt-doc-13"}
+  ]
+}

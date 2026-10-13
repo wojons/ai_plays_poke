@@ -1,0 +1,12 @@
+commit cbd52396f6a4e855c57cc5ea5658cc614c838108
+Merge: 0f0748a d45e0d2
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Tue Oct 13 11:11:59 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Tue Oct 13 11:11:59 2026 -0500
+
+    merge: DOC-11 FastAPI dashboard startup docs (wt/wt-doc-11)
+
+ AGENTS.md             | 15 +++++++++++++--
+ docs/api/dashboard.md |  2 +-
+ 2 files changed, 14 insertions(+), 3 deletions(-)
