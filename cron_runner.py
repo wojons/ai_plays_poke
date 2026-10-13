@@ -973,6 +973,207 @@ class _MemoryNavigationBlockState:
             self._pending_attempt = (tile, route_key, intended)
 
 
+@dataclass(frozen=True)
+class _NavigationObjective:
+    """One immutable step in the harness-owned navigation benchmark."""
+
+    objective_id: str
+    objective_type: str
+    kind: str
+    target_map: str
+    text: str
+
+
+NAVIGATION_OBJECTIVE_SCHEMA_VERSION = 1
+NAVIGATION_OBJECTIVE_SERIALIZED_CHAR_LIMIT = 2_500
+NAVIGATION_OBJECTIVE_OBSERVED_MAP_LIMIT = 8
+NAVIGATION_OBJECTIVE_MAP_NAME_CHAR_LIMIT = 64
+NAVIGATION_OBJECTIVE_SEQUENCE: tuple[_NavigationObjective, ...] = (
+    _NavigationObjective(
+        objective_id="leave_oaks_lab",
+        objective_type="navigation",
+        kind="reach_map",
+        target_map="Pallet Town",
+        text="Leave Oaks Lab and reach Pallet Town.",
+    ),
+    _NavigationObjective(
+        objective_id="reach_route_1",
+        objective_type="navigation",
+        kind="reach_map",
+        target_map="Route 1",
+        text="Travel north from Pallet Town and reach Route 1.",
+    ),
+    _NavigationObjective(
+        objective_id="reach_viridian_city",
+        objective_type="navigation",
+        kind="reach_map",
+        target_map="Viridian City",
+        text="Complete the navigation ladder by reaching Viridian City.",
+    ),
+)
+
+
+def _bounded_map_name(map_name: str, map_id: int | None = None) -> str:
+    """Normalize one observed map name without admitting unbounded model text."""
+    fallback = (
+        f"Map_{map_id:02X}" if isinstance(map_id, int) and map_id >= 0 else "Unknown"
+    )
+    normalized = " ".join(str(map_name or fallback).split())
+    return normalized[:NAVIGATION_OBJECTIVE_MAP_NAME_CHAR_LIMIT] or fallback
+
+
+def _navigation_progress_rank(map_id: int, map_name: str) -> int | None:
+    """Return completed sequence length proven by this observed map."""
+    normalized = re.sub(r"[^a-z0-9]+", " ", map_name.lower()).strip()
+    by_name = {
+        "oaks lab": 0,
+        "oak s lab": 0,
+        "pallet town": 1,
+        "route 1": 2,
+        "viridian city": 3,
+    }
+    if normalized in by_name:
+        return by_name[normalized]
+    # Generation-I map ids are a fallback for observations with no useful name.
+    return {OAKS_LAB_MAP_ID: 0, 0: 1, 12: 2, 1: 3}.get(map_id)
+
+
+@dataclass(frozen=True)
+class _NavigationObjectiveState:
+    """Bounded, serializable benchmark progress derived only from observations.
+
+    The objective sequence and final win condition are module-owned immutable
+    values. Updating progress returns a new frozen state; no controller output is
+    accepted by this type.
+    """
+
+    current_map_id: int | None = None
+    current_map_name: str = ""
+    completed_count: int = 0
+    transitions_observed: int = 0
+    observed_maps: tuple[str, ...] = ()
+
+    @property
+    def sequence(self) -> tuple[_NavigationObjective, ...]:
+        return NAVIGATION_OBJECTIVE_SEQUENCE
+
+    @property
+    def win_condition(self) -> _NavigationObjective:
+        return NAVIGATION_OBJECTIVE_SEQUENCE[-1]
+
+    @property
+    def current_objective(self) -> _NavigationObjective:
+        index = min(self.completed_count, len(self.sequence) - 1)
+        return self.sequence[index]
+
+    @property
+    def complete(self) -> bool:
+        return self.completed_count >= len(self.sequence)
+
+    def observe(self, map_id: int, map_name: str) -> _NavigationObjectiveState:
+        """Return progress updated from one observed map, never from model text."""
+        normalized_name = _bounded_map_name(map_name, map_id)
+        observed = self.observed_maps
+        if normalized_name not in observed:
+            observed = (*observed, normalized_name)[
+                -NAVIGATION_OBJECTIVE_OBSERVED_MAP_LIMIT:
+            ]
+        rank = _navigation_progress_rank(map_id, normalized_name)
+        completed = self.completed_count
+        if rank is not None:
+            completed = max(completed, min(rank, len(self.sequence)))
+        transition_delta = int(
+            self.current_map_id is not None and map_id != self.current_map_id
+        )
+        return _NavigationObjectiveState(
+            current_map_id=map_id,
+            current_map_name=normalized_name,
+            completed_count=completed,
+            transitions_observed=self.transitions_observed + transition_delta,
+            observed_maps=observed,
+        )
+
+    @staticmethod
+    def _objective_projection(
+        objective: _NavigationObjective, status: str
+    ) -> dict[str, str]:
+        return {
+            "id": objective.objective_id,
+            "type": objective.objective_type,
+            "kind": objective.kind,
+            "target_map": objective.target_map,
+            "text": objective.text,
+            "status": status,
+        }
+
+    def projection(self) -> dict[str, Any]:
+        """Return the bounded public structure supplied to every decision path."""
+        sequence = []
+        for index, objective in enumerate(self.sequence):
+            if index < self.completed_count:
+                status = "complete"
+            elif index == min(self.completed_count, len(self.sequence) - 1):
+                status = "complete" if self.complete else "active"
+            else:
+                status = "pending"
+            sequence.append(self._objective_projection(objective, status))
+        current_status = "complete" if self.complete else "active"
+        return {
+            "schema_version": NAVIGATION_OBJECTIVE_SCHEMA_VERSION,
+            "source": "harness",
+            "objective_type": "navigation_benchmark",
+            "harness_owned": True,
+            "win_condition": {
+                **self._objective_projection(self.win_condition, "immutable"),
+                "immutable": True,
+            },
+            "sequence": sequence,
+            "current_objective": self._objective_projection(
+                self.current_objective, current_status
+            ),
+            "progress": {
+                "completed": min(self.completed_count, len(self.sequence)),
+                "total": len(self.sequence),
+                "percent": round(
+                    100
+                    * min(self.completed_count, len(self.sequence))
+                    / len(self.sequence)
+                ),
+                "complete": self.complete,
+                "current_map_id": self.current_map_id,
+                "current_map_name": self.current_map_name[
+                    :NAVIGATION_OBJECTIVE_MAP_NAME_CHAR_LIMIT
+                ],
+                "transitions_observed": self.transitions_observed,
+                "observed_maps": list(
+                    self.observed_maps[-NAVIGATION_OBJECTIVE_OBSERVED_MAP_LIMIT:]
+                ),
+            },
+        }
+
+    def serialize(self) -> str:
+        """Serialize the objective under a hard character ceiling."""
+        encoded = json.dumps(
+            self.projection(), ensure_ascii=True, sort_keys=True, separators=(",", ":")
+        )
+        if len(encoded) > NAVIGATION_OBJECTIVE_SERIALIZED_CHAR_LIMIT:
+            raise ValueError(
+                "navigation objective exceeded its bounded serialization contract: "
+                f"{len(encoded)} > {NAVIGATION_OBJECTIVE_SERIALIZED_CHAR_LIMIT}"
+            )
+        return encoded
+
+    def decision_text(self) -> str:
+        """Bounded structured objective projection for text-only decision APIs."""
+        return f"HARNESS_NAVIGATION_OBJECTIVE={self.serialize()}"
+
+    def legacy_goal(self) -> str:
+        """Human-readable compatibility text derived from the active objective."""
+        if self.complete:
+            return "Viridian City reached; the harness navigation ladder is complete."
+        return self.current_objective.text
+
+
 @dataclass
 class _NavigationHoldState:
     """Run-local map memory that prevents an achieved transition from regressing.
@@ -989,8 +1190,16 @@ class _NavigationHoldState:
     previous_map_name: str = ""
     entry_direction: str = ""
     blocked_return_direction: str = ""
-    goal: str = ""
+    objective_state: _NavigationObjectiveState = field(
+        default_factory=_NavigationObjectiveState
+    )
+    _navigation_instruction: str = ""
     visited_maps: tuple[tuple[int, str], ...] = ()
+
+    @property
+    def goal(self) -> str:
+        """Legacy text derived from harness state, never accepted from the model."""
+        return self._navigation_instruction or self.objective_state.legacy_goal()
 
     def observe(
         self,
@@ -1002,6 +1211,7 @@ class _NavigationHoldState:
         if map_id < 0:
             return None
         normalized_name = map_name or f"Map_{map_id:02X}"
+        self.objective_state = self.objective_state.observe(map_id, normalized_name)
         if self.current_map_id is None:
             self.current_map_id = map_id
             self.current_map_name = normalized_name
@@ -1026,7 +1236,7 @@ class _NavigationHoldState:
             self.visited_maps = (*self.visited_maps, (map_id, normalized_name))
             self.entry_direction = direction
             self.blocked_return_direction = _OPPOSITE_DIR.get(direction, "")
-            self.goal = (
+            self._navigation_instruction = (
                 f"Advance through {normalized_name} toward the next new map; "
                 f"do not return to {source_name}. The {source_name} edge is already completed."
             )
@@ -1036,7 +1246,7 @@ class _NavigationHoldState:
             # pointed at the map from which progress was lost.
             self.entry_direction = ""
             self.blocked_return_direction = ""
-            self.goal = f"Return to {source_name}; entering {normalized_name} again was a regression."
+            self._navigation_instruction = f"Return to {source_name}; entering {normalized_name} again was a regression."
 
         return {
             "event": "navigation_transition",
@@ -1048,6 +1258,7 @@ class _NavigationHoldState:
             "blocked_return_direction": self.blocked_return_direction or None,
             "regression": already_visited,
             "persistent_goal": self.goal,
+            "objective": self.objective_state.projection(),
             "visited_maps": [name for _, name in self.visited_maps],
             "mechanism": "visited_map_edge_memory",
         }
@@ -1064,6 +1275,7 @@ class _NavigationHoldState:
             "blocked_return_direction": self.blocked_return_direction,
             "visited_maps": [name for _, name in self.visited_maps],
             "goal": self.goal,
+            "objective": self.objective_state.projection(),
         }
 
 
@@ -3857,6 +4069,15 @@ def _controller_spatial_summary(spatial_desc: dict[str, Any]) -> str:
         f"SUGGESTED ACTION: {suggested}"
     )
     navigation_hold = spatial_desc.get("navigation_hold")
+    if isinstance(navigation_hold, dict):
+        objective = navigation_hold.get("objective")
+        if isinstance(objective, dict):
+            spatial_summary += (
+                "\nHARNESS NAVIGATION OBJECTIVE (immutable): "
+                + json.dumps(
+                    objective, ensure_ascii=True, sort_keys=True, separators=(",", ":")
+                )
+            )
     if isinstance(navigation_hold, dict) and navigation_hold.get("active"):
         visited_maps = ", ".join(
             str(name) for name in navigation_hold.get("visited_maps") or []
@@ -3909,7 +4130,7 @@ def _controller_system_prompt(*, max_actions: int, boot_memory: str) -> str:
             "- ACTIVE GOAL / RECENT NOTES / LAST DIALOG are injected each cycle.\n"
             "- Optional output fields (JSON only):\n"
             '  "note": a fact you just learned (NPC info, map info, objective, mechanic).\n'
-            '  "goal": your current objective — include it when it changes or is new.\n'
+            '  "goal": an optional advisory intent; it cannot change the harness objective.\n'
             '  "study": a memory key to read next cycle, e.g. "/maps/oaks-lab" or "/guides/how-battles-work".\n'
             "- Use note/goal/study when you learn something — memory is how you win.\n"
             "- NEVER guess: read text, note what it says, act on it.\n"
@@ -3918,7 +4139,8 @@ def _controller_system_prompt(*, max_actions: int, boot_memory: str) -> str:
             "/game/mechanics/* (the game itself; survives save resets).\n"
             '- "note" → /notes/overworld-<cycle>, this run\'s lessons, and '
             "/game/learning/<navigation|battle|strategy>.\n"
-            '- "goal" → /goals/current + this run\'s lessons (your current intent).\n'
+            '- "goal" → /goals/current + this run\'s lessons as legacy advisory memory; '
+            "the harness-owned navigation objective remains authoritative.\n"
         )
     )
     if boot_memory:
@@ -6086,17 +6308,27 @@ def _process_memory_goal(
     results: list[dict[str, Any]],
     log_file: TextIO,
 ) -> str:
-    """Persist the agent's current goal and log the memory_goal event."""
+    """Persist a legacy model goal as advisory memory, not benchmark authority."""
     mem_goal = new_goal[:200]
     try:
         duckbrain_client.remember(
             key="/goals/current",
             domain="goal",
-            attributes={"goal": mem_goal, "source": "agent"},
+            attributes={
+                "goal": mem_goal,
+                "source": "agent",
+                "authoritative": False,
+                "authority": "model_advisory",
+            },
             embedding_text=f"Current goal: {mem_goal}",
         )
-        safe_print(f"  [MEM] goal: {mem_goal[:80]}")
-        evt = {"cycle": cycle, "event": "memory_goal", "goal": mem_goal}
+        safe_print(f"  [MEM] advisory goal: {mem_goal[:80]}")
+        evt = {
+            "cycle": cycle,
+            "event": "memory_goal",
+            "goal": mem_goal,
+            "authoritative": False,
+        }
         _append_event(evt, results=results, log_file=log_file)
     except Exception as _e:
         safe_print(f"  [MEM] goal failed: {_e}")
@@ -7578,7 +7810,7 @@ def _handle_navigation_transition(S, cycle, st, patch_data, current_tile, map_id
 
 
 def _cycle_world_and_goal(S, cycle, patch_data, map_id, transition):
-    """Populate world memory and seed the default exploration goal (GAP-038)."""
+    """Populate world memory and refresh the harness-derived legacy goal text."""
     # S2 world memory: retrieve facts already present at cycle start,
     # then persist this observation. The ordering makes next-cycle use
     # observable in the JEV projection.
@@ -7595,19 +7827,11 @@ def _cycle_world_and_goal(S, cycle, patch_data, map_id, transition):
         transition=transition,
     )
 
-    # ── Default exploration goal (GAP-038) ──────────────
-    # Fresh boot states (no stored DuckBrain goal) leave the
-    # controller with an empty goal; seed a context-aware
-    # default so the agent doesn't wander aimlessly.
-    if not S._mem_goal:
-        if map_id == OAKS_LAB_MAP_ID:
-            S._mem_goal = (
-                "Leave Oaks Lab and head toward Route 1 to begin your Pokemon journey."
-            )
-        else:
-            S._mem_goal = (
-                "Explore the current area and look for exits or points of interest."
-            )
+    # Keep the old string surface for logs/prompts, but derive it solely from
+    # observed objective/navigation state. Stored or model-written goals never
+    # become the benchmark objective.
+    del map_id
+    S._mem_goal = S._navigation_state.goal
     return _world_facts
 
 
@@ -7808,6 +8032,9 @@ def _overworld_cycle(S, cycle, header, t0):
                 pending_study_result=S._pending_study_result,
             )
         )
+        # ``decision.goal`` remains recorded for old runs and analytics, but the
+        # live decision surface is always reset to harness-derived objective text.
+        S._mem_goal = S._navigation_state.goal
 
     # ── Programmatic direction override ───────────────
     # Chain-rotate through blacklist. If ALL 4 directions
@@ -8170,7 +8397,7 @@ def _ow_jev_attempt(S, header):
     """
     _jev_attempt = _jev_or_none(
         header["patch_data"],
-        goal=S._mem_goal,
+        goal=S._navigation_state.objective_state.decision_text(),
         visited=S._tile_visits,
         recent_events=S.results,
         recent_decisions=S._recent_decisions,
@@ -8233,6 +8460,7 @@ def _ow_decide(S, cycle, header, vision_frame, frame_ref):
     controller_spatial = {
         **header["patch_data"],
         "navigation_hold": navigation_context,
+        "navigation_objective": S._navigation_state.objective_state.projection(),
     }
 
     _jev_attempt = _ow_jev_attempt(S, header)
@@ -8289,7 +8517,7 @@ def _ow_decide(S, cycle, header, vision_frame, frame_ref):
                     if USE_RAM_READER
                     else lambda: dict(header["patch_data"])
                 ),
-                projection=header["patch_data"],
+                projection=controller_spatial,
                 context=S._agent_context,
                 memory=S._agent_memory,
                 delegate=S._research_delegate,
@@ -8318,7 +8546,7 @@ def _ow_decide(S, cycle, header, vision_frame, frame_ref):
                 max_actions=CART_STEPS,
                 screenshot=vision_frame,  # None on cache hit → no image cost
                 frame_ref=frame_ref,  # UUID text ref on cache hit
-                goal=S._mem_goal,
+                goal=S._navigation_state.goal,
                 notes=" | ".join(S._mem_notes[:6])[:300],
                 last_dialog=S._last_dialog_text,
                 study_result=S._pending_study_result,

@@ -34,6 +34,7 @@ _PUBLIC_PROJECTION_FIELDS = frozenset(
         "text_lines",
         "visible_exits",
         "adjacent",
+        "navigation_objective",
     }
 )
 
