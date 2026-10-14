@@ -24,7 +24,7 @@ anthropic>=0.117.0
 # Core Dependencies
 numpy>=1.26.4
 Pillow>=10.4.0
-pydantic>=2.13.5
+pydantic>=2.14.1
 python-dotenv>=1.2.4
 tqdm>=4.70.1
 PyYAML>=6.0.3

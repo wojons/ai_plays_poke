@@ -13,5 +13,5 @@ fastapi>=0.104.0
 black>=26.10.0
 mypy>=2.4.0
 flake8>=7.4.1
-pre-commit>=3.0
+pre-commit>=4.7.0
 python-lsp-server>=1.13.0
