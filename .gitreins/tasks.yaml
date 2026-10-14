@@ -1501,14 +1501,6 @@ tasks:
   status: complete
   created_at: '2026-10-11T07:51:16.055880+00:00'
   completed_at: '2026-10-11T08:57:49.487899+00:00'
-- id: DOC-11
-  title: Replace dead dashboard command
-  criteria:
-  - AGENTS.md has no src/dashboard/run.py reference, documents python3 -m src.dashboard.main,
-    links docs/api/dashboard.md, and dashboard health route verification is recorded.
-  status: complete
-  created_at: '2026-10-11T21:39:53.766676+00:00'
-  completed_at: '2026-10-11T22:04:54.510478+00:00'
 - id: DOC-14
   title: Refresh GameAIManager model docs
   criteria:
@@ -1525,13 +1517,6 @@ tasks:
   status: complete
   created_at: '2026-10-11T21:52:47.007646+00:00'
   completed_at: '2026-10-11T22:05:25.406814+00:00'
-- id: DOC-12
-  title: Add environment service API to the documentation index
-  criteria:
-  - The docs API index links docs/api/env_service.md, and that page's five registered
-    routes are verified against src/env_service.py.
-  status: in_progress
-  created_at: '2026-10-11T23:58:34.497285+00:00'
 - id: CH-OBJ
   title: Structured navigation objectives (harness-owned)
   criteria:

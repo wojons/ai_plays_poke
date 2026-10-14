@@ -634,3 +634,4 @@
 {"seq": 543, "ts": "2026-10-13T16:30:00Z", "task_id": "DOC-11", "type": "completed", "actor": "foreman", "note": "wave worker wt/wt-doc-11; AGENTS.md+docs/api/dashboard.md FastAPI startup; merged cbd5239; gitreins tier2 PASS (31389618)"}
 {"seq": 544, "ts": "2026-10-13T16:30:00Z", "task_id": "DOC-12", "type": "completed", "actor": "foreman", "note": "wave worker wt/wt-doc-12; index.md env_service row; merged a980329; gitreins tier2 PASS (f9c799c4)"}
 {"seq": 545, "ts": "2026-10-13T16:30:00Z", "task_id": "DOC-13", "type": "completed", "actor": "foreman", "note": "wave worker wt/wt-doc-13; docs/api/ptp_cli.md + index row; merged 0f0748a; foreman-verified (gitreins tier2 verdict missing, task deleted early)"}
+{"id": 543, "timestamp": "2026-10-13 17:35:23.168187", "event_type": "task_created", "task_id": "SUP-DEPS-20261013-AIP-FOLLOWUP", "actor": "foreman", "detail": "{\"id\":\"SUP-DEPS-20261013-AIP-FOLLOWUP\",\"status\":\"pending\"}", "tick_number": null}
