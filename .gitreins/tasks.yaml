@@ -1573,3 +1573,20 @@ tasks:
   status: complete
   created_at: '2026-10-13T09:11:47.313466+00:00'
   completed_at: '2026-10-13T09:20:28.054044+00:00'
+- id: SUP-DEPS-20261013-AIP-FOLLOWUP
+  title: Reconcile 20 outdated Python distributions
+  criteria:
+  - 'AC1: pip list --outdated count < 20. AC2: dep-reconciliation-20261014.md exists
+    with 20 rows classified. AC3: pytest -x exits 0. AC4: no forced pin overrides.'
+  status: complete
+  created_at: '2026-10-14T00:45:11.566023+00:00'
+  completed_at: '2026-10-14T01:10:49.955084+00:00'
+- id: T338-BOOKKEEP
+  title: Board close SUP-DEPS-20261013-AIP-FOLLOWUP + ARM-1 evidence refresh
+  criteria:
+  - tasks.jsonl shows FOLLOWUP complete with foreman_note citing b83e7db; ARM-1 carries
+    llm2 hold-rate note; events.jsonl has the T338 event; diff touches exactly those
+    2 rows
+  status: complete
+  created_at: '2026-10-14T12:18:50.930525+00:00'
+  completed_at: '2026-10-14T12:22:35.047811+00:00'
