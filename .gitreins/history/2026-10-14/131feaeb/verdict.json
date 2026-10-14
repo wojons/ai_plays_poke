@@ -1,0 +1,120 @@
+{
+  "task_id": "T338-BOOKKEEP",
+  "task_title": "Board close SUP-DEPS-20261013-AIP-FOLLOWUP + ARM-1 evidence refresh",
+  "task_criteria": [
+    "tasks.jsonl shows FOLLOWUP complete with foreman_note citing b83e7db; ARM-1 carries llm2 hold-rate note; events.jsonl has the T338 event; diff touches exactly those 2 rows"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "94ec7c8642fa9d9eb68f610a8a8af2ce8c411a31",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261014T122217.430058Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n7:22AM INF scanned ~355552412 bytes (355.55 MB) in 17.3s\n7:22AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 99435 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261014T122217.430058Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, anyio-4.15.1, requests-mock-1.12.1, platformdirs-4.13.0\ncollecting ... collected 4506 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [486638 chars omitted \u2014 5331 line(s)] \u2026\ntest_bench_pathfinding_find_path               671.9492 (1.10)           2,254.0335 (1.0)             861.6092 (1.18)            443.0472 (1.65)            711.5304 (1.00)           100.0008 (2.50)          1;1  1,160,618.9914 (0.85)         12           1\ntest_bench_vision_pipeline_validate          6,471.9934 (10.59)         48,750.0802 (21.63)         8,267.1719 (11.27)         1,893.7808 (7.07)          7,183.0582 (10.11)        2,974.8771 (74.28)    4624;222    120,960.3499 (0.09)      26711           1\ntest_bench_ram_reader_observe            1,922,480.9948 (>1000.0)  165,177,521.9943 (>1000.0)   3,157,991.2356 (>1000.0)  10,298,227.4441 (>1000.0)   2,328,488.0444 (>1000.0)    421,581.0914 (>1000.0)      2;20        316.6570 (0.00)        450           1\ntest_bench_vision_pipeline_process      41,544,225.9982 (>1000.0)   63,935,544.1090 (>1000.0)  49,029,329.9469 (>1000.0)   6,319,187.0289 (>1000.0)  46,857,748.8791 (>1000.0)  5,149,098.3460 (>1000.0)       4;3         20.3960 (0.00)         21           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4492 passed, 14 skipped in 208.30s (0:03:28) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261014T122217.430058Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 tasks.jsonl shows FOLLOWUP complete with foreman_note citing b83e7db; ARM-1 carries llm2 hold-rate note; events.jsonl has the T338 event; diff touches exactly those 2 rows: Commit 94ec7c8 satisfies all four sub-requirements. (1) .coding-hermes/board/tasks.jsonl:269 \u2014 SUP-DEPS-20261013-AIP-FOLLOWUP has status=complete and foreman_note 'T338 bookkeeping close: real work landed 2026-10-14 00:45 in commit b83e7db (4 upgraded, 22 classified, tests 4492 passed, CI green, pushed)'. (2) tasks.jsonl:174 \u2014 ARM-1 foreman_note 'T338 evidence refresh for option (c): ... cron_logs/long_run_long_0927_llm2_episodes.jsonl = 28 episodes: 26 reach Route 1 (final_map), 1 reaches Viridian City, 1 stalls in Pallet Town. That is the llm2 hold-rate the row asked for'. (3) .coding-hermes/board/events.jsonl:639 \u2014 id 547, event_type task_completed, task_id SUP-DEPS-20261013-AIP-FOLLOWUP, detail tick=T338. (4) git show 94ec7c8 --stat = exactly 2 files (events.jsonl +2, tasks.jsonl 4 ++--); tasks.jsonl diff contains exactly 2 changed rows (ARM-1 and FOLLOWUP, each 1 minus/1 plus). Witness confirmed: git merge-base --is-ancestor b83e7db HEAD returns true. No test suite applies to this bookkeeping-only change (board JSONL edits).\nCommit 94ec7c8 flips the FOLLOWUP row to complete with a b83e7db-citing foreman_note, refreshes ARM-1 with the llm2 hold-rate evidence, appends the T338 event (id 547), and touches exactly those 2 rows.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 tasks.jsonl shows FOLLOWUP complete with foreman_note citing b83e7db; ARM-1 carries llm2 hold-rate note; events.jsonl has the T338 event; diff touches exactly those 2 rows: Commit 94ec7c8 satisfies all four sub-requirements. (1) .coding-hermes/board/tasks.jsonl:269 \u2014 SUP-DEPS-20261013-AIP-FOLLOWUP has status=complete and foreman_note 'T338 bookkeeping close: real work landed 2026-10-14 00:45 in commit b83e7db (4 upgraded, 22 classified, tests 4492 passed, CI green, pushed)'. (2) tasks.jsonl:174 \u2014 ARM-1 foreman_note 'T338 evidence refresh for option (c): ... cron_logs/long_run_long_0927_llm2_episodes.jsonl = 28 episodes: 26 reach Route 1 (final_map), 1 reaches Viridian City, 1 stalls in Pallet Town. That is the llm2 hold-rate the row asked for'. (3) .coding-hermes/board/events.jsonl:639 \u2014 id 547, event_type task_completed, task_id SUP-DEPS-20261013-AIP-FOLLOWUP, detail tick=T338. (4) git show 94ec7c8 --stat = exactly 2 files (events.jsonl +2, tasks.jsonl 4 ++--); tasks.jsonl diff contains exactly 2 changed rows (ARM-1 and FOLLOWUP, each 1 minus/1 plus). Witness confirmed: git merge-base --is-ancestor b83e7db HEAD returns true. No test suite applies to this bookkeeping-only change (board JSONL edits).\nCommit 94ec7c8 flips the FOLLOWUP row to complete with a b83e7db-citing foreman_note, refreshes ARM-1 with the llm2 hold-rate evidence, appends the T338 event (id 547), and touches exactly those 2 rows.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "tasks.jsonl shows FOLLOWUP complete with foreman_note citing b83e7db; ARM-1 carries llm2 hold-rate note; events.jsonl has the T338 event; diff touches exactly those 2 rows",
+                "status": "PASS",
+                "detail": "Commit 94ec7c8 satisfies all four sub-requirements. (1) .coding-hermes/board/tasks.jsonl:269 \u2014 SUP-DEPS-20261013-AIP-FOLLOWUP has status=complete and foreman_note 'T338 bookkeeping close: real work landed 2026-10-14 00:45 in commit b83e7db (4 upgraded, 22 classified, tests 4492 passed, CI green, pushed)'. (2) tasks.jsonl:174 \u2014 ARM-1 foreman_note 'T338 evidence refresh for option (c): ... cron_logs/long_run_long_0927_llm2_episodes.jsonl = 28 episodes: 26 reach Route 1 (final_map), 1 reaches Viridian City, 1 stalls in Pallet Town. That is the llm2 hold-rate the row asked for'. (3) .coding-hermes/board/events.jsonl:639 \u2014 id 547, event_type task_completed, task_id SUP-DEPS-20261013-AIP-FOLLOWUP, detail tick=T338. (4) git show 94ec7c8 --stat = exactly 2 files (events.jsonl +2, tasks.jsonl 4 ++--); tasks.jsonl diff contains exactly 2 changed rows (ARM-1 and FOLLOWUP, each 1 minus/1 plus). Witness confirmed: git merge-base --is-ancestor b83e7db HEAD returns true. No test suite applies to this bookkeeping-only change (board JSONL edits).",
+                "resolution_probability": 0.07
+              }
+            ],
+            "summary": "Commit 94ec7c8 flips the FOLLOWUP row to complete with a b83e7db-citing foreman_note, refreshes ARM-1 with the llm2 hold-rate evidence, appends the T338 event (id 547), and touches exactly those 2 rows."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: T338-BOOKKEEP\n\nStage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 tasks.jsonl shows FOLLOWUP complete with foreman_note citing b83e7db; ARM-1 carries llm2 hold-rate note; events.jsonl has the T338 event; diff touches exactly those 2 rows: Commit 94ec7c8 satisfies all four sub-requirements. (1) .coding-hermes/board/tasks.jsonl:269 \u2014 SUP-DEPS-20261013-AIP-FOLLOWUP has status=complete and foreman_note 'T338 bookkeeping close: real work landed 2026-10-14 00:45 in commit b83e7db (4 upgraded, 22 classified, tests 4492 passed, CI green, pushed)'. (2) tasks.jsonl:174 \u2014 ARM-1 foreman_note 'T338 evidence refresh for option (c): ... cron_logs/long_run_long_0927_llm2_episodes.jsonl = 28 episodes: 26 reach Route 1 (final_map), 1 reaches Viridian City, 1 stalls in Pallet Town. That is the llm2 hold-rate the row asked for'. (3) .coding-hermes/board/events.jsonl:639 \u2014 id 547, event_type task_completed, task_id SUP-DEPS-20261013-AIP-FOLLOWUP, detail tick=T338. (4) git show 94ec7c8 --stat = exactly 2 files (events.jsonl +2, tasks.jsonl 4 ++--); tasks.jsonl diff contains exactly 2 changed rows (ARM-1 and FOLLOWUP, each 1 minus/1 plus). Witness confirmed: git merge-base --is-ancestor b83e7db HEAD returns true. No test suite applies to this bookkeeping-only change (board JSONL edits).\nCommit 94ec7c8 flips the FOLLOWUP row to complete with a b83e7db-citing foreman_note, refreshes ARM-1 with the llm2 hold-rate evidence, appends the T338 event (id 547), and touches exactly those 2 rows.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-10-14T12:26:53.729842",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-14T12:26:53.767330+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 30669,
+        "truncated": false,
+        "source": "git show 94ec7c8642fa"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1111,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "T338-BOOKKEEP"
+  }
+}

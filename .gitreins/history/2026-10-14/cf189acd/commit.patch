@@ -1,0 +1,136 @@
+commit d8efb95ba27d168f84d7a145eabbb246e0a6f663
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Wed Oct 14 13:51:19 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Wed Oct 14 13:51:19 2026 -0500
+
+    deps: SUP-DEPS-20261014-AIP-FOLLOWUP reconciliation (2 upgraded, 19 classified)
+    
+    Fresh `.venv/bin/python -m pip list --outdated` reports 21 entries after the
+    2026-10-13 chain (6e39400 review, d7d7bba residual, b83e7db followup). All 21
+    classified in docs/dependency_reconcile_20261014.md against the prior docs and
+    board rows.
+    
+    Upgraded (targeted `uv pip install --python .venv/bin/python`, one transaction,
+    no uv sync, no force flags, no pin changes):
+      fastapi           0.143.0 -> 0.143.1  direct; patch; 0.143.1 METADATA verified
+                        (starlette>=0.46.0 open bound, pydantic>=2.9.0 both satisfied)
+      pydantic-settings 2.15.0  -> 2.16.0   minor inside litellm's declared range
+                        >=2.14.1,<3.0 (verified from litellm 1.104.2 METADATA) — not cap-blocked
+    
+    Held (8): anthropic 0->1 major needs live-call smoke; websockets 16->17 major
+    needs live WS smoke; starlette doctrine-held (open bound under fastapi, five
+    minors beneath every dashboard route); openai/filelock/huggingface_hub/
+    importlib_metadata majors capped by the litellm orphan; fsspec at the datasets
+    orphan's <=2026.7.0 ceiling.
+    Orphan-chain (9): litellm, boto3/botocore, altair, narwhals, contourpy,
+    fonttools, cachebox, GitPython (newly listed) — undeclared orphans or their
+    subtrees; the venv rebuild removes them, never upgraded individually.
+    N/A (2): pyboy self-blocked by pin <2.8.0 (STATE_VERSION 29, no migration);
+    ruff intentionally pinned 0.15.22 (CI parity).
+    
+    Verification: pip check clean; ruff check . PASS; mypy src/
+    --ignore-missing-imports 0 errors (69 files); full suite
+    .venv/bin/pytest tests/ -x --tb=short -q = 4492 passed / 14 skipped
+    (218.69s) — identical to the pre-change baseline.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+---
+ docs/dependency_reconcile_20261014.md | 89 +++++++++++++++++++++++++++++++++++
+ 1 file changed, 89 insertions(+)
+
+diff --git a/docs/dependency_reconcile_20261014.md b/docs/dependency_reconcile_20261014.md
+new file mode 100644
+index 0000000..921fafa
+--- /dev/null
++++ b/docs/dependency_reconcile_20261014.md
+@@ -0,0 +1,89 @@
++# Dependency Reconciliation — 2026-10-14 (SUP-DEPS-20261014-AIP-FOLLOWUP)
++
++Follow-up to the 2026-10-13 chain: `dependency_review_20261013.md` (SUP-DEPS-20261013-AIP,
++6e39400), `dependency_residual_20261013.md` (SUP-DEPS-20261013-AIP-RESIDUAL, d7d7bba) and the
++FOLLOWUP batch (`b83e7db`, classified in `.coding-hermes/board/dep-reconciliation-20261014.md`).
++
++**Surface:** `.venv/` (Python 3.13.13) — the authoritative test env (`test_command` runs
++`./.venv/bin/pytest`). Scan: `.venv/bin/python -m pip list --outdated` → **21 entries**.
++
++**Method:** targeted `uv pip install --python .venv/bin/python <pkg>==<ver>` only (no `uv sync`,
++no force flags, no pin changes); `pip check` after the batch; `ruff check .`; `mypy src/
++--ignore-missing-imports`; full suite `.venv/bin/pytest tests/ -x --tb=short -q` (4492-passed
++baseline expected). Every verdict carries a reason; nothing silently skipped.
++
++## Result
++
++**2 upgraded, 8 held, 9 orphan-chain, 2 N/A (pin) = 21.** Scan after the batch: 19 remaining
++(21 − 2 upgraded).
++
++## Reconciliation table
++
++All 21 entries in `pip list --outdated` order. Classification rules as in the prior reviews:
++orphan = undeclared everywhere (`Required-by:` empty, absent from `requirements*.txt` /
++`pyproject.toml` / `uv.lock`, 0 static imports); transitive-of-orphan = only parent is an orphan.
++
++| # | Package | Installed → Latest | Verdict | Reason |
++|---|---|---|---|---|
++| 1 | altair | 6.2.2 → 6.3.0 | orphan-chain | Undeclared orphan root (matplotlib/streamlit-era leftover), 0 imports; the venv rebuild removes it — never polished individually. |
++| 2 | anthropic | 0.122.0 → 1.14.0 | held | MAJOR 0→1 (latest moved 1.13.0→1.14.0 since the 10-13 review). Imported by `src/core/ai_client.py:52`, drives a live LLM endpoint — a green unit suite cannot prove the endpoint answers; needs its own verify row with a live-call smoke. |
++| 3 | boto3 | 1.43.112 → 1.43.113 | orphan-chain | Sole installed parent is litellm (undeclared orphan); 0 project imports; pair-locked to botocore. Servicing the orphan's subtree is not maintenance the project asked for. |
++| 4 | botocore | 1.43.112 → 1.43.113 | orphan-chain | Same chain as boto3 (Required-by boto3/s3transfer, which exist only for litellm); 0 imports. |
++| 5 | cachebox | 5.2.3 → 6.2.8 | orphan-chain | Only parent is deepdiff (both orphans); MAJOR 5→6; prior doctrine: delete with the rebuild, never upgrade. |
++| 6 | contourpy | 1.3.3 → 1.4.0 | orphan-chain | Orphan root (matplotlib era), 0 imports; rebuild removes it. |
++| 7 | fastapi | 0.143.0 → 0.143.1 | **upgraded** | DIRECT (`fastapi>=0.142.2`); pure patch release; verified 0.143.1's METADATA keeps `starlette>=0.46.0` (open bound, installed 1.3.1 satisfies) and `pydantic>=2.9.0` (2.14.1 satisfies); 4 import sites gated by `tests/test_dashboard.py` + full suite. |
++| 8 | filelock | 3.32.7 → 4.1.2 | held | MAJOR 3→4 (latest moved 4.1.1→4.1.2); litellm (orphan) caps `filelock<4.0` — upgrading would break the installed orphan's resolver contract. Unblocks via venv rebuild. |
++| 9 | fonttools | 4.63.0 → 4.67.0 | orphan-chain | Orphan root, 0 imports (latest moved 4.66.1→4.67.0 since the prior doc). |
++| 10 | fsspec | 2026.7.0 → 2026.9.0 | held | datasets (orphan) declares `fsspec[http]<=2026.7.0` — installed version sits exactly at the orphan's ceiling; ceiling disappears with the rebuild. |
++| 11 | GitPython | 3.2.0 → 3.2.1 | orphan-chain | NEW vs b83e7db's 22-row table: `Required-by:` empty, undeclared in all manifest files (requirements.txt:46 documents it as streamlit's dropped subtree), 0 static imports. Orphan-chain — rebuild removes it. |
++| 12 | huggingface_hub | 1.33.0 → 2.2.0 | held | MAJOR 1→2; litellm (orphan) caps `huggingface-hub<2.0`. |
++| 13 | importlib_metadata | 8.9.0 → 9.0.1 | held | MAJOR 8→9; litellm (orphan) caps `importlib-metadata<9.0`. |
++| 14 | litellm | 1.104.2 → 1.105.1 | orphan-chain | The cap source itself: undeclared orphan (0 hits in every manifest, 0 imports) whose metadata caps openai/filelock/huggingface_hub/importlib_metadata at majors below latest. Correct handling is removal in the venv rebuild, not a bump — do not upgrade the blocker (latest moved 1.105.0→1.105.1 since the prior doc). |
++| 15 | narwhals | 2.24.0 → 2.27.1 | orphan-chain | Transitive of altair (orphan chain), 0 imports. |
++| 16 | openai | 2.54.0 → 3.31.0 | held | MAJOR 2→3 (latest moved 3.29.0→3.31.0); litellm (orphan) caps `openai<3.0.0`. Not imported by project code (OpenRouter model-name strings only, per requirements.txt:43-44). |
++| 17 | pyboy | 2.7.0 → 2.8.1 | N/A | Self-blocked by the project's own pin `pyboy>=1.0.0,<2.8.0` (requirements.txt:18): 2.8.x renumbers logging constants and bumps save-state STATE_VERSION to 29 with no migration — would break the 10 tracked `*.state` files and the md5-pinned boot states. Needs a state-migration row, not a bump. |
++| 18 | pydantic-settings | 2.15.0 → 2.16.0 | **upgraded** | NEW vs b83e7db's table. Present only via litellm (orphan), BUT the move is verified compatible: litellm 1.104.2 METADATA declares `pydantic-settings>=2.14.1,<3.0` — 2.16.0 is inside the range; minor inside 2.x; 0 project imports; `pip check` clean; full suite green. Upgrading a satisfied-range minor does not touch any cap. |
++| 19 | ruff | 0.15.22 → 0.17.0 | N/A | Intentionally pinned: CI installs `ruff==0.15.22` (`.github/workflows/ci.yml:82`) and the 0.15.22 hold is documented lint-gate doctrine; bumping the venv alone would desync local lint from CI. |
++| 20 | starlette | 1.3.1 → 1.8.0 | held | Transitive under fastapi; fastapi (incl. 0.143.1, verified from its wheel METADATA) declares only `starlette>=0.46.0` — an OPEN upper bound, so this is doctrine-held, not cap-held: five minors under every dashboard route with no live dashboard-boot/WS proof; deserves its own verify row. |
++| 21 | websockets | 16.1.1 → 17.2 | held | MAJOR 16→17 (direct, `websockets>=12.0` so constraint-compatible) under the ASGI/WS layer with 0 static imports — the suite cannot prove the dashboard's WS handshake; needs a live WS smoke row. |
++
++| Verdict | Count |
++|---|---|
++| upgraded | 2 |
++| held | 8 |
++| orphan-chain | 9 |
++| N/A (pin) | 2 |
++| **Total** | **21** |
++
++## Why 21 today vs 22 at b83e7db
++
++Diff of today's scan against b83e7db's 22-row table: `pre_commit 4.7.0` (upgraded there), `pydantic`
++2.14.1 and `pydantic_core` 2.50.1 (upgraded there) are no longer outdated; `uvicorn` 0.54.0
++(upgraded there) likewise absent. Added since: `fastapi 0.143.1`, `pydantic-settings 2.16.0`,
++`GitPython 3.2.1` (new releases / newly-listed). Net −3 +3 = 21. The 10-13 reviews' majors are
++unchanged except the *latest* column drifting upward (anthropic 1.14.0, openai 3.31.0,
++huggingface_hub 2.2.0, importlib_metadata 9.0.1, filelock 4.1.2, litellm 1.105.1, fonttools
++4.67.0) — the held verdicts are insensitive to the latest-tag drift.
++
++## Upgrades applied (one transaction, no collateral)
++
++`uv pip install --python .venv/bin/python fastapi==0.143.1 pydantic-settings==2.16.0` →
++`Uninstalled 2 / Installed 2`, exactly those two packages; `pip check`: **No broken requirements
++found.**
++
++## Honest gap statement
++
++- Every one of the 21 has an explained verdict (no unexplained nulls).
++- Not done deliberately: the five litellm-capped majors + fsspec remain blocked until the venv
++  rebuild (prior review §11 recommendation, still not executed); anthropic/websockets majors and
++  starlette still need dedicated live-smoke verify rows; pyboy needs a state-migration row.
++- `uv.lock` was not regenerated (targeted installs only); the lock-vs-venv divergence is
++  pre-existing and a rebuild-source-of-truth decision, out of scope here.
++- No advisory/security scan run (no scanner in .venv; prior review §12 gap stands).
++
++## Verification
++
++- `pip check` after batch: clean.
++- `.venv/bin/ruff check .`: All checks passed.
++- `.venv/bin/mypy src/ --ignore-missing-imports`: Success: no issues found in 69 source files.
++- Full suite: `.venv/bin/pytest tests/ -x --tb=short -q` → recorded in the commit message.
