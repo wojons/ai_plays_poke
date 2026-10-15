@@ -1,0 +1,21 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-15-19-49-26",
+  "wave_budget": 2,
+  "base_sha": "1ed44d2",
+  "workers": [
+    {
+      "task_id": "QA-AI-PLAYS-POKE-18",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-QA-AI-PLAYS-POKE-18",
+      "branch": "wt/QA-AI-PLAYS-POKE-18",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-codex"
+    },
+    {
+      "task_id": "SUP-DEPS-20261015-AIP-FOLLOWUP",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-SUP-DEPS-20261015-AIP-FOLLOWUP",
+      "branch": "wt/SUP-DEPS-20261015-AIP-FOLLOWUP",
+      "model": "glm-5.3-flash",
+      "provider": "xkiro"
+    }
+  ]
+}
