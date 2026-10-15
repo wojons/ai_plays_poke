@@ -54,6 +54,7 @@ BUTTONS = {"a", "b", "start", "select", "up", "down", "left", "right"}
 DEFAULT_MAX_WORKERS = 4
 DEFAULT_REQUEST_TIMEOUT = 30.0
 MAX_REQUEST_BYTES = 1024 * 1024
+REQUEST_READ_CHUNK_BYTES = 64 * 1024
 SHUTDOWN_JOIN_TIMEOUT = 5.0
 
 
@@ -366,6 +367,31 @@ def _send_json(conn: socket.socket, payload: dict) -> None:
     conn.sendall((json.dumps(payload) + "\n").encode())
 
 
+def _read_request_line(conn: socket.socket) -> bytes | None:
+    """Read one bounded request without repeatedly copying its accumulated bytes."""
+    buf = bytearray()
+    while True:
+        # Read at most one byte beyond the limit.  That byte is enough to
+        # distinguish an exactly-full line followed by a newline from an
+        # oversized line, without allocating an arbitrary 64 KiB chunk when
+        # the request is already near the cap.
+        remaining_with_sentinel = MAX_REQUEST_BYTES + 1 - len(buf)
+        chunk = conn.recv(min(REQUEST_READ_CHUNK_BYTES, remaining_with_sentinel))
+        if not chunk:
+            return None
+
+        newline = chunk.find(b"\n")
+        if newline >= 0:
+            if len(buf) + newline > MAX_REQUEST_BYTES:
+                raise ValueError(f"request exceeds {MAX_REQUEST_BYTES} bytes")
+            buf.extend(chunk[:newline])
+            return bytes(buf)
+
+        buf.extend(chunk)
+        if len(buf) > MAX_REQUEST_BYTES:
+            raise ValueError(f"request exceeds {MAX_REQUEST_BYTES} bytes")
+
+
 def handle(
     conn: socket.socket,
     game: Game,
@@ -385,16 +411,10 @@ def handle(
     stop = stop_event or threading.Event()
     with conn:
         conn.settimeout(request_timeout)
-        buf = b""
         try:
-            while b"\n" not in buf:
-                chunk = conn.recv(65536)
-                if not chunk:
-                    return
-                buf += chunk
-                if len(buf) > MAX_REQUEST_BYTES:
-                    raise ValueError(f"request exceeds {MAX_REQUEST_BYTES} bytes")
-            line = buf.split(b"\n", 1)[0].decode()
+            line = _read_request_line(conn)
+            if line is None:
+                return
             req = json.loads(line)
             if not isinstance(req, dict):
                 raise ValueError("request must be a JSON object")
