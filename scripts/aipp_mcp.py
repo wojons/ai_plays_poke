@@ -109,6 +109,14 @@ TOOLS = [
                     "description": "wait for movement to finish (default true)",
                     "default": True,
                 },
+                "frames": {
+                    "type": "integer",
+                    "description": "how many frames to hold each button (default 5). "
+                    "Use 15-30 for START to open the menu.",
+                    "default": 5,
+                    "minimum": 1,
+                    "maximum": 120,
+                },
             },
             "required": ["buttons"],
         },
@@ -218,13 +226,14 @@ def call_tool(name: str, args: dict) -> list[dict]:
             {"type": "image", "data": data, "mimeType": "image/png"},
         ]
     if name == "game_press":
-        r = bridge(
-            {
-                "cmd": "press",
-                "buttons": args.get("buttons", []),
-                "settle": bool(args.get("settle", True)),
-            }
-        )
+        payload = {
+            "cmd": "press",
+            "buttons": args.get("buttons", []),
+            "settle": bool(args.get("settle", True)),
+        }
+        if "frames" in args:
+            payload["frames"] = int(args["frames"])
+        r = bridge(payload)
         if not r.get("ok"):
             return [text(f"error: {r.get('error')}")]
         return [
