@@ -31,6 +31,7 @@ import os
 import socket
 import sys
 from pathlib import Path
+from typing import Any
 
 PORT = int(os.environ.get("AIPP_BRIDGE_PORT", "8770"))
 TOKEN_FILE = Path(
@@ -69,7 +70,9 @@ def bridge(req: dict) -> dict:
 
 BUTTONS = ["UP", "DOWN", "LEFT", "RIGHT", "A", "B", "START", "SELECT"]
 
-TOOLS = [
+# list[dict[str, Any]]: heterogeneous schema dicts (nested lists/bools/ints)
+# otherwise infer an unusable join type and mypy rejects next()'s fallback.
+TOOLS: list[dict[str, Any]] = [
     {
         "name": "game_observe",
         "description": "The current game state as the decision model receives it: map, player tile, "
@@ -191,7 +194,34 @@ def text(s: str) -> dict:
     return {"type": "text", "text": s}
 
 
+# Tools whose declared required keys must be enforced by the handler. The
+# inputSchema "required" list stays the single source of truth; this is the
+# set of tools that validate against it before dispatch. Other tools either
+# have no required keys or rely on optional-with-default behaviour.
+_REQUIRED_KEY_TOOLS = ("game_save", "game_load", "game_delete_save")
+
+
+def missing_required_keys(name: str, args: dict) -> list[str]:
+    """Required keys from the tool's inputSchema that are absent from args.
+
+    Empty for tools with no required-key enforcement.
+    """
+    if name not in _REQUIRED_KEY_TOOLS:
+        return []
+    schema: dict = next((t["inputSchema"] for t in TOOLS if t["name"] == name), {})
+    declared = schema.get("required", [])
+    return [k for k in declared if k not in args]
+
+
 def call_tool(name: str, args: dict) -> list[dict]:
+    missing = missing_required_keys(name, args)
+    if missing:
+        return [
+            text(
+                f"error: missing required argument(s) for {name}: "
+                f"{', '.join(missing)} — required key(s) per the tool schema"
+            )
+        ]
     if name == "game_observe":
         r = bridge({"cmd": "observe"})
         if not r.get("ok"):
