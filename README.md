@@ -55,7 +55,7 @@ The selectable decision modes are `system1`, `system2`/`llm`, `system1+system2`/
 
 ## Complete Specification
 
-**~46,500 lines** of comprehensive technical documentation across 24 spec documents (as of 2026-10-03) covering all aspects of autonomous Pokémon gameplay:
+**28,002 lines** across the 24 top-level spec documents under `specs/` — 46,574 lines across all 39 `*.md` files under `specs/` once the 14 chapter files in `specs/ptp_01x_detailed/` are included (measured 2026-10-17 with `wc -l specs/*.md` → 28,002 and `find specs -name '*.md' -exec cat {} + | wc -l` → 46,574) — covering all aspects of autonomous Pokémon gameplay:
 
 | Chapter | Focus | Lines |
 |---------|-------|-------|
@@ -74,10 +74,19 @@ The selectable decision modes are `system1`, `system2`/`llm`, `system1+system2`/
 | — | Mode Duration Tracking & Anomaly Detection | 1,952 |
 | — | Edge Cases & Recovery Protocols | 272 |
 
-The chapter files above (`specs/ptp_01x_detailed/` + the three cross-cutting specs)
-total ~22,100 lines; the remaining ~24,500 lines are the other top-level spec
+The 14 rows above total **22,873 lines**: the ten chapters + 5b
+(`specs/ptp_01x_detailed/`, 18,058 of those lines — that directory's 14 files total
+18,409, the extra 351 being `SPECIFICATION_COMPLETE.md`) plus the three cross-cutting
+specs (`ptp_01x_cli_control_infrastructure.md` 2,591 +
+`ptp_01x_mode_duration_tracking.md` 1,952 + `ptp_01x_edge_cases_recovery.md` 272 =
+4,815). The remaining 5,129 lines of the 28,002 sit in the other 21 top-level spec
 documents under `specs/` (design variants, API integration, database schema,
 executive summary, and SPECIFICATION_COMPLETE).
+
+Rows 6 and 7 are the sum of two files each (`chapter_06_entity_design.md` 1,113 +
+`chapter_06_entity_management.md` 883 = 1,996; `chapter_07_inventory.md` 2,250 +
+`chapter_07_inventory_system.md` 1,977 = 4,227); every other Lines value is a single
+file. All counts above measured 2026-10-17 with `wc -l`.
 
 Each chapter follows a **spec-driven format** with:
 - Mermaid flowcharts for visual logic
@@ -226,11 +235,16 @@ cp .env.example .env
 python3 cron_runner.py --run-id demo1 --cycles 80
 ```
 
-> **`--help` needs the venv too:** every `cron_runner.py` invocation — even
-> `python3 cron_runner.py --help` — must run with the venv activated
-> (`source .venv/bin/activate`). Module-level imports (numpy etc.) load before
-> argparse, so under the system Python even the help screen exits with
-> `ModuleNotFoundError`.
+> **Run `cron_runner.py` with the project venv:** every invocation — even
+> `python3 cron_runner.py --help` — should use the venv
+> (`.venv/bin/python cron_runner.py --help`, or `source .venv/bin/activate`
+> first). `cron_runner.py` imports its third-party dependencies at module level,
+> before argparse is reached (`cron_runner.py:721` → `src/core/prompt_loader.py:16`),
+> so on an interpreter that lacks them even the help screen exits 1 with
+> `ModuleNotFoundError: No module named 'yaml'`. Measured 2026-10-17:
+> `env -i /usr/bin/python3 -S cron_runner.py --help` → that `yaml` traceback, rc 1;
+> `.venv/bin/python cron_runner.py --help` → full usage, rc 0. (PyYAML is the first
+> module to fail — not numpy.)
 
 **What this does:** Each cycle reads the game state directly from emulator RAM (no paid
 vision API calls per tick), sends the spatial data to the LLM controller
@@ -329,17 +343,21 @@ varies by run.
 
 ## Quick Start (legacy game_loop.py)
 
-> **⚠️ PYTHONPATH required for the legacy path:** the commands below crash with
-> `ModuleNotFoundError: No module named 'db'` unless run with `src/` on
-> `PYTHONPATH` and the project venv activated:
+> **⚠️ Use the project venv for the legacy path:** the commands below need an
+> interpreter that has the project dependencies installed (`.venv`). A fresh clone has
+> no `.venv`, and the system `python3` has no `pyboy`, so the run stops at
+> `ModuleNotFoundError: No module named 'pyboy'` (`src/core/emulator.py:13`).
+>
+> `PYTHONPATH=src` is **not** required for these commands: `src/game_loop.py` inserts
+> its own parent directory on `sys.path` (`src/game_loop.py:23-24`), so `db.*`/`core.*`
+> resolve when they are run from the repo root as documented. Measured 2026-10-17 in a
+> fresh `git clone --depth 1` with no `PYTHONPATH` and no API key: the imports succeed
+> and the run proceeds past them to the `OPENROUTER_API_KEY` check — it does **not**
+> fail with an import error for the `db`/`core` packages.
 >
 > ```bash
 > source .venv/bin/activate
-> export PYTHONPATH=src
 > ```
->
-> (`src/game_loop.py` imports `db.*`/`core.*` packages that only resolve with
-> `src/` on `PYTHONPATH`.)
 
 ```bash
 # 1. Create virtual environment
@@ -476,15 +494,21 @@ runs/test_001/
 ```bash
 # Fast tier (recommended for day-to-day work) — unit tests only.
 # Serial wall time ~190s on an unloaded box (measured 189.95s, 2026-09-27;
-# ~65–90s if pytest-xdist parallelizes it). ~4354 collected / 62 deselected;
-# pass counts drift as tests are added — check the run summary. Excludes @pytest.mark.heavy tests — the same set as
-# @pytest.mark.integration (game-loop component flows) and
-# @pytest.mark.slow (network retry/backoff, memory & performance
-# benchmarks), which all carry the heavy mark too.
+# ~65–90s if pytest-xdist parallelizes it). 4452 collected / 4514
+# (62 deselected; measured 2026-10-17) — counts drift as tests are added,
+# so check the run summary. Excludes @pytest.mark.heavy tests — the same
+# tests that carry @pytest.mark.integration (game-loop component flows)
+# and @pytest.mark.slow (network retry/backoff, memory & performance
+# benchmarks).
 .venv/bin/python -m pytest tests/ -q -m "not heavy"
 
-# Equivalent fast-tier selection (kept for compatibility — heavy tests
-# retain their integration/slow marks, so this selects the same set)
+# Near-equivalent fast-tier selection (kept for compatibility). The two are
+# NOT identical: this one collects 4451 / 4514 (63 deselected; measured
+# 2026-10-17), one fewer than above. The single delta is
+# tests/test_long_run_boot.py::test_default_boot_probes_pallet_town_map_0_live
+# (@pytest.mark.live + @pytest.mark.integration, skipif when the ROM is
+# absent): it carries no heavy mark, so "not heavy" collects it, while
+# "not integration and not slow" deselects it.
 .venv/bin/python -m pytest tests/ -q -m "not integration and not slow"
 
 # Heavy tier — integration tests (slower, may require emulator)
@@ -530,11 +554,14 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### `OPENROUTER_API_KEY not set`
+#### `OPENROUTER_API_KEY environment variable is not set`
 ```
-WARNING: No OpenRouter API key found. Using stub AI mode
+ValueError: OPENROUTER_API_KEY environment variable is not set. Create a .env file or export the variable.
 ```
-**Solution:** Create `.env` file with your API key:
+**Solution:** Create `.env` from the template and add your key. There is no stub mode:
+`cron_runner.py` refuses to boot with `controller key OPENROUTER_API_KEY is not set`
+(exit 2), and the legacy `src/game_loop.py` exits 1 with the `ValueError` traceback
+above, raised at `src/core/vision.py:88`.
 ```bash
 cp .env.example .env
 # Edit .env and add your API key
@@ -640,27 +667,47 @@ Error reading memory at address 0xD158
 - Internet connection (for API calls)
 - PyBoy emulator (Game Boy/Game Boy Color emulation)
 
-### API Keys (Optional)
-- OpenAI API Key (GPT-4V/GPT-4o-mini) - enables real AI mode
-- Without API key: runs in stub AI mode for testing
+### API Keys
+- `OPENROUTER_API_KEY` (required) - enables real AI mode
+- `DEEPSEEK_API_KEY` (optional) - fallback provider for DeepSeek models
+- Without a key there is **no stub mode**: the legacy `src/game_loop.py` exits 1 with
+  `ValueError: OPENROUTER_API_KEY environment variable is not set`
+  (`src/core/vision.py:88`), and `cron_runner.py` refuses to boot with
+  `controller key OPENROUTER_API_KEY is not set` (exit 2).
 
 ### Dependencies
-```
-# Core dependencies (installed automatically)
-pyboy>=1.0.0          # Game Boy emulator
-requests>=2.31.0      # HTTP client for LLM APIs
-numpy>=1.24.0         # Numerical operations
-Pillow>=10.0.0        # Image processing
-pydantic>=2.0         # Data validation
-python-dotenv>=1.0    # Environment variable management
-opencv-python>=4.8.0  # Image processing pipeline
+Exact pins, quoted from the two requirement files (`pip install -r requirements.txt`
+/ `-r requirements-dev.txt`); measured 2026-10-17.
 
-# Development dependencies (optional)
-pytest>=7.0           # Testing framework
-pytest-cov>=4.0       # Coverage reporting
-black>=23.0           # Code formatter
-mypy>=1.0             # Type checking
-flake8>=6.0           # Linting
+```
+# Core dependencies (requirements.txt)
+pyboy>=1.0.0,<2.8.0           # Game Boy emulator (upper bound pinned - see the comment in the file)
+requests>=2.34.2              # HTTP client for LLM APIs
+anthropic>=0.117.0            # Anthropic SDK
+numpy>=1.26.4                 # Numerical operations
+Pillow>=10.4.0                # Image processing
+pydantic>=2.14.1              # Data validation
+python-dotenv>=1.2.4          # Environment variable management
+tqdm>=4.70.1                  # Progress bars
+PyYAML>=6.0.3                 # YAML config / prompt loading
+opencv-python-headless>=4.14.0.94  # Image processing pipeline
+fastapi>=0.142.2              # Observability dashboard
+uvicorn>=0.54.0               # Observability dashboard server
+websockets>=12.0              # Live streams
+psutil>=5.9.8                 # System health monitoring
+
+# Development dependencies (requirements-dev.txt)
+pytest>=7.0                   # Testing framework
+pytest-cov>=4.0               # Coverage reporting
+pytest-xdist>=3.0             # Parallel test execution
+pytest-benchmark>=4.0         # Benchmarks
+pytest-timeout>=2.1           # Per-test timeouts
+requests-mock>=1.12           # HTTP mocking
+black>=26.10.0                # Code formatter
+mypy>=2.4.0                   # Type checking
+flake8>=7.4.1                 # Linting
+pre-commit>=4.7.0             # Pre-commit hooks
+python-lsp-server>=1.13.0     # LSP support
 ```
 
 ## Performance Targets
@@ -710,14 +757,14 @@ flake8>=6.0           # Linting
 ├── cron_runner.py        # Primary entry point (autonomous gameplay runner)
 ├── ram_map_server.py     # Live RAM-map viewer server (:8099)
 ├── make_run_video.py     # Run footage → MP4 review video with HUD overlay
-├── live_viewer.py        # Live run viewer (terminal)
 ├── web_viewer.py         # Browser run viewer
-├── simple_viewer.py      # Minimal screenshot viewer (scratch/diagnostic)
-├── push_intro.py         # Intro-sequence button driver (scratch/diagnostic)
-├── intro_blast.py        # Intro bypass helper (scratch/diagnostic)
-├── diag_*.py, _*.py      # One-off diagnostic / CI helper scripts (scratch)
 └── config/               # Configuration files
 ```
+
+Only tracked files are listed above — every entry exists in a fresh clone
+(`git ls-files`). Local scratch/diagnostic helpers (`live_viewer.py`,
+`simple_viewer.py`, `push_intro.py`, `intro_blast.py`, `diag_*.py`, `_*.py`) are
+gitignored and are **not** part of the repository.
 
 ### Review tooling
 
@@ -725,8 +772,8 @@ Convert a finished run's screenshot sequence into a review video (MP4 with a
 burned-in HUD showing cycle #, screen type, and action taken):
 
 ```bash
-./venv/bin/python make_run_video.py <run_id> [--fps 2] [--out dir]
-./venv/bin/python make_run_video.py run_luna_v10_20260802_0515
+.venv/bin/python make_run_video.py <run_id> [--fps 2]    # writes videos/<run_id>.mp4; --force rebuilds
+.venv/bin/python make_run_video.py run_luna_v10_20260802_0515
 ```
 
 ## Documentation
@@ -757,4 +804,4 @@ MIT License - See LICENSE file for details.
 
 **PTP-01X** - *Orchestrated Intelligence for Autonomous Gameplay*
 
-*Last Updated: October 3, 2026*
+*Last Updated: October 17, 2026*
