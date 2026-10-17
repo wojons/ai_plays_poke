@@ -492,7 +492,8 @@ runs/test_001/
 
 ### Test Categories
 ```bash
-# Fast tier (recommended for day-to-day work) — unit tests only.
+# Fast tier (recommended for day-to-day work) — the unit-test set, plus the one
+# ROM-gated live probe that carries no heavy mark (see the note below).
 # Serial wall time ~190s on an unloaded box (measured 189.95s, 2026-09-27;
 # ~65–90s if pytest-xdist parallelizes it). 4452 collected / 4514
 # (62 deselected; measured 2026-10-17) — counts drift as tests are added,
