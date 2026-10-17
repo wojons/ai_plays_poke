@@ -1,0 +1,122 @@
+{
+  "task_id": "README-DOCS-01",
+  "task_title": "README accuracy remediation \u2014 fix README-21..30 (verified doc drift, README.md only)",
+  "task_criteria": [
+    "README.md is edited so each documented claim matches measured behaviour: (a) README-21 review-tooling command uses the project venv python and drops --out (make_run_video.py real flags: --fps, --force; output fixed to videos/<run_id>.mp4); (b) README-22/26 API Keys section names OPENROUTER_API_KEY (not OpenAI/GPT-4V) and states the real no-key contract (python3 src/game_loop.py exits 1 with ValueError from src/core/vision.py:88; cron_runner.py refuses to boot) with no stub-mode promise; (c) README-23 Dependencies block matches requirements.txt/requirements-dev.txt (opencv-python-headless, pyboy>=1.0.0,<2.8.0, dev extras); (d) README-24 --help note names the import that actually fails (PyYAML); (e) README-25 project-structure tree lists only tracked files; (f) README-27 spec counts reproduce from the tree; (g) README-28 PYTHONPATH claim matches the documented invocation; (h) README-29 freshness footer matches README.md last content commit; (i) README-30 states the real difference between the two fast-tier -m selections. Scope fence: README.md only, no code changes. Evidence: commit sha + per-row measured values quoted in the worker report and commit body."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "e2a5ec6613691cd12b8fee76506a887b32516b35",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261017T190526.973173Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.7.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, anyio-4.15.1, requests-mock-1.12.1, platformdirs-4.13.0\ncollecting ... collected 4514 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [487487 chars omitted \u2014 5339 line(s)] \u2026\ntest_bench_pathfinding_find_path               461.0047 (1.10)           1,823.9953 (1.0)             574.4449 (1.25)            316.6051 (2.85)            480.5624 (1.07)            39.1155 (1.95)          1;3  1,740,810.8833 (0.80)         18           1\ntest_bench_vision_pipeline_validate          5,781.1849 (13.76)         93,021.8957 (51.00)         6,458.5302 (14.06)         1,585.3830 (14.26)         6,210.9903 (13.77)          140.1640 (7.00)    2483;3899    154,833.9898 (0.07)      38825           1\ntest_bench_ram_reader_observe            1,692,624.9955 (>1000.0)  150,751,712.9648 (>1000.0)   2,859,001.9574 (>1000.0)  10,667,338.9817 (>1000.0)   1,962,043.9271 (>1000.0)    214,787.8986 (>1000.0)      3;27        349.7724 (0.00)        502           1\ntest_bench_vision_pipeline_process      35,277,276.0671 (>1000.0)   48,111,767.0424 (>1000.0)  38,763,062.5717 (>1000.0)   3,818,112.1423 (>1000.0)  37,319,082.5339 (>1000.0)  4,153,883.0847 (>1000.0)       4;2         25.7978 (0.00)         26           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4500 passed, 14 skipped in 214.40s (0:03:34) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261017T190526.973173Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 README.md is edited so each documented claim matches measured behaviour: (a) README-21 review-tooling command uses the project venv python and drops --out (make_run_video.py real flags: --fps, --force; output fixed to videos/<run_id>.mp4); (b) README-22/26 API Keys section names OPENROUTER_API_KEY (not OpenAI/GPT-4V) and states the real no-key contract (python3 src/game_loop.py exits 1 with ValueError from src/core/vision.py:88; cron_runner.py refuses to boot) with no stub-mode promise; (c) README-23 Dependencies block matches requirements.txt/requirements-dev.txt (opencv-python-headless, pyboy>=1.0.0,<2.8.0, dev extras); (d) README-24 --help note names the import that actually fails (PyYAML); (e) README-25 project-structure tree lists only tracked files; (f) README-27 spec counts reproduce from the tree; (g) README-28 PYTHONPATH claim matches the documented invocation; (h) README-29 freshness footer matches README.md last content commit; (i) README-30 states the real difference between the two fast-tier -m selections. Scope fence: README.md only, no code changes. Evidence: commit sha + per-row measured values quoted in the worker report and commit body.: All nine sub-claims verified against measured behaviour; commits 73c174e + e2a5ec6 touch README.md only (git show --stat: '1 file changed' each). (a) README.md:783-786 now '.venv/bin/python make_run_video.py <run_id> [--fps 2]  # writes videos/<run_id>.mp4; --force rebuilds'; measured `.venv/bin/python make_run_video.py --help` -> 'usage: make_run_video.py [-h] [--fps FPS] [--force] run_id' (no --out), and make_run_video.py:181 fixes out_path = OUT_DIR/f\"{run_id}.mp4\". (b) README.md:670-676 names OPENROUTER_API_KEY (required) + DEEPSEEK_API_KEY, states 'no stub mode'; measured in a fresh depth-1 clone with no .env: `src/game_loop.py --rom ... --max-ticks 2` -> exit=1, 'File .../src/core/vision.py, line 88, in __init__ ... ValueError: OPENROUTER_API_KEY environment variable is not set'; `cron_runner.py --run-id t_eval2 --cycles 1` -> exit=2, 'JEV PREFLIGHT AUTH FAILURE (OPENROUTER_API_KEY): controller key OPENROUTER_API_KEY is not set' (cron_runner.py:6840-6853). grep 'stub AI mode' README.md = 0, grep 'GPT-4V|GPT-4o-mini' = 0. (c) README.md:678-712 matches requirements.txt exactly (pyboy>=1.0.0,<2.8.0; opencv-python-headless>=4.14.0.94; requests>=2.34.2; anthropic>=0.117.0; numpy>=1.26.4; Pillow>=10.4.0; pydantic>=2.14.1; python-dotenv>=1.2.4; tqdm>=4.70.1; PyYAML>=6.0.3; fastapi>=0.142.2; uvicorn>=0.54.0; websockets>=12.0; psutil>=5.9.8) and requirements-dev.txt (pytest-xdist>=3.0, pytest-benchmark>=4.0, pytest-timeout>=2.1, requests-mock>=1.12, black>=26.10.0, mypy>=2.4.0, flake8>=7.4.1, pre-commit>=4.7.0, python-lsp-server>=1.13.0). (d) README.md:235-245 names yaml; measured `env -i /usr/bin/python3 -S cron_runner.py --help` -> rc=1, 'File src/core/prompt_loader.py, line 16, in <module> import yaml / ModuleNotFoundError: No module named yaml', while `.venv/bin/python cron_runner.py --help` -> rc=0. (e) README.md:723-765 tree: git ls-files shows live_viewer.py/simple_viewer.py/push_intro.py/intro_blast.py absent (grep rc=1) and diag_*/_*.py count 0; every remaining entry is tracked (memory-bank/*, specs/*, prompts/{battle,dialog,exploration,menu,strategic} = 16/11/12/1/16 files, src/*, tests/ptp_cli, tools, web, config, cron_runner.py, ram_map_server.py, make_run_video.py, web_viewer.py). (f) README.md:58-86 counts reproduce: wc -l specs/*.md = 28002 over 24 files; find specs -name '*.md' = 39 files / 46574 lines; ptp_01x_detailed = 18409; 18409-351 = 18058; table rows sum 22873; cross-cutting 2591+1952+272 = 4815; remaining 5129. (g) README.md:346-356 drops PYTHONPATH=src and cites src/game_loop.py:23-24 (verified sys.path.insert at game_loop.py:22-24); measured `env -i /usr/bin/python3 src/game_loop.py` fails at 'src/core/emulator.py, line 13 ... ModuleNotFoundError: No module named pyboy' (not db/core), matching the note. (h) README.md:808 'Last Updated: October 17, 2026'; last README content commits 73c174e and e2a5ec6 are both dated 2026-10-17. (i) README.md:494-513 states the two selections are NOT identical; measured `pytest --collect-only -m \"not heavy\"` -> 4452/4514 (62 deselected) and `-m \"not integration and not slow\"` -> 4451/4514 (63 deselected), with the delta test tests/test_long_run_boot.py:50-55 carrying @pytest.mark.live + @pytest.mark.integration and no heavy mark, exactly as documented. Commit bodies quote the per-row measured values. No code files changed. [resolution 0.10; README.md, make_run_video.py, src/game_loop.py, src/core/vision.py:88, cron_runner.py]\nREADME.md was corrected across all nine README-21..30 rows and every corrected claim reproduces against freshly measured behaviour (make_run_video flags, no-key exit codes 1/2, PyYAML import failure, spec line counts, PYTHONPATH, footer date, fast-tier collection deltas), with the diff confined to README.md.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n\n\u2026 [4623 chars omitted \u2014 1 line(s)] \u2026\nREADME.md was corrected across all nine README-21..30 rows and every corrected claim reproduces against freshly measured behaviour (make_run_video flags, no-key exit codes 1/2, PyYAML import failure, spec line counts, PYTHONPATH, footer date, fast-tier collection deltas), with the diff confined to README.md.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "README.md is edited so each documented claim matches measured behaviour: (a) README-21 review-tooling command uses the project venv python and drops --out (make_run_video.py real flags: --fps, --force; output fixed to videos/<run_id>.mp4); (b) README-22/26 API Keys section names OPENROUTER_API_KEY (not OpenAI/GPT-4V) and states the real no-key contract (python3 src/game_loop.py exits 1 with ValueError from src/core/vision.py:88; cron_runner.py refuses to boot) with no stub-mode promise; (c) README-23 Dependencies block matches requirements.txt/requirements-dev.txt (opencv-python-headless, pyboy>=1.0.0,<2.8.0, dev extras); (d) README-24 --help note names the import that actually fails (PyYAML); (e) README-25 project-structure tree lists only tracked files; (f) README-27 spec counts reproduce from the tree; (g) README-28 PYTHONPATH claim matches the documented invocation; (h) README-29 freshness footer matches README.md last content commit; (i) README-30 states the real difference between the two fast-tier -m selections. Scope fence: README.md only, no code changes. Evidence: commit sha + per-row measured values quoted in the worker report and commit body.",
+                "status": "PASS",
+                "detail": "All nine sub-claims verified against measured behaviour; commits 73c174e + e2a5ec6 touch README.md only (git show --stat: '1 file changed' each). (a) README.md:783-786 now '.venv/bin/python make_run_video.py <run_id> [--fps 2]  # writes videos/<run_id>.mp4; --force rebuilds'; measured `.venv/bin/python make_run_video.py --help` -> 'usage: make_run_video.py [-h] [--fps FPS] [--force] run_id' (no --out), and make_run_video.py:181 fixes out_path = OUT_DIR/f\"{run_id}.mp4\". (b) README.md:670-676 names OPENROUTER_API_KEY (required) + DEEPSEEK_API_KEY, states 'no stub mode'; measured in a fresh depth-1 clone with no .env: `src/game_loop.py --rom ... --max-ticks 2` -> exit=1, 'File .../src/core/vision.py, line 88, in __init__ ... ValueError: OPENROUTER_API_KEY environment variable is not set'; `cron_runner.py --run-id t_eval2 --cycles 1` -> exit=2, 'JEV PREFLIGHT AUTH FAILURE (OPENROUTER_API_KEY): controller key OPENROUTER_API_KEY is not set' (cron_runner.py:6840-6853). grep 'stub AI mode' README.md = 0, grep 'GPT-4V|GPT-4o-mini' = 0. (c) README.md:678-712 matches requirements.txt exactly (pyboy>=1.0.0,<2.8.0; opencv-python-headless>=4.14.0.94; requests>=2.34.2; anthropic>=0.117.0; numpy>=1.26.4; Pillow>=10.4.0; pydantic>=2.14.1; python-dotenv>=1.2.4; tqdm>=4.70.1; PyYAML>=6.0.3; fastapi>=0.142.2; uvicorn>=0.54.0; websockets>=12.0; psutil>=5.9.8) and requirements-dev.txt (pytest-xdist>=3.0, pytest-benchmark>=4.0, pytest-timeout>=2.1, requests-mock>=1.12, black>=26.10.0, mypy>=2.4.0, flake8>=7.4.1, pre-commit>=4.7.0, python-lsp-server>=1.13.0). (d) README.md:235-245 names yaml; measured `env -i /usr/bin/python3 -S cron_runner.py --help` -> rc=1, 'File src/core/prompt_loader.py, line 16, in <module> import yaml / ModuleNotFoundError: No module named yaml', while `.venv/bin/python cron_runner.py --help` -> rc=0. (e) README.md:723-765 tree: git ls-files shows live_viewer.py/simple_viewer.py/push_intro.py/intro_blast.py absent (grep rc=1) and diag_*/_*.py count 0; every remaining entry is tracked (memory-bank/*, specs/*, prompts/{battle,dialog,exploration,menu,strategic} = 16/11/12/1/16 files, src/*, tests/ptp_cli, tools, web, config, cron_runner.py, ram_map_server.py, make_run_video.py, web_viewer.py). (f) README.md:58-86 counts reproduce: wc -l specs/*.md = 28002 over 24 files; find specs -name '*.md' = 39 files / 46574 lines; ptp_01x_detailed = 18409; 18409-351 = 18058; table rows sum 22873; cross-cutting 2591+1952+272 = 4815; remaining 5129. (g) README.md:346-356 drops PYTHONPATH=src and cites src/game_loop.py:23-24 (verified sys.path.insert at game_loop.py:22-24); measured `env -i /usr/bin/python3 src/game_loop.py` fails at 'src/core/emulator.py, line 13 ... ModuleNotFoundError: No module named pyboy' (not db/core), matching the note. (h) README.md:808 'Last Updated: October 17, 2026'; last README content commits 73c174e and e2a5ec6 are both dated 2026-10-17. (i) README.md:494-513 states the two selections are NOT identical; measured `pytest --collect-only -m \"not heavy\"` -> 4452/4514 (62 deselected) and `-m \"not integration and not slow\"` -> 4451/4514 (63 deselected), with the delta test tests/test_long_run_boot.py:50-55 carrying @pytest.mark.live + @pytest.mark.integration and no heavy mark, exactly as documented. Commit bodies quote the per-row measured values. No code files changed. [resolution 0.10; README.md, make_run_video.py, src/game_loop.py, src/core/vision.py:88, cron_runner.py]",
+                "resolution_probability": 0.1,
+                "cited_path": "README.md, make_run_video.py, src/game_loop.py, src/core/vision.py:88, cron_runner.py"
+              }
+            ],
+            "summary": "README.md was corrected across all nine README-21..30 rows and every corrected claim reproduces against freshly measured behaviour (make_run_video flags, no-key exit codes 1/2, PyYAML import failure, spec line counts, PYTHONPATH, footer date, fast-tier collection deltas), with the diff confined to README.md."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: README-DOCS-01\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 README.md is edited so each documented claim matches measured behaviour: (a) README-21 review-tooling command uses the project venv python and drops --out (make_run_video.py real flags: --fps, --force; output fixed to videos/<run_id>.mp4); (b) README-22/26 API Keys section names OPENROUTER_API_KEY (not OpenAI/GPT-4V) and states the real no-key contract (python3 src/game_loop.py exits 1 with ValueError from src/core/vision.py:88; cron_runner.py refuses to boot) with no stub-mode promise; (c) README-23 Dependencies block matches requirements.txt/requirements-dev.txt (opencv-python-headless, pyboy>=1.0.0,<2.8.0, dev extras); (d) README-24 --help note names the import that actually fails (PyYAML); (e) README-25 project-structure tree lists only tracked files; (f) README-27 spec counts reproduce from the tree; (g) README-28 PYTHONPATH claim matches the documented invocation; (h) README-29 freshness footer matches README.md last content commit; (i) README-30 states the real difference between the two fast-tier -m selections. Scope fence: README.md only, no code changes. Evidence: commit sha + per-row measured values quoted in the worker report and commit body.: All nine sub-claims verified against measured behaviour; commits 73c174e + e2a5ec6 touch README.md only (git show --stat: '1 file changed' each). (a) README.md:783-786 now '.venv/bin/python make_run_video.py <run_id> [--fps 2]  # writes videos/<run_id>.mp4; --force rebuilds'; measured `.venv/bin/python make_run_video.py --help` -> 'usage: make_run_video.py [-h] [--fps FPS] [--force] run_id' (no --out), and make_run_video.py:181 fixes out_path = OUT_DIR/f\"{run_id}.mp4\". (b) README.md:670-676 names OPENROUTER_API_KEY (required) + DEEPSEEK_API_KEY, states 'no stub mode'; measured in a fresh depth-1 clone with no .env: `src/game_loop.py --rom ... --max-ticks 2` -> exit=1, 'File .../src/core/vision.py, line 88, in __init__ ... ValueError: OPENROUTER_API_KEY environment variable is not set'; `cron_runner.py --run-id t_eval2 --cycles 1` -> exit=2, 'JEV PREFLIGHT AUTH FAILURE (OPENROUTER_API_KEY): controller key OPENROUTER_API_KEY is not set' (cron_runner.py:6840-6853). grep 'stub AI mode' README.md = 0, grep 'GPT-4V|GPT-4o-mini' = 0. (c) README.md:678-712 matches requirements.txt exactly (pyboy>=1.0.0,<2.8.0; opencv-python-headless>=4.14.0.94; requests>=2.34.2; anthropic>=0.117.0; numpy>=1.26.4; Pillow>=10.4.0; pydantic>=2.14.1; python-dotenv>=1.2.4; tqdm>=4.70.1; PyYAML>=6.0.3; fastapi>=0.142.2; uvicorn>=0.54.0; websockets>=12.0; psutil>=5.9.8) and requirements-dev.txt (pytest-xdist>=3.0, pytest-benchmark>=4.0, pytest-timeout>=2.1, requests-mock>=1.12, black>=26.10.0, mypy>=2.4.0, flake8>=7.4.1, pre-commit>=4.7.0, python-lsp-server>=1.13.0). (d) README.md:235-245 names yaml; measured `env -i /usr/bin/python3 -S cron_runner.py --help` -> rc=1, 'File src/core/prompt_loader.py, line 16, in <module> import yaml / ModuleNotFoundError: No module named yaml', while `.venv/bin/python cron_runner.py --help` -> rc=0. (e) README.md:723-765 tree: git ls-files shows live_viewer.py/simple_viewer.py/push_intro.py/intro_blast.py absent (grep rc=1) and diag_*/_*.py count 0; every remaining entry is tracked (memory-bank/*, specs/*, prompts/{battle,dialog,exploration,menu,strategic} = 16/11/12/1/16 files, src/*, tests/ptp_cli, tools, web, config, cron_runner.py, ram_map_server.py, make_run_video.py, web_viewer.py). (f) README.md:58-86 counts reproduce: wc -l specs/*.md = 28002 over 24 files; find specs -name '*.md' = 39 files / 46574 lines; ptp_01x_detailed = 18409; 18409-351 = 18058; table rows sum 22873; cross-cutting 2591+1952+272 = 4815; remaining 5129. (g) README.md:346-356 drops PYTHONPATH=src and cites src/game_loop.py:23-24 (verified sys.path.insert at game_loop.py:22-24); measured `env -i /usr/bin/python3 src/game_loop.py` fails at 'src/core/emulator.py, line 13 ... ModuleNotFoundError: No module named pyboy' (not db/core), matching the note. (h) README.md:808 'Last Updated: October 17, 2026'; last README content commits 73c174e and e2a5ec6 are both dated 2026-10-17. (i) README.md:494-513 states the two selections are NOT identical; measured `pytest --collect-only -m \"not heavy\"` -> 4452/4514 (62 deselected) and `-m \"not integration and not slow\"` -> 4451/4514 (63 deselected), with the delta test tests/test_long_run_boot.py:50-55 carrying @pytest.mark.live + @pytest.mark.integration and no heavy mark, exactly as documented. Commit bodies quote the per-row measured values. No code files changed. [resolution 0.10; README.md, make_run_video.py, src/game_loop.py, src/core/vision.py:88, cron_runner.py]\nREADME.md was corrected across all nine README-21..30 rows and every corrected claim reproduces against freshly measured behaviour (make_run_video flags, no-key exit codes 1/2, PyYAML import failure, spec line counts, PYTHONPATH, footer date, fast-tier collection deltas), with the diff confined to README.md.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-17T19:47:47.354507",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-17T19:47:47.372792+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 2121,
+        "truncated": false,
+        "source": "git show e2a5ec661369"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 1810,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "README-DOCS-01"
+  }
+}

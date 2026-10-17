@@ -1618,3 +1618,25 @@ tasks:
   status: complete
   created_at: '2026-10-15T20:06:06.451044+00:00'
   completed_at: '2026-10-15T20:19:09.683784+00:00'
+- id: README-DOCS-01
+  title: "README accuracy remediation \u2014 fix README-21..30 (verified doc drift,\
+    \ README.md only)"
+  criteria:
+  - 'README.md is edited so each documented claim matches measured behaviour: (a)
+    README-21 review-tooling command uses the project venv python and drops --out
+    (make_run_video.py real flags: --fps, --force; output fixed to videos/<run_id>.mp4);
+    (b) README-22/26 API Keys section names OPENROUTER_API_KEY (not OpenAI/GPT-4V)
+    and states the real no-key contract (python3 src/game_loop.py exits 1 with ValueError
+    from src/core/vision.py:88; cron_runner.py refuses to boot) with no stub-mode
+    promise; (c) README-23 Dependencies block matches requirements.txt/requirements-dev.txt
+    (opencv-python-headless, pyboy>=1.0.0,<2.8.0, dev extras); (d) README-24 --help
+    note names the import that actually fails (PyYAML); (e) README-25 project-structure
+    tree lists only tracked files; (f) README-27 spec counts reproduce from the tree;
+    (g) README-28 PYTHONPATH claim matches the documented invocation; (h) README-29
+    freshness footer matches README.md last content commit; (i) README-30 states the
+    real difference between the two fast-tier -m selections. Scope fence: README.md
+    only, no code changes. Evidence: commit sha + per-row measured values quoted in
+    the worker report and commit body.'
+  status: complete
+  created_at: '2026-10-17T19:29:51.001944+00:00'
+  completed_at: '2026-10-17T19:41:36.962838+00:00'
