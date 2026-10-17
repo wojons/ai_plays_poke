@@ -25,7 +25,6 @@ def _text_content(result):
 
 
 class TestGameStepErrorSurfacing:
-
     def test_game_step_paused_bridge_returns_error_text(self):
         fake_reply = {
             "ok": False,
