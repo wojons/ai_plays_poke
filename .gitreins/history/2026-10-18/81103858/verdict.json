@@ -1,0 +1,121 @@
+{
+  "task_id": "DOC-18",
+  "task_title": "Resolve residual stub-mode and documentation drift outside README",
+  "task_criteria": [
+    "Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "15b32166e09db6a8e704738e80b520e6ad1b8d5d",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261018T205652.646771Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.7.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, anyio-4.15.1, requests-mock-1.12.1, platformdirs-4.13.0\ncollecting ... collected 4516 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [487718 chars omitted \u2014 5341 line(s)] \u2026\ntest_bench_pathfinding_small_grid              550.8773 (1.08)           6,943.0098 (2.86)            609.1307 (1.0)             150.9494 (1.0)             600.7031 (1.0)             29.8023 (1.0)         43;94  1,641,683.6867 (1.0)        2065           1\ntest_bench_vision_pipeline_validate          5,851.0341 (11.45)         81,090.2566 (33.45)         7,132.8076 (11.71)         1,415.4006 (9.38)          6,683.1708 (11.13)          550.8773 (18.48)   3679;4064    140,197.2481 (0.09)      31242           1\ntest_bench_ram_reader_observe            1,619,508.9556 (>1000.0)  165,858,263.1499 (>1000.0)   3,003,056.5715 (>1000.0)  10,743,615.6717 (>1000.0)   2,103,465.8421 (>1000.0)    320,664.6070 (>1000.0)      3;56        332.9941 (0.00)        598           1\ntest_bench_vision_pipeline_process      36,007,877.9049 (>1000.0)   43,697,638.9028 (>1000.0)  38,466,329.2401 (>1000.0)   1,724,407.5140 (>1000.0)  38,072,376.0463 (>1000.0)  1,286,567.4216 (>1000.0)       5;3         25.9968 (0.00)         24           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4502 passed, 14 skipped in 241.93s (0:04:01) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261018T205652.646771Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit.: The four surfaces ARE correctly updated and the fallback IS removed and tested \u2014 but the final conjunctive requirement, 'include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit', is entirely absent. `grep -rn 'ch:trace row=DOC-18'` across the repo returns exactly one hit: the criterion text itself in .gitreins/tasks.yaml:1648. No actual trace row exists. The established format (docs/readme-9-imports-audit.md:17: 'ch:trace row=README-9 spec=README.md#architecture-overview witness=path@origin:cron_runner.py:706-709 commit=4f3d260') has no DOC-18 analogue. Corroborating: .coding-hermes/board/tasks.jsonl DOC-18 still reads status='in_progress', commit_hash=None, files_changed=None, guard_result=None, ci_result=None, completed_at=None; events.jsonl contains only task_created/task_updated/task_dispatched for DOC-18 with NO task_completed event. VERIFIED PASSING SUB-PARTS: (a) .env.example:4-5 no longer promises stub mode and states the real no-key failure ('cron_runner.py fails its preflight and the legacy game loop fails when VisionClient initializes; neither entry point automatically uses a stub'); (b) make_run_video.py:9 docstring '.venv/bin/python make_run_video.py <run_id> [--fps FPS] [--force]' matches actual `--help` output exactly (run_id, --fps FPS, --force; no --out, no ./venv); (c) docs/architecture.md:34,35,315,542,543,550 all state openai/gpt-5.6-luna and `grep GPT-4o docs/architecture.md` exits 1 (zero remnants), matching cron_runner.py:65 DEFAULT_CONTROLLER_MODEL='openai/gpt-5.6-luna', cron_runner.py:117 DEFAULT_DECISION_MODE='jev' (canonicalises to system1+system2), and src/game_loop.py:131,134; (d) dead fallback deleted at src/game_loop.py:123-126 (now unconditional GameAIManager(), use_real_ai=True) with two new tests \u2014 tests/test_game_loop.py:418 test_init_without_openrouter_key_fails_in_vision_client drives the real no-key path asserting ValueError 'OPENROUTER_API_KEY environment variable is not set', and :434 test_ai_manager_initialization_error_propagates \u2014 both PASS. Unrelated files preserved: commit 15b3216 touches exactly 5 files (.env.example, docs/architecture.md, make_run_video.py, src/game_loop.py, tests/test_game_loop.py). TEST EVIDENCE: `./.venv/bin/pytest -x --tb=short -q` => '4502 passed, 14 skipped in 180.73s (0:03:00)', exit_code 0; focused `pytest tests/test_game_loop.py` => '97 passed in 1.21s'. LSP diagnostics: 0. The only unmet element is the missing ch:trace row=DOC-18.\nAll four documentation/code surfaces were correctly fixed, the dead fallback removed with passing tests, and the full suite is green (4502 passed, 14 skipped, exit 0), but the required ch:trace row=DOC-18 with resolvable spec/test/evidence/commit was never created \u2014 the board row remains in_progress with no commit_hash and no task_completed event.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit.: The four surfaces ARE correctly updated and the fallback IS removed and tested \u2014 but the final conjunctive requirement, 'include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit', is entirely absent. `grep -rn 'ch:trace row=DOC-18'` across the repo returns exactly one hit: the criterion text itself in .gitreins/tasks.yaml:1648. No actual trace row exists. The established format (docs/readme-9-imports-audit.md:17: 'ch:trace row=README-9 spec=README.md#architecture-overview witness=path@origin:cron_runner.py:706-709 commit=4f3d260') has no DOC-18 analogue. Corroborating: .coding-hermes/board/tasks.jsonl DOC-18 still reads status='in_progress', commit_hash=None, files_changed=None, guard_result=None, ci_result=None, completed_at=None; events.jsonl contains only task_created/task_updated/task_dispatched for DOC-18 with NO task_completed event. VERIFIED PASSING SUB-PARTS: (a) .env.example:4-5 no longer promises stub mode and states the real no-key failure ('cron_runner.py fails its preflight and the legacy game loop fails when VisionClient initializes; neither entry point automatically uses a stub'); (b) make_run_video.py:9 docstring '.venv/bin/python make_run_video.py <run_id> [--fps FPS] [--force]' matches actual `--help` output exactly (run_id, --fps FPS, --force; no --out, no ./venv); (c) docs/architecture.md:34,35,315,542,543,550 all state openai/gpt-5.6-luna and `grep GPT-4o docs/architecture.md` exits 1 (zero remnants), matching cron_runner.py:65 DEFAULT_CONTROLLER_MODEL='openai/gpt-5.6-luna', cron_runner.py:117 DEFAULT_DECISION_MODE='jev' (canonicalises to system1+system2), and src/game_loop.py:131,134; (d) dead fallback deleted at src/game_loop.py:123-126 (now unconditional GameAIManager(), use_real_ai=True) with two new tests \u2014 tests/test_game_loop.py:418 test_init_without_openrouter_key_fails_in_vision_client drives the real no-key path asserting ValueError 'OPENROUTER_API_KEY environment variable is not set', and :434 test_ai_manager_initialization_error_propagates \u2014 both PASS. Unrelated files preserved: commit 15b3216 touches exactly 5 files (.env.example, docs/architecture.md, make_run_video.py, src/game_loop.py, tests/test_game_loop.py). TEST EVIDENCE: `./.venv/bin/pytest -x --tb=short -q` => '4502 passed, 14 skipped in 180.73s (0:03:00)', exit_code 0; focused `pytest tests/test_game_loop.py` => '97 passed in 1.21s'. LSP diagnostics: 0. The only unmet element is the missing ch:trace row=DOC-18.\nAll four documentation/code surfaces were correctly fixed, the dead fallback removed with passing tests, and the full suite is green (4502 passed, 14 skipped, exit 0), but the required ch:trace row=DOC-18 with resolvable spec/test/evidence/commit was never created \u2014 the board row remains in_progress with no commit_hash and no task_completed event.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit.",
+                "status": "FAIL",
+                "detail": "The four surfaces ARE correctly updated and the fallback IS removed and tested \u2014 but the final conjunctive requirement, 'include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit', is entirely absent. `grep -rn 'ch:trace row=DOC-18'` across the repo returns exactly one hit: the criterion text itself in .gitreins/tasks.yaml:1648. No actual trace row exists. The established format (docs/readme-9-imports-audit.md:17: 'ch:trace row=README-9 spec=README.md#architecture-overview witness=path@origin:cron_runner.py:706-709 commit=4f3d260') has no DOC-18 analogue. Corroborating: .coding-hermes/board/tasks.jsonl DOC-18 still reads status='in_progress', commit_hash=None, files_changed=None, guard_result=None, ci_result=None, completed_at=None; events.jsonl contains only task_created/task_updated/task_dispatched for DOC-18 with NO task_completed event. VERIFIED PASSING SUB-PARTS: (a) .env.example:4-5 no longer promises stub mode and states the real no-key failure ('cron_runner.py fails its preflight and the legacy game loop fails when VisionClient initializes; neither entry point automatically uses a stub'); (b) make_run_video.py:9 docstring '.venv/bin/python make_run_video.py <run_id> [--fps FPS] [--force]' matches actual `--help` output exactly (run_id, --fps FPS, --force; no --out, no ./venv); (c) docs/architecture.md:34,35,315,542,543,550 all state openai/gpt-5.6-luna and `grep GPT-4o docs/architecture.md` exits 1 (zero remnants), matching cron_runner.py:65 DEFAULT_CONTROLLER_MODEL='openai/gpt-5.6-luna', cron_runner.py:117 DEFAULT_DECISION_MODE='jev' (canonicalises to system1+system2), and src/game_loop.py:131,134; (d) dead fallback deleted at src/game_loop.py:123-126 (now unconditional GameAIManager(), use_real_ai=True) with two new tests \u2014 tests/test_game_loop.py:418 test_init_without_openrouter_key_fails_in_vision_client drives the real no-key path asserting ValueError 'OPENROUTER_API_KEY environment variable is not set', and :434 test_ai_manager_initialization_error_propagates \u2014 both PASS. Unrelated files preserved: commit 15b3216 touches exactly 5 files (.env.example, docs/architecture.md, make_run_video.py, src/game_loop.py, tests/test_game_loop.py). TEST EVIDENCE: `./.venv/bin/pytest -x --tb=short -q` => '4502 passed, 14 skipped in 180.73s (0:03:00)', exit_code 0; focused `pytest tests/test_game_loop.py` => '97 passed in 1.21s'. LSP diagnostics: 0. The only unmet element is the missing ch:trace row=DOC-18.",
+                "resolution_probability": 0.0
+              }
+            ],
+            "summary": "All four documentation/code surfaces were correctly fixed, the dead fallback removed with passing tests, and the full suite is green (4502 passed, 14 skipped, exit 0), but the required ch:trace row=DOC-18 with resolvable spec/test/evidence/commit was never created \u2014 the board row remains in_progress with no commit_hash and no task_completed event."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DOC-18\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit.: The four surfaces ARE correctly updated and the fallback IS removed and tested \u2014 but the final conjunctive requirement, 'include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit', is entirely absent. `grep -rn 'ch:trace row=DOC-18'` across the repo returns exactly one hit: the criterion text itself in .gitreins/tasks.yaml:1648. No actual trace row exists. The established format (docs/readme-9-imports-audit.md:17: 'ch:trace row=README-9 spec=README.md#architecture-overview witness=path@origin:cron_runner.py:706-709 commit=4f3d260') has no DOC-18 analogue. Corroborating: .coding-hermes/board/tasks.jsonl DOC-18 still reads status='in_progress', commit_hash=None, files_changed=None, guard_result=None, ci_result=None, completed_at=None; events.jsonl contains only task_created/task_updated/task_dispatched for DOC-18 with NO task_completed event. VERIFIED PASSING SUB-PARTS: (a) .env.example:4-5 no longer promises stub mode and states the real no-key failure ('cron_runner.py fails its preflight and the legacy game loop fails when VisionClient initializes; neither entry point automatically uses a stub'); (b) make_run_video.py:9 docstring '.venv/bin/python make_run_video.py <run_id> [--fps FPS] [--force]' matches actual `--help` output exactly (run_id, --fps FPS, --force; no --out, no ./venv); (c) docs/architecture.md:34,35,315,542,543,550 all state openai/gpt-5.6-luna and `grep GPT-4o docs/architecture.md` exits 1 (zero remnants), matching cron_runner.py:65 DEFAULT_CONTROLLER_MODEL='openai/gpt-5.6-luna', cron_runner.py:117 DEFAULT_DECISION_MODE='jev' (canonicalises to system1+system2), and src/game_loop.py:131,134; (d) dead fallback deleted at src/game_loop.py:123-126 (now unconditional GameAIManager(), use_real_ai=True) with two new tests \u2014 tests/test_game_loop.py:418 test_init_without_openrouter_key_fails_in_vision_client drives the real no-key path asserting ValueError 'OPENROUTER_API_KEY environment variable is not set', and :434 test_ai_manager_initialization_error_propagates \u2014 both PASS. Unrelated files preserved: commit 15b3216 touches exactly 5 files (.env.example, docs/architecture.md, make_run_video.py, src/game_loop.py, tests/test_game_loop.py). TEST EVIDENCE: `./.venv/bin/pytest -x --tb=short -q` => '4502 passed, 14 skipped in 180.73s (0:03:00)', exit_code 0; focused `pytest tests/test_game_loop.py` => '97 passed in 1.21s'. LSP diagnostics: 0. The only unmet element is the missing ch:trace row=DOC-18.\nAll four documentation/code surfaces were correctly fixed, the dead fallback removed with passing tests, and the full suite is green (4502 passed, 14 skipped, exit 0), but the required ch:trace row=DOC-18 with resolvable spec/test/evidence/commit was never created \u2014 the board row remains in_progress with no commit_hash and no task_completed event.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-18T21:15:40.459944",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-18T21:15:40.486091+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 10074,
+        "truncated": false,
+        "source": "git show 15b32166e09d"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 23164,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-18"
+  }
+}

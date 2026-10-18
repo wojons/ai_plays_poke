@@ -1640,3 +1640,12 @@ tasks:
   status: complete
   created_at: '2026-10-17T19:29:51.001944+00:00'
   completed_at: '2026-10-17T19:41:36.962838+00:00'
+- id: DOC-18
+  title: Resolve residual stub-mode and documentation drift outside README
+  criteria:
+  - Update the four named surfaces to match the live no-key contract, make_run_video
+    help, and current model routing; remove or correctly test the unreachable fallback;
+    preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit.
+  status: complete
+  created_at: '2026-10-18T20:48:19.635267+00:00'
+  completed_at: '2026-10-18T21:00:58.401013+00:00'
