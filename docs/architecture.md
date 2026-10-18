@@ -31,9 +31,8 @@ graph TB
 
     subgraph AI["AI Client Layer"]
         VC --> OM[OpenRouter Client]
-        OM --> V[Vision: GPT-4o]
-        OM --> T[Thinking: GPT-4o-mini]
-        OM --> A[Acting: GPT-4o-mini]
+        OM --> C[Primary cron controller: openai/gpt-5.6-luna]
+        OM --> LT[Legacy vision/thinking: openai/gpt-5.6-luna]
     end
 
     subgraph Core["Core Systems"]
@@ -313,7 +312,7 @@ sequenceDiagram
     S->>V: Raw frame (160x144)
     V->>V: Normalize, extract ROIs
     V->>AI: Processed frame
-    AI->>AI: Vision model (GPT-4o)
+    AI->>AI: Vision model (openai/gpt-5.6-luna)
     AI-->>SM: Screen classification
     SM->>GO: Current state
     GO->>GO: Plan execution
@@ -539,16 +538,16 @@ Memory consolidation flows upward: Observer data is periodically summarized into
 | Runtime | Python 3.12+ | Primary implementation language |
 | Emulation | PyBoy | GB/GBC emulator interface |
 | AI Models | OpenRouter API | Multimodal and text models |
-| Vision Models | GPT-4o | Screenshot analysis |
-| Thinking Models | GPT-4o-mini | Strategic planning |
-| Acting Models | GPT-4o-mini | Tactical decisions |
+| Primary Decision Mode | JEV (`system1+system2`) | Fast tier with bounded System Two handoff |
+| Primary Controller Model | `openai/gpt-5.6-luna` | `cron_runner.py` System Two/controller default |
+| Legacy Vision/Thinking Model | `openai/gpt-5.6-luna` | `src/game_loop.py` screenshot analysis and reasoning |
 | Database | SQLite | Persistent storage |
 | Web Framework | FastAPI | Dashboard API server |
 | Image Processing | OpenCV, PIL | Screenshot preprocessing |
 | Numeric Computing | NumPy | Array operations |
 | HTTP Client | requests | OpenRouter API calls |
 
-The system requires Python 3.12 or higher for type system support. PyBoy provides low-level emulator access including memory reading and input injection. OpenRouter serves as the unified API gateway to multiple model providers, currently configured for OpenAI's GPT-4o family. SQLite stores all persistent data in a single file (`game_data.db`), avoiding complex database administration.
+The system requires Python 3.12 or higher for type system support. PyBoy provides low-level emulator access including memory reading and input injection. The primary `cron_runner.py` path defaults to JEV (`system1+system2`) decision mode and uses `openai/gpt-5.6-luna` when the controller/System Two path is invoked; its controller model can be overridden by its documented flag or environment variables. The legacy `src/game_loop.py` path also routes vision and thinking through `openai/gpt-5.6-luna`. SQLite stores all persistent data in a single file (`game_data.db`), avoiding complex database administration.
 
 ## 8. Key Design Patterns
 

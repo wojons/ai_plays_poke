@@ -6,15 +6,16 @@ subtitle track, upscales the 160x144 Game Boy frames 4x with nearest-
 neighbor (crisp pixels), and encodes with libx264.
 
 Usage:
-    ./venv/bin/python make_run_video.py <run_id> [--fps 2] [--out dir]
+    .venv/bin/python make_run_video.py <run_id> [--fps FPS] [--force]
 
 Examples:
-    ./venv/bin/python make_run_video.py run_starter_20260802_1440
-    ./venv/bin/python make_run_video.py run_luna_v10_20260802_0515
+    .venv/bin/python make_run_video.py starter_20260802_1440
+    .venv/bin/python make_run_video.py luna_v10_20260802_0515 --fps 4 --force
 
 The run_id is the part AFTER the first "run_" prefix in the log filename
 (cron_logs/run_<run_id>.jsonl) and the screenshot dir name
-(screenshots/run_<run_id>/step_XXXX.png).
+(screenshots/run_<run_id>/step_XXXX.png). Output is always written to
+videos/<run_id>.mp4.
 """
 
 import argparse

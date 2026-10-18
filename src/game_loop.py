@@ -120,16 +120,11 @@ class GameLoop:
         # Live view
         self.live_view = SimpleLiveView(self.screenshot_mgr)
 
-        # AI Manager (with fallback to stub mode)
-        try:
-            self.ai_manager = GameAIManager()
-            self.use_real_ai = True
-            print("✅ AI Manager initialized with OpenRouter API")
-        except ValueError:
-            # No API key available, use stub mode
-            self.ai_manager = None
-            self.use_real_ai = False
-            print("⚠️  No OpenRouter API key found. Using stub AI mode")
+        # GameAIManager itself permits a missing key, but the wired vision path
+        # below requires OPENROUTER_API_KEY and fails loudly when it is absent.
+        self.ai_manager = GameAIManager()
+        self.use_real_ai = True
+        print("✅ AI Manager initialized with OpenRouter API")
 
         # Vision + decision pipeline (wired to real AI)
         self._generation = "gen3"
@@ -199,8 +194,9 @@ class GameLoop:
 
         # Start database session — the session row must reflect the real
         # AI model (GAP-022). The config default is "stub_ai", so derive
-        # the name from the live vision/AI client instead; "stub_ai"
-        # appears only when no API key is present (stub mode).
+        # the name from the live vision/AI client instead. ``stub_ai`` remains
+        # available only for an explicitly degraded runtime state; construction
+        # without OPENROUTER_API_KEY fails in VisionClient above.
         if self.use_real_ai and self.vision_client is not None:
             session_model_name = self.vision_client.model
         elif self.ai_manager is not None:

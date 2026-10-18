@@ -415,6 +415,33 @@ class TestAnalyzeGameStateStub:
 class TestGameLoopInit:
     """Tests for GameLoop.__init__ configuration and state initialization."""
 
+    def test_init_without_openrouter_key_fails_in_vision_client(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The legacy entry point has no automatic no-key stub mode."""
+        from src.core.vision import VisionClient as RealVisionClient
+
+        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+        with (
+            patch("src.game_loop.VisionClient", RealVisionClient),
+            pytest.raises(
+                ValueError,
+                match="OPENROUTER_API_KEY environment variable is not set",
+            ),
+        ):
+            GameLoop(_make_config())
+
+    def test_ai_manager_initialization_error_propagates(self) -> None:
+        """Constructor errors must not silently select an unwired stub mode."""
+        with (
+            patch(
+                "src.game_loop.GameAIManager",
+                side_effect=ValueError("manager setup failed"),
+            ),
+            pytest.raises(ValueError, match="manager setup failed"),
+        ):
+            GameLoop(_make_config())
+
     def test_init_stores_config(self) -> None:
         config = _make_config()
         gl = GameLoop(config)
@@ -995,8 +1022,8 @@ class TestSessionModelName:
             model_name="openai/gpt-5.6-luna",
         )
 
-    def test_no_api_key_sets_stub_ai(self, gl: GameLoop) -> None:
-        """Session row falls back to stub_ai when no API key is present."""
+    def test_explicit_degraded_state_sets_stub_ai(self, gl: GameLoop) -> None:
+        """An explicitly degraded runtime state records the stub model."""
         gl.start()
 
         gl.db.start_session.assert_called_once_with(
