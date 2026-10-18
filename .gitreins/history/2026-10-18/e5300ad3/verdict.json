@@ -1,0 +1,112 @@
+{
+  "task_id": "DOC-18",
+  "task_title": "Resolve residual stub-mode and documentation drift outside README",
+  "task_criteria": [
+    "Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "539948ca8a625f73b2d31b4a2faa1058f8ae8d0f",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261018T205652.646771Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: harness state excluded from gitleaks scope (.gitreins/**)\nsecrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n4:19PM INF scanned ~370195939 bytes (370.20 MB) in 15.7s\n4:19PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 99761 files \u2014 clean (excluded harness state: .gitreins/**)\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261018T205652.646771Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.7.0 -- /home/kara/ai_plays_poke/.venv/bin/python\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, cov-7.1.0, anyio-4.15.1, requests-mock-1.12.1, platformdirs-4.13.0\ncollecting ... collected 4516 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_buffer_size_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_invalid_timeout_too_low PASSED [  0%]\n\n\u2026 [487718 chars omitted \u2014 5341 line(s)] \u2026\ntest_bench_pathfinding_find_path               470.3179 (1.09)           1,844.0187 (1.0)             598.1282 (1.24)            324.9111 (3.07)            501.0515 (1.06)            52.8526 (1.77)          1;2  1,671,882.3052 (0.81)         17           1\ntest_bench_vision_pipeline_validate          5,800.2770 (13.50)         32,189.3021 (17.46)         6,926.0305 (14.37)         1,447.7777 (13.67)         6,371.1777 (13.53)          551.8086 (18.52)   5473;6017    144,382.8461 (0.07)      35023           1\ntest_bench_ram_reader_observe            1,678,809.9892 (>1000.0)  147,733,610.1234 (>1000.0)   2,775,169.2678 (>1000.0)  10,377,827.7416 (>1000.0)   1,935,018.2265 (>1000.0)     99,819.3864 (>1000.0)      3;60        360.3384 (0.00)        504           1\ntest_bench_vision_pipeline_process      35,440,236.7957 (>1000.0)   38,841,125.0897 (>1000.0)  36,892,134.6630 (>1000.0)     962,915.5075 (>1000.0)  37,088,183.9190 (>1000.0)  1,230,373.5130 (>1000.0)      10;0         27.1060 (0.00)         28           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4502 passed, 14 skipped in 186.99s (0:03:06) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261018T205652.646771Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit.: Four surfaces + fallback + preservation are done, but the ch:trace spec pointer does not resolve. (1) .env.example:4-5 now states the real no-key failure ('cron_runner.py fails its preflight and the legacy game loop fails when VisionClient initializes; neither entry point automatically uses a stub') \u2014 matches cron_runner.py:6842-6856 and src/core/vision.py:84-90. (2) make_run_video.py:9-18 docstring now reads '.venv/bin/python make_run_video.py <run_id> [--fps FPS] [--force]' and 'Output is always written to videos/<run_id>.mp4'; verified against actual `--help` output: 'usage: make_run_video.py [-h] [--fps FPS] [--force] run_id' (no --out), and make_run_video.py:181-182 OUT_DIR = BASE/'videos'. (3) docs/architecture.md:34-35,315,542-543,550 now name openai/gpt-5.6-luna; `grep -n 'GPT-4o|gpt-4o' docs/architecture.md` = 0 hits; matches cron_runner.py:65 DEFAULT_CONTROLLER_MODEL='openai/gpt-5.6-luna', cron_runner.py:117 DEFAULT_DECISION_MODE='jev', src/game_loop.py:131,134. (4) src/game_loop.py:123-127 dead try/except ValueError->'Using stub AI mode' removed; tests/test_game_loop.py:417-432 test_init_without_openrouter_key_fails_in_vision_client and :434-443 test_ai_manager_initialization_error_propagates added, and :1025 test_explicit_degraded_state_sets_stub_ai renamed. Test run: `.venv/bin/python -m pytest tests/test_game_loop.py tests/test_perf_frame_gate.py -q -p no:cacheprovider` => '101 passed in 1.36s', exit_code 0; focused run of the three new/renamed tests => '2 passed, 95 deselected' and '1 passed, 96 deselected'. (5) Unrelated files preserved: `git show 15b3216 --stat` touches only .env.example, docs/architecture.md, make_run_video.py, src/game_loop.py, tests/test_game_loop.py; `git status --porcelain` shows only untracked game_saves/. (6) FAIL \u2014 ch:trace row=DOC-18 exists in .coding-hermes/board/tasks.jsonl with test=tests/test_game_loop.py::TestGameLoopInit (resolvable), evidence=15b32166e09db6a8e704738e80b520e6ad1b8d5d (resolvable, `git cat-file -t` = commit), commit=15b32166e09db6a8e704738e80b520e6ad1b8d5d (resolvable), but spec=README.md#documentation-accuracy does NOT resolve: `grep -rn 'documentation-accuracy' README.md` returns 0 hits and README.md has no such heading (README.md:780 is '## Documentation'). The repo's own verdict artifact .gitreins/history/2026-10-18/81103858/verdict.json also records \"passed\": false, INCOMPLETE on traceability only.\nAll four documentation/code surfaces, the dead-fallback removal, the new tests (101 passed, exit 0) and file preservation are correct, but the required ch:trace row=DOC-18 cites spec=README.md#documentation-accuracy, an anchor that does not exist in README.md, so the traceability requirement is unmet.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit.: Four surfaces + fallback + preservation are done, but the ch:trace spec pointer does not resolve. (1) .env.example:4-5 now states the real no-key failure ('cron_runner.py fails its preflight and the legacy game loop fails when VisionClient initializes; neither entry point automatically uses a stub') \u2014 matches cron_runner.py:6842-6856 and src/core/vision.py:84-90. (2) make_run_video.py:9-18 docstring now reads '.venv/bin/python make_run_video.py <run_id> [--fps FPS] [--force]' and 'Output is always written to videos/<run_id>.mp4'; verified against actual `--help` output: 'usage: make_run_video.py [-h] [--fps FPS] [--force] run_id' (no --out), and make_run_video.py:181-182 OUT_DIR = BASE/'videos'. (3) docs/architecture.md:34-35,315,542-543,550 now name openai/gpt-5.6-luna; `grep -n 'GPT-4o|gpt-4o' docs/architecture.md` = 0 hits; matches cron_runner.py:65 DEFAULT_CONTROLLER_MODEL='openai/gpt-5.6-luna', cron_runner.py:117 DEFAULT_DECISION_MODE='jev', src/game_loop.py:131,134. (4) src/game_loop.py:123-127 dead try/except ValueError->'Using stub AI mode' removed; tests/test_game_loop.py:417-432 test_init_without_openrouter_key_fails_in_vision_client and :434-443 test_ai_manager_initialization_error_propagates added, and :1025 test_explicit_degraded_state_sets_stub_ai renamed. Test run: `.venv/bin/python -m pytest tests/test_game_loop.py tests/test_perf_frame_gate.py -q -p no:cacheprovider` => '101 passed in 1.36s', exit_code 0; focused run of the three new/renamed tests => '2 passed, 95 deselected' and '1 passed, 96 deselected'. (5) Unrelated files preserved: `git show 15b3216 --stat` touches only .env.example, docs/architecture.md, make_run_video.py, src/game_loop.py, tests/test_game_loop.py; `git status --porcelain` shows only untracked game_saves/. (6) FAIL \u2014 ch:trace row=DOC-18 exists in .coding-hermes/board/tasks.jsonl with test=tests/test_game_loop.py::TestGameLoopInit (resolvable), evidence=15b32166e09db6a8e704738e80b520e6ad1b8d5d (resolvable, `git cat-file -t` = commit), commit=15b32166e09db6a8e704738e80b520e6ad1b8d5d (resolvable), but spec=README.md#documentation-accuracy does NOT resolve: `grep -rn 'documentation-accuracy' README.md` returns 0 hits and README.md has no such heading (README.md:780 is '## Documentation'). The repo's own verdict artifact .gitreins/history/2026-10-18/81103858/verdict.json also records \"passed\": false, INCOMPLETE on traceability only.\nAll four documentation/code surfaces, the dead-fallback removal, the new tests (101 passed, exit 0) and file preservation are correct, but the required ch:trace row=DOC-18 cites spec=README.md#documentation-accuracy, an anchor that does not exist in README.md, so the traceability requirement is unmet.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit.",
+                "status": "FAIL",
+                "detail": "Four surfaces + fallback + preservation are done, but the ch:trace spec pointer does not resolve. (1) .env.example:4-5 now states the real no-key failure ('cron_runner.py fails its preflight and the legacy game loop fails when VisionClient initializes; neither entry point automatically uses a stub') \u2014 matches cron_runner.py:6842-6856 and src/core/vision.py:84-90. (2) make_run_video.py:9-18 docstring now reads '.venv/bin/python make_run_video.py <run_id> [--fps FPS] [--force]' and 'Output is always written to videos/<run_id>.mp4'; verified against actual `--help` output: 'usage: make_run_video.py [-h] [--fps FPS] [--force] run_id' (no --out), and make_run_video.py:181-182 OUT_DIR = BASE/'videos'. (3) docs/architecture.md:34-35,315,542-543,550 now name openai/gpt-5.6-luna; `grep -n 'GPT-4o|gpt-4o' docs/architecture.md` = 0 hits; matches cron_runner.py:65 DEFAULT_CONTROLLER_MODEL='openai/gpt-5.6-luna', cron_runner.py:117 DEFAULT_DECISION_MODE='jev', src/game_loop.py:131,134. (4) src/game_loop.py:123-127 dead try/except ValueError->'Using stub AI mode' removed; tests/test_game_loop.py:417-432 test_init_without_openrouter_key_fails_in_vision_client and :434-443 test_ai_manager_initialization_error_propagates added, and :1025 test_explicit_degraded_state_sets_stub_ai renamed. Test run: `.venv/bin/python -m pytest tests/test_game_loop.py tests/test_perf_frame_gate.py -q -p no:cacheprovider` => '101 passed in 1.36s', exit_code 0; focused run of the three new/renamed tests => '2 passed, 95 deselected' and '1 passed, 96 deselected'. (5) Unrelated files preserved: `git show 15b3216 --stat` touches only .env.example, docs/architecture.md, make_run_video.py, src/game_loop.py, tests/test_game_loop.py; `git status --porcelain` shows only untracked game_saves/. (6) FAIL \u2014 ch:trace row=DOC-18 exists in .coding-hermes/board/tasks.jsonl with test=tests/test_game_loop.py::TestGameLoopInit (resolvable), evidence=15b32166e09db6a8e704738e80b520e6ad1b8d5d (resolvable, `git cat-file -t` = commit), commit=15b32166e09db6a8e704738e80b520e6ad1b8d5d (resolvable), but spec=README.md#documentation-accuracy does NOT resolve: `grep -rn 'documentation-accuracy' README.md` returns 0 hits and README.md has no such heading (README.md:780 is '## Documentation'). The repo's own verdict artifact .gitreins/history/2026-10-18/81103858/verdict.json also records \"passed\": false, INCOMPLETE on traceability only.",
+                "resolution_probability": 0.0
+              }
+            ],
+            "summary": "All four documentation/code surfaces, the dead-fallback removal, the new tests (101 passed, exit 0) and file preservation are correct, but the required ch:trace row=DOC-18 cites spec=README.md#documentation-accuracy, an anchor that does not exist in README.md, so the traceability requirement is unmet."
+          }
+        }
+      ]
+    }
+  },
+  "summary": "Judge Result: DOC-18\n\nStage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: harness state excluded from gitleaks scope (.gitreins/**)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 Update the four named surfaces to match the live no-key contract, make_run_video help, and current model routing; remove or correctly test the unreachable fallback; preserve unrelated files; include ch:trace row=DOC-18 with resolvable spec/test/evidence/commit.: Four surfaces + fallback + preservation are done, but the ch:trace spec pointer does not resolve. (1) .env.example:4-5 now states the real no-key failure ('cron_runner.py fails its preflight and the legacy game loop fails when VisionClient initializes; neither entry point automatically uses a stub') \u2014 matches cron_runner.py:6842-6856 and src/core/vision.py:84-90. (2) make_run_video.py:9-18 docstring now reads '.venv/bin/python make_run_video.py <run_id> [--fps FPS] [--force]' and 'Output is always written to videos/<run_id>.mp4'; verified against actual `--help` output: 'usage: make_run_video.py [-h] [--fps FPS] [--force] run_id' (no --out), and make_run_video.py:181-182 OUT_DIR = BASE/'videos'. (3) docs/architecture.md:34-35,315,542-543,550 now name openai/gpt-5.6-luna; `grep -n 'GPT-4o|gpt-4o' docs/architecture.md` = 0 hits; matches cron_runner.py:65 DEFAULT_CONTROLLER_MODEL='openai/gpt-5.6-luna', cron_runner.py:117 DEFAULT_DECISION_MODE='jev', src/game_loop.py:131,134. (4) src/game_loop.py:123-127 dead try/except ValueError->'Using stub AI mode' removed; tests/test_game_loop.py:417-432 test_init_without_openrouter_key_fails_in_vision_client and :434-443 test_ai_manager_initialization_error_propagates added, and :1025 test_explicit_degraded_state_sets_stub_ai renamed. Test run: `.venv/bin/python -m pytest tests/test_game_loop.py tests/test_perf_frame_gate.py -q -p no:cacheprovider` => '101 passed in 1.36s', exit_code 0; focused run of the three new/renamed tests => '2 passed, 95 deselected' and '1 passed, 96 deselected'. (5) Unrelated files preserved: `git show 15b3216 --stat` touches only .env.example, docs/architecture.md, make_run_video.py, src/game_loop.py, tests/test_game_loop.py; `git status --porcelain` shows only untracked game_saves/. (6) FAIL \u2014 ch:trace row=DOC-18 exists in .coding-hermes/board/tasks.jsonl with test=tests/test_game_loop.py::TestGameLoopInit (resolvable), evidence=15b32166e09db6a8e704738e80b520e6ad1b8d5d (resolvable, `git cat-file -t` = commit), commit=15b32166e09db6a8e704738e80b520e6ad1b8d5d (resolvable), but spec=README.md#documentation-accuracy does NOT resolve: `grep -rn 'documentation-accuracy' README.md` returns 0 hits and README.md has no such heading (README.md:780 is '## Documentation'). The repo's own verdict artifact .gitreins/history/2026-10-18/81103858/verdict.json also records \"passed\": false, INCOMPLETE on traceability only.\nAll four documentation/code surfaces, the dead-fallback removal, the new tests (101 passed, exit 0) and file preservation are correct, but the required ch:trace row=DOC-18 cites spec=README.md#documentation-accuracy, an anchor that does not exist in README.md, so the traceability requirement is unmet.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-10-18T21:23:23.916853",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-10-18T21:23:23.949605+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 95295,
+        "truncated": false,
+        "source": "git show 539948ca8a62"
+      }
+    ],
+    "task_id": "DOC-18"
+  }
+}
