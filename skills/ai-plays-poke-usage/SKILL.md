@@ -244,3 +244,45 @@ Run cron_runner.py → Check exit code and logs
 - All runs are self-contained in the repository
 - Save directory can be customized with `--save-dir`
 - Emergency stop: Ctrl+C safely terminates the process
+
+## Pitfalls verified live 2026-10-19 (read these before driving the bridge, MCP or dashboard)
+
+### 1. A drawn menu does not make the screen say `menu`
+`SCREEN: overworld` in the projection (bridge `observe`, MCP `game_observe`, anything that renders
+`state_projection`) stays `overworld` **while the START menu is open**. `RAMReader.screen_type()`
+(`src/core/ram_reader.py:1157-1185`) only detects a two-item YES/NO prompt
+(`_has_yes_no_menu()`, `:1202-1206`, `wMaxMenuItem == 1`); list menus fall through to overworld.
+So: after any `START` press, do not trust the tile/facing for walkability — check whether the frame
+changed (or press `B` once) before concluding a direction is blocked. Tracked as DF-AIPP-10.
+
+### 2. Hold buttons long enough, and verify by pixels not by the summary text
+`play.py --frames 30 press START` is what opens the menu (`--frames 5` = one tap, and the press
+summary still reads `state_changed: False` either way). The honest discriminator is the frame:
+`play.py frame before` / `frame after` and compare — the menu is ~12.5 % of the pixels, and a
+30-frame `B` restores the first frame byte-for-byte. Diagnostic buttons (`START`, `SELECT`, `A` on
+title) need 15–30 frames; movement needs 5.
+
+### 3. `session_id` is a QUERY parameter on every dashboard route
+`python3 -m src.dashboard.main` starts a server whose REST routes all take `?session_id=` and default
+to `default` (`src/dashboard/main.py:245-373`). Passing `session_id` in a JSON **body** is silently
+ignored (the handlers declare it as a scalar query param) — the call succeeds against `default`
+instead, e.g. pausing the wrong session with a `200`. The shipped UI has this bug on its control
+buttons (DF-AIPP-11); always pass it as a query string when scripting the API:
+`curl -X POST -H "X-API-Key: $KEY" ".../control/pause?session_id=$ID"`.
+Auth is fail-closed: with no `PTP_API_KEY` every authenticated route answers 401.
+
+### 4. Port attribution before you blame the product
+On a host that already runs other services, the documented dashboard default port (`8000`) can be
+held by an unrelated process (here: `dexdat-api` behind `docker-proxy`). Confirm
+`ss -ltnp | grep <port>` names *your* pid, and use `PTP_DASHBOARD_PORT` for scratch instances.
+
+### 5. The 1-second preflight, and exit codes read directly
+`.venv/bin/python cron_runner.py --dry-run` validates ROM/boot-state/keys with zero API calls and
+exits 0 in ~1.1 s; it exits **1** on a missing ROM (a fresh clone), naming the file to place. Capture
+`$?` directly — a status read through a pipe reports the last pipeline element, not the runner.
+
+### 6. Fresh installs resolve newer versions than the repo venv
+`requirements.txt` carries lower bounds (`pyboy>=1.0.0,<2.8.0`, `fastapi>=0.142.2`, …), so a clean
+box installing today gets fastapi 0.150.0 / Pillow 13.0.0 / websockets 17.3 even though the repo
+venv may hold 0.146.0. Install is still rc=0 and 26 s on a clean box (clone 1 s + venv 4 s + pip
+20 s), with the ROM wall as the only honest failure.

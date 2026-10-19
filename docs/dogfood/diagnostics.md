@@ -1,5 +1,64 @@
 # ai-plays-poke — Diagnostics Trail (dogfood 2026-08-07)
 
+
+## 2026-10-19 — the fix opened a door, and the projection still describes the old room
+
+**What was used.** Three surfaces, as a user: the live game through `cron_runner.py` (60 cycles),
+the live game through the MCP server `scripts/aipp_mcp.py` driven by a hand-written stdio client
+(`initialize` -> `tools/list` -> `tools/call`), and the observability dashboard
+(`python3 -m src.dashboard.main`) driven over HTTP + both WebSocket streams. Install leg on an
+ephemeral bunker agent. Nothing was fixed; every finding below is a row.
+
+**The error that matters (menu vs projection).** Pressing START for 30 frames really opens the
+START menu — `play_frames/df_before.png` vs `df_after_start.png` differ by 2885/23040 px (12.52 %)
+and a 30-frame `B` restores the first frame exactly (0/23040). In both states the bridge, the MCP
+tool and anything rendering `src/core/state_projection.py` print `SCREEN: overworld`. Why:
+`RAMReader.screen_type()` (src/core/ram_reader.py:1157-1185) is an ordered probe — battle ->
+name_entry -> `_has_yes_no_menu()` -> dialog -> unknown/title -> **else overworld** — and the only
+menu branch is `_has_yes_no_menu()` (:1202-1206), which demands `wMaxMenuItem == 1` plus the
+YES/NO box corner at tile (15,8). A Gen 1 list menu (wMaxMenuItem 4-5) satisfies nothing, so it
+falls through to the overworld default. The consequence is not cosmetic: a decision model reading
+that projection believes the tiles around it are walkable while the menu owns the controller, so
+movement presses return `state_changed: False` and the treadmill guards
+(`noop_plan_guard` 45x, `memory_navigation_step_suppressed` 31x, `giveup_walk` 27x in 60 cycles)
+fire against a map that was never blocking. **The right way to read the bridge: inputs are the
+bridge's business, beliefs are the projection's business — when they disagree, the projection is
+the defect, not the tool that made the state reachable.** Verification rule learned here: after any
+menu-class button press, compare frames (`play.py frame`), never the press summary's
+`state_changed` field — it says `False` for a successful menu open and for a genuine no-op alike.
+
+**The second error (dashboard controls land on the wrong session).** The UI reads
+`/status?session_id=…` (query) but controls via `fetch('/control/start', {body: JSON.stringify({session_id})})`.
+FastAPI's handlers declare `session_id` as a scalar parameter, which for a POST is a **query**
+parameter — so the body is ignored and every control call acts on `default`. Proven by sending the
+UI's exact shapes: `POST /control/pause` + body `{"session_id":"df-dash"}` ->
+`200 {"status":"paused","session_id":"default"}` while `GET /status?session_id=df-dash` still reports
+`running:true, paused:false`; `POST /control/pause?session_id=df-dash` stops the right one. Same
+lesson as the MCP required-key bug (DF-AIPP-9): a 200 that names the wrong noun is worse than a 400.
+**The right way:** confirm which transport a scalar parameter uses before writing a client against
+it, and read the response's echoed identifier — not the status code — as the success signal.
+
+**Tester assumption withdrawn, honestly.** The first pass filed "start a session then GET /status
+reports it idle" as a product defect. Reading `main.py` showed `/status` accepts `?session_id=` too;
+the run's own docs read was the gap. The docs half survived as DF-AIPP-12; the false alarm is
+recorded here so the next run does not re-chase it.
+
+**Perf facts (measured 2026-10-19):** dry-run cold 1.10 s; 60 cycles warm 27.92 s (first cycle
+5.8 s inc. one 5203 ms LLM call, then 0.3 s/cycle); MCP stdio calls 0.001-0.10 s (reset 0.84 s);
+dashboard routes 0.0006-0.045 s (start 1.18 s); WS cadence metrics 1.0 s / screenshots 0.5 s exactly
+as documented; fresh install 26 s (clone 1 + venv 4 + pip 20). Nothing worth a PERF row — said
+plainly rather than filed for the sake of having one.
+
+**Environment trap worth remembering:** the documented dashboard port 8000 was already held on this
+host by an unrelated `dexdat-api` container behind `docker-proxy`; a scratch port was used and the
+listener was attributed with `ss -ltnp` before any probe result was trusted. Also present: the same
+host runs `~/aipp-console/server.py` on 8899 and a long-lived `scripts/game_bridge.py` — check
+`ps -o lstart` before assuming a daemon you see is one your run started.
+
+**Install pool state:** bunker-las-03, -02 and -04 all timed out on ssh (100.69.3.13 / 100.116.99.35 /
+100.95.199.98); `bunker-mvp` answered and carried the whole leg. The leg is not skipped while one
+host answers — and the failure of the other three is infrastructure, not this project.
+
 How the system is actually built, the errors hit during a real-use run, and the right way to do things. Written from a real use session, not from the test suite.
 
 ## 2026-09-24 — the JEV tier is an engine on a test bench (not yet in the car)
