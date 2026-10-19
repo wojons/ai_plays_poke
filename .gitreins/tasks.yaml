@@ -1649,3 +1649,23 @@ tasks:
   status: complete
   created_at: '2026-10-18T20:48:19.635267+00:00'
   completed_at: '2026-10-18T21:00:58.401013+00:00'
+- id: TEST-HERM-1
+  title: Make tests/test_dashboard.py TestScreenshotsLatest hermetic
+  criteria:
+  - Test builds app/session against tmp_path screenshots dir (or monkeypatches screenshot
+    root) so outcome does not depend on repo-local game_saves tree; prove by running
+    test twice (with and without dummy game_saves/screenshots/tick_*.png present)
+    - both green; empty-dir case still asserts 404; do not weaken 404 assertion or
+    delete real run output
+  status: complete
+  created_at: '2026-10-19T00:52:27.249131+00:00'
+  completed_at: '2026-10-19T01:32:46.974529+00:00'
+- id: SUP-DEPS-20261019-AIP
+  title: Review 30 outdated Python packages (2026-10-19 scan)
+  criteria:
+  - Classify 30 outdated packages (direct/transitive, major/compatible, constrained);
+    propose tested upgrade batch with breaking-change analysis; run full test/type/lint
+    gates; retain before/after pip list evidence
+  status: complete
+  created_at: '2026-10-19T04:48:02.391719+00:00'
+  completed_at: '2026-10-19T05:27:52.485012+00:00'
