@@ -1,7 +1,8 @@
 """Unit tests for src/dashboard/main.py — FastAPI dashboard with 14 endpoints.
 
-Uses FastAPI TestClient with mocked GameDatabase + ScreenshotManager.
-No ROM, no emulator, no real filesystem.
+Uses FastAPI TestClient. Every dashboard session is rooted at a per-test
+tmp_path save dir (see the ``client`` fixture) — no ROM, no emulator, and no
+dependence on the repo-local ``game_saves`` tree that real runs populate.
 """
 
 import json
@@ -16,17 +17,27 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-# ── Fake dependencies to avoid real filesystem/SQLite ───────────────────
+# ── Test seams: real ScreenshotManager + faked SQLite ────────────────────
+
+# Base class for the hermetic scanner below: the REAL ScreenshotManager
+# (imported through src.core so it is not intercepted by the dashboard
+# module's patched attribute), so directory scans stay genuine.
+from src.core.screenshot_manager import ScreenshotManager
 
 
-class FakeScreenshotManager:
-    """Fake ScreenshotManager that doesn't touch filesystem."""
+class HermeticScreenshotManager(ScreenshotManager):
+    """Real scanner rooted at a per-test ``tmp_path`` screenshots dir.
 
-    def __init__(self, *args, **kwargs):
-        pass
+    ``DashboardSession`` constructs ``ScreenshotManager`` positionally
+    (``ScreenshotManager(str(save_dir / "screenshots"))``), so this keeps the
+    real ``get_latest_screenshot`` glob-over-directory behaviour while every
+    test's scans land in tmp_path — the /screenshots/latest 404 below is then
+    decided by an empty HERMETIC dir, never by the repo-local ``game_saves``
+    tree that a real run populates.
+    """
 
-    def get_latest_screenshot(self):
-        return None
+    def __init__(self, screenshot_dir):
+        super().__init__(str(screenshot_dir))
 
 
 class FakeGameDatabase:
@@ -49,11 +60,33 @@ def _api_key_env():
 
 
 @pytest.fixture
-def client():
-    """TestClient with patched deps — imported once per module."""
-    with patch("src.dashboard.main.ScreenshotManager", FakeScreenshotManager):
-        with patch("src.dashboard.main.GameDatabase", FakeGameDatabase):
-            from src.dashboard.main import app
+def client(tmp_path, monkeypatch):
+    """TestClient whose sessions never see the repo-local game_saves tree.
+
+    The patches are held open (monkeypatch) for the life of the client — the
+    previous version's ``with patch(...)`` blocks exited BEFORE any request
+    ran, so the dashboard module's ``ScreenshotManager`` was the REAL class at
+    request time. Combined with the module-global ``dashboard_sessions`` cache
+    (lazily seeded by unrelated tests in this module), GET /screenshots/latest
+    answered from the real ``./game_saves`` directory: a real run's
+    ``tick_*.png`` flipped the expected-404 test to 200 (TEST-HERM-1).
+    """
+    import src.dashboard.main as dashboard_main
+
+    monkeypatch.setattr(dashboard_main, "ScreenshotManager", HermeticScreenshotManager)
+    monkeypatch.setattr(dashboard_main, "GameDatabase", FakeGameDatabase)
+    # Fresh cache per test: without this, a DashboardSession rooted at
+    # ./game_saves created by an earlier test in this module (or left over
+    # from a previous test session in the same process) is reused and reads
+    # the real tree.
+    monkeypatch.setattr(dashboard_main, "dashboard_sessions", {})
+    # get_session() builds DashboardSession(session_id) with the relative
+    # default save_dir="./game_saves"; chdir pins that default to the test's
+    # own tmp dir so the lazy "default" session can never read the repo-local
+    # game_saves tree a real run populates.
+    monkeypatch.chdir(tmp_path)
+    from src.dashboard.main import app
+
     return TestClient(app)
 
 
@@ -364,6 +397,27 @@ class TestScreenshotsLatest:
 
     def test_with_auth_no_screenshots_returns_404(self, client, auth):
         assert client.get("/screenshots/latest", headers=auth).status_code == 404
+
+    def test_screenshot_in_hermetic_dir_returns_200(self, client, auth, tmp_path):
+        """Positive control: the fixture's isolation does not fake the 404.
+
+        A file placed in the TEST's own tmp screenshots dir (never the
+        repo-local tree) must be found by the real scanner — proving the
+        expected-404 test above asserts on a genuinely scanned empty dir.
+        """
+        import src.dashboard.main as dashboard_main
+
+        # The default session is created lazily on first request.
+        assert client.get("/status", headers=auth).status_code == 200
+        session = dashboard_main.dashboard_sessions["default"]
+        hermetic_dir = session.screenshot_manager.screenshot_dir
+        assert Path(hermetic_dir).resolve().is_relative_to(tmp_path)
+        screenshot = hermetic_dir / "tick_000001_screenshot_test.png"
+        screenshot.write_bytes(b"fake png bytes")
+
+        resp = client.get("/screenshots/latest", headers=auth)
+        assert resp.status_code == 200
+        assert resp.json()["path"] == str(screenshot)
 
 
 class TestScreenshotsFile:
