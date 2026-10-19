@@ -1810,6 +1810,97 @@ class TestClaudeClientGetTextResponse:
             assert "Be helpful" in messages[0]["content"]
 
 
+class TestClaudeClientRealSDKCallShape:
+    """Drive the REAL installed anthropic SDK, not a mocked SDK class.
+
+    Regression for the anthropic 0.x -> 1.x bump: v1.0 removed the sampling
+    parameters (``temperature``, ``top_p``, ``top_k``) from ``messages.create()``,
+    so passing ``temperature=`` raises ``TypeError``. The mocked-SDK tests above
+    cannot catch that because they replace the whole client. This test points the
+    SDK at a loopback server (no network egress) and asserts ClaudeClient's call
+    shape still produces a parseable response with the temperature preserved.
+    """
+
+    def test_chat_completion_through_real_sdk(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import json
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+
+        captured: dict[str, Any] = {}
+
+        class _Handler(BaseHTTPRequestHandler):
+            def do_POST(self) -> None:  # noqa: N802 - stdlib naming
+                length = int(self.headers.get("Content-Length", "0"))
+                body = self.rfile.read(length)
+                captured["path"] = self.path
+                captured["body"] = json.loads(body) if body else {}
+                payload = {
+                    "id": "msg_loopback",
+                    "type": "message",
+                    "role": "assistant",
+                    "model": captured["body"].get("model", "unknown"),
+                    "content": [{"type": "text", "text": "loopback reply"}],
+                    "stop_reason": "end_turn",
+                    "stop_sequence": None,
+                    "usage": {"input_tokens": 4, "output_tokens": 2},
+                }
+                raw = json.dumps(payload).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(raw)))
+                self.end_headers()
+                self.wfile.write(raw)
+
+            def log_message(self, *args: object) -> None:
+                return
+
+        server = HTTPServer(("127.0.0.1", 0), _Handler)
+        port = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            import anthropic as real_anthropic
+
+            monkeypatch.setenv("ANTHROPIC_BASE_URL", f"http://127.0.0.1:{port}")
+            monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-loopback")
+            for proxy_var in (
+                "HTTP_PROXY",
+                "HTTPS_PROXY",
+                "ALL_PROXY",
+                "http_proxy",
+                "https_proxy",
+            ):
+                monkeypatch.delenv(proxy_var, raising=False)
+            monkeypatch.setattr(
+                "src.core.ai_client.Anthropic", real_anthropic.Anthropic
+            )
+            monkeypatch.setattr("src.core.ai_client.ANTHROPIC_AVAILABLE", True)
+
+            from src.core.ai_client import ClaudeClient
+
+            client = ClaudeClient(api_key="sk-ant-loopback")
+            result = client.chat_completion(
+                "claude-3-haiku-20240307",
+                [{"role": "user", "content": "hi"}],
+                max_tokens=32,
+                temperature=0.25,
+            )
+        finally:
+            server.shutdown()
+            server.server_close()
+
+        assert result["content"] == "loopback reply"
+        assert result["request_id"] == "msg_loopback"
+        assert result["finish_reason"] == "end_turn"
+        assert result["usage"] == {"prompt_tokens": 4, "completion_tokens": 2}
+        assert captured["path"] == "/v1/messages"
+        # temperature must still reach the wire (forwarded via extra_body now
+        # that the SDK no longer accepts it as a named argument).
+        assert captured["body"]["temperature"] == 0.25
+        assert captured["body"]["max_tokens"] == 32
+
+
 # ── OpenRouterClient tests ────────────────────────────────────────────
 
 

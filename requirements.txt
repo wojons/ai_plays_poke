@@ -19,7 +19,10 @@ pyboy>=1.0.0,<2.8.0
 
 # LLM APIs (OpenRouter via requests)
 requests>=2.34.2
-anthropic>=0.117.0
+# anthropic 1.x removed the sampling params from messages.create() and moved the
+# SDK HTTP layer to httpx2; src/core/ai_client.py forwards temperature via
+# extra_body so both 0.x and 1.x stay correct. See docs/dependency_review_20261019.md.
+anthropic>=1.15.0
 
 # Core Dependencies
 numpy>=1.26.4
@@ -33,7 +36,7 @@ PyYAML>=6.0.3
 opencv-python-headless>=4.14.0.94
 
 # Observability Dashboard
-fastapi>=0.142.2
+fastapi>=0.146.0
 uvicorn>=0.54.0
 websockets>=12.0
 

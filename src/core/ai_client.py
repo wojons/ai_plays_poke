@@ -480,7 +480,11 @@ class ClaudeClient:
             response = self.client.messages.create(
                 model=model,
                 max_tokens=max_tokens,
-                temperature=temperature,
+                # anthropic>=1.0 removed the sampling parameters (temperature,
+                # top_p, top_k) from messages.create(); passing one is a
+                # TypeError. extra_body is forwarded to the API as-is, so
+                # models that still honour temperature keep the old behaviour.
+                extra_body={"temperature": temperature},
                 messages=messages,  # type: ignore
             )
 
