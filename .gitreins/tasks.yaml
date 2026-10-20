@@ -1669,3 +1669,29 @@ tasks:
   status: complete
   created_at: '2026-10-19T04:48:02.391719+00:00'
   completed_at: '2026-10-19T05:27:52.485012+00:00'
+- id: DF-AIPP-10
+  title: Detect START menu in screen_type()
+  criteria:
+  - screen_type() returns SCREEN_MENU when START menu is open (wMaxMenuItem > 1);
+    regression test test_start_menu_detected_as_screen_menu passes; mypy/ruff clean
+  status: complete
+  created_at: '2026-10-20T02:02:51.695830+00:00'
+  completed_at: '2026-10-20T02:03:12.650822+00:00'
+- id: DF-AIPP-11
+  title: 'dashboard: control buttons send session_id in body, handlers read from query'
+  criteria:
+  - 'UI control buttons (Start/Pause/Resume/Stop) send session_id in JSON body while
+    handlers read it from query string, causing controls to always act on ''default''
+    session. Fix: make transports agree - either send controls as query strings or
+    declare params as Body on handlers. Add test covering non-default session through
+    start->command->pause->resume->stop.'
+  status: in_progress
+  created_at: '2026-10-20T04:08:57.796940+00:00'
+- id: DOC-19
+  title: Add missing standard project governance documents
+  criteria:
+  - SUPPORT.md and CODE_OF_CONDUCT.md exist at repository root with usable guidance;
+    docs-only change is verified by file reads and repository checks.
+  status: complete
+  created_at: '2026-10-20T11:48:27.660932+00:00'
+  completed_at: '2026-10-20T12:07:15.904937+00:00'
