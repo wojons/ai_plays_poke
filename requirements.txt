@@ -36,7 +36,7 @@ PyYAML>=6.0.3
 opencv-python-headless>=4.14.0.94
 
 # Observability Dashboard
-fastapi>=0.146.0
+fastapi>=0.152.0  # bumped 0.146→0.152 on 2026-10-20 (SUP-DEPS-20261020-AIP); minor release
 uvicorn>=0.54.0
 websockets>=12.0
 

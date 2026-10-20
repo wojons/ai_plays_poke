@@ -24,7 +24,7 @@ dependencies = [
     "Pillow>=10.0.0",
     "opencv-python-headless>=4.8.0",
     "psutil>=5.9.0",
-    "fastapi>=0.146.0",
+    "fastapi>=0.152.0",  # bumped 0.146→0.152 on 2026-10-20 (SUP-DEPS-20261020-AIP)
     "uvicorn>=0.24.0",
     "websockets>=12.0",
 ]
@@ -39,7 +39,7 @@ dev = [
     "requests-mock>=1.12",
     "opencv-python-headless>=4.8.0",
     "psutil>=5.9.0",
-    "fastapi>=0.146.0",
+    "fastapi>=0.152.0",  # bumped 0.146→0.152 on 2026-10-20 (SUP-DEPS-20261020-AIP)
     "black>=23.0",
     "mypy>=1.0",
     "flake8>=6.0",
