@@ -693,6 +693,125 @@ class TestRAMReaderScreenType:
             assert reader.screen_type() == "dialog"
 
 
+# ── List menus (DF-AIPP-10) ──
+#
+# Live-ROM geometry (Pokemon Blue, boot checkpoint): the START menu draws its
+# box from tile (10,0) to (19,13) with items on rows 2,4,6,8,10,12 and the
+# selection cursor 0xED immediately right of the left border on the row of
+# wCurrentMenuItem.  wMaxMenuItem/wCurrentMenuItem/wTopMenuItemX/wTopMenuItemY
+# are IDENTICAL on the overworld before the menu opens and after it closes, so
+# the rendered box is what these tests must exercise.
+
+
+def _draw_menu_box(left: int, top: int, height: int, cursor_row: int) -> None:
+    """Draw a Gen I menu box into the mocked tilemap, with a selection cursor."""
+    right = 19
+    bottom = top + height - 1
+    top_base = 0xC3A0 + top * 20
+    bottom_base = 0xC3A0 + bottom * 20
+
+    _MEMORY[top_base + left] = 0x79
+    _MEMORY[top_base + right] = 0x7B
+    _MEMORY[bottom_base + left] = 0x7D
+    _MEMORY[bottom_base + right] = 0x7E
+    for col in range(left + 1, right):
+        _MEMORY[top_base + col] = 0x7A
+        _MEMORY[bottom_base + col] = 0x7A
+
+    for row in range(top + 1, bottom):
+        base = 0xC3A0 + row * 20
+        _MEMORY[base + left] = 0x7C
+        _MEMORY[base + right] = 0x7C
+        for col in range(left + 1, right):
+            _MEMORY[base + col] = 0x7F
+
+    # One label per item row (blank row between items), then the cursor.
+    for row in range(top + 2, bottom, 2):
+        base = 0xC3A0 + row * 20
+        for col in range(left + 1, left + 6):
+            _MEMORY[base + col] = 0x80
+
+    _MEMORY[0xC3A0 + cursor_row * 20 + left + 1] = 0xED
+
+
+def _set_start_menu_ram(max_item: int = 4, current: int = 0) -> None:
+    _MEMORY[0xCC24] = 2  # wTopMenuItemY
+    _MEMORY[0xCC25] = 11  # wTopMenuItemX
+    _MEMORY[0xCC26] = current  # wCurrentMenuItem
+    _MEMORY[0xCC28] = max_item  # wMaxMenuItem
+
+
+def test_start_menu_detected_as_screen_menu(mock_emu: MagicMock) -> None:
+    """An open START menu is a menu, not the overworld (DF-AIPP-10)."""
+    _set_start_menu_ram(max_item=4, current=0)
+    _draw_menu_box(left=10, top=0, height=14, cursor_row=2)
+
+    from src.core.ram_reader import RAMReader
+
+    with patch("src.core.ram_reader._MapDB"):
+        reader = RAMReader(mock_emu, "/fake/rom.gb")
+        assert reader.screen_type() == "menu"
+
+
+def test_start_menu_with_cursor_moved_stays_menu(mock_emu: MagicMock) -> None:
+    _set_start_menu_ram(max_item=4, current=3)
+    _draw_menu_box(left=10, top=0, height=14, cursor_row=8)
+
+    from src.core.ram_reader import RAMReader
+
+    with patch("src.core.ram_reader._MapDB"):
+        reader = RAMReader(mock_emu, "/fake/rom.gb")
+        assert reader.screen_type() == "menu"
+
+
+def test_stale_menu_ram_on_overworld_stays_overworld(mock_emu: MagicMock) -> None:
+    """The live ROM keeps the last menu's values on the overworld; the box is
+    gone, so this must NOT be read as a menu."""
+    _set_start_menu_ram(max_item=6, current=3)
+
+    from src.core.ram_reader import RAMReader
+
+    with patch("src.core.ram_reader._MapDB"):
+        reader = RAMReader(mock_emu, "/fake/rom.gb")
+        assert reader.screen_type() == "overworld"
+
+
+def test_item_list_menu_detected_as_screen_menu(mock_emu: MagicMock) -> None:
+    """The ITEM list uses a different box origin (live: x=5, y=4, max=0)."""
+    _MEMORY[0xCC24] = 4
+    _MEMORY[0xCC25] = 5
+    _MEMORY[0xCC26] = 0
+    _MEMORY[0xCC28] = 0
+    _draw_menu_box(left=4, top=2, height=11, cursor_row=4)
+
+    from src.core.ram_reader import RAMReader
+
+    with patch("src.core.ram_reader._MapDB"):
+        reader = RAMReader(mock_emu, "/fake/rom.gb")
+        assert reader.screen_type() == "menu"
+
+
+def test_dialog_over_stale_menu_ram_stays_dialog(mock_emu: MagicMock) -> None:
+    """A text box drawn below the stale menu coordinates is a dialog, not a
+    menu: the list-menu check must not outrank the dialog branch there."""
+    _set_start_menu_ram(max_item=6, current=3)
+    top = 0xC3A0 + 12 * 20
+    bottom = 0xC3A0 + 17 * 20
+    _MEMORY[top] = 0x79
+    _MEMORY[top + 19] = 0x7B
+    _MEMORY[bottom] = 0x7D
+    _MEMORY[bottom + 19] = 0x7E
+    for col in range(1, 19):
+        _MEMORY[top + col] = 0x7A
+        _MEMORY[bottom + col] = 0x7A
+
+    from src.core.ram_reader import RAMReader
+
+    with patch("src.core.ram_reader._MapDB"):
+        reader = RAMReader(mock_emu, "/fake/rom.gb")
+        assert reader.screen_type() == "dialog"
+
+
 class TestRAMReaderAdjacentBlocks:
     def test_adjacent_returns_blocks(self, mock_emu: MagicMock) -> None:
         """Player at (5, 3) on a 4×4 map: (5,3) is just outside map bounds

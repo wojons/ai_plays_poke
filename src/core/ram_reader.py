@@ -1166,6 +1166,9 @@ class RAMReader:
         if self._has_yes_no_menu():
             return SCREEN_MENU
 
+        if self._has_list_menu():
+            return SCREEN_MENU
+
         text_frame = self.read_u8(ADDR_TEXT_BOX_FRAME)
         if text_frame != 0 or self._has_bottom_textbox():
             return SCREEN_DIALOG
@@ -1216,6 +1219,50 @@ class RAMReader:
             and bottom[14] == 0x7D
             and bottom[19] == 0x7E
         )
+
+    def _has_list_menu(self) -> bool:
+        """Detect a rendered Gen 1 list menu (START menu, ITEM list, ...).
+
+        wMaxMenuItem/wCurrentMenuItem are the last menu's values even on the
+        overworld — on the live ROM they are byte-identical with the START menu
+        open, before it opens, and after it closes — so they cannot decide this
+        alone.  The drawn box can: the row named by wTopMenuItemY must sit
+        inside a menu box (side borders either side of the item column), that
+        box must start with a corner tile above it, and the selection cursor
+        (0xED) must be on the row of wCurrentMenuItem.  Menu item rows are two
+        apart, starting at wTopMenuItemY.
+        """
+        current = self.read_u8(ADDR_CURRENT_MENU_ITEM)
+        max_item = self.read_u8(ADDR_MAX_MENU_ITEM)
+        y = self.read_u8(ADDR_TOP_MENU_ITEM_Y)
+        x = self.read_u8(ADDR_TOP_MENU_ITEM_X)
+        if current > max_item or y < 1 or y >= TILE_MAP_HEIGHT:
+            return False
+        if not 0 < x < TILE_MAP_WIDTH:
+            return False
+
+        item_row = self._tilemap_row(y)
+        left_borders = [col for col in range(x) if item_row[col] == 0x7C]
+        if not left_borders:
+            return False
+        left = left_borders[-1]
+        if 0x7C not in item_row[left + 1 :]:
+            return False
+
+        # The box top: walk up the side border (capped, so a taller box than
+        # the cap stays undetected rather than misdetected) to its corner.
+        top = -1
+        for row in range(y - 1, max(y - 6, -1), -1):
+            if self.read_u8(ADDR_TILE_MAP + row * TILE_MAP_WIDTH + left) != 0x7C:
+                top = row
+                break
+        if top < 0 or self.read_u8(ADDR_TILE_MAP + top * TILE_MAP_WIDTH + left) != 0x79:
+            return False
+
+        cursor_row = y + 2 * current
+        if cursor_row >= TILE_MAP_HEIGHT:
+            return False
+        return self._tilemap_row(cursor_row)[left + 1] == 0xED
 
     def _has_bottom_textbox(self) -> bool:
         """Detect a rendered 20×6 text box after wTextBoxFrame returns to zero."""
