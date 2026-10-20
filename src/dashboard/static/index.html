@@ -616,10 +616,9 @@
 
         async function startSession() {
             try {
-                const response = await fetch('/control/start', {
+                const response = await fetch(`/control/start?session_id=${currentSessionId}`, {
                     method: 'POST',
-                    headers,
-                    body: JSON.stringify({ session_id: currentSessionId })
+                    headers
                 });
 
                 if (response.ok) {
@@ -632,10 +631,9 @@
 
         async function pauseSession() {
             try {
-                const response = await fetch('/control/pause', {
+                const response = await fetch(`/control/pause?session_id=${currentSessionId}`, {
                     method: 'POST',
-                    headers,
-                    body: JSON.stringify({ session_id: currentSessionId })
+                    headers
                 });
 
                 if (response.ok) {
@@ -648,10 +646,9 @@
 
         async function resumeSession() {
             try {
-                const response = await fetch('/control/resume', {
+                const response = await fetch(`/control/resume?session_id=${currentSessionId}`, {
                     method: 'POST',
-                    headers,
-                    body: JSON.stringify({ session_id: currentSessionId })
+                    headers
                 });
 
                 if (response.ok) {
@@ -664,10 +661,9 @@
 
         async function stopSession() {
             try {
-                const response = await fetch('/control/stop', {
+                const response = await fetch(`/control/stop?session_id=${currentSessionId}`, {
                     method: 'POST',
-                    headers,
-                    body: JSON.stringify({ session_id: currentSessionId })
+                    headers
                 });
 
                 if (response.ok) {

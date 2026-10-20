@@ -634,3 +634,151 @@ class TestApiKeyBootstrap:
         assert resp.headers["content-type"].startswith("text/html")
         assert json.dumps({"PTP_API_KEY": API_KEY}) in resp.text
         assert resp.text.rstrip().endswith("</html>")
+
+
+# ── Control transport: session_id travels as a query param (DF-AIPP-11) ──
+
+
+class TestControlTransportQueryParam:
+    """Controls must select their session through the query string.
+
+    The control handlers (``main.py`` pause/resume/stop/start) declare
+    ``session_id`` as a query parameter, but the dashboard UI posted
+    ``{"session_id": ...}`` in the JSON body of every control call. FastAPI
+    ignored the body field, so Start/Pause/Resume/Stop always acted on
+    ``"default"``: selecting a non-default session in the dropdown changed the
+    read routes only, and Pause/Stop answered 200 while a *different* session
+    was actually paused/stopped. These tests pin both halves of the fix — the
+    asset's URL shape, and end-to-end behaviour over that transport. Handlers
+    are intentionally unchanged.
+    """
+
+    CONTROL_FUNCTIONS = {
+        "startSession": "/control/start",
+        "pauseSession": "/control/pause",
+        "resumeSession": "/control/resume",
+        "stopSession": "/control/stop",
+    }
+
+    @staticmethod
+    def _function_body(html: str, name: str) -> str:
+        """Source of ``async function <name>()`` up to its closing brace."""
+        match = re.search(
+            rf"async function {name}\(\) \{{(.*?)\n        \}}", html, re.DOTALL
+        )
+        assert match is not None, f"{name}() not found in index.html"
+        return match.group(1)
+
+    def test_every_control_button_sends_session_id_as_a_query_param(self):
+        from src.dashboard.main import INDEX_HTML_PATH
+
+        html = INDEX_HTML_PATH.read_text(encoding="utf-8")
+        for name, route in self.CONTROL_FUNCTIONS.items():
+            body = self._function_body(html, name)
+            assert f"{route}?session_id=${{currentSessionId}}" in body, (
+                f"{name}() must POST to {route} with session_id on the query "
+                "string — the handlers read it as a query parameter"
+            )
+
+    def test_no_control_button_sends_a_request_body(self):
+        from src.dashboard.main import INDEX_HTML_PATH
+
+        html = INDEX_HTML_PATH.read_text(encoding="utf-8")
+        for name in self.CONTROL_FUNCTIONS:
+            body = self._function_body(html, name)
+            assert "body:" not in body, (
+                f"{name}() must not send a request body — a session_id in the "
+                "JSON body is ignored by the query-parameter handlers"
+            )
+
+    def test_read_routes_still_use_query_params(self):
+        from src.dashboard.main import INDEX_HTML_PATH
+
+        html = INDEX_HTML_PATH.read_text(encoding="utf-8")
+        for route in ("/status", "/metrics", "/actions/recent"):
+            assert f"{route}?session_id=${{currentSessionId}}" in html
+
+    def test_non_default_session_lifecycle_over_query_transport(self, client, auth):
+        """start → command → pause → resume → stop on a non-default session."""
+        sid = "dfui"
+
+        # start — the response echoes the requested session, and "default"
+        # stays idle (the regression was everything landing on "default").
+        started = client.post(f"/control/start?session_id={sid}", headers=auth)
+        assert started.status_code == 200
+        assert started.json() == {"status": "started", "session_id": sid}
+        assert (
+            client.get(f"/status?session_id={sid}", headers=auth).json()["running"]
+            is True
+        )
+        assert (
+            client.get("/status?session_id=default", headers=auth).json()["running"]
+            is False
+        )
+
+        # command — queued into the non-default session only.
+        queued = client.post(
+            f"/control/command?session_id={sid}", json={"command": "A"}, headers=auth
+        )
+        assert queued.status_code == 200
+        assert queued.json()["status"] == "queued"
+        assert (
+            client.get(f"/actions/recent?session_id={sid}", headers=auth).json()[
+                "total_count"
+            ]
+            == 1
+        )
+        assert (
+            client.get("/actions/recent?session_id=default", headers=auth).json()[
+                "total_count"
+            ]
+            == 0
+        )
+
+        # pause — echoes the non-default id and pauses it, not "default".
+        paused = client.post(f"/control/pause?session_id={sid}", headers=auth)
+        assert paused.status_code == 200
+        assert paused.json() == {"status": "paused", "session_id": sid}
+        assert (
+            client.get(f"/status?session_id={sid}", headers=auth).json()["paused"]
+            is True
+        )
+        assert (
+            client.get("/status?session_id=default", headers=auth).json()["paused"]
+            is False
+        )
+
+        # resume
+        resumed = client.post(f"/control/resume?session_id={sid}", headers=auth)
+        assert resumed.status_code == 200
+        assert resumed.json() == {"status": "resumed", "session_id": sid}
+        assert (
+            client.get(f"/status?session_id={sid}", headers=auth).json()["paused"]
+            is False
+        )
+
+        # stop
+        stopped = client.post(f"/control/stop?session_id={sid}", headers=auth)
+        assert stopped.status_code == 200
+        assert stopped.json() == {"status": "stopped", "session_id": sid}
+        assert (
+            client.get(f"/status?session_id={sid}", headers=auth).json()["running"]
+            is False
+        )
+
+    def test_body_only_session_id_selects_nothing(self, client, auth):
+        """The pre-fix UI transport, pinned as a red-line.
+
+        With the session in the JSON body the handlers answer for "default",
+        so this pause report fails (400: default is not running) and the
+        selected session keeps running. Asserts the defect is real in the
+        handler contract and therefore cannot be reintroduced in the UI.
+        """
+        client.post("/control/start?session_id=dfui", headers=auth)
+        resp = client.post("/control/pause", json={"session_id": "dfui"}, headers=auth)
+        assert resp.status_code == 400
+        assert resp.json() == {"error": "Session not running"}
+        assert (
+            client.get("/status?session_id=dfui", headers=auth).json()["running"]
+            is True
+        )
