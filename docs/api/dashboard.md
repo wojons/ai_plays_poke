@@ -15,7 +15,7 @@ python3 -m src.dashboard.main
 
 Running the file directly (`python3 src/dashboard/main.py`) also works — the uvicorn start-up lives under `if __name__ == "__main__":`. The module imports `src.db.database` / `src.core.screenshot_manager`, so run it from the repo root (or with `src` importable), not from inside `src/dashboard/`.
 
-| Setting | Default | Purpose |
+|| Setting | Default | Purpose |
 |---------|---------|---------|
 | `PTP_DASHBOARD_PORT` | `8000` | Port uvicorn binds |
 | `PTP_DASHBOARD_HOST` | `127.0.0.1` | Bind address (set `0.0.0.0` for LAN access) |
@@ -38,14 +38,14 @@ CORS is wide open (`allow_origins=["*"]` with `allow_credentials=True`), and `/s
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/` | — | Dashboard UI; `static/index.html` with `PTP_API_KEY` injected into `window.ENV` |
-| GET | `/status` | 🔑 | Session status: running/paused, tick count, average tick rate, current state, location, elapsed seconds |
-| GET | `/screenshots/latest` | 🔑 | Latest screenshot as JSON (`path`, `url`, `timestamp`) or, with `?format=base64`, a `data:image/png;base64` URI; 404 when none exist |
+| GET | `/status` | 🔑 | Session status: running/paused, tick count, average tick rate, current state, location, elapsed seconds; accepts `?session_id=<id>` (default: `default`) |
+| GET | `/screenshots/latest` | 🔑 | Latest screenshot as JSON (`path`, `url`, `timestamp`) or, with `?format=base64`, a `data:image/png;base64` URI; accepts `?session_id=<id>` (default: `default`); 404 when none exist |
 | GET | `/screenshots/file` | — | Raw screenshot file; required `path` query parameter; 404 when missing |
-| GET | `/actions/recent` | 🔑 | Recent command history (`?limit=50`, last 1000 kept) with `total_count` |
-| GET | `/metrics` | 🔑 | Performance metrics: ticks/s, total ticks/commands, commands per minute, success rate, avg confidence, `total_cost_estimate` (always 0 in current code), elapsed |
-| POST | `/control/pause` | 🔑 | Pause a running session (400 if not running) |
-| POST | `/control/resume` | 🔑 | Resume a paused session (400 if not running) |
-| POST | `/control/stop` | 🔑 | Stop the session |
+| GET | `/actions/recent` | 🔑 | Recent command history (`?limit=50` or `?session_id=<id>&limit=50`); accepts `?session_id=<id>` (default: `default`); last 1000 kept with `total_count` |
+| GET | `/metrics` | 🔑 | Performance metrics: ticks/s, total ticks/commands, commands per minute, success rate, avg confidence, `total_cost_estimate` (always 0 in current code), elapsed; accepts `?session_id=<id>` (default: `default`) |
+| POST | `/control/pause` | 🔑 | Pause a running session (400 if not running); accepts `?session_id=<id>` (default: `default`) |
+| POST | `/control/resume` | 🔑 | Resume a paused session (400 if not running); accepts `?session_id=<id>` (default: `default`) |
+| POST | `/control/stop` | 🔑 | Stop the session; accepts `?session_id=<id>` (default: `default`) |
 | POST | `/control/start` | 🔑 | Start a fresh session (`?session_id=default&save_dir=./game_saves`); stops and replaces an existing session with the same id |
 | POST | `/control/command` | 🔑 | Queue a command; JSON body `{"command": "...", "reasoning": "...", "confidence": 0.9}` (400 when not running or paused) |
 | GET | `/sessions` | 🔑 | List all live sessions with their status |
@@ -54,7 +54,7 @@ CORS is wide open (`allow_origins=["*"]` with `allow_credentials=True`), and `/s
 
 ## WebSocket streams (2)
 
-| Path | Cadence | Payload |
+|| Path | Cadence | Payload |
 |------|---------|---------|
 | `/ws/screenshots/{session_id}` | every 0.5 s | `{"type": "screenshot", "image": <base64 data URI>, "path", "timestamp", "tick", "state"}` when a newer frame exists, plus a `{"type": "status", "tick", "state", "paused", "tick_rate"}` message every interval |
 | `/ws/metrics/{session_id}` | every 1.0 s | `{"type": "metrics", ...}` with the same fields as `GET /metrics` |
@@ -64,6 +64,8 @@ Both streams create the session on first connect if it does not exist yet.
 ## State model
 
 Sessions are **in-memory** (`dashboard_sessions` dict): `POST /control/start` creates a `DashboardSession` that owns a `GameDatabase` (`<save_dir>/game_data.db`) and a `ScreenshotManager` (`<save_dir>/screenshots`). Restarting the server clears all sessions, command history (capped at 1000 entries), and tick-rate windows.
+
+A session started under a fresh `session_id` is **invisible** to any read route that omits `session_id` — those reads default to the `default` session. To verify a session you just started, always include `?session_id=<your_id>` on the follow-up reads.
 
 ## See Also
 
