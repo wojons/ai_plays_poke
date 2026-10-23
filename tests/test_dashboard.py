@@ -7,6 +7,7 @@ dependence on the repo-local ``game_saves`` tree that real runs populate.
 
 import json
 import re
+import socket
 import sys
 from pathlib import Path
 from unittest.mock import patch
@@ -135,17 +136,34 @@ class TestFailClosedAuth:
             == 200
         )
 
-    def test_startup_does_not_print_the_api_key(self, capsys):
+    def test_startup_does_not_print_the_api_key(self, capsys, monkeypatch):
         """The ``__main__`` block must not echo the key to stdout."""
         runpy = __import__("runpy")
         import src.dashboard as dashboard_pkg
+
+        # Port 8000 may be occupied by a local dashboard or another test.
+        # Port 0 keeps this fake-uvicorn startup test independent of that state.
+        monkeypatch.setenv("PTP_DASHBOARD_PORT", "0")
 
         with patch.dict(
             "sys.modules",
             {"uvicorn": type(sys)("fake_uvicorn")},
         ):
             fake_uvicorn = sys.modules["uvicorn"]
-            fake_uvicorn.run = lambda *a, **k: (a, k, None)[-1]
+
+            class FakeConfig:
+                def __init__(self, *args, **kwargs):
+                    pass
+
+            class FakeServer:
+                def __init__(self, config):
+                    pass
+
+                def run(self):
+                    return None
+
+            fake_uvicorn.Config = FakeConfig
+            fake_uvicorn.Server = FakeServer
             runpy.run_path(
                 str(Path(dashboard_pkg.__file__).parent / "main.py"),
                 run_name="__main__",
@@ -153,6 +171,31 @@ class TestFailClosedAuth:
         out = capsys.readouterr().out
         assert "API Key" not in out
         assert TEST_API_KEY not in out
+
+    def test_dashboard_bind_failure(self, monkeypatch, capsys):
+        """An occupied dashboard port fails before the success banner."""
+        import runpy
+
+        import src.dashboard as dashboard_pkg
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+            listener.bind(("127.0.0.1", 0))
+            listener.listen()
+            port = listener.getsockname()[1]
+            monkeypatch.setenv("PTP_DASHBOARD_HOST", "127.0.0.1")
+            monkeypatch.setenv("PTP_DASHBOARD_PORT", str(port))
+
+            with pytest.raises(SystemExit) as exc_info:
+                runpy.run_path(
+                    str(Path(dashboard_pkg.__file__).parent / "main.py"),
+                    run_name="__main__",
+                )
+
+        assert exc_info.value.code != 0
+        output = capsys.readouterr()
+        combined = output.out + output.err
+        assert "PTP_DASHBOARD_PORT" in combined
+        assert "Starting PTP-01X Dashboard" not in combined
 
 
 # ── DashboardSession Unit Tests ─────────────────────────────────────────

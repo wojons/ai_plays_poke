@@ -21,6 +21,12 @@ Running the file directly (`python3 src/dashboard/main.py`) also works — the u
 | `PTP_DASHBOARD_HOST` | `127.0.0.1` | Bind address (set `0.0.0.0` for LAN access) |
 | `PTP_API_KEY` | unset | API key required by authenticated routes (see below) |
 
+If the configured address is already occupied, startup fails with a non-zero exit and
+reports the bind error (for example, `Errno 98` / `address already in use`). The
+`Starting PTP-01X Dashboard` success banner is not printed in this case. Set
+`PTP_DASHBOARD_PORT` to an available port to start the dashboard, for example:
+`PTP_DASHBOARD_PORT=8001 python3 -m src.dashboard.main`.
+
 Once running:
 
 - UI: `http://127.0.0.1:8000/` — serves `src/dashboard/static/index.html` with the runtime API key injected as `window.ENV` (the shipped HTML file carries no key)

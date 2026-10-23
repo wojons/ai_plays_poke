@@ -13,6 +13,8 @@ import asyncio
 import base64
 import json
 import os
+import socket
+import sys
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -506,13 +508,36 @@ def create_dashboard_app(save_dir: str = "./game_saves") -> FastAPI:
     return app
 
 
+def _port_is_available(host: str, port: int) -> bool:
+    """Return whether the configured dashboard address can be bound."""
+    try:
+        with socket.create_server((host, port)):
+            return True
+    except OSError as exc:
+        print(
+            f"Dashboard failed to start: PTP_DASHBOARD_PORT={port} "
+            f"cannot bind {host}:{port}: {exc}",
+            file=sys.stderr,
+        )
+        return False
+
+
 if __name__ == "__main__":
     import uvicorn
 
     port = int(os.getenv("PTP_DASHBOARD_PORT", "8000"))
     host = os.getenv("PTP_DASHBOARD_HOST", "127.0.0.1")
 
-    print(f"Starting PTP-01X Dashboard on {host}:{port}")
-    print(f"Documentation: http://{host}:{port}/api/docs")
+    if not _port_is_available(host, port):
+        raise SystemExit(1)
 
-    uvicorn.run(app, host=host, port=port)
+    class DashboardServer(uvicorn.Server):
+        """Emit the dashboard banner only after uvicorn binds successfully."""
+
+        def _log_started_message(self, listeners):
+            super()._log_started_message(listeners)
+            print(f"Starting PTP-01X Dashboard on {host}:{port}")
+            print(f"Documentation: http://{host}:{port}/api/docs")
+
+    config = uvicorn.Config(app, host=host, port=port)
+    DashboardServer(config).run()
