@@ -332,6 +332,108 @@ def test_hybrid_policy_permits_the_same_handoff(monkeypatch):
     assert called["n"] == 1
 
 
+def test_repeated_gap_handoff_is_blocked_and_round_trips(monkeypatch):
+    """The per-class budget may refuse a retry, but never silently."""
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "decide",
+        lambda *_a, **_k: {
+            "ok": True,
+            "next_action": "RIGHT",
+            "escalate": True,
+            "escalate_reason": "missing_class=map_topology",
+            "missing_class": "map_topology",
+            "raw": {},
+        },
+    )
+    monkeypatch.setattr(cron_runner.state_projection, "build", lambda *_a, **_k: "proj")
+    monkeypatch.setattr(
+        cron_runner,
+        "_memory_navigation_decision",
+        lambda *_a, **_k: {"result": "miss", "reason": "hermetic fixture"},
+    )
+    teacher_calls = {"n": 0}
+
+    def counting_teacher(*_a, **_k):
+        teacher_calls["n"] += 1
+        return {"ok": False, "error": "stubbed"}
+
+    monkeypatch.setattr(cron_runner.jev_client, "escalate_and_reask", counting_teacher)
+    escalated_classes = set()
+    kwargs = {
+        "handoff_policy": cron_runner.build_handoff_policy(handoff="any"),
+        "teacher_api_client": object(),
+        "teacher_model": "some-model",
+        "escalated_classes": escalated_classes,
+    }
+
+    first = cron_runner._jev_overworld_decision({}, **kwargs)
+    second = cron_runner._jev_overworld_decision({}, **kwargs)
+    autonomy = cron_runner._autonomy_counters([first, second])
+
+    assert teacher_calls["n"] == 1
+    assert first["escalated"] is True
+    assert first["handoff_allowed"] is True
+    assert second["escalated"] is False
+    assert second["handoff_allowed"] is False
+    assert "map_topology" in (second["handoff_blocked_reason"] or "")
+    assert autonomy["handoff_trigger_counts"] == {"gap": 2}
+    assert autonomy["escalated"] == 1
+    assert autonomy["handoff_blocked"] == 1
+    assert autonomy["handoff_trigger_counts"]["gap"] == (
+        autonomy["escalated"] + autonomy["handoff_blocked"]
+    )
+
+
+def test_memory_answered_gap_handoff_is_blocked_with_reason(monkeypatch):
+    """A valid path answer replaces a teacher call but must stay accountable."""
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "decide",
+        lambda *_a, **_k: {
+            "ok": True,
+            "next_action": "LEFT",
+            "escalate": True,
+            "escalate_reason": "missing_class=map_topology",
+            "missing_class": "map_topology",
+            "raw": {},
+        },
+    )
+    monkeypatch.setattr(cron_runner.state_projection, "build", lambda *_a, **_k: "proj")
+    route_key = "/world/path/Red-s-House-1F->Red-s-House-2F"
+    monkeypatch.setattr(
+        cron_runner,
+        "_memory_navigation_decision",
+        lambda *_a, **_k: {
+            "result": "hit",
+            "key": route_key,
+            "mechanism": "collision_grid_path",
+            "plan": ["RIGHT"],
+        },
+    )
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "escalate_and_reask",
+        lambda *_a, **_k: pytest.fail("memory-answered gap must not call teacher"),
+    )
+
+    out = cron_runner._jev_overworld_decision(
+        {"map_id": 37, "map_name": "Red's House 1F"},
+        handoff_policy=cron_runner.build_handoff_policy(handoff="any"),
+        teacher_api_client=object(),
+        teacher_model="some-model",
+        escalated_classes=set(),
+    )
+
+    assert out["plan"] == ["RIGHT"]
+    assert out["escalated"] is False
+    assert out["handoff_allowed"] is False
+    assert route_key in (out["handoff_blocked_reason"] or "")
+    autonomy = cron_runner._autonomy_counters([out])
+    assert autonomy["handoff_trigger_counts"] == {"gap": 1}
+    assert autonomy["handoff_blocked"] == 1
+
+
 def test_teacher_budget_blocks_after_the_cap(monkeypatch):
     monkeypatch.setattr(
         cron_runner.jev_client,

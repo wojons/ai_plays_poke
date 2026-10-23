@@ -763,8 +763,13 @@ def _install_decide(
 def _jev_decision(
     monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]
 ) -> dict[str, Any]:
-    """One overworld cycle decided by JEV, through the real seam."""
+    """One overworld cycle decided by JEV, through the real hybrid-mode seam."""
     _install_decide(monkeypatch, payload)
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "escalate_and_reask",
+        lambda *_args, **_kwargs: {"ok": False, "error": "hermetic teacher fixture"},
+    )
     decision = cron_runner._jev_overworld_decision(
         _OBS,
         goal="leave Oaks Lab and head toward Route 1",
@@ -772,6 +777,9 @@ def _jev_decision(
         recent_events=[{"cycle": 2, "action": "UP", "result": "no change"}],
         last_action="UP",
         last_action_changed_state=False,
+        teacher_api_client=object(),
+        teacher_model="hermetic/teacher",
+        escalated_classes=set(),
     )
     assert decision, "JEV should have decided this cycle"
     return decision
@@ -863,8 +871,21 @@ class TestJevOverworldDecision:
     ) -> None:
         calls = _install_decide(monkeypatch, _jev_payload("LEFT", escalate=True))
 
+        monkeypatch.setattr(
+            cron_runner.jev_client,
+            "escalate_and_reask",
+            lambda *_args, **_kwargs: {
+                "ok": False,
+                "error": "hermetic teacher fixture",
+            },
+        )
         decision = cron_runner._jev_overworld_decision(
-            _OBS, last_action="UP", last_action_changed_state=False
+            _OBS,
+            last_action="UP",
+            last_action_changed_state=False,
+            teacher_api_client=object(),
+            teacher_model="hermetic/teacher",
+            escalated_classes=set(),
         )
 
         # PRD v3 §3.2 trigger 1: the loop's same-tile streak is handed to the
@@ -881,12 +902,25 @@ class TestJevOverworldDecision:
             _jev_payload("DOWN", escalate=True, missing_class="map_topology"),
         )
 
+        monkeypatch.setattr(
+            cron_runner.jev_client,
+            "escalate_and_reask",
+            lambda *_args, **_kwargs: {
+                "ok": False,
+                "error": "hermetic teacher fixture",
+            },
+        )
         decision = cron_runner._jev_overworld_decision(
-            _OBS, last_action="UP", last_action_changed_state=False
+            _OBS,
+            last_action="UP",
+            last_action_changed_state=False,
+            teacher_api_client=object(),
+            teacher_model="hermetic/teacher",
+            escalated_classes=set(),
         )
 
-        # Escalation is recorded for the teacher tier (stages 7-8, not built);
-        # it does not stop the cheap tier from acting this cycle.
+        # The teacher handoff is recorded without stopping the cheap tier from
+        # supplying the executable movement plan when the hermetic teacher fails.
         assert decision["plan"] == ["DOWN"]
         assert decision["escalated"] is True
         assert decision["missing_class"] == "map_topology"
@@ -1183,6 +1217,105 @@ class TestCycleEfficiencyObservables:
         assert block["backtrack_rate"] == 1.0
         tail = cron_runner._format_autonomy_tail(block)
         assert "efficiency: n/a dec/map-transition, backtrack 100%" in tail
+
+    def test_treadmill_regression_accounts_every_gap_handoff(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A two-tile loop cannot silently drop repeated gap handoffs."""
+        actions = iter(["RIGHT", "LEFT"] * 13 + ["RIGHT"])
+
+        def fake_decide(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            action = next(actions)
+            return {
+                "ok": True,
+                "next_action": action,
+                "escalate": True,
+                "escalate_reason": "missing_class=map_topology",
+                "missing_class": "map_topology",
+                "raw": {"next_action": {"choice": action}},
+            }
+
+        teacher_calls: list[str] = []
+
+        def fake_teacher(*_args: Any, **_kwargs: Any) -> dict[str, Any]:
+            teacher_calls.append("map_topology")
+            return {"ok": False, "error": "hermetic teacher fixture"}
+
+        monkeypatch.setattr(cron_runner.jev_client, "decide", fake_decide)
+        monkeypatch.setattr(
+            cron_runner.state_projection,
+            "build",
+            lambda *_args, **_kwargs: "projection",
+        )
+        monkeypatch.setattr(
+            cron_runner,
+            "_memory_navigation_decision",
+            lambda *_args, **_kwargs: {
+                "result": "miss",
+                "reason": "hermetic treadmill fixture has no route answer",
+            },
+        )
+        monkeypatch.setattr(cron_runner.jev_client, "escalate_and_reask", fake_teacher)
+
+        escalated_classes: set[str] = set()
+        teacher_budget = {"used": 0}
+        rows: list[dict[str, Any]] = []
+        for index in range(27):
+            tile_x = 6 if index % 2 == 0 else 7
+            decision = cron_runner._jev_overworld_decision(
+                {
+                    "map_id": 37,
+                    "map_name": "Red's House 1F",
+                    "player_tile_x": tile_x,
+                    "player_tile_y": 6,
+                },
+                handoff_policy=cron_runner.build_handoff_policy(handoff="any"),
+                teacher_api_client=object(),
+                teacher_model="hermetic/teacher",
+                escalated_classes=escalated_classes,
+                teacher_budget=teacher_budget,
+            )
+            rows.append(
+                {
+                    **decision,
+                    "cycle": index + 1,
+                    "screen": "overworld",
+                    "map_id": 37,
+                    "map_name": "Red's House 1F",
+                    "player_tile_x": tile_x,
+                    "player_tile_y": 6,
+                }
+            )
+
+        block = cron_runner._autonomy_counters(rows)
+        blocked_rows = [row for row in rows if row["handoff_allowed"] is False]
+
+        assert [row["plan"][0] for row in rows[:4]] == [
+            "RIGHT",
+            "LEFT",
+            "RIGHT",
+            "LEFT",
+        ]
+        assert (rows[0]["player_tile_x"], rows[0]["player_tile_y"]) == (
+            rows[-1]["player_tile_x"],
+            rows[-1]["player_tile_y"],
+        )
+        assert len(teacher_calls) == 1
+        assert teacher_budget == {"used": 1}
+        assert block["handoff_trigger_counts"] == {"gap": 27}
+        assert block["escalated"] == 1
+        assert block["handoff_blocked"] == 26
+        assert len(blocked_rows) == 26
+        assert all(row["handoff_blocked_reason"] for row in blocked_rows)
+        assert all(
+            "map_topology" in row["handoff_blocked_reason"] for row in blocked_rows
+        )
+        assert block["handoff_trigger_counts"]["gap"] == (
+            block["escalated"] + block["handoff_blocked"]
+        )
+        assert block["map_transitions_observed"] == 0
+        assert block["state_comparisons"] == 26
+        assert block["backtrack_events"] == 25
 
     def test_healthy_run_reports_transition_efficiency_and_limited_backtracking(
         self,

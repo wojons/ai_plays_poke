@@ -2809,17 +2809,17 @@ def _jev_overworld_decision(
         teacher_budget=teacher_budget,
         escalation_class=escalation_class,
     )
-    can_call_teacher = (
-        bool(decision.get("escalate"))
-        and handoff_ok
-        and teacher_api_client is not None
-        and bool(teacher_model)
-        and escalated_classes is not None
-        and escalation_class not in escalated_classes
-        # S6 NAV-MEM: a proven route already answered this navigation gap, so
-        # the teacher (LLM) is never called for it.
-        and memory_hit is None
+    handoff_ok, handoff_why = _jev_handoff_delivery_gate(
+        decision,
+        handoff_ok=handoff_ok,
+        handoff_why=handoff_why,
+        escalation_class=escalation_class,
+        teacher_api_client=teacher_api_client,
+        teacher_model=teacher_model,
+        escalated_classes=escalated_classes,
+        memory_hit=memory_hit,
     )
+    can_call_teacher = bool(decision.get("escalate")) and handoff_ok
     if can_call_teacher:
         (
             decision,
@@ -2846,9 +2846,9 @@ def _jev_overworld_decision(
         )
 
     escalate = bool(initial_decision.get("escalate", False))
-    # A policy-blocked trigger is NOT an escalation: no teacher was called, so
-    # the row must not claim one. This is what makes system1 (handoff off)
-    # measurable — `escalated` means "handed back", not "wanted to".
+    # A blocked trigger is NOT an escalation: no teacher was called, so the row
+    # must not claim one. This covers policy/budget refusals, a previously spent
+    # per-class allowance, unavailable teacher wiring, and path-memory answers.
     if escalate and not handoff_ok:
         escalate = False
     reason = initial_decision.get("escalate_reason")
@@ -3033,6 +3033,45 @@ def _jev_handoff_gate(
                 f"teacher budget exhausted ({teacher_budget.get('used', 0)}/{cap})"
             )
     return handoff_trigger, policy, handoff_ok, handoff_why
+
+
+def _jev_handoff_delivery_gate(
+    decision: dict[str, Any],
+    *,
+    handoff_ok: bool,
+    handoff_why: str | None,
+    escalation_class: str,
+    teacher_api_client: Any,
+    teacher_model: str | None,
+    escalated_classes: set[str] | None,
+    memory_hit: dict[str, Any] | None,
+) -> tuple[bool, str | None]:
+    """Turn every permitted trigger into either a teacher call or a named block.
+
+    Policy and episode-budget refusals arrive as ``handoff_ok=False`` and keep
+    their original reason.  The remaining checks mirror the call boundary that
+    used to be embedded in ``can_call_teacher``.  Keeping them in the handoff
+    result prevents a permitted trigger from disappearing silently when path
+    memory answers it, teacher wiring is unavailable, or this missing class has
+    already spent its one-shot allowance.
+    """
+    if not decision.get("escalate") or not handoff_ok:
+        return handoff_ok, handoff_why
+    if memory_hit is not None:
+        route_key = memory_hit.get("key")
+        route = (
+            route_key if isinstance(route_key, str) and route_key else "unknown route"
+        )
+        return False, f"navigation gap answered by path memory {route}"
+    if teacher_api_client is None:
+        return False, "teacher client unavailable"
+    if not teacher_model:
+        return False, "teacher model unavailable"
+    if escalated_classes is None:
+        return False, "teacher per-class allowance unavailable"
+    if escalation_class in escalated_classes:
+        return False, f"missing_class {escalation_class!r} already escalated this run"
+    return True, handoff_why
 
 
 def _jev_teacher_escalation(
@@ -3231,9 +3270,9 @@ def _jev_decision_row(
         "scenario_patch_applied": bool(decision.get("scenario_patch_applied", False)),
         "jev_escalate_reason": reason if isinstance(reason, str) else None,
         "jev_projection_chars": len(projection),
-        # Handoff provenance: which trigger fired, whether the run's policy let
-        # it hand back, and why not when it did not. Stamped on every row so a
-        # mode and its policy are recoverable from the log alone.
+        # Handoff provenance: which trigger fired, whether the complete delivery
+        # gate let it hand back, and why not when it did not. Stamped on every
+        # row so a mode and its policy are recoverable from the log alone.
         "handoff_trigger": handoff_trigger,
         "handoff_allowed": handoff_ok,
         "handoff_blocked_reason": None if handoff_ok else handoff_why,
@@ -4528,7 +4567,7 @@ def _count_handoff(
     triggers: Counter[str],
     blocked: int,
 ) -> tuple[int, Counter[str]]:
-    """Count handoff provenance: which trigger fired, how often policy refused it.
+    """Count handoff provenance: which trigger fired and delivery refusals.
 
     Counted from the rows, never incremented by the printer — the same rule
     the other counters follow.
@@ -8116,8 +8155,8 @@ def _overworld_cycle(S, cycle, header, t0):
         "scenario_patch_id": decision.get("scenario_patch_id"),
         "scenario_patch_evidence": decision.get("scenario_patch_evidence"),
         "scenario_patch_applied": bool(decision.get("scenario_patch_applied", False)),
-        # Handoff provenance (M3/M5): which trigger fired, whether
-        # this run's policy allowed it, and why not when it did not.
+        # Handoff provenance (M3/M5): which trigger fired, whether the
+        # complete delivery gate allowed it, and why not when it did not.
         "handoff_trigger": decision.get("handoff_trigger"),
         "handoff_allowed": decision.get("handoff_allowed"),
         "handoff_blocked_reason": decision.get("handoff_blocked_reason"),
