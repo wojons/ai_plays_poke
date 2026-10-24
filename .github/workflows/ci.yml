@@ -84,6 +84,9 @@ jobs:
       - name: Lint (ruff)
         run: ruff check src/ tests/
 
+      - name: Ensure package initializers for act leg
+        run: python scripts/ensure_package_inits.py
+
       - name: Type check (mypy)
         run: mypy --explicit-package-bases src/ scripts/ --ignore-missing-imports
 

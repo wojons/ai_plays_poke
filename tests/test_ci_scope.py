@@ -68,3 +68,47 @@ def test_ci_uses_a_glibc_compatible_act_container() -> None:
 
     assert "    container: ghcr.io/snooptheone/act-ubuntu-custom:latest" in workflow
     assert "        shell: bash" in workflow
+
+
+def test_src_package_initializers_exist() -> None:
+    """src/ and src/vision/ must have tracked __init__.py files."""
+    src_init = REPO_ROOT / "src" / "__init__.py"
+    vision_init = REPO_ROOT / "src" / "vision" / "__init__.py"
+
+    assert src_init.is_file(), f"missing package initializer: {src_init}"
+    assert vision_init.is_file(), f"missing package initializer: {vision_init}"
+
+
+def test_vision_initializer_exports_five_symbols() -> None:
+    """src/vision/__init__.py must export the five vision symbols used by ai_client."""
+    vision_init = REPO_ROOT / "src" / "vision" / "__init__.py"
+    content = vision_init.read_text(encoding="utf-8")
+
+    expected = {
+        "VisionPipeline",
+        "OCREngine",
+        "SpriteRecognizer",
+        "BattleAnalyzer",
+        "LocationDetector",
+    }
+    for symbol in expected:
+        assert symbol in content, f"vision initializer missing export: {symbol}"
+
+
+def test_ensure_package_inits_script_runs_successfully() -> None:
+    """The CI guard script must exit 0 when initializers are already present."""
+    script = REPO_ROOT / "scripts" / "ensure_package_inits.py"
+    assert script.is_file()
+
+    completed = subprocess.run(  # noqa: S603 — repo-defined guard script
+        [sys.executable, str(script)],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0, (
+        f"ensure_package_inits.py failed with exit {completed.returncode}: "
+        f"{completed.stdout}\n{completed.stderr}"
+    )
+    assert "Package initializers present." in completed.stdout
