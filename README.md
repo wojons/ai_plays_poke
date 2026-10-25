@@ -671,7 +671,7 @@ Error reading memory at address 0xD158
 ## Requirements
 
 ### System Requirements
-- Python 3.10+
+- Python 3.11+ (3.10 no longer supported: dev tooling requires >=3.11)
 - 1GB storage for logs/memory
 - Internet connection (for API calls)
 - PyBoy emulator (Game Boy/Game Boy Color emulation)
@@ -692,7 +692,7 @@ Exact pins, quoted from the two requirement files (`pip install -r requirements.
 # Core dependencies (requirements.txt)
 pyboy>=1.0.0,<2.8.0           # Game Boy emulator (upper bound pinned - see the comment in the file)
 requests>=2.34.2              # HTTP client for LLM APIs
-anthropic>=1.15.0             # Anthropic SDK
+anthropic>=2.3.0              # Anthropic SDK (2.x verified: default API-version bump only)
 numpy>=1.26.4                 # Numerical operations
 Pillow>=10.4.0                # Image processing
 pydantic>=2.14.1              # Data validation
@@ -700,7 +700,7 @@ python-dotenv>=1.2.4          # Environment variable management
 tqdm>=4.70.1                  # Progress bars
 PyYAML>=6.0.3                 # YAML config / prompt loading
 opencv-python-headless>=4.14.0.94  # Image processing pipeline
-fastapi>=0.152.0              # Observability dashboard
+fastapi>=0.162.0              # Observability dashboard
 uvicorn>=0.54.0               # Observability dashboard server
 websockets>=12.0              # Live streams
 psutil>=5.9.8                 # System health monitoring

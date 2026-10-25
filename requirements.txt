@@ -19,10 +19,16 @@ pyboy>=1.0.0,<2.8.0
 
 # LLM APIs (OpenRouter via requests)
 requests>=2.34.2
-# anthropic 1.x removed the sampling params from messages.create() and moved the
-# SDK HTTP layer to httpx2; src/core/ai_client.py forwards temperature via
-# extra_body so both 0.x and 1.x stay correct. See docs/dependency_review_20261019.md.
-anthropic>=1.15.0
+# anthropic SDK history, both breaks verified against this repo:
+# - 1.x removed the sampling params from messages.create() and moved the SDK
+#   HTTP layer to httpx2; src/core/ai_client.py forwards temperature via
+#   extra_body so 0.x, 1.x and 2.x all stay correct (guarded by the real-SDK
+#   loopback test TestClaudeClientRealSDKCallShape).
+# - 2.x changes only the default API version date (2026-10-21) and adds Admin
+#   API surfaces; no removal affecting messages.create(). Bumped >=1.15.0 →
+#   >=2.3.0 on 2026-10-25 (SUP-DEPS-20261022-AIP). See
+#   docs/dependency_review_20261025.md.
+anthropic>=2.3.0
 
 # Core Dependencies
 numpy>=1.26.4
@@ -36,7 +42,7 @@ PyYAML>=6.0.3
 opencv-python-headless>=4.14.0.94
 
 # Observability Dashboard
-fastapi>=0.152.0  # bumped 0.146→0.152 on 2026-10-20 (SUP-DEPS-20261020-AIP); minor release
+fastapi>=0.162.0  # bumped 0.152→0.162 on 2026-10-25 (SUP-DEPS-20261022-AIP); 0.155 removed **extra kwargs (0 hits here), 0.160 sibling-field extra semantics (no custom extra= here)
 uvicorn>=0.54.0
 websockets>=12.0
 
