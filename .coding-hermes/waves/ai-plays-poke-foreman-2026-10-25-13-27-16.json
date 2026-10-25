@@ -1,0 +1,14 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-25-13-27-16",
+  "project": "ai-plays-poke",
+  "mode": "serial",
+  "budget": 7,
+  "tasks": [
+    {
+      "task_id": "SUP-DEPS-20261022-AIP",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-SUP-DEPS-20261022-AIP",
+      "branch": "wt/SUP-DEPS-20261022-AIP",
+      "reason": "verification-only reconciliation of already-landed dependency refresh; other pending rows are owner-gated, duplicate findings, or release/readiness records"
+    }
+  ]
+}
