@@ -787,6 +787,12 @@ burned-in HUD showing cycle #, screen type, and action taken):
 
 ## Documentation
 
+Validate the README's local documentation links and heading anchors with the deterministic, offline check:
+
+```bash
+make docs-check
+```
+
 - **Start Here:** [memory-bank/projectBrief.md](memory-bank/projectBrief.md)
 - **Architecture:** [memory-bank/systemPatterns.md](memory-bank/systemPatterns.md)
 - **Progress:** [memory-bank/progress.md](memory-bank/progress.md)
