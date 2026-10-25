@@ -1703,12 +1703,12 @@ tasks:
   status: complete
   created_at: '2026-10-24T10:24:20.208327+00:00'
   completed_at: '2026-10-24T10:48:02.312302+00:00'
-- id: DF-AIPP-15
-  title: Dashboard env-warning banner when PTP_API_KEY unset
+- id: README-31
+  title: README dependency block stale anthropic/fastapi
   criteria:
-  - With PTP_API_KEY unset, served index.html includes a visible warning element naming
-    the missing server-side env var; with PTP_API_KEY set, no warning; pytest tests/test_dashboard.py
-    -q exits 0 with >=2 env_warning tests
+  - README.md line 687 shows anthropic>=1.15.0 matching requirements.txt:25; line
+    695 shows fastapi>=0.152.0 matching requirements.txt:39; line 681 measurement
+    date is 2026-10-25 or later
   status: complete
-  created_at: '2026-10-25T00:43:48.015405+00:00'
-  completed_at: '2026-10-25T01:02:04.878665+00:00'
+  created_at: '2026-10-25T01:24:28.829386+00:00'
+  completed_at: '2026-10-25T01:36:30.490521+00:00'
