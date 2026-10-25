@@ -1,0 +1,27 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-25-14-44-18",
+  "mode": "serial-recovery-closeout",
+  "budget": 12,
+  "reason": "RELEASE-004 was already dispatched by the immediately prior tick; this tick verified and closed the recorded worker result rather than dispatching duplicate work",
+  "tasks": [
+    {
+      "task_id": "RELEASE-004",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-RELEASE-004",
+      "branch": "wt/RELEASE-004",
+      "worker_model": "step-3.7-flash",
+      "worker_provider": "stepfun",
+      "prior_tick": "ai-plays-poke-foreman-2026-10-25-14-16-05",
+      "disposition": "verified-and-closed",
+      "implementation_commit": "c4043b0c199862cfc5af657e8f46a636641d2bcc",
+      "tag": "v1.0.0-ci-probe-20261025-1416",
+      "tag_object": "ea70b2ac4df0f8a467b0d318fdfd530a4db78a5e",
+      "tag_sha": "c4043b0c199862cfc5af657e8f46a636641d2bcc",
+      "ci_run": 40202677040,
+      "ci_job": 121196966855,
+      "gitreins_verdict": "f026596c",
+      "gitreins_tier2": "PASS",
+      "gitreins_tier1": "FAIL: secrets step timed out at 120s step budget"
+    }
+  ],
+  "finished_at": "2026-10-25T15:02:00Z"
+}

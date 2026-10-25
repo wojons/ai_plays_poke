@@ -1728,3 +1728,11 @@ tasks:
   status: complete
   created_at: '2026-10-25T11:43:16.974396+00:00'
   completed_at: '2026-10-25T12:01:29.436922+00:00'
+- id: RELEASE-004
+  title: Prove tag CI trigger
+  criteria:
+  - A non-production or future release tag triggers CI on its exact tag SHA; the tag-event
+    run and all jobs conclude success; no existing tag is moved.
+  status: complete
+  created_at: '2026-10-25T14:22:35.648927+00:00'
+  completed_at: '2026-10-25T14:48:55.479871+00:00'
