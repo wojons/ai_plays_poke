@@ -1736,3 +1736,12 @@ tasks:
   status: complete
   created_at: '2026-10-25T14:22:35.648927+00:00'
   completed_at: '2026-10-25T14:48:55.479871+00:00'
+- id: README-35
+  title: README docs-check guidance
+  criteria:
+  - README.md must not direct readers to a nonexistent docs-check command; either
+    add a verified make docs-check target or replace it with a clean existing validation
+    command.
+  status: complete
+  created_at: '2026-10-25T15:47:14.647588+00:00'
+  completed_at: '2026-10-25T22:43:05.962464+00:00'
