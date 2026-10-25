@@ -679,6 +679,84 @@ class TestApiKeyBootstrap:
         assert resp.text.rstrip().endswith("</html>")
 
 
+# ── No-key server banner (DF-AIPP-15) ────────────────────────────────────
+
+
+class TestEnvWarningBanner:
+    """A keyless server must say so on the page, not just answer 401.
+
+    Auth is fail-closed by design: with no ``PTP_API_KEY`` configured, ``/``
+    still serves the UI shell (it is unauthenticated) while every data route
+    answers ``401 {"detail": "Invalid API key"}``. The page gave no hint of
+    that, so the dashboard looked healthy and every panel/button silently
+    failed. ``render_index_html`` now injects ``#env-warning`` naming the
+    missing server-side variable — and only when the key is empty.
+    """
+
+    def test_env_warning_banner_when_api_key_missing(self):
+        from src.dashboard.main import render_index_html
+
+        body = render_index_html("")
+        # Visible, addressable element naming the server-side variable.
+        assert 'id="env-warning"' in body
+        assert "PTP_API_KEY" in body
+        # Rendered markup inside <body> — an element, not a JS string or a
+        # comment: a browser shows it before any script runs.
+        assert body.count('id="env-warning"') == 1
+        assert body.index("<body>") < body.index('id="env-warning"')
+        assert body.index('id="env-warning"') < body.index("</body>")
+        assert body.index('id="env-warning"') < body.index("const API_KEY")
+        # Not hidden from the user.
+        banner = body[body.index('<div id="env-warning"') :]
+        banner = banner[: banner.index("</div>")]
+        assert "display:none" not in banner.replace(" ", "")
+        assert "hidden" not in banner
+
+    def test_env_warning_absent_when_api_key_set(self):
+        from src.dashboard.main import render_index_html
+
+        body = render_index_html("k")
+        # Not even the identifier: a configured server renders the page exactly
+        # as shipped, so no leftover markup/CSS can show through.
+        assert "env-warning" not in body
+        # The key bootstrap is still injected in the no-banner case.
+        assert json.dumps({"PTP_API_KEY": "k"}) in body
+
+    def test_env_warning_banner_for_blank_key(self):
+        # Whitespace-only is a misconfiguration, not a credential: treat it as
+        # missing so the operator still gets the hint.
+        from src.dashboard.main import render_index_html
+
+        assert 'id="env-warning"' in render_index_html("   ")
+
+    def test_static_asset_carries_no_banner(self):
+        # The banner is server state. Keeping it out of the tracked asset is
+        # what makes the "no banner when configured" criterion meaningful — and
+        # keeps a disk-opened index.html free of advice about a server that is
+        # not running.
+        from src.dashboard.main import INDEX_HTML_PATH
+
+        html = INDEX_HTML_PATH.read_text(encoding="utf-8")
+        assert "env-warning" not in html
+
+    def test_root_serves_env_warning_when_server_has_no_key(self, client):
+        """End-to-end over the real route: a keyless server serves the banner."""
+        import src.dashboard.main as dashboard_main
+
+        with patch.object(dashboard_main, "API_KEY", None):
+            resp = client.get("/")
+            assert resp.status_code == 200
+            assert 'id="env-warning"' in resp.text
+            assert "PTP_API_KEY" in resp.text
+            # Auth is untouched: the banner explains the 401s, it does not
+            # relax them (no header, empty header, any key — all still 401).
+            assert client.get("/status").status_code == 401
+            assert client.get("/status", headers={"x-api-key": ""}).status_code == 401
+            assert (
+                client.get("/status", headers={"x-api-key": "guess"}).status_code == 401
+            )
+
+
 # ── Control transport: session_id travels as a query param (DF-AIPP-11) ──
 
 

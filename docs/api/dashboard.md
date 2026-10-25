@@ -37,6 +37,8 @@ Once running:
 
 Every route marked 🔑 requires the `X-API-Key` header matching `PTP_API_KEY`. Auth is **fail-closed**: when `PTP_API_KEY` is unset, every authenticated request is rejected with 401 — there is no default key. Unauthenticated: `/` (the UI shell), `/health`, `/screenshots/file`, and the two WebSocket streams.
 
+A keyless server says so on the page. `/` is unauthenticated, so the UI still loads, but every data panel and control button behind it would 401 silently; to make that visible the served page carries a banner (`id="env-warning"`) naming the missing `PTP_API_KEY` and the restart command. The banner is injected only when the key is empty/blank — a configured server renders the page with no banner at all — and it does not change the auth model: authenticated routes still 401 until `PTP_API_KEY` is set on the server and the process is restarted.
+
 CORS is wide open (`allow_origins=["*"]` with `allow_credentials=True`), and `/screenshots/file` serves any filesystem path passed as its `path` query — treat the dashboard as a local/single-operator tool, not a public service.
 
 ## REST routes (14)

@@ -41,6 +41,35 @@ API_KEY = os.getenv("PTP_API_KEY")
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 INDEX_HTML_PATH = STATIC_DIR / "index.html"
 
+# DF-AIPP-15: served only when the server has no ``PTP_API_KEY``.
+#
+# Auth is fail-closed by design (see ``verify_api_key``): with no key configured
+# the page itself still loads (``/`` is unauthenticated), so the browser showed
+# a healthy-looking UI while every data route silently answered
+# ``401 {"detail": "Invalid API key"}``. Nothing in the page said why. This
+# banner names the missing server-side variable at the top of the document.
+#
+# It lives here rather than in ``static/index.html`` on purpose: the banner is a
+# *server-state* message, so the tracked asset must not carry it (a page opened
+# straight from disk has no server to configure, and a configured deployment
+# must render without any trace of it). All styling is inline for the same
+# reason — no banner CSS in the shipped asset.
+ENV_WARNING_BANNER = (
+    '    <div id="env-warning" role="alert" style="margin:0;padding:0.9rem 2rem;'
+    "background:#7a1f1f;border-bottom:2px solid #ff5c5c;color:#ffe8e8;"
+    'font-size:0.95rem;line-height:1.45;">\n'
+    "        <strong>&#9888; Server started without <code>PTP_API_KEY</code>"
+    ".</strong>\n"
+    "        Every authenticated dashboard route currently answers "
+    "<code>401 Invalid API key</code>, so live data and the control buttons "
+    "will not work.\n"
+    "        Restart the server with the <code>PTP_API_KEY</code> environment "
+    "variable set, e.g.\n"
+    "        <code>PTP_API_KEY=&lt;your-key&gt; python3 -m src.dashboard.main"
+    "</code>.\n"
+    "    </div>\n"
+)
+
 
 def render_index_html(api_key: str) -> str:
     """Return ``static/index.html`` with the runtime API key injected.
@@ -55,10 +84,18 @@ def render_index_html(api_key: str) -> str:
     401. Auth is fail-closed: when ``PTP_API_KEY`` is unset, ``verify_api_key``
     rejects every request (including an empty header) rather than falling back
     to any default credential.
+
+    When the key is missing/blank the served page also gets ``#env-warning``:
+    without it the fail-closed 401s were invisible in the UI (every panel just
+    stayed empty), and the user had no on-page hint that the SERVER was
+    misconfigured. A configured key renders the page with no banner at all.
     """
     html = INDEX_HTML_PATH.read_text(encoding="utf-8")
     bootstrap = f"<script>window.ENV = {json.dumps({'PTP_API_KEY': api_key})};</script>"
-    return html.replace("</head>", f"    {bootstrap}\n</head>", 1)
+    html = html.replace("</head>", f"    {bootstrap}\n</head>", 1)
+    if not (api_key or "").strip():
+        html = html.replace("<body>", f"<body>\n{ENV_WARNING_BANNER}", 1)
+    return html
 
 
 sessions: dict[str, dict[str, Any]] = {}
