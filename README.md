@@ -296,6 +296,14 @@ unknown bucket) rather than a specific screen type.
 | `--boot-state` | `data/boot.state` if present | Path to a known-good `.state` checkpoint to boot from instead of the intro bypass; `skip` forces the legacy intro bypass |
 | `--dry-run` | off | Validate setup (ROM + boot-state paths, config summary, API-key liveness) and exit 0 — zero LLM/API calls, no emulator boot |
 | `--skip-key-check` | off | With `--dry-run`: skip the API-key liveness probes and report key presence only (fully offline validation) |
+| `--skip-preflight` | off | Skip the real JEV startup probe for a JEV-mode run; the skip is still stamped in the run log |
+| `--controller-model` | `openai/gpt-5.6-luna` | Model id for the overworld controller (e.g. `deepseek-chat` via `DEEPSEEK_API_KEY`); overrides `CRON_CONTROLLER_MODEL` / `POKE_CONTROLLER_MODEL` |
+| `--decision-mode` | `system1+system2` (alias `jev`) | Who decides each cycle: `system1`, `system2`, `system1+system2`, `hybrid`, `jev`, `llm`, `agentic`; overrides `AIPP_DECISION_MODE` / `CRON_DECISION_MODE` |
+| `--handoff` | `any` | Which trigger families may hand back to the teacher in system1+system2; `--handoff off` equals system1; values: `off`, `any`, `failure`, `gap`, `confidence`, or comma list |
+| `--handoff-confidence` | 0.5 | Action-confidence floor for the confidence trigger; changing it invalidates comparison against existing runs |
+| `--handoff-ambiguity` | 0.4 | Ambiguity gate for the layered confidence trigger; low confidence alone does not hand back unless the phase is irreversible |
+| `--handoff-classes` | unset (any class) | Comma list of missing-information classes allowed to hand off (e.g. `map_topology`); unset means any class may |
+| `--teacher-max-per-episode` | unset (unlimited) | Hard cap on teacher handoffs per episode; on exhaustion the run keeps playing on the fast tier and records why the handoff was blocked |
 
 Step 5 above needs a real key in `.env` (`OPENROUTER_API_KEY`, or the
 `DEEPSEEK_API_KEY` fallback) because it starts live AI decisions. Without a key,
