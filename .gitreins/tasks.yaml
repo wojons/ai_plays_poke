@@ -1695,3 +1695,20 @@ tasks:
   status: complete
   created_at: '2026-10-20T11:48:27.660932+00:00'
   completed_at: '2026-10-20T12:07:15.904937+00:00'
+- id: QA-AI-PLAYS-POKE-19
+  title: Repair act-leg mypy false-red
+  criteria:
+  - Fresh act Type check passes with package discovery preserved; exact workflow mypy
+    command passes and regression coverage proves src.vision remains a package.
+  status: complete
+  created_at: '2026-10-24T10:24:20.208327+00:00'
+  completed_at: '2026-10-24T10:48:02.312302+00:00'
+- id: DF-AIPP-15
+  title: Dashboard env-warning banner when PTP_API_KEY unset
+  criteria:
+  - With PTP_API_KEY unset, served index.html includes a visible warning element naming
+    the missing server-side env var; with PTP_API_KEY set, no warning; pytest tests/test_dashboard.py
+    -q exits 0 with >=2 env_warning tests
+  status: complete
+  created_at: '2026-10-25T00:43:48.015405+00:00'
+  completed_at: '2026-10-25T01:02:04.878665+00:00'
