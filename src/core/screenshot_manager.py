@@ -15,6 +15,22 @@ import numpy as np
 from PIL import Image
 
 
+def _screenshot_cleanup_order(path: Path) -> tuple[int, str, str]:
+    """Order screenshots by mtime, then by their save_screenshot timestamp."""
+    timestamp = ""
+    name_parts = path.stem.rsplit("_", 3)
+    if len(name_parts) == 4:
+        candidate = "_".join(name_parts[-3:])
+        try:
+            datetime.strptime(candidate, "%Y%m%d_%H%M%S_%f")
+        except ValueError:
+            pass
+        else:
+            timestamp = candidate
+
+    return (path.stat().st_mtime_ns, timestamp, path.name)
+
+
 class ScreenshotManager:
     """Manages screenshot capture, storage, and retrieval"""
 
@@ -196,9 +212,7 @@ class ScreenshotManager:
             keep_count: Number of recent screenshots to keep
         """
         all_screenshots = list(self.screenshot_dir.glob("*.png"))
-        all_screenshots.sort(key=lambda p: p.stat().st_mtime)
-
-        # Delete old screenshots
+        all_screenshots.sort(key=_screenshot_cleanup_order)
         for screenshot in all_screenshots[:-keep_count]:
             screenshot.unlink()
 

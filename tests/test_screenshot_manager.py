@@ -1,6 +1,7 @@
 """Unit tests for screenshot_manager.py — ScreenshotManager and LiveView."""
 
 import base64
+import os
 import time
 from pathlib import Path
 from unittest import mock
@@ -262,15 +263,26 @@ class TestCleanupOldScreenshots:
         assert len(remaining) == 5
 
     def test_keeps_most_recent(self, tmp_path):
-        sm = ScreenshotManager(str(tmp_path / "ss"))
-        for i in range(5):
-            time.sleep(0.005)
-            sm.save_screenshot(_fake_screen(), f"recent_{i}")
-        p_newest = sm.save_screenshot(_fake_screen(), "newest")
-        sm.cleanup_old_screenshots(keep_count=1)
-        remaining = list(sm.screenshot_dir.glob("*.png"))
-        assert len(remaining) == 1
-        assert remaining[0] == p_newest
+        """Equal mtimes and glob order cannot displace the latest saved path."""
+        for run in range(10):
+            sm = ScreenshotManager(str(tmp_path / f"ss_{run}"))
+            paths = [
+                sm.save_screenshot(_fake_screen(), f"recent_{i}")
+                for i in range(5)
+            ]
+            p_newest = sm.save_screenshot(_fake_screen(), "newest")
+            paths.append(p_newest)
+
+            # Rapid saves can share one filesystem timestamp. Reverse discovery order
+            # to prove cleanup does not depend on the unspecified glob ordering.
+            shared_mtime_ns = paths[0].stat().st_mtime_ns
+            for path in paths:
+                os.utime(path, ns=(shared_mtime_ns, shared_mtime_ns))
+            with mock.patch.object(Path, "glob", return_value=iter(reversed(paths))):
+                sm.cleanup_old_screenshots(keep_count=1)
+
+            remaining = list(sm.screenshot_dir.glob("*.png"))
+            assert remaining == [p_newest]
 
     def test_keep_count_greater_than_total(self, tmp_path):
         sm = ScreenshotManager(str(tmp_path / "ss"))
