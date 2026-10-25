@@ -1712,3 +1712,10 @@ tasks:
   status: complete
   created_at: '2026-10-25T01:24:28.829386+00:00'
   completed_at: '2026-10-25T01:36:30.490521+00:00'
+- id: README-33
+  title: README cron_runner Flags table omits 8 live CLI flags
+  criteria:
+  - README.md lines 289-298 cover all 14 live flags from cron_runner.py --help
+  status: complete
+  created_at: '2026-10-25T03:39:29.969063+00:00'
+  completed_at: '2026-10-25T03:55:18.911517+00:00'
