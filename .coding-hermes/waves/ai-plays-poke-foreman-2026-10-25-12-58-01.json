@@ -1,0 +1,17 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-25-12-58-01",
+  "project": "ai_plays_poke",
+  "mode": "serial-fallback",
+  "wave_budget": 9,
+  "tasks": [
+    {
+      "task_id": "RELEASE-004",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-RELEASE-004",
+      "branch": "wt/RELEASE-004",
+      "worker_model": "step-3.7-flash",
+      "worker_provider": "stepfun",
+      "status": "failed-live-proof"
+    }
+  ],
+  "reason": "Only one actionable task was eligible; ARM-1 is an owner decision and README rows 34/36/37 are explicitly reconciled duplicates."
+}
