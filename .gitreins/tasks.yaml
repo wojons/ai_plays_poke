@@ -1754,3 +1754,20 @@ tasks:
   status: complete
   created_at: '2026-10-26T03:11:15.052363+00:00'
   completed_at: '2026-10-26T03:28:31.825630+00:00'
+- id: DEPS-005
+  title: Dependency audit and reconcile outdated packages
+  criteria:
+  - 'PASS: requirements.txt versions are installable and match installed versions;
+    no major breaking changes unaddressed; the full pytest suite passes after reconciliation.'
+  status: complete
+  created_at: '2026-10-26T07:25:51.677963+00:00'
+  completed_at: '2026-10-26T08:02:41.596179+00:00'
+- id: QA-AI-PLAYS-POKE-FOREMAN-2
+  title: Verify ai-plays-poke foreman QA battery collection
+  criteria:
+  - AC-1 bunker status reports bunkerd=active docker=yes; AC-2 launch creates a real
+    agent and evidence path; AC-3 collect returns COLLECTED with no COLLECT-FAIL and
+    at least two OK cells; preserve any infrastructure failure honestly.
+  status: complete
+  created_at: '2026-10-26T16:33:27.415069+00:00'
+  completed_at: '2026-10-26T16:37:34.666707+00:00'
