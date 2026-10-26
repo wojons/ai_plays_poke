@@ -1,0 +1,25 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-26-03-03-01",
+  "project": "ai_plays_poke",
+  "mode": "serial",
+  "wave_budget": 11,
+  "wave_size": 1,
+  "selection": {
+    "task_id": "README-32",
+    "priority": "P5",
+    "reason": "Highest-value actionable implementation row after ARM-1 and RELEASE-003 owner-gated rows; README-34/36/37 are explicitly reconciled duplicates of earlier rows."
+  },
+  "workers": [
+    {
+      "task_id": "README-32",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-README-32-20261026-0303",
+      "branch": "wt/README-32-20261026-0303",
+      "base": "origin/main@38106de",
+      "worker_model": "gpt-5.6-terra",
+      "worker_provider": "openai-codex",
+      "brief": "/tmp/ai-plays-poke-foreman-2026-10-26-03-03-01-README-32-brief.txt",
+      "commit": "29dc4ddd7bfbca216799506291730785e7f02a4e",
+      "status": "merged-and-pushed"
+    }
+  ]
+}

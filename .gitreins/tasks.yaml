@@ -1745,3 +1745,12 @@ tasks:
   status: complete
   created_at: '2026-10-25T15:47:14.647588+00:00'
   completed_at: '2026-10-25T22:43:05.962464+00:00'
+- id: README-32
+  title: Refresh README Last Updated marker
+  criteria:
+  - README.md footer Last Updated date is on or after the v1.0.0 release date; verify
+    against git show -s --format='%H %ad %s' --date=iso v1.0.0 and the committed README
+    footer.
+  status: complete
+  created_at: '2026-10-26T03:11:15.052363+00:00'
+  completed_at: '2026-10-26T03:28:31.825630+00:00'
