@@ -13,7 +13,18 @@ guards:
   # under hook_timeout below. Raise hook_timeout with it.
   test_timeout: 1800
   hook_timeout: 2400
-  test_command: ./.venv/bin/pytest -x --tb=short
+  # DEPS-005 (2026-10-26): this pointed at ./.venv/bin/pytest, which does not
+  # exist in this clone — .venv/ is a 37-dist runtime-only venv owned by the
+  # live game bridge / MCP / console daemons (scripts/game_bridge.py, started
+  # 6d ago) and carries no pytest and no dev tooling, so the tests cell could
+  # never execute: 3 guard runs on disk recorded `exit_code=127  skip_reason=
+  # test runner './.venv/bin/pytest' not found` and committed anyway. ./venv/
+  # (CPython 3.11, the CI interpreter) is a complete env: 264 dists, pytest
+  # 9.1.1, and it satisfies requirements.txt + requirements-dev.txt 14/14 after
+  # the DEPS-005 reconciliation. Rebuilding .venv/ in place needs a maintenance
+  # window (live daemons) and is its own row; see
+  # docs/dependency_reconcile_20261026.md.
+  test_command: ./venv/bin/pytest -x --tb=short
   static_analysis: true
   static_analysis_tools:
     python:

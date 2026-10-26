@@ -15,14 +15,40 @@
 # "no staged files" is allowed because with guards.allow_skips=false a
 # bookkeeping-only commit (board JSONL, .gitreins history) legitimately runs
 # lint with an empty diff scope while tests/secrets/lsp still execute.
+#
+# DEPS-005 (2026-10-26): the skip re-check used to look only for the console
+# bullet "  ~ <check> — skipped (<reason>)". The per-check lines in the full log
+# carry an exit code, and the console summary prints NO skip line at all for a
+# lane that failed to execute — three guard runs recorded
+#   [SKIP] tests (full)  exit_code=127  skip_reason=test runner
+#   './.venv/bin/pytest' not found
+# with a console summary showing only the lsp skip, so the commits went through
+# and the test gate was silently absent. Both shapes are now checked (see the
+# block below): the console reason line, and any [SKIP] line whose exit_code is
+# numeric (a check that tried to run and could not execute).
+#
+# The lsp skip this wrapper rejects is a real environment gap, not noise: pylsp
+# lives in ./venv/bin (the reconciled env), so PATH below puts that venv first
+# instead of ./.venv/bin, whose dev tooling is absent. Enabling the lsp cell is
+# the fail-closed behaviour the wrapper was written for — a skipped check is
+# never silently a pass.
 set -u
 
 REPO_ROOT="$(git rev-parse --show-toplevel)" || exit 1
 
 # The lsp (pylsp) and lint (ruff) guards resolve tools from PATH; with
-# guards.allow_skips=false a skipped lsp would reject every commit, so put the
-# project venv first (same convention as AGENTS.md commands).
-export PATH="$REPO_ROOT/.venv/bin:$PATH"
+# guards.allow_skips=false a skipped lsp rejects every commit (see the wrapper
+# test test_wrapper_rejects_non_benign_skip), so the tools have to be reachable.
+#
+# DEPS-005: this used to be `PATH=".venv/bin:$PATH"` only. ./.venv is a
+# runtime-only venv (37 dists: no pylsp, no ruff, no pytest), so the lsp cell
+# skipped on every commit and the tests cell had no runner at all. ./venv
+# (CPython 3.11, the CI interpreter) carries pylsp/ruff/mypy/pytest; it is
+# APPENDED rather than prepended on purpose — ./venv/bin also holds a stale
+# editable `gitreins` console script (0.10.2 whose source tree is gone) that
+# dies with "No module named 'gitreins.cli'", and prepending it would shadow the
+# working pipx binary and reject every commit.
+export PATH="$REPO_ROOT/.venv/bin:$PATH:$REPO_ROOT/venv/bin"
 
 if [ ! -f "$REPO_ROOT/.gitreins/config.yaml" ]; then
   # Repo not initialised with gitreins: behave like the stock hook, allow.
@@ -52,10 +78,21 @@ if grep -q "Remaining checks skipped" "$GUARD_LOG"; then
   exit 1
 fi
 
-# Reject non-benign skips (e.g. tool missing), allow "no staged files".
-if grep -E '^  ~ ' "$GUARD_LOG" | grep -v 'no staged files' | grep -q .; then
+# Reject non-benign skips. Two shapes must both be caught:
+#   1. console summary (captured in this file):  "  ~ lsp — skipped (<reason>)"
+#      — no exit code, so the reason text is the only signal; "no staged files"
+#      is the benign family (empty diff scope on a bookkeeping-only commit).
+#   2. full-log per-check line:  "[SKIP] tests (full)  exit_code=127  ..."
+#      — a numeric exit code means the check TRIED to run and could not execute
+#      (127 = runner missing). This shape is what made the gap silent: three
+#      guard runs recorded it while the console summary reported no skip at all
+#      for the same check, so the reason-only matcher above never saw it.
+SKIPPED_CONSOLE="$(grep -E '^  ~ ' "$GUARD_LOG" | grep -v 'no staged files' || true)"
+SKIPPED_LOGLINE="$(grep -E '^[[:space:]]*\[SKIP\].*exit_code=[0-9]+' "$GUARD_LOG" || true)"
+if [ -n "$SKIPPED_CONSOLE" ] || [ -n "$SKIPPED_LOGLINE" ]; then
   echo "GUARD-1 wrapper: guard skipped a check for a non-benign reason — REJECTING commit (allow_skips=false)." >&2
-  grep -E '^  ~ ' "$GUARD_LOG" | grep -v 'no staged files' >&2
+  [ -n "$SKIPPED_CONSOLE" ] && echo "$SKIPPED_CONSOLE" >&2
+  [ -n "$SKIPPED_LOGLINE" ] && echo "$SKIPPED_LOGLINE" >&2
   exit 1
 fi
 
