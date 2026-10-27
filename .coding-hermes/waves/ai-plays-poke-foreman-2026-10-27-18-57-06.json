@@ -19,5 +19,12 @@
   },
   "status": "no-dispatch",
   "reason": "owner-authorization-gated",
-  "created_before_dispatch": true
+  "created_before_dispatch": true,
+  "finished_at": "2026-10-27T19:15:00-05:00",
+  "recovery": {
+    "workers": "none-recorded",
+    "disposition": "closed-no-worker",
+    "witness": "manifest worker list empty; live worktree/process census found no worker attributable to this tick",
+    "next_action": "normal tick selection may proceed"
+  }
 }

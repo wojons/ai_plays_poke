@@ -24,5 +24,6 @@
   "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold for further evidence.",
   "off_by_one": "none: verification-only; no debugging",
   "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-18-57-06.json#selected test=none:owner-gated doc=none:owner-decision evidence=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-18-57-06-evidence.json witness=live:head+episode-jsonl+github:ci verdict=none:not-applicable commit=none:owner-block memory=none:pending-write",
-  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: continuation evidence is verified, but the owner decision remains unrecorded; no worker or implementation is authorized."
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: continuation evidence is verified, but the owner decision remains unrecorded; no worker or implementation is authorized.",
+  "recovery": "STATUS: COMPLETE TIER: T3 EVIDENCE: manifest worker list empty and live process/worktree census found no worker attributable to this tick; no branch or worktree disposition was required."
 }
