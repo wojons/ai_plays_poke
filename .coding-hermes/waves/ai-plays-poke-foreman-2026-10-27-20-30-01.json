@@ -1,0 +1,47 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-10-27-20-30-01",
+  "project": "ai-plays-poke",
+  "repo": "wojons/ai_plays_poke",
+  "branch": "main",
+  "base_head": "c5b94b4cf63a47c2f5cb1230710d0f817f17fb9a",
+  "wave_budget": 10,
+  "mode": "verification-only",
+  "board": {
+    "tasks_file": ".coding-hermes/board/tasks.jsonl",
+    "task_rows": 326,
+    "pending_rows": 12,
+    "selected": "ARM-1",
+    "selected_priority": "P1",
+    "selected_status": "pending",
+    "selected_depends_on": [],
+    "eligible_independent": 0,
+    "ready_lower_priority": ["RELEASE-003", "PERF-7", "INT-CI-1", "DOC-21", "DOC-22", "DF-AIPP-18", "DF-AIPP-20"]
+  },
+  "recovery": {
+    "prior_tick": "ai-plays-poke-foreman-2026-10-27-19-50-06",
+    "prior_manifest_workers": [],
+    "live_process_census": "no attributable ai-plays-poke worker",
+    "live_worktree_census": "no worktree attributable to prior tick",
+    "disposition": "closed-no-worker"
+  },
+  "selection": {
+    "task_id": "ARM-1",
+    "reason": "Highest-priority pending row is an owner decision and authorizes no implementation without the owner's call.",
+    "owner_decision": "absent",
+    "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold for further evidence."
+  },
+  "gates": {
+    "canonical_light": "PASS: git diff --check; compileall cron_runner.py src tests",
+    "ci": "PASS: exact current HEAD CI queried separately; recent listed runs are terminal success",
+    "scheduler_check": "PASS: active registration ai-plays-poke-foreman found; Enabled=true CooldownS=21600 Priority=10 Weight=15",
+    "off_by_one": "none: verification-only; no debugging"
+  },
+  "dispatch": {
+    "workers": [],
+    "reason": "No worker dispatched: ARM-1 remains owner-gated and lower-priority implementation rows are not substituted for the selected owner decision."
+  },
+  "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-20-30-01.json#selected test=none:owner-gated doc=none:owner-decision evidence=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-20-30-01.json witness=live:cron_logs/long_run_long_0927_llm2_episodes.jsonl+github:current-head-ci verdict=none:not-applicable commit=none:owner-block memory=/project/ai-plays-poke/status",
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: prior zero-worker recovery verified; ARM-1 remains pending because the owner decision is absent; no implementation worker authorized.",
+  "created_at": "2026-10-27T20:33:10Z",
+  "finished_at": "2026-10-27T20:33:10Z"
+}
