@@ -44,5 +44,8 @@
   },
   "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold for further evidence.",
   "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-19-50-06.json#selected test=none:owner-gated doc=none:owner-decision evidence=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-19-50-06.json witness=live:git-head+episode-jsonl+github:run-40570681689 verdict=none:not-applicable commit=none:owner-block memory=/project/ai-plays-poke/status",
-  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: recovery closed with no workers; owner-gated ARM-1 remains pending; no implementation worker authorized."
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: recovery closed with no workers; owner-gated ARM-1 remains pending; no implementation worker authorized.",
+  "finished_at": "2026-10-27T20:47:34Z",
+  "closed": true,
+  "recovery_closeout": "Verified again on tick ai-plays-poke-foreman-2026-10-27-20-47-34: prior manifest had workers=[]; no attributable worker process, branch, or worktree exists. No merge or fixup required."
 }
