@@ -1,0 +1,33 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-10-27-22-18-06",
+  "repo": "wojons/ai_plays_poke",
+  "branch": "main",
+  "base_head": "36813c9985f3b9a2fb4f04a9b2190464670d9822",
+  "board": {
+    "tasks_file": ".coding-hermes/board/tasks.jsonl",
+    "task_rows": 327,
+    "pending_rows": 13,
+    "selected": "ARM-1",
+    "selected_priority": "P1",
+    "selected_status": "pending",
+    "selected_depends_on": [],
+    "eligible_independent": 0,
+    "wave_budget": 12
+  },
+  "dispatch": {
+    "mode": "verification-only",
+    "workers": [],
+    "reason": "ARM-1 is owner-gated; no lower-priority implementation task was substituted. INT-CI-2 was filed only because the mandatory CI-health check found an exact-head hosted-test failure."
+  },
+  "evidence": {
+    "continuation_evidence": "cron_logs/long_run_long_0927_llm2_episodes.jsonl: 28 episodes, 26 Route 1, 1 Viridian City, 1 Pallet Town",
+    "jev_comparison": "ARM-1 records jev 0/5 censored at the 30-cycle cap",
+    "local_light_gates": "git diff --check PASS; compileall cron_runner.py src tests PASS",
+    "ci_failure_filed": "INT-CI-2 for run 40592389088; pytest-benchmark Function._nodeid compatibility error after 2889 passed",
+    "board_validation": "327 physical task rows after filing; existing doctor baseline has one orphaned fixture error and legacy warnings"
+  },
+  "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold for further evidence.",
+  "off_by_one": "none: verification-only; CI regression classification used current hosted log and no code debugging",
+  "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-22-18-06.json#selected test=none:owner-gated doc=none:owner-decision evidence=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-22-18-06.json witness=live:episode-jsonl+github:run-40592389088 verdict=none:not-applicable commit=none:owner-block memory=/project/ai-plays-poke/status",
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: ARM-1 remains pending because the owner decision is absent; INT-CI-2 is filed for the exact hosted-test regression; no worker authorized."
+}
