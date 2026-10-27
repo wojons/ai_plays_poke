@@ -1,0 +1,26 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-27-22-41-17",
+  "project": "ai_plays_poke",
+  "mode": "serial-worker",
+  "wave_budget": 7,
+  "wave_size": 1,
+  "selected": ["DF-AIPP-17"],
+  "workers": [
+    {
+      "task_id": "DF-AIPP-17",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-DF-AIPP-17",
+      "branch": "wt/DF-AIPP-17",
+      "base": "origin/main",
+      "base_sha": "62758e6efc320d0135b4358dde8f56344744d351",
+      "brief": "/tmp/ai-plays-poke-foreman-2026-10-27-22-41-17-DF-AIPP-17-brief.txt",
+      "retry_brief": "/tmp/ai-plays-poke-foreman-2026-10-27-22-41-17-DF-AIPP-17-retry-brief.txt",
+      "first_worker": {"pid": 3927884, "session": "20261027_174822_2e2fa7", "exit": 1, "reason": "session storage busy", "commit": null},
+      "retry_worker": {"pid": 354525, "session": "20261027_181229_1be253", "exit": "terminated after 22m27s with no diff", "commit": null},
+      "status": "failed-no-output",
+      "gitreins_verdict": ".gitreins/history/2026-10-27/a6cee00a/verdict.json",
+      "gitreins": "FAIL/INCOMPLETE; task completed then deleted after verdict readback"
+    }
+  ],
+  "finished_at": "2026-10-27T18:35:00-05:00",
+  "result": "no implementation landed; board row remains pending"
+}
