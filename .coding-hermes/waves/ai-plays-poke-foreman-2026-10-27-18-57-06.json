@@ -1,0 +1,23 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-10-27-18-57-06",
+  "project": "ai-plays-poke",
+  "base": "main",
+  "board": ".coding-hermes/board/tasks.jsonl",
+  "wave_budget": 12,
+  "board_census": {
+    "pending_rows": 13,
+    "dispatchable_workers": 0,
+    "selected": "ARM-1"
+  },
+  "eligible_independent": 0,
+  "workers": [],
+  "selection": {
+    "task_id": "ARM-1",
+    "priority": "P1",
+    "kind": "owner-gated decision",
+    "reason": "Highest-priority pending row; acceptance requires an owner decision and forbids implementation without that decision."
+  },
+  "status": "no-dispatch",
+  "reason": "owner-authorization-gated",
+  "created_before_dispatch": true
+}
