@@ -136,16 +136,30 @@ python3 src/game_loop.py --rom "...rom file..." --save-dir runs/test_001
 
 ## Performance Characteristics
 
-### Timing Measurements (from dogfood run)
-- **Cold start** (5 cycles): 22.42 seconds real time
-- **Warm start** (5 cycles): 8.02 seconds real time  
-- **Per API call**: ~4-6 seconds (primary bottleneck)
-- **Per cycle average**: 4.5s cold, 1.6s warm
+### Timing Measurements (dogfood run, 2026-10-27, HEAD 2d75ced)
+Measured with the project venv on a normally loaded host; re-measure before quoting.
+
+| operation | exact command | time |
+|---|---|---|
+| offline validation (cold) | `.venv/bin/python cron_runner.py --dry-run --skip-key-check` | 0.11 s (rc=0) |
+| validation + key liveness | `.venv/bin/python cron_runner.py --dry-run` | 1.15 s (rc=0) |
+| **headline: real gameplay** | `/usr/bin/time -p .venv/bin/python cron_runner.py --run-id <id> --cycles 80` | **49.40 s (rc=0) = 0.62 s/cycle** |
+| per-cycle fast path (jev) | (inside the run) | ~0.36 s/cycle |
+| teacher repair (LLM call) | 2 calls inside the run | 12.05 s / 8.79 s ($0.0015 / $0.0016) |
+| dashboard route (`/status`, `/metrics`) | `curl` on a scratch port | 0.7–1.3 ms |
+
+`time -p` split for the 80-cycle run: real 49.40, user 4.44, sys 0.34 — the run is wall-bound on LLM
+calls, not CPU-bound. Historical (2026-09-26, DOGFOOD-PERF-001): 22.42 s for 5 cycles cold / 8.02 s warm,
+i.e. ~4.5 s per cycle; that is where the numbers above came from, so treat anything older than the dated
+row as stale.
 
 ### Bottlenecks
-1. **LLM API calls** (~80% of time) - OpenRouter latency
-2. **Frame caching** - Initial population takes time
-3. **Recovery systems** - Direction lock detection adds overhead
+1. **Teacher escalation LLM calls** — two synchronous calls cost 12.0 s + 8.8 s in the 2026-10-27 run
+   (21 s of the 49.4 s wall). One `--dry-run` with key liveness also pays ~1 s of provider round-trips.
+2. **Frame caching** — initial population takes time; repeats are `[CACHE-HIT]` and cheap.
+3. **Recovery systems** — direction-lock detection adds negligible overhead (lock-rate 3/80 in the
+   2026-10-27 run).
+
 
 ### Optimization Notes
 - The RAM reader pipeline eliminates vision API costs entirely
@@ -178,9 +192,17 @@ When using PTP-01X, you integrate with:
 
 ### For Advanced Usage
 1. **Experiment with different ROMs** - Red vs Blue have slight differences
-2. **Adjust cycle count based on goals** - 80+ cycles reliably exits Oak's Lab
-3. **Monitor the lock-rate** - shown in final summary; healthy runs <50%
+2. **Adjust cycle count based on goals** - longer runs do not automatically leave the starting area:
+   the shipped `data/boot.state` boots in **Pallet Town (map 0, tile (6,6))** and the 2026-10-27
+   80-cycle run spent 76 of its cycles inside Red's House 1F; treat "reached the next map" as the
+   measurement, not the cycle count
+3. **Monitor the lock-rate** - shown in final summary; healthy runs <50% (3/80 = 4% on 2026-10-27)
 4. **Use custom run IDs** - makes it easy to find specific logs/screenshots
+5. **Read the run's `run_autonomy` row, not just the summary line** - it carries
+   `handoff_trigger_counts`, `handoff_blocked` and `escalation_rate_by_missing_class`, which is how you
+   see that a high-autonomy run was actually pinned (2026-10-27: autonomy 0.925 with 78 of 80 handoff
+   triggers blocked)
+
 
 ## Validation & Testing
 
@@ -188,8 +210,18 @@ When using PTP-01X, you integrate with:
 ```bash
 source .venv/bin/activate
 python3 cron_runner.py --dry-run
-# Should exit with code 0 and print validation success
 ```
+Two legitimate outcomes — read which one you got:
+- **rc=0** with `[DRY-RUN] Validation OK` — the checkout has the ROM (`data/rom/...gb`) and the keys
+  resolve. This is what you get on an already-provisioned box (measured 1.15 s with key liveness,
+  0.11 s with `--skip-key-check`).
+- **rc=1** with `[DRY-RUN] ERROR: ROM not found at data/rom/Pokemon - Blue Version (USA, Europe) (SGB
+  Enhanced).gb ... Fix: you must own the game; place your own dump at ...` — expected on a **fresh
+  clone**, because ROMs are not bundled. Measured on a clean Ubuntu 24.04.4 box (2026-10-27): rc=1,
+  zero LLM calls. This is not a broken install; supply the ROM and re-run.
+
+Offline variant that never touches the network: `python3 cron_runner.py --dry-run --skip-key-check`.
+
 
 ### Quick Functional Test
 ```bash
