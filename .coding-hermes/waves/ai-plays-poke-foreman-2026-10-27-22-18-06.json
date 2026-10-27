@@ -29,5 +29,13 @@
   "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold for further evidence.",
   "off_by_one": "none: verification-only; CI regression classification used current hosted log and no code debugging",
   "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-22-18-06.json#selected test=none:owner-gated doc=none:owner-decision evidence=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-22-18-06.json witness=live:episode-jsonl+github:run-40592389088 verdict=none:not-applicable commit=none:owner-block memory=/project/ai-plays-poke/status",
-  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: ARM-1 remains pending because the owner decision is absent; INT-CI-2 is filed for the exact hosted-test regression; no worker authorized."
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: ARM-1 remains pending because the owner decision is absent; INT-CI-2 is filed for the exact hosted-test regression; no worker authorized.",
+  "finished_at": "2026-10-27T22:35:04-05:00",
+  "recovery": {
+    "status": "closed",
+    "workers_recorded": 0,
+    "process_census": "no attributable ai-plays-poke worker for this manifest",
+    "worktree_census": "no manifest-owned worker worktree or branch; all preserved worktrees predate this zero-worker manifest",
+    "disposition": "no merge, fixup, or cleanup required"
+  }
 }
