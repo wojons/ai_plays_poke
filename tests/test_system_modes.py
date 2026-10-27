@@ -20,6 +20,9 @@ stamped and the FAMILY is a separate field.
 
 from __future__ import annotations
 
+import inspect
+from collections import Counter
+
 import pytest
 
 import cron_runner
@@ -283,7 +286,7 @@ def test_m1_system1_policy_blocks_the_handoff_and_the_teacher(monkeypatch):
         handoff_policy=cron_runner.build_handoff_policy(handoff="off"),
         teacher_api_client=object(),
         teacher_model="some-model",
-        escalated_classes=set(),
+        class_repairs=Counter(),
     )
     assert out["escalated"] is False, (
         "a policy-blocked trigger must not report an escalation"
@@ -325,7 +328,7 @@ def test_hybrid_policy_permits_the_same_handoff(monkeypatch):
         handoff_policy=cron_runner.build_handoff_policy(handoff="any"),
         teacher_api_client=object(),
         teacher_model="some-model",
-        escalated_classes=set(),
+        class_repairs=Counter(),
     )
     assert out["escalated"] is True
     assert out["handoff_allowed"] is True
@@ -359,26 +362,35 @@ def test_repeated_gap_handoff_is_blocked_and_round_trips(monkeypatch):
         return {"ok": False, "error": "stubbed"}
 
     monkeypatch.setattr(cron_runner.jev_client, "escalate_and_reask", counting_teacher)
-    escalated_classes = set()
+    class_repairs: Counter[str] = Counter()
     kwargs = {
         "handoff_policy": cron_runner.build_handoff_policy(handoff="any"),
         "teacher_api_client": object(),
         "teacher_model": "some-model",
-        "escalated_classes": escalated_classes,
+        "class_repairs": class_repairs,
     }
 
     first = cron_runner._jev_overworld_decision({}, **kwargs)
     second = cron_runner._jev_overworld_decision({}, **kwargs)
-    autonomy = cron_runner._autonomy_counters([first, second])
+    third = cron_runner._jev_overworld_decision({}, **kwargs)
+    autonomy = cron_runner._autonomy_counters([first, second, third])
 
-    assert teacher_calls["n"] == 1
+    # The named re-escalation policy (TEACHER_REPAIR_ATTEMPTS_PER_CLASS = 2):
+    # the first unresolved repair may be attempted a second time; only after
+    # the allowance is spent do further triggers get blocked.
+    assert teacher_calls["n"] == 2
     assert first["escalated"] is True
     assert first["handoff_allowed"] is True
-    assert second["escalated"] is False
-    assert second["handoff_allowed"] is False
-    assert "map_topology" in (second["handoff_blocked_reason"] or "")
-    assert autonomy["handoff_trigger_counts"] == {"gap": 2}
-    assert autonomy["escalated"] == 1
+    assert second["escalated"] is True
+    assert second["handoff_allowed"] is True
+    assert third["escalated"] is False
+    assert third["handoff_allowed"] is False
+    assert cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in (
+        third["handoff_blocked_reason"] or ""
+    )
+    assert class_repairs == Counter({"map_topology": 2})
+    assert autonomy["handoff_trigger_counts"] == {"gap": 3}
+    assert autonomy["escalated"] == 2
     assert autonomy["handoff_blocked"] == 1
     assert autonomy["handoff_trigger_counts"]["gap"] == (
         autonomy["escalated"] + autonomy["handoff_blocked"]
@@ -422,7 +434,7 @@ def test_memory_answered_gap_handoff_is_blocked_with_reason(monkeypatch):
         handoff_policy=cron_runner.build_handoff_policy(handoff="any"),
         teacher_api_client=object(),
         teacher_model="some-model",
-        escalated_classes=set(),
+        class_repairs=Counter(),
     )
 
     assert out["plan"] == ["RIGHT"]
@@ -432,6 +444,165 @@ def test_memory_answered_gap_handoff_is_blocked_with_reason(monkeypatch):
     autonomy = cron_runner._autonomy_counters([out])
     assert autonomy["handoff_trigger_counts"] == {"gap": 1}
     assert autonomy["handoff_blocked"] == 1
+
+
+def test_handoff_legacy_set_allowance_stays_one_shot(monkeypatch):
+    """Back-compat: a caller still on the pre-R2 set accumulator cannot get
+    unbounded retries — the set cannot express a second attempt, so the
+    first escalation spends it and the next trigger is blocked by the same
+    named policy."""
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "decide",
+        lambda *_a, **_k: {
+            "ok": True,
+            "next_action": "RIGHT",
+            "escalate": True,
+            "escalate_reason": "missing_class=map_topology",
+            "missing_class": "map_topology",
+            "raw": {},
+        },
+    )
+    monkeypatch.setattr(cron_runner.state_projection, "build", lambda *_a, **_k: "proj")
+    monkeypatch.setattr(
+        cron_runner,
+        "_memory_navigation_decision",
+        lambda *_a, **_k: {"result": "miss", "reason": "hermetic fixture"},
+    )
+    teacher_calls = {"n": 0}
+
+    def counting_teacher(*_a, **_k):
+        teacher_calls["n"] += 1
+        return {"ok": False, "error": "stubbed"}
+
+    monkeypatch.setattr(cron_runner.jev_client, "escalate_and_reask", counting_teacher)
+    legacy_allowance: set[str] = set()
+    kwargs = {
+        "handoff_policy": cron_runner.build_handoff_policy(handoff="any"),
+        "teacher_api_client": object(),
+        "teacher_model": "some-model",
+        "class_repairs": legacy_allowance,
+    }
+
+    first = cron_runner._jev_overworld_decision({}, **kwargs)
+    second = cron_runner._jev_overworld_decision({}, **kwargs)
+
+    assert teacher_calls["n"] == 1
+    assert first["escalated"] is True
+    assert second["escalated"] is False
+    assert second["handoff_allowed"] is False
+    assert cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in (
+        second["handoff_blocked_reason"] or ""
+    )
+    assert legacy_allowance == {"map_topology"}
+
+
+def test_handoff_class_repairs_plain_dict_counts_and_blocks(monkeypatch):
+    """A plain dict accumulator is honored exactly like a Counter: two
+    attempts on the class, then the named block with the class named."""
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "decide",
+        lambda *_a, **_k: {
+            "ok": True,
+            "next_action": "RIGHT",
+            "escalate": True,
+            "escalate_reason": "missing_class=map_topology",
+            "missing_class": "map_topology",
+            "raw": {},
+        },
+    )
+    monkeypatch.setattr(cron_runner.state_projection, "build", lambda *_a, **_k: "proj")
+    monkeypatch.setattr(
+        cron_runner,
+        "_memory_navigation_decision",
+        lambda *_a, **_k: {"result": "miss", "reason": "hermetic fixture"},
+    )
+    teacher_calls = {"n": 0}
+
+    def counting_teacher(*_a, **_k):
+        teacher_calls["n"] += 1
+        return {"ok": False, "error": "stubbed"}
+
+    monkeypatch.setattr(cron_runner.jev_client, "escalate_and_reask", counting_teacher)
+    allowance: dict[str, int] = {}
+    kwargs = {
+        "handoff_policy": cron_runner.build_handoff_policy(handoff="any"),
+        "teacher_api_client": object(),
+        "teacher_model": "some-model",
+        "class_repairs": allowance,
+    }
+
+    first = cron_runner._jev_overworld_decision({}, **kwargs)
+    second = cron_runner._jev_overworld_decision({}, **kwargs)
+    third = cron_runner._jev_overworld_decision({}, **kwargs)
+
+    assert teacher_calls["n"] == 2
+    assert first["handoff_allowed"] is True
+    assert second["handoff_allowed"] is True
+    assert third["handoff_allowed"] is False
+    blocked_reason = third["handoff_blocked_reason"] or ""
+    assert cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in blocked_reason
+    assert "map_topology" in blocked_reason
+    assert allowance == {"map_topology": 2}
+
+
+def test_handoff_repair_block_reason_is_the_named_constant():
+    """The spent-allowance reason is the named policy constant, and the
+    module carries no inline copy of the legacy dedupe string (DF-AIPP-13-R2:
+    the re-escalation policy must be findable in code, not scattered)."""
+    assert cron_runner.TEACHER_REPAIR_ATTEMPTS_PER_CLASS == 2
+    lines = inspect.getsource(cron_runner).splitlines()
+    hits = [i for i, ln in enumerate(lines) if "already escalated this run" in ln]
+    assert len(hits) == 1, "the dedupe text must live only in the constant"
+    # The single hit is the constant's assignment (its value or the comment
+    # naming it directly above), not a second inline use.
+    window = "\n".join(lines[max(0, hits[0] - 3) : hits[0] + 1])
+    assert "HANDOFF_BLOCK_REPAIRS_EXHAUSTED" in window
+
+
+def test_handoff_episode_budget_binds_even_when_repairs_remain(monkeypatch):
+    """The per-episode cap is independent of the per-class repair allowance:
+    with the budget spent the trigger is refused as a budget block, and the
+    teacher is never called, even though the class has attempts left."""
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "decide",
+        lambda *_a, **_k: {
+            "ok": True,
+            "next_action": "RIGHT",
+            "escalate": True,
+            "escalate_reason": "missing_class=map_topology",
+            "missing_class": "map_topology",
+            "raw": {},
+        },
+    )
+    monkeypatch.setattr(cron_runner.state_projection, "build", lambda *_a, **_k: "proj")
+    monkeypatch.setattr(
+        cron_runner,
+        "_memory_navigation_decision",
+        lambda *_a, **_k: {"result": "miss", "reason": "hermetic fixture"},
+    )
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "escalate_and_reask",
+        lambda *_a, **_k: pytest.fail("spent budget must not reach the teacher"),
+    )
+
+    out = cron_runner._jev_overworld_decision(
+        {},
+        handoff_policy=cron_runner.build_handoff_policy(handoff="any", teacher_max=2),
+        teacher_api_client=object(),
+        teacher_model="some-model",
+        class_repairs=Counter(),
+        teacher_budget={"used": 2},
+    )
+
+    assert out["escalated"] is False
+    assert "budget exhausted" in (out["handoff_blocked_reason"] or "")
+    assert cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED not in (
+        out["handoff_blocked_reason"] or ""
+    )
 
 
 def test_teacher_budget_blocks_after_the_cap(monkeypatch):
@@ -461,7 +632,7 @@ def test_teacher_budget_blocks_after_the_cap(monkeypatch):
         handoff_policy=cron_runner.build_handoff_policy(handoff="any", teacher_max=3),
         teacher_api_client=object(),
         teacher_model="some-model",
-        escalated_classes=set(),
+        class_repairs=Counter(),
         teacher_budget=budget,
     )
     assert out["escalated"] is False
@@ -495,7 +666,7 @@ def test_budget_is_spent_at_the_api_boundary(monkeypatch):
         handoff_policy=cron_runner.build_handoff_policy(handoff="any", teacher_max=2),
         teacher_api_client=object(),
         teacher_model="some-model",
-        escalated_classes=set(),
+        class_repairs=Counter(),
         teacher_budget=budget,
     )
     assert budget["used"] == 1

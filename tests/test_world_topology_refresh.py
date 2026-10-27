@@ -10,6 +10,7 @@ current tile always leads the supplied facts.
 
 from __future__ import annotations
 
+from collections import Counter
 from io import StringIO
 from typing import Any
 
@@ -421,7 +422,7 @@ def test_live_rom_topology_clears_a_jev_reported_gap_without_the_teacher(
         world_facts=facts,
         teacher_api_client=object(),
         teacher_model="test/teacher",
-        escalated_classes=set(),
+        class_repairs=Counter(),
     )
 
     assert decision["escalated"] is False
@@ -541,7 +542,7 @@ def test_teacher_missing_facts_become_next_cycle_world_targets(
         _observation(),
         teacher_api_client=object(),
         teacher_model="test/teacher",
-        escalated_classes=set(),
+        class_repairs=Counter(),
     )
     assert decision["teacher_missing_facts"] == ["the walkable exit below the player"]
     assert decision["teacher_memory_targets"] == [
