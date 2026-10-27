@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import Counter
 from io import StringIO
 from typing import Any
 
@@ -222,21 +223,21 @@ def test_complete_map_fact_stops_repeat_topology_escalation(
         "walkability=U:blocked,D:walkable,L:walkable,R:blocked; "
         "local_collision=###/.O#/...; exits=none"
     )
-    escalated_classes: set[str] = set()
+    class_repairs: Counter[str] = Counter()
 
     first = cron_runner._jev_overworld_decision(
         observation,
         world_facts=[fact],
         teacher_api_client=object(),
         teacher_model="test/teacher",
-        escalated_classes=escalated_classes,
+        class_repairs=class_repairs,
     )
     second = cron_runner._jev_overworld_decision(
         observation,
         world_facts=[fact],
         teacher_api_client=object(),
         teacher_model="test/teacher",
-        escalated_classes=escalated_classes,
+        class_repairs=class_repairs,
     )
 
     assert first["plan"] == ["DOWN"]

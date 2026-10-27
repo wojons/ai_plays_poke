@@ -11,9 +11,11 @@ and the per-decision rows' contribution to the run's autonomy ratio.
 from __future__ import annotations
 
 import ast
+import inspect
 import io
 import json
 import urllib.error
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
@@ -779,7 +781,7 @@ def _jev_decision(
         last_action_changed_state=False,
         teacher_api_client=object(),
         teacher_model="hermetic/teacher",
-        escalated_classes=set(),
+        class_repairs=Counter(),
     )
     assert decision, "JEV should have decided this cycle"
     return decision
@@ -885,7 +887,7 @@ class TestJevOverworldDecision:
             last_action_changed_state=False,
             teacher_api_client=object(),
             teacher_model="hermetic/teacher",
-            escalated_classes=set(),
+            class_repairs=Counter(),
         )
 
         # PRD v3 §3.2 trigger 1: the loop's same-tile streak is handed to the
@@ -916,7 +918,7 @@ class TestJevOverworldDecision:
             last_action_changed_state=False,
             teacher_api_client=object(),
             teacher_model="hermetic/teacher",
-            escalated_classes=set(),
+            class_repairs=Counter(),
         )
 
         # The teacher handoff is recorded without stopping the cheap tier from
@@ -1257,7 +1259,7 @@ class TestCycleEfficiencyObservables:
         )
         monkeypatch.setattr(cron_runner.jev_client, "escalate_and_reask", fake_teacher)
 
-        escalated_classes: set[str] = set()
+        class_repairs: Counter[str] = Counter()
         teacher_budget = {"used": 0}
         rows: list[dict[str, Any]] = []
         for index in range(27):
@@ -1272,7 +1274,7 @@ class TestCycleEfficiencyObservables:
                 handoff_policy=cron_runner.build_handoff_policy(handoff="any"),
                 teacher_api_client=object(),
                 teacher_model="hermetic/teacher",
-                escalated_classes=escalated_classes,
+                class_repairs=class_repairs,
                 teacher_budget=teacher_budget,
             )
             rows.append(
@@ -1300,15 +1302,26 @@ class TestCycleEfficiencyObservables:
             rows[-1]["player_tile_x"],
             rows[-1]["player_tile_y"],
         )
-        assert len(teacher_calls) == 1
-        assert teacher_budget == {"used": 1}
+        assert len(teacher_calls) == 2
+        assert teacher_calls == ["map_topology", "map_topology"]
+        assert teacher_budget == {"used": 2}
         assert block["handoff_trigger_counts"] == {"gap": 27}
-        assert block["escalated"] == 1
-        assert block["handoff_blocked"] == 26
-        assert len(blocked_rows) == 26
+        assert block["escalated"] == 2
+        assert block["handoff_blocked"] == 25
+        assert len(blocked_rows) == 25
         assert all(row["handoff_blocked_reason"] for row in blocked_rows)
         assert all(
             "map_topology" in row["handoff_blocked_reason"] for row in blocked_rows
+        )
+        # The pre-R2 one-shot dedupe ("already escalated this run") is gone:
+        # blocked rows name the exhausted named-allowance policy instead, and
+        # exactly allowance-2 cycles were blocked after the second repair.
+        assert all(
+            cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in row["handoff_blocked_reason"]
+            for row in blocked_rows
+        )
+        assert "already escalated this run" not in inspect.getsource(
+            cron_runner._jev_handoff_delivery_gate
         )
         assert block["handoff_trigger_counts"]["gap"] == (
             block["escalated"] + block["handoff_blocked"]

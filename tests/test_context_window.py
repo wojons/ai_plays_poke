@@ -2,6 +2,7 @@
 
 import io
 import json
+from collections import Counter
 
 import cron_runner
 
@@ -200,7 +201,7 @@ def _run_live_teacher_escalation(monkeypatch, recent_decisions):
         teacher_log_file=log_file,
         teacher_cycle=9,
         teacher_results=results,
-        escalated_classes=set(),
+        class_repairs=Counter(),
         handoff_policy=cron_runner.build_handoff_policy(handoff="any"),
         teacher_budget={"used": 0},
     )

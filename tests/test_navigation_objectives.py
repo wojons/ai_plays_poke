@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+from collections import Counter
 from dataclasses import FrozenInstanceError
 from types import SimpleNamespace
 from typing import Any
@@ -153,7 +154,7 @@ def test_both_text_decision_paths_receive_the_structured_objective(
         _same_tile_count=0,
         _boot_memory="",
         log_file=io.StringIO(),
-        _teacher_escalated_classes=set(),
+        _teacher_class_repairs=Counter(),
         _teacher_budget={"used": 0},
         _memory_navigation_blocks=cron_runner._MemoryNavigationBlockState(),
         R=SimpleNamespace(controller_client=object(), controller_model="model"),

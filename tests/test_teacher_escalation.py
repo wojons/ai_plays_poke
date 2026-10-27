@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+from collections import Counter
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -12,7 +13,6 @@ import pytest
 
 import cron_runner
 from src.core import jev_client, jev_scenarios, teacher_client
-
 
 _TYPED_PATCH: dict[str, Any] = {
     "ok": True,
@@ -185,7 +185,7 @@ def test_teacher_repair_reaches_state_gate_and_increments_metric(
         teacher_log_file=io.StringIO(),
         teacher_cycle=4,
         teacher_results=results,
-        escalated_classes=set(),
+        class_repairs=Counter(),
     )
 
     teacher = cron_runner.teacher_escalation_records(results)
@@ -539,7 +539,7 @@ def test_overworld_escalation_reasks_with_distribution_and_is_bounded(
     monkeypatch.setattr(jev_client, "ask", fake_ask)
     log_file = io.StringIO()
     results: list[dict[str, Any]] = []
-    escalated_classes: set[str] = set()
+    class_repairs: Counter[str] = Counter()
     kwargs = {
         "goal": "leave Oaks Lab",
         "recent_events": [{"cycle": 3, "action": "UP", "result": "no change"}],
@@ -551,27 +551,44 @@ def test_overworld_escalation_reasks_with_distribution_and_is_bounded(
         "teacher_log_file": log_file,
         "teacher_cycle": 4,
         "teacher_results": results,
-        "escalated_classes": escalated_classes,
+        "class_repairs": class_repairs,
     }
 
     first = cron_runner._jev_overworld_decision({}, **kwargs)
     second = cron_runner._jev_overworld_decision({}, **kwargs)
+    third = cron_runner._jev_overworld_decision({}, **kwargs)
 
     assert first["plan"] == ["DOWN"]
     assert first["intent"] == "teacher one-shot DOWN"
-    assert second["plan"] == ["RIGHT"]
-    assert len(patch_calls) == 1
+    # R2 re-escalation policy: the first unresolved repair is attempted a
+    # second time before the class is bounded.
+    assert second["plan"] == ["DOWN"]
+    assert second["intent"] == "teacher one-shot DOWN"
+    # The bound still holds — at TEACHER_REPAIR_ATTEMPTS_PER_CLASS attempts:
+    # the third trigger is blocked, so the plain JEV answer stands.
+    assert third["plan"] == ["RIGHT"]
+    assert third["escalated"] is False
+    assert cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in (
+        third["handoff_blocked_reason"] or ""
+    )
+    assert len(patch_calls) == 2
     assert patch_calls[0]["distributions"] == pre_decision
     assert patch_calls[0]["memory"] == "/game/runs/index: reached Oak's Lab"
-    assert len(reask_calls) == 1
+    assert len(reask_calls) == 2
     assert (
         _TYPED_PATCH["instruction_patch"]
         in (reask_calls[0]["questions"]["next_action"]["instructions"])
     )
-    assert escalated_classes == {"map_topology"}
-    assert len(results) == 1
+    assert class_repairs == Counter({"map_topology": 2})
+    assert len(results) == 2
     assert results[0]["event"] == "teacher_escalation"
-    assert json.loads(log_file.getvalue())["patch"]["one_shot_action"] == "DOWN"
+    log_records = [
+        json.loads(line) for line in log_file.getvalue().splitlines() if line.strip()
+    ]
+    assert [record["patch"]["one_shot_action"] for record in log_records] == [
+        "DOWN",
+        "DOWN",
+    ]
 
 
 def test_overworld_teacher_failure_degrades_to_normal_jev_decision(
@@ -593,7 +610,7 @@ def test_overworld_teacher_failure_degrades_to_normal_jev_decision(
     )
     log_file = io.StringIO()
     results: list[dict[str, Any]] = []
-    escalated_classes: set[str] = set()
+    class_repairs: Counter[str] = Counter()
 
     result = cron_runner._jev_overworld_decision(
         {},
@@ -602,12 +619,12 @@ def test_overworld_teacher_failure_degrades_to_normal_jev_decision(
         teacher_log_file=log_file,
         teacher_cycle=5,
         teacher_results=results,
-        escalated_classes=escalated_classes,
+        class_repairs=class_repairs,
     )
 
     assert result["plan"] == ["RIGHT"]
     assert result["intent"] == "jev RIGHT"
-    assert escalated_classes == {"map_topology"}
+    assert class_repairs == Counter({"map_topology": 1})
     assert len(results) == 1
     assert results[0]["ok"] is False
     assert results[0]["error"] == "teacher offline"
@@ -732,7 +749,7 @@ def test_ac7_later_matching_decision_uses_patch_without_teacher_escalation(
         {"map_name": "Pallet Town"},
         teacher_api_client=object(),
         teacher_model="test/reasoning-teacher",
-        escalated_classes=set(),
+        class_repairs=Counter(),
         scenario_path=artifact_path,
     )
 
