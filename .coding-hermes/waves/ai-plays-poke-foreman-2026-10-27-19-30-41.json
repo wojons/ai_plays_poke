@@ -1,0 +1,43 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-10-27-19-30-41",
+  "repo": "wojons/ai_plays_poke",
+  "branch": "main",
+  "base_head": "8be9021d3fe8b1c5eb6e6162a79203e5e0844dbd",
+  "board": {
+    "tasks_file": ".coding-hermes/board/tasks.jsonl",
+    "task_rows": 326,
+    "pending_rows": 12,
+    "complete_rows": 314,
+    "selected": "ARM-1",
+    "selected_priority": "P1",
+    "selected_status": "pending",
+    "selected_depends_on": [],
+    "eligible_independent": 0,
+    "wave_budget": 1
+  },
+  "dispatch": {
+    "mode": "verification-only",
+    "workers": [],
+    "reason": "ARM-1 is the highest-priority pending row and requires an owner decision; no implementation authorization is recorded."
+  },
+  "premise": {
+    "owner_decision": "absent",
+    "continuation_evidence": "cron_logs/long_run_long_0927_llm2_episodes.jsonl",
+    "episodes": 28,
+    "route_1": 26,
+    "viridian_city": 1,
+    "pallet_town": 1,
+    "jev_comparison": "board row records jev 0/5 censored at the cap"
+  },
+  "ci": {
+    "head_sha": "8be9021d3fe8b1c5eb6e6162a79203e5e0844dbd",
+    "status": "completed",
+    "conclusion": "success",
+    "display_title": "foreman: close DOC-20 and recover prior zero-worker wave",
+    "created_at": "2026-10-27T19:23:41Z"
+  },
+  "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold for further evidence.",
+  "off_by_one": "none: verification-only; no debugging",
+  "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-19-30-41.json#selected test=none:owner-gated doc=none:owner-decision evidence=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-19-30-41.json witness=live:git-head+episode-jsonl+github:run-success verdict=none:not-applicable commit=none:owner-block memory=/project/ai-plays-poke/status",
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: continuation evidence and exact-head CI are verified, but the owner decision remains unrecorded; no worker or implementation is authorized."
+}
