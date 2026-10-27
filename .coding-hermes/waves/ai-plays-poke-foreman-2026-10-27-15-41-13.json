@@ -1,0 +1,20 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-27-15-41-13",
+  "project": "ai_plays_poke",
+  "base": "origin/main",
+  "base_sha": "9f7788cfc9c723d74cfbaca937b4bc591de42dec",
+  "mode": "serial",
+  "reason_single_lane": "Only one actionable P1 code task was selected; DF-AIPP-17 is an independent P1 but was not dispatched in this one-worker tick per the project foreman instruction.",
+  "tasks": [
+    {
+      "id": "DF-AIPP-13-R2",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-DF-AIPP-13-R2",
+      "branch": "wt/DF-AIPP-13-R2",
+      "worker_model": "glm-5.3-flash",
+      "worker_provider": "zai-glm-default",
+      "brief": "/tmp/ai-plays-poke-foreman-2026-10-27-15-41-13-DF-AIPP-13-R2-brief.txt",
+      "dispatch_status": "dispatched",
+      "result": "pending"
+    }
+  ]
+}
