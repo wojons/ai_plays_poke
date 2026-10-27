@@ -1,0 +1,23 @@
+{
+  "scheduler_tick_id": "ai-plays-poke-foreman-2026-10-27-10-57-43",
+  "project": "ai-plays-poke",
+  "repo": "/home/kara/ai_plays_poke",
+  "base_sha": "950102296006d1abca50bf83f1747b0385655105",
+  "wave_budget": 12,
+  "mode": "verification-only",
+  "selected_task": "INT-CI-1",
+  "workers": [],
+  "dispatch": "none",
+  "reason": "Only three pending rows exist. ARM-1 and RELEASE-003 are owner-gated decisions/authorization; INT-CI-1 is an infrastructure-record row whose acceptance is satisfied by the current workflow pin and exact-head green CI. No implementation wave is eligible.",
+  "excluded": [
+    {"task_id": "ARM-1", "reason": "owner decision required; no worker dispatch"},
+    {"task_id": "RELEASE-003", "reason": "owner authorization and ARM-1 decision required; no worker dispatch"}
+  ],
+  "ci_health_probe": {
+    "repo": "wojons/ai_plays_poke",
+    "latest_run": 40467543849,
+    "head_sha": "950102296006d1abca50bf83f1747b0385655105",
+    "conclusion": "success"
+  },
+  "created_at": "2026-10-27T11:02:26Z"
+}

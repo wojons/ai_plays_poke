@@ -1,0 +1,24 @@
+{
+  "task_id": "INT-CI-1",
+  "tested_head": "950102296006d1abca50bf83f1747b0385655105",
+  "repo": "wojons/ai_plays_poke",
+  "commands": [
+    {
+      "command": "grep -q ghcr.io/snooptheone/act-ubuntu-custom:latest .github/workflows/ci.yml && test $(grep -c catthehacker/ubuntu .github/workflows/ci.yml) -eq 0",
+      "exit_code": 0,
+      "result": "workflow uses the GHCR mirror and has no Docker Hub runner reference"
+    },
+    {
+      "command": "gh run list --repo wojons/ai_plays_poke --limit 3 --json status,conclusion,displayTitle,headBranch,createdAt",
+      "exit_code": 0,
+      "result": "latest run 40467543849 for 950102296006d1abca50bf83f1747b0385655105 completed success"
+    },
+    {
+      "command": "gh run list --repo wojons/ai_plays_poke --limit 30 --json headBranch,conclusion --jq latest main conclusion",
+      "exit_code": 0,
+      "result": "success"
+    }
+  ],
+  "disposition": "Infrastructure failure is resolved in the current workflow and exact current main CI is green. Keep INT-CI-1 pending because its acceptance names a future CI run and board closeout is not a source implementation; no worker dispatched.",
+  "witness": "github:run-40467543849@950102296006d1abca50bf83f1747b0385655105"
+}
