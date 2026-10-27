@@ -1,0 +1,25 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-10-27-18-14-19",
+  "project": "ai-plays-poke",
+  "base": "main",
+  "board": ".coding-hermes/board/tasks.jsonl",
+  "board_census": {
+    "pending_rows": 13,
+    "dispatchable_workers": 0,
+    "selected": "ARM-1"
+  },
+  "eligible_independent": 0,
+  "workers": [],
+  "selection": {
+    "task_id": "ARM-1",
+    "priority": "P1",
+    "kind": "owner-gated decision",
+    "reason": "Highest-priority pending row; acceptance requires an owner decision and explicitly forbids implementation without that decision."
+  },
+  "blocker": {
+    "status": "pending-owner-decision",
+    "evidence": "Board row records the continuation evidence: long_0927_llm2 has 26/28 Route 1, 1/28 Viridian, 1/28 Pallet Town; no owner decision is recorded.",
+    "next_owner_action": "Choose whether to replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold pending further evidence."
+  },
+  "created_before_dispatch": true
+}
