@@ -1,0 +1,48 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-10-27-19-50-06",
+  "repo": "wojons/ai_plays_poke",
+  "branch": "main",
+  "base_head": "daee01a02ed9345b2c2f12339f6feaf1d7d74fd5",
+  "board": {
+    "tasks_file": ".coding-hermes/board/tasks.jsonl",
+    "task_rows": 326,
+    "pending_rows": 12,
+    "selected": "ARM-1",
+    "selected_priority": "P1",
+    "selected_status": "pending",
+    "selected_depends_on": [],
+    "eligible_independent": 0,
+    "wave_budget": 12
+  },
+  "recovery": {
+    "prior_tick": "ai-plays-poke-foreman-2026-10-27-19-30-41",
+    "prior_manifest_workers": [],
+    "live_process_census": "no attributable process",
+    "live_worktree_census": "no worktree for prior tick",
+    "disposition": "closed-no-worker",
+    "finished_at": "2026-10-27T19:53:00Z"
+  },
+  "dispatch": {
+    "mode": "verification-only",
+    "workers": [],
+    "reason": "ARM-1 is the highest-priority pending row and requires an owner decision; no implementation authorization is recorded. The next eligible implementation block is lower priority and is not selected while the owner gate remains unresolved."
+  },
+  "premise": {
+    "owner_decision": "absent",
+    "continuation_evidence": "cron_logs/long_run_long_0927_llm2_episodes.jsonl",
+    "episodes": 28,
+    "route_1": 26,
+    "viridian_city": 1,
+    "pallet_town": 1,
+    "jev_comparison": "board row records jev 0/5 censored at the cap"
+  },
+  "gates": {
+    "canonical_light": "PASS: git diff --check; compileall cron_runner.py src tests",
+    "ci": "GitHub API fallback: exact HEAD daee01a CI run 40570681689 completed success",
+    "scheduler_check": "BLOCKED: documented check_scheduler_project.py path is stale/missing; no scheduler claim made",
+    "off_by_one": "DISCOVERED negative: reverse-edge-guard problem class not found; corpus keyword search returned no hit"
+  },
+  "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold for further evidence.",
+  "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-19-50-06.json#selected test=none:owner-gated doc=none:owner-decision evidence=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-19-50-06.json witness=live:git-head+episode-jsonl+github:run-40570681689 verdict=none:not-applicable commit=none:owner-block memory=/project/ai-plays-poke/status",
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: recovery closed with no workers; owner-gated ARM-1 remains pending; no implementation worker authorized."
+}
