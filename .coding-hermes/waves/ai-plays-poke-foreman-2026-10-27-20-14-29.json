@@ -1,0 +1,44 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-10-27-20-14-29",
+  "project": "ai-plays-poke",
+  "repo": "wojons/ai_plays_poke",
+  "branch": "main",
+  "base_head": "e46826680b3f9a0d5840d9fdd1986f699d83716a",
+  "wave_budget": 1,
+  "mode": "verification-only",
+  "board": {
+    "tasks_file": ".coding-hermes/board/tasks.jsonl",
+    "task_rows": 326,
+    "pending_rows": 12,
+    "selected": "ARM-1",
+    "selected_priority": "P1",
+    "selected_status": "pending",
+    "eligible_independent": 0
+  },
+  "recovery": {
+    "prior_tick": "ai-plays-poke-foreman-2026-10-27-19-50-06",
+    "prior_manifest_workers": [],
+    "live_process_census": "no attributable ai-plays-poke worker",
+    "live_worktree_census": "no worktree attributable to prior tick",
+    "disposition": "closed-no-worker"
+  },
+  "selection": {
+    "task_id": "ARM-1",
+    "reason": "Highest-priority pending row is an owner decision and authorizes no implementation without the owner's call.",
+    "owner_decision": "absent",
+    "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold for further evidence."
+  },
+  "gates": {
+    "canonical_light": "PASS: git diff --check; compileall cron_runner.py src tests",
+    "ci": "PASS: exact HEAD e46826680b3f9a0d5840d9fdd1986f699d83716a GitHub run completed success; recent 3/3 runs terminal success",
+    "off_by_one": "none: verification-only; no debugging"
+  },
+  "dispatch": {
+    "workers": [],
+    "reason": "No worker dispatched: ARM-1 remains owner-gated and the next implementation rows are lower priority."
+  },
+  "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-20-14-29.json#selected test=none:owner-gated doc=none:owner-decision prompt=~/.hermes/skills/coding-hermes-foreman/references/owner-gated-selection-and-zero-worker-recovery.md evidence=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-20-14-29.json witness=live:cron_logs/long_run_long_0927_llm2_episodes.jsonl+github:e468266-ci verdict=none:not-applicable commit=none:owner-block memory=/project/ai-plays-poke/status",
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: prior zero-worker recovery was verified; ARM-1 remains pending because the owner decision is absent; no implementation worker authorized.",
+  "created_at": "2026-10-27T20:20:10Z",
+  "finished_at": "2026-10-27T20:20:10Z"
+}
