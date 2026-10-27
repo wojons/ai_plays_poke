@@ -1,0 +1,36 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-10-27-21-58-17",
+  "repo": "wojons/ai_plays_poke",
+  "branch": "main",
+  "base_head": "0eb8f717581c9bd7cdc5954d8b30905e25c761ef",
+  "board": {
+    "tasks_file": ".coding-hermes/board/tasks.jsonl",
+    "task_rows": 326,
+    "pending_rows": 12,
+    "selected": "ARM-1",
+    "selected_priority": "P1",
+    "selected_status": "pending",
+    "selected_depends_on": [],
+    "eligible_independent": 0,
+    "wave_budget": 9
+  },
+  "dispatch": {
+    "mode": "verification-only",
+    "workers": [],
+    "reason": "ARM-1 is the highest-priority pending row and requires an owner decision; no implementation authorization is recorded. No lower-priority worker was substituted."
+  },
+  "evidence": {
+    "continuation_evidence": "cron_logs/long_run_long_0927_llm2_episodes.jsonl: 28 episodes, 26 Route 1, 1 Viridian City, 1 Pallet Town",
+    "jev_comparison": "ARM-1 records jev 0/5 censored at the 30-cycle cap",
+    "local_light_gates": "git diff --check PASS; compileall cron_runner.py src tests PASS",
+    "exact_head_ci": "GitHub public Actions API run 40583622894 on 0eb8f717581c9bd7cdc5954d8b30905e25c761ef completed success",
+    "remote_parity": "origin/main == HEAD; ahead 0, behind 0",
+    "board_validation": "326 physical task rows; 326 ids; no duplicate ids; baseline legacy warnings/key-uniformity drift remain"
+  },
+  "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold for further evidence.",
+  "off_by_one": "none: verification-only; no debugging",
+  "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-21-58-17.json#selected test=none:owner-gated doc=none:owner-decision evidence=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-27-21-58-17.json witness=live:git-head+episode-jsonl+github:run-40583622894 verdict=none:not-applicable commit=none:owner-block memory=/project/ai-plays-poke/status",
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: ARM-1 remains pending because the owner decision is absent; no worker authorized.",
+  "finished_at": "2026-10-27T22:00:43Z",
+  "closed": true
+}
