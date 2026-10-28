@@ -1,0 +1,25 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-27-14-59-14",
+  "mode": "serial",
+  "budget": 1,
+  "reason": "WAVE_BUDGET=1 and only one actionable implementation row selected; ARM-1 and RELEASE-003 are owner-gated, INT-CI-1 is verification-only, DOC-23 depends on DOC-20..22",
+  "census": {
+    "head": "2d75ced1bc5c9f93d8427ac83401389a7e0c7da5",
+    "pending_rows": ["ARM-1", "INT-CI-1", "RELEASE-003", "DOC-20", "DOC-21", "DOC-22", "DOC-23"],
+    "selected": "DOC-20",
+    "dependencies_verified": true,
+    "off_by_one": "discover missing-documentation-reference returned not_found; corpus keyword scan found no applicable answer"
+  },
+  "tasks": [
+    {
+      "task_id": "DOC-20",
+      "worktree": "/home/kara/ai_plays_poke",
+      "branch": "main",
+      "base": "2d75ced1bc5c9f93d8427ac83401389a7e0c7da5",
+      "model": "gpt-5.6-terra",
+      "provider": "openai-codex",
+      "brief": "/tmp/ai-plays-poke-foreman-2026-10-27-14-59-14-DOC-20-brief.txt",
+      "dispatch": "serial-shared-checkout-per-foreman-prompt"
+    }
+  ]
+}

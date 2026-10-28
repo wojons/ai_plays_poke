@@ -1,0 +1,18 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-24-17-27-57",
+  "project": "ai_plays_poke",
+  "mode": "serial",
+  "wave_budget": 11,
+  "selected_tasks": ["DF-AIPP-15"],
+  "reason": "only one selected implementation row in the chosen dogfood block; owner-gated and dependency/release blocks were not pulled into the wave",
+  "workers": [
+    {
+      "task_id": "DF-AIPP-15",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-DF-AIPP-15",
+      "branch": "wt/DF-AIPP-15",
+      "base": "179995a71faca00b7157362d8915f8df784010b2",
+      "status": "prepared"
+    }
+  ],
+  "finished_at": null
+}

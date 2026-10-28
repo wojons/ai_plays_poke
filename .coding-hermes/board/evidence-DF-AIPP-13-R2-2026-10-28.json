@@ -1,0 +1,35 @@
+{
+  "task_id": "DF-AIPP-13-R2",
+  "row": "DF-AIPP-13-R2",
+  "date": "2026-10-28",
+  "tick": "ai-plays-poke-foreman-2026-10-28-08-46-35",
+  "implementation_commit": "09674291494165e20b71dd907f344230fcc0dd67",
+  "prior_attempt": {
+    "commit": "3304137 (rebase of 9881492)",
+    "worker": "glm-5.3-flash @ zai-glm-default, tick 2026-10-27-15-41-13",
+    "outcome": "INCOMPLETE — handoff_blocked 78->56, escalations 4/29, residual 24-cycle two-tile hold"
+  },
+  "ch:trace row=DF-AIPP-13-R2 spec=cron_runner.py#handoff-policy wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-28-08-46-35.json#serial test=tests/test_cron_runner_metrics.py::handoff+tests/test_system_modes.py::handoff doc=none:code-regression prompt=/tmp/df13r2-brief-tick-2026-10-28-08-46-35.txt evidence=cron_logs/run_df13r2r4.jsonl witness=live:cron_logs/run_df13r2r4.jsonl verdict=none:pending-foreman-trace commit=09674291494165e20b71dd907f344230fcc0dd67 memory=none:foreman-writes": null,
+  "worker": "gpt-5.6-sol @ openai-codex (session 20261028_041549_5ae87d), worktree wt/DF-AIPP-13-R2",
+  "status": "complete",
+  "tier": "T2",
+  "evidence": {
+    "commit": "09674291494165e20b71dd907f344230fcc0dd67",
+    "focused_tests": "38 passed, 88 deselected (treadmill/handoff/teacher/repair)",
+    "full_suite": "4532 passed, 24 skipped (./venv/bin/pytest tests/ -q)",
+    "live_witness": "cron_logs/run_df13r2r4.jsonl (60 cycles, jev, rc=0, in worktree cron_logs/)",
+    "live_numbers": {
+      "handoff_blocked": 0,
+      "handoff_trigger_counts": {"gap": 27, "confidence": 12, "failure": 20},
+      "teacher_escalations": {"count": 59, "improved": 21},
+      "dedupe_blocks_in_log": 0,
+      "map_transitions_observed": 3,
+      "autonomy_ratio": 0.8667,
+      "jev_transport_failures": 0
+    },
+    "code_markers": "TEACHER_REPAIR_REARM_TRIGGERS named constant (cron_runner.py:322); dedupe string appears exactly once in cron_runner.py"
+  },
+  "witness": "live:cron_logs/run_df13r2r4.jsonl",
+  "verdict": "pending-foreman-judge",
+  "foreman_verification": "Foreman independently re-ran every jq probe against run_df13r2r4.jsonl before merge: handoff_blocked=0 (<10), 27/27 gap triggers delivered, 'already escalated this run' absent from the log, merged to main 7fcf327..0967429 (ff-only), pushed, origin/main parity 0."
+}

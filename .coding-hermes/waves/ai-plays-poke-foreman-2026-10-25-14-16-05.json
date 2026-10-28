@@ -1,0 +1,16 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-25-14-16-05",
+  "mode": "serial",
+  "budget": 10,
+  "reason": "one worker per tick doctrine; RELEASE-004 is the highest-value actionable row",
+  "tasks": [
+    {
+      "task_id": "RELEASE-004",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-RELEASE-004",
+      "branch": "wt/RELEASE-004",
+      "model": "step-3.7-flash",
+      "provider": "stepfun",
+      "brief": "/tmp/ai-plays-poke-foreman-2026-10-25-14-16-05-RELEASE-004-brief.txt"
+    }
+  ]
+}

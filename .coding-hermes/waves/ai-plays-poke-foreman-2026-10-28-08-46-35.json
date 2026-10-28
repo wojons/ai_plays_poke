@@ -1,0 +1,22 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-28-08-46-35",
+  "project": "ai_plays_poke",
+  "mode": "serial-worker",
+  "wave_budget": 12,
+  "wave_size": 1,
+  "selected": ["DF-AIPP-13-R2"],
+  "workers": [
+    {
+      "task_id": "DF-AIPP-13-R2",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-DF-AIPP-13-R2",
+      "branch": "wt/DF-AIPP-13-R2",
+      "base": "origin/main",
+      "base_sha": "7fcf327",
+      "rebase": "prior attempt 9881492 rebased onto 7fcf327 as 3304137 before dispatch",
+      "brief": "/tmp/df13r2-brief-tick-2026-10-28-08-46-35.txt",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-codex"
+    }
+  ],
+  "notes": "Only one independently-actionable pending row: ARM-1 owner-gated, RELEASE-003 gated on ARM-1, DOC-23 depends on DOC-21/22, rest are docs/evidence rows. Serial fallback per WAVE rules."
+}
