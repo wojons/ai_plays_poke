@@ -1804,3 +1804,16 @@ tasks:
   status: complete
   created_at: '2026-10-28T09:15:43.171821+00:00'
   completed_at: '2026-10-28T09:55:37.442696+00:00'
+- id: DF-AIPP-17-R2
+  title: Route memory-navigation planner to dead-end map exits (visited-map reverse
+    route)
+  criteria:
+  - '1) A live >=60-cycle jev run from data/boot.state that has completed the Pallet
+    Town -> Red''s House 1F -> 2F ladder records a navigation_transition OUT of map
+    37 within 20 cycles of re-entering it (pre-fix: tiles alternate (3,6)/(3,7), map_transitions_observed
+    stays 1). 2) The planner emits a reverse-route log line when it routes to a visited
+    map for a dead-end escape. 3) Full test suite passes and the new planner behavior
+    has a unit test.'
+  status: complete
+  created_at: '2026-10-28T16:54:08.529294+00:00'
+  completed_at: '2026-10-28T17:47:36.170934+00:00'
