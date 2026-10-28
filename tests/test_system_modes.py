@@ -335,8 +335,8 @@ def test_hybrid_policy_permits_the_same_handoff(monkeypatch):
     assert called["n"] == 1
 
 
-def test_repeated_gap_handoff_is_blocked_and_round_trips(monkeypatch):
-    """The per-class budget may refuse a retry, but never silently."""
+def test_repeated_gap_handoff_rearms_and_round_trips(monkeypatch):
+    """A recurring gap proves the prior repair failed and reaches the teacher."""
     monkeypatch.setattr(
         cron_runner.jev_client,
         "decide",
@@ -375,30 +375,51 @@ def test_repeated_gap_handoff_is_blocked_and_round_trips(monkeypatch):
     third = cron_runner._jev_overworld_decision({}, **kwargs)
     autonomy = cron_runner._autonomy_counters([first, second, third])
 
-    # The named re-escalation policy (TEACHER_REPAIR_ATTEMPTS_PER_CLASS = 2):
-    # the first unresolved repair may be attempted a second time; only after
-    # the allowance is spent do further triggers get blocked.
-    assert teacher_calls["n"] == 2
+    # The named re-arm policy guarantees a second repair and continues to
+    # deliver recurring gap triggers. The episode budget is the outer bound.
+    assert teacher_calls["n"] == 3
     assert first["escalated"] is True
     assert first["handoff_allowed"] is True
     assert second["escalated"] is True
     assert second["handoff_allowed"] is True
-    assert third["escalated"] is False
-    assert third["handoff_allowed"] is False
-    assert cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in (
-        third["handoff_blocked_reason"] or ""
+    assert third["escalated"] is True
+    assert third["handoff_allowed"] is True
+    assert third["handoff_blocked_reason"] is None
+    assert class_repairs == Counter({"map_topology": 3})
+    assert cron_runner.TEACHER_REPAIR_REARM_TRIGGERS == frozenset(
+        cron_runner.HANDOFF_ALL_FAMILIES
     )
-    assert class_repairs == Counter({"map_topology": 2})
     assert autonomy["handoff_trigger_counts"] == {"gap": 3}
-    assert autonomy["escalated"] == 2
-    assert autonomy["handoff_blocked"] == 1
-    assert autonomy["handoff_trigger_counts"]["gap"] == (
-        autonomy["escalated"] + autonomy["handoff_blocked"]
+    assert autonomy["escalated"] == 3
+    assert autonomy["handoff_blocked"] == 0
+    assert autonomy["handoff_trigger_counts"]["gap"] == autonomy["escalated"]
+
+
+def test_reconciled_non_escalation_is_not_a_blocked_handoff():
+    """ROM-resolved diagnostics are not policy triggers or blocked delivery."""
+    trigger, _policy, allowed, reason = cron_runner._jev_handoff_gate(
+        {
+            "escalate": False,
+            "escalate_reason": "map_topology_resolved_by_rom",
+            "missing_class": "none",
+        },
+        handoff_policy=cron_runner.build_handoff_policy(handoff="any"),
+        teacher_budget={"used": 44},
+        escalation_class="none",
     )
 
+    assert trigger == "none"
+    assert allowed is True
+    assert reason == "no handoff requested"
+    autonomy = cron_runner._autonomy_counters(
+        [{"handoff_trigger": trigger, "handoff_allowed": allowed}]
+    )
+    assert autonomy["handoff_trigger_counts"] == {}
+    assert autonomy["handoff_blocked"] == 0
 
-def test_memory_answered_gap_handoff_is_blocked_with_reason(monkeypatch):
-    """A valid path answer replaces a teacher call but must stay accountable."""
+
+def test_memory_answered_gap_still_reaches_teacher(monkeypatch):
+    """Path memory may own the action but cannot swallow the teacher handoff."""
     monkeypatch.setattr(
         cron_runner.jev_client,
         "decide",
@@ -423,11 +444,13 @@ def test_memory_answered_gap_handoff_is_blocked_with_reason(monkeypatch):
             "plan": ["RIGHT"],
         },
     )
-    monkeypatch.setattr(
-        cron_runner.jev_client,
-        "escalate_and_reask",
-        lambda *_a, **_k: pytest.fail("memory-answered gap must not call teacher"),
-    )
+    teacher_calls = {"n": 0}
+
+    def counting_teacher(*_a, **_k):
+        teacher_calls["n"] += 1
+        return {"ok": False, "error": "stubbed"}
+
+    monkeypatch.setattr(cron_runner.jev_client, "escalate_and_reask", counting_teacher)
 
     out = cron_runner._jev_overworld_decision(
         {"map_id": 37, "map_name": "Red's House 1F"},
@@ -438,19 +461,17 @@ def test_memory_answered_gap_handoff_is_blocked_with_reason(monkeypatch):
     )
 
     assert out["plan"] == ["RIGHT"]
-    assert out["escalated"] is False
-    assert out["handoff_allowed"] is False
-    assert route_key in (out["handoff_blocked_reason"] or "")
+    assert out["escalated"] is False  # memory authored the executable plan
+    assert out["handoff_allowed"] is True
+    assert out["handoff_blocked_reason"] is None
+    assert teacher_calls["n"] == 1
     autonomy = cron_runner._autonomy_counters([out])
     assert autonomy["handoff_trigger_counts"] == {"gap": 1}
-    assert autonomy["handoff_blocked"] == 1
+    assert autonomy["handoff_blocked"] == 0
 
 
-def test_handoff_legacy_set_allowance_stays_one_shot(monkeypatch):
-    """Back-compat: a caller still on the pre-R2 set accumulator cannot get
-    unbounded retries — the set cannot express a second attempt, so the
-    first escalation spends it and the next trigger is blocked by the same
-    named policy."""
+def test_handoff_legacy_set_rearms_recurring_gap(monkeypatch):
+    """Even legacy set accumulators cannot swallow a recurring gap trigger."""
     monkeypatch.setattr(
         cron_runner.jev_client,
         "decide",
@@ -487,19 +508,16 @@ def test_handoff_legacy_set_allowance_stays_one_shot(monkeypatch):
     first = cron_runner._jev_overworld_decision({}, **kwargs)
     second = cron_runner._jev_overworld_decision({}, **kwargs)
 
-    assert teacher_calls["n"] == 1
+    assert teacher_calls["n"] == 2
     assert first["escalated"] is True
-    assert second["escalated"] is False
-    assert second["handoff_allowed"] is False
-    assert cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in (
-        second["handoff_blocked_reason"] or ""
-    )
+    assert second["escalated"] is True
+    assert second["handoff_allowed"] is True
+    assert second["handoff_blocked_reason"] is None
     assert legacy_allowance == {"map_topology"}
 
 
-def test_handoff_class_repairs_plain_dict_counts_and_blocks(monkeypatch):
-    """A plain dict accumulator is honored exactly like a Counter: two
-    attempts on the class, then the named block with the class named."""
+def test_handoff_class_repairs_plain_dict_counts_and_rearms(monkeypatch):
+    """A plain dict ledger cannot block a recurring permitted trigger."""
     monkeypatch.setattr(
         cron_runner.jev_client,
         "decide",
@@ -507,7 +525,7 @@ def test_handoff_class_repairs_plain_dict_counts_and_blocks(monkeypatch):
             "ok": True,
             "next_action": "RIGHT",
             "escalate": True,
-            "escalate_reason": "missing_class=map_topology",
+            "escalate_reason": "low_confidence (0.22)",
             "missing_class": "map_topology",
             "raw": {},
         },
@@ -537,14 +555,30 @@ def test_handoff_class_repairs_plain_dict_counts_and_blocks(monkeypatch):
     second = cron_runner._jev_overworld_decision({}, **kwargs)
     third = cron_runner._jev_overworld_decision({}, **kwargs)
 
-    assert teacher_calls["n"] == 2
+    assert teacher_calls["n"] == 3
     assert first["handoff_allowed"] is True
     assert second["handoff_allowed"] is True
-    assert third["handoff_allowed"] is False
-    blocked_reason = third["handoff_blocked_reason"] or ""
-    assert cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in blocked_reason
-    assert "map_topology" in blocked_reason
-    assert allowance == {"map_topology": 2}
+    assert third["handoff_allowed"] is True
+    assert third["handoff_blocked_reason"] is None
+    assert allowance == {"map_topology": 3}
+
+
+def test_handoff_non_class_sentinel_never_spends_class_dedupe():
+    """The literal missing_class=none is not a class shared by every trigger."""
+    allowed, reason = cron_runner._jev_handoff_delivery_gate(
+        {"escalate": True},
+        handoff_ok=True,
+        handoff_why="allowed",
+        handoff_trigger=cron_runner.HANDOFF_CONFIDENCE,
+        escalation_class="none",
+        teacher_api_client=object(),
+        teacher_model="some-model",
+        class_repairs=Counter({"none": 53}),
+    )
+
+    assert allowed is True
+    assert reason == "allowed"
+    assert "none" in cron_runner.TEACHER_NON_CLASS_SENTINELS
 
 
 def test_handoff_repair_block_reason_is_the_named_constant():
@@ -552,6 +586,10 @@ def test_handoff_repair_block_reason_is_the_named_constant():
     module carries no inline copy of the legacy dedupe string (DF-AIPP-13-R2:
     the re-escalation policy must be findable in code, not scattered)."""
     assert cron_runner.TEACHER_REPAIR_ATTEMPTS_PER_CLASS == 2
+    assert cron_runner.TEACHER_REPAIR_REARM_TRIGGERS == frozenset(
+        cron_runner.HANDOFF_ALL_FAMILIES
+    )
+    assert cron_runner.TEACHER_NON_CLASS_SENTINELS == frozenset({"none"})
     lines = inspect.getsource(cron_runner).splitlines()
     hits = [i for i, ln in enumerate(lines) if "already escalated this run" in ln]
     assert len(hits) == 1, "the dedupe text must live only in the constant"

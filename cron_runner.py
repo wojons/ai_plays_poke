@@ -313,16 +313,20 @@ def handoff_allowed(
 DECISION_MODE = resolve_decision_mode()
 HANDOFF_POLICY = build_handoff_policy()
 
-# Re-escalation policy: a missing-information class gets this many teacher
-# repair attempts per run before its handoff is blocked. One attempt is the
-# historical one-shot; the second lets a repair that failed to change the game
-# state (the dogfood treadmill: 44 gap triggers deduped after a single class
-# escalation) be escalated again instead of pinned for the rest of the run.
+# Re-escalation policy: a concrete missing-information class always gets an
+# initial repair plus a second repair attempt. Every permitted handoff trigger
+# then re-arms when it recurs because recurrence is direct evidence that the
+# prior repair did not resolve the cause. The per-episode teacher budget remains
+# the outer operator-controlled cap.
 TEACHER_REPAIR_ATTEMPTS_PER_CLASS = 2
-# Named block reason when that allowance is spent. A constant, not an inline
-# string: run logs grep for it, and the re-escalation policy must be findable
-# in code (DF-AIPP-13-R2). The value keeps the legacy pre-R2 dedupe wording as
-# its tail so pre-R2 and post-R2 logs grep identically.
+TEACHER_REPAIR_REARM_TRIGGERS = frozenset(HANDOFF_ALL_FAMILIES)
+# ``none`` means the fast tier reported no missing class. Treating that sentinel
+# as one shared class caused confidence, failure, and gap triggers to exhaust
+# each other's allowance for the rest of the run.
+TEACHER_NON_CLASS_SENTINELS = frozenset({"none"})
+# Named block reason when a concrete non-gap class allowance is spent. A
+# constant, not an inline string: run logs grep for it, and the re-escalation
+# policy must be findable in code (DF-AIPP-13-R2).
 HANDOFF_BLOCK_REPAIRS_EXHAUSTED = (
     "missing-class repair allowance exhausted (already escalated this run)"
 )
@@ -332,10 +336,10 @@ def _class_repairs_used(class_repairs: Any, escalation_class: str) -> int:
     """Repair attempts this class has already spent, per the allowance shape.
 
     The allowance is the caller-owned accumulator so its spend survives across
-    game cycles: a ``Counter``/``dict`` counts attempts (the R2 re-escalation
-    policy, ``TEACHER_REPAIR_ATTEMPTS_PER_CLASS`` attempts per class), while a
-    legacy ``set`` is the pre-R2 one-shot allowance — membership is 1 spent
-    attempt and, being uncountable, already exhausting.
+    game cycles. A ``Counter``/``dict`` counts attempts for the R2 delivery
+    policy; a legacy ``set`` records membership only. Delivery interprets this
+    ledger together with the trigger: every permitted handoff trigger re-arms
+    when it recurs, while the per-episode teacher budget supplies the bound.
     """
     if isinstance(class_repairs, set):
         if escalation_class in class_repairs:
@@ -2895,11 +2899,11 @@ def _jev_overworld_decision(
         decision,
         handoff_ok=handoff_ok,
         handoff_why=handoff_why,
+        handoff_trigger=handoff_trigger,
         escalation_class=escalation_class,
         teacher_api_client=teacher_api_client,
         teacher_model=teacher_model,
         class_repairs=class_repairs,
-        memory_hit=memory_hit,
     )
     can_call_teacher = bool(decision.get("escalate")) and handoff_ok
     if can_call_teacher:
@@ -3103,10 +3107,14 @@ def _jev_handoff_gate(
     """Classify the trigger and check the run's handoff policy + teacher budget.
 
     The trigger families are the ones jev_client.should_escalate() already
-    fires; the policy only selects among them.
+    fires; the policy only selects among them. A reconciled decision whose
+    ``escalate`` flag is false has no trigger to deliver and is not a blocked
+    handoff, even when its diagnostic reason is not a policy family.
     """
-    handoff_trigger = classify_handoff_trigger(decision.get("escalate_reason"))
     policy = handoff_policy if isinstance(handoff_policy, dict) else HANDOFF_POLICY
+    if not decision.get("escalate"):
+        return "none", policy, True, "no handoff requested"
+    handoff_trigger = classify_handoff_trigger(decision.get("escalate_reason"))
     handoff_ok, handoff_why = handoff_allowed(policy, handoff_trigger, escalation_class)
     if handoff_ok and teacher_budget is not None:
         cap = policy.get("teacher_max_per_episode")
@@ -3123,42 +3131,42 @@ def _jev_handoff_delivery_gate(
     *,
     handoff_ok: bool,
     handoff_why: str | None,
+    handoff_trigger: str,
     escalation_class: str,
     teacher_api_client: Any,
     teacher_model: str | None,
     class_repairs: Counter[str] | dict[str, int] | set[str] | None,
-    memory_hit: dict[str, Any] | None,
 ) -> tuple[bool, str | None]:
     """Turn every permitted trigger into either a teacher call or a named block.
 
     Policy and episode-budget refusals arrive as ``handoff_ok=False`` and keep
     their original reason.  The remaining checks mirror the call boundary that
     used to be embedded in ``can_call_teacher``.  Keeping them in the handoff
-    result prevents a permitted trigger from disappearing silently when path
-    memory answers it, teacher wiring is unavailable, or this missing class has
-    already spent its repair allowance
-    (``TEACHER_REPAIR_ATTEMPTS_PER_CLASS`` attempts per class per run — one
-    one-shot plus one re-escalation when the first repair did not resolve the
-    state; DF-AIPP-13-R2).
+    result prevents a permitted trigger from disappearing silently when
+    teacher wiring is unavailable. Every policy-permitted trigger re-arms under
+    ``TEACHER_REPAIR_REARM_TRIGGERS`` because seeing it again proves the prior
+    repair did not resolve it. ``missing_class=none`` is not a class and never
+    participates in class dedupe. A path-memory hit may still supply the action,
+    but it does not suppress the teacher handoff; the episode budget remains the
+    outer bound (DF-AIPP-13-R2).
     """
     if not decision.get("escalate") or not handoff_ok:
         return handoff_ok, handoff_why
-    if memory_hit is not None:
-        route_key = memory_hit.get("key")
-        route = (
-            route_key if isinstance(route_key, str) and route_key else "unknown route"
-        )
-        return False, f"navigation gap answered by path memory {route}"
     if teacher_api_client is None:
         return False, "teacher client unavailable"
     if not teacher_model:
         return False, "teacher model unavailable"
     if class_repairs is None:
         return False, "teacher per-class allowance unavailable"
-    if (
+    repairs_exhausted = (
         _class_repairs_used(class_repairs, escalation_class)
         >= TEACHER_REPAIR_ATTEMPTS_PER_CLASS
-    ):
+    )
+    class_dedupe_applies = (
+        escalation_class not in TEACHER_NON_CLASS_SENTINELS
+        and handoff_trigger not in TEACHER_REPAIR_REARM_TRIGGERS
+    )
+    if repairs_exhausted and class_dedupe_applies:
         return False, (
             f"{HANDOFF_BLOCK_REPAIRS_EXHAUSTED} (missing_class {escalation_class!r})"
         )
@@ -3191,9 +3199,10 @@ def _jev_teacher_escalation(
 ]:
     """Escalate to the teacher LLM and fold its patch back into the decision.
 
-    Consumes this class's repair allowance before the API boundary so a failed
-    or raising teacher cannot be retried on every subsequent game cycle, and
-    counts the budget at the same boundary (a call that fails still spent it).
+    Records this class's repair attempt before the API boundary so accounting
+    survives a failed or raising teacher, and spends the episode budget at the
+    same boundary. A recurring gap may deliberately re-arm on the next cycle;
+    ``--teacher-max-per-episode`` is the outer cap when callers need one.
     """
     teacher_record: dict[str, Any] | None = None
     teacher_one_shot: str | None = None
@@ -3288,9 +3297,10 @@ def _jev_resolve_action_plan(
     Returns ``(plan, intent, jev_answered, escalate, decision)``. ``plan`` is
     ``None`` when no usable action exists — the caller then returns the
     (possibly degraded) decision so the controller fallback can stamp it.
-    S6 NAV-MEM: a memory-resolved navigation gap neither handed back to the
-    teacher nor carries a JEV-authored plan, so the row reports
-    ``escalated=False`` / ``jev_answered=False`` and cites the path-memory key.
+    S6 NAV-MEM: path memory may still supply the executable action after the
+    handoff reached the teacher. The row therefore reports the action as
+    memory-authored while the separate teacher_escalation event preserves the
+    delivered handoff.
     """
     jev_answered = True
     if memory_hit is not None:
@@ -7572,10 +7582,9 @@ def _init_recovery_trackers(S):
     S._dir_blacklist = set()  # directions that caused checkpoint recovery
     S._last_direction = ""  # last direction pressed (for controller context)
     S._last_result = "unknown"  # last movement result
-    # The teacher gets a bounded number of repair attempts per missing-class
-    # for this run (TEACHER_REPAIR_ATTEMPTS_PER_CLASS). Membership-and-count
-    # is recorded before the API call, so failures remain bounded while an
-    # unresolved class can still be re-escalated once.
+    # The teacher repair ledger counts attempts by concrete missing class.
+    # Every permitted trigger re-arms when it recurs; the per-episode budget is
+    # the outer cap.
     S._teacher_class_repairs: Counter[str] = Counter()
     # Per-episode teacher budget (--teacher-max-per-episode). Counted at the API
     # boundary so a failing call still spends it; None cap means unlimited.

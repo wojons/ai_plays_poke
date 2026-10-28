@@ -560,32 +560,31 @@ def test_overworld_escalation_reasks_with_distribution_and_is_bounded(
 
     assert first["plan"] == ["DOWN"]
     assert first["intent"] == "teacher one-shot DOWN"
-    # R2 re-escalation policy: the first unresolved repair is attempted a
-    # second time before the class is bounded.
+    # R2 re-arm policy: every recurring gap proves the previous repair did not
+    # resolve the class, so all three triggers reach the teacher.
     assert second["plan"] == ["DOWN"]
     assert second["intent"] == "teacher one-shot DOWN"
-    # The bound still holds — at TEACHER_REPAIR_ATTEMPTS_PER_CLASS attempts:
-    # the third trigger is blocked, so the plain JEV answer stands.
-    assert third["plan"] == ["RIGHT"]
-    assert third["escalated"] is False
-    assert cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in (
-        third["handoff_blocked_reason"] or ""
-    )
-    assert len(patch_calls) == 2
+    assert third["plan"] == ["DOWN"]
+    assert third["intent"] == "teacher one-shot DOWN"
+    assert third["escalated"] is True
+    assert third["handoff_allowed"] is True
+    assert third["handoff_blocked_reason"] is None
+    assert len(patch_calls) == 3
     assert patch_calls[0]["distributions"] == pre_decision
     assert patch_calls[0]["memory"] == "/game/runs/index: reached Oak's Lab"
-    assert len(reask_calls) == 2
+    assert len(reask_calls) == 3
     assert (
         _TYPED_PATCH["instruction_patch"]
         in (reask_calls[0]["questions"]["next_action"]["instructions"])
     )
-    assert class_repairs == Counter({"map_topology": 2})
-    assert len(results) == 2
+    assert class_repairs == Counter({"map_topology": 3})
+    assert len(results) == 3
     assert results[0]["event"] == "teacher_escalation"
     log_records = [
         json.loads(line) for line in log_file.getvalue().splitlines() if line.strip()
     ]
     assert [record["patch"]["one_shot_action"] for record in log_records] == [
+        "DOWN",
         "DOWN",
         "DOWN",
     ]

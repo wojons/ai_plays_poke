@@ -1302,30 +1302,24 @@ class TestCycleEfficiencyObservables:
             rows[-1]["player_tile_x"],
             rows[-1]["player_tile_y"],
         )
-        assert len(teacher_calls) == 2
-        assert teacher_calls == ["map_topology", "map_topology"]
-        assert teacher_budget == {"used": 2}
+        # A recurring gap is evidence that the previous repair did not resolve
+        # the class. Every trigger must re-arm and reach the teacher; the outer
+        # episode budget remains the operator-controlled bound.
+        assert len(teacher_calls) == 27
+        assert teacher_calls == ["map_topology"] * 27
+        assert teacher_budget == {"used": 27}
+        assert class_repairs == Counter({"map_topology": 27})
         assert block["handoff_trigger_counts"] == {"gap": 27}
-        assert block["escalated"] == 2
-        assert block["handoff_blocked"] == 25
-        assert len(blocked_rows) == 25
-        assert all(row["handoff_blocked_reason"] for row in blocked_rows)
-        assert all(
-            "map_topology" in row["handoff_blocked_reason"] for row in blocked_rows
-        )
-        # The pre-R2 one-shot dedupe ("already escalated this run") is gone:
-        # blocked rows name the exhausted named-allowance policy instead, and
-        # exactly allowance-2 cycles were blocked after the second repair.
-        assert all(
-            cron_runner.HANDOFF_BLOCK_REPAIRS_EXHAUSTED in row["handoff_blocked_reason"]
-            for row in blocked_rows
+        assert block["escalated"] == 27
+        assert block["handoff_blocked"] == 0
+        assert blocked_rows == []
+        assert cron_runner.TEACHER_REPAIR_REARM_TRIGGERS == frozenset(
+            cron_runner.HANDOFF_ALL_FAMILIES
         )
         assert "already escalated this run" not in inspect.getsource(
             cron_runner._jev_handoff_delivery_gate
         )
-        assert block["handoff_trigger_counts"]["gap"] == (
-            block["escalated"] + block["handoff_blocked"]
-        )
+        assert block["handoff_trigger_counts"]["gap"] == block["escalated"]
         assert block["map_transitions_observed"] == 0
         assert block["state_comparisons"] == 26
         assert block["backtrack_events"] == 25
