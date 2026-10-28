@@ -8862,6 +8862,42 @@ def _ow_memory_navigation_guard(S, cycle, plan, navigation_context=None):
         if held_direction in _DIR_ROTATION:
             forbidden.add(held_direction)
     original = [str(button).upper() for button in plan]
+    # DF-AIPP-17 AC3: a tile whose forbidden set covers every walkable
+    # neighbour has no legal move left. That condition used to be reported
+    # only by a recovery return tuple (never a log row), so a dead-end trap
+    # was invisible to log-only analysis. Emit it as a dedicated,
+    # self-describing event: walkable = the four directions minus the
+    # collision-proven blocked set, and the tile is trapped when that
+    # non-empty set is fully covered by the forbidden set.
+    walkable = [d for d in _DIR_ROTATION if d not in blocked]
+    if walkable and set(walkable) <= forbidden:
+        dead_end_event = {
+            "cycle": cycle + 1,
+            "event": "navigation_dead_end",
+            "tile": S._memory_navigation_blocks.current_tile,
+            "walkable_directions": walkable,
+            "collision_blocked_directions": sorted(blocked),
+            "forbidden_directions": sorted(forbidden),
+            "map_name": (
+                navigation_context.get("current_map_name")
+                if isinstance(navigation_context, dict)
+                else None
+            ),
+            "plan": original,
+            "reason": (
+                "no legal walkable direction at this tile: forbidden "
+                f"{sorted(forbidden)} covers every walkable neighbour "
+                f"{walkable}"
+            ),
+        }
+        S.results.append(dead_end_event)
+        S.log_file.write(json.dumps(dead_end_event, default=str) + "\n")
+        S.log_file.flush()
+        safe_print(
+            "  [NAV-DEAD-END] no legal walkable direction at "
+            f"{S._memory_navigation_blocks.current_tile}: "
+            f"forbidden={sorted(forbidden)}"
+        )
     guarded: list[str] = []
     for button in original:
         if button not in blocked or button not in _DIR_ROTATION:

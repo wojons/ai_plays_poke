@@ -321,3 +321,54 @@ def test_controller_hold_uses_live_collision_truth() -> None:
     assert decision["plan"] == ["DOWN"]
     assert decision["navigation_hold_event"]["outcome"] == "declined"
     assert decision["navigation_hold_event"]["guarded_plan"] == ["DOWN"]
+
+
+def test_dead_end_tile_emits_dedicated_event() -> None:
+    """DF-AIPP-17 AC3: every-walkable-direction-forbidden is a log-visible event."""
+    state = _reds_house_1f_hold()
+    runtime = SimpleNamespace(
+        _memory_navigation_blocks=cron_runner._MemoryNavigationBlockState(
+            current_tile=(37, 3, 6),
+            blocked_directions={"UP", "LEFT", "RIGHT"},
+        ),
+        results=[],
+        log_file=StringIO(),
+    )
+
+    plan = cron_runner._ow_memory_navigation_guard(
+        runtime, 24, ["DOWN"], state.context()
+    )
+
+    assert plan == ["DOWN"]
+    dead_end = [row for row in runtime.results if row["event"] == "navigation_dead_end"]
+    assert len(dead_end) == 1
+    row = dead_end[0]
+    assert row["cycle"] == 25
+    assert row["tile"] == (37, 3, 6)
+    assert row["walkable_directions"] == ["DOWN"]
+    assert row["collision_blocked_directions"] == ["LEFT", "RIGHT", "UP"]
+    assert row["forbidden_directions"] == ["DOWN", "LEFT", "RIGHT", "UP"]
+    assert row["map_name"] == "Red's House 1F"
+    assert "no legal walkable direction" in row["reason"]
+    # The dedicated row is also written to the run log, not just held in memory.
+    assert "navigation_dead_end" in runtime.log_file.getvalue()
+
+
+def test_legal_exit_does_not_emit_dead_end_event() -> None:
+    """A tile that still has a legal walkable direction is not a dead end."""
+    state = _reds_house_1f_hold()
+    runtime = SimpleNamespace(
+        _memory_navigation_blocks=cron_runner._MemoryNavigationBlockState(
+            current_tile=(37, 3, 6),
+            blocked_directions={"UP"},
+        ),
+        results=[],
+        log_file=StringIO(),
+    )
+
+    cron_runner._ow_memory_navigation_guard(runtime, 24, ["DOWN"], state.context())
+
+    assert [
+        row for row in runtime.results if row["event"] == "navigation_dead_end"
+    ] == []
+    assert "navigation_dead_end" not in runtime.log_file.getvalue()
