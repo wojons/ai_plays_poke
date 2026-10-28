@@ -1280,9 +1280,23 @@ class _NavigationHoldState:
 
 
 def _guard_navigation_plan(
-    plan: list[str], navigation: dict[str, Any] | None
+    plan: list[str],
+    navigation: dict[str, Any] | None,
+    collision_blocked: set[str] | None = None,
 ) -> tuple[list[str], dict[str, Any] | None]:
-    """Replace actions that would traverse the held map edge in reverse."""
+    """Replace actions that would traverse the held map edge in reverse.
+
+    A substitution is only legal while the completed edge's forward direction is
+    still open. Replacing the reverse direction with a direction this cycle's
+    collision/topology evidence marks blocked turns a productive exit into a
+    dead end — Red's House 1F (map 37) at tile (37,3,6) exits only DOWN through
+    the door back to Pallet Town, while the completed edge's forward direction
+    UP is a wall there, so the old blanket substitution parked the run on
+    lateral moves forever. When the forward direction is blocked and the
+    reverse direction is not, the guard declines the substitution, keeps the
+    planned direction, and stamps the refusal so the hold evidence stays
+    truthful instead of reporting a replacement that never happened.
+    """
     original = [str(button).upper() for button in plan]
     if not isinstance(navigation, dict) or not navigation.get("active"):
         return original, None
@@ -1291,11 +1305,36 @@ def _guard_navigation_plan(
     if blocked not in _OPPOSITE_DIR or forward not in _OPPOSITE_DIR:
         return original, None
 
+    blocked_now = {str(direction).upper() for direction in collision_blocked or ()}
+    if blocked in original and forward in blocked_now and blocked not in blocked_now:
+        return original, {
+            "mechanism": "reverse_edge_guard",
+            "outcome": "declined",
+            "reason": (
+                f"{forward} is collision-blocked on "
+                f"{navigation.get('current_map_name')}, so {blocked} is the only "
+                "legal exit from the completed edge"
+            ),
+            "from_map_id": navigation.get("previous_map_id"),
+            "from_map_name": navigation.get("previous_map_name"),
+            "to_map_id": navigation.get("current_map_id"),
+            "to_map_name": navigation.get("current_map_name"),
+            "blocked_direction": blocked,
+            "replacement_direction": forward,
+            "replacement_blocked": True,
+            "collision_blocked_directions": sorted(blocked_now),
+            "original_plan": original,
+            "guarded_plan": original,
+            "persistent_goal": navigation.get("goal"),
+            "visited_maps": list(navigation.get("visited_maps") or []),
+        }
+
     guarded = [forward if button == blocked else button for button in original]
     if guarded == original:
         return original, None
     event = {
         "mechanism": "reverse_edge_guard",
+        "outcome": "applied",
         "reason": (
             f"{blocked} reverses the completed transition from "
             f"{navigation.get('previous_map_name')} to {navigation.get('current_map_name')}"
@@ -1306,6 +1345,8 @@ def _guard_navigation_plan(
         "to_map_name": navigation.get("current_map_name"),
         "blocked_direction": blocked,
         "replacement_direction": forward,
+        "replacement_blocked": False,
+        "collision_blocked_directions": sorted(blocked_now),
         "original_plan": original,
         "guarded_plan": guarded,
         "persistent_goal": navigation.get("goal"),
@@ -1324,6 +1365,7 @@ def _apply_navigation_hold_to_decision(
     guarded, event = _guard_navigation_plan(
         raw_plan,
         spatial_desc.get("navigation_hold"),
+        _blocked_spatial_directions(spatial_desc),
     )
     if event is None:
         return decision
@@ -8108,8 +8150,12 @@ def _overworld_cycle(S, cycle, header, t0):
 
     # HOLD-1 runs after generic recovery filters so blacklist rotation, no-op
     # recovery, and post-exhaustion injection cannot reintroduce the completed
-    # edge's reverse direction. Collision truth still gets the final veto below.
-    plan = _ow_navigation_guard(S, cycle, plan, decision, navigation_context)
+    # edge's reverse direction. It receives this cycle's collision truth so it
+    # cannot trade the only legal exit for a direction that is blocked, and the
+    # collision truth still gets the final veto below.
+    plan = _ow_navigation_guard(
+        S, cycle, plan, decision, navigation_context, patch_data
+    )
     # Collision truth is the final authority. HOLD-1 may replace DOWN with the
     # completed edge's forward direction, so suppress proven-blocked directions
     # once more after that replacement.
@@ -8752,12 +8798,22 @@ def _ow_giveup_plan(S, cycle, plan, agentic_tool_cycle):
     return plan
 
 
-def _ow_navigation_guard(S, cycle, plan, decision, navigation_context):
+def _ow_navigation_guard(
+    S, cycle, plan, decision, navigation_context, spatial_desc=None
+):
     """HOLD-1 final movement filter; stamps the navigation_hold_guard row."""
     controller_hold_event = decision.get("navigation_hold_event")
+    # Collision truth decides whether the completed edge's forward direction is
+    # even usable. Without it this guard re-substituted DOWN with a wall after
+    # the controller had already declined the same substitution.
+    collision_blocked = set()
+    if isinstance(spatial_desc, dict):
+        collision_blocked = _blocked_spatial_directions(spatial_desc)
+    collision_blocked.update(S._memory_navigation_blocks.blocked_directions)
     plan, _final_hold_event = _guard_navigation_plan(
         plan,
         navigation_context,
+        collision_blocked,
     )
     navigation_hold_event = (
         _final_hold_event
@@ -8766,7 +8822,13 @@ def _ow_navigation_guard(S, cycle, plan, decision, navigation_context):
             controller_hold_event if isinstance(controller_hold_event, dict) else None
         )
     )
-    decision["_navigation_hold_applied"] = navigation_hold_event is not None
+    # A declined substitution fires the guard but leaves the plan intact; only
+    # a plan that actually changed counts as the hold being applied.
+    decision["_navigation_hold_applied"] = bool(
+        navigation_hold_event is not None
+        and navigation_hold_event.get("guarded_plan")
+        != navigation_hold_event.get("original_plan")
+    )
     if navigation_hold_event is not None:
         navigation_hold_event = {
             "cycle": cycle + 1,
@@ -8781,6 +8843,7 @@ def _ow_navigation_guard(S, cycle, plan, decision, navigation_context):
             "  [NAV-HOLD] blocked "
             f"{navigation_hold_event['blocked_direction']} -> "
             f"{navigation_hold_event['replacement_direction']} | "
+            f"outcome={navigation_hold_event.get('outcome', 'applied')} | "
             f"plan={plan}"
         )
     return plan

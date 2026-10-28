@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from io import StringIO
+from types import SimpleNamespace
 from typing import Any
 
 import cron_runner
@@ -152,3 +154,170 @@ def test_main_loop_wires_transition_memory_and_final_plan_guard() -> None:
     assert observe_at < decision_at
     assert final_guard_at < execute_at
     assert '"event": "navigation_hold_guard"' in source[final_guard_at:execute_at]
+
+
+# ── DF-AIPP-17: a blocked forward direction must not replace the exit ──
+
+# Map 37 (Red's House 1F) collision truth from the Blue SGB ROM used by
+# data/boot.state — the same grid tests/test_memory_navigation_pin.py pins.
+_MAP_37_COLLISION = (
+    "########",
+    "##.#....",
+    "........",
+    "........",
+    "...##...",
+    "...##...",
+    "........",
+    "........",
+)
+
+
+def _map_37_tile_observation(tile: tuple[int, int]) -> dict[str, Any]:
+    """Spatial description for one map-37 tile, from real ROM collision truth."""
+    tile_x, tile_y = tile
+    rows: list[str] = []
+    for y in range(tile_y - 2, tile_y + 3):
+        cells: list[str] = []
+        for x in range(tile_x - 2, tile_x + 3):
+            if (x, y) == tile:
+                cells.append("↑")
+            elif 0 <= y < len(_MAP_37_COLLISION) and 0 <= x < len(_MAP_37_COLLISION[y]):
+                cells.append(_MAP_37_COLLISION[y][x])
+            else:
+                cells.append("?")
+        rows.append("".join(cells))
+    offsets = {"up": (0, -1), "down": (0, 1), "left": (-1, 0), "right": (1, 0)}
+    return {
+        "result": "overworld",
+        "map_id": 37,
+        "map_name": "Red's House 1F",
+        "player_tile_x": tile_x,
+        "player_tile_y": tile_y,
+        "adjacent": {"up": "wall", "down": "floor", "left": "floor", "right": "floor"},
+        "adjacent_walkability": {
+            direction.lower(): (
+                "walkable"
+                if _MAP_37_COLLISION[tile_y + dy][tile_x + dx] == "."
+                else "blocked"
+            )
+            for direction, (dx, dy) in offsets.items()
+        },
+        "collision_grid": "\n".join(rows),
+    }
+
+
+def _reds_house_1f_hold() -> cron_runner._NavigationHoldState:
+    """The held edge from run df1027a: Pallet Town -> Red's House 1F via UP."""
+    state = cron_runner._NavigationHoldState()
+    state.observe(0, "Pallet Town", "")
+    state.observe(37, "Red's House 1F", "UP")
+    assert state.blocked_return_direction == "DOWN"
+    assert state.entry_direction == "UP"
+    return state
+
+
+def test_map_37_dead_end_tile_has_up_wall_and_down_door() -> None:
+    """The dead-end premise: at (37,3,6) UP is a wall and DOWN is the exit."""
+    observation = _map_37_tile_observation((3, 6))
+
+    assert cron_runner._blocked_spatial_directions(observation) == {"up"}
+    assert cron_runner._memory_walkability(observation)["down"] == "walkable"
+
+
+def test_guard_declines_replacement_when_forward_direction_is_blocked() -> None:
+    """DF-AIPP-17: DOWN is the only legal exit, so an UP wall cannot replace it."""
+    state = _reds_house_1f_hold()
+    collision = cron_runner._blocked_spatial_directions(
+        _map_37_tile_observation((3, 6))
+    )
+
+    plan, event = cron_runner._guard_navigation_plan(
+        ["DOWN", "DOWN"], state.context(), collision
+    )
+
+    assert plan == ["DOWN", "DOWN"]
+    assert event is not None
+    assert event["mechanism"] == "reverse_edge_guard"
+    assert event["outcome"] == "declined"
+    assert event["blocked_direction"] == "DOWN"
+    assert event["replacement_direction"] == "UP"
+    assert event["replacement_blocked"] is True
+    assert event["collision_blocked_directions"] == ["UP"]
+    assert event["original_plan"] == ["DOWN", "DOWN"]
+    assert event["guarded_plan"] == ["DOWN", "DOWN"]
+    assert "UP is collision-blocked" in event["reason"]
+
+
+def test_guard_still_substitutes_when_forward_direction_is_open() -> None:
+    """The shipped default is untouched wherever the completed edge is walkable."""
+    state = _reds_house_1f_hold()
+
+    plan, event = cron_runner._guard_navigation_plan(
+        ["DOWN", "DOWN"], state.context(), set()
+    )
+
+    assert plan == ["UP", "UP"]
+    assert event is not None
+    assert event["outcome"] == "applied"
+    assert event["replacement_blocked"] is False
+    assert event["guarded_plan"] == ["UP", "UP"]
+
+
+def test_guard_keeps_substitution_when_the_exit_is_also_blocked() -> None:
+    """A blocked exit is not a legal exit: the guard keeps its reverse-edge veto."""
+    state = _reds_house_1f_hold()
+
+    plan, event = cron_runner._guard_navigation_plan(
+        ["DOWN"], state.context(), {"UP", "DOWN"}
+    )
+
+    assert plan == ["UP"]
+    assert event is not None
+    assert event["outcome"] == "applied"
+    assert event["collision_blocked_directions"] == ["DOWN", "UP"]
+
+
+def test_final_plan_guard_keeps_the_door_exit_and_stays_truthful() -> None:
+    """The main-loop guard must not re-substitute the wall the controller refused."""
+    observation = _map_37_tile_observation((3, 6))
+    state = _reds_house_1f_hold()
+    runtime = SimpleNamespace(
+        _memory_navigation_blocks=cron_runner._MemoryNavigationBlockState(
+            current_tile=(37, 3, 6),
+            blocked_directions={"UP"},
+        ),
+        results=[],
+        log_file=StringIO(),
+    )
+    decision: dict[str, Any] = {}
+
+    plan = cron_runner._ow_navigation_guard(
+        runtime, 24, ["DOWN", "DOWN"], decision, state.context(), observation
+    )
+    executed = cron_runner._ow_memory_navigation_guard(
+        runtime, 24, plan, state.context()
+    )
+
+    assert plan == ["DOWN", "DOWN"]
+    assert executed == ["DOWN", "DOWN"]
+    assert decision["_navigation_hold_applied"] is False
+    row = runtime.results[0]
+    assert row["event"] == "navigation_hold_guard"
+    assert row["outcome"] == "declined"
+    assert row["blocked_direction"] == "DOWN"
+    assert row["executed_plan"] == ["DOWN", "DOWN"]
+
+
+def test_controller_hold_uses_live_collision_truth() -> None:
+    """The controller path declines the same substitution before the main loop."""
+    client = _ScriptedClient('{"plan": ["DOWN"], "intent": "leave through the door"}')
+    spatial = _map_37_tile_observation((3, 6))
+    spatial["navigation_hold"] = _reds_house_1f_hold().context()
+
+    decision = cron_runner.controller_plan(
+        client, spatial, "UP", "entered Red's House 1F"
+    )
+
+    assert decision["plan"] == ["DOWN"]
+    assert decision["navigation_hold_event"]["outcome"] == "declined"
+    assert decision["navigation_hold_event"]["guarded_plan"] == ["DOWN"]
