@@ -1327,6 +1327,7 @@ def _guard_navigation_plan(
     plan: list[str],
     navigation: dict[str, Any] | None,
     collision_blocked: set[str] | None = None,
+    escape_route: dict[str, Any] | None = None,
 ) -> tuple[list[str], dict[str, Any] | None]:
     """Replace actions that would traverse the held map edge in reverse.
 
@@ -1340,6 +1341,11 @@ def _guard_navigation_plan(
     reverse direction is not, the guard declines the substitution, keeps the
     planned direction, and stamps the refusal so the hold evidence stays
     truthful instead of reporting a replacement that never happened.
+
+    ``escape_route`` is the dead-end escape the planner itself authored. That
+    plan deliberately walks back over the completed edge, and the hold's premise
+    ("the completed edge leads nowhere new") is exactly what the planner just
+    disproved, so the guard stands down and records that it did.
     """
     original = [str(button).upper() for button in plan]
     if not isinstance(navigation, dict) or not navigation.get("active"):
@@ -1350,6 +1356,31 @@ def _guard_navigation_plan(
         return original, None
 
     blocked_now = {str(direction).upper() for direction in collision_blocked or ()}
+    if escape_route is not None and blocked in original:
+        return original, {
+            "mechanism": "reverse_edge_guard",
+            "outcome": "skipped",
+            "reason": (
+                f"{blocked} is the planner's dead-end escape route to "
+                f"{escape_route.get('to_map')}: {forward} cannot reach the "
+                "objective from here"
+            ),
+            "from_map_id": navigation.get("previous_map_id"),
+            "from_map_name": navigation.get("previous_map_name"),
+            "to_map_id": navigation.get("current_map_id"),
+            "to_map_name": navigation.get("current_map_name"),
+            "blocked_direction": blocked,
+            "replacement_direction": forward,
+            "replacement_blocked": forward in blocked_now,
+            "collision_blocked_directions": sorted(blocked_now),
+            "original_plan": original,
+            "guarded_plan": original,
+            "persistent_goal": navigation.get("goal"),
+            "visited_maps": list(navigation.get("visited_maps") or []),
+            "memory_route_key": escape_route.get("key"),
+            "escape_destination": escape_route.get("to_map"),
+            "escape_door_tile": escape_route.get("door_tile"),
+        }
     if blocked in original and forward in blocked_now and blocked not in blocked_now:
         return original, {
             "mechanism": "reverse_edge_guard",
@@ -2230,6 +2261,16 @@ def _teacher_world_memory_targets(
 # state, so a route recorded by an earlier run is usable after a restart.
 PATH_MEMORY_PREFIX = "/world/path/"
 PATH_MEMORY_RECALL_LIMIT = 16
+# A route that leaves a dead-end map through a map the run has already visited.
+# It is not progress toward new ground by itself, but the objective ladder runs
+# back through those maps (Pallet Town is the only way to Route 1), so a run
+# that refuses them parks in Red's House 1F forever (DF-AIPP-17).
+DEAD_END_ESCAPE_ROUTE_KIND = "dead_end_escape"
+# ``wCurMap`` flips one frame before the warp rewrites ``wXCoord``/``wYCoord``,
+# so the transition-cycle observation still carries the SOURCE map's tile.
+# Reading the landing tile needs a bounded settle poll after the warp.
+ARRIVAL_TILE_SETTLE_READS = 10
+ARRIVAL_TILE_SETTLE_FRAMES = 20
 WORLD_MEMORY_TOP_K = 8
 WORLD_MEMORY_BLOCK_CHARS = 2_000
 WORLD_MEMORY_FACT_CHARS = 240
@@ -2498,11 +2539,22 @@ def _memory_navigation_route(
     visited_maps: tuple[tuple[int, str], ...] | None = None,
     blocked_directions: set[str] | None = None,
 ) -> dict[str, Any] | None:
-    """Return a proven route toward a NOT-YET-VISITED map, or None.
+    """Return a proven route toward new ground, a dead-end escape, or None.
 
-    Reads the store (never in-process state). A destination the run has already
-    visited is not a route toward new ground, and a route whose next step the
-    ROM contradicts is refused here so the caller keeps its existing path.
+    Reads the store (never in-process state). A route to a NOT-YET-VISITED map
+    always wins: that is the only kind that is progress by itself, and a route
+    whose next step the ROM contradicts is refused here so the caller keeps its
+    existing path.
+
+    When no unvisited destination has an executable route from this tile, the
+    map is a dead end and the planner searches escapes instead: the run's own
+    proven edges plus the reverse of the edges it arrived by. Escapes are
+    restricted to maps on the objective ladder (``NAVIGATION_OBJECTIVE_SEQUENCE``)
+    because the ladder runs back through those maps — Pallet Town is the only
+    way to Route 1, so treating a visited Pallet Town as "not a route toward new
+    ground" parks the run in Red's House 1F indefinitely (DF-AIPP-17). A visit to
+    any OTHER visited map is not an escape: it re-enters the map the run just
+    came from, which is the 1F<->2F ping-pong the edge hold exists to stop.
     """
     from_slug = _observation_map_slug(observation)
     if from_slug is None:
@@ -2520,23 +2572,158 @@ def _memory_navigation_route(
     walkability = _memory_walkability(observation)
     for blocked_direction in blocked_directions or set():
         walkability[blocked_direction.lower()] = "blocked"
-    candidates = _memory_route_candidates(records, visited_slugs)
-    if not candidates:
-        return None
+    # Newest first: a later crossing is the more recent proof.
+    for _, record, direction, door in sorted(
+        _memory_route_candidates(records, visited_slugs),
+        key=lambda item: item[0],
+        reverse=True,
+    ):
+        plan_result = _memory_route_plan(
+            current_tile,
+            door,
+            direction,
+            walkability,
+            observation.get("collision_grid"),
+        )
+        if plan_result is None:
+            continue
+        plan, mechanism = plan_result
+        return _memory_route_payload(record, direction, door, plan, mechanism)
 
-    # The newest record wins: a later crossing is the more recent proof.
-    _, record, direction, door = max(candidates, key=lambda item: item[0])
-    plan_result = _memory_route_plan(
-        current_tile,
-        door,
-        direction,
-        walkability,
-        observation.get("collision_grid"),
+    # No executable route to new ground: this map is a dead end for the run.
+    inbound_records = _dbc.recall(
+        key_prefix=PATH_MEMORY_PREFIX,
+        namespace=WORLD_MEMORY_NAMESPACE,
+        limit=PATH_MEMORY_RECALL_LIMIT * 2,
     )
-    if plan_result is None:
+    for candidate in _memory_escape_candidates(
+        records=records,
+        inbound_records=inbound_records,
+        from_slug=from_slug,
+        visited_slugs=visited_slugs,
+    ):
+        plan_result = _memory_route_plan(
+            current_tile,
+            candidate["door"],
+            candidate["direction"],
+            walkability,
+            observation.get("collision_grid"),
+        )
+        if plan_result is None:
+            continue
+        plan, mechanism = plan_result
+        return _memory_route_payload(
+            candidate["record"],
+            candidate["direction"],
+            candidate["door"],
+            plan,
+            mechanism,
+            to_slug=candidate["to_slug"],
+            to_map_id=candidate["to_map_id"],
+            route_kind=DEAD_END_ESCAPE_ROUTE_KIND,
+            derivation=candidate["derivation"],
+            gateway_rank=candidate["gateway_rank"],
+        )
+    return None
+
+
+def _memory_gateway_ranks() -> dict[str, int]:
+    """The objective ladder as slug -> step index (later steps rank higher)."""
+    return {
+        _map_slug(objective.target_map, -1): index + 1
+        for index, objective in enumerate(NAVIGATION_OBJECTIVE_SEQUENCE)
+    }
+
+
+def _map_id_of(value: Any) -> int | None:
+    """Read a stored ``{"id": int, "name": str}`` map reference's id."""
+    if not isinstance(value, dict):
         return None
-    plan, mechanism = plan_result
-    return _memory_route_payload(record, direction, door, plan, mechanism)
+    map_id = value.get("id")
+    return map_id if isinstance(map_id, int) and map_id >= 0 else None
+
+
+def _memory_escape_candidates(
+    *,
+    records: list[dict[str, Any]],
+    inbound_records: list[dict[str, Any]],
+    from_slug: str,
+    visited_slugs: set[str],
+) -> list[dict[str, Any]]:
+    """Escape routes out of a dead-end map, objective-ladder destinations only.
+
+    Two shapes are admitted:
+
+    * ``proven_edge`` — a stored edge from this map to an already-visited map,
+      replayed at the door tile it was recorded with;
+    * ``reverse_of_proven_edge`` — the edge the run (or an earlier run) arrived
+      by, walked back: the door is that edge's recorded arrival tile and the
+      press is the opposite of its crossing direction. A record with no arrival
+      tile is skipped rather than guessed, because a wrong door tile costs the
+      whole tick.
+
+    Candidates are ordered by ladder step (closest to the objective first) and
+    then by recency, so the newest proof of the same edge wins.
+    """
+    gateways = _memory_gateway_ranks()
+    candidates: list[dict[str, Any]] = []
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        parsed = _parse_path_memory_key(record.get("key"))
+        if parsed is None or parsed[0] != from_slug or parsed[1] not in visited_slugs:
+            continue
+        gateway_rank = gateways.get(parsed[1])
+        if gateway_rank is None:
+            continue
+        attributes = record.get("attributes")
+        if not isinstance(attributes, dict):
+            attributes = {}
+        candidates.append(
+            {
+                "record": record,
+                "direction": str(attributes.get("crossing_direction") or "").upper(),
+                "door": _tile_from_point(attributes.get("door_tile")),
+                "to_slug": parsed[1],
+                "to_map_id": _map_id_of(attributes.get("to_map")),
+                "derivation": "proven_edge",
+                "gateway_rank": gateway_rank,
+                "created_at": str(record.get("created_at") or ""),
+            }
+        )
+    for record in inbound_records:
+        if not isinstance(record, dict):
+            continue
+        parsed = _parse_path_memory_key(record.get("key"))
+        if parsed is None or parsed[1] != from_slug:
+            continue
+        gateway_rank = gateways.get(parsed[0])
+        if gateway_rank is None:
+            continue
+        attributes = record.get("attributes")
+        if not isinstance(attributes, dict):
+            attributes = {}
+        forward = str(attributes.get("crossing_direction") or "").upper()
+        door = _tile_from_point(attributes.get("arrival_tile"))
+        if forward not in _OPPOSITE_DIR or door is None:
+            continue
+        candidates.append(
+            {
+                "record": record,
+                "direction": _OPPOSITE_DIR[forward],
+                "door": door,
+                "to_slug": parsed[0],
+                "to_map_id": _map_id_of(attributes.get("from_map")),
+                "derivation": "reverse_of_proven_edge",
+                "gateway_rank": gateway_rank,
+                "created_at": str(record.get("created_at") or ""),
+            }
+        )
+    candidates.sort(
+        key=lambda item: (item["gateway_rank"], item["created_at"]),
+        reverse=True,
+    )
+    return candidates
 
 
 def _memory_visited_slugs(
@@ -2583,24 +2770,46 @@ def _memory_route_payload(
     door: tuple[int, int] | None,
     plan: Any,
     mechanism: Any,
+    *,
+    to_slug: str | None = None,
+    to_map_id: int | None = None,
+    route_kind: str = "unvisited",
+    derivation: str = "proven_edge",
+    gateway_rank: int | None = None,
 ) -> dict[str, Any] | None:
-    """Build the navigation-route payload from the winning memory record."""
+    """Build the navigation-route payload from the winning memory record.
+
+    ``route_kind`` distinguishes progress toward new ground from a dead-end
+    escape, so a log reader never mistakes a reversal into a visited map for a
+    new discovery, and ``derivation`` says whether the edge was crossed as
+    recorded or walked back from its arrival tile.
+    """
     parsed = _parse_path_memory_key(record.get("key"))
     if parsed is None:
         return None
     attributes = record.get("attributes")
     if not isinstance(attributes, dict):
         attributes = {}
-    return {
+    payload: dict[str, Any] = {
         "key": record.get("key"),
         "from_map": parsed[0],
-        "to_map": parsed[1],
+        "to_map": to_slug or parsed[1],
         "crossing_direction": direction or None,
         "door_tile": ({"x": door[0], "y": door[1]} if door is not None else None),
         "arrival_tile": attributes.get("arrival_tile"),
         "plan": plan,
         "mechanism": mechanism,
+        "route_kind": route_kind,
+        "derivation": derivation,
+        "destination_visited": route_kind == DEAD_END_ESCAPE_ROUTE_KIND,
+        "objective_gateway": gateway_rank is not None,
     }
+    if to_map_id is not None:
+        payload["to_map_id"] = to_map_id
+    if gateway_rank is not None:
+        payload["gateway_objective_rank"] = gateway_rank
+        payload["reason"] = "no_executable_route_to_unvisited_map"
+    return payload
 
 
 def _memory_navigation_decision(
@@ -2697,7 +2906,11 @@ def _path_memory_write(
     domain = f"world/path/{from_slug}->{to_slug}"
     direction = str(transition.get("crossing_direction") or "").upper()
     door = _tile_from_point(transition.get("departure_tile"))
-    arrival = _observation_tile(observation)
+    # Prefer the settled landing tile the transition handler stamped; the raw
+    # observation on the transition cycle still carries the source map's tile.
+    arrival = _tile_from_point(transition.get("arrival_tile")) or _observation_tile(
+        observation
+    )
     route_tiles: list[dict[str, int]] = []
     raw_route = transition.get("route_tiles")
     if isinstance(raw_route, list):
@@ -4546,6 +4759,7 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     handoff_blocked = 0
     memory_navigation_hits = 0
     memory_navigation_fallbacks = 0
+    memory_navigation_escapes = 0
     agentic_tool_calls = 0
     pipeline_counts: Counter[str] = Counter()
     map_transitions_observed = 0
@@ -4595,8 +4809,15 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         escalated, escalated_by_class = _count_escalation(
             row, escalated, escalated_by_class
         )
-        memory_navigation_hits, memory_navigation_fallbacks = _count_memory_navigation(
-            row, memory_navigation_hits, memory_navigation_fallbacks
+        (
+            memory_navigation_hits,
+            memory_navigation_fallbacks,
+            memory_navigation_escapes,
+        ) = _count_memory_navigation(
+            row,
+            memory_navigation_hits,
+            memory_navigation_fallbacks,
+            memory_navigation_escapes,
         )
 
     (
@@ -4633,6 +4854,9 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         # vs those that were consulted and fell through to the existing path.
         "memory_navigation_hits": memory_navigation_hits,
         "memory_navigation_fallbacks": memory_navigation_fallbacks,
+        # Escape hits are re-walks of an already-crossed edge; they are part of
+        # the hit count but must never be read as progress toward new ground.
+        "memory_navigation_escapes": memory_navigation_escapes,
         # S7 BENCH-PAR: derive the run-level tool-surface stamp from the same
         # decision-row population as every other autonomy counter. This keeps
         # benchmark summaries directly comparable with their source rows.
@@ -4816,21 +5040,28 @@ def _count_memory_navigation(
     row: dict[str, Any],
     hits: int,
     fallbacks: int,
-) -> tuple[int, int]:
+    escapes: int = 0,
+) -> tuple[int, int, int]:
     """Count a row's S6 NAV-MEM route outcome (hit vs miss/error fallback).
 
     A navigation decision either replayed a proven route from
     ``world/path/*`` (hit) or was consulted and fell through to the
     existing path (miss/error). Counted from the rows, never incremented
     by the summary printer.
+
+    A dead-end escape is a hit *and* is counted separately: it leaves the map
+    over an edge the run already walked, so a summary that reported it as plain
+    route memory would overstate progress toward new ground (DF-AIPP-17).
     """
     route = row.get("memory_navigation")
     if isinstance(route, dict):
         if route.get("result") == "hit" and route.get("key"):
             hits += 1
+            if route.get("route_kind") == DEAD_END_ESCAPE_ROUTE_KIND:
+                escapes += 1
         elif route.get("result") in ("miss", "error"):
             fallbacks += 1
-    return hits, fallbacks
+    return hits, fallbacks, escapes
 
 
 def teacher_escalation_records(results: list[dict[str, Any]]) -> dict[str, int]:
@@ -4863,6 +5094,7 @@ def _format_autonomy_tail(autonomy: dict[str, Any] | None) -> str:
     nav_tail = (
         f" | nav-mem: {_as_int(autonomy.get('memory_navigation_hits'))} hits/"
         f"{_as_int(autonomy.get('memory_navigation_fallbacks'))} fallbacks"
+        f" ({_as_int(autonomy.get('memory_navigation_escapes'))} dead-end escapes)"
     )
     raw_decisions_per_transition = autonomy.get("decisions_per_map_transition")
     decisions_per_transition = (
@@ -4966,6 +5198,7 @@ def _write_autonomy_row(
         "memory_navigation_fallbacks": _as_int(
             autonomy.get("memory_navigation_fallbacks")
         ),
+        "memory_navigation_escapes": _as_int(autonomy.get("memory_navigation_escapes")),
     }
     log_file.write(json.dumps(row, default=str) + "\n")
     log_file.flush()
@@ -7889,6 +8122,41 @@ def _update_tile_visits(S, current_tile):
     S._tile_visits[tile_visits_key] = S._tile_visits.get(tile_visits_key, 0) + 1
 
 
+def _settle_arrival_tile(S, map_id: int) -> tuple[int, int] | None:
+    """The tile the player actually lands on after a map warp.
+
+    ``wCurMap`` flips to the destination one frame before the warp rewrites
+    ``wXCoord``/``wYCoord``, so the transition cycle's own observation still
+    carries the SOURCE map's tile: entering Red's House 1F from Pallet Town on
+    (5,6) recorded ``arrival_tile`` (5,5), while the warp actually lands the
+    player on the 1F door mat at (2,7). A reverse route built on that stale tile
+    walks to a floor tile and presses DOWN at a wall.
+
+    The whole settle window is burned instead of returning on the first two
+    agreeing reads: during the warp fade the stale tile repeats read after read,
+    so "stable" and "pre-warp" look identical (the first implementation returned
+    (5,5) for exactly that reason). Each step advances the emulator before
+    reading, and the last tile observed inside the destination map wins. Returns
+    None when the reader is unavailable or the map never settles, so the caller
+    keeps the observation tile instead of inventing one.
+    """
+    if not USE_RAM_READER:
+        return None
+    landing: tuple[int, int] | None = None
+    for _ in range(ARRIVAL_TILE_SETTLE_READS):
+        try:
+            S.R.emu.wait(ARRIVAL_TILE_SETTLE_FRAMES)
+            observation = S.R.ram_reader.observe()
+        except Exception:  # noqa: BLE001 - a failed settle must not stop the run
+            return landing
+        if observation.get("map_id") != map_id:
+            continue
+        tile = _observation_tile(observation)
+        if tile is not None:
+            landing = tile
+    return landing
+
+
 def _handle_navigation_transition(S, cycle, st, patch_data, current_tile, map_id):
     """Detect a map-edge crossing and persist the navigation-hold state.
 
@@ -7916,6 +8184,15 @@ def _handle_navigation_transition(S, cycle, st, patch_data, current_tile, map_id
             "y": S._departure_tile[2],
         }
     _navigation_transition["route_tiles"] = list(S._route_tiles)
+    # The landing tile is read AFTER the warp settles: the transition-cycle
+    # observation still holds the source map's coordinates, and a reverse route
+    # built on a stale tile aims at a floor tile instead of the door mat.
+    _settled_arrival = _settle_arrival_tile(S, map_id)
+    if _settled_arrival is not None:
+        _navigation_transition["arrival_tile"] = {
+            "x": _settled_arrival[0],
+            "y": _settled_arrival[1],
+        }
     if current_tile is not None:
         S._route_map_id = current_tile[0]
         S._route_tiles = [{"x": current_tile[1], "y": current_tile[2]}]
@@ -8858,6 +9135,18 @@ def _ow_giveup_plan(S, cycle, plan, agentic_tool_cycle):
     return plan
 
 
+def _memory_dead_end_escape(decision: dict[str, Any]) -> dict[str, Any] | None:
+    """The dead-end escape route this cycle executes, when the plan is one."""
+    route = decision.get("memory_navigation")
+    if not isinstance(route, dict):
+        return None
+    if route.get("result") != "hit":
+        return None
+    if route.get("route_kind") != DEAD_END_ESCAPE_ROUTE_KIND:
+        return None
+    return route
+
+
 def _ow_navigation_guard(
     S, cycle, plan, decision, navigation_context, spatial_desc=None
 ):
@@ -8874,6 +9163,7 @@ def _ow_navigation_guard(
         plan,
         navigation_context,
         collision_blocked,
+        _memory_dead_end_escape(decision),
     )
     navigation_hold_event = (
         _final_hold_event
@@ -9008,16 +9298,34 @@ def _ow_execute_plan(S, plan):
     for button in plan:
         button = button.upper()
         btn = btn_map.get(button, "a")
+        before_tile = (
+            _read_player_tile(S.R.ram_reader)
+            if button in ("UP", "DOWN", "LEFT", "RIGHT")
+            else None
+        )
         S.R.emu.press_button(btn, frames=PRESS_FRAMES)
+        after_tile: tuple[int, int, int] | None = None
         if button in ("UP", "DOWN", "LEFT", "RIGHT"):
-            _settle_directional_step(S.R.emu, S.R.ram_reader)
+            after_tile = _settle_directional_step(S.R.emu, S.R.ram_reader)
         else:
             S.R.emu.fast_forward(STEP_FORWARD)
         S._last_direction = button
 
         # Blocked-direction tracking (per-button for recovery)
         if button in ("UP", "DOWN", "LEFT", "RIGHT"):
-            if button == S._same_dir:
+            # A press that changed the tile was productive: walking a corridor
+            # is progress, not a lock. Counting presses alone marked a long
+            # corridor "direction-locked (LEFT x4)" one tile short of the door
+            # and rotated the escape plan away from it (DF-AIPP-17).
+            moved = (
+                before_tile is not None
+                and after_tile is not None
+                and before_tile != after_tile
+            )
+            if moved:
+                S._same_dir = button
+                S._same_dir_count = 0
+            elif button == S._same_dir:
                 S._same_dir_count += 1
             else:
                 S._same_dir = button
