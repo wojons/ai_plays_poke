@@ -1,7 +1,7 @@
 # Development Dependencies
 # Keep in sync with pyproject.toml [project.optional-dependencies].dev
 # (asserted by tests/test_requirements_parity.py)
-pytest>=7.0,<10.0
+pytest>=8.1,<9.2
 pytest-cov>=4.0
 pytest-xdist>=3.0
 pytest-benchmark>=4.0
