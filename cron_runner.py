@@ -1032,6 +1032,14 @@ NAVIGATION_OBJECTIVE_SCHEMA_VERSION = 1
 NAVIGATION_OBJECTIVE_SERIALIZED_CHAR_LIMIT = 2_500
 NAVIGATION_OBJECTIVE_OBSERVED_MAP_LIMIT = 8
 NAVIGATION_OBJECTIVE_MAP_NAME_CHAR_LIMIT = 64
+# Model policy DF-AIPP-21: on the landing tile, do not let a model immediately
+# undo the edge just crossed when that press would return to a map outside the
+# harness objective ladder. Path-memory plans and ladder destinations retain
+# their existing navigation semantics.
+MODEL_IMMEDIATE_EDGE_RECROSS_POLICY = (
+    "block_model_immediate_recross_to_non_objective_map"
+)
+MODEL_IMMEDIATE_EDGE_RECROSS_EVENT = "model_edge_recross_blocked"
 NAVIGATION_OBJECTIVE_SEQUENCE: tuple[_NavigationObjective, ...] = (
     _NavigationObjective(
         objective_id="leave_oaks_lab",
@@ -1234,6 +1242,9 @@ class _NavigationHoldState:
     previous_map_name: str = ""
     entry_direction: str = ""
     blocked_return_direction: str = ""
+    last_crossing_direction: str = ""
+    immediate_recross_direction: str = ""
+    last_transition_arrival: tuple[int, int] | None = None
     objective_state: _NavigationObjectiveState = field(
         default_factory=_NavigationObjectiveState
     )
@@ -1276,6 +1287,9 @@ class _NavigationHoldState:
         self.previous_map_name = source_name
         self.current_map_id = map_id
         self.current_map_name = normalized_name
+        self.last_crossing_direction = direction
+        self.immediate_recross_direction = _OPPOSITE_DIR.get(direction, "")
+        self.last_transition_arrival = None
         if not already_visited:
             self.visited_maps = (*self.visited_maps, (map_id, normalized_name))
             self.entry_direction = direction
@@ -1307,8 +1321,14 @@ class _NavigationHoldState:
             "mechanism": "visited_map_edge_memory",
         }
 
+    def record_transition_arrival(self, tile: tuple[int, int]) -> None:
+        """Bind the just-crossed edge to its settled destination door mat."""
+        x, y = tile
+        self.last_transition_arrival = (int(x), int(y))
+
     def context(self) -> dict[str, Any]:
         """Return the bounded decision/log projection of the held edge."""
+        arrival = self.last_transition_arrival
         return {
             "active": bool(self.blocked_return_direction),
             "current_map_id": self.current_map_id,
@@ -1317,10 +1337,97 @@ class _NavigationHoldState:
             "previous_map_name": self.previous_map_name,
             "entry_direction": self.entry_direction,
             "blocked_return_direction": self.blocked_return_direction,
+            "last_crossing_direction": self.last_crossing_direction,
+            "immediate_recross_direction": self.immediate_recross_direction,
+            "last_transition_arrival": (
+                {"x": arrival[0], "y": arrival[1]} if arrival is not None else None
+            ),
             "visited_maps": [name for _, name in self.visited_maps],
             "goal": self.goal,
             "objective": self.objective_state.projection(),
         }
+
+
+def _guard_model_immediate_recross(
+    plan: list[str],
+    navigation: dict[str, Any] | None,
+    observation: dict[str, Any],
+    *,
+    decision_pipeline: str,
+    just_crossed: bool = False,
+) -> tuple[list[str], dict[str, Any] | None]:
+    """Drop model presses that immediately undo a non-ladder map edge.
+
+    The guard is intentionally limited to the settled arrival tile and to the
+    first directional movement in the plan. Once the plan moves away from that
+    tile, the same compass direction is ordinary navigation rather than an edge
+    re-cross. Proven path-memory replay is not model-authored and remains exempt.
+    """
+    original = [str(button).upper() for button in plan]
+    if decision_pipeline == MEMORY_NAV_PIPELINE or not isinstance(navigation, dict):
+        return original, None
+
+    blocked = str(navigation.get("immediate_recross_direction") or "").upper()
+    if blocked not in _OPPOSITE_DIR:
+        return original, None
+
+    current_map_id = navigation.get("current_map_id")
+    if observation.get("map_id") != current_map_id:
+        return original, None
+    arrival = _tile_from_point(navigation.get("last_transition_arrival"))
+    if arrival is None:
+        return original, None
+    # The transition-cycle map id flips before its coordinates do. The settled
+    # arrival is authoritative on that one cycle; later cycles must still prove
+    # the player remains on the door mat before the policy can block anything.
+    if not just_crossed and _observation_tile(observation) != arrival:
+        return original, None
+
+    destination_map_id = navigation.get("previous_map_id")
+    destination_map_name = str(navigation.get("previous_map_name") or "")
+    rank_map_id = destination_map_id if isinstance(destination_map_id, int) else -1
+    if _navigation_progress_rank(rank_map_id, destination_map_name) is not None:
+        return original, None
+
+    guarded: list[str] = []
+    blocked_count = 0
+    moved_from_arrival = False
+    for button in original:
+        if not moved_from_arrival and button == blocked:
+            blocked_count += 1
+            continue
+        guarded.append(button)
+        if button in _OPPOSITE_DIR:
+            moved_from_arrival = True
+
+    if blocked_count == 0:
+        return original, None
+
+    event = {
+        "event": MODEL_IMMEDIATE_EDGE_RECROSS_EVENT,
+        "policy": MODEL_IMMEDIATE_EDGE_RECROSS_POLICY,
+        "mechanism": "immediate_edge_recross_guard",
+        "outcome": "blocked",
+        "decision_pipeline": decision_pipeline,
+        "model_authored": True,
+        "transition_cycle": just_crossed,
+        "from_map_id": current_map_id,
+        "from_map_name": navigation.get("current_map_name"),
+        "blocked_destination_map_id": destination_map_id,
+        "blocked_destination_map_name": destination_map_name,
+        "last_crossing_direction": navigation.get("last_crossing_direction"),
+        "blocked_direction": blocked,
+        "arrival_tile": {"x": arrival[0], "y": arrival[1]},
+        "blocked_press_count": blocked_count,
+        "original_plan": original,
+        "guarded_plan": guarded,
+        "reason": (
+            f"{blocked} would immediately re-cross the edge from "
+            f"{navigation.get('current_map_name')} to non-objective map "
+            f"{destination_map_name}"
+        ),
+    }
+    return guarded, event
 
 
 def _guard_navigation_plan(
@@ -8189,6 +8296,7 @@ def _handle_navigation_transition(S, cycle, st, patch_data, current_tile, map_id
     # built on a stale tile aims at a floor tile instead of the door mat.
     _settled_arrival = _settle_arrival_tile(S, map_id)
     if _settled_arrival is not None:
+        S._navigation_state.record_transition_arrival(_settled_arrival)
         _navigation_transition["arrival_tile"] = {
             "x": _settled_arrival[0],
             "y": _settled_arrival[1],
@@ -8327,6 +8435,7 @@ def _cycle_header(S, cycle):
         "patch_data": patch_data,
         "carto_raw": carto_raw,
         "st": st,
+        "navigation_transition": transition,
         "world_facts": world_facts,
         "party_count": party_count,
         "menu_state": menu_state,
@@ -8432,6 +8541,19 @@ def _overworld_cycle(S, cycle, header, t0):
     S._pending_study_result = ""
     plan = decision.get("plan", ["A"])
     intent = decision.get("intent", "")
+
+    # DF-AIPP-21: only model-authored presses are filtered here. The guard is
+    # evaluated against the settled landing tile before generic plan rewrites can
+    # obscure provenance or reclassify an unrelated movement as model output.
+    plan = _ow_model_recross_guard(
+        S,
+        cycle,
+        plan,
+        navigation_context,
+        patch_data,
+        decision_pipeline=_decision_pipeline,
+        just_crossed=header.get("navigation_transition") is not None,
+    )
 
     # ── Agent memory outputs: note / goal / study ──────
     # The controller maintains its own knowledge. These fields
@@ -9145,6 +9267,39 @@ def _memory_dead_end_escape(decision: dict[str, Any]) -> dict[str, Any] | None:
     if route.get("route_kind") != DEAD_END_ESCAPE_ROUTE_KIND:
         return None
     return route
+
+
+def _ow_model_recross_guard(
+    S,
+    cycle,
+    plan,
+    navigation_context,
+    spatial_desc,
+    *,
+    decision_pipeline,
+    just_crossed=False,
+):
+    """Apply DF-AIPP-21's model-only immediate edge re-cross policy."""
+    guarded, event = _guard_model_immediate_recross(
+        plan,
+        navigation_context,
+        spatial_desc,
+        decision_pipeline=decision_pipeline,
+        just_crossed=just_crossed,
+    )
+    if event is None:
+        return guarded
+
+    row = {"cycle": cycle + 1, **event}
+    S.results.append(row)
+    S.log_file.write(json.dumps(row, default=str) + "\n")
+    S.log_file.flush()
+    safe_print(
+        "  [MODEL-RECROSS] blocked "
+        f"{row['blocked_direction']} toward "
+        f"{row['blocked_destination_map_name']} | plan={guarded}"
+    )
+    return guarded
 
 
 def _ow_navigation_guard(

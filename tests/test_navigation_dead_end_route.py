@@ -318,6 +318,133 @@ def test_escape_plan_survives_the_full_hold_filter() -> None:
     assert decision["_navigation_hold_applied"] is False
 
 
+def _transition_state(
+    source: tuple[int, str],
+    destination: tuple[int, str],
+    direction: str,
+    arrival_tile: tuple[int, int],
+) -> cron_runner._NavigationHoldState:
+    state = cron_runner._NavigationHoldState()
+    state.observe(*source, "")
+    transition = state.observe(*destination, direction)
+    assert transition is not None
+    state.record_transition_arrival(arrival_tile)
+    return state
+
+
+def _recross_runtime() -> Any:
+    return type("State", (), {"results": [], "log_file": StringIO()})()
+
+
+def test_model_recross_policy_blocks_immediate_house_reentry() -> None:
+    """A model cannot immediately undo the legal 1F -> Pallet Town escape."""
+    state = _transition_state(
+        (37, "Red's House 1F"),
+        (0, "Pallet Town"),
+        "DOWN",
+        (5, 6),
+    )
+    runtime = _recross_runtime()
+    # The transition-cycle observation still carries the source map's (2,7)
+    # coordinates even though the settle read proved Pallet's door mat is (5,6).
+    # run_df17plan2 cycle 46 had this exact shape before executing JEV's UP.
+    observation = _observation(map_id=0, map_name="Pallet Town", tile=(2, 7))
+
+    plan = cron_runner._ow_model_recross_guard(
+        runtime,
+        45,
+        ["UP"],
+        state.context(),
+        observation,
+        decision_pipeline=cron_runner.JEV_PIPELINE,
+        just_crossed=True,
+    )
+
+    assert plan == []
+    assert len(runtime.results) == 1
+    event = runtime.results[0]
+    assert event["event"] == "model_edge_recross_blocked"
+    assert event["policy"] == cron_runner.MODEL_IMMEDIATE_EDGE_RECROSS_POLICY
+    assert event["cycle"] == 46
+    assert event["from_map_name"] == "Pallet Town"
+    assert event["blocked_destination_map_name"] == "Red's House 1F"
+    assert event["blocked_direction"] == "UP"
+    assert event["arrival_tile"] == {"x": 5, "y": 6}
+    assert event["original_plan"] == ["UP"]
+    assert event["guarded_plan"] == []
+    assert "model_edge_recross_blocked" in runtime.log_file.getvalue()
+
+
+def test_model_recross_policy_allows_unrelated_movement() -> None:
+    """A lateral move away from the door mat is unrelated to the crossed edge."""
+    state = _transition_state(
+        (37, "Red's House 1F"),
+        (0, "Pallet Town"),
+        "DOWN",
+        (5, 6),
+    )
+    runtime = _recross_runtime()
+
+    plan = cron_runner._ow_model_recross_guard(
+        runtime,
+        45,
+        ["LEFT", "UP"],
+        state.context(),
+        _observation(map_id=0, map_name="Pallet Town", tile=(5, 6)),
+        decision_pipeline=cron_runner.JEV_PIPELINE,
+    )
+
+    assert plan == ["LEFT", "UP"]
+    assert runtime.results == []
+    assert runtime.log_file.getvalue() == ""
+
+
+def test_model_recross_policy_allows_objective_ladder_destination() -> None:
+    """Re-crossing toward a ladder map remains governed by normal navigation."""
+    state = _transition_state(
+        (0, "Pallet Town"),
+        (12, "Route 1"),
+        "UP",
+        (10, 35),
+    )
+    runtime = _recross_runtime()
+
+    plan = cron_runner._ow_model_recross_guard(
+        runtime,
+        45,
+        ["DOWN"],
+        state.context(),
+        _observation(map_id=12, map_name="Route 1", tile=(10, 35)),
+        decision_pipeline=cron_runner.JEV_PIPELINE,
+    )
+
+    assert plan == ["DOWN"]
+    assert runtime.results == []
+
+
+def test_model_recross_policy_does_not_filter_memory_authored_plan() -> None:
+    """The policy is scoped to model output, not proven path-memory replay."""
+    state = _transition_state(
+        (37, "Red's House 1F"),
+        (0, "Pallet Town"),
+        "DOWN",
+        (5, 6),
+    )
+    runtime = _recross_runtime()
+
+    plan = cron_runner._ow_model_recross_guard(
+        runtime,
+        45,
+        ["UP"],
+        state.context(),
+        _observation(map_id=0, map_name="Pallet Town", tile=(5, 6)),
+        decision_pipeline=cron_runner.MEMORY_NAV_PIPELINE,
+    )
+
+    assert plan == ["UP"]
+    assert runtime.results == []
+
+
 def test_path_memory_write_prefers_settled_arrival_tile() -> None:
     """The stale transition-cycle tile must not become the reverse door."""
     transition = {
