@@ -253,9 +253,15 @@ executes the returned button plan with built-in recovery (direction-lock detecti
 checkpoint rollback).
 
 **Boot state (what a fresh run starts from):** `cron_runner.py` boots from the shipped
-known-good checkpoint `data/boot.state` when present — the player is standing in Oak's
-Lab in Pallet Town with the starter already picked (map 0x28, tile ~(4,4), party of 1),
-no dialog open. The run skips the title-screen intro bypass entirely. If the checkpoint
+known-good checkpoint `data/boot.state` when present — the player is standing in
+**Pallet Town on map 0 at tile (6,6)**, in the overworld with no dialog open. The run
+skips the title-screen intro bypass entirely. That position is asserted for this exact
+checkpoint by `tests/test_long_run_boot.py::test_default_boot_probes_pallet_town_map_0_live`
+(`map_id == 0`, `map_name == "Pallet Town"`), and the tile is the one recorded for the
+boot state in `data/baselines/mem_pop_20260926T205640Z.json`. The checkpoint is pinned by
+md5 (`81e4ec4e8d1b62002bc78f619c5fc79c`, `tests/test_boot_state_pin.py`) and is
+byte-identical to `data/baselines/base-1_boot.state` — the state the
+CTRL-WIN/DIST-1/BASE-1 measurements were taken on. If the checkpoint
 is missing (or `--boot-state skip` is passed), the runner falls back to the legacy
 intro bypass: it A-mashes from the title screen through Oak's intro, names the player
 ASH and rival GARY, and walks out of the house into Pallet Town — this path can land in
@@ -263,7 +269,9 @@ a degenerate wall-facing overworld state that direction-locks immediately, which
 the checkpoint boot is the default.
 
 **First cycles (what to expect):** cycle 1 observes the overworld via RAM and sends the
-spatial state to the controller; the first plan usually walks toward the lab exit.
+spatial state to the controller; the first plan is a short button sequence in the
+starting area, and the `map_name` recorded on that cycle is what tells you where the
+player actually is.
 Because the same frames repeat while the character animates, you will see `[CACHE-HIT]`
 frame-reference lines and occasionally `[WARN] Direction-locking detected: <dir> x3` —
 that warning fires whenever a single plan contains 3+ consecutive presses of the same
@@ -319,19 +327,21 @@ pipeline stages, JSONL log schema, checkpoint/rollback behavior, and cost notes.
 **Proven results:** 10/10 cycles in dogfood runs (real LLM decisions, map movement,
 recovery firing); 80/80 cycles in E2E (RSS flat ~110 MB, $0.60 for 43 LLM calls).
 First-run behavior is deterministic thanks to the shipped boot checkpoint: every run
-starts in Oak's Lab (starter picked), so the first cycles are overworld navigation with
-real movement — GAP-028 acceptance measured 2/20 lock-rate cycles (10%) with 2+ distinct
-tiles on a fresh 20-cycle run (see the `lock-rate` field in the summary line above for
-your own runs).
+starts in Pallet Town (map 0, tile (6,6)) with a starter already in the party, so the
+first cycles are overworld navigation with real movement — GAP-028 acceptance measured
+2/20 lock-rate cycles (10%) with 2+ distinct tiles on a fresh 20-cycle run (see the
+`lock-rate` field in the summary line above for your own runs).
 
 **Default 20-cycle demo behavior:** A short 20-cycle run (`--cycles 20`) typically
-demonstrates overworld navigation and AI decision-making inside Oak's Lab — the agent
-interacts with objects, moves between tiles, and fires recovery logic. Whether the agent
-reaches the lab exit and transitions to Route 1 within 20 cycles is LLM-dependent and
-not guaranteed. For a run that reliably exits Oak's Lab, use `--cycles 80` or higher.
-The default exploration goal (`cron_runner.py` seeds "Leave Oaks Lab and head toward
-Route 1" when no stored goal exists) provides direction, but the controller's adherence
-varies by run.
+demonstrates overworld navigation and AI decision-making in the starting area
+(Pallet Town, map 0) — the agent interacts with objects, moves between tiles, and fires
+recovery logic. Whether the run leaves Pallet Town within 20 cycles is LLM-dependent and
+not guaranteed, and a longer run is not a guarantee either: cycle count is a budget, not
+a progress measure, so read the per-cycle `map_name` in `cron_logs/run_<id>.jsonl` and
+treat a real map transition as the measurement. The default navigation ladder
+(`cron_runner.py:1043-1065` — `"Leave Oaks Lab and reach Pallet Town."`, then
+`"Travel north from Pallet Town and reach Route 1."`) provides direction, but the
+controller's adherence varies by run.
 
 **Scheduled runs & QA tooling:**
 

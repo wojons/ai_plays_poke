@@ -38,6 +38,9 @@ This section documents all public APIs and interfaces for PTP-01X - an orchestra
 | [Dashboard](dashboard.md) | Observability dashboard server (`src/dashboard/main.py`) — run instructions, auth, REST + WebSocket route reference |
 | [Environment Service](env_service.md) | Environment service API (`src/env_service.py`, uvicorn on port 8765) — boot/reset lifecycle plus the observe/act contract for driving the emulator over HTTP |
 | [ptp_cli](ptp_cli.md) | PTP-01X CLI (`src/ptp_cli/`) — invocation, complete flag surface from `flags.py`, validation rules |
+| [long_run](long_run.md) | Multi-hour operator driver (`scripts/long_run.py`) — env-key configuration (no flags; `--help` starts a real run), episode outputs, boot-state read-back validation loop |
+| [E2E-002 L2 acceptance](../e2e-l2-acceptance.md) | Repository-owned 80-cycle L2 acceptance instrument — run shape, 4 GiB cap, RSS/replay evidence, L0–L4 scoring |
+| [BENCH-1 head-to-head benchmark](../reports/BENCH-1-head-to-head-benchmark.md) | One-command `llm` vs `jev` benchmark from a shared boot state and cycle budget — arms, artifacts, regenerated comparison table |
 
 ### Examples
 
