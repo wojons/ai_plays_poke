@@ -7,7 +7,7 @@ Cron-friendly Pokémon AI runner — the README's sole recommended entry point f
 `cron_runner.py` is an end-to-end runner that boots the emulator, bypasses the intro, and plays Pokémon Blue autonomously. It reads game state directly from emulator RAM (instant, free) and spends LLM calls only on game decisions:
 
 1. **Observe** game state — RAM reader (default) OR Gemma 12B vision cartographer.
-2. **Overworld** — the controller model (`openai/gpt-5.6-luna` via OpenRouter by default; overridable with `--controller-model` / `CRON_CONTROLLER_MODEL`) reads spatial data and outputs a button plan.
+2. **Overworld** — the selected decision mode uses the controller model (`--controller-model`) for System Two and an independently selectable reasoning teacher (`--teacher-model`) for hybrid handoffs.
 3. **Execute** the plan with direction-locking detection and checkpoint rollback.
 4. **Non-overworld** (battle, dialog, menu, name entry) — the existing StateWindow flow with `deepseek-v4-flash`.
 
@@ -17,15 +17,15 @@ Unlike the legacy `src/game_loop.py` (whose vision pipeline is under repair — 
 
 ```bash
 # From the repo root, with the project venv activated
-python3 cron_runner.py --run-id demo1 --cycles 80
+python3 cron_runner.py --decision-mode jev --run-id demo1 --cycles 80
 ```
 
 ```bash
 # Validate setup without booting the emulator or spending LLM calls
-python3 cron_runner.py --dry-run
+python3 cron_runner.py --decision-mode jev --dry-run
 
 # Offline validation: report API-key presence only, no network probe
-python3 cron_runner.py --dry-run --skip-key-check
+python3 cron_runner.py --decision-mode jev --dry-run --skip-key-check
 ```
 
 `--dry-run` prints a pipeline config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence) and exits 0 when the setup validates. It never boots the emulator and never spends an LLM completion. Because the check runs before the heavy third-party imports, it also works under bare `python3` (no venv, no numpy/PIL).
@@ -41,6 +41,7 @@ A missing or explicitly bad boot-state path is reported as a warning with the in
 usage: cron_runner.py [-h] [--run-id RUN_ID] [--cycles CYCLES] [--rom ROM]
                       [--boot-state BOOT_STATE] [--dry-run] [--skip-key-check]
                       [--skip-preflight] [--controller-model CONTROLLER_MODEL]
+                      [--teacher-model TEACHER_MODEL]
                       [--decision-mode {system1,system2,system1+system2,hybrid,jev,llm,agentic}]
                       [--handoff HANDOFF]
                       [--handoff-confidence HANDOFF_CONFIDENCE]
@@ -78,6 +79,11 @@ options:
                         — e.g. '--controller-model deepseek-chat' sends the
                         controller to api.deepseek.com via DEEPSEEK_API_KEY
                         (GAP-052).
+  --teacher-model TEACHER_MODEL
+                        Model id for the reasoning teacher in
+                        system1+system2/jev mode. Overrides AIPP_TEACHER_MODEL /
+                        CRON_TEACHER_MODEL; when unset, inherits the resolved
+                        controller model.
   --skip-preflight      Skip the real JEV startup probe for a JEV-mode run.
                         The skip is still stamped in the run log.
   --decision-mode {system1,system2,system1+system2,hybrid,jev,llm,agentic}
@@ -87,10 +93,11 @@ options:
                         cycle and the fast tier is never called — the pure-LLM
                         benchmark. 'agentic': the explicit opt-in bounded
                         model-tool loop (also System-Two). 'system1+system2'
-                        (alias 'jev', the default): the fast tier decides and
+                        (alias 'jev'): the fast tier decides and
                         hands back to the reasoning teacher when a trigger
-                        fires and --handoff allows it. Overrides the
-                        AIPP_DECISION_MODE / CRON_DECISION_MODE env vars.
+                        fires and --handoff allows it. Required via this flag
+                        or AIPP_DECISION_MODE / CRON_DECISION_MODE; there is no
+                        implicit default.
   --handoff HANDOFF     Which handoff trigger families may hand back to the
                         reasoning teacher in 'system1+system2': 'off' (==
                         system1), 'any' (default), 'failure', 'gap',
@@ -131,8 +138,9 @@ options:
 | `--dry-run` | `flag` | `false` | Validate setup and print a config summary (ROM path, boot-state path, cycles, run-id, model/provider config, API-key presence **and liveness** — GAP-048), then exit 0 — no emulator boot, no LLM completions. Runs before the heavy third-party imports, so it also works under bare `python3`. Exits 1 if the ROM is missing **or any configured API key fails its liveness probe** (the provider's error is printed verbatim); a missing boot-state path is a warning (intro-bypass fallback), not an error. |
 | `--skip-key-check` | `flag` | `false` | Offline validation: with `--dry-run`, skip the API-key liveness probes and report key presence only (pre-GAP-048 behavior). No network request is made. Ignored without `--dry-run`. |
 | `--controller-model CONTROLLER_MODEL` | `str` | `openai/gpt-5.6-luna` | Model id used by the overworld controller (GAP-052). Precedence: flag > `CRON_CONTROLLER_MODEL` > `POKE_CONTROLLER_MODEL` > default, so `--controller-model deepseek-chat` (or `CRON_CONTROLLER_MODEL=deepseek-chat`) points the controller at a provider that still works — any `*deepseek*` id routes direct to `api.deepseek.com` with `DEEPSEEK_API_KEY` instead of OpenRouter. The resolved model is printed at run start and in the `--dry-run` summary; leaving it unset is byte-identical to pre-GAP-052 behavior. |
+| `--teacher-model TEACHER_MODEL` | `str` | resolved controller model | Model id used only by the reasoning teacher during hybrid handoffs. Precedence: flag > `AIPP_TEACHER_MODEL` > `CRON_TEACHER_MODEL` > resolved controller model. Changing it does not change the controller model. Both effective models are printed by `--dry-run` and recorded in decision and `run_autonomy` rows. |
 | `--skip-preflight` | `flag` | `false` | Skip the real JEV startup probe for a JEV-mode run. The skip is still stamped in the run log. |
-| `--decision-mode DECISION_MODE` | `str` | `jev` (`system1+system2`) | Who decides each cycle. `system1`: the fast System-One tier decides EVERY cycle and never hands back. `system2` (alias `llm`): the controller decides EVERY cycle and the fast tier is never called — the pure-LLM benchmark. `agentic`: the explicit opt-in bounded model-tool loop (also System-Two). `system1+system2` (alias `jev`, the default): the fast tier decides and hands back to the reasoning teacher when a trigger fires and `--handoff` allows it. Overrides the `AIPP_DECISION_MODE` / `CRON_DECISION_MODE` env vars. |
+| `--decision-mode DECISION_MODE` | `str` | none (required by flag or env) | Who decides each cycle. `system1`: the fast System-One tier decides EVERY cycle and never hands back. `system2` (alias `llm`): the controller decides EVERY cycle and the fast tier is never called — the pure-LLM benchmark. `agentic`: the explicit opt-in bounded model-tool loop (also System-Two). `system1+system2` (alias `jev`): the fast tier decides and hands back to the reasoning teacher when a trigger fires and `--handoff` allows it. Overrides the `AIPP_DECISION_MODE` / `CRON_DECISION_MODE` env vars. The runner refuses to start when neither source selects a mode. |
 | `--handoff HANDOFF` | `str` | `any` | Which handoff trigger families may hand back to the reasoning teacher in `system1+system2`: `off` (== `system1`), `any` (default), `failure`, `gap`, `confidence`, or a comma list of those. `failure` = the last action changed nothing; `gap` = the fast tier reports its state insufficient or names a missing class; `confidence` = low action confidence with the layered gate. Overrides `AIPP_HANDOFF` / `CRON_HANDOFF`. |
 | `--handoff-confidence HANDOFF_CONFIDENCE` | `float` | `0.50` | Action-confidence floor for the confidence trigger (default 0.50). The default mirrors the threshold already in code, so changing it invalidates comparison against existing runs. |
 | `--handoff-ambiguity HANDOFF_AMBIGUITY` | `float` | `0.40` | Ambiguity gate for the layered confidence trigger (default 0.40); low confidence alone does not hand back unless the phase is irreversible. |
@@ -142,8 +150,9 @@ options:
 ## Decision modes and handoff
 
 `--decision-mode` selects who decides each cycle. Resolution order is
-**flag > env > default** (`resolve_decision_mode()` in `cron_runner.py`), and
-the resolved spelling plus its family are stamped into every decision row
+**flag > env** (`resolve_decision_mode()` in `cron_runner.py`), with no implicit
+fallback. The runner exits non-zero and lists the choices when neither the flag
+nor a recognized env value selects a mode. The resolved spelling plus its family are stamped into every decision row
 (`decision_mode` / `decision_mode_family`) and into the `run_autonomy`
 closeout event, so a run log alone reveals the run's architecture.
 
@@ -159,7 +168,7 @@ in `cron_runner.py` — seven accepted spellings mapping onto three families:
 | `llm` | `system2` | Historical alias of `system2`. |
 | `system1+system2` | `system1+system2` | The fast tier decides and hands back to the reasoning teacher when a trigger fires and the policy allows it. |
 | `hybrid` | `system1+system2` | Alias of `system1+system2`. |
-| `jev` | `system1+system2` | Historical alias of `system1+system2` — and the DEFAULT spelling (`DEFAULT_DECISION_MODE = "jev"`). |
+| `jev` | `system1+system2` | Historical alias of `system1+system2`; it remains byte-identical when explicitly selected. |
 | `agentic` | `system2` | Explicit opt-in bounded model→tool loop. System-Two for routing, keeps its own spelling in decision rows, and enables the tool loop (`agentic_tools_enabled: true` on its rows). |
 
 The exact spelling passed is preserved in `decision_mode` (byte-identical to
@@ -169,12 +178,13 @@ historical run logs); only the family branches runtime behavior.
 
 | Setting | Env vars (first set wins) | Default | Overriding flag |
 |---------|---------------------------|---------|-----------------|
-| Decision mode | `AIPP_DECISION_MODE`, `CRON_DECISION_MODE` | `jev` (`system1+system2`) | `--decision-mode` |
+| Decision mode | `AIPP_DECISION_MODE`, `CRON_DECISION_MODE` | none; selection required | `--decision-mode` |
+| Teacher model | `AIPP_TEACHER_MODEL`, `CRON_TEACHER_MODEL` | resolved controller model | `--teacher-model` |
 | Handoff policy | `AIPP_HANDOFF`, `CRON_HANDOFF` | `any` (all three trigger families) | `--handoff` |
 
 An env var whose value is not a recognized spelling/policy is ignored and the
-next candidate (the other env var, then the default) is used; an explicit flag
-always wins.
+next candidate is tried. If no decision-mode candidate is recognized, startup
+fails; an explicit flag always wins.
 
 ### Handoff policy
 
@@ -329,7 +339,7 @@ Use `jq` to inspect the decision evidence without mixing in recovery or state-sa
 
 ```bash
 # Every row carrying the JEV decision fields (overworld, starter, and JEV recovery rows)
-jq -c 'select(has("jev_answered") and .event != "run_autonomy") | {cycle,screen,event,pipeline,decision_mode,decision_mode_family,jev_answered,escalated,missing_class,raw_distribution,jev_ok,jev_error}' cron_logs/run_<id>.jsonl
+jq -c 'select(has("jev_answered") and .event != "run_autonomy") | {cycle,screen,event,pipeline,decision_mode,decision_mode_family,controller_model,teacher_model,jev_answered,escalated,missing_class,raw_distribution,jev_ok,jev_error}' cron_logs/run_<id>.jsonl
 
 # Run closeout plus the optional transport-degradation event
 jq -c 'select(.event == "run_autonomy" or .event == "run_degradation")' cron_logs/run_<id>.jsonl
@@ -342,6 +352,8 @@ jq -c 'select(.event == "run_autonomy" or .event == "run_degradation")' cron_log
 | `pipeline` | `str` | `"jev"` when JEV supplied the executed overworld plan; otherwise the normal `"RAM reader"` / `"cartographer"` controller pipeline. |
 | `decision_mode` | `str` | Exact `--decision-mode` spelling used for an overworld row (`jev`, `llm`, `system1`, `system2`, `system1+system2`, or `hybrid`). The spelling is preserved for log compatibility. |
 | `decision_mode_family` | `str` | Branchable family: `system1`, `system2`, or `system1+system2`. |
+| `controller_model` | `str` | Effective System-Two/controller model for the run. |
+| `teacher_model` | `str` | Effective hybrid teacher model; equals `controller_model` only when no teacher override was selected. |
 | `jev_answered` | `bool` | True only when the JEV request was `ok` **and** produced a valid action in that path's vocabulary. For starter selection this means a valid species; for battle recovery it means a valid battle action. A healthy transport response with an unusable choice is false and falls back rather than inventing an action. |
 | `escalated` | `bool` | True when the effective JEV decision (after any promoted-scenario re-ask) requested a handoff and the active handoff policy allowed it. A matching patch that resolves the class therefore records false without hiding the initial evidence. A policy-blocked trigger is false; inspect `handoff_trigger`, `handoff_allowed`, and `handoff_blocked_reason` to distinguish “no trigger” from “trigger blocked.” Teacher calls have their own `teacher_escalation` rows and the run-level `teacher_escalations` count. |
 | `missing_class` | `str \| null` | Effective missing-information class after any promoted-scenario re-ask (for example `none` when the patch resolved the gap). The overworld writer keeps strings only and normalizes other values to `null`. |

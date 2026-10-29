@@ -346,7 +346,6 @@ class TestMainPreflightGate:
     @pytest.mark.parametrize(
         ("argv", "expected_calls", "expected_status"),
         [
-            pytest.param([], [15], "pass", id="default-jev"),
             pytest.param(["--decision-mode", "jev"], [15], "pass", id="jev"),
             pytest.param(["--decision-mode", "llm"], [], "skipped", id="llm"),
             pytest.param(

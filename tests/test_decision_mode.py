@@ -22,11 +22,27 @@ def _restore_mode():
 
 
 # --------------------------------------------------------------- resolution
-def test_default_mode_is_jev(monkeypatch):
+def test_missing_mode_has_no_implicit_default(monkeypatch):
     monkeypatch.delenv("AIPP_DECISION_MODE", raising=False)
     monkeypatch.delenv("CRON_DECISION_MODE", raising=False)
-    assert cron_runner.resolve_decision_mode() == "jev"
-    assert cron_runner.DEFAULT_DECISION_MODE == "jev"
+    assert cron_runner.resolve_decision_mode() is None
+
+
+def test_missing_mode_refuses_to_start_with_choices(monkeypatch, capsys):
+    monkeypatch.delenv("AIPP_DECISION_MODE", raising=False)
+    monkeypatch.delenv("CRON_DECISION_MODE", raising=False)
+    monkeypatch.setattr("sys.argv", ["cron_runner.py"])
+
+    with pytest.raises(SystemExit) as exc_info:
+        cron_runner._main_parse_and_dry_run()
+
+    assert exc_info.value.code == 2
+    output = capsys.readouterr().out
+    assert "decision mode is required" in output
+    assert "--decision-mode" in output
+    assert "AIPP_DECISION_MODE" in output
+    assert "system1" in output
+    assert "system2" in output
 
 
 def test_flag_selects_llm():
@@ -47,15 +63,16 @@ def test_flag_beats_env(monkeypatch):
     assert cron_runner.resolve_decision_mode("jev") == "jev"
 
 
-def test_garbage_falls_back_to_default(monkeypatch):
+def test_garbage_without_valid_env_has_no_resolution(monkeypatch):
     monkeypatch.delenv("AIPP_DECISION_MODE", raising=False)
     monkeypatch.delenv("CRON_DECISION_MODE", raising=False)
-    assert cron_runner.resolve_decision_mode("nonsense") == "jev"
+    assert cron_runner.resolve_decision_mode("nonsense") is None
 
 
-def test_invalid_env_falls_back_to_default(monkeypatch):
+def test_invalid_env_has_no_resolution(monkeypatch):
     monkeypatch.setenv("AIPP_DECISION_MODE", "totally-bogus")
-    assert cron_runner.resolve_decision_mode() == "jev"
+    monkeypatch.delenv("CRON_DECISION_MODE", raising=False)
+    assert cron_runner.resolve_decision_mode() is None
 
 
 def test_secondary_env_var_works(monkeypatch):
