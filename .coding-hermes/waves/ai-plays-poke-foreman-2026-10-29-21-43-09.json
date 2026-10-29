@@ -1,0 +1,55 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-29-21-43-09",
+  "project": "ai-plays-poke",
+  "mode": "wave-parallel",
+  "wave_budget": 9,
+  "wave_size": 3,
+  "base": "origin/main",
+  "base_sha": "0fbd0099172d82861b830c2e4c9d165521abe7eb",
+  "selection": {
+    "ARM-2": "P1 owner decision 0fbd009 (modes not a default arm) makes this the highest-priority pending row. Row premise STALE in part: mode families (system1/system2/hybrid via b940c53 2026-09-26) + CLI/env selection (AC1/AC2/AC5 shapes) already landed; remaining engineering = AC3 per-mode model/provider selection and AC4 no hardcoded default arm (DEFAULT_DECISION_MODE='jev' constant + 3 pinned tests).",
+    "PERF-7": "P3, independent. Prototype already exists UNCOMMITTED in wt/ai_plays_poke-PERF-7 (behind 5): worker finishes in place (no new worktree).",
+    "DOC-BATCH": "DOC-21+DOC-22+DF-AIPP-18+DF-AIPP-20 batched per worker-brief-authoring (sibling doc surfaces, one class). DOC-22/DF-AIPP-18 premises re-verified live this tick: docs/api/index.md CLI-tools grep = 0 hits (row expects 2); README.md still claims Oak's Lab map 0x28 tile ~(4,4) while data/boot.state md5 81e4ec4e8d1b62002bc78f619c5fc79c and the repo baseline test assert Pallet Town map 0 tile (6,6).",
+    "VIS-MODEL-1": "deferred: AC4 requires two live E2E vision-model runs with measured results recorded in docs - a live-run lane, not fit for this wave (budget + no second model verified online). Next tick candidate.",
+    "INT-GL-2": "blocked: fix direction (a) narrow allowlist vs (b) allow_skips semantics is an owner/tooling decision; tier1-timeout-as-artifact pattern already covers the operating symptom.",
+    "RELEASE-003": "blocked (owner ARM gate resolved but tags/CI/tag-message legs unverified post-ARM-1; candidate sha 90b64b6 predates b940c53 + DF-AIPP-21 - version bump + fresh candidate needed; defer to releng sweep).",
+    "DOC-23": "blocked, depends_on DOC-21/DOC-22 unblocked by this wave; next tick closes it after re-running row commands."
+  },
+  "workers": [
+    {
+      "task_id": "ARM-2",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-ARM-2",
+      "branch": "wt/ARM-2",
+      "brief": "/tmp/ai-plays-poke-foreman-2026-10-29-21-43-09-ARM-2-brief.txt",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-codex",
+      "gitreins_task": "ARM-2"
+    },
+    {
+      "task_id": "PERF-7",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-PERF-7",
+      "branch": "wt/PERF-7",
+      "brief": "/tmp/ai-plays-poke-foreman-2026-10-29-21-43-09-PERF-7-brief.txt",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-codex",
+      "gitreins_task": "PERF-7",
+      "note": "pre-existing worktree with uncommitted prototype (M src/core/ram_reader.py, behind main 5) - worker resumes in place"
+    },
+    {
+      "task_id": "DOC-21+DOC-22+DF-AIPP-18+DF-AIPP-20",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-docs-api",
+      "branch": "wt/docs-api",
+      "brief": "/tmp/ai-plays-poke-foreman-2026-10-29-21-43-09-DOC-batch-brief.txt",
+      "model": "deepseek-v4-flash",
+      "provider": "deepseek-foreman",
+      "gitreins_task": "DOC-BATCH",
+      "note": "all four rows consolidated into ONE worktree/commit (wt/docs-api)"
+    }
+  ],
+  "merge_order": [
+    "DOC-21+DOC-22+DF-AIPP-18+DF-AIPP-20",
+    "PERF-7",
+    "ARM-2"
+  ],
+  "depends_on_check": "board jq over all pending rows: ARM-2, PERF-7, DOC-21, DOC-22, DF-AIPP-18, DF-AIPP-20 each depend_on [] or null (DOC-23 depends on DOC-21/22 but is NOT in this wave); no shared file classes across workers (cron_runner.py+tests = ARM-2 only; src/core/ram_reader.py = PERF-7 only; docs/api/README/skills = docs batch only); no worktree overlap."
+}
