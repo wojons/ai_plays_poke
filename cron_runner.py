@@ -181,6 +181,136 @@ def decision_mode_family(mode: str | None) -> str:
     return DECISION_MODE_ALIASES.get(normalised or "", MODE_HYBRID)
 
 
+# ── Per-mode model + provider selection (ARM-2 AC3) ──────────────────
+# Each decision mode family carries its OWN model and provider pair. These are
+# separate knobs, not one global model: a system2 run and a hybrid run can pin
+# different LLMs, and a JEV-only run records the fast tier's own model. Unset
+# entries fall back to the existing controller/teacher chain, so an invocation
+# that sets nothing sends byte-identical requests (M6).
+#
+# Keys are the CANONICAL families (system1 | system2 | system1+system2), never
+# the historical spellings: "jev" and "hybrid" both resolve to the hybrid slot.
+# The resolved map is stamped onto the run row and every decision row, which is
+# what lets a benchmark read a model+provider back from the episode log alone.
+MODE_MODEL_ENV_VARS: dict[str, tuple[str, ...]] = {
+    MODE_SYSTEM1: ("AIPP_SYSTEM1_MODEL", "CRON_SYSTEM1_MODEL"),
+    MODE_SYSTEM2: ("AIPP_SYSTEM2_MODEL", "CRON_SYSTEM2_MODEL"),
+    MODE_HYBRID: ("AIPP_HYBRID_MODEL", "CRON_HYBRID_MODEL"),
+}
+MODE_PROVIDER_ENV_VARS: dict[str, tuple[str, ...]] = {
+    MODE_SYSTEM1: ("AIPP_SYSTEM1_PROVIDER", "CRON_SYSTEM1_PROVIDER"),
+    MODE_SYSTEM2: ("AIPP_SYSTEM2_PROVIDER", "CRON_SYSTEM2_PROVIDER"),
+    MODE_HYBRID: ("AIPP_HYBRID_PROVIDER", "CRON_HYBRID_PROVIDER"),
+}
+# The fast tier's own model is a protocol constant, not a pluggable LLM: JEV
+# answers on a hosted endpoint. Recording it is honest; overriding it is not,
+# so system1 has no model override and reports what actually ran.
+SYSTEM1_TIER_MODEL = "typesafe/jev-1.13"
+
+
+def _env_first(names: tuple[str, ...]) -> str | None:
+    """First non-blank env value among ``names``, else None."""
+    for name in names:
+        value = os.environ.get(name)
+        if value is not None and value.strip():
+            return value.strip()
+    return None
+
+
+def provider_of(model: str | None) -> str | None:
+    """Provider a model id routes through, as the client already reads it.
+
+    Explicit ``AIPP_*_PROVIDER`` env values win at the resolution site; this
+    derivation is the fallback. ``openai/gpt-5.6-luna`` -> ``openai``;
+    any model whose id names deepseek routes direct to api.deepseek.com;
+    the JEV fast tier is served by ``typesafe``.
+    """
+    if not isinstance(model, str) or not model.strip():
+        return None
+    text = model.strip()
+    if text.lower().startswith("typesafe/"):
+        return "typesafe"
+    if "deepseek" in text.lower():
+        return "deepseek"
+    if "/" in text:
+        return text.split("/", 1)[0]
+    return None
+
+
+def resolve_mode_models(
+    mode: str | None = None,
+    *,
+    controller_model: str | None = None,
+    teacher_model: str | None = None,
+) -> dict[str, dict[str, str | None]]:
+    """The effective model+provider for EVERY mode family, keyed by family.
+
+    ``mode`` is the active spelling; it selects which family is authoritative
+    for the deciding arm, but the returned map always names all three families
+    so a log records what each mode WOULD have used. Per-mode env wins, then
+    the controller/teacher chain already resolved by the caller.
+    """
+    family = decision_mode_family(mode) if mode is not None else current_mode_family()
+    controller = controller_model or resolve_controller_model()
+    teacher = teacher_model or resolve_teacher_model(None, controller)
+    models: dict[str, dict[str, str | None]] = {}
+
+    # system1: the fast tier decides; its model is the protocol constant.
+    system1_model = SYSTEM1_TIER_MODEL
+    models[MODE_SYSTEM1] = {
+        "model": system1_model,
+        "provider": _env_first(MODE_PROVIDER_ENV_VARS[MODE_SYSTEM1])
+        or provider_of(system1_model),
+        "source": "jev-fast-tier (protocol constant)",
+    }
+
+    # system2: the controller decides; its model may be pinned per mode.
+    system2_model = _env_first(MODE_MODEL_ENV_VARS[MODE_SYSTEM2]) or controller
+    models[MODE_SYSTEM2] = {
+        "model": system2_model,
+        "provider": _env_first(MODE_PROVIDER_ENV_VARS[MODE_SYSTEM2])
+        or provider_of(system2_model),
+        "source": (
+            "env per-mode"
+            if _env_first(MODE_MODEL_ENV_VARS[MODE_SYSTEM2])
+            else "controller chain"
+        ),
+    }
+
+    # hybrid: the fast tier decides, the teacher repairs; the teacher model may
+    # be pinned per mode, independently of the system2 model above.
+    hybrid_model = _env_first(MODE_MODEL_ENV_VARS[MODE_HYBRID]) or teacher
+    models[MODE_HYBRID] = {
+        "model": hybrid_model,
+        "provider": _env_first(MODE_PROVIDER_ENV_VARS[MODE_HYBRID])
+        or provider_of(hybrid_model),
+        "source": (
+            "env per-mode"
+            if _env_first(MODE_MODEL_ENV_VARS[MODE_HYBRID])
+            else "teacher/controller chain"
+        ),
+    }
+
+    # The deciding arm for the active family. In hybrid the fast tier answers
+    # and the teacher repairs, so the recorded model is the teacher's: that is
+    # the LLM whose output the row actually carries when a handoff fires.
+    models["active_family"] = {  # type: ignore[assignment]
+        "family": family,
+        "model": models[family]["model"],
+        "provider": models[family]["provider"],
+    }
+    return models
+
+
+def effective_decision_model(
+    mode_models: dict[str, dict[str, str | None]] | None = None,
+) -> tuple[str | None, str | None]:
+    """(model, provider) of the arm that decides under the CURRENT mode."""
+    resolved = mode_models if mode_models is not None else resolve_mode_models()
+    active = resolved.get("active_family") or {}
+    return active.get("model"), active.get("provider")  # type: ignore[return-value]
+
+
 def current_mode_family() -> str:
     """The family of the module's CURRENT mode spelling.
 
@@ -5270,6 +5400,9 @@ def _write_autonomy_row(
     *,
     controller_model: str | None = None,
     teacher_model: str | None = None,
+    decision_model: str | None = None,
+    decision_provider: str | None = None,
+    mode_models: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Append the JEV-1 autonomy block as one JSON line to the run log.
 
@@ -5307,6 +5440,12 @@ def _write_autonomy_row(
         "decision_mode_family": current_mode_family(),
         "controller_model": controller_model,
         "teacher_model": teacher_model,
+        # ARM-2 AC3: the deciding arm's model+provider and the full
+        # per-mode map are stamped on the run row, so a benchmark reads a
+        # mode's model back from the log without the launching shell.
+        "decision_model": decision_model,
+        "decision_provider": decision_provider,
+        "mode_models": mode_models,
         # S7 BENCH-PAR: the run summary carries the same tool-surface fields as
         # every decision row, so benchmark consumers need not infer the surface
         # from a mode spelling or silently compare unlike logs.
@@ -7687,8 +7826,33 @@ def _main_runtime_setup(args):
     resolved_model = resolve_controller_model(args.controller_model)
     R.controller_model = resolved_model
     R.teacher_model = resolve_teacher_model(args.teacher_model, resolved_model)
+    # ARM-2 AC3: per-mode model+provider. A system2 run takes the system2
+    # slot's model and a hybrid run takes the hybrid slot's teacher model, so
+    # a per-mode pin CHANGES the request instead of only annotating the log.
+    # Unset slots resolve to the controller/teacher chain (M6: an invocation
+    # that sets nothing sends byte-identical requests).
+    _resolved_family = current_mode_family()
+    _pre_models = resolve_mode_models(
+        DECISION_MODE,
+        controller_model=R.controller_model,
+        teacher_model=R.teacher_model,
+    )
+    if _resolved_family == MODE_SYSTEM2:
+        R.controller_model = _pre_models[MODE_SYSTEM2]["model"] or R.controller_model
+    elif _resolved_family == MODE_HYBRID:
+        R.teacher_model = _pre_models[MODE_HYBRID]["model"] or R.teacher_model
+    R.mode_models = resolve_mode_models(
+        DECISION_MODE,
+        controller_model=R.controller_model,
+        teacher_model=R.teacher_model,
+    )
+    R.decision_model, R.decision_provider = effective_decision_model(R.mode_models)
     safe_print(f"[{run_id}] Controller model: {R.controller_model}")
     safe_print(f"[{run_id}] Teacher model: {R.teacher_model}")
+    safe_print(
+        f"[{run_id}] Decision model: {R.decision_model} "
+        f"(provider {R.decision_provider})"
+    )
 
     # A-mash batch constants — also used by the main-loop name_entry
     # handler, so they live OUTSIDE the guarded intro block (booting from
@@ -8684,6 +8848,11 @@ def _overworld_cycle(S, cycle, header, t0):
         "decision_mode_family": current_mode_family(),
         "controller_model": S.R.controller_model,
         "teacher_model": S.R.teacher_model,
+        # ARM-2 AC3: every decision row (the episode log a benchmark reads)
+        # carries the deciding arm's model+provider plus the per-mode map.
+        "decision_model": S.R.decision_model,
+        "decision_provider": S.R.decision_provider,
+        "mode_models": S.R.mode_models,
         "agentic_tools_enabled": _model_tools_enabled(DECISION_MODE),
         "agentic_tool_calls": int(decision.get("agentic_tool_calls", 0)),
         "context_evidence": S._agent_context.evidence(),
@@ -9978,6 +10147,9 @@ def _finalize_run(S):
         teacher_summary,
         controller_model=S.R.controller_model,
         teacher_model=S.R.teacher_model,
+        decision_model=S.R.decision_model,
+        decision_provider=S.R.decision_provider,
+        mode_models=S.R.mode_models,
     )
     _write_degradation_row(log_file, S.run_id, autonomy)
     log_file.close()
