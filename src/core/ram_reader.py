@@ -226,6 +226,11 @@ class _MapDB:
         self._rom = Path(rom_path).read_bytes()
         self._cache: dict[int, dict[str, Any]] = {}
         self._tileset_cache: dict[int, dict[str, Any] | None] = {}
+        # Per-map tile-classification memos. Only successful classifications
+        # are retained, which bounds each map's cache to its finite ROM grid.
+        # The ROM read above is immutable, so entries need no invalidation.
+        self._walkability_cache: dict[int, dict[tuple[int, int], bool]] = {}
+        self._terrain_cache: dict[int, dict[tuple[int, int], str]] = {}
 
     @classmethod
     def from_bytes(cls, rom_bytes: bytes) -> _MapDB:
@@ -234,6 +239,8 @@ class _MapDB:
         self._rom = rom_bytes
         self._cache = {}
         self._tileset_cache = {}
+        self._walkability_cache = {}
+        self._terrain_cache = {}
         return self
 
     # ── ROM helpers ──
@@ -438,7 +445,34 @@ class _MapDB:
         Each map block is a 4x4 raw-tile metatile containing four 2x2 player
         quadrants. Gen I tests the bottom-left raw tile of the destination
         quadrant against the active tileset's collision-id list.
+
+        Memoized per map and tile: the answer is a pure function of the ROM
+        bytes read once in ``__init__``/``from_bytes``, which are never mutated
+        afterwards, so entries never need invalidation. ``None`` (off-map or
+        unparseable tileset) is not retained, keeping the cache bounded to
+        successful cells in each map's finite ROM grid. If the ROM ever becomes
+        mutable, these caches must be dropped.
         """
+        caches = getattr(self, "_walkability_cache", None)
+        if caches is None:
+            caches = self._walkability_cache = {}
+        key = (tile_x, tile_y)
+        map_cache = caches.get(map_id)
+        if map_cache is not None:
+            try:
+                return map_cache[key]
+            except KeyError:
+                pass
+
+        value = self._compute_walkability(map_id, tile_x, tile_y)
+        if value is not None:
+            caches.setdefault(map_id, {})[key] = value
+        return value
+
+    def _compute_walkability(
+        self, map_id: int, tile_x: int, tile_y: int
+    ) -> bool | None:
+        """Derive one tile's collision truth from ROM, bypassing the memo."""
         info = self.get_map(map_id)
         raw_tiles = self._map_quadrant_tiles(map_id, tile_x, tile_y)
         if info is None or raw_tiles is None:
@@ -489,7 +523,29 @@ class _MapDB:
         cuttable trees, doors, and ledges use the raw-tile behavior IDs consulted
         by their corresponding Gen I engine routines. Warps and fixed background
         objects come from this map's ROM object data.
+
+        Memoized per map and tile on the same terms as ``tile_walkability``:
+        pure in the immutable ROM bytes, no invalidation, and ``None`` results
+        are not retained so invalid coordinates cannot grow the cache.
         """
+        caches = getattr(self, "_terrain_cache", None)
+        if caches is None:
+            caches = self._terrain_cache = {}
+        key = (tile_x, tile_y)
+        map_cache = caches.get(map_id)
+        if map_cache is not None:
+            try:
+                return map_cache[key]
+            except KeyError:
+                pass
+
+        value = self._compute_terrain(map_id, tile_x, tile_y)
+        if value is not None:
+            caches.setdefault(map_id, {})[key] = value
+        return value
+
+    def _compute_terrain(self, map_id: int, tile_x: int, tile_y: int) -> str | None:
+        """Classify one cell from ROM, bypassing the memo."""
         info = self.get_map(map_id)
         raw_tiles = self._map_quadrant_tiles(map_id, tile_x, tile_y)
         if info is None or raw_tiles is None:
