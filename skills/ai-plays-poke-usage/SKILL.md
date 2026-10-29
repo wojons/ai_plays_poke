@@ -67,8 +67,24 @@ python3 cron_runner.py --run-id autonomous-demo --cycles 80
 ```bash
 source .venv/bin/activate
 python3 cron_runner.py --dry-run
-# Validates ROM, boot state, API keys — exits 0, zero LLM/API calls
 ```
+Validates the resolved ROM path, the boot-state path, and the API keys; zero LLM
+completions and no emulator boot. **The exit code is a result, not a promise** — the
+contract is `docs/api/cron_runner.md`:
+
+- **rc=0** — the ROM file exists at the resolved path **and** every *configured* API key
+  passed its liveness probe. Keys that are unset are never probed, so a clone with no
+  `.env` does not fail this step on keys.
+- **rc=1** — the ROM is missing (a fresh clone: ROMs are not bundled, and the default
+  path is the Blue SGB name) **or** a configured key failed liveness (the provider's own
+  error is printed verbatim). A missing boot-state file is only a **warning**
+  (intro-bypass fallback), not an error.
+- The only network I/O is the key-liveness GET. Add `--skip-key-check` to drop it and get
+  a fully offline check (`--dry-run --skip-key-check`); that flag is ignored without
+  `--dry-run`.
+
+Also pass `--rom <path>` when the checkout's ROM filename differs from the default —
+otherwise the run fails on the ROM check before anything else is evaluated.
 
 ### Custom Configuration
 ```bash
@@ -149,9 +165,29 @@ Measured with the project venv on a normally loaded host; re-measure before quot
 | dashboard route (`/status`, `/metrics`) | `curl` on a scratch port | 0.7–1.3 ms |
 
 `time -p` split for the 80-cycle run: real 49.40, user 4.44, sys 0.34 — the run is wall-bound on LLM
-calls, not CPU-bound. Historical (2026-09-26, DOGFOOD-PERF-001): 22.42 s for 5 cycles cold / 8.02 s warm,
-i.e. ~4.5 s per cycle; that is where the numbers above came from, so treat anything older than the dated
-row as stale.
+calls, not CPU-bound.
+
+**Historical benchmarks — history only, not the source of the row above.** The table above was
+measured 2026-10-27 at HEAD 2d75ced with the commands in its own `exact command` column; the
+figures below are earlier, measured under different conditions, and are **not comparable** to it.
+Do not quote one as if it were the other; re-measure before quoting anything as current.
+
+- **2026-09-26 (DOGFOOD-PERF-001):** 22.42 s for 5 cycles cold / 8.02 s warm (~4.5 s and ~1.6 s
+  per cycle), recorded in `docs/dogfood/2026-09-26-integration.md`. That record carries the
+  5-cycle shape but not the exact invocation, so the command **shape** was
+  `.venv/bin/python cron_runner.py --run-id <id> --cycles 5` with `/usr/bin/time -p`
+  (cold = first run in the checkout, warm = immediate repeat with the frame cache populated).
+  A 5-cycle run pays fixed boot+import cost that an 80-cycle run amortises, so its "per cycle"
+  figure is not a steady-state rate.
+- **2026-09-26 (PERF-2 cold decomposition, archived in
+  `data/baselines/perf2_cold_decomp_20260926.json`):** the same 5-cycle shape, run as
+  `./venv/bin/python -m cProfile -o /tmp/cold_perfcold.prof cron_runner.py --run-id perfcold_perf0926 --cycles 5 --boot-state skip`,
+  totalled 14.4 s under cProfile — a *different sample* of the same era (and it used
+  `--boot-state skip`, i.e. the intro bypass, not the shipped checkpoint). It is not a
+  reproduction of the 22.42 s figure.
+
+The per-cycle cost therefore moved by roughly 7× between the 2026-09-26 and 2026-10-27
+measurements; treat any undated timing claim in this file as stale.
 
 ### Bottlenecks
 1. **Teacher escalation LLM calls** — two synchronous calls cost 12.0 s + 8.8 s in the 2026-10-27 run
@@ -309,9 +345,11 @@ held by an unrelated process (here: `dexdat-api` behind `docker-proxy`). Confirm
 `ss -ltnp | grep <port>` names *your* pid, and use `PTP_DASHBOARD_PORT` for scratch instances.
 
 ### 5. The 1-second preflight, and exit codes read directly
-`.venv/bin/python cron_runner.py --dry-run` validates ROM/boot-state/keys with zero API calls and
-exits 0 in ~1.1 s; it exits **1** on a missing ROM (a fresh clone), naming the file to place. Capture
-`$?` directly — a status read through a pipe reports the last pipeline element, not the runner.
+`.venv/bin/python cron_runner.py --dry-run` validates ROM/boot-state/keys with no LLM completions (the
+bare form still makes the key-liveness GETs — add `--skip-key-check` for zero network) and exits 0 in
+~1.1 s **when the ROM resolves and every configured key passes**; it exits **1** on a missing ROM (a
+fresh clone, naming the file to place) or a failed key probe. Capture `$?` directly — a status read
+through a pipe reports the last pipeline element, not the runner.
 
 ### 6. Fresh installs resolve newer versions than the repo venv
 `requirements.txt` carries lower bounds (`pyboy>=1.0.0,<2.8.0`, `fastapi>=0.142.2`, …), so a clean
