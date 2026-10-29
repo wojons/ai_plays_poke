@@ -1,0 +1,25 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-29-16-25-43",
+  "project": "ai_plays_poke",
+  "mode": "verification-only-owner-gated",
+  "wave_budget": 11,
+  "wave_size": 0,
+  "selected": ["ARM-1"],
+  "workers": [],
+  "blocker": {
+    "task_id": "ARM-1",
+    "reason": "The highest-priority pending row is an owner decision, not an implementation task; no owner decision is recorded.",
+    "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold."
+  },
+  "evidence": {
+    "owner_decision_acceptance_rc": 1,
+    "owner_decision_acceptance": "The ARM-1 acceptance probe still fails because no decision text is recorded.",
+    "owner_evidence": "cron_logs/long_run_long_0927_llm2_episodes.jsonl: 28 episodes, 26 Route 1, 1 Viridian City, 1 Pallet Town; DEFAULT_DECISION_MODE=jev at cron_runner.py:115-117.",
+    "local_gates": "python3 -m compileall -q cron_runner.py src tests PASS; git diff --check PASS",
+    "board_census": "tasks.jsonl 329 physical lines, 329 unique ids, no duplicate ids",
+    "head": "9652a99e0db4e467da94ecd3e49671fc0ad24e33",
+    "remote_parity": "HEAD == origin/main; ahead 0, behind 0",
+    "ci_health": "recent 3/3 GitHub Actions runs completed successfully, including exact HEAD"
+  },
+  "created_at": "2026-10-29T16:30:39Z"
+}
