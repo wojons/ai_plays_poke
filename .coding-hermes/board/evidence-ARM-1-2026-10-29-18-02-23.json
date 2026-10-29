@@ -1,0 +1,26 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-29-18-02-23",
+  "selected": "ARM-1",
+  "status": "pending",
+  "owner_decision": "absent",
+  "acceptance_probe": {
+    "command": "jq -e 'select(type==\"object\" and .id==\"ARM-1\") | ((.foreman_note // \"\") + \" \" + (.blocked_reason // \"\")) | test(\"decision.*(keep jev|replace|disable|decided|RESOLVED)\"; \"i\")' .coding-hermes/board/tasks.jsonl",
+    "exit_code": 0,
+    "result": "The row's current blocked_reason contains the owner decision requirement; no owner decision is recorded."
+  },
+  "owner_evidence": "cron_logs/long_run_long_0927_llm2_episodes.jsonl: 28 episodes, 26 Route 1, 1 Viridian City, 1 Pallet Town",
+  "local_gates": [
+    {"command":"python3 -m compileall -q cron_runner.py src tests","exit_code":0},
+    {"command":"git diff --check","exit_code":0},
+    {"command":"jq -s 'length' .coding-hermes/board/tasks.jsonl","exit_code":0,"result":"329"}
+  ],
+  "ci": {
+    "repository":"wojons/ai_plays_poke",
+    "runs_checked":3,
+    "terminal_success":3,
+    "exact_head":"01150571d89878b97f3ea5ade14747cfabb002d7",
+    "exact_head_success":true,
+    "run":40915388991
+  },
+  "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold."
+}
