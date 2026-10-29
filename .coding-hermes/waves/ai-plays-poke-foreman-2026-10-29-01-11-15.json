@@ -1,0 +1,31 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-29-01-11-15",
+  "project": "ai_plays_poke",
+  "mode": "verification-only-owner-gated",
+  "wave_budget": 12,
+  "wave_size": 0,
+  "selected": ["ARM-1"],
+  "census": {
+    "pending": 11,
+    "complete": 318,
+    "total": 329,
+    "dispatchable_candidates": ["DOC-21", "DOC-22", "DF-AIPP-18", "DF-AIPP-20", "PERF-7", "INT-GL-2", "INT-CI-1"],
+    "blocked_by_dependencies": ["RELEASE-003", "DOC-23", "DF-AIPP-21"]
+  },
+  "workers": [],
+  "blocker": {
+    "task_id": "ARM-1",
+    "reason": "The selected highest-priority row is explicitly an owner decision, not an implementation task; the owner decision remains absent.",
+    "evidence": "cron_logs/long_run_long_0927_llm2_episodes.jsonl: 28 episodes, 26 Route 1, 1 Viridian City, 1 Pallet Town; ARM-1 acceptance command still exits 1",
+    "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold."
+  },
+  "gates": {
+    "compileall": "PASS",
+    "git_diff_check": "PASS",
+    "remote_parity_before_closeout": "0 ahead / 0 behind",
+    "ci_recent": "3/3 terminal success at current HEAD"
+  },
+  "trace": "ch:trace row=ARM-1 spec=.coding-hermes/board/tasks.jsonl#acceptance wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-10-29-01-11-15.json#selected test=none:owner-gated doc=none:owner-decision evidence=cron_logs/long_run_long_0927_llm2_episodes.jsonl+acceptance-command witness=live:git-head+episode-jsonl+github:current-head-ci verdict=none:not-applicable commit=none:owner-block memory=/project/ai-plays-poke/status",
+  "closeout": "STATUS: PENDING TIER: T3 EVIDENCE: ARM-1 remains pending because the owner decision is absent; no worker authorized.",
+  "created_at": "2026-10-29T01:15:35Z"
+}
