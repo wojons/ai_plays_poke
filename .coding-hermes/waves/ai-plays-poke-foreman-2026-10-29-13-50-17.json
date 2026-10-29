@@ -1,0 +1,15 @@
+{
+  "tick": "ai-plays-poke-foreman-2026-10-29-13-50-17",
+  "project": "ai_plays_poke",
+  "mode": "verification-only-owner-gated",
+  "wave_budget": 12,
+  "wave_size": 0,
+  "selected": ["ARM-1"],
+  "workers": [],
+  "blocker": {
+    "task_id": "ARM-1",
+    "reason": "The highest-priority pending row is an owner decision, not an implementation task; no owner decision is recorded.",
+    "next_owner_action": "Choose replace jev with system2, keep jev with side-by-side reporting and mitigation, or hold."
+  },
+  "created_at": "2026-10-29T13:55:46Z"
+}
