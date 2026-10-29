@@ -436,6 +436,55 @@ class TestMapDBTileWalkability:
         assert db.tile_walkability(0, -1, 4) is None
 
 
+class TestMapDBTileClassificationCache:
+    def test_walkability_memoizes_false_result(self) -> None:
+        db = _MapDB.from_bytes(_make_rom_bytes())
+
+        with patch.object(db, "_compute_walkability", return_value=False) as compute:
+            assert db.tile_walkability(0, 2, 3) is False
+            assert db.tile_walkability(0, 2, 3) is False
+
+        compute.assert_called_once_with(0, 2, 3)
+        assert db._walkability_cache == {0: {(2, 3): False}}
+
+    def test_terrain_memoizes_classification(self) -> None:
+        db = _MapDB.from_bytes(_make_pallet_terrain_rom())
+
+        with patch.object(db, "_compute_terrain", wraps=db._compute_terrain) as compute:
+            assert db.tile_terrain(0, 5, 6) == "floor"
+            assert db.tile_terrain(0, 5, 6) == "floor"
+
+        compute.assert_called_once_with(0, 5, 6)
+        assert db._terrain_cache == {0: {(5, 6): "floor"}}
+
+    def test_none_results_do_not_grow_per_map_caches(self) -> None:
+        db = _MapDB.from_bytes(_make_pallet_terrain_rom())
+
+        for tile_x in range(100):
+            assert db.tile_walkability(999, tile_x, 0) is None
+            assert db.tile_terrain(999, tile_x, 0) is None
+
+        assert db._walkability_cache == {}
+        assert db._terrain_cache == {}
+
+    def test_caches_are_partitioned_by_map(self) -> None:
+        db = _MapDB.from_bytes(_make_rom_bytes())
+
+        with patch.object(
+            db, "_compute_walkability", side_effect=(True, False)
+        ) as compute:
+            assert db.tile_walkability(1, 2, 3) is True
+            assert db.tile_walkability(2, 2, 3) is False
+            assert db.tile_walkability(1, 2, 3) is True
+            assert db.tile_walkability(2, 2, 3) is False
+
+        assert compute.call_count == 2
+        assert db._walkability_cache == {
+            1: {(2, 3): True},
+            2: {(2, 3): False},
+        }
+
+
 # ── RAMReader tests (mock emulator + mock _MapDB) ──
 
 
