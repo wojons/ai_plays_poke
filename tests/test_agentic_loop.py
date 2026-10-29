@@ -405,7 +405,6 @@ def test_tool_cap_is_hard_and_mode_is_explicitly_opt_in() -> None:
     parser = cron_runner._main_parser()
     assert parser.parse_args([]).decision_mode is None
     assert parser.parse_args(["--decision-mode", "agentic"]).decision_mode == "agentic"
-    assert cron_runner.DEFAULT_DECISION_MODE == "jev"
     assert cron_runner.decision_mode_family("agentic") == cron_runner.MODE_SYSTEM2
 
 

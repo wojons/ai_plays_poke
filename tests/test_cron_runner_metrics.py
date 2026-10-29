@@ -1182,8 +1182,8 @@ class TestMainLoadsDotenvBeforePreflight:
                 -1
             ],
         )
-        monkeypatch.setattr("sys.argv", ["cron_runner.py"])
-        cr._main_parser()  # real parser: main() must consume default argv
+        monkeypatch.setattr("sys.argv", ["cron_runner.py", "--decision-mode", "jev"])
+        cr._main_parser()  # real parser: main() must consume the explicit mode
         with pytest.raises(SystemExit):
             cr.main()
         assert calls == ["dotenv", "preflight"], calls

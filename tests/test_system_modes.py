@@ -46,8 +46,7 @@ def test_m6_legacy_spellings_keep_their_stamped_value(monkeypatch):
     # The value written into every existing run log must not move.
     assert cron_runner.resolve_decision_mode("jev") == "jev"
     assert cron_runner.resolve_decision_mode("llm") == "llm"
-    assert cron_runner.resolve_decision_mode() == "jev"
-    assert cron_runner.DEFAULT_DECISION_MODE == "jev"
+    assert cron_runner.resolve_decision_mode() is None
 
 
 def test_m6_family_is_where_branching_reads():
@@ -70,8 +69,8 @@ def test_unknown_mode_is_ignored_not_guessed(monkeypatch):
     monkeypatch.delenv("AIPP_DECISION_MODE", raising=False)
     monkeypatch.delenv("CRON_DECISION_MODE", raising=False)
     assert cron_runner.normalize_decision_mode("nonsense") is None
-    # An unknown value falls through to the default rather than being accepted.
-    assert cron_runner.resolve_decision_mode("nonsense") == "jev"
+    # An unknown value is never guessed into a valid runtime mode.
+    assert cron_runner.resolve_decision_mode("nonsense") is None
 
 
 # ─────────────────────────────────────────── M2: system2 never calls the tier

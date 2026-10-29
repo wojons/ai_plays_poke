@@ -64,6 +64,7 @@ USE_RAM_READER = True  # True = RAM-based state reader (instant, free), False = 
 # out of credit.
 DEFAULT_CONTROLLER_MODEL = "openai/gpt-5.6-luna"
 CONTROLLER_MODEL_ENV_VARS = ("CRON_CONTROLLER_MODEL", "POKE_CONTROLLER_MODEL")
+TEACHER_MODEL_ENV_VARS = ("AIPP_TEACHER_MODEL", "CRON_TEACHER_MODEL")
 CONTROLLER_MAX_TOKENS = 300  # controller completion budget
 CONTROLLER_RETRY_TOKEN_BUMP = 100  # GAP-052(c): extra budget on the single parse retry
 
@@ -96,6 +97,25 @@ def resolve_controller_model(flag_value: str | None = None) -> str:
     return override[0] if override is not None else DEFAULT_CONTROLLER_MODEL
 
 
+def resolve_teacher_model(
+    flag_value: str | None = None,
+    controller_model: str | None = None,
+) -> str:
+    """Resolve the hybrid teacher model independently from the controller.
+
+    An explicit teacher choice wins in flag > env order. When no teacher is
+    selected, the already-resolved controller model is reused so existing
+    invocations preserve their model choice without coupling the two settings.
+    """
+    if flag_value is not None and flag_value.strip():
+        return flag_value.strip()
+    for name in TEACHER_MODEL_ENV_VARS:
+        value = os.environ.get(name)
+        if value is not None and value.strip():
+            return value.strip()
+    return controller_model or resolve_controller_model()
+
+
 # ── Decision mode: System One, System Two, or both ──────────────────
 # The three families are first-class and selectable. The historical spellings
 # keep their exact meaning, because every committed baseline, artifact and run
@@ -112,9 +132,9 @@ def resolve_controller_model(flag_value: str | None = None) -> str:
 # The handoff policy (--handoff ...) selects WHICH trigger families may hand
 # back. "off" is exactly system1 — one mechanism, not two.
 #
-# Resolved flag > env > default, and stamped into every decision row so a run's
-# mode AND its policy are recoverable from its log alone.
-DEFAULT_DECISION_MODE = "jev"  # historical spelling; canonicalises to system1+system2
+# Resolved flag > env, and stamped into every decision row so a run's mode AND
+# its policy are recoverable from its log alone. There is deliberately no
+# fallback arm: an operator must choose the experiment being run.
 DECISION_MODE_ENV_VARS = ("AIPP_DECISION_MODE", "CRON_DECISION_MODE")
 
 MODE_SYSTEM1 = "system1"
@@ -182,8 +202,8 @@ def _model_tools_enabled(mode: str | None) -> bool:
     return decision_mode_family(mode) == MODE_SYSTEM2
 
 
-def resolve_decision_mode(flag_value: str | None = None) -> str:
-    """Resolve the decision mode SPELLING: flag > env > ``DEFAULT_DECISION_MODE``.
+def resolve_decision_mode(flag_value: str | None = None) -> str | None:
+    """Resolve the decision mode SPELLING: flag > env, with no implicit mode.
 
     Returns the spelling as given, so ``--decision-mode jev`` still stamps
     ``decision_mode="jev"`` exactly as every existing run log does. Use
@@ -194,7 +214,7 @@ def resolve_decision_mode(flag_value: str | None = None) -> str:
         normalised = normalize_decision_mode(candidate)
         if normalised is not None:
             return normalised
-    return normalize_decision_mode(DEFAULT_DECISION_MODE) or DEFAULT_DECISION_MODE
+    return None
 
 
 # ── Handoff policy: WHICH triggers may hand back to System Two ───────
@@ -310,7 +330,7 @@ def handoff_allowed(
 
 # Module-level so the run loop and the row writers can stamp it; main()
 # re-resolves from the flags once the argument parser has run.
-DECISION_MODE = resolve_decision_mode()
+DECISION_MODE: str | None = resolve_decision_mode()
 HANDOFF_POLICY = build_handoff_policy()
 
 # Re-escalation policy: a concrete missing-information class always gets an
@@ -555,6 +575,7 @@ def _dry_run_summary(
     *,
     skip_key_check: bool = False,
     controller_model: str | None = None,
+    teacher_model: str | None = None,
 ) -> int:
     """Validate ROM/boot-state paths and print the pipeline config summary.
 
@@ -565,9 +586,9 @@ def _dry_run_summary(
     the emulator and never spends an LLM completion; the only network I/O is
     the key-liveness GET, which ``skip_key_check`` turns off entirely.
 
-    ``controller_model`` is the raw ``--controller-model`` value (GAP-052); the
-    reported model is the resolved one, and the line stays byte-identical to
-    the pre-GAP-052 text when neither flag nor env supplies an override.
+    ``controller_model`` and ``teacher_model`` are the raw CLI values. The
+    summary reports both effective models so an offline validation proves the
+    same per-mode selection the runtime will stamp into its log.
     """
     _load_dotenv_stdlib()
     rom = rom_arg if rom_arg is not None else ROM  # resolved ROM (GAP-033 --rom)
@@ -609,6 +630,7 @@ def _dry_run_summary(
     # no-override form is byte-identical to the pre-GAP-052 line.
     _ctrl_override = _controller_model_override(controller_model)
     _ctrl_model = resolve_controller_model(controller_model)
+    _teacher_model = resolve_teacher_model(teacher_model, _ctrl_model)
     if _ctrl_override is None:
         _ctrl_seg = f"controller={_ctrl_model} (OpenRouter)"
     else:
@@ -622,6 +644,7 @@ def _dry_run_summary(
         "set, else OpenRouter) · cartographer=google/gemma-3-12b-it (only when "
         "USE_RAM_READER=False)"
     )
+    safe_print(f"  Teacher model:  {_teacher_model}")
     key_states = " · ".join(
         f"{k}={'set' if os.environ.get(k) else 'not set'}"
         for k in ("OPENROUTER_API_KEY", "DEEPSEEK_API_KEY", "OPENAI_API_KEY")
@@ -659,6 +682,7 @@ def _dry_run_precheck(argv: list[str] | None = None) -> None:
     parser.add_argument("--boot-state", default=None)
     parser.add_argument("--rom", default=None)
     parser.add_argument("--controller-model", default=None)
+    parser.add_argument("--teacher-model", default=None)
     try:
         args, _ = parser.parse_known_args(argv)
     except SystemExit:
@@ -673,6 +697,7 @@ def _dry_run_precheck(argv: list[str] | None = None) -> None:
             args.rom,
             skip_key_check=args.skip_key_check,
             controller_model=args.controller_model,
+            teacher_model=args.teacher_model,
         )
     )
 
@@ -5242,6 +5267,9 @@ def _write_autonomy_row(
     run_id: str,
     autonomy: dict[str, Any],
     teacher: dict[str, int] | None = None,
+    *,
+    controller_model: str | None = None,
+    teacher_model: str | None = None,
 ) -> dict[str, Any]:
     """Append the JEV-1 autonomy block as one JSON line to the run log.
 
@@ -5277,6 +5305,8 @@ def _write_autonomy_row(
         # alone — not only from the command line that produced it.
         "decision_mode": DECISION_MODE,
         "decision_mode_family": current_mode_family(),
+        "controller_model": controller_model,
+        "teacher_model": teacher_model,
         # S7 BENCH-PAR: the run summary carries the same tool-surface fields as
         # every decision row, so benchmark consumers need not infer the surface
         # from a mode spelling or silently compare unlike logs.
@@ -7423,6 +7453,15 @@ def _main_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--teacher-model",
+        default=None,
+        help=(
+            "Model id for the reasoning teacher in system1+system2/jev mode. "
+            "Overrides AIPP_TEACHER_MODEL / CRON_TEACHER_MODEL; when unset, "
+            "inherits the resolved controller model."
+        ),
+    )
+    parser.add_argument(
         "--decision-mode",
         default=None,
         choices=list(DECISION_MODES),
@@ -7433,9 +7472,10 @@ def _main_parser() -> argparse.ArgumentParser:
             "verified model-tool surface; the fast tier is never called. Every "
             "decision row stamps whether tools were enabled and how many calls "
             "ran. JEV/hybrid never enables this surface. 'system1+system2' "
-            "(alias 'jev', the default): the fast tier decides and hands back "
+            "(alias 'jev'): the fast tier decides and hands back "
             "to the reasoning teacher when a trigger fires and --handoff allows "
-            "it. Overrides the AIPP_DECISION_MODE / CRON_DECISION_MODE env vars."
+            "it. Required via this flag or AIPP_DECISION_MODE / "
+            "CRON_DECISION_MODE; there is no implicit default."
         ),
     )
     parser.add_argument(
@@ -7514,8 +7554,11 @@ def main() -> None:
     CYCLES = max(1, args.cycles)
     run_id = args.run_id or datetime.now().strftime("%Y%m%d_%H%M%S")
     log_path = LOG_DIR / f"run_{run_id}.jsonl"
+    decision_mode = DECISION_MODE
+    if decision_mode is None:  # defensive: _main_parse_and_dry_run refuses this
+        raise RuntimeError("decision mode was not resolved")
     preflight_row = _run_jev_preflight(
-        decision_mode=DECISION_MODE,
+        decision_mode=decision_mode,
         skip_preflight=args.skip_preflight,
         current_run_id=run_id,
         current_log_path=log_path,
@@ -7537,9 +7580,17 @@ def _main_parse_and_dry_run():
     global DECISION_MODE, HANDOFF_POLICY
     parser = _main_parser()
     args = parser.parse_args()
-    # Decision mode (flag > env > default). Stamped into every decision row,
+    # Decision mode (flag > env, no default). Stamped into every decision row,
     # so a log alone reveals whether a run was fast-tier or pure-LLM.
-    DECISION_MODE = resolve_decision_mode(args.decision_mode)
+    resolved_mode = resolve_decision_mode(args.decision_mode)
+    if resolved_mode is None:
+        choices = ", ".join(DECISION_MODES)
+        safe_print(
+            "[ERROR] decision mode is required; choose --decision-mode from "
+            f"{choices} or set AIPP_DECISION_MODE / CRON_DECISION_MODE"
+        )
+        raise SystemExit(2)
+    DECISION_MODE = resolved_mode
     HANDOFF_POLICY = build_handoff_policy(
         handoff=args.handoff,
         confidence=args.handoff_confidence,
@@ -7562,6 +7613,7 @@ def _main_parse_and_dry_run():
             args.rom,
             skip_key_check=args.skip_key_check,
             controller_model=args.controller_model,
+            teacher_model=args.teacher_model,
         )
         if dry_run_status:
             raise SystemExit(dry_run_status)
@@ -7634,7 +7686,9 @@ def _main_runtime_setup(args):
     # api.deepseek.com through the same client (src/core/ai_client.py).
     resolved_model = resolve_controller_model(args.controller_model)
     R.controller_model = resolved_model
+    R.teacher_model = resolve_teacher_model(args.teacher_model, resolved_model)
     safe_print(f"[{run_id}] Controller model: {R.controller_model}")
+    safe_print(f"[{run_id}] Teacher model: {R.teacher_model}")
 
     # A-mash batch constants — also used by the main-loop name_entry
     # handler, so they live OUTSIDE the guarded intro block (booting from
@@ -8628,6 +8682,8 @@ def _overworld_cycle(S, cycle, header, t0):
         # historical value so existing logs stay comparable (M6);
         # this field is the branchable one.
         "decision_mode_family": current_mode_family(),
+        "controller_model": S.R.controller_model,
+        "teacher_model": S.R.teacher_model,
         "agentic_tools_enabled": _model_tools_enabled(DECISION_MODE),
         "agentic_tool_calls": int(decision.get("agentic_tool_calls", 0)),
         "context_evidence": S._agent_context.evidence(),
@@ -8955,7 +9011,7 @@ def _ow_jev_attempt(S, header):
             S._same_tile_count == 1 if S._last_direction in _DIR_ROTATION else None
         ),
         teacher_api_client=S.R.controller_client,
-        teacher_model=S.R.controller_model,
+        teacher_model=S.R.teacher_model,
         teacher_memory=S._boot_memory or None,
         teacher_log_file=S.log_file,
         teacher_cycle=header["cycle"] + 1,
@@ -9915,7 +9971,14 @@ def _finalize_run(S):
     # / escalated / autonomy_ratio, written with the same idiom as every
     # other row. Kept out of `results` so the legacy "Done. N actions."
     # count and the DuckBrain ladder/cycles stay byte-identical.
-    _write_autonomy_row(log_file, S.run_id, autonomy, teacher_summary)
+    _write_autonomy_row(
+        log_file,
+        S.run_id,
+        autonomy,
+        teacher_summary,
+        controller_model=S.R.controller_model,
+        teacher_model=S.R.teacher_model,
+    )
     _write_degradation_row(log_file, S.run_id, autonomy)
     log_file.close()
 
