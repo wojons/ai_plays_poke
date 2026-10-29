@@ -1,0 +1,520 @@
+UserWarning: Using SDL2 binaries from pysdl2-dll 2.32.10
+[df21_accept1] JEV preflight passed (OPENROUTER_API_KEY)
+[df21_accept1] Booting from checkpoint data/boot.state — skipping intro bypass
+[df21_accept1] Starting run with RAM reader pipeline...
+[df21_accept1] Frame cache: 0 known frames (0 total references) — 1000 max
+[df21_accept1] Controller model: openai/gpt-5.6-luna
+  [MEM] boot injection: 1421 chars across 14 block markers
+  [MEM-WORLD] cycle 1 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 1 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [MEM-WORLD] wrote /world/map/0
+  [MEM-WORLD] wrote /world/object/0/3_2
+  [STARTER-PICKED] party_count=1 species_hint=Charmander
+  [NAV-MEM-BLOCK] tile=0:6:6 suppressing UP (current_spatial_collision_truth)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+📡 API: openai/gpt-5.6-luna | 37038ms | In: 3084 | Out: 423 | $0.001124 | Success: True
+  [JEV] jev LEFT | projection 3409 chars | escalated=True (insufficient_state (0.41) missing=none)
+  [1/60] overworld | jev x6 | 37.7s
+  [MEM-WORLD] cycle 2 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 2 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [MEM-WORLD] wrote /world/object/0/2_2
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 1 prior turns
+📡 API: openai/gpt-5.6-luna | 5316ms | In: 3060 | Out: 393 | $0.001084 | Success: True
+  [JEV] jev UP | projection 3516 chars | escalated=True (low_confidence+ambiguous (0.45/0.56))
+  [2/60] overworld | jev x6 | 6.0s
+  [NAV-HOLD] Pallet Town -> Red's House 1F | block=DOWN | regression=False
+  [MEM-WORLD] cycle 3 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 3 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [MEM-WORLD] wrote /world/map/37
+  [MEM-WORLD] wrote /world/path/Pallet-Town->Red-s-House-1F
+  [STATE] Changed → overworld — recovery counter reset
+  [NAV-MEM-BLOCK] tile=37:5:5 suppressing LEFT (current_spatial_collision_truth)
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0
+  [CTX] teacher request carried 2 prior turns
+📡 API: openai/gpt-5.6-luna | 4227ms | In: 3101 | Out: 311 | $0.000993 | Success: True
+  [JEV] jev UP | projection 4022 chars | escalated=True (insufficient_state (0.48) missing=none)
+  [3/60] overworld | jev x6 | 4.9s
+  [MEM-WORLD] cycle 4 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 4 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0
+  [CTX] teacher request carried 3 prior turns
+📡 API: openai/gpt-5.6-luna | 7205ms | In: 3341 | Out: 539 | $0.001315 | Success: True
+  [JEV] jev RIGHT | projection 4050 chars | escalated=True (insufficient_state (0.46) missing=none)
+  [4/60] overworld | jev x6 | 7.8s
+  [MEM-WORLD] cycle 5 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 5 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [NAV-MEM-BLOCK] tile=37:3:6 suppressing UP (current_spatial_collision_truth)
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0
+  [CTX] teacher request carried 4 prior turns
+📡 API: openai/gpt-5.6-luna | 4653ms | In: 3102 | Out: 331 | $0.001018 | Success: True
+  [JEV] jev RIGHT | projection 4097 chars | escalated=True (insufficient_state (0.48) missing=none)
+  [5/60] overworld | jev x6 | 5.2s
+  [MEM-WORLD] cycle 6 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 6 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [MEM-WORLD] wrote /world/object/37/1_3
+  [STATE] Changed → overworld — recovery counter reset
+  [NAV-MEM-BLOCK] tile=37:4:6 suppressing UP (current_spatial_collision_truth)
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0
+  [CTX] teacher request carried 5 prior turns
+📡 API: openai/gpt-5.6-luna | 6458ms | In: 3415 | Out: 495 | $0.001277 | Success: True
+  [JEV] jev RIGHT | projection 4117 chars | escalated=True (low_confidence+ambiguous (0.39/0.62))
+  [6/60] overworld | jev x6 | 7.1s
+  [MEM-WORLD] cycle 7 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 7 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 9698ms | In: 3392 | Out: 768 | $0.001600 | Success: True
+  [JEV] jev RIGHT | projection 4117 chars | escalated=True (low_confidence+ambiguous (0.43/0.65))
+  [7/60] overworld | jev x6 | 10.4s
+  [MEM-WORLD] cycle 8 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 8 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 5092ms | In: 3303 | Out: 408 | $0.001150 | Success: True
+  [JEV] jev RIGHT | projection 4068 chars | escalated=True (insufficient_state (0.48) missing=none)
+  [8/60] overworld | jev x6 | 5.7s
+  [MEM-WORLD] cycle 9 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [NAV-MEM] /world/path/Red-s-House-1F->Red-s-House-2F (collision_grid_path) -> ['UP'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 8209ms | In: 3486 | Out: 646 | $0.001472 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_3
+  [NAV-MEM] memory-nav /world/path/Red-s-House-1F->Red-s-House-2F | no LLM call | cited /world/path/Red-s-House-1F->Red-s-House-2F
+  [9/60] overworld | memory_nav x6 | 8.8s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 10 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [NAV-MEM] /world/path/Red-s-House-1F->Red-s-House-2F (collision_grid_path) -> ['UP'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 7995ms | In: 3503 | Out: 547 | $0.001357 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_2, /world/object/37/3_1
+  [NAV-MEM] memory-nav /world/path/Red-s-House-1F->Red-s-House-2F | no LLM call | cited /world/path/Red-s-House-1F->Red-s-House-2F
+  [10/60] overworld | memory_nav x6 | 8.6s
+  [CKPT] Saved state to slot 1
+  [MEM-WORLD] consumed 3 teacher target(s); matched 1
+  [MEM-WORLD] cycle 11 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [NAV-MEM] /world/path/Red-s-House-1F->Red-s-House-2F (collision_grid_path) -> ['UP'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 5214ms | In: 3280 | Out: 425 | $0.001166 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_2
+  [NAV-MEM] memory-nav /world/path/Red-s-House-1F->Red-s-House-2F | no LLM call | cited /world/path/Red-s-House-1F->Red-s-House-2F
+  [11/60] overworld | memory_nav x6 | 5.8s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 12 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [MEM-WORLD] wrote /world/object/37/3_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/object/37/3_0
+  [NAV-MEM] /world/path/Red-s-House-1F->Red-s-House-2F (collision_grid_path) -> ['UP'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6326ms | In: 3512 | Out: 490 | $0.001290 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_1
+  [NAV-MEM] memory-nav /world/path/Red-s-House-1F->Red-s-House-2F | no LLM call | cited /world/path/Red-s-House-1F->Red-s-House-2F
+  [12/60] overworld | memory_nav x6 | 6.9s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 13 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0
+  [NAV-MEM] /world/path/Red-s-House-1F->Red-s-House-2F (collision_grid_path) -> ['UP'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 4026ms | In: 3319 | Out: 290 | $0.001012 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_1
+  [NAV-MEM] memory-nav /world/path/Red-s-House-1F->Red-s-House-2F | no LLM call | cited /world/path/Red-s-House-1F->Red-s-House-2F
+  [13/60] overworld | memory_nav x6 | 4.7s
+  [NAV-HOLD] Red's House 1F -> Red's House 2F | block=DOWN | regression=False
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 14 retrieved 6 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0, /world/map/37
+  [MEM-WORLD] wrote /world/map/38
+  [MEM-WORLD] wrote /world/object/38/2_0
+  [MEM-WORLD] wrote /world/path/Red-s-House-1F->Red-s-House-2F
+  [STATE] Changed → overworld — recovery counter reset
+  [NAV-MEM-BLOCK] tile=38:7:1 suppressing UP (current_spatial_collision_truth)
+  [MEM-WORLD] 6 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0, /world/map/37
+  [NAV-MEM] no proven route (collision_blocked_route_step) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6537ms | In: 3287 | Out: 552 | $0.001320 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_0
+  [JEV] jev UP | projection 3796 chars | escalated=True (insufficient_state (0.49) missing=map_topology)
+  [NAV-MEM-BLOCK] final plan ['UP']→['RIGHT'] at (38, 7, 1)
+  [14/60] overworld | jev x6 | 7.2s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 15 retrieved 5 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (collision_blocked_route_step) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 8286ms | In: 3422 | Out: 683 | $0.001504 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_0
+  [JEV] jev DOWN | projection 3583 chars | escalated=True (failure: last action changed nothing)
+  [MODEL-RECROSS] blocked DOWN toward Red's House 1F | plan=[]
+  [15/60] overworld | jev x6 | 8.9s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 16 retrieved 5 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [CACHE-HIT] frame d14506d8 → ref 794c25fc4556 (seen 2x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (collision_blocked_route_step) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 7631ms | In: 3258 | Out: 544 | $0.001304 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_0
+  [JEV] jev UP | projection 3644 chars | escalated=True (failure: last action changed nothing)
+  [NAV-MEM-BLOCK] final plan ['UP']→['RIGHT'] at (38, 7, 1)
+  [16/60] overworld | jev x6 | 8.3s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 17 retrieved 5 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [CACHE-HIT] frame d14506d8 → ref 794c25fc4556 (seen 3x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (collision_blocked_route_step) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6599ms | In: 3249 | Out: 477 | $0.001222 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_0
+  [JEV] jev DOWN | projection 3583 chars | escalated=True (failure: last action changed nothing)
+  [MODEL-RECROSS] blocked DOWN toward Red's House 1F | plan=[]
+  [17/60] overworld | jev x6 | 7.2s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 18 retrieved 5 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [CACHE-HIT] frame d14506d8 → ref 794c25fc4556 (seen 4x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (collision_blocked_route_step) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 8650ms | In: 3209 | Out: 663 | $0.001437 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_0
+  [JEV] jev UP | projection 3644 chars | escalated=True (failure: last action changed nothing)
+  [NAV-MEM-BLOCK] final plan ['UP']→['RIGHT'] at (38, 7, 1)
+  [WARN] Direction-locking detected: RIGHT x3
+  [18/60] overworld | jev x6 | 9.4s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 19 retrieved 5 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [CACHE-HIT] frame d14506d8 → ref 794c25fc4556 (seen 5x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (collision_blocked_route_step) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6399ms | In: 3202 | Out: 492 | $0.001231 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_0
+  [JEV] jev UP | projection 3583 chars | escalated=True (failure: last action changed nothing)
+  [NAV-MEM-BLOCK] final plan ['UP']→['RIGHT'] at (38, 7, 1)
+  [19/60] overworld | jev x6 | 7.1s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 20 retrieved 5 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [RECOVER] Level 0: alternate_direction — rotated from RIGHT → DOWN (direction-locked (RIGHT x4)) [attempt 1/5]
+  [CACHE-HIT] frame d14506d8 → ref 794c25fc4556 (seen 6x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (collision_blocked_route_step) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6367ms | In: 3309 | Out: 472 | $0.001228 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_0
+  [JEV] jev DOWN | projection 3638 chars | escalated=True (failure: last action changed nothing)
+  [MODEL-RECROSS] blocked DOWN toward Red's House 1F | plan=[]
+  [20/60] overworld | jev x6 | 7.1s
+  [CKPT] Saved state to slot 3
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 21 retrieved 5 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [MEM-WORLD] wrote /world/object/38/3_3
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (no_proven_route_to_unvisited_map) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 5117ms | In: 3173 | Out: 453 | $0.001178 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_2
+  [JEV] jev UP | projection 3651 chars | escalated=True (insufficient_state (0.33) missing=map_topology)
+  [21/60] overworld | jev x6 | 5.8s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 22 retrieved 6 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_3, /world/object/38/3_0, /world/object/38/1_0
+  [MEM-WORLD] 6 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_3, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (no_proven_route_to_unvisited_map) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 7191ms | In: 3358 | Out: 456 | $0.001219 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_2
+  [JEV] jev UP | projection 3671 chars | escalated=True (insufficient_state (0.44) missing=map_topology)
+  [22/60] overworld | jev x6 | 7.9s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 23 retrieved 6 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_3, /world/object/38/3_0, /world/object/38/1_0
+  [MEM-WORLD] wrote /world/object/38/3_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 6 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_3, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (no_proven_route_to_unvisited_map) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 7839ms | In: 3241 | Out: 665 | $0.001446 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_1
+  [JEV] jev UP | projection 3684 chars | escalated=True (insufficient_state (0.46) missing=map_topology)
+  [23/60] overworld | jev x6 | 8.5s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 24 retrieved 6 fact(s): /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_3, /world/object/38/3_0, /world/object/38/1_0
+  [MEM-WORLD] 6 facts -> JEV projection: /world/map/38, /world/path/Red-s-House-2F->Red-s-House-1F, /world/object/38/2_0, /world/object/38/3_3, /world/object/38/3_0, /world/object/38/1_0
+  [NAV-MEM] no proven route (no_proven_route_to_unvisited_map) - keeping the existing path
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 5895ms | In: 3261 | Out: 501 | $0.001253 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/38, /world/object/38/4_1
+  [JEV] jev DOWN | projection 3690 chars | escalated=True (insufficient_state (0.45) missing=map_topology)
+  [NAV-HOLD] blocked DOWN -> UP | outcome=applied | plan=['UP']
+  [24/60] overworld | jev x6 | 6.6s
+  [NAV-HOLD] Red's House 2F -> Red's House 1F | block=None | regression=True
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 25 retrieved 9 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0, /world/map/38
+  [MEM-WORLD] wrote /world/object/37/2_0
+  [MEM-WORLD] wrote /world/path/Red-s-House-2F->Red-s-House-1F
+  [STATE] Changed → overworld — recovery counter reset
+  [NAV-MEM-BLOCK] tile=37:7:1 suppressing UP (current_spatial_collision_truth)
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/1_0, /world/object/37/0_0, /world/object/37/2_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['DOWN'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6721ms | In: 3165 | Out: 590 | $0.001341 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_0
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [25/60] overworld | memory_nav x6 | 7.4s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 26 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['DOWN'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 8050ms | In: 3447 | Out: 646 | $0.001465 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_1
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [26/60] overworld | memory_nav x6 | 8.7s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 27 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['DOWN'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 4511ms | In: 3253 | Out: 377 | $0.001103 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_1
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [27/60] overworld | memory_nav x6 | 5.1s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 28 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['DOWN'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 5012ms | In: 3275 | Out: 453 | $0.001199 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_2
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [28/60] overworld | memory_nav x6 | 5.6s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 29 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['DOWN'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 5978ms | In: 3292 | Out: 474 | $0.001227 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_2
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [29/60] overworld | memory_nav x6 | 6.6s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 30 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['DOWN'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6828ms | In: 3296 | Out: 610 | $0.001391 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/4_3
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [30/60] overworld | memory_nav x6 | 7.4s
+  [CKPT] Saved state to slot 4
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 31 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['LEFT'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6243ms | In: 3333 | Out: 542 | $0.001317 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/3_4, /world/object/37/4_3
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [31/60] overworld | memory_nav x6 | 6.9s
+  [MEM-WORLD] consumed 3 teacher target(s); matched 1
+  [MEM-WORLD] cycle 32 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['LEFT'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6694ms | In: 3340 | Out: 522 | $0.001294 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/3_4
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [32/60] overworld | memory_nav x6 | 7.4s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 33 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['LEFT'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 7452ms | In: 3351 | Out: 571 | $0.001355 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/2_4
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [33/60] overworld | memory_nav x6 | 8.1s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 34 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['LEFT'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6345ms | In: 3368 | Out: 564 | $0.001350 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/2_4
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [34/60] overworld | memory_nav x6 | 7.0s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 35 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (collision_grid_path) -> ['LEFT'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 6847ms | In: 3372 | Out: 615 | $0.001412 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37, /world/object/37/1_4
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [35/60] overworld | memory_nav x6 | 7.5s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 1
+  [MEM-WORLD] cycle 36 retrieved 8 fact(s): /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [MEM-WORLD] 8 facts -> JEV projection: /world/map/37, /world/path/Red-s-House-1F->Red-s-House-2F, /world/path/Red-s-House-1F->Pallet-Town, /world/object/37/1_3, /world/object/37/3_0, /world/object/37/2_0, /world/object/37/1_0, /world/object/37/0_0
+  [NAV-MEM] /world/path/Pallet-Town->Red-s-House-1F (proven_crossing) -> ['DOWN'] | no LLM call
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 3135ms | In: 3345 | Out: 278 | $0.001003 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/37
+  [NAV-MEM] memory-nav /world/path/Pallet-Town->Red-s-House-1F | no LLM call | cited /world/path/Pallet-Town->Red-s-House-1F
+  [36/60] overworld | memory_nav x6 | 3.7s
+  [NAV-HOLD] Red's House 1F -> Pallet Town | block=None | regression=True
+  [MEM-WORLD] consumed 1 teacher target(s); matched 1
+  [MEM-WORLD] cycle 37 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 37 retrieved 5 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2, /world/map/37
+  [MEM-WORLD] wrote /world/path/Red-s-House-1F->Pallet-Town
+  [MEM-WORLD] wrote /world/map/37
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 6 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2, /world/map/37
+  [NAV-MEM] no proven route (no_proven_route_to_unvisited_map) - keeping the existing path
+  [JEV] jev UP | projection 3782 chars | escalated=False (map_topology_resolved_by_rom)
+  [MODEL-RECROSS] blocked UP toward Red's House 1F | plan=[]
+  [37/60] overworld | jev x6 | 0.3s
+  [MEM-WORLD] cycle 38 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 38 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 9496ms | In: 3362 | Out: 806 | $0.001640 | Success: True
+  [JEV] jev LEFT | projection 3649 chars | escalated=True (insufficient_state (0.45) missing=none)
+  [38/60] overworld | jev x6 | 10.2s
+  [MEM-WORLD] cycle 39 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 39 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [NAV-MEM-BLOCK] tile=0:4:6 suppressing UP (current_spatial_collision_truth)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 3690ms | In: 3250 | Out: 289 | $0.000997 | Success: True
+  [JEV] jev RIGHT | projection 3622 chars | escalated=True (insufficient_state (0.43) missing=none)
+  [39/60] overworld | jev x6 | 4.3s
+  [MEM-WORLD] cycle 40 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 40 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 5258ms | In: 3232 | Out: 370 | $0.001090 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/0, /world/object/0/2_2
+  [JEV] jev UP | projection 3626 chars | escalated=True (low_confidence+ambiguous (0.42/0.58))
+  [MODEL-RECROSS] blocked UP toward Red's House 1F | plan=[]
+  [40/60] overworld | jev x6 | 5.9s
+  [CKPT] Saved state to slot 0
+  [MEM-WORLD] consumed 2 teacher target(s); matched 2
+  [MEM-WORLD] cycle 41 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 41 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CACHE-HIT] frame 02b646b0 → ref 7c9e47b35da7 (seen 2x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 8145ms | In: 3327 | Out: 618 | $0.001407 | Success: True
+  [JEV] jev UP | projection 3654 chars | escalated=True (failure: last action changed nothing)
+  [MODEL-RECROSS] blocked UP toward Red's House 1F | plan=[]
+  [41/60] overworld | jev x6 | 8.7s
+  [MEM-WORLD] cycle 42 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 42 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CACHE-HIT] frame 02b646b0 → ref 7c9e47b35da7 (seen 3x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 11964ms | In: 3265 | Out: 1019 | $0.001876 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/0, /world/object/0/2_2
+  [JEV] jev DOWN | projection 3693 chars | escalated=True (failure: last action changed nothing)
+  [42/60] overworld | jev x6 | 12.5s
+  [MEM-WORLD] consumed 2 teacher target(s); matched 2
+  [MEM-WORLD] cycle 43 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 43 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 5495ms | In: 3189 | Out: 361 | $0.001071 | Success: True
+  [JEV] jev UP | projection 3606 chars | escalated=True (low_confidence+ambiguous (0.39/0.61))
+  [43/60] overworld | jev x6 | 6.1s
+  [MEM-WORLD] cycle 44 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 44 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [JEV] jev UP | projection 3602 chars | escalated=False (jev_confident)
+  [MODEL-RECROSS] blocked UP toward Red's House 1F | plan=[]
+  [44/60] overworld | jev x6 | 0.3s
+  [MEM-WORLD] cycle 45 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 45 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CACHE-HIT] frame f8dd2e78 → ref 5a735190905d (seen 2x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 4018ms | In: 3231 | Out: 274 | $0.000975 | Success: True
+  [JEV] jev DOWN | projection 3673 chars | escalated=True (failure: last action changed nothing)
+  [45/60] overworld | jev x6 | 4.6s
+  [MEM-WORLD] cycle 46 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 46 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 8162ms | In: 3185 | Out: 608 | $0.001367 | Success: True
+  [JEV] jev DOWN | projection 3663 chars | escalated=True (insufficient_state (0.49) missing=none)
+  [46/60] overworld | jev x6 | 8.8s
+  [MEM-WORLD] cycle 47 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 47 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [STATE] Changed → overworld — recovery counter reset
+  [NAV-MEM-BLOCK] tile=0:5:8 suppressing DOWN (current_spatial_collision_truth)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 4431ms | In: 3189 | Out: 378 | $0.001091 | Success: True
+  [JEV] jev UP | projection 3653 chars | escalated=True (low_confidence+ambiguous (0.33/0.62))
+  [47/60] overworld | jev x6 | 5.0s
+  [MEM-WORLD] cycle 48 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 48 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [STATE] Changed → overworld — recovery counter reset
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [JEV] jev UP | projection 3638 chars | escalated=False (jev_confident)
+  [48/60] overworld | jev x6 | 0.3s
+  [MEM-WORLD] cycle 49 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 49 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CACHE-HIT] frame f8dd2e78 → ref 5a735190905d (seen 3x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [JEV] jev UP | projection 3638 chars | escalated=False (jev_confident)
+  [MODEL-RECROSS] blocked UP toward Red's House 1F | plan=[]
+  [49/60] overworld | jev x6 | 0.3s
+  [MEM-WORLD] cycle 50 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 50 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CACHE-HIT] frame f8dd2e78 → ref 5a735190905d (seen 4x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 11056ms | In: 3313 | Out: 906 | $0.001750 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/0
+  [JEV] jev LEFT | projection 3707 chars | escalated=True (failure: last action changed nothing)
+  [50/60] overworld | jev x6 | 11.6s
+  [CKPT] Saved state to slot 1
+  [MEM-WORLD] consumed 1 teacher target(s); matched 1
+  [MEM-WORLD] cycle 51 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 51 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [NAV-MEM-BLOCK] tile=0:4:6 suppressing UP (current_spatial_collision_truth)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [NAV-MEM] no proven route (collision_blocked_route_step) - keeping the existing path
+  [JEV] jev DOWN | projection 3624 chars | escalated=False (map_topology_resolved_by_rom)
+  [51/60] overworld | jev x6 | 0.3s
+  [MEM-WORLD] cycle 52 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 52 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 8129ms | In: 3279 | Out: 658 | $0.001445 | Success: True
+  [MEM-WORLD] queued teacher targets for next cycle: /world/map/0, /world/object/0/2_4, /world/object/0/2_2
+  [JEV] jev RIGHT | projection 3667 chars | escalated=True (low_confidence+ambiguous (0.39/0.6))
+  [52/60] overworld | jev x6 | 8.8s
+  [MEM-WORLD] consumed 3 teacher target(s); matched 2
+  [MEM-WORLD] cycle 53 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 53 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CTX] teacher request carried 6 prior turns
+📡 API: openai/gpt-5.6-luna | 5219ms | In: 3201 | Out: 394 | $0.001113 | Success: True
+  [JEV] jev UP | projection 3626 chars | escalated=True (low_confidence+ambiguous (0.40/0.58))
+  [53/60] overworld | jev x6 | 5.9s
+  [MEM-WORLD] cycle 54 live ROM topology fact -> JEV projection
+  [MEM-WORLD] cycle 54 retrieved 4 fact(s): /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [CACHE-HIT] frame f8dd2e78 → ref 5a735190905d (seen 5x)
+  [MEM-WORLD] 5 facts -> JEV projection: /world/map/0, /world/map/0, /world/path/Pallet-Town->Red-s-House-1F, /world/object/0/3_2, /world/object/0/2_2
+  [JEV] jev UP | projection 3620 chars | escalated=False (jev_confident)
+  [MODEL-RECROSS] blocked UP toward Red's House 1F | plan=[]
+  [54/60] overworld | jev x6 | 0.5s

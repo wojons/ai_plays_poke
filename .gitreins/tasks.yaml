@@ -1817,3 +1817,12 @@ tasks:
   status: complete
   created_at: '2026-10-28T16:54:08.529294+00:00'
   completed_at: '2026-10-28T17:47:36.170934+00:00'
+- id: DF-AIPP-21
+  title: model policy prevents immediate edge recrossing
+  criteria:
+  - Implement and test a policy preventing model-authored immediate re-crossing of
+    the Pallet Town and Red House 1F edge; satisfy the board acceptance criteria and
+    preserve existing navigation behavior.
+  status: complete
+  created_at: '2026-10-29T07:12:47.152344+00:00'
+  completed_at: '2026-10-29T08:51:32.683159+00:00'
