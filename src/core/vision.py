@@ -17,6 +17,7 @@ import numpy as np
 from PIL import Image
 
 from src.core.ai_client import OpenRouterClient
+from src.core.vision_model_registry import VisionModel, configured_vision_models
 
 
 class VisionClient:
@@ -74,11 +75,12 @@ class VisionClient:
 
     _FALLBACK_RESULT: dict[str, Any] = {"screen_type": "unknown"}
 
-    def __init__(self, model: str = "openai/gpt-5.6-luna") -> None:
+    def __init__(self, model: str | None = None) -> None:
         """Initialise the vision client.
 
         Args:
-            model: OpenRouter model ID for vision analysis.
+            model: Optional explicit OpenRouter model ID. When omitted, ordered
+                entries come from AIPP_VISION_MODELS, then legacy AIPP_VISION_MODEL.
 
         Raises:
             ValueError: If ``OPENROUTER_API_KEY`` is not set in the environment.
@@ -91,11 +93,13 @@ class VisionClient:
                 "  echo 'OPENROUTER_API_KEY=sk-or-v1-...' > .env"
             )
 
-        self.model = model
+        self.models: list[VisionModel] = configured_vision_models()
+        self.model = model or self.models[0].model
         self._client = OpenRouterClient(api_key=api_key)
 
         # Cache: avoid re-calling vision for unchanged screenshots.
         self._last_hash: str | None = None
+        self._last_model: str | None = None
         self._last_result: dict[str, Any] | None = None
 
     # ── public API ──────────────────────────────────────────────────────────
@@ -132,7 +136,12 @@ class VisionClient:
             "cost_usd": float(cost) if cost is not None else None,
         }
 
-    def analyze(self, screenshot: np.ndarray, game: str = "gen1") -> dict[str, Any]:
+    def analyze(
+        self,
+        screenshot: np.ndarray,
+        game: str = "gen1",
+        model: str | None = None,
+    ) -> dict[str, Any]:
         """Analyze a game screenshot and return structured game state.
 
         Args:
@@ -149,9 +158,17 @@ class VisionClient:
             failure.
         """
         _ = game
-        # ── cache check ─────────────────────────────────────────────────
+        selected_model = model or self.models[0].model
+        if selected_model not in {entry.model for entry in self.models}:
+            raise ValueError(f"vision model is not configured: {selected_model}")
+        print(f"Analyzing screenshot with vision model: {selected_model}")
+        # Cache is model-specific: a screenshot read by another model is not reusable.
         current_hash = self._compute_hash(screenshot)
-        if current_hash == self._last_hash and self._last_result is not None:
+        if (
+            current_hash == self._last_hash
+            and selected_model == self._last_model
+            and self._last_result is not None
+        ):
             return self._last_result
 
         # ── encode screenshot as base64 PNG ──────────────────────────────
@@ -165,7 +182,7 @@ class VisionClient:
                 # chat_completion (not send_vision_request) so the provider's
                 # usage block — token counts and cost — survives the call.
                 response = self._client.chat_completion(
-                    model=self.model,
+                    model=selected_model,
                     messages=[
                         {
                             "role": "user",
@@ -190,7 +207,9 @@ class VisionClient:
                 result = self._parse_response(response_text)
                 if result is not None:
                     result["usage"] = usage
+                    result["model"] = selected_model
                     self._last_hash = current_hash
+                    self._last_model = selected_model
                     self._last_result = result
                     return result
 
