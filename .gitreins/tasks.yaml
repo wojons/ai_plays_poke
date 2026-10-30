@@ -1826,3 +1826,45 @@ tasks:
   status: complete
   created_at: '2026-10-29T07:12:47.152344+00:00'
   completed_at: '2026-10-29T08:51:32.683159+00:00'
+- id: ARM-2
+  title: Decision modes JEV/LLM/hybrid selectable at runtime with a pluggable model
+    per mode
+  criteria:
+  - 'ARM-2: AC3 per-mode model+provider selection recorded in the episode log, AC4
+    no hardcoded DEFAULT_DECISION_MODE fallback arm, AC5 focused test covers mode
+    parsing plus legacy jev/llm back-compat; traceability marker resolves row/spec/test/commit'
+  status: complete
+  created_at: '2026-10-29T21:58:06.186623+00:00'
+  completed_at: '2026-10-29T22:32:50.362938+00:00'
+- id: PERF-7
+  title: RAMReader.observe() memoize ROM tile classification (PERF-7)
+  criteria:
+  - 'PERF-7: memoized (map_id,tile) classification <=0.25ms/call vs 0.87ms baseline
+    in micro, <=2.6ms/cycle in AB, 15/15 five-state equivalence byte-identical, test_ram_reader.py
+    count green, bounded cache + invalidation note in row'
+  status: complete
+  created_at: '2026-10-29T21:58:06.835294+00:00'
+  completed_at: '2026-10-29T22:26:51.668562+00:00'
+- id: DOC-BATCH
+  title: Docs batch DOC-21 DOC-22 DF-AIPP-18 DF-AIPP-20
+  criteria:
+  - 'DOC-BATCH: docs/api/long_run.md exists with 6 env keys + --help warning; docs/api/index.md
+    rows grep 2; README boot-state paragraph cites Pallet Town map 0 tile (6,6); usage
+    skill carries dated 0.62s/cycle + no rc=0 promise; all row grep verifies pass;
+    traceability marker resolves'
+  status: complete
+  created_at: '2026-10-29T21:58:07.516903+00:00'
+  completed_at: '2026-10-29T22:12:13.198722+00:00'
+- id: VIS-MODEL-1
+  title: 'Vision model registry: ordered list config, per-run selector, structure
+    scoring, two-model e2e'
+  criteria:
+  - 'VIS-MODEL-1: AC1 tests/test_vision_model_registry.py proves ordered list of provider+model
+    pairs accepted; AC2 per-run selector chooses+records+console-prints chosen model;
+    AC3 scripts/vision_model_score.py prints STRUCTURE (non-floor) scores beside total
+    scores and lazy all-floor answer cannot rank first; AC4 tests/test_vision_model_e2e.py
+    exercises >=2 models end to end and docs/vision-model-scores.md records measured
+    results'
+  status: complete
+  created_at: '2026-10-30T20:24:36.814995+00:00'
+  completed_at: '2026-10-30T20:50:11.483372+00:00'
