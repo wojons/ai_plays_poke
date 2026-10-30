@@ -35,6 +35,20 @@ guards:
   # on both. Enforcement lives in scripts/hooks/pre-commit instead, which
   # rejects the hook_timeout fail-open, any non-benign skip, and stale runs.
   allow_skips: true
+  # INT-GL-2 (2026-10-30): .env.example is a TEMPLATE that must stay tracked —
+  # its two values are word-shaped placeholders (30 and 25 chars of the shape
+  # "xx-xx-xxxx-xxxxxxxxxx-xxx-xxxx", i.e. no high-entropy run, no live key).
+  # Its PATH, however, matches the built-in scanner's credential-store class
+  # ('(.env.*)'), which fails the secrets cell REGARDLESS of content — and by
+  # design that class is evaluated BEFORE the .gitleaks.toml allowlist ("an
+  # allowlist path may exempt content findings, but it must NOT silence the
+  # path class"), so a .gitleaks entry cannot clear it. This is the documented
+  # knob (REVIEW-GITREINS-027) and it is deliberately not silent: the pass
+  # carries "sensitive-path override applied: .env.example" in the cell's
+  # evidence. Rationale recorded on board row INT-GL-2.
+  sensitive_paths:
+    allow:
+    - .env.example
 evaluator:
   max_iterations: 100
   max_time: 60m
