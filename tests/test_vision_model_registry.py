@@ -10,6 +10,7 @@ from src.core.vision_model_registry import (
     configured_vision_models,
     parse_vision_models,
 )
+from scripts.vision_model_score import score_grids
 
 
 def test_parses_ordered_provider_model_pairs() -> None:
@@ -64,3 +65,19 @@ class _FakeOpenRouter:
 def test_rejects_invalid_registry(raw: str) -> None:
     with pytest.raises(ValueError):
         parse_vision_models(raw)
+
+
+def test_structure_score_demotes_all_floor_answer() -> None:
+    expected = ["........." for _ in range(9)]
+    expected[2] = "..B......"
+    expected[4] = "....2...."
+    all_floor = ["........." for _ in range(9)]
+    accurate = expected.copy()
+
+    lazy = score_grids(expected, all_floor)
+    careful = score_grids(expected, accurate)
+
+    assert lazy["total_score"] > 95.0
+    assert lazy["structure_score"] == 0.0
+    assert careful["structure_score"] == 100.0
+    assert careful["structure_score"] > lazy["structure_score"]

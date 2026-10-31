@@ -30,13 +30,21 @@ import tempfile
 from pathlib import Path
 from typing import Any, cast
 
-REPO = Path("/home/kara/proj-wt-cmp-grid")
+REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
 from PIL import Image  # noqa: E402
 
 from src.core.ram_reader import RAMReader  # noqa: E402
+from src.core.vision_grid import (  # noqa: E402
+    CELL_PIXELS as CELL,
+    GRID_COLS as COLS,
+    GRID_ROWS as ROWS,
+    GRID_ORIGIN_X,
+    GRID_ORIGIN_Y,
+    PLAYER_CELL,
+)
 from vision_blueprint_probe import parse_json  # noqa: E402
 
 ROM = Path(
@@ -44,9 +52,6 @@ ROM = Path(
     "(SGB Enhanced).gb"
 )
 PROMPT = REPO / "prompts/exploration/vision_map_blueprint.md"
-COLS, ROWS = 10, 9  # the screen in game cells: 160/16 x 144/16
-CELL = 16  # one game cell in pixels
-PLAYER_CELL = (4, 3)  # where the player sits on screen, measured from the sprite box
 
 
 # ── live state ──
@@ -132,23 +137,14 @@ def vision_grid(png: Path) -> tuple[list[str], dict[str, Any]]:
 
 
 def pixel_mask(png: Path) -> list[str]:
-    """'?' where the cell is mostly black, on the screen's OWN absolute cell grid.
-
-    The window is the whole screen (10 x 9 cells of 16 px), so cell (r, c) is simply the
-    pixel box (c*16, r*16). No player anchor: the screen is fixed, and the\
- player's cell is
-    wherever their sprite box lands in it. An earlier version centred on the\
- player with a
-    +72 px offset, which is half a tile - it shifted every cell by half a cell\
- and was part
-    of why the two channels looked like they disagreed at the edges.
-    """
+    """'?' where the cell is mostly black, using the player-centred 9x9 window."""
     im = Image.open(png).convert("L")
     out = []
     for r in range(ROWS):
         row = ""
         for c in range(COLS):
-            x0, y0 = c * CELL, r * CELL
+            x0 = GRID_ORIGIN_X + (c - PLAYER_CELL[0]) * CELL
+            y0 = GRID_ORIGIN_Y + (r - PLAYER_CELL[1]) * CELL
             box = im.crop((x0, y0, x0 + CELL, y0 + CELL))
             hist = box.histogram()
             total = sum(hist) or 1
