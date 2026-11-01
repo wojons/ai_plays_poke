@@ -1,0 +1,130 @@
+{
+  "task_id": "VIS-MODEL-1-R2",
+  "task_title": "VIS-MODEL-1 M3+M4 remediation: measured structure scorer, shared cell classes, measured score doc (judge 2c3fcafe FAIL fix-list)",
+  "task_criteria": [
+    "VIS-MODEL-1-R2 remediates judge 2c3fcafe FAIL findings against the row contract: (1) ./venv/bin/python scripts/vision_model_score.py exits 0 and prints per-model STRUCTURE (non-floor) scores beside total-cell scores for >=2 models read from committed data/vision_model_runs.jsonl records (model, expected_grid, predicted_grid, latency_seconds, tokens) produced by a record producer wired to the perception_diff RAM grid (expected) and per-model blueprint grid (predicted) paths; (2) the scorer reuses the perception_diff cell-class vocabulary from ONE shared definition also used by scripts/perception_diff.py (no local reimplementation); (3) docs/vision-model-scores.md records MEASURED per-model latency/tokens/structure-score/total-score including honest losing numbers, with unmeasured claims in a named unmeasured field; (4) tests/test_vision_model_registry.py and tests/test_vision_model_e2e.py both exit 0 with >=2 configured models exercised end to end and the lazy all-floor answer cannot rank first. Trace check: grep docs/vision-model-scores.md for 'row=VIS-MODEL-1' (the worker-embedded ch:trace block) and require it in the committed artifact. Full suite ./venv/bin/pytest -x --tb=short -q passes. Bind to the merged published commit on origin/main."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "4b29ba9452377d82aaca0f767a5f2cbe9d78bf46",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261031T180844.408324Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4599 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [499768 chars omitted \u2014 5459 line(s)] \u2026\ntest_bench_pathfinding_find_path               590.9242 (1.48)           6,352.0856 (1.0)           1,113.5669 (2.14)          1,455.9132 (1.0)             731.7867 (1.59)           164.7277 (3.25)          1;1    898,015.2136 (0.47)         15           1\ntest_bench_vision_pipeline_validate          7,954.8918 (19.89)         69,389.1197 (10.92)         9,032.0219 (17.39)         1,481.4257 (1.02)          8,585.8628 (18.66)          431.2024 (8.50)    2608;3088    110,717.1812 (0.06)      27566           1\ntest_bench_ram_reader_observe            1,217,456.0688 (>1000.0)  193,357,974.0580 (>1000.0)   2,198,297.6529 (>1000.0)  11,922,071.1942 (>1000.0)   1,377,311.6516 (>1000.0)    150,143.0525 (>1000.0)      3;34        454.8975 (0.00)        692           1\ntest_bench_vision_pipeline_process      39,301,888.0859 (>1000.0)   47,912,897.7749 (>1000.0)  41,662,693.5767 (>1000.0)   2,111,053.7836 (>1000.0)  41,212,051.0591 (>1000.0)  2,782,469.4989 (>1000.0)       5;1         24.0023 (0.00)         24           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4585 passed, 14 skipped in 289.39s (0:04:49) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261031T180844.408324Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 VIS-MODEL-1-R2 remediates judge 2c3fcafe FAIL findings against the row contract: (1) ./venv/bin/python scripts/vision_model_score.py exits 0 and prints per-model STRUCTURE (non-floor) scores beside total-cell scores for >=2 models read from committed data/vision_model_runs.jsonl records (model, expected_grid, predicted_grid, latency_seconds, tokens) produced by a record producer wired to the perception_diff RAM grid (expected) and per-model blueprint grid (predicted) paths; (2) the scorer reuses the perception_diff cell-class vocabulary from ONE shared definition also used by scripts/perception_diff.py (no local reimplementation); (3) docs/vision-model-scores.md records MEASURED per-model latency/tokens/structure-score/total-score including honest losing numbers, with unmeasured claims in a named unmeasured field; (4) tests/test_vision_model_registry.py and tests/test_vision_model_e2e.py both exit 0 with >=2 configured models exercised end to end and the lazy all-floor answer cannot rank first. Trace check: grep docs/vision-model-scores.md for 'row=VIS-MODEL-1' (the worker-embedded ch:trace block) and require it in the committed artifact. Full suite ./venv/bin/pytest -x --tb=short -q passes. Bind to the merged published commit on origin/main.: (1) `./venv/bin/python scripts/vision_model_score.py` -> exit 0, output: 'openai/gpt-4o-mini: total=33.3% structure=5.6% samples=1 latency_s=4.710243612993509 tokens=27644' and 'amazon/nova-lite-v1: total=77.8% structure=0.0% samples=1 latency_s=1.7007976518943906 tokens=3428' \u2014 2 models, STRUCTURE printed beside total. data/vision_model_runs.jsonl (committed, 2 rows) carries model/expected_grid/predicted_grid/latency_seconds/tokens. Producer scripts/vision_model_record.py:19 imports `capture, obs, ram_grid, vision_grid` from perception_diff and builds expected via `_grid_from_ram(ram_grid(observation))` (line 41) and predicted via `vision_grid(png, model=entry.model)` (line 47), writing all five fields (lines 63-69). (2) `grep -rn 'def cls_ram|def cls_vis' scripts/ src/` returns ONLY src/core/vision_grid.py:11 and :24; scripts/perception_diff.py:40-50 imports cls_ram/cls_vis from src.core.vision_grid (the commit diff 728a7fe..33e79ed deletes the local copies at old perception_diff.py:154-186), and scripts/vision_model_score.py:17-22 imports the same cls_ram/cls_vis \u2014 one shared definition, no local reimplementation. (3) docs/vision-model-scores.md table rows give measured latency/tokens/total/structure for gpt-4o-mini (4.710 s, 27,644, 33.3%, 5.6%) and nova-lite-v1 (1.701 s, 3,428, 77.8%, 0.0%) with honest losing numbers (structure 5.6% and 0.0%), plus explicit `unmeasured` cells for Kimi K3 structure and the nova-lite alias row, and a 'Measurement boundaries' section naming unmeasured fields. (4) `./venv/bin/pytest tests/test_vision_model_registry.py tests/test_vision_model_e2e.py -x --tb=short -q` -> '10 passed in 5.22s', exit 0; test_vision_model_e2e.py::test_record_and_score_path_uses_two_configured_models exercises 2 configured models through record_models->score_records (asserts structure 100.0 vs 0.0), and test_vision_model_registry.py::test_structure_score_demotes_all_floor_answer asserts lazy total>95 but structure==0.0 < careful 100.0. Trace: `grep -n 'row=VIS-MODEL-1' docs/vision-model-scores.md` -> line 20 ch:trace block, present in the committed artifact (git ls-tree origin/main lists docs/vision-model-scores.md; added in 33e79ed). Full suite: `./venv/bin/pytest -x --tb=short -q` -> '4585 passed, 14 skipped in 205.91s', exit 0. Merged on origin/main at edc31b4 ('merge: VIS-MODEL-1-R2 M3+M4 remediation ... (wt/VIS-MODEL-1-R2 @ 33e79ed)'), and `git branch -r --contains 33e79ed` lists origin/main. [resolution 0.29; scripts/vision_model_score.py, scripts/perception_diff.py, docs/vision-model-scores.md, tests/test_vision_model_registry.py, tests/test_vision_model_e2e.py]\nAll four contract points verified with live command output: scorer exits 0 printing structure+total for 2 models from committed JSONL produced by a perception_diff-wired recorder, cell classes come from the single shared src/core/vision_grid.py, the doc carries measured (including losing) numbers plus unmeasured fields and the ch:trace row=VIS-MODEL-1 block, both named test files pass, and the full suite is green (4585 passed, 14 skipped) on merged origin/main commit edc31b4.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n\n\u2026 [3895 chars omitted \u2014 1 line(s)] \u2026\nAll four contract points verified with live command output: scorer exits 0 printing structure+total for 2 models from committed JSONL produced by a perception_diff-wired recorder, cell classes come from the single shared src/core/vision_grid.py, the doc carries measured (including losing) numbers plus unmeasured fields and the ch:trace row=VIS-MODEL-1 block, both named test files pass, and the full suite is green (4585 passed, 14 skipped) on merged origin/main commit edc31b4.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "VIS-MODEL-1-R2 remediates judge 2c3fcafe FAIL findings against the row contract: (1) ./venv/bin/python scripts/vision_model_score.py exits 0 and prints per-model STRUCTURE (non-floor) scores beside total-cell scores for >=2 models read from committed data/vision_model_runs.jsonl records (model, expected_grid, predicted_grid, latency_seconds, tokens) produced by a record producer wired to the perception_diff RAM grid (expected) and per-model blueprint grid (predicted) paths; (2) the scorer reuses the perception_diff cell-class vocabulary from ONE shared definition also used by scripts/perception_diff.py (no local reimplementation); (3) docs/vision-model-scores.md records MEASURED per-model latency/tokens/structure-score/total-score including honest losing numbers, with unmeasured claims in a named unmeasured field; (4) tests/test_vision_model_registry.py and tests/test_vision_model_e2e.py both exit 0 with >=2 configured models exercised end to end and the lazy all-floor answer cannot rank first. Trace check: grep docs/vision-model-scores.md for 'row=VIS-MODEL-1' (the worker-embedded ch:trace block) and require it in the committed artifact. Full suite ./venv/bin/pytest -x --tb=short -q passes. Bind to the merged published commit on origin/main.",
+                "status": "PASS",
+                "detail": "(1) `./venv/bin/python scripts/vision_model_score.py` -> exit 0, output: 'openai/gpt-4o-mini: total=33.3% structure=5.6% samples=1 latency_s=4.710243612993509 tokens=27644' and 'amazon/nova-lite-v1: total=77.8% structure=0.0% samples=1 latency_s=1.7007976518943906 tokens=3428' \u2014 2 models, STRUCTURE printed beside total. data/vision_model_runs.jsonl (committed, 2 rows) carries model/expected_grid/predicted_grid/latency_seconds/tokens. Producer scripts/vision_model_record.py:19 imports `capture, obs, ram_grid, vision_grid` from perception_diff and builds expected via `_grid_from_ram(ram_grid(observation))` (line 41) and predicted via `vision_grid(png, model=entry.model)` (line 47), writing all five fields (lines 63-69). (2) `grep -rn 'def cls_ram|def cls_vis' scripts/ src/` returns ONLY src/core/vision_grid.py:11 and :24; scripts/perception_diff.py:40-50 imports cls_ram/cls_vis from src.core.vision_grid (the commit diff 728a7fe..33e79ed deletes the local copies at old perception_diff.py:154-186), and scripts/vision_model_score.py:17-22 imports the same cls_ram/cls_vis \u2014 one shared definition, no local reimplementation. (3) docs/vision-model-scores.md table rows give measured latency/tokens/total/structure for gpt-4o-mini (4.710 s, 27,644, 33.3%, 5.6%) and nova-lite-v1 (1.701 s, 3,428, 77.8%, 0.0%) with honest losing numbers (structure 5.6% and 0.0%), plus explicit `unmeasured` cells for Kimi K3 structure and the nova-lite alias row, and a 'Measurement boundaries' section naming unmeasured fields. (4) `./venv/bin/pytest tests/test_vision_model_registry.py tests/test_vision_model_e2e.py -x --tb=short -q` -> '10 passed in 5.22s', exit 0; test_vision_model_e2e.py::test_record_and_score_path_uses_two_configured_models exercises 2 configured models through record_models->score_records (asserts structure 100.0 vs 0.0), and test_vision_model_registry.py::test_structure_score_demotes_all_floor_answer asserts lazy total>95 but structure==0.0 < careful 100.0. Trace: `grep -n 'row=VIS-MODEL-1' docs/vision-model-scores.md` -> line 20 ch:trace block, present in the committed artifact (git ls-tree origin/main lists docs/vision-model-scores.md; added in 33e79ed). Full suite: `./venv/bin/pytest -x --tb=short -q` -> '4585 passed, 14 skipped in 205.91s', exit 0. Merged on origin/main at edc31b4 ('merge: VIS-MODEL-1-R2 M3+M4 remediation ... (wt/VIS-MODEL-1-R2 @ 33e79ed)'), and `git branch -r --contains 33e79ed` lists origin/main. [resolution 0.29; scripts/vision_model_score.py, scripts/perception_diff.py, docs/vision-model-scores.md, tests/test_vision_model_registry.py, tests/test_vision_model_e2e.py]",
+                "resolution_probability": 0.29,
+                "cited_path": "scripts/vision_model_score.py, scripts/perception_diff.py, docs/vision-model-scores.md, tests/test_vision_model_registry.py, tests/test_vision_model_e2e.py"
+              }
+            ],
+            "summary": "All four contract points verified with live command output: scorer exits 0 printing structure+total for 2 models from committed JSONL produced by a perception_diff-wired recorder, cell classes come from the single shared src/core/vision_grid.py, the doc carries measured (including losing) numbers plus unmeasured fields and the ch:trace row=VIS-MODEL-1 block, both named test files pass, and the full suite is green (4585 passed, 14 skipped) on merged origin/main commit edc31b4.",
+            "provenance": {
+              "model": "deepseek-v4-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            }
+          }
+        }
+      ],
+      "model": "deepseek-v4-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY"
+    }
+  },
+  "summary": "Judge Result: VIS-MODEL-1-R2\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 VIS-MODEL-1-R2 remediates judge 2c3fcafe FAIL findings against the row contract: (1) ./venv/bin/python scripts/vision_model_score.py exits 0 and prints per-model STRUCTURE (non-floor) scores beside total-cell scores for >=2 models read from committed data/vision_model_runs.jsonl records (model, expected_grid, predicted_grid, latency_seconds, tokens) produced by a record producer wired to the perception_diff RAM grid (expected) and per-model blueprint grid (predicted) paths; (2) the scorer reuses the perception_diff cell-class vocabulary from ONE shared definition also used by scripts/perception_diff.py (no local reimplementation); (3) docs/vision-model-scores.md records MEASURED per-model latency/tokens/structure-score/total-score including honest losing numbers, with unmeasured claims in a named unmeasured field; (4) tests/test_vision_model_registry.py and tests/test_vision_model_e2e.py both exit 0 with >=2 configured models exercised end to end and the lazy all-floor answer cannot rank first. Trace check: grep docs/vision-model-scores.md for 'row=VIS-MODEL-1' (the worker-embedded ch:trace block) and require it in the committed artifact. Full suite ./venv/bin/pytest -x --tb=short -q passes. Bind to the merged published commit on origin/main.: (1) `./venv/bin/python scripts/vision_model_score.py` -> exit 0, output: 'openai/gpt-4o-mini: total=33.3% structure=5.6% samples=1 latency_s=4.710243612993509 tokens=27644' and 'amazon/nova-lite-v1: total=77.8% structure=0.0% samples=1 latency_s=1.7007976518943906 tokens=3428' \u2014 2 models, STRUCTURE printed beside total. data/vision_model_runs.jsonl (committed, 2 rows) carries model/expected_grid/predicted_grid/latency_seconds/tokens. Producer scripts/vision_model_record.py:19 imports `capture, obs, ram_grid, vision_grid` from perception_diff and builds expected via `_grid_from_ram(ram_grid(observation))` (line 41) and predicted via `vision_grid(png, model=entry.model)` (line 47), writing all five fields (lines 63-69). (2) `grep -rn 'def cls_ram|def cls_vis' scripts/ src/` returns ONLY src/core/vision_grid.py:11 and :24; scripts/perception_diff.py:40-50 imports cls_ram/cls_vis from src.core.vision_grid (the commit diff 728a7fe..33e79ed deletes the local copies at old perception_diff.py:154-186), and scripts/vision_model_score.py:17-22 imports the same cls_ram/cls_vis \u2014 one shared definition, no local reimplementation. (3) docs/vision-model-scores.md table rows give measured latency/tokens/total/structure for gpt-4o-mini (4.710 s, 27,644, 33.3%, 5.6%) and nova-lite-v1 (1.701 s, 3,428, 77.8%, 0.0%) with honest losing numbers (structure 5.6% and 0.0%), plus explicit `unmeasured` cells for Kimi K3 structure and the nova-lite alias row, and a 'Measurement boundaries' section naming unmeasured fields. (4) `./venv/bin/pytest tests/test_vision_model_registry.py tests/test_vision_model_e2e.py -x --tb=short -q` -> '10 passed in 5.22s', exit 0; test_vision_model_e2e.py::test_record_and_score_path_uses_two_configured_models exercises 2 configured models through record_models->score_records (asserts structure 100.0 vs 0.0), and test_vision_model_registry.py::test_structure_score_demotes_all_floor_answer asserts lazy total>95 but structure==0.0 < careful 100.0. Trace: `grep -n 'row=VIS-MODEL-1' docs/vision-model-scores.md` -> line 20 ch:trace block, present in the committed artifact (git ls-tree origin/main lists docs/vision-model-scores.md; added in 33e79ed). Full suite: `./venv/bin/pytest -x --tb=short -q` -> '4585 passed, 14 skipped in 205.91s', exit 0. Merged on origin/main at edc31b4 ('merge: VIS-MODEL-1-R2 M3+M4 remediation ... (wt/VIS-MODEL-1-R2 @ 33e79ed)'), and `git branch -r --contains 33e79ed` lists origin/main. [resolution 0.29; scripts/vision_model_score.py, scripts/perception_diff.py, docs/vision-model-scores.md, tests/test_vision_model_registry.py, tests/test_vision_model_e2e.py]\nAll four contract points verified with live command output: scorer exits 0 printing structure+total for 2 models from committed JSONL produced by a perception_diff-wired recorder, cell classes come from the single shared src/core/vision_grid.py, the doc carries measured (including losing) numbers plus unmeasured fields and the ch:trace row=VIS-MODEL-1 block, both named test files pass, and the full suite is green (4585 passed, 14 skipped) on merged origin/main commit edc31b4.\n\nOverall: FAIL \u2717 [DEGRADED \u2014 skipped: tier1(secrets)=skipped at runtime \u2014 secrets: timed out after 120s (step budget)]",
+  "evaluated_at": "2026-11-01T14:13:38.396422",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-01T14:13:38.420724+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 799,
+        "truncated": false,
+        "source": "git show 4b29ba945237"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 69317,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "VIS-MODEL-1-R2"
+  }
+}
