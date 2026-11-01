@@ -1,5 +1,6 @@
 """Score vision grid recordings against the RAM/reference grid.
 
+Cell classes are shared with scripts/perception_diff.py.
 Usage: python scripts/vision_model_score.py [recordings.jsonl]
 Each JSONL row has model, expected_grid, predicted_grid, latency_seconds, tokens.
 """
@@ -13,21 +14,11 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from src.core.vision_grid import GRID_COLS, GRID_ROWS  # noqa: E402
+from src.core.vision_grid import GRID_COLS, GRID_ROWS, cls_vis  # noqa: E402
 
 
 def _valid_grid(grid: list[str]) -> bool:
     return len(grid) == GRID_ROWS and all(len(row) == GRID_COLS for row in grid)
-
-
-def _class(cell: str) -> str:
-    if cell == ".":
-        return "floor"
-    if cell == "B":
-        return "blocked"
-    if cell.isdigit():
-        return "object"
-    return "unknown"
 
 
 def score_grids(expected: list[str], predicted: list[str]) -> dict[str, float | int]:
@@ -39,10 +30,10 @@ def score_grids(expected: list[str], predicted: list[str]) -> dict[str, float | 
         for erow, prow in zip(expected, predicted)
         for truth, guess in zip(erow, prow)
     ]
-    total_correct = sum(_class(truth) == _class(guess) for truth, guess in cells)
+    total_correct = sum(cls_vis(truth) == cls_vis(guess) for truth, guess in cells)
     structure = [(truth, guess) for truth, guess in cells if truth not in ".?"]
     structure_correct = sum(
-        _class(truth) == _class(guess) for truth, guess in structure
+        cls_vis(truth) == cls_vis(guess) for truth, guess in structure
     )
     return {
         "total_score": 100.0 * total_correct / len(cells),

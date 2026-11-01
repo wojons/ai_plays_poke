@@ -44,6 +44,8 @@ from src.core.vision_grid import (  # noqa: E402
     GRID_ORIGIN_X,
     GRID_ORIGIN_Y,
     PLAYER_CELL,
+    cls_ram,
+    cls_vis,
 )
 from vision_blueprint_probe import parse_json  # noqa: E402
 
@@ -154,34 +156,6 @@ def pixel_mask(png: Path) -> list[str]:
 
 
 # ── comparison ──
-def cls_ram(ch: str) -> str:
-    if ch == "?":
-        return "off-map"
-    if ch == "B":
-        return "blocked"
-    if ch == "D":
-        return "doorway"
-    if ch in "←↑↓→":
-        return "player"
-    return "floor"
-
-
-def cls_vis(ch: str) -> str:
-    if ch == "?":
-        return "unknown"
-    if ch in "←↑↓→":
-        return "player"
-    # 'B' means blocking in the vision blueprint too - the model CAN report blocked
-    # cells,
-    # and the first version of this classifier scored them as floor, inventing conflicts
-    # where the two channels actually agreed.
-    if ch == "B":
-        return "blocked"
-    if ch.isdigit():
-        return "object"
-    return "floor"
-
-
 def verdict(a: str, b: str, ra: str, rb: str) -> str:
     """Classify one cell. Compares the ARROW GLYPH, not just the class.
 
