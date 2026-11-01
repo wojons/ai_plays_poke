@@ -14,11 +14,21 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from src.core.vision_grid import GRID_COLS, GRID_ROWS, cls_vis  # noqa: E402
+from src.core.vision_grid import (  # noqa: E402
+    GRID_COLS,
+    GRID_ROWS,
+    cls_ram,
+    cls_vis,
+)
 
 
 def _valid_grid(grid: list[str]) -> bool:
     return len(grid) == GRID_ROWS and all(len(row) == GRID_COLS for row in grid)
+
+
+def _reference_class(cell: str) -> str:
+    # RAM's render uses digits for objects, while its classifier treats other glyphs.
+    return cls_vis(cell) if cell.isdigit() else cls_ram(cell)
 
 
 def score_grids(expected: list[str], predicted: list[str]) -> dict[str, float | int]:
@@ -30,17 +40,19 @@ def score_grids(expected: list[str], predicted: list[str]) -> dict[str, float | 
         for erow, prow in zip(expected, predicted)
         for truth, guess in zip(erow, prow)
     ]
-    total_correct = sum(cls_vis(truth) == cls_vis(guess) for truth, guess in cells)
+    total_correct = sum(
+        _reference_class(truth) == cls_vis(guess) for truth, guess in cells
+    )
     structure = [(truth, guess) for truth, guess in cells if truth not in ".?"]
     structure_correct = sum(
-        cls_vis(truth) == cls_vis(guess) for truth, guess in structure
+        _reference_class(truth) == cls_vis(guess) for truth, guess in structure
     )
     return {
         "total_score": 100.0 * total_correct / len(cells),
         "total_cells": len(cells),
-        "structure_score": 100.0 * structure_correct / len(structure)
-        if structure
-        else 0.0,
+        "structure_score": (
+            100.0 * structure_correct / len(structure) if structure else 0.0
+        ),
         "structure_cells": len(structure),
     }
 
@@ -58,13 +70,16 @@ def score_records(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
             "total_score": sum(float(row["total_score"]) for row in rows) / len(rows),
             "structure_score": sum(float(row["structure_score"]) for row in rows)
             / len(rows),
-            "latency_seconds": sum(float(row["latency_seconds"]) for row in rows)
-            / len(rows)
-            if all("latency_seconds" in row for row in rows)
-            else None,
-            "tokens": sum(int(row["tokens"]) for row in rows)
-            if all("tokens" in row for row in rows)
-            else None,
+            "latency_seconds": (
+                sum(float(row["latency_seconds"]) for row in rows) / len(rows)
+                if all("latency_seconds" in row for row in rows)
+                else None
+            ),
+            "tokens": (
+                sum(int(row["tokens"]) for row in rows)
+                if all("tokens" in row for row in rows)
+                else None
+            ),
             "samples": len(rows),
         }
         for model, rows in grouped.items()

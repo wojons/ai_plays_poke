@@ -90,7 +90,9 @@ def ram_grid(o: dict[str, Any]) -> str:
     return r.render_tile_grid(cols=COLS, rows=ROWS)
 
 
-def vision_grid(png: Path) -> tuple[list[str], dict[str, Any]]:
+def vision_grid(
+    png: Path, model: str = "openai/gpt-5.6-luna"
+) -> tuple[list[str], dict[str, Any]]:
     key = ""
     for line in Path("/home/kara/ai_plays_poke/.env").read_text().splitlines():
         if line.startswith("OPENROUTER_API_KEY="):
@@ -103,7 +105,7 @@ def vision_grid(png: Path) -> tuple[list[str], dict[str, Any]]:
     img.save(buf, format="PNG")
     b64 = base64.b64encode(buf.getvalue()).decode()
     body = {
-        "model": "openai/gpt-5.6-luna",
+        "model": model,
         # 9000 to match vision_blueprint_probe.py. This model burns ~4500 output tokens
         # REASONING before it emits the JSON, so a 1500 cap truncates the answer away
         # and
@@ -113,7 +115,11 @@ def vision_grid(png: Path) -> tuple[list[str], dict[str, Any]]:
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": PROMPT.read_text()},
+                    {
+                        "type": "text",
+                        "text": PROMPT.read_text()
+                        + "\n\nMeasurement precedence: the final Return exactly this schema and the final 9x9 grid constraints override any earlier conflicting 10x9 whole-screen instructions. Return exactly 9 rows of 9 single-character cells.",
+                    },
                     {
                         "type": "image_url",
                         "image_url": {"url": f"data:image/png;base64,{b64}"},
@@ -130,11 +136,10 @@ def vision_grid(png: Path) -> tuple[list[str], dict[str, Any]]:
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
     )
     # This diagnostic only calls the fixed OpenRouter HTTPS endpoint.
-    with urllib.request.urlopen(  # noqa: S310  # nosec B310
-        req, timeout=240
-    ) as r:
+    with urllib.request.urlopen(req, timeout=240) as r:  # noqa: S310  # nosec B310
         resp = json.loads(r.read().decode())
     got = parse_json(resp["choices"][0]["message"].get("content") or "") or {}
+    got["_usage"] = resp.get("usage", {})
     return list(got.get("grid") or []), got
 
 
