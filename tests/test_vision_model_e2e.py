@@ -9,15 +9,18 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from scripts.vision_model_score import score_grids
+from scripts.vision_model_score import score_grids, score_records
 from src.core.vision_model_registry import configured_vision_models, parse_vision_models
 from src.core.vision import VisionClient
+from scripts import vision_model_record
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def _load_repo_env() -> str | None:
     env_path = ROOT / ".env"
+    if not env_path.exists():
+        env_path = Path("/home/kara/ai_plays_poke/.env")
     if not env_path.exists():
         return None
     repo_key: str | None = None
@@ -31,6 +34,46 @@ def _load_repo_env() -> str | None:
             else:
                 os.environ.setdefault(parsed_key, parsed_value)
     return repo_key
+
+
+def test_record_and_score_path_uses_two_configured_models(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    models = parse_vision_models(
+        json.dumps(
+            [
+                {"provider": "openrouter", "model": "openai/gpt-4o-mini"},
+                {"provider": "openrouter", "model": "amazon/nova-lite-v1"},
+            ]
+        )
+    )
+    monkeypatch.setattr(vision_model_record, "obs", lambda: {"tick": 1})
+    monkeypatch.setattr(
+        vision_model_record, "capture", lambda _: tmp_path / "frame.png"
+    )
+    reference = ["........." for _ in range(9)]
+    reference[2] = "..B......"
+    monkeypatch.setattr(vision_model_record, "ram_grid", lambda _: "\n".join(reference))
+    monkeypatch.setattr(
+        vision_model_record,
+        "vision_grid",
+        lambda _frame, model: (
+            reference if model == models[0].model else ["........." for _ in range(9)],
+            {"_usage": {"total_tokens": 12}},
+        ),
+    )
+
+    destination = tmp_path / "runs.jsonl"
+    records = vision_model_record.record_models(destination, models)
+    persisted = [json.loads(line) for line in destination.read_text().splitlines()]
+    scores = score_records(persisted)
+
+    assert [row["model"] for row in records] == [model.model for model in models]
+    assert [row["model"] for row in persisted] == [model.model for model in models]
+    assert len(scores) == 2
+    assert scores[models[0].model]["structure_score"] == 100.0
+    assert scores[models[1].model]["structure_score"] == 0.0
+    assert all(row["tokens"] == 12 for row in persisted)
 
 
 @pytest.mark.integration

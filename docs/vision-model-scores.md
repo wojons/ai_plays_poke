@@ -4,13 +4,20 @@ Scoring uses the player-centred 9x9 grid (cell x=72+(c-4)*16, y=64+(r-4)*16), wi
 
 | Model | Latency | Tokens | Total-cell score | Structure score | Evidence |
 |---|---:|---:|---:|---:|---|
-| openai/gpt-4o-mini | 3.149 s (live smoke) / 2.4 s (prior grid run) | 26,160 (live smoke) / 34 (prior grid run) | 72.2% (prior grid run) | unmeasured | Live test used `play_frames/PG_6.png`; prior grid measurement supplied with task brief |
-| amazon/nova-lite-v1 | 2.196 s (live smoke) | 1,956 | unmeasured | unmeasured | Live test used `play_frames/PG_6.png`; no verified 9x9 labels |
-| syn:large:vision (Kimi K3) | 97 s (prior grid run) | 5,860 | 62.2% (prior grid run) | unmeasured | Prior measurement supplied with task brief; not called by this run |
+| openai/gpt-4o-mini | 4.710 s (recorded grid call) / 3.149 s (historical live smoke) | 27,644 (recorded grid call) / 26,160 (historical live smoke) | 33.3% | 5.6% | `data/vision_model_runs.jsonl`; scorer output, 1 sample |
+| amazon/nova-lite-v1 | 1.701 s (recorded grid call) / 2.196 s (historical live smoke) | 3,428 (recorded grid call) / 1,956 (historical live smoke) | 77.8% | 0.0% | `data/vision_model_runs.jsonl`; scorer output, 1 sample |
+| syn:large:vision (Kimi K3) | 97 s (historical) | 5,860 (historical) | 62.2% (historical) | unmeasured | Prior measurement supplied with task brief; not called by this run |
 | nova-lite (prior model alias) | unmeasured | unmeasured | unmeasured | unmeasured | Prior observation: floor-heavy data inflated raw match; exact measurement/model ID not supplied |
 
 ## Measurement boundaries
 
-The historical figures above are preserved as supplied rather than represented as new runs. The current `VisionClient` returns screen-state JSON, not a 9x9 terrain grid. The live end-to-end test records per-model response latency, provider usage, and model selection but cannot derive a defensible live grid agreement score. Every unavailable value is explicitly marked `unmeasured`.
+The current grid records were produced from live bridge observations with the same RAM 9x9 map and the same scoring implementation. The two successfully shaped model answers were obtained in separate captures after model responses intermittently violated the required grid dimensions; therefore these scores compare models on the observed RAM map, but are not a same-image paired trial. Each retained row is a real model response with measured wall latency and provider-reported total tokens. A response that does not return exactly 9 strings of 9 characters is not scored or reshaped. Unavailable field (failed blueprint shape; intentionally not scored): `amazon/nova-lite-v1` returned non-9x9 grids on other calls, `openai/gpt-5.6-luna` returned a missing/non-9x9 grid, `openai/gpt-4o` returned one 8-character row, and `google/gemma-3-12b-it` returned 19-character rows. These failures are not represented as successful score rows.
 
-To score grid recordings, put JSONL records containing `model`, `expected_grid`, and `predicted_grid` (optionally `latency_seconds` and `tokens`) in `data/vision_model_runs.jsonl`, then run `./venv/bin/python scripts/vision_model_score.py`. The scorer prints mean total-cell and structure scores per model. A labeled grid is required; no score is inferred from an unlabeled screenshot.
+The score table's current total-cell and structure scores, latency, and tokens are calculated from `data/vision_model_runs.jsonl` by `./venv/bin/python scripts/vision_model_score.py`. The `VisionClient` screen-state response in the existing E2E smoke test is distinct from these blueprint grid predictions and does not supply terrain labels. Historical results remain explicitly marked historical; fields without a defensible current measurement are named `unmeasured`.
+
+## Trace
+
+ch:trace row=VIS-MODEL-1 spec=.coding-hermes/board/tasks.jsonl#VIS-MODEL-1 wave=.coding-hermes/waves/ai-plays-poke-foreman-2026-11-01-12-09-08.json#VIS-MODEL-1-R2 test=tests/test_vision_model_e2e.py+tests/test_vision_model_registry.py doc=docs/vision-model-scores.md prompt=none:dispatch-brief-file evidence=data/vision_model_runs.jsonl witness=terminal:scorer-prints-2-models verdict=none:judge-runs-post-merge commit=none:self-referential-hash memory=none:foreman-writes
+STATUS: complete
+TIER: T3 (invoked and observed: full pytest suite, scorer CLI, live two-model record run)
+EVIDENCE: data/vision_model_runs.jsonl

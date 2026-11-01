@@ -34,7 +34,7 @@ def _grid_from_ram(raw: str) -> list[str]:
 def record_models(
     output: Path, models: list[Any] | None = None
 ) -> list[dict[str, Any]]:
-    """Capture once, make one vision call per model, and append measured rows."""
+    """Capture once, make one vision call per model, and write measured rows."""
     selected = models if models is not None else configured_vision_models()
     if not selected:
         raise ValueError("no vision models are configured")
@@ -76,10 +76,11 @@ def record_models(
         except Exception as exc:
             failures.append(f"{entry.model}: {type(exc).__name__}: {exc}")
 
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("w", encoding="utf-8") as stream:
-        for record in records:
-            stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+    if records:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with output.open("w", encoding="utf-8") as stream:
+            for record in records:
+                stream.write(json.dumps(record, ensure_ascii=False) + "\n")
     for failure in failures:
         print(f"UNAVAILABLE {failure}", file=sys.stderr)
     print(f"RECORDED {len(records)} model(s); unavailable={len(failures)}")
