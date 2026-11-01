@@ -1,0 +1,37 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-11-01-12-09-08",
+  "project": "ai_plays_poke",
+  "created_at": "2026-11-01T12:25:00-05:00",
+  "wave_budget": 10,
+  "wave_size": 2,
+  "base": "origin/main",
+  "base_sha": "728a7fe38093f4a6b65ecda2b9516010e1d29532",
+  "dependency_proof": "VIS-MODEL-1 and RELEASE-005 both have depends_on=[] and blocks=[] in .coding-hermes/board/tasks.jsonl (verified 2026-11-01); no edges between them. INT-GL-3 (also depends_on=[]) is deliberately NOT waved: its acceptance criteria mandate >=4 concurrent CPU-bound load workers during gate runs, which would flake the wave's concurrent test gates (known load-flaky tests in this repo) — deferred to a quiet-host serial tick. RELEASE-003 is blocked (owner ratification) and not dispatchable.",
+  "workers": [
+    {
+      "row_id": "VIS-MODEL-1",
+      "gitreins_task": "VIS-MODEL-1-R2",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-VIS-MODEL-1-R2",
+      "branch": "wt/VIS-MODEL-1-R2",
+      "base_sha": "728a7fe38093f4a6b65ecda2b9516010e1d29532",
+      "brief_path": "/tmp/aipp-t1209-vis-m1r2-brief.txt",
+      "model": "gpt-6-luna",
+      "provider": "openai-codex",
+      "ownership": "worker owns this worktree exclusively; foreman merges serially after gate",
+      "scope": "M3+M4 remediation per judge 2c3fcafe FAIL findings (scorer prints measured scores via data/vision_model_runs.jsonl producer; shared perception_diff cell classes; measured structure scores in docs/vision-model-scores.md)"
+    },
+    {
+      "row_id": "RELEASE-005",
+      "gitreins_task": "RELEASE-005",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-RELEASE-005",
+      "branch": "wt/RELEASE-005",
+      "base_sha": "728a7fe38093f4a6b65ecda2b9516010e1d29532",
+      "brief_path": "/tmp/aipp-t1209-rel-005-brief.txt",
+      "model": "gpt-6-luna",
+      "provider": "openai-codex",
+      "ownership": "worker owns this worktree exclusively; foreman merges serially after gate",
+      "scope": "ops evidence: probe tag v1.0.0-ci-probe-20261101-<hhmm> at fdcec4c95abf054525b8e07e497493d9f6afd8d5, green tag-event CI run at the release sha, evidence artifact committed"
+    }
+  ],
+  "merge_plan": "serial: gate each merge (full suite ./venv/bin/pytest -x --tb=short -q + gitreins guard), bind board rows to merged commits, push origin main, verify remote parity zero, then gitreins task complete per row against the merged tree"
+}
