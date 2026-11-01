@@ -1,0 +1,17 @@
+commit 4b29ba9452377d82aaca0f767a5f2cbe9d78bf46
+Merge: edc31b4 f1520c9
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Sun Nov 1 08:20:42 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Sun Nov 1 08:20:42 2026 -0500
+
+    merge: RELEASE-005 probe-tag evidence artifact (wt/RELEASE-005 @ f1520c9)
+    
+    Probe tag v1.0.0-ci-probe-20261101-1231 pushed at fdcec4c; v1.0.0 unmoved.
+    No CI run fired: fdcec4c commit message contains [ci skip], which suppresses
+    push-event workflow triggers (incl. tag pushes). AC3 needs PM re-scope.
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ .../board/evidence-RELEASE-005-2026-11-01.json     | 34 ++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)

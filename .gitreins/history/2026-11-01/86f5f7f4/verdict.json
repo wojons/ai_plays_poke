@@ -1,0 +1,130 @@
+{
+  "task_id": "RELEASE-005",
+  "task_title": "RELEASE-005: probe-tag CI evidence at v1.0.0 release sha fdcec4c (RELEASE-004 pattern)",
+  "task_criteria": [
+    "RELEASE-005 evidence contract: (1) .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json exists in the merged tree and cites baseline total_count=0 for head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 plus the pre/post git ls-remote refs/tags/v1.0.0 outputs showing tag object 25032f698f9c4a87b555a2ed4134643c758821ef unchanged; (2) a probe tag v1.0.0-ci-probe-20261101-* exists on origin pointing at fdcec4c95abf054525b8e07e497493d9f6afd8d5 while refs/tags/v1.0.0 is unmoved (verify via git ls-remote); (3) a CI run with headSha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 concluded success at the probe tag event and its run id and job id(s) are cited in the evidence artifact (re-verify with gh run view); (4) the evidence artifact contains the ch:trace block with row=RELEASE-005 (grep for it). No v1.0.0 mutation and no fabricated green: an honest recorded CI failure is a finding, not a silent pass. Bind to the merged published commit on origin/main."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "4b29ba9452377d82aaca0f767a5f2cbe9d78bf46",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261031T180844.408324Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4599 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [499534 chars omitted \u2014 5459 line(s)] \u2026\ntest_bench_pathfinding_find_path               821.8922 (1.19)           6,170.9434 (1.0)           1,607.2299 (1.62)          1,722.2326 (1.0)           1,012.1148 (1.13)           405.1253 (3.69)          1;1    622,188.5117 (0.62)          9           1\ntest_bench_vision_pipeline_validate         10,628.9517 (15.38)      1,595,325.0695 (258.52)       14,300.4118 (14.41)        14,479.9813 (8.41)         13,825.9493 (15.50)        1,713.1679 (15.59)      68;384     69,928.0564 (0.07)      14085           1\ntest_bench_ram_reader_observe            1,835,400.0058 (>1000.0)  263,517,989.0785 (>1000.0)   3,643,276.9571 (>1000.0)  16,905,763.7133 (>1000.0)   2,399,235.0325 (>1000.0)    254,387.2688 (>1000.0)      2;23        274.4782 (0.00)        441           1\ntest_bench_vision_pipeline_process      71,491,979.0626 (>1000.0)   86,040,260.9687 (>1000.0)  76,862,466.2041 (>1000.0)   4,649,737.1251 (>1000.0)  76,770,577.8126 (>1000.0)  7,264,572.2539 (>1000.0)       4;0         13.0103 (0.00)         11           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4585 passed, 14 skipped in 302.60s (0:05:02) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261031T180844.408324Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 RELEASE-005 evidence contract: (1) .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json exists in the merged tree and cites baseline total_count=0 for head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 plus the pre/post git ls-remote refs/tags/v1.0.0 outputs showing tag object 25032f698f9c4a87b555a2ed4134643c758821ef unchanged; (2) a probe tag v1.0.0-ci-probe-20261101-* exists on origin pointing at fdcec4c95abf054525b8e07e497493d9f6afd8d5 while refs/tags/v1.0.0 is unmoved (verify via git ls-remote); (3) a CI run with headSha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 concluded success at the probe tag event and its run id and job id(s) are cited in the evidence artifact (re-verify with gh run view); (4) the evidence artifact contains the ch:trace block with row=RELEASE-005 (grep for it). No v1.0.0 mutation and no fabricated green: an honest recorded CI failure is a finding, not a silent pass. Bind to the merged published commit on origin/main.: Sub-parts (1),(2),(4) PASS but (3) FAILS, so the conjunctive contract is unmet. (1) PASS: `git ls-tree origin/main .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json` -> blob c648d9bb9c52478a07b5624f47d6aade5061c3c8, identical to `git hash-object` of the local file, so it is in the merged tree; artifact cites baseline.total_count_observed=0, release_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5, and both baseline.v1.0.0_tag_output and v1.0.0_unchanged.post_push_ls_remote_output = \"25032f698f9c4a87b555a2ed4134643c758821ef\\trefs/tags/v1.0.0\". (2) PASS: `git ls-remote origin 'refs/tags/v1.0.0*'` exit 0 returns `fdcec4c95abf054525b8e07e497493d9f6afd8d5\\trefs/tags/v1.0.0-ci-probe-20261101-1231` and `25032f698f9c4a87b555a2ed4134643c758821ef\\trefs/tags/v1.0.0` (annotated tag object, `git cat-file -t` = tag, peeling to fdcec4c) \u2014 v1.0.0 unmoved, no mutation. (4) PASS: `grep -c 'ch:trace'` = 1 and `grep -o 'row=RELEASE-005'` matches in the artifact. (3) FAIL: `gh api \"repos/wojons/ai_plays_poke/actions/runs?head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5\" --jq .total_count` returns 0 (exit 0); `gh run list --commit fdcec4c95abf054525b8e07e497493d9f6afd8d5` returns empty; 0 of the last 100 runs have head_sha=fdcec4c and 0 runs have a head_branch matching 'ci-probe'. The artifact itself records ci_run.id=null, headSha=null, conclusion=null, status=null, workflowName=null, ci_jobs=[], with observation \"No run appeared for the release SHA during the approximately 35-minute polling window.\" No run id and no job id(s) are cited anywhere. .github/workflows/ci.yml declares `on: push: tags: ['v*']`, so the probe tag push should have triggered a run and none materialized. The artifact is honest (no fabricated green, which the criterion permits as a finding), but the required successful CI run with cited run id and job ids does not exist, so the criterion cannot pass. Note .gitreins/tasks.yaml:1899 nonetheless marks RELEASE-005 status: complete.\nThe evidence artifact is committed on origin/main and correctly records the unmoved v1.0.0 tag, the probe tag at fdcec4c, and the ch:trace row, but no CI run exists for headSha fdcec4c (gh total_count=0, ci_run.id=null, ci_jobs=[]), so the required successful run with cited run/job ids is missing.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 RELEASE-005 evidence contract: (1) .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json exists in the merged tree and cites baseline total_count=0 for head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 plus the pre/post git ls-remote refs/tags/v1.0.0 outputs showing tag object 25032f698f9c4a87b555a2ed4134643c758821ef unchanged; (2) a probe tag v1.0.0-ci-probe-20261101-* exists on origin pointing at fdcec4c95abf054525b8e07e497493d9f6afd8d5 while refs/tags/v1.0.0 is unmoved (verify via git ls-remote); (3) a CI run with headSha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 concluded success at the probe tag event and its run id and job id(s) are cited in the evidence artifact (re-verify with gh run view); (4) the evidence artifact contains the ch:trace block with row=RELEASE-005 (grep for it). No v1.0.0 mutation and no fabricated green: an honest recorded CI failure is a finding, not a silent pass. Bind to the merged published commit on origin/main.: Sub-parts (1),(2),(4) PASS but (3) FAILS, so the conjunctive contract is unmet. (1) PASS: `git ls-tree origin/main .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json` -> blob c648d9bb9c52478a07b5624f47d6aade5061c3c8, identical to `git hash-object` of the local file, so it is in the merged tree; artifact cites baseline.total_count_observed=0, release_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5, and both baseline.v1.0.0_tag_output and v1.0.0_unchanged.post_push_ls_remote_output = \"25032f698f9c4a87b555a2ed4134643c758821ef\\trefs/tags/v1.0.0\". (2) PASS: `git ls-remote origin 'refs/tags/v1.0.0*'` exit 0 returns `fdcec4c95abf054525b8e07e497493d9f6afd8d5\\trefs/tags/v1.0.0-ci-probe-20261101-1231` and `25032f698f9c4a87b555a2ed4134643c758821ef\\trefs/tags/v1.0.0` (annotated tag object, `git cat-file -t` = tag, peeling to fdcec4c) \u2014 v1.0.0 unmoved, no mutation. (4) PASS: `grep -c 'ch:trace'` = 1 and `grep -o 'row=RELEASE-005'` matches in the artifact. (3) FAIL: `gh api \"repos/wojons/ai_plays_poke/actions/runs?head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5\" --jq .total_count` returns 0 (exit 0); `gh run list --commit fdcec4c95abf054525b8e07e497493d9f6afd8d5` returns empty; 0 of the last 100 runs have head_sha=fdcec4c and 0 runs have a head_branch matching 'ci-probe'. The artifact itself records ci_run.id=null, headSha=null, conclusion=null, status=null, workflowName=null, ci_jobs=[], with observation \"No run appeared for the release SHA during the approximately 35-minute polling window.\" No run id and no job id(s) are cited anywhere. .github/workflows/ci.yml declares `on: push: tags: ['v*']`, so the probe tag push should have triggered a run and none materialized. The artifact is honest (no fabricated green, which the criterion permits as a finding), but the required successful CI run with cited run id and job ids does not exist, so the criterion cannot pass. Note .gitreins/tasks.yaml:1899 nonetheless marks RELEASE-005 status: complete.\nThe evidence artifact is committed on origin/main and correctly records the unmoved v1.0.0 tag, the probe tag at fdcec4c, and the ch:trace row, but no CI run exists for headSha fdcec4c (gh total_count=0, ci_run.id=null, ci_jobs=[]), so the required successful run with cited run/job ids is missing.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "RELEASE-005 evidence contract: (1) .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json exists in the merged tree and cites baseline total_count=0 for head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 plus the pre/post git ls-remote refs/tags/v1.0.0 outputs showing tag object 25032f698f9c4a87b555a2ed4134643c758821ef unchanged; (2) a probe tag v1.0.0-ci-probe-20261101-* exists on origin pointing at fdcec4c95abf054525b8e07e497493d9f6afd8d5 while refs/tags/v1.0.0 is unmoved (verify via git ls-remote); (3) a CI run with headSha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 concluded success at the probe tag event and its run id and job id(s) are cited in the evidence artifact (re-verify with gh run view); (4) the evidence artifact contains the ch:trace block with row=RELEASE-005 (grep for it). No v1.0.0 mutation and no fabricated green: an honest recorded CI failure is a finding, not a silent pass. Bind to the merged published commit on origin/main.",
+                "status": "FAIL",
+                "detail": "Sub-parts (1),(2),(4) PASS but (3) FAILS, so the conjunctive contract is unmet. (1) PASS: `git ls-tree origin/main .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json` -> blob c648d9bb9c52478a07b5624f47d6aade5061c3c8, identical to `git hash-object` of the local file, so it is in the merged tree; artifact cites baseline.total_count_observed=0, release_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5, and both baseline.v1.0.0_tag_output and v1.0.0_unchanged.post_push_ls_remote_output = \"25032f698f9c4a87b555a2ed4134643c758821ef\\trefs/tags/v1.0.0\". (2) PASS: `git ls-remote origin 'refs/tags/v1.0.0*'` exit 0 returns `fdcec4c95abf054525b8e07e497493d9f6afd8d5\\trefs/tags/v1.0.0-ci-probe-20261101-1231` and `25032f698f9c4a87b555a2ed4134643c758821ef\\trefs/tags/v1.0.0` (annotated tag object, `git cat-file -t` = tag, peeling to fdcec4c) \u2014 v1.0.0 unmoved, no mutation. (4) PASS: `grep -c 'ch:trace'` = 1 and `grep -o 'row=RELEASE-005'` matches in the artifact. (3) FAIL: `gh api \"repos/wojons/ai_plays_poke/actions/runs?head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5\" --jq .total_count` returns 0 (exit 0); `gh run list --commit fdcec4c95abf054525b8e07e497493d9f6afd8d5` returns empty; 0 of the last 100 runs have head_sha=fdcec4c and 0 runs have a head_branch matching 'ci-probe'. The artifact itself records ci_run.id=null, headSha=null, conclusion=null, status=null, workflowName=null, ci_jobs=[], with observation \"No run appeared for the release SHA during the approximately 35-minute polling window.\" No run id and no job id(s) are cited anywhere. .github/workflows/ci.yml declares `on: push: tags: ['v*']`, so the probe tag push should have triggered a run and none materialized. The artifact is honest (no fabricated green, which the criterion permits as a finding), but the required successful CI run with cited run id and job ids does not exist, so the criterion cannot pass. Note .gitreins/tasks.yaml:1899 nonetheless marks RELEASE-005 status: complete.",
+                "resolution_probability": 0.0,
+                "cited_path": ".coding-hermes/board/evidence-RELEASE-005-2026-11-01.json"
+              }
+            ],
+            "summary": "The evidence artifact is committed on origin/main and correctly records the unmoved v1.0.0 tag, the probe tag at fdcec4c, and the ch:trace row, but no CI run exists for headSha fdcec4c (gh total_count=0, ci_run.id=null, ci_jobs=[]), so the required successful run with cited run/job ids is missing.",
+            "provenance": {
+              "model": "deepseek-v4-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            }
+          }
+        }
+      ],
+      "model": "deepseek-v4-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY"
+    }
+  },
+  "summary": "Judge Result: RELEASE-005\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 RELEASE-005 evidence contract: (1) .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json exists in the merged tree and cites baseline total_count=0 for head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 plus the pre/post git ls-remote refs/tags/v1.0.0 outputs showing tag object 25032f698f9c4a87b555a2ed4134643c758821ef unchanged; (2) a probe tag v1.0.0-ci-probe-20261101-* exists on origin pointing at fdcec4c95abf054525b8e07e497493d9f6afd8d5 while refs/tags/v1.0.0 is unmoved (verify via git ls-remote); (3) a CI run with headSha=fdcec4c95abf054525b8e07e497493d9f6afd8d5 concluded success at the probe tag event and its run id and job id(s) are cited in the evidence artifact (re-verify with gh run view); (4) the evidence artifact contains the ch:trace block with row=RELEASE-005 (grep for it). No v1.0.0 mutation and no fabricated green: an honest recorded CI failure is a finding, not a silent pass. Bind to the merged published commit on origin/main.: Sub-parts (1),(2),(4) PASS but (3) FAILS, so the conjunctive contract is unmet. (1) PASS: `git ls-tree origin/main .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json` -> blob c648d9bb9c52478a07b5624f47d6aade5061c3c8, identical to `git hash-object` of the local file, so it is in the merged tree; artifact cites baseline.total_count_observed=0, release_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5, and both baseline.v1.0.0_tag_output and v1.0.0_unchanged.post_push_ls_remote_output = \"25032f698f9c4a87b555a2ed4134643c758821ef\\trefs/tags/v1.0.0\". (2) PASS: `git ls-remote origin 'refs/tags/v1.0.0*'` exit 0 returns `fdcec4c95abf054525b8e07e497493d9f6afd8d5\\trefs/tags/v1.0.0-ci-probe-20261101-1231` and `25032f698f9c4a87b555a2ed4134643c758821ef\\trefs/tags/v1.0.0` (annotated tag object, `git cat-file -t` = tag, peeling to fdcec4c) \u2014 v1.0.0 unmoved, no mutation. (4) PASS: `grep -c 'ch:trace'` = 1 and `grep -o 'row=RELEASE-005'` matches in the artifact. (3) FAIL: `gh api \"repos/wojons/ai_plays_poke/actions/runs?head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5\" --jq .total_count` returns 0 (exit 0); `gh run list --commit fdcec4c95abf054525b8e07e497493d9f6afd8d5` returns empty; 0 of the last 100 runs have head_sha=fdcec4c and 0 runs have a head_branch matching 'ci-probe'. The artifact itself records ci_run.id=null, headSha=null, conclusion=null, status=null, workflowName=null, ci_jobs=[], with observation \"No run appeared for the release SHA during the approximately 35-minute polling window.\" No run id and no job id(s) are cited anywhere. .github/workflows/ci.yml declares `on: push: tags: ['v*']`, so the probe tag push should have triggered a run and none materialized. The artifact is honest (no fabricated green, which the criterion permits as a finding), but the required successful CI run with cited run id and job ids does not exist, so the criterion cannot pass. Note .gitreins/tasks.yaml:1899 nonetheless marks RELEASE-005 status: complete.\nThe evidence artifact is committed on origin/main and correctly records the unmoved v1.0.0 tag, the probe tag at fdcec4c, and the ch:trace row, but no CI run exists for headSha fdcec4c (gh total_count=0, ci_run.id=null, ci_jobs=[]), so the required successful run with cited run/job ids is missing.\n\nOverall: FAIL \u2717 [DEGRADED \u2014 skipped: tier1(secrets)=skipped at runtime \u2014 secrets: timed out after 120s (step budget)]",
+  "evaluated_at": "2026-11-01T13:26:57.392644",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-01T13:26:57.432794+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 799,
+        "truncated": false,
+        "source": "git show 4b29ba945237"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 57594,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "RELEASE-005"
+  }
+}

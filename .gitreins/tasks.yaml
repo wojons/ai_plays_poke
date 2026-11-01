@@ -1856,15 +1856,61 @@ tasks:
   created_at: '2026-10-29T21:58:07.516903+00:00'
   completed_at: '2026-10-29T22:12:13.198722+00:00'
 - id: VIS-MODEL-1
-  title: 'Vision model registry: ordered list config, per-run selector, structure
-    scoring, two-model e2e'
+  title: 'Vision model registry M3+M4: structure scorer + two-model e2e + measured
+    score doc'
   criteria:
-  - 'VIS-MODEL-1: AC1 tests/test_vision_model_registry.py proves ordered list of provider+model
-    pairs accepted; AC2 per-run selector chooses+records+console-prints chosen model;
-    AC3 scripts/vision_model_score.py prints STRUCTURE (non-floor) scores beside total
-    scores and lazy all-floor answer cannot rank first; AC4 tests/test_vision_model_e2e.py
-    exercises >=2 models end to end and docs/vision-model-scores.md records measured
-    results'
+  - 'VIS-MODEL-1 M3+M4 (M1+M2 landed at 405c249 - do not redo): AC3 scripts/vision_model_score.py
+    exits 0 and prints per-model STRUCTURE (non-floor) scores beside total-cell scores
+    over the player-centered 9x9 grid per the perception_diff docstring geometry (cell
+    (c,r) covers x 72+(c-4)*16..+16, y 64+(r-4)*16..+16) - NOT the stale COLS,ROWS=10,9
+    at scripts/perception_diff.py:47 - reusing perception_diff cell classes (''.''
+    floor / ''B'' blocked / digit object / ''?'' unknown), and tests/test_vision_model_registry.py
+    proves a lazy all-floor answer cannot rank first. AC4 tests/test_vision_model_e2e.py
+    exits 0 with >=2 configured models exercised end to end (load repo .env - OPENROUTER_API_KEY
+    is present there), and docs/vision-model-scores.md records measured per-model
+    latency/tokens/structure-score/total-score including honest losing numbers with
+    unmeasured claims in a named unmeasured field.'
   status: complete
-  created_at: '2026-10-30T20:24:36.814995+00:00'
-  completed_at: '2026-10-30T20:50:11.483372+00:00'
+  created_at: '2026-10-31T17:49:08.330744+00:00'
+  completed_at: '2026-10-31T18:16:47.200445+00:00'
+- id: VIS-MODEL-1-R2
+  title: 'VIS-MODEL-1 M3+M4 remediation: measured structure scorer, shared cell classes,
+    measured score doc (judge 2c3fcafe FAIL fix-list)'
+  criteria:
+  - 'VIS-MODEL-1-R2 remediates judge 2c3fcafe FAIL findings against the row contract:
+    (1) ./venv/bin/python scripts/vision_model_score.py exits 0 and prints per-model
+    STRUCTURE (non-floor) scores beside total-cell scores for >=2 models read from
+    committed data/vision_model_runs.jsonl records (model, expected_grid, predicted_grid,
+    latency_seconds, tokens) produced by a record producer wired to the perception_diff
+    RAM grid (expected) and per-model blueprint grid (predicted) paths; (2) the scorer
+    reuses the perception_diff cell-class vocabulary from ONE shared definition also
+    used by scripts/perception_diff.py (no local reimplementation); (3) docs/vision-model-scores.md
+    records MEASURED per-model latency/tokens/structure-score/total-score including
+    honest losing numbers, with unmeasured claims in a named unmeasured field; (4)
+    tests/test_vision_model_registry.py and tests/test_vision_model_e2e.py both exit
+    0 with >=2 configured models exercised end to end and the lazy all-floor answer
+    cannot rank first. Trace check: grep docs/vision-model-scores.md for ''row=VIS-MODEL-1''
+    (the worker-embedded ch:trace block) and require it in the committed artifact.
+    Full suite ./venv/bin/pytest -x --tb=short -q passes. Bind to the merged published
+    commit on origin/main.'
+  status: in_progress
+  created_at: '2026-11-01T12:29:27.999521+00:00'
+  completed_at: '2026-11-01T13:08:48.212539+00:00'
+- id: RELEASE-005
+  title: 'RELEASE-005: probe-tag CI evidence at v1.0.0 release sha fdcec4c (RELEASE-004
+    pattern)'
+  criteria:
+  - 'RELEASE-005 evidence contract: (1) .coding-hermes/board/evidence-RELEASE-005-2026-11-01.json
+    exists in the merged tree and cites baseline total_count=0 for head_sha=fdcec4c95abf054525b8e07e497493d9f6afd8d5
+    plus the pre/post git ls-remote refs/tags/v1.0.0 outputs showing tag object 25032f698f9c4a87b555a2ed4134643c758821ef
+    unchanged; (2) a probe tag v1.0.0-ci-probe-20261101-* exists on origin pointing
+    at fdcec4c95abf054525b8e07e497493d9f6afd8d5 while refs/tags/v1.0.0 is unmoved
+    (verify via git ls-remote); (3) a CI run with headSha=fdcec4c95abf054525b8e07e497493d9f6afd8d5
+    concluded success at the probe tag event and its run id and job id(s) are cited
+    in the evidence artifact (re-verify with gh run view); (4) the evidence artifact
+    contains the ch:trace block with row=RELEASE-005 (grep for it). No v1.0.0 mutation
+    and no fabricated green: an honest recorded CI failure is a finding, not a silent
+    pass. Bind to the merged published commit on origin/main.'
+  status: complete
+  created_at: '2026-11-01T12:29:46.693151+00:00'
+  completed_at: '2026-11-01T13:20:58.185997+00:00'

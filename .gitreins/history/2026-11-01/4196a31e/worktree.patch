@@ -1,0 +1,40 @@
+diff --git a/.gitreins/tasks.yaml b/.gitreins/tasks.yaml
+index ad9d08f..9a2508b 100644
+--- a/.gitreins/tasks.yaml
++++ b/.gitreins/tasks.yaml
+@@ -1856,15 +1856,20 @@ tasks:
+   created_at: '2026-10-29T21:58:07.516903+00:00'
+   completed_at: '2026-10-29T22:12:13.198722+00:00'
+ - id: VIS-MODEL-1
+-  title: 'Vision model registry: ordered list config, per-run selector, structure
+-    scoring, two-model e2e'
+-  criteria:
+-  - 'VIS-MODEL-1: AC1 tests/test_vision_model_registry.py proves ordered list of provider+model
+-    pairs accepted; AC2 per-run selector chooses+records+console-prints chosen model;
+-    AC3 scripts/vision_model_score.py prints STRUCTURE (non-floor) scores beside total
+-    scores and lazy all-floor answer cannot rank first; AC4 tests/test_vision_model_e2e.py
+-    exercises >=2 models end to end and docs/vision-model-scores.md records measured
+-    results'
+-  status: complete
+-  created_at: '2026-10-30T20:24:36.814995+00:00'
+-  completed_at: '2026-10-30T20:50:11.483372+00:00'
++  title: 'Vision model registry M3+M4: structure scorer + two-model e2e + measured
++    score doc'
++  criteria:
++  - 'VIS-MODEL-1 M3+M4 (M1+M2 landed at 405c249 - do not redo): AC3 scripts/vision_model_score.py
++    exits 0 and prints per-model STRUCTURE (non-floor) scores beside total-cell scores
++    over the player-centered 9x9 grid per the perception_diff docstring geometry (cell
++    (c,r) covers x 72+(c-4)*16..+16, y 64+(r-4)*16..+16) - NOT the stale COLS,ROWS=10,9
++    at scripts/perception_diff.py:47 - reusing perception_diff cell classes (''.''
++    floor / ''B'' blocked / digit object / ''?'' unknown), and tests/test_vision_model_registry.py
++    proves a lazy all-floor answer cannot rank first. AC4 tests/test_vision_model_e2e.py
++    exits 0 with >=2 configured models exercised end to end (load repo .env - OPENROUTER_API_KEY
++    is present there), and docs/vision-model-scores.md records measured per-model
++    latency/tokens/structure-score/total-score including honest losing numbers with
++    unmeasured claims in a named unmeasured field.'
++  status: complete
++  created_at: '2026-10-31T17:49:08.330744+00:00'
++  completed_at: '2026-10-31T18:16:47.200445+00:00'
+diff --git a/play_frames/console.png b/play_frames/console.png
+index ae3a7c6..e6512aa 100644
+Binary files a/play_frames/console.png and b/play_frames/console.png differ

@@ -1,0 +1,122 @@
+{
+  "task_id": "VIS-MODEL-1-R2",
+  "task_title": "VIS-MODEL-1 M3+M4 remediation: measured structure scorer, shared cell classes, measured score doc (judge 2c3fcafe FAIL fix-list)",
+  "task_criteria": [
+    "VIS-MODEL-1-R2 remediates judge 2c3fcafe FAIL findings against the row contract: (1) ./venv/bin/python scripts/vision_model_score.py exits 0 and prints per-model STRUCTURE (non-floor) scores beside total-cell scores for >=2 models read from committed data/vision_model_runs.jsonl records (model, expected_grid, predicted_grid, latency_seconds, tokens) produced by a record producer wired to the perception_diff RAM grid (expected) and per-model blueprint grid (predicted) paths; (2) the scorer reuses the perception_diff cell-class vocabulary from ONE shared definition also used by scripts/perception_diff.py (no local reimplementation); (3) docs/vision-model-scores.md records MEASURED per-model latency/tokens/structure-score/total-score including honest losing numbers, with unmeasured claims in a named unmeasured field; (4) tests/test_vision_model_registry.py and tests/test_vision_model_e2e.py both exit 0 with >=2 configured models exercised end to end and the lazy all-floor answer cannot rank first. Trace check: grep docs/vision-model-scores.md for 'row=VIS-MODEL-1' (the worker-embedded ch:trace block) and require it in the committed artifact. Full suite ./venv/bin/pytest -x --tb=short -q passes. Bind to the merged published commit on origin/main."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "4b29ba9452377d82aaca0f767a5f2cbe9d78bf46",
+  "items": [],
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": false,
+      "any_failed": true,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261031T180844.408324Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": false,
+          "output": "",
+          "error": "Command timed out after 120s (step budget)",
+          "data": {
+            "timed_out": true,
+            "timeout_s": 120
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4599 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [499534 chars omitted \u2014 5459 line(s)] \u2026\ntest_bench_pathfinding_find_path               681.9610 (1.70)           5,068.9559 (3.07)          1,170.6392 (2.11)          1,133.8746 (8.18)            846.5722 (1.72)           260.0718 (1.13)          1;1    854,234.1546 (0.48)         14           1\ntest_bench_vision_pipeline_validate          7,624.0394 (19.06)         62,236.0967 (37.65)         8,783.5448 (15.80)         1,636.9415 (11.80)         8,134.8699 (16.57)          451.9243 (1.96)    4692;5784    113,849.2516 (0.06)      31193           1\ntest_bench_ram_reader_observe            1,159,728.9704 (>1000.0)  228,171,244.0308 (>1000.0)   2,711,280.5402 (>1000.0)  14,564,742.3530 (>1000.0)   1,600,545.9474 (>1000.0)    460,263.1088 (>1000.0)      4;19        368.8294 (0.00)        806           1\ntest_bench_vision_pipeline_process      36,937,795.1138 (>1000.0)   48,938,056.9197 (>1000.0)  42,224,388.0108 (>1000.0)   3,335,835.3984 (>1000.0)  41,707,511.9913 (>1000.0)  4,501,778.1085 (>1000.0)       9;0         23.6830 (0.00)         25           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4585 passed, 14 skipped in 226.07s (0:03:46) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261031T180844.408324Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests",
+      "degraded": true,
+      "skipped_steps": [
+        "secrets"
+      ],
+      "degradation_reason": "skipped at runtime \u2014 secrets: timed out after 120s (step budget)"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.1 used). Increase max_iterations or split criteria.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.1 used). Increase max_iterations or split criteria.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [],
+            "summary": "Cap exceeded: Iteration cap (100) reached (100.1 used). Increase max_iterations or split criteria.",
+            "provenance": {
+              "model": "deepseek-v4-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            }
+          }
+        }
+      ],
+      "model": "deepseek-v4-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY"
+    }
+  },
+  "summary": "Judge Result: VIS-MODEL-1-R2\n\nStage tier1: FAIL\n  WARNING: coverage is secrets+lint+tests \u2014 secrets did not run (skipped at runtime \u2014 secrets: timed out after 120s (step budget)); run `gitreins guard` for the full gate\n    \u2713 lint: scanners: nice=nice -n 10\n  ~ secrets: Command timed out after 120s (step budget)\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: FAIL\n  INCOMPLETE\n\nCap exceeded: Iteration cap (100) reached (100.1 used). Increase max_iterations or split criteria.\n\nOverall: FAIL \u2717 [DEGRADED \u2014 skipped: tier1(secrets)=skipped at runtime \u2014 secrets: timed out after 120s (step budget)]",
+  "evaluated_at": "2026-11-01T13:55:31.798227",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-01T13:55:31.846038+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 799,
+        "truncated": false,
+        "source": "git show 4b29ba945237"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 57594,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "VIS-MODEL-1-R2"
+  }
+}
