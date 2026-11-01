@@ -218,7 +218,9 @@ class VisionClient:
                     break
 
         # ── fallback ─────────────────────────────────────────────────────
-        return dict(self._FALLBACK_RESULT, usage=None)
+        fallback = dict(self._FALLBACK_RESULT, usage=None)
+        fallback["model"] = selected_model
+        return fallback
 
     # ── helpers ─────────────────────────────────────────────────────────────
 
