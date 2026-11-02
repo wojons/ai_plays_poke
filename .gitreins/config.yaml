@@ -50,7 +50,7 @@ guards:
     allow:
     - .env.example
 evaluator:
-  max_iterations: 100
+  max_iterations: 300
   max_time: 60m
   max_input_tokens: 16M
   max_output_tokens: 4M
