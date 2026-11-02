@@ -1893,9 +1893,9 @@ tasks:
     (the worker-embedded ch:trace block) and require it in the committed artifact.
     Full suite ./venv/bin/pytest -x --tb=short -q passes. Bind to the merged published
     commit on origin/main.'
-  status: in_progress
+  status: complete
   created_at: '2026-11-01T12:29:27.999521+00:00'
-  completed_at: '2026-11-01T13:08:48.212539+00:00'
+  completed_at: '2026-11-02T09:28:07.872102+00:00'
 - id: RELEASE-005
   title: 'RELEASE-005: probe-tag CI evidence at v1.0.0 release sha fdcec4c (RELEASE-004
     pattern)'
@@ -1914,3 +1914,18 @@ tasks:
   status: complete
   created_at: '2026-11-01T12:29:46.693151+00:00'
   completed_at: '2026-11-01T13:20:58.185997+00:00'
+- id: INT-GL-3
+  title: 'gitreins judge runs must complete green end-to-end on ai_plays_poke: secrets
+    scan stable under load, scope hygiene preserved, 3 clean judge runs'
+  criteria:
+  - (1) tier1 secrets step command (regenerated from engine.pipeline.tier1_plan) exits
+    0 in 3 consecutive runs under >=4 concurrent nice -n 10 CPU-bound workers, no
+    timeout; worst-case whole-worktree scan cost measured first; exact config/scope
+    fix named. (2) gitleaks detect history mode prints 'no leaks found' and tests/test_secrets_allowlist.py
+    -q exits 0 after the change; any tracked-content narrowing explicit + one whole-worktree
+    guard scan recorded clean. (3) 3 consecutive full judge runs on the merged tree
+    (worktree venv provisioned) each produce verdict.json with tests cell actually
+    ran, stages.tier1.passed=true, and tier2 terminal (not INCOMPLETE iteration-cap);
+    cite all three verdict paths.
+  status: in_progress
+  created_at: '2026-11-02T09:44:17.851309+00:00'

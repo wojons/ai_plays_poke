@@ -37,7 +37,7 @@
   "status": "recovered_closed",
   "finished_at": "2026-11-02T04:32:38-05:00",
   "pre_closeout_sha": "10c016746e430b479d5139075dd64c7c0ac90a0d",
-  "closeout_sha": null,
+  "closeout_sha": "72a84852e26bde0657001b4ba6b69641c3ed2423",
   "recovery": {
     "recovered_by_tick": "ai-plays-poke-foreman-2026-11-02-09-16-12",
     "branch_state": "both worker branches fully contained in origin/main (git rev-list --count origin/main..<branch> = 0 for both): wt/VIS-MODEL-1-R2 tip 33e79ed (commits 99346bd, aabc81f, 33e79ed past base 728a7fe) merged @ edc31b4; wt/RELEASE-005 tip f1520c9 (evidence commit) merged @ 4b29ba9. Gate evidence on the merged trees: exact-head CI run 41309773124 conclusion=success at edc31b4 (full suite 4585 passed/14 skipped in 243.10s before merge), RELEASE-005 merge ops-only (evidence artifact, no code).",

@@ -1,0 +1,29 @@
+{
+  "tick_id": "ai-plays-poke-foreman-2026-11-02-09-16-12",
+  "project": "ai_plays_poke",
+  "created_at": "2026-11-02T04:52:00-05:00",
+  "mode": "serial",
+  "wave_budget": 12,
+  "wave_size": 1,
+  "base": "origin/main",
+  "base_sha": "72a84852e26bde0657001b4ba6b69641c3ed2423",
+  "recovery_note": "Wave ai-plays-poke-foreman-2026-11-01-12-09-08 recovered and closed earlier this tick: both worker branches (wt/VIS-MODEL-1-R2 33e79ed, wt/RELEASE-005 f1520c9) fully contained in origin/main (merged earlier @ edc31b4 / 4b29ba9, exact-head CI 41309773124 green), worktrees removed, merged branches deleted, gitreins VIS-MODEL-1-R2 lifecycle reconciled, recovered manifest closed with finished_at + closeout_sha=72a84852e26bde0657001b4ba6b69641c3ed2423.",
+  "selection": {
+    "INT-GL-3": "Only dispatchable row (RELEASE-003 owner-gated on ratification; RELEASE-005 blocked on PM re-scope). Premise re-verified 2026-11-02: failure modes (b) tests-cell-skip and (c) tier2 iteration-cap already have proven remedies (judge-worktree venv provisioning; GITREINS_MAX_ITERATIONS=300 per pre-solve lab id 4257) validated by verdict e368de1e; mode (a) tier1 secrets 120s step-budget timeout is the live defect (5th measured instance 2026-11-01 in e368de1e) and the fix target. WAVE_BUDGET=12 but exactly one dispatchable row and lane rule 'max one worker per tick' -> serial dispatch."
+  },
+  "workers": [
+    {
+      "row_id": "INT-GL-3",
+      "gitreins_task": "INT-GL-3",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-INT-GL-3",
+      "branch": "wt/INT-GL-3",
+      "base_sha": "72a84852e26bde0657001b4ba6b69641c3ed2423",
+      "brief_path": "/home/kara/.hermes/cache/scratch/ai-plays-poke-foreman-2026-11-02-09-16-12/brief-int-gl-3.txt",
+      "model": "gpt-6-luna",
+      "provider": "openai-codex",
+      "ownership": "worker owns this worktree exclusively; foreman merges serially after gates",
+      "scope": "INT-GL-3 AC1+AC2 fix work (secrets-scan stability under load + scope hygiene) and AC3's 3 consecutive full judge runs as acceptance evidence on the branch tree (content-identical to the merge: base is current published main tip); foreman binds the row to the merged SHA and runs the lifecycle judge post-merge."
+    }
+  ],
+  "merge_plan": "serial: verify AC1/AC2 measurements + the 3 verdict artifacts, run gates on the merged tree, stale-base check (git merge-base main wt/INT-GL-3 vs git rev-parse main) before merge, push origin main, verify remote parity 0, then gitreins task complete INT-GL-3 against the merged tree."
+}
