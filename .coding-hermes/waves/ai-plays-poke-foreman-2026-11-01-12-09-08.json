@@ -33,5 +33,15 @@
       "scope": "ops evidence: probe tag v1.0.0-ci-probe-20261101-<hhmm> at fdcec4c95abf054525b8e07e497493d9f6afd8d5, green tag-event CI run at the release sha, evidence artifact committed"
     }
   ],
-  "merge_plan": "serial: gate each merge (full suite ./venv/bin/pytest -x --tb=short -q + gitreins guard), bind board rows to merged commits, push origin main, verify remote parity zero, then gitreins task complete per row against the merged tree"
+  "merge_plan": "serial: gate each merge (full suite ./venv/bin/pytest -x --tb=short -q + gitreins guard), bind board rows to merged commits, push origin main, verify remote parity zero, then gitreins task complete per row against the merged tree",
+  "status": "recovered_closed",
+  "finished_at": "2026-11-02T04:32:38-05:00",
+  "pre_closeout_sha": "10c016746e430b479d5139075dd64c7c0ac90a0d",
+  "closeout_sha": null,
+  "recovery": {
+    "recovered_by_tick": "ai-plays-poke-foreman-2026-11-02-09-16-12",
+    "branch_state": "both worker branches fully contained in origin/main (git rev-list --count origin/main..<branch> = 0 for both): wt/VIS-MODEL-1-R2 tip 33e79ed (commits 99346bd, aabc81f, 33e79ed past base 728a7fe) merged @ edc31b4; wt/RELEASE-005 tip f1520c9 (evidence commit) merged @ 4b29ba9. Gate evidence on the merged trees: exact-head CI run 41309773124 conclusion=success at edc31b4 (full suite 4585 passed/14 skipped in 243.10s before merge), RELEASE-005 merge ops-only (evidence artifact, no code).",
+    "board_truth": "VIS-MODEL-1 complete (verdict .gitreins/history/2026-11-01/e368de1e/verdict.json: tier2 all criteria PASS on edc31b4; aggregate FAIL is tier1 secrets step 120s timeout only = INT-GL-3 mode (a) instrument). RELEASE-005 blocked with reason: AC3 unreachable ([ci skip] in fdcec4c commit message suppresses tag-push workflow runs; controlled comparison documented in row), PM re-scope pending (options act-run / tree-equivalence / accept impossibility proof) — do not re-dispatch as-is.",
+    "cleanup": "worktrees /home/kara/worktrees/ai_plays_poke-VIS-MODEL-1-R2 and /home/kara/worktrees/ai_plays_poke-RELEASE-005 removed (both clean at removal); branches wt/VIS-MODEL-1-R2 and wt/RELEASE-005 deleted via git branch -d (merged-only guard, deleted at 33e79ed / f1520c9); gitreins record VIS-MODEL-1-R2 reconciled in_progress->complete via --force --skip-tier2 (re-judge verdict e368de1e pre-existing; judge --async never flips tasks.yaml). RELEASE-005 gitreins record already complete (verdict 86f5f7f4)."
+  }
 }
