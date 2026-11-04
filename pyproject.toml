@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ptp-01x-pokemon-ai"
-version = "1.0.0"
+version = "1.1.0"
 description = "PTP-01X Autonomous Pokemon AI Benchmarking System"
 readme = "README.md"
 requires-python = ">=3.11"  # 3.10 dropped: dev tooling (pre-commit>=4.7.0) requires >=3.11, so uv.lock is unsolvable at 3.10 (SUP-DEPS-20261022-AIP); runtime envs are CI 3.11 / venv 3.13

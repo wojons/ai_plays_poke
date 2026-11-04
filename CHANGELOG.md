@@ -14,6 +14,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened `game_bridge.py` with bounded workers and serialized emulator access.
 - Persisted RAM-derived save and run summaries, with prior memory injected at boot.
 
+## [1.1.0] - 2026-11-04
+
+### Added
+
+- Ordered vision model registry with per-run model selection (VIS-MODEL-1 M1/M2),
+  recorded live vision model grids (M2), and a vision structure scorer with live
+  model comparison (M3/M4).
+- ARM-2: runtime-selectable decision models, with per-mode model and provider
+  selection recorded on decision rows and run rows (AC3).
+- Observability: `GET /metrics/prometheus` exposing five P0 `aipp_*` metrics
+  (MON-AIPP-1).
+
+### Fixed
+
+- Navigation: preserve legal dead-end exits, emit a dedicated dead-end event when
+  every walkable direction is forbidden, and route to dead-end map exits even when
+  the target map is visited (DF-AIPP-17); block immediate model edge recrossing
+  (DF-AIPP-21).
+- Teacher/escalation: re-arm gap-class re-escalation so gap triggers reach the
+  teacher, allow one bounded teacher re-escalation per missing class
+  (DF-AIPP-13-R2), and deliver jev gap handoffs with treadmill-regression
+  detection (DF-AIPP-13).
+- Vision: include the model key in `VisionClient` fallback results; share vision
+  cell classes across scorers.
+- Dashboard: surface occupied-port failure (DF-AIPP-14) and show an env-warning
+  banner when `PTP_API_KEY` is unset (DF-AIPP-15).
+- CI/tests: bound `pytest<9.2` so the pytest-benchmark fixture stops erroring
+  (INT-CI-2), and preserve Python package initializers for `act`
+  (QA-AI-PLAYS-POKE-19).
+- QA: retain the newest screenshot during cleanup (QA-AI-PLAYS-POKE-22).
+- GitReins: give the tier1 secrets scan load headroom, raise the evaluator
+  iteration budget, narrow the secrets allowlist with a `.env.example`
+  sensitive-path override (INT-GL-2), and set the effective evaluator iteration
+  default.
+
+### Changed
+
+- Dependency reconcile (SUP-DEPS-20261022-AIP): `anthropic` 1.15.0 → 2.3.0 (the
+  2.x breaking change is the default API-version date; the `extra_body`
+  temperature forward is preserved and covered by
+  `TestClaudeClientRealSDKCallShape`), `fastapi` 0.152.0 → 0.162.0. `pyboy` stays
+  pinned `<2.8.0` (save-state format break — see `requirements.txt`).
+
+### Notes
+
+- Range `v1.0.0..v1.1.0`: 159 commits, 26 material (6 feat, 19 fix, 1 perf).
+  Board/harness bookkeeping (47 board, 36 foreman, 5 releng, 3 pm, 7 qa-cron,
+  12 chore, 9 docs, 8 merge) is not itemized here.
+- No breaking changes in this release (`BREAKING CHANGE:` / `type!:` census = 0).
+- Rollback path: previous release `v1.0.0`.
+
 ## [1.0.0] - 2025-12-31
 
 ### Added
