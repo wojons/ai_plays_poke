@@ -25,5 +25,28 @@
       "scope": "INT-GL-3 AC1+AC2 fix work (secrets-scan stability under load + scope hygiene) and AC3's 3 consecutive full judge runs as acceptance evidence on the branch tree (content-identical to the merge: base is current published main tip); foreman binds the row to the merged SHA and runs the lifecycle judge post-merge."
     }
   ],
-  "merge_plan": "serial: verify AC1/AC2 measurements + the 3 verdict artifacts, run gates on the merged tree, stale-base check (git merge-base main wt/INT-GL-3 vs git rev-parse main) before merge, push origin main, verify remote parity 0, then gitreins task complete INT-GL-3 against the merged tree."
+  "merge_plan": "serial: verify AC1/AC2 measurements + the 3 verdict artifacts, run gates on the merged tree, stale-base check (git merge-base main wt/INT-GL-3 vs git rev-parse main) before merge, push origin main, verify remote parity 0, then gitreins task complete INT-GL-3 against the merged tree.",
+  "finished_at": "2026-11-04T03:08:10-05:00",
+  "status": "recovered_closed",
+  "recovery": {
+    "row": "INT-GL-3",
+    "branch": "wt/INT-GL-3",
+    "worktree": "/home/kara/worktrees/ai_plays_poke-INT-GL-3",
+    "tip": "9e8c79153c0b9215a971d4b4db40d27c405cbbcd",
+    "base_check": "merge-base main branch == branch tip; branch already contained in current main; no merge required",
+    "diff_policy": "implementation/config and gitreins lifecycle paths only; no .coding-hermes/board path in branch diff",
+    "gates": {
+      "direct_acceptance": "tests/test_secrets_allowlist.py: 6 passed in 0.03s; gitleaks history: 1478 commits, 55.60 MB, no leaks found",
+      "gitreins_guard": "exit 0 DEGRADED PASS on empty index; secrets/static_analysis passed; lint/tests/lsp skipped because no staged files or pylsp absent",
+      "full_guard_attempt": "started once with --full; process exited without a persisted full-suite summary after the API tool timeout; not promoted as green",
+      "judge_artifacts": [
+        ".gitreins/history/2026-11-02/d33d0dec/verdict.json",
+        ".gitreins/history/2026-11-02/b31ca228/verdict.json"
+      ],
+      "judge_binding": "historical verdicts are PASS with tier1/tier2 true but bind to aac143d and 9e8c791 respectively; 9e8c791 is the recovered branch tip and is contained in current main"
+    },
+    "merge": "already_landed; main contained branch before recovery merge attempt",
+    "cleanup": "worktree and branch retained as evidence because the recovery disposition is historical and cleanup was not safely performed on the dirty shared checkout",
+    "board_truth": "INT-GL-3 remains pending; no fabricated completion because the board row lacks a fresh current-head verdict and direct full guard evidence"
+  }
 }
