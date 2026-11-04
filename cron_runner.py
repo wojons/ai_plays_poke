@@ -52,6 +52,7 @@ from src.observability.metrics import (
 # the --dry-run precheck below can validate setup under bare python3 too.
 ROM = "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 DEFAULT_BOOT_STATE = Path("data/boot.state")  # known-good overworld checkpoint
+DEFAULT_TEXTFILE_DIR = Path("/var/lib/node_exporter/textfile_collector")
 BOOT_STATE_ROM_TITLE = (
     "POKEMON BLUE"  # data/boot.state was saved from the Blue SGB ROM (GAP-037)
 )
@@ -5141,6 +5142,72 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+_TEXTFILE_COUNTER_PATTERN = re.compile(
+    r'^aipp_run_completed_total\{outcome="(completed|error|gave_up)"\}'
+    r"\s+([0-9]+(?:\.[0-9]+)?)\s*$",
+    re.MULTILINE,
+)
+
+
+def _write_textfile_record(
+    textfile_dir: str | Path,
+    run_id: str,
+    outcome: str,
+    duration_s: float,
+    autonomy: dict[str, Any],
+) -> Path | None:
+    """Atomically publish accumulated run counters for node_exporter."""
+    try:
+        target_dir = Path(textfile_dir)
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target = target_dir / "aipp_run.prom"
+        temporary = target.with_name(f"{target.name}.tmp")
+        accumulated = {"completed": 0.0, "error": 0.0, "gave_up": 0.0}
+        if target.exists():
+            existing = target.read_text(encoding="utf-8")
+            for label, value in _TEXTFILE_COUNTER_PATTERN.findall(existing):
+                accumulated[label] += float(value)
+        accumulated[outcome] += 1
+
+        lines = [
+            "# HELP aipp_run_completed_total Completed cron runs by outcome.",
+            "# TYPE aipp_run_completed_total counter",
+        ]
+        for label in ("completed", "error", "gave_up"):
+            value = accumulated[label]
+            if value or label == outcome:
+                lines.append(f'aipp_run_completed_total{{outcome="{label}"}} {value:g}')
+        lines.extend(
+            [
+                "# HELP aipp_run_last_run_duration_seconds Duration of the last cron run.",
+                "# TYPE aipp_run_last_run_duration_seconds gauge",
+                f"aipp_run_last_run_duration_seconds {float(duration_s):g}",
+                "# HELP aipp_run_last_decisions_total Decisions observed in the last cron run.",
+                "# TYPE aipp_run_last_decisions_total gauge",
+                f"aipp_run_last_decisions_total {int(autonomy.get('decisions_total', 0))}",
+                "# HELP aipp_run_last_map_transitions_total Map transitions observed in the last cron run.",
+                "# TYPE aipp_run_last_map_transitions_total gauge",
+                "aipp_run_last_map_transitions_total "
+                f"{int(autonomy.get('map_transitions_observed', 0))}",
+            ]
+        )
+        backtrack_rate = autonomy.get("backtrack_rate")
+        if backtrack_rate is not None:
+            lines.extend(
+                [
+                    "# HELP aipp_run_last_backtrack_rate Backtrack rate in the last cron run.",
+                    "# TYPE aipp_run_last_backtrack_rate gauge",
+                    f"aipp_run_last_backtrack_rate {float(backtrack_rate):g}",
+                ]
+            )
+        temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        os.replace(temporary, target)
+        return target
+    except Exception as exc:
+        safe_print(f"[TEXTFILE] {run_id} failed: {exc}")
+        return None
+
+
 def _count_jev_failure(
     row: dict[str, Any],
     failures: int,
@@ -7563,6 +7630,15 @@ def _main_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--textfile-dir",
+        type=Path,
+        default=DEFAULT_TEXTFILE_DIR,
+        help=(
+            "node_exporter textfile collector directory "
+            f"(default: {DEFAULT_TEXTFILE_DIR})."
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help=(
@@ -7716,7 +7792,20 @@ def main() -> None:
 
     R = _main_runtime_setup(args)
     ctx = _main_boot(R, args)
-    _main_run(R, args, preflight_row, ctx)
+    try:
+        _main_run(R, args, preflight_row, ctx)
+    except Exception:
+        started_at = getattr(args, "_run_started_at", None)
+        duration_s = time.time() - started_at if started_at is not None else 0.0
+        results = getattr(args, "_run_results", [])
+        _write_textfile_record(
+            getattr(args, "textfile_dir", DEFAULT_TEXTFILE_DIR),
+            run_id,
+            "error",
+            duration_s,
+            _autonomy_counters(results),
+        )
+        raise
 
 
 def _main_parse_and_dry_run():
@@ -8122,6 +8211,10 @@ def _main_run(R, args, preflight_row, ctx):
     log_file.flush()
 
     S = _main_loop_state(R, ctx, log_file)
+    S.run_started_at = time.time()
+    S.textfile_dir = args.textfile_dir
+    args._run_started_at = S.run_started_at
+    args._run_results = S.results
     S.preflight_row = preflight_row
     S.args = args
     _run_cycles(S)
@@ -10165,6 +10258,16 @@ def _finalize_run(S):
         mode_models=S.R.mode_models,
     )
     _write_degradation_row(log_file, S.run_id, autonomy)
+    outcome = "gave_up" if getattr(S, "_gave_up", False) else "completed"
+    started_at = getattr(S, "run_started_at", None)
+    duration_s = time.time() - started_at if started_at is not None else 0.0
+    _write_textfile_record(
+        getattr(S, "textfile_dir", DEFAULT_TEXTFILE_DIR),
+        S.run_id,
+        outcome,
+        duration_s,
+        autonomy,
+    )
     log_file.close()
 
     # Summary
