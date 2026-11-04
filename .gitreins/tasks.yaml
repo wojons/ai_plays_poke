@@ -1952,3 +1952,15 @@ tasks:
   status: complete
   created_at: '2026-11-04T18:08:12.297741+00:00'
   completed_at: '2026-11-04T18:37:50.450061+00:00'
+- id: RELEASE-007
+  title: 'RELEASE-007 wheel packaging: ship the src package intact'
+  criteria:
+  - 'A fresh wheel built from the working tree installs a usable package: unzip -l
+    shows the src package (src/__init__.py + src/core/ etc) and no bare game_loop.py,
+    main.py, core/ or __init__.py at wheel root; in a clean venv with the checkout
+    NOT on sys.path, pip install --no-deps of that wheel followed by python -m src.game_loop
+    --help exits 0; ./venv/bin/python scripts/release_check.py exits 0; and the documented
+    invocations in AGENTS.md still match the shipped layout.'
+  status: complete
+  created_at: '2026-11-04T18:55:53.519650+00:00'
+  completed_at: '2026-11-04T19:18:25.001463+00:00'
