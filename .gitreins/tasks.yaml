@@ -1939,3 +1939,16 @@ tasks:
   status: complete
   created_at: '2026-11-04T09:45:00.698781+00:00'
   completed_at: '2026-11-04T10:23:08.621384+00:00'
+- id: MON-AIPP-2
+  title: P0 node_exporter textfile completion record from the cron lane
+  criteria:
+  - cron_runner.py accepts --textfile-dir (default /var/lib/node_exporter/textfile_collector)
+    and writes aipp_run.prom at run end
+  - aipp_run_completed_total{outcome} is an ACCUMULATING counter that strictly increases
+    across two runs (reads the prior file instead of overwriting)
+  - aipp_run_last_decisions_total equals the decisions_total of the newest cron_logs/run_*.jsonl
+  - focused pytest for the textfile emitter is green under ./venv/bin/pytest
+  - ./venv/bin/ruff check . is clean
+  status: complete
+  created_at: '2026-11-04T18:08:12.297741+00:00'
+  completed_at: '2026-11-04T18:37:50.450061+00:00'
