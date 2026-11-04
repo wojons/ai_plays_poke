@@ -45,6 +45,8 @@ opencv-python-headless>=4.14.0.94
 fastapi>=0.162.0  # bumped 0.152→0.162 on 2026-10-25 (SUP-DEPS-20261022-AIP); 0.155 removed **extra kwargs (0 hits here), 0.160 sibling-field extra semantics (no custom extra= here)
 uvicorn>=0.54.0
 websockets>=12.0
+# Prometheus scrape endpoint and low-cardinality runtime metrics
+prometheus-client
 
 # Removed in SUP-DEPS batch 4 (2026-10-11) after the needs-decision the review
 # deferred: openai, streamlit, pandas and matplotlib were declared here and in

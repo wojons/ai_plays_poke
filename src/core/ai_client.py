@@ -23,6 +23,8 @@ import numpy as np
 from PIL import Image
 import requests
 
+from src.observability.metrics import observe_model_call
+
 try:
     from src.vision import (
         VisionPipeline,
@@ -108,6 +110,10 @@ def log_api_call(
     success: bool = True,
 ) -> None:
     """Simple logging function for API calls (survives broken stdout)"""
+    try:
+        observe_model_call(model, cost, success)
+    except Exception:  # noqa: BLE001 - metrics are best-effort instrumentation
+        pass
     try:
         print(
             f"📡 API: {model} | {duration_ms:.0f}ms | "

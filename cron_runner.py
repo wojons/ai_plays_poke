@@ -24,6 +24,7 @@ def safe_print(*args, **kwargs):
 
 
 import argparse
+import atexit
 from collections import Counter, deque
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, TextIO, cast
@@ -39,6 +40,12 @@ import hashlib
 import threading
 from pathlib import Path
 from datetime import datetime, timezone
+
+from src.observability.metrics import (
+    observe_cycle,
+    observe_decision_seconds,
+    set_runner_up,
+)
 
 # ── Config constants (early) ─────────────────────────────────────────
 # Defined before the heavy third-party imports (yaml/numpy/PIL/src.*) so
@@ -7688,6 +7695,8 @@ def main() -> None:
     if args is None:
         # --dry-run: setup validation already printed its summary.
         return
+    set_runner_up("cron", True)
+    atexit.register(set_runner_up, "cron", False)
     if args.rom:
         ROM = args.rom
     CYCLES = max(1, args.cycles)
@@ -8297,6 +8306,9 @@ def _init_memory_state(S):
 def _run_cycles(S):
     """Run every cycle: shared header, per-screen handling, cycle tail."""
     for cycle in range(CYCLES):
+        mode = DECISION_MODE or "unknown"
+        pipeline_name = getattr(S.R, "pipeline_name", None) or "unknown"
+        observe_cycle(mode, pipeline_name)
         try:
             header = _cycle_header(S, cycle)
             t0 = time.time()
@@ -8932,6 +8944,7 @@ def _overworld_cycle(S, cycle, header, t0):
     )
 
     elapsed = time.time() - t0
+    observe_decision_seconds(DECISION_MODE or "unknown", pipeline or "unknown", elapsed)
     safe_print(
         f"  [{cycle + 1}/{CYCLES}] {st} | {pipeline} x{CART_STEPS} | {elapsed:.1f}s"
     )

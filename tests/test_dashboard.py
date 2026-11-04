@@ -494,6 +494,80 @@ class TestMetricsEndpoint:
         assert "total_ticks" in resp.json()
 
 
+class TestPrometheusMetricsEndpoint:
+    def test_prometheus_endpoint_exposes_all_p0_series_without_auth(self, client):
+        from src.observability.metrics import set_runner_up
+
+        set_runner_up("dashboard")
+        response = client.get("/metrics/prometheus")
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/plain; version=0.0.4")
+        body = response.text
+        assert "# HELP aipp_runner_up" in body
+        for metric in (
+            "aipp_run_cycles_total",
+            "aipp_decision_duration_seconds",
+            "aipp_model_calls_total",
+            "aipp_model_cost_usd_total",
+            "aipp_runner_up",
+        ):
+            assert metric in body
+        assert client.get("/metrics").status_code == 401
+
+    def test_log_api_call_increments_call_and_cost_metrics(self):
+        import re
+
+        from prometheus_client import REGISTRY, generate_latest
+
+        from src.core.ai_client import log_api_call
+
+        def sample_value(metric: str, labels: str) -> float:
+            exposition = generate_latest(REGISTRY).decode()
+            match = re.search(
+                rf"^{metric}\{{{labels}\}} ([0-9.eE+-]+)$",
+                exposition,
+                re.MULTILINE,
+            )
+            return float(match.group(1)) if match else 0.0
+
+        call_labels = 'model_family="gpt",outcome="ok"'
+        cost_labels = 'model_family="gpt"'
+        calls_before = sample_value("aipp_model_calls_total", call_labels)
+        cost_before = sample_value("aipp_model_cost_usd_total", cost_labels)
+        log_api_call("openai/gpt-5.6-luna", 12.0, 10, 5, 0.25, True)
+        assert sample_value("aipp_model_calls_total", call_labels) == calls_before + 1
+        assert (
+            sample_value("aipp_model_cost_usd_total", cost_labels) == cost_before + 0.25
+        )
+
+    def test_metrics_module_reload_reuses_default_registry_series(self):
+        import importlib
+
+        from prometheus_client import REGISTRY, generate_latest
+        import src.observability.metrics as metrics
+
+        reloaded = importlib.reload(metrics)
+        assert reloaded is metrics
+        exposition = generate_latest(REGISTRY).decode()
+        assert "# HELP aipp_runner_up" in exposition
+
+    def test_model_family_uses_closed_buckets(self):
+        from src.observability.metrics import model_family
+
+        buckets = {"claude", "gpt", "deepseek", "gemini", "local", "other"}
+        for model in (
+            "anthropic/claude-3-haiku",
+            "openai/gpt-5.6-luna",
+            "deepseek-v4-flash",
+            "google/gemini-2.5-pro",
+            "ollama/llama-3",
+            "private-provider/model-unique-123",
+        ):
+            family = model_family(model)
+            assert family in buckets
+            assert family != model
+
+
 class TestControlEndpoints:
     def test_pause_no_auth_blocked(self, client):
         assert client.post("/control/pause").status_code in (401, 403)

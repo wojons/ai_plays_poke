@@ -22,19 +22,21 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import (
-    FastAPI,
-    HTTPException,
     Depends,
+    FastAPI,
     Header,
+    HTTPException,
+    Query,
     WebSocket,
     WebSocketDisconnect,
-    Query,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
+from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, generate_latest
 
-from src.db.database import GameDatabase
 from src.core.screenshot_manager import ScreenshotManager
+from src.db.database import GameDatabase
+from src.observability import metrics as _observability_metrics
 
 API_KEY = os.getenv("PTP_API_KEY")
 
@@ -114,6 +116,7 @@ def verify_api_key(x_api_key: str | None = Header(None)) -> bool:
 async def lifespan(_app: FastAPI):  # type: ignore[no-untyped-def]
     sessions.clear()
     connection_manager.clear()
+    _observability_metrics.set_runner_up("dashboard")
     yield
 
 
@@ -350,6 +353,18 @@ async def get_recent_actions(
         "actions": session.get_recent_actions(limit),
         "total_count": len(session.command_history),
     }
+
+
+@app.get("/metrics/prometheus")
+async def prometheus_metrics() -> Response:
+    return Response(
+        content=generate_latest(REGISTRY),
+        media_type=(
+            CONTENT_TYPE_LATEST
+            if CONTENT_TYPE_LATEST.startswith("text/plain; version=0.0.4")
+            else "text/plain; version=0.0.4; charset=utf-8"
+        ),
+    )
 
 
 @app.get("/metrics")
