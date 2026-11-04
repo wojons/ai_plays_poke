@@ -8,7 +8,7 @@ and main user journeys through the system.
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
 import time
@@ -16,8 +16,8 @@ import numpy as np
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-from schemas.commands import GameState
-from core.emulator import Button as EmulatorButton
+from src.schemas.commands import GameState
+from src.core.emulator import Button as EmulatorButton
 
 
 @pytest.mark.heavy

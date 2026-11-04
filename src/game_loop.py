@@ -19,13 +19,79 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, cast
 
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="AI Plays Pokemon - Orchestrated Intelligence Framework",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Basic run
+  python game_loop.py --rom pokemon_red.gb --save-dir ./my_run
+
+  # Fast screenshots (every 30 ticks = 0.5 seconds)
+  python game_loop.py --rom pokemon_red.gb --screenshot-interval 30
+
+  # High frequency AI analysis (every 10 ticks)
+  python game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --screenshot-interval 10
+
+  # Load from existing state
+  python game_loop.py --rom pokemon_red.gb --load-state checkpoint.state
+
+  # Multiple AI instances (for comparison)
+  python game_loop.py --rom pokemon_red.gb --multi-instance --instances 3
+
+  # Long gameplay session with analysis
+  python game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir ./battle_session --max-ticks 1800
+        """,
+    )
+    parser.add_argument(
+        "--rom", type=str, required=True, help="Path to Pokemon ROM file (.gb)"
+    )
+    parser.add_argument(
+        "--save-dir",
+        type=str,
+        default="./game_saves",
+        help="Directory for saves, DB, and screenshots (default: ./game_saves)",
+    )
+    parser.add_argument(
+        "--screenshot-interval",
+        type=int,
+        default=60,
+        help="Ticks between screenshots (default: 60 = 1 second at 60fps). Lower values = more frequent AI analysis.",
+    )
+    parser.add_argument(
+        "--load-state", type=str, help="Load existing emulator state file"
+    )
+    parser.add_argument(
+        "--max-ticks", type=int, help="Maximum ticks to run before stopping (optional)"
+    )
+    parser.add_argument(
+        "--multi-instance",
+        action="store_true",
+        help="Run multiple emulator instances simultaneously",
+    )
+    parser.add_argument(
+        "--instances",
+        type=int,
+        default=3,
+        help="Number of instances for multi-instance mode (default: 3)",
+    )
+    return parser
+
+
+# Keep CLI help available in a dependency-free wheel inspection environment.
+if __name__ == "__main__" and any(arg in {"-h", "--help"} for arg in sys.argv[1:]):
+    _build_parser().parse_args()
+
+
 # Add project root to Python path for imports
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 
-from db.database import GameDatabase, is_identified_opponent  # noqa: E402
-from core.emulator import Emulator, Button  # noqa: E402
+from src.db.database import GameDatabase, is_identified_opponent  # noqa: E402
+from src.core.emulator import Emulator, Button  # noqa: E402
 from src.core.ram_reader import RAMReader  # noqa: E402
 
 
@@ -45,13 +111,13 @@ class EmulatorManager:
         raise NotImplementedError
 
 
-from core.screenshots import ScreenshotManager, SimpleLiveView  # noqa: E402
-from core.ai_client import GameAIManager, OpenRouterClient  # noqa: E402
-from core.save_manager import SaveManager, SaveManagerConfig, SnapshotReason  # noqa: E402
+from src.core.screenshots import ScreenshotManager, SimpleLiveView  # noqa: E402
+from src.core.ai_client import GameAIManager, OpenRouterClient  # noqa: E402
+from src.core.save_manager import SaveManager, SaveManagerConfig, SnapshotReason  # noqa: E402
 from src.core.vision import VisionClient  # noqa: E402
 from src.core.prompt_assembler import PromptStack  # noqa: E402
 from src.core.tools import TOOL_SCHEMA, parse_tool_call  # noqa: E402
-from schemas.commands import (  # noqa: E402
+from src.schemas.commands import (  # noqa: E402
     AIThought,
     GameState,
 )
@@ -240,6 +306,7 @@ class GameLoop:
         self.db.end_session(final_metrics)
 
         # Export session data for analysis
+        assert self.session_id is not None
         export_path = self.db.export_session_data(self.session_id)
         print(f"📊 Session data exported to {export_path}")
 
@@ -968,74 +1035,7 @@ def create_config(args: Any) -> dict[str, Any]:
 
 def main() -> int:
     """Main entry point"""
-
-    parser = argparse.ArgumentParser(
-        description="AI Plays Pokemon - Orchestrated Intelligence Framework",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Basic run
-  python game_loop.py --rom pokemon_red.gb --save-dir ./my_run
-  
-  # Fast screenshots (every 30 ticks = 0.5 seconds)
-  python game_loop.py --rom pokemon_red.gb --screenshot-interval 30
-  
-  # High frequency AI analysis (every 10 ticks)
-  python game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --screenshot-interval 10
-  
-  # Load from existing state
-  python game_loop.py --rom pokemon_red.gb --load-state checkpoint.state
-  
-  # Multiple AI instances (for comparison)
-  python game_loop.py --rom pokemon_red.gb --multi-instance --instances 3
-  
-  # Long gameplay session with analysis
-  python game_loop.py --rom "data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb" --save-dir ./battle_session --max-ticks 1800
-        """,
-    )
-
-    # Required arguments
-    parser.add_argument(
-        "--rom", type=str, required=True, help="Path to Pokemon ROM file (.gb)"
-    )
-
-    parser.add_argument(
-        "--save-dir",
-        type=str,
-        default="./game_saves",
-        help="Directory for saves, DB, and screenshots (default: ./game_saves)",
-    )
-
-    # Optional arguments
-    parser.add_argument(
-        "--screenshot-interval",
-        type=int,
-        default=60,
-        help="Ticks between screenshots (default: 60 = 1 second at 60fps). Lower values = more frequent AI analysis.",
-    )
-
-    parser.add_argument(
-        "--load-state", type=str, help="Load existing emulator state file"
-    )
-
-    parser.add_argument(
-        "--max-ticks", type=int, help="Maximum ticks to run before stopping (optional)"
-    )
-
-    parser.add_argument(
-        "--multi-instance",
-        action="store_true",
-        help="Run multiple emulator instances simultaneously",
-    )
-
-    parser.add_argument(
-        "--instances",
-        type=int,
-        default=3,
-        help="Number of instances for multi-instance mode (default: 3)",
-    )
-
-    args = parser.parse_args()
+    args = _build_parser().parse_args()
 
     # Validate ROM exists
     rom_path = Path(args.rom)

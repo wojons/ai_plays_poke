@@ -47,6 +47,19 @@ dev = [
     "pre-commit>=4.7.0",
 ]
 
+[tool.setuptools]
+packages = [
+    "src",
+    "src.core",
+    "src.dashboard",
+    "src.db",
+    "src.observability",
+    "src.ptp_cli",
+    "src.schemas",
+    "src.vision",
+]
+include-package-data = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

@@ -9,13 +9,11 @@ import pytest  # noqa: E402
 import sys  # noqa: E402
 from pathlib import Path  # noqa: E402
 
-# Add project root and src to path
+# Add project root to path
 project_root = Path(__file__).parent.parent.parent
-src_root = project_root / "src"
 sys.path.insert(0, str(project_root))
-sys.path.insert(0, str(src_root))
 
-from ptp_cli.flags import (  # noqa: E402
+from src.ptp_cli.flags import (  # noqa: E402
     CLIFlagParser,
     FullConfig,
     TickRateConfig,

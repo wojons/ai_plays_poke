@@ -19,25 +19,24 @@ from unittest.mock import MagicMock, call, patch  # noqa: E402
 
 import pytest  # noqa: E402
 
-# game_loop.py inserts project root into sys.path for db.* imports
-# Tests need src/ on sys.path for db.database, core.*, src.* imports
+# game_loop.py imports through the installable src package.
+# Keep the repository root available for those imports during tests.
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "src"))
 sys.path.insert(0, str(project_root))
 
 from src.schemas.commands import GameState  # noqa: E402
 
 # Import after mocking external dependencies to avoid import-time side effects
 with (
-    patch("db.database.GameDatabase", MagicMock()),
-    patch("core.emulator.Emulator", MagicMock()),
-    patch("core.emulator.Button", MagicMock()),
-    patch("core.screenshots.ScreenshotManager", MagicMock()),
-    patch("core.screenshots.SimpleLiveView", MagicMock()),
-    patch("core.ai_client.GameAIManager", MagicMock()),
-    patch("core.ai_client.OpenRouterClient", MagicMock()),
-    patch("core.save_manager.SaveManager", MagicMock()),
-    patch("core.save_manager.SaveManagerConfig", MagicMock()),
+    patch("src.db.database.GameDatabase", MagicMock()),
+    patch("src.core.emulator.Emulator", MagicMock()),
+    patch("src.core.emulator.Button", MagicMock()),
+    patch("src.core.screenshots.ScreenshotManager", MagicMock()),
+    patch("src.core.screenshots.SimpleLiveView", MagicMock()),
+    patch("src.core.ai_client.GameAIManager", MagicMock()),
+    patch("src.core.ai_client.OpenRouterClient", MagicMock()),
+    patch("src.core.save_manager.SaveManager", MagicMock()),
+    patch("src.core.save_manager.SaveManagerConfig", MagicMock()),
     patch("src.core.vision.VisionClient", MagicMock()),
     patch("src.core.prompt_assembler.PromptStack", MagicMock()),
     patch("src.core.tools.TOOL_SCHEMA", [{"type": "function"}]),
@@ -680,7 +679,7 @@ class TestBattleRecordingIntegrity:
 
     @staticmethod
     def _make_loop(tmp_path: Path) -> GameLoop:
-        from db.database import GameDatabase
+        from src.db.database import GameDatabase
 
         gl = GameLoop.__new__(GameLoop)
         gl.config = {

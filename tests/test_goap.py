@@ -9,9 +9,9 @@ from datetime import datetime, timedelta
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from core.goap import (
+from src.core.goap import (
     GoalType,
     ActionType,
     PlanStatus,
