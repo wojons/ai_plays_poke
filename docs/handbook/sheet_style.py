@@ -8,10 +8,10 @@ worse than the document they join).
 Facts flow one way: sheets print claims from specs/_facts.md and the code. A number that exists
 only in a figure caption is an unverified claim wearing a uniform.
 """
+
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
 
 DOC_NO = "AP1A-03"
 PROGRAM = "AI-PLAYS-POKE OPERATIONS HANDBOOK"
@@ -143,8 +143,17 @@ FIT_CHECK = """
 """
 
 
-def page(*, doc_no: str, part: str, tab: str, opener: str, body: str,
-         foot_sub: str, page_id: str, change_date: str = "11 November 2026") -> str:
+def page(
+    *,
+    doc_no: str,
+    part: str,
+    tab: str,
+    opener: str,
+    body: str,
+    foot_sub: str,
+    page_id: str,
+    change_date: str = "11 November 2026",
+) -> str:
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>{doc_no} {PROGRAM}, page {page_id}</title>
@@ -176,10 +185,22 @@ def page(*, doc_no: str, part: str, tab: str, opener: str, body: str,
 </body></html>"""
 
 
-def para(num: str, heading: str, text: str, changebar: bool = False, flush: bool = False) -> str:
-    bar = '<div class="changebar" style="top:0.4mm; height:6.8mm"></div>' if changebar else ""
+def para(
+    num: str, heading: str, text: str, changebar: bool = False, flush: bool = False
+) -> str:
+    bar = (
+        '<div class="changebar" style="top:0.4mm; height:6.8mm"></div>'
+        if changebar
+        else ""
+    )
     cls = ' class="flush"' if flush else ""
-    htag = "h3" if heading[0].islower() or ". " in heading[:40] and heading.split(".")[0][0].islower() else "h2"
+    htag = (
+        "h3"
+        if heading[0].islower()
+        or ". " in heading[:40]
+        and heading.split(".")[0][0].islower()
+        else "h2"
+    )
     return f'<section class="para">{bar}<div class="num">{num}</div><div><{htag}>{heading}</{htag}><p{cls}>{text}</p></div></section>'
 
 
@@ -187,32 +208,52 @@ def figure(svg: str, caption: str, code: str) -> str:
     return f'<figure>{svg}<figcaption><span class="n">{caption.split(".")[0]}.</span>{caption.split(".", 1)[1].strip()}</figcaption></figure>'
 
 
-def lower(table_caption: str, table_rows: list[tuple[str, str]], notice: tuple[str, str] | None, card: tuple[str, list[str]] | None, table_num: str) -> str:
-    rows = "".join(f"<tr><td>{k}</td><td class=\"v\">{v}</td></tr>" for k, v in table_rows)
-    left = (f'<section class="para"><div class="num">2.x.3</div><div><h2>PERFORMANCE AND DESIGN DATA.</h2></div></section>'
-            if False else "")
+def lower(
+    table_caption: str,
+    table_rows: list[tuple[str, str]],
+    notice: tuple[str, str] | None,
+    card: tuple[str, list[str]] | None,
+    table_num: str,
+) -> str:
+    rows = "".join(
+        f'<tr><td>{k}</td><td class="v">{v}</td></tr>' for k, v in table_rows
+    )
+    left = (
+        '<section class="para"><div class="num">2.x.3</div><div><h2>PERFORMANCE AND DESIGN DATA.</h2></div></section>'
+        if False
+        else ""
+    )
     notice_html = ""
     if notice:
         notice_html = f'<div class="notice"><span class="tag">{notice[0]}</span><p>{notice[1]}</p></div>'
     card_html = ""
     if card:
         lis = "".join(
-            f'<li><span>{i + 1}</span><span>{line}</span></li>' if not line.startswith("√")
-            else f'<li><span></span><span>{line}</span></li>'
-            for i, line in enumerate(card[1]))
-        card_html = (f'<div class="card"><div class="bar"><span>{card[0]}</span><span>OPERATOR</span></div>'
-                     f'<ol>{lis}</ol></div>')
-    return (f'<div class="lower"><div><section class="para"><div class="num">x.3</div>'
-            f'<div><h2>PERFORMANCE AND DESIGN DATA.</h2></div></section>'
-            f'<div class="tcap">{table_num}. {table_caption}</div>'
-            f'<table><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>{rows}</tbody></table>'
-            f'</div><div>{notice_html}{card_html}</div></div>')
+            f"<li><span>{i + 1}</span><span>{line}</span></li>"
+            if not line.startswith("√")
+            else f"<li><span></span><span>{line}</span></li>"
+            for i, line in enumerate(card[1])
+        )
+        card_html = (
+            f'<div class="card"><div class="bar"><span>{card[0]}</span><span>OPERATOR</span></div>'
+            f"<ol>{lis}</ol></div>"
+        )
+    return (
+        f'<div class="lower"><div><section class="para"><div class="num">x.3</div>'
+        f"<div><h2>PERFORMANCE AND DESIGN DATA.</h2></div></section>"
+        f'<div class="tcap">{table_num}. {table_caption}</div>'
+        f"<table><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>{rows}</tbody></table>"
+        f"</div><div>{notice_html}{card_html}</div></div>"
+    )
 
 
 def print_pdf(html_path: str) -> tuple[str, str]:
     """Render one sheet; returns (pdf_path, fit_line). Raises on overflow."""
-    out = subprocess.run(["sh", "/home/kara/.hermes/skills/nasa-handbook/scripts/render.sh", html_path],
-                         capture_output=True, text=True)
+    out = subprocess.run(
+        ["sh", "/home/kara/.hermes/skills/nasa-handbook/scripts/render.sh", html_path],
+        capture_output=True,
+        text=True,
+    )
     pdf = html_path.replace(".html", ".pdf")
     fit = ""
     for line in (out.stdout + out.stderr).splitlines():

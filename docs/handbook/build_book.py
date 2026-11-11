@@ -9,6 +9,7 @@ and verified by page count and folio grep.
 Every printed number comes from specs/_facts.md or was grepped from the code on 2026-11-11. Where
 a figure carries a count, the caption stamps the measurement date (a snapshot is not a state).
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -16,27 +17,37 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from sheet_style import DOC_NO, PROGRAM, PART, BASIC_DATE, page, para, figure, print_pdf  # noqa: E402
+from sheet_style import DOC_NO, PART, page, para, print_pdf  # noqa: E402
 
 OUT = Path(__file__).parent
 SHEETS: list[dict] = []
 
 
-def lower_band(num: str, table_num: str, caption: str, rows, notice=None, card=None) -> str:
+def lower_band(
+    num: str, table_num: str, caption: str, rows, notice=None, card=None
+) -> str:
     r = "".join(f'<tr><td>{k}</td><td class="v">{v}</td></tr>' for k, v in rows)
-    n = (f'<div class="notice"><span class="tag">{notice[0]}</span><p>{notice[1]}</p></div>' if notice else "")
+    n = (
+        f'<div class="notice"><span class="tag">{notice[0]}</span><p>{notice[1]}</p></div>'
+        if notice
+        else ""
+    )
     c = ""
     if card:
         lis = "".join(
-            f'<li><span></span><span>{line}</span></li>' if line.startswith("√")
-            else f'<li><span>{i + 1}</span><span>{line}</span></li>'
-            for i, line in enumerate(card[1]))
+            f"<li><span></span><span>{line}</span></li>"
+            if line.startswith("√")
+            else f"<li><span>{i + 1}</span><span>{line}</span></li>"
+            for i, line in enumerate(card[1])
+        )
         c = f'<div class="card"><div class="bar"><span>{card[0]}</span><span>OPERATOR</span></div><ol>{lis}</ol></div>'
-    return (f'<div class="lower"><div><section class="para"><div class="num">{num}</div>'
-            f'<div><h2>PERFORMANCE AND DESIGN DATA.</h2></div></section>'
-            f'<div class="tcap">{table_num}. {caption}</div>'
-            f'<table><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>{r}</tbody></table>'
-            f'</div><div>{n}{c}</div></div>')
+    return (
+        f'<div class="lower"><div><section class="para"><div class="num">{num}</div>'
+        f"<div><h2>PERFORMANCE AND DESIGN DATA.</h2></div></section>"
+        f'<div class="tcap">{table_num}. {caption}</div>'
+        f"<table><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>{r}</tbody></table>"
+        f"</div><div>{n}{c}</div></div>"
+    )
 
 
 def fig(svg: str, num: str, title: str) -> str:
@@ -100,40 +111,77 @@ HERO_OVERVIEW = """
   <text class="code" x="178.6" y="63.4" text-anchor="end">AIP-101A</text>
 </svg>"""
 
-SHEETS.append(dict(
-    file="aipp-1-1", tab="OVR", part_no="1", title="SYSTEM OVERVIEW",
-    body=(
-        para("1.1.1", "INTRODUCTION.",
-             "AI-PLAYS-POKE is an agent that plays POKEMON BLUE by understanding each room. It "
-             "perceives through two channels, RAM and a vision model, that must agree cell for cell "
-             "in one grid and one legend; JEV decides most cycles and hands the state to a reasoning "
-             "model only when it cannot decide (figure 1.1-1).")
-        + fig(HERO_OVERVIEW, "Figure 1.1-1", "The System As Built, With The Vision Grid Defect Dotted")
-        + para("1.1.2", "FUNCTIONAL DESCRIPTION.",
-               "The emulator advances only when the bridge delivers inputs, so a live ticker stands "
-               "in for a paused hand-held. The operator watches and drives through the console; the "
-               "agent runs through the same bridge, and the two never drive at once. The fleet "
-               "builds, tests and releases the agent; the board and the judge keep its work honest.")
-        + para("1.1.2.1", "State Of The Goal.",
-               "The September run reached VIRIDIAN CITY in 28 episodes. The October 27 run stopped "
-               "the morning it started: 4 episodes, the last inside RED'S HOUSE 1F. The machine has "
-               "improved; the game has not advanced since (measured 2026-11-11).", changebar=True, flush=True)
-        + lower_band("1.1.3", "Table 1.1-1", "Where The Goal Stands",
-                     [("Goal, set by operator", "way past PALLET TOWN in 2 months"),
-                      ("Sept run (28 eps)", "VIRIDIAN CITY reached"),
-                      ("Oct 27 run", "4 eps, RED'S HOUSE 1F, then stopped"),
-                      ("Last game action", "2026-10-27 08:49"),
-                      ("Console position", "PALLET TOWN 5,6 down"),
-                      ("Version", "v1.1.0 published 2026-11-04")],
-                     notice=("WARNING", "THE CONSOLE HAS NO AUTHENTICATION. ANYTHING ON THE TAILNET "
-                             "CAN DRIVE THE EMULATOR AND SPEND MODEL QUOTA."),
-                     card=("START A RUN", ["BRIDGE - verify health op",
-                                           "LIVE - set OFF",
-                                           "MODE - pick JEV/LLM/HYBRID",
-                                           "√ LOG - mode echoed at run head",
-                                           "RUN - cron_runner --cycles 20",
-                                           "√ VERDICT - agree/conflict shown"]))),
-    foot="SYSTEM OVERVIEW", page_id="1.1-1"))
+SHEETS.append(
+    dict(
+        file="aipp-1-1",
+        tab="OVR",
+        part_no="1",
+        title="SYSTEM OVERVIEW",
+        body=(
+            para(
+                "1.1.1",
+                "INTRODUCTION.",
+                "AI-PLAYS-POKE is an agent that plays POKEMON BLUE by understanding each room. It "
+                "perceives through two channels, RAM and a vision model, that must agree cell for cell "
+                "in one grid and one legend; JEV decides most cycles and hands the state to a reasoning "
+                "model only when it cannot decide (figure 1.1-1).",
+            )
+            + fig(
+                HERO_OVERVIEW,
+                "Figure 1.1-1",
+                "The System As Built, With The Vision Grid Defect Dotted",
+            )
+            + para(
+                "1.1.2",
+                "FUNCTIONAL DESCRIPTION.",
+                "The emulator advances only when the bridge delivers inputs, so a live ticker stands "
+                "in for a paused hand-held. The operator watches and drives through the console; the "
+                "agent runs through the same bridge, and the two never drive at once. The fleet "
+                "builds, tests and releases the agent; the board and the judge keep its work honest.",
+            )
+            + para(
+                "1.1.2.1",
+                "State Of The Goal.",
+                "The September run reached VIRIDIAN CITY in 28 episodes. The October 27 run stopped "
+                "the morning it started: 4 episodes, the last inside RED'S HOUSE 1F. The machine has "
+                "improved; the game has not advanced since (measured 2026-11-11).",
+                changebar=True,
+                flush=True,
+            )
+            + lower_band(
+                "1.1.3",
+                "Table 1.1-1",
+                "Where The Goal Stands",
+                [
+                    ("Goal, set by operator", "way past PALLET TOWN in 2 months"),
+                    ("Sept run (28 eps)", "VIRIDIAN CITY reached"),
+                    ("Oct 27 run", "4 eps, RED'S HOUSE 1F, then stopped"),
+                    ("Last game action", "2026-10-27 08:49"),
+                    ("Console position", "PALLET TOWN 5,6 down"),
+                    ("Version", "v1.1.0 published 2026-11-04"),
+                ],
+                notice=(
+                    "WARNING",
+                    "THE CONSOLE HAS NO AUTHENTICATION. ANYTHING ON THE TAILNET "
+                    "CAN DRIVE THE EMULATOR AND SPEND MODEL QUOTA.",
+                ),
+                card=(
+                    "START A RUN",
+                    [
+                        "BRIDGE - verify health op",
+                        "LIVE - set OFF",
+                        "MODE - pick JEV/LLM/HYBRID",
+                        "√ LOG - mode echoed at run head",
+                        "RUN - cron_runner --cycles 20",
+                        "√ VERDICT - agree/conflict shown",
+                    ],
+                ),
+            )
+        ),
+        foot="SYSTEM OVERVIEW",
+        page_id="1.1-1",
+    )
+)
 
 # ════════════════════════════════ 2 EMULATOR BRIDGE ════════════════════════════════
 OPS_SVG = """
@@ -169,34 +217,65 @@ OPS_SVG = """
   <text class="code" x="178.6" y="59.4" text-anchor="end">AIP-201A</text>
 </svg>"""
 
-SHEETS.append(dict(
-    file="aipp-2-1", tab="BRG", part_no="2", title="EMULATOR BRIDGE",
-    body=(
-        para("2.1.1", "INTRODUCTION.",
-             "The bridge is the only path to the emulator. It binds loopback only, refuses every "
-             "request that does not carry its token, and exposes thirteen operations. A session "
-             "without the token cannot talk to the emulator at all (figure 2.1-1).")
-        + fig(OPS_SVG, "Figure 2.1-1", "Token Gate, Operation Dispatch, Serialised Game Access")
-        + para("2.1.2", "FUNCTIONAL DESCRIPTION.",
-               "Every caller presents the token; the guard compares it in constant time and refuses "
-               "the rest. Operations are line-delimited requests on one socket or single commands. "
-               "Game access is serialised: one call at a time, so a console viewer and an agent "
-               "cycle queue rather than corrupt the emulator.")
-        + para("2.1.2.1", "Serialisation.",
-               "An unbounded thread per connection once drove the host to load 1016. The bound now "
-               "caps concurrency and Game access is a lock, so one slow frame makes everything wait "
-               "its turn rather than fight.", flush=True)
-        + lower_band("2.1.3", "Table 2.1-1", "Bridge Data",
-                     [("Listen", "127.0.0.1:8770, loopback only"),
-                      ("Auth", "token, compare_digest"),
-                      ("Operations", "13 (health ... goal)"),
-                      ("Frame, native", "160 x 144 px, about 2.7 kB"),
-                      ("Frame when degraded", "412 B blank - restart bridge"),
-                      ("Step speed, measured", "120 frames in 6 ms"),
-                      ("Capacity used at 60 fps", "about 0.3 percent")],
-                     notice=("CAUTION", "TWO DRIVERS ON ONE BRIDGE FIGHT. STOP THE CONSOLE LIVE "
-                             "TICKER BEFORE AN AGENT RUN."))),
-    foot="EMULATOR BRIDGE", page_id="2.1-1"))
+SHEETS.append(
+    dict(
+        file="aipp-2-1",
+        tab="BRG",
+        part_no="2",
+        title="EMULATOR BRIDGE",
+        body=(
+            para(
+                "2.1.1",
+                "INTRODUCTION.",
+                "The bridge is the only path to the emulator. It binds loopback only, refuses every "
+                "request that does not carry its token, and exposes thirteen operations. A session "
+                "without the token cannot talk to the emulator at all (figure 2.1-1).",
+            )
+            + fig(
+                OPS_SVG,
+                "Figure 2.1-1",
+                "Token Gate, Operation Dispatch, Serialised Game Access",
+            )
+            + para(
+                "2.1.2",
+                "FUNCTIONAL DESCRIPTION.",
+                "Every caller presents the token; the guard compares it in constant time and refuses "
+                "the rest. Operations are line-delimited requests on one socket or single commands. "
+                "Game access is serialised: one call at a time, so a console viewer and an agent "
+                "cycle queue rather than corrupt the emulator.",
+            )
+            + para(
+                "2.1.2.1",
+                "Serialisation.",
+                "An unbounded thread per connection once drove the host to load 1016. The bound now "
+                "caps concurrency and Game access is a lock, so one slow frame makes everything wait "
+                "its turn rather than fight.",
+                flush=True,
+            )
+            + lower_band(
+                "2.1.3",
+                "Table 2.1-1",
+                "Bridge Data",
+                [
+                    ("Listen", "127.0.0.1:8770, loopback only"),
+                    ("Auth", "token, compare_digest"),
+                    ("Operations", "13 (health ... goal)"),
+                    ("Frame, native", "160 x 144 px, about 2.7 kB"),
+                    ("Frame when degraded", "412 B blank - restart bridge"),
+                    ("Step speed, measured", "120 frames in 6 ms"),
+                    ("Capacity used at 60 fps", "about 0.3 percent"),
+                ],
+                notice=(
+                    "CAUTION",
+                    "TWO DRIVERS ON ONE BRIDGE FIGHT. STOP THE CONSOLE LIVE "
+                    "TICKER BEFORE AN AGENT RUN.",
+                ),
+            )
+        ),
+        foot="EMULATOR BRIDGE",
+        page_id="2.1-1",
+    )
+)
 
 # ════════════════════════════════ 3 RAM READER ════════════════════════════════
 GRID_SVG = """
@@ -233,36 +312,69 @@ GRID_SVG = """
   <text class="code" x="178.6" y="57.4" text-anchor="end">AIP-301A</text>
 </svg>"""
 
-SHEETS.append(dict(
-    file="aipp-3-1", tab="RAM", part_no="3", title="RAM READER",
-    body=(
-        para("3.1.1", "INTRODUCTION.",
-             "The RAM reader is System One's eye. It reads the emulator memory directly: map, "
-             "player tile, facing, party, collision, and the sprite state table. It renders the "
-             "room as a 10 by 9 tile grid with the player's facing arrow in his own cell "
-             "(figure 3.1-1).")
-        + fig(GRID_SVG, "Figure 3.1-1", "The Live Tile Grid And Its Legend, With Measured Cells")
-        + para("3.1.2", "FUNCTIONAL DESCRIPTION.",
-               "Terrain comes from the ROM tile table; sprites come from wSpriteStateData1 at "
-               "address C100, sixteen records of sixteen bytes, the player in slot zero. Facing "
-               "renders as an arrow. The grid is the reference the vision channel is judged "
-               "against, and its own terrain labels measured 83.6 percent against ROM collision.")
-        + para("3.1.2.1", "Reference, Not Truth.",
-               "The reader is a reference, not an oracle. Sprite meaning, dialogue and menus are "
-               "invisible to it. A verdict disagreement is a finding to investigate, never a "
-               "reason to overwrite one channel with the other.", flush=True)
-        + lower_band("3.1.3", "Table 3.1-1", "Reader Data",
-                     [("Grid", "10 cols x 9 rows, arrow in player cell"),
-                      ("Cell", "16 px, origin measured on screen"),
-                      ("Sprite table", "0xC100, 16 x 16 bytes"),
-                      ("Player slot", "0, excluded from people probes"),
-                      ("Terrain vs ROM", "83.6 percent agreement"),
-                      ("Cost per read", "free, every cycle")],
-                     card=("TAKE A READING", ["BRIDGE - verify health",
-                                              "STATE - read /api/state",
-                                              "√ GRID - 9 rows of 10",
-                                              "ARROW - confirm facing"]))),
-    foot="RAM READER", page_id="3.1-1"))
+SHEETS.append(
+    dict(
+        file="aipp-3-1",
+        tab="RAM",
+        part_no="3",
+        title="RAM READER",
+        body=(
+            para(
+                "3.1.1",
+                "INTRODUCTION.",
+                "The RAM reader is System One's eye. It reads the emulator memory directly: map, "
+                "player tile, facing, party, collision, and the sprite state table. It renders the "
+                "room as a 10 by 9 tile grid with the player's facing arrow in his own cell "
+                "(figure 3.1-1).",
+            )
+            + fig(
+                GRID_SVG,
+                "Figure 3.1-1",
+                "The Live Tile Grid And Its Legend, With Measured Cells",
+            )
+            + para(
+                "3.1.2",
+                "FUNCTIONAL DESCRIPTION.",
+                "Terrain comes from the ROM tile table; sprites come from wSpriteStateData1 at "
+                "address C100, sixteen records of sixteen bytes, the player in slot zero. Facing "
+                "renders as an arrow. The grid is the reference the vision channel is judged "
+                "against, and its own terrain labels measured 83.6 percent against ROM collision.",
+            )
+            + para(
+                "3.1.2.1",
+                "Reference, Not Truth.",
+                "The reader is a reference, not an oracle. Sprite meaning, dialogue and menus are "
+                "invisible to it. A verdict disagreement is a finding to investigate, never a "
+                "reason to overwrite one channel with the other.",
+                flush=True,
+            )
+            + lower_band(
+                "3.1.3",
+                "Table 3.1-1",
+                "Reader Data",
+                [
+                    ("Grid", "10 cols x 9 rows, arrow in player cell"),
+                    ("Cell", "16 px, origin measured on screen"),
+                    ("Sprite table", "0xC100, 16 x 16 bytes"),
+                    ("Player slot", "0, excluded from people probes"),
+                    ("Terrain vs ROM", "83.6 percent agreement"),
+                    ("Cost per read", "free, every cycle"),
+                ],
+                card=(
+                    "TAKE A READING",
+                    [
+                        "BRIDGE - verify health",
+                        "STATE - read /api/state",
+                        "√ GRID - 9 rows of 10",
+                        "ARROW - confirm facing",
+                    ],
+                ),
+            )
+        ),
+        foot="RAM READER",
+        page_id="3.1-1",
+    )
+)
 
 # ════════════════════════════════ 4 VISION CHANNEL ════════════════════════════════
 VISION_SVG = """
@@ -297,34 +409,65 @@ VISION_SVG = """
   <text class="code" x="178.6" y="55.4" text-anchor="end">AIP-401A</text>
 </svg>"""
 
-SHEETS.append(dict(
-    file="aipp-4-1", tab="VIS", part_no="4", title="VISION CHANNEL",
-    body=(
-        para("4.1.1", "INTRODUCTION.",
-             "The vision channel describes the screen the way the RAM reader describes the room: "
-             "one character per cell. It is the only channel that can name what a thing is - a "
-             "person, a doorway, grass - and the only channel that hallucinates (figure 4.1-1).")
-        + fig(VISION_SVG, "Figure 4.1-1", "Pipeline And The Measured Effect Of Prompt Wording")
-        + para("4.1.2", "FUNCTIONAL DESCRIPTION.",
-               "The frame is enlarged six times with LANCZOS smoothing, capped at 1024 pixels, and "
-               "sent to the configured model with a terse grid prompt. The reply is parsed through "
-               "code fences, clamped to nine rows of ten characters, and compared against the RAM "
-               "grid. Model, provider and prompt are measured variables, not tastes.")
-        + para("4.1.2.1", "Models Are Multi-Possible.",
-               "AIPP_VISION_MODELS carries an ordered list; the default served model is "
-               "GPT-4O-MINI at 2.4 seconds and 25k tokens. KIMI K3, 2.8 trillion parameters, "
-               "measured 62.2 percent at 97 seconds - bigger and newer was worse.", flush=True)
-        + lower_band("4.1.3", "Table 4.1-1", "Vision Data",
-                     [("Default model", "openai/gpt-4o-mini"),
-                      ("Reading time", "2.4-4 s"),
-                      ("Tokens per read", "about 25k in, 34-100 out"),
-                      ("Best cell agreement", "72.2 percent, terse prompt"),
-                      ("Structure agreement", "scored on non-floor cells"),
-                      ("People: frames correct", "1 of 3 (fails 66.7 pc)"),
-                      ("People: anchoring", "same wrong answer on 2 of 3")],
-                     notice=("CAUTION", "A READING THAT CANNOT ANSWER USES ? - BUT 41 PERCENT ? IS A "
-                             "REFUSAL. RETUNE THE PROMPT, NOT THE MODEL."))),
-    foot="VISION CHANNEL", page_id="4.1-1"))
+SHEETS.append(
+    dict(
+        file="aipp-4-1",
+        tab="VIS",
+        part_no="4",
+        title="VISION CHANNEL",
+        body=(
+            para(
+                "4.1.1",
+                "INTRODUCTION.",
+                "The vision channel describes the screen the way the RAM reader describes the room: "
+                "one character per cell. It is the only channel that can name what a thing is - a "
+                "person, a doorway, grass - and the only channel that hallucinates (figure 4.1-1).",
+            )
+            + fig(
+                VISION_SVG,
+                "Figure 4.1-1",
+                "Pipeline And The Measured Effect Of Prompt Wording",
+            )
+            + para(
+                "4.1.2",
+                "FUNCTIONAL DESCRIPTION.",
+                "The frame is enlarged six times with LANCZOS smoothing, capped at 1024 pixels, and "
+                "sent to the configured model with a terse grid prompt. The reply is parsed through "
+                "code fences, clamped to nine rows of ten characters, and compared against the RAM "
+                "grid. Model, provider and prompt are measured variables, not tastes.",
+            )
+            + para(
+                "4.1.2.1",
+                "Models Are Multi-Possible.",
+                "AIPP_VISION_MODELS carries an ordered list; the default served model is "
+                "GPT-4O-MINI at 2.4 seconds and 25k tokens. KIMI K3, 2.8 trillion parameters, "
+                "measured 62.2 percent at 97 seconds - bigger and newer was worse.",
+                flush=True,
+            )
+            + lower_band(
+                "4.1.3",
+                "Table 4.1-1",
+                "Vision Data",
+                [
+                    ("Default model", "openai/gpt-4o-mini"),
+                    ("Reading time", "2.4-4 s"),
+                    ("Tokens per read", "about 25k in, 34-100 out"),
+                    ("Best cell agreement", "72.2 percent, terse prompt"),
+                    ("Structure agreement", "scored on non-floor cells"),
+                    ("People: frames correct", "1 of 3 (fails 66.7 pc)"),
+                    ("People: anchoring", "same wrong answer on 2 of 3"),
+                ],
+                notice=(
+                    "CAUTION",
+                    "A READING THAT CANNOT ANSWER USES ? - BUT 41 PERCENT ? IS A "
+                    "REFUSAL. RETUNE THE PROMPT, NOT THE MODEL.",
+                ),
+            )
+        ),
+        foot="VISION CHANNEL",
+        page_id="4.1-1",
+    )
+)
 
 # ════════════════════════════════ 5 DECISION CORE ════════════════════════════════
 CYCLE_SVG = """
@@ -356,34 +499,63 @@ CYCLE_SVG = """
   <text class="code" x="178.6" y="53.4" text-anchor="end">AIP-601A</text>
 </svg>"""
 
-SHEETS.append(dict(
-    file="aipp-5-1", tab="DEC", part_no="5", title="DECISION CORE",
-    body=(
-        para("5.1.1", "INTRODUCTION.",
-             "JEV is System One: it answers every cycle and says when it cannot. The LLM is System "
-             "Two: it repairs the agent's state on escalation and never presses a button. The two "
-             "are modes of one core, selected explicitly, never inherited silently (figure 5.1-1).")
-        + fig(CYCLE_SVG, "Figure 5.1-1", "One Cycle, With The Escalation Lane Dotted")
-        + para("5.1.2", "FUNCTIONAL DESCRIPTION.",
-               "The mode resolves from AIPP_DECISION_MODE, then CRON_DECISION_MODE, by exact "
-               "spelling; legacy spellings stay byte-identical in the episode log so old runs stay "
-               "comparable. Thresholds are operator-fixed: hand off below 0.50 confidence or above "
-               "0.40 ambiguity.")
-        + para("5.1.2.1", "The Default That Cannot Walk.",
-               "The shipped default, JEV alone, left PALLET TOWN in 0 of 5 tries; the pure LLM did "
-               "6 of 6. A run launched without an explicit mode must refuse, not degrade to the arm "
-               "that cannot leave town.", flush=True)
-        + lower_band("5.1.3", "Table 5.1-1", "Decision Data",
-                     [("Modes", "jev / llm / hybrid, explicit"),
-                      ("Env", "AIPP > CRON > refuse"),
-                      ("Handoff confidence", "0.50"),
-                      ("Handoff ambiguity", "0.40"),
-                      ("Sept run", "757 decisions, 6 escalations"),
-                      ("Teacher calls", "0 in 757 - path unexercised"),
-                      ("Legacy spelling", "byte-identical (M6)")],
-                     notice=("CAUTION", "A SILENT DEFAULT ARM IS A RUN THAT WALKS INTO A WALL ALL "
-                             "DAY. REFUSE WITHOUT A MODE."))),
-    foot="DECISION CORE", page_id="5.1-1"))
+SHEETS.append(
+    dict(
+        file="aipp-5-1",
+        tab="DEC",
+        part_no="5",
+        title="DECISION CORE",
+        body=(
+            para(
+                "5.1.1",
+                "INTRODUCTION.",
+                "JEV is System One: it answers every cycle and says when it cannot. The LLM is System "
+                "Two: it repairs the agent's state on escalation and never presses a button. The two "
+                "are modes of one core, selected explicitly, never inherited silently (figure 5.1-1).",
+            )
+            + fig(
+                CYCLE_SVG, "Figure 5.1-1", "One Cycle, With The Escalation Lane Dotted"
+            )
+            + para(
+                "5.1.2",
+                "FUNCTIONAL DESCRIPTION.",
+                "The mode resolves from AIPP_DECISION_MODE, then CRON_DECISION_MODE, by exact "
+                "spelling; legacy spellings stay byte-identical in the episode log so old runs stay "
+                "comparable. Thresholds are operator-fixed: hand off below 0.50 confidence or above "
+                "0.40 ambiguity.",
+            )
+            + para(
+                "5.1.2.1",
+                "The Default That Cannot Walk.",
+                "The shipped default, JEV alone, left PALLET TOWN in 0 of 5 tries; the pure LLM did "
+                "6 of 6. A run launched without an explicit mode must refuse, not degrade to the arm "
+                "that cannot leave town.",
+                flush=True,
+            )
+            + lower_band(
+                "5.1.3",
+                "Table 5.1-1",
+                "Decision Data",
+                [
+                    ("Modes", "jev / llm / hybrid, explicit"),
+                    ("Env", "AIPP > CRON > refuse"),
+                    ("Handoff confidence", "0.50"),
+                    ("Handoff ambiguity", "0.40"),
+                    ("Sept run", "757 decisions, 6 escalations"),
+                    ("Teacher calls", "0 in 757 - path unexercised"),
+                    ("Legacy spelling", "byte-identical (M6)"),
+                ],
+                notice=(
+                    "CAUTION",
+                    "A SILENT DEFAULT ARM IS A RUN THAT WALKS INTO A WALL ALL "
+                    "DAY. REFUSE WITHOUT A MODE.",
+                ),
+            )
+        ),
+        foot="DECISION CORE",
+        page_id="5.1-1",
+    )
+)
 
 # ════════════════════════════════ 6 OPERATOR CONSOLE ════════════════════════════════
 CONSOLE_SVG = """
@@ -425,39 +597,71 @@ CONSOLE_SVG = """
   <text class="code" x="174.6" y="53.4" text-anchor="end">AIP-701A</text>
 </svg>"""
 
-SHEETS.append(dict(
-    file="aipp-6-1", tab="CON", part_no="6", title="OPERATOR CONSOLE",
-    body=(
-        para("6.1.1", "INTRODUCTION.",
-             "The console is the operator's eyes and hands: thirteen panels, the live game, the two "
-             "grids, their verdict, and every control with a name derived from what it does. It "
-             "drives the same bridge the agent drives (figure 6.1-1).")
-        + fig(CONSOLE_SVG, "Figure 6.1-1", "Panel Layout And The Refresh Law")
-        + para("6.1.2", "FUNCTIONAL DESCRIPTION.",
-               "The game image refetches five times a second while the world runs; the vision panel "
-               "ticks its age every ten seconds without spending a model call; state arrives over "
-               "server-sent events. A failure answers a 500 body instead of dropping the socket, so "
-               "no panel ever blanks.")
-        + para("6.1.2.1", "Honest Input.",
-               "Toggles read real booleans only: TRUE/FALSE/1/0/YES/NO/ON/OFF. Anything else leaves "
-               "the state unchanged - a malformed request once switched the world on and blanked "
-               "the video minutes later.", flush=True)
-        + lower_band("6.1.3", "Table 6.1-1", "Console Data",
-                     [("Listen", ":8899, CONSOLE_PORT"),
-                      ("Panels", "13"),
-                      ("Controls", "26, 25 with stable ids"),
-                      ("Image refresh", "200 ms while live"),
-                      ("Vision age tick", "10 s, no model call"),
-                      ("Tool surface", "13 bridge + 13 api + 5 mem + 14 cli"),
-                      ("Auth", "none - tailnet only")],
-                     notice=("WARNING", "THE CONSOLE IS UNAUTHENTICATED AND CAN DRIVE THE EMULATOR "
-                             "AND SPEND QUOTA. EXPOSE IT ON THE TAILNET ONLY."),
-                     card=("RECOVER A BLANK PICTURE", ["SYMPTOM - frame 412 bytes",
-                                                       "LIVE - set OFF",
-                                                       "BRIDGE - restart service",
-                                                       "√ FRAME - about 2.7 kB again",
-                                                       "VISION - ask now"]))),
-    foot="OPERATOR CONSOLE", page_id="6.1-1"))
+SHEETS.append(
+    dict(
+        file="aipp-6-1",
+        tab="CON",
+        part_no="6",
+        title="OPERATOR CONSOLE",
+        body=(
+            para(
+                "6.1.1",
+                "INTRODUCTION.",
+                "The console is the operator's eyes and hands: thirteen panels, the live game, the two "
+                "grids, their verdict, and every control with a name derived from what it does. It "
+                "drives the same bridge the agent drives (figure 6.1-1).",
+            )
+            + fig(CONSOLE_SVG, "Figure 6.1-1", "Panel Layout And The Refresh Law")
+            + para(
+                "6.1.2",
+                "FUNCTIONAL DESCRIPTION.",
+                "The game image refetches five times a second while the world runs; the vision panel "
+                "ticks its age every ten seconds without spending a model call; state arrives over "
+                "server-sent events. A failure answers a 500 body instead of dropping the socket, so "
+                "no panel ever blanks.",
+            )
+            + para(
+                "6.1.2.1",
+                "Honest Input.",
+                "Toggles read real booleans only: TRUE/FALSE/1/0/YES/NO/ON/OFF. Anything else leaves "
+                "the state unchanged - a malformed request once switched the world on and blanked "
+                "the video minutes later.",
+                flush=True,
+            )
+            + lower_band(
+                "6.1.3",
+                "Table 6.1-1",
+                "Console Data",
+                [
+                    ("Listen", ":8899, CONSOLE_PORT"),
+                    ("Panels", "13"),
+                    ("Controls", "26, 25 with stable ids"),
+                    ("Image refresh", "200 ms while live"),
+                    ("Vision age tick", "10 s, no model call"),
+                    ("Tool surface", "13 bridge + 13 api + 5 mem + 14 cli"),
+                    ("Auth", "none - tailnet only"),
+                ],
+                notice=(
+                    "WARNING",
+                    "THE CONSOLE IS UNAUTHENTICATED AND CAN DRIVE THE EMULATOR "
+                    "AND SPEND QUOTA. EXPOSE IT ON THE TAILNET ONLY.",
+                ),
+                card=(
+                    "RECOVER A BLANK PICTURE",
+                    [
+                        "SYMPTOM - frame 412 bytes",
+                        "LIVE - set OFF",
+                        "BRIDGE - restart service",
+                        "√ FRAME - about 2.7 kB again",
+                        "VISION - ask now",
+                    ],
+                ),
+            )
+        ),
+        foot="OPERATOR CONSOLE",
+        page_id="6.1-1",
+    )
+)
 
 # ════════════════════════════════ 7 FLEET LOOP ════════════════════════════════
 FLEET_SVG = """
@@ -494,33 +698,64 @@ FLEET_SVG = """
   <text class="code" x="178.6" y="57.4" text-anchor="end">AIP-801A</text>
 </svg>"""
 
-SHEETS.append(dict(
-    file="aipp-7-1", tab="FLT", part_no="7", title="FLEET BUILD-AND-VERIFY",
-    body=(
-        para("7.1.1", "INTRODUCTION.",
-             "The fleet builds and verifies the agent: a scheduler admits a foreman by board work, "
-             "the foreman dispatches one worker per tick, a judge grades the evidence, and the "
-             "board remembers. Nothing lands on a claim (figure 7.1-1).")
-        + fig(FLEET_SVG, "Figure 7.1-1", "Scheduler To Judge To Board, With The Idle-Spin Defect Dotted")
-        + para("7.1.2", "FUNCTIONAL DESCRIPTION.",
-               "The lane's admission mode is tasks: a non-empty board waives the six-hour cooldown "
-               "pin. Workers run in worktrees with their own environments; guards run at commit; "
-               "releases are cut only on owner authorisation. Verification receipts and verdicts "
-               "land beside the code they grade.")
-        + para("7.1.2.1", "Idle Spin, Measured.",
-               "Drained must mean no WORKABLE row. It currently means no open row: blocked and "
-               "dep-gated rows waived the cooldown and produced 42 dry ticks in six hours on this "
-               "lane alone - 8.3 million input tokens for nothing.", flush=True)
-        + lower_band("7.1.3", "Table 7.1-1", "Fleet Data",
-                     [("Board", "357 rows, JSONL, git-backed"),
-                      ("This project, complete", "339 of 357"),
-                      ("Blocked", "2 (owner-gated, dep-gated)"),
-                      ("Pending, real work", "16 incl. ARM-2, VIS-MODEL-1"),
-                      ("Dry ticks, 6 h", "42 (8.3M tokens)"),
-                      ("Commits since 09-28", "60 by 2026-10-01")],
-                     notice=("CAUTION", "A BOARD THAT LOOKS NON-EMPTY KEEPS A TASKS LANE SPINNING. "
-                             "MARK BLOCKED ROWS BLOCKED."))),
-    foot="FLEET BUILD-AND-VERIFY", page_id="7.1-1"))
+SHEETS.append(
+    dict(
+        file="aipp-7-1",
+        tab="FLT",
+        part_no="7",
+        title="FLEET BUILD-AND-VERIFY",
+        body=(
+            para(
+                "7.1.1",
+                "INTRODUCTION.",
+                "The fleet builds and verifies the agent: a scheduler admits a foreman by board work, "
+                "the foreman dispatches one worker per tick, a judge grades the evidence, and the "
+                "board remembers. Nothing lands on a claim (figure 7.1-1).",
+            )
+            + fig(
+                FLEET_SVG,
+                "Figure 7.1-1",
+                "Scheduler To Judge To Board, With The Idle-Spin Defect Dotted",
+            )
+            + para(
+                "7.1.2",
+                "FUNCTIONAL DESCRIPTION.",
+                "The lane's admission mode is tasks: a non-empty board waives the six-hour cooldown "
+                "pin. Workers run in worktrees with their own environments; guards run at commit; "
+                "releases are cut only on owner authorisation. Verification receipts and verdicts "
+                "land beside the code they grade.",
+            )
+            + para(
+                "7.1.2.1",
+                "Idle Spin, Measured.",
+                "Drained must mean no WORKABLE row. It currently means no open row: blocked and "
+                "dep-gated rows waived the cooldown and produced 42 dry ticks in six hours on this "
+                "lane alone - 8.3 million input tokens for nothing.",
+                flush=True,
+            )
+            + lower_band(
+                "7.1.3",
+                "Table 7.1-1",
+                "Fleet Data",
+                [
+                    ("Board", "357 rows, JSONL, git-backed"),
+                    ("This project, complete", "339 of 357"),
+                    ("Blocked", "2 (owner-gated, dep-gated)"),
+                    ("Pending, real work", "16 incl. ARM-2, VIS-MODEL-1"),
+                    ("Dry ticks, 6 h", "42 (8.3M tokens)"),
+                    ("Commits since 09-28", "60 by 2026-10-01"),
+                ],
+                notice=(
+                    "CAUTION",
+                    "A BOARD THAT LOOKS NON-EMPTY KEEPS A TASKS LANE SPINNING. "
+                    "MARK BLOCKED ROWS BLOCKED.",
+                ),
+            )
+        ),
+        foot="FLEET BUILD-AND-VERIFY",
+        page_id="7.1-1",
+    )
+)
 
 # ════════════════════════════════ 8 MONITORING AND RELEASE ════════════════════════════════
 MON_SVG = """
@@ -551,88 +786,162 @@ MON_SVG = """
   <text class="code" x="178.6" y="51.4" text-anchor="end">AIP-901A</text>
 </svg>"""
 
-SHEETS.append(dict(
-    file="aipp-8-1", tab="MON", part_no="8", title="MONITORING AND RELEASE",
-    body=(
-        para("8.1.1", "INTRODUCTION.",
-             "The agent is observed from four directions: Prometheus metrics on the dashboard, a "
-             "node_exporter record from the cron lane, narration keys in DuckBrain, and the "
-             "scheduler's own tick and cost ledger (figure 8.1-1).")
-        + fig(MON_SVG, "Figure 8.1-1", "Observability Surfaces And The Release State")
-        + para("8.1.2", "FUNCTIONAL DESCRIPTION.",
-               "Version 1.1.0 is the first published release: the tag fires its own CI, the wheel "
-               "installs with the source package intact, and the version surfaces agree. Cuts "
-               "require owner authorisation; the releng lane audits readiness each sweep.")
-        + para("8.1.2.1", "Cost Truth.",
-               "Costs are counted from the scheduler's session ledger by base URL and model, never "
-               "from a billing label that a gateway restart can restamp.", flush=True)
-        + lower_band("8.1.3", "Table 8.1-1", "Release Data",
-                     [("Version", "1.1.0, pyproject + CHANGELOG agree"),
-                      ("Wheel", "360,028 bytes, src intact"),
-                      ("sdist", "792,763 bytes"),
-                      ("Tag CI", "success on the tag commit"),
-                      ("Judge tier 2", "blocked, 402 billing"),
-                      ("QA batteries", "disk was 98 pc, now 40 pc")],
-                     notice=("CAUTION", "AN INSTALLED WHEEL FROM v1.0.0 OR v1.1.0 BEFORE THE FIX IS "
-                             "NOT USABLE. REBUILD AFTER 70c272b."))),
-    foot="MONITORING AND RELEASE", page_id="8.1-1"))
+SHEETS.append(
+    dict(
+        file="aipp-8-1",
+        tab="MON",
+        part_no="8",
+        title="MONITORING AND RELEASE",
+        body=(
+            para(
+                "8.1.1",
+                "INTRODUCTION.",
+                "The agent is observed from four directions: Prometheus metrics on the dashboard, a "
+                "node_exporter record from the cron lane, narration keys in DuckBrain, and the "
+                "scheduler's own tick and cost ledger (figure 8.1-1).",
+            )
+            + fig(
+                MON_SVG, "Figure 8.1-1", "Observability Surfaces And The Release State"
+            )
+            + para(
+                "8.1.2",
+                "FUNCTIONAL DESCRIPTION.",
+                "Version 1.1.0 is the first published release: the tag fires its own CI, the wheel "
+                "installs with the source package intact, and the version surfaces agree. Cuts "
+                "require owner authorisation; the releng lane audits readiness each sweep.",
+            )
+            + para(
+                "8.1.2.1",
+                "Cost Truth.",
+                "Costs are counted from the scheduler's session ledger by base URL and model, never "
+                "from a billing label that a gateway restart can restamp.",
+                flush=True,
+            )
+            + lower_band(
+                "8.1.3",
+                "Table 8.1-1",
+                "Release Data",
+                [
+                    ("Version", "1.1.0, pyproject + CHANGELOG agree"),
+                    ("Wheel", "360,028 bytes, src intact"),
+                    ("sdist", "792,763 bytes"),
+                    ("Tag CI", "success on the tag commit"),
+                    ("Judge tier 2", "blocked, 402 billing"),
+                    ("QA batteries", "disk was 98 pc, now 40 pc"),
+                ],
+                notice=(
+                    "CAUTION",
+                    "AN INSTALLED WHEEL FROM v1.0.0 OR v1.1.0 BEFORE THE FIX IS "
+                    "NOT USABLE. REBUILD AFTER 70c272b.",
+                ),
+            )
+        ),
+        foot="MONITORING AND RELEASE",
+        page_id="8.1-1",
+    )
+)
+
 
 # ════════════════════════════════ 9 FLIGHT DATA FILE ════════════════════════════════
 def fdf_sheet() -> str:
     body = (
-        para("9.1.1", "INTRODUCTION.",
-             "This part collects the operator procedures. Each control is named as placarded on the "
-             "console; each verification line starts with a check. Nothing here requires editing a "
-             "file.")
+        para(
+            "9.1.1",
+            "INTRODUCTION.",
+            "This part collects the operator procedures. Each control is named as placarded on the "
+            "console; each verification line starts with a check. Nothing here requires editing a "
+            "file.",
+        )
         + '<div class="lower" style="grid-template-columns:1fr 1fr; margin-top:2.8mm">'
         + '<div><div class="card"><div class="bar"><span>START A RUN</span><span>OPERATOR</span></div><ol>'
-        + "".join(f'<li><span>{i + 1}</span><span>{l}</span></li>' if not l.startswith("√") else f'<li><span></span><span>{l}</span></li>'
-                  for i, l in enumerate([
-                      "BRIDGE - verify health op",
-                      "LIVE - set OFF",
-                      "MODE - pick JEV/LLM/HYBRID",
-                      "√ LOG - mode echoed at run head",
-                      "RUN - cron_runner --cycles 20",
-                      "VISION - ask now (25k tok)",
-                      "√ VERDICT - agree/conflict",
-                  ])) + "</ol></div></div>"
+        + "".join(
+            f"<li><span>{i + 1}</span><span>{l}</span></li>"
+            if not l.startswith("√")
+            else f"<li><span></span><span>{l}</span></li>"
+            for i, l in enumerate(
+                [
+                    "BRIDGE - verify health op",
+                    "LIVE - set OFF",
+                    "MODE - pick JEV/LLM/HYBRID",
+                    "√ LOG - mode echoed at run head",
+                    "RUN - cron_runner --cycles 20",
+                    "VISION - ask now (25k tok)",
+                    "√ VERDICT - agree/conflict",
+                ]
+            )
+        )
+        + "</ol></div></div>"
         + '<div><div class="card"><div class="bar"><span>RECOVER VIDEO</span><span>OPERATOR</span></div><ol>'
-        + "".join(f'<li><span>{i + 1}</span><span>{l}</span></li>' if not l.startswith("√") else f'<li><span></span><span>{l}</span></li>'
-                  for i, l in enumerate([
-                      "SYMPTOM - frame 412 bytes",
-                      "LIVE - set OFF",
-                      "BRIDGE - restart service",
-                      "√ FRAME - about 2.7 kB again",
-                      "√ STATE - tile unchanged",
-                  ])) + "</ol></div></div>"
+        + "".join(
+            f"<li><span>{i + 1}</span><span>{l}</span></li>"
+            if not l.startswith("√")
+            else f"<li><span></span><span>{l}</span></li>"
+            for i, l in enumerate(
+                [
+                    "SYMPTOM - frame 412 bytes",
+                    "LIVE - set OFF",
+                    "BRIDGE - restart service",
+                    "√ FRAME - about 2.7 kB again",
+                    "√ STATE - tile unchanged",
+                ]
+            )
+        )
+        + "</ol></div></div>"
         + '<div><div class="card" style="margin-top:2mm"><div class="bar"><span>TAKE A READING</span><span>OPERATOR</span></div><ol>'
-        + "".join(f'<li><span>{i + 1}</span><span>{l}</span></li>' if not l.startswith("√") else f'<li><span></span><span>{l}</span></li>'
-                  for i, l in enumerate([
-                      "VISION - ask now",
-                      "√ VMETA - tokens + finish",
-                      "√ GRID - 9 rows of 10",
-                      "VERDICT - read conflicts",
-                      "NOTE - record the finding",
-                  ])) + "</ol></div></div>"
+        + "".join(
+            f"<li><span>{i + 1}</span><span>{l}</span></li>"
+            if not l.startswith("√")
+            else f"<li><span></span><span>{l}</span></li>"
+            for i, l in enumerate(
+                [
+                    "VISION - ask now",
+                    "√ VMETA - tokens + finish",
+                    "√ GRID - 9 rows of 10",
+                    "VERDICT - read conflicts",
+                    "NOTE - record the finding",
+                ]
+            )
+        )
+        + "</ol></div></div>"
         + '<div><div class="card" style="margin-top:2mm"><div class="bar"><span>END A SESSION</span><span>OPERATOR</span></div><ol>'
-        + "".join(f'<li><span>{i + 1}</span><span>{l}</span></li>' if not l.startswith("√") else f'<li><span></span><span>{l}</span></li>'
-                  for i, l in enumerate([
-                      "RUN - let the cycle end",
-                      "LIVE - set OFF if left on",
-                      "SAVE - bridge save slot",
-                      "√ SAVES - list shows the slot",
-                      "NOTE - what you saw",
-                  ])) + "</ol></div></div>"
+        + "".join(
+            f"<li><span>{i + 1}</span><span>{l}</span></li>"
+            if not l.startswith("√")
+            else f"<li><span></span><span>{l}</span></li>"
+            for i, l in enumerate(
+                [
+                    "RUN - let the cycle end",
+                    "LIVE - set OFF if left on",
+                    "SAVE - bridge save slot",
+                    "√ SAVES - list shows the slot",
+                    "NOTE - what you saw",
+                ]
+            )
+        )
+        + "</ol></div></div>"
         + "</div>"
-        + para("9.1.2", "RULES THAT GOVERN EVERY PROCEDURE.",
-               "Never drive the emulator from two places at once. Never let a run start without an "
-               "explicit mode. A finding is a board row, not a memory.")
+        + para(
+            "9.1.2",
+            "RULES THAT GOVERN EVERY PROCEDURE.",
+            "Never drive the emulator from two places at once. Never let a run start without an "
+            "explicit mode. A finding is a board row, not a memory.",
+        )
     )
     return body
 
-SHEETS.append(dict(
-    file="aipp-9-1", tab="FDF", part_no="9", title="FLIGHT DATA FILE",
-    body=fdf_sheet(), foot="FLIGHT DATA FILE", page_id="9.1-1"))
+
+SHEETS.append(
+    dict(
+        file="aipp-9-1",
+        tab="FDF",
+        part_no="9",
+        title="FLIGHT DATA FILE",
+        body=fdf_sheet(),
+        foot="FLIGHT DATA FILE",
+        page_id="9.1-1",
+    )
+)
+
 
 # ════════════════════════════════ COVER ════════════════════════════════
 def cover_sheet() -> str:
@@ -670,116 +979,200 @@ def cover_sheet() -> str:
     </table>
   </div>"""
 
-SHEETS.insert(0, dict(file="aipp-0-cover", tab="AIP", part_no="0", title="COVER",
-                      body=cover_sheet(), foot="AI-PLAYS-POKE", page_id="COVER"))
+
+SHEETS.insert(
+    0,
+    dict(
+        file="aipp-0-cover",
+        tab="AIP",
+        part_no="0",
+        title="COVER",
+        body=cover_sheet(),
+        foot="AI-PLAYS-POKE",
+        page_id="COVER",
+    ),
+)
 
 
 def main() -> None:
     # Second pass of substance: measured paragraphs per sheet, injected before the lower band.
     EXTRA = {
         "aipp-1-1": [
-            ("1.1.2.2", "The Fleet Around It.",
-             "Ten lanes serve this project: a foreman at priority 10 on a six-hour pin, plus qa, "
-             "sync, releng, docs, readme, review, perf and their satellites. Since September 28 the "
-             "foreman has landed 60 commits; the board holds 357 rows, 339 complete. The lanes share "
-             "this host and its free-model quota with the emulator."),
-            ("1.1.2.3", "What Is Deliberately Absent.",
-             "No story modelling, no scripted walk tables, no voice control. The agent must win by "
-             "understanding; everything else is scaffolding and is described only as it serves that."),
+            (
+                "1.1.2.2",
+                "The Fleet Around It.",
+                "Ten lanes serve this project: a foreman at priority 10 on a six-hour pin, plus qa, "
+                "sync, releng, docs, readme, review, perf and their satellites. Since September 28 the "
+                "foreman has landed 60 commits; the board holds 357 rows, 339 complete. The lanes share "
+                "this host and its free-model quota with the emulator.",
+            ),
+            (
+                "1.1.2.3",
+                "What Is Deliberately Absent.",
+                "No story modelling, no scripted walk tables, no voice control. The agent must win by "
+                "understanding; everything else is scaffolding and is described only as it serves that.",
+            ),
         ],
         "aipp-2-1": [
-            ("2.1.2.2", "One Socket Or One Command.",
-             "A live session speaks line-delimited requests on one socket; everything else sends "
-             "single commands. When one Game call stopped answering it held the bridge for 25 "
-             "seconds and every panel starved; the bound now makes one slow frame cost itself only."),
-            ("2.1.2.3", "Revocation.",
-             "The bridge refuses to boot without a token file, so it cannot start naked by "
-             "accident. Revoke by killing the process and deleting the token; enable per session."),
+            (
+                "2.1.2.2",
+                "One Socket Or One Command.",
+                "A live session speaks line-delimited requests on one socket; everything else sends "
+                "single commands. When one Game call stopped answering it held the bridge for 25 "
+                "seconds and every panel starved; the bound now makes one slow frame cost itself only.",
+            ),
+            (
+                "2.1.2.3",
+                "Revocation.",
+                "The bridge refuses to boot without a token file, so it cannot start naked by "
+                "accident. Revoke by killing the process and deleting the token; enable per session.",
+            ),
         ],
         "aipp-3-1": [
-            ("3.1.2.2", "What The Reader Cannot See.",
-             "Text, menus, dialogue and name entry are invisible to RAM. A sprite's meaning is not "
-             "in memory either. An out-of-range cell answers walkable, so read the code before "
-             "trusting a verdict row that says the way is clear."),
-            ("3.1.2.3", "Cost.",
-             "The read is free and runs every cycle, which is exactly why it is the reference "
-             "channel and the vision model is the guest that must justify its 25,000 tokens."),
+            (
+                "3.1.2.2",
+                "What The Reader Cannot See.",
+                "Text, menus, dialogue and name entry are invisible to RAM. A sprite's meaning is not "
+                "in memory either. An out-of-range cell answers walkable, so read the code before "
+                "trusting a verdict row that says the way is clear.",
+            ),
+            (
+                "3.1.2.3",
+                "Cost.",
+                "The read is free and runs every cycle, which is exactly why it is the reference "
+                "channel and the vision model is the guest that must justify its 25,000 tokens.",
+            ),
         ],
         "aipp-4-1": [
-            ("4.1.2.2", "People Are A Different Task.",
-             "The people probe scored exact sprite cells against wSpriteStateData1: one frame in "
-             "three correct, and the model answered girl at cell 1,4 on all three frames including "
-             "the two where no girl stands there. It anchors. Constrain the question to "
-             "RAM-predicted cells or do not trust the answer."),
-            ("4.1.2.3", "Cost Discipline.",
-             "A reading costs about 25,000 input tokens. The auto trigger reads on movement or "
-             "scene change only; the 120-second idle timer was removed on 2026-10-01 after it "
-             "generated readings around the clock for nothing."),
+            (
+                "4.1.2.2",
+                "People Are A Different Task.",
+                "The people probe scored exact sprite cells against wSpriteStateData1: one frame in "
+                "three correct, and the model answered girl at cell 1,4 on all three frames including "
+                "the two where no girl stands there. It anchors. Constrain the question to "
+                "RAM-predicted cells or do not trust the answer.",
+            ),
+            (
+                "4.1.2.3",
+                "Cost Discipline.",
+                "A reading costs about 25,000 input tokens. The auto trigger reads on movement or "
+                "scene change only; the 120-second idle timer was removed on 2026-10-01 after it "
+                "generated readings around the clock for nothing.",
+            ),
         ],
         "aipp-5-1": [
-            ("5.1.2.2", "Evidence From The September Run.",
-             "757 decisions across 28 episodes, 6 escalations. Autonomy 0.99 counts decisions not "
-             "escalated; participation 0.99 counts cycles answered. They agree here only because "
-             "the teacher was never called. They are different numbers and are reported separately."),
-            ("5.1.2.3", "What JEV Cannot Decide.",
-             "Map topology. All six escalations clustered on the Route 1 to Viridian transition, "
-             "and episode 28 crossed it unaided. The next run must cross a boundary it has never "
-             "seen, or the number proves nothing new."),
+            (
+                "5.1.2.2",
+                "Evidence From The September Run.",
+                "757 decisions across 28 episodes, 6 escalations. Autonomy 0.99 counts decisions not "
+                "escalated; participation 0.99 counts cycles answered. They agree here only because "
+                "the teacher was never called. They are different numbers and are reported separately.",
+            ),
+            (
+                "5.1.2.3",
+                "What JEV Cannot Decide.",
+                "Map topology. All six escalations clustered on the Route 1 to Viridian transition, "
+                "and episode 28 crossed it unaided. The next run must cross a boundary it has never "
+                "seen, or the number proves nothing new.",
+            ),
         ],
         "aipp-6-1": [
-            ("6.1.2.2", "Naming Is Load-Bearing.",
-             "Seventeen controls carried no id until 2026-10-01, which is why the mobile tap-size "
-             "defect stood for weeks: nothing could select them. The duplicate-id check must read "
-             "the whole page, not only the controls - a button and a panel once both claimed vision."),
-            ("6.1.2.3", "Chat.",
-             "The chat box posts into the agent's own session. One probe used the wrong field name, "
-             "read an empty-error reply, and nearly reported the wire broken. Verify the field "
-             "before blaming the wire."),
+            (
+                "6.1.2.2",
+                "Naming Is Load-Bearing.",
+                "Seventeen controls carried no id until 2026-10-01, which is why the mobile tap-size "
+                "defect stood for weeks: nothing could select them. The duplicate-id check must read "
+                "the whole page, not only the controls - a button and a panel once both claimed vision.",
+            ),
+            (
+                "6.1.2.3",
+                "Chat.",
+                "The chat box posts into the agent's own session. One probe used the wrong field name, "
+                "read an empty-error reply, and nearly reported the wire broken. Verify the field "
+                "before blaming the wire.",
+            ),
         ],
         "aipp-7-1": [
-            ("7.1.2.2", "What A Good Tick Is.",
-             "A tick that reports nothing changed, honestly, in one line, is a good tick. A tick "
-             "that re-audits finished work is a wasted one. The foreman prompt says so; the "
-             "admission loop must not fight it by re-admitting every three minutes."),
-            ("7.1.2.3", "The Judge.",
-             "Tier 1 runs secrets, static analysis and tests; tier 2 grades the evidence. Judge "
-             "runs have been refused with a 402 billing fault, and a gate whose judge never sat is "
-             "recorded DEGRADED, never PASS."),
+            (
+                "7.1.2.2",
+                "What A Good Tick Is.",
+                "A tick that reports nothing changed, honestly, in one line, is a good tick. A tick "
+                "that re-audits finished work is a wasted one. The foreman prompt says so; the "
+                "admission loop must not fight it by re-admitting every three minutes.",
+            ),
+            (
+                "7.1.2.3",
+                "The Judge.",
+                "Tier 1 runs secrets, static analysis and tests; tier 2 grades the evidence. Judge "
+                "runs have been refused with a 402 billing fault, and a gate whose judge never sat is "
+                "recorded DEGRADED, never PASS.",
+            ),
         ],
         "aipp-8-1": [
-            ("8.1.2.2", "What The Numbers Must Never Do.",
-             "A cost read from a billing label lies after a gateway restart; count by base URL and "
-             "session ledger instead. A lazy all-floor answer must never win a cell-match metric: "
-             "score the cells that carry meaning, the walls and doors and sprites."),
+            (
+                "8.1.2.2",
+                "What The Numbers Must Never Do.",
+                "A cost read from a billing label lies after a gateway restart; count by base URL and "
+                "session ledger instead. A lazy all-floor answer must never win a cell-match metric: "
+                "score the cells that carry meaning, the walls and doors and sprites.",
+            ),
         ],
     }
-    extra_fdf = ('<div class="lower" style="grid-template-columns:1fr 1fr; margin-top:2mm">'
-                 '<div><div class="card"><div class="bar"><span>FILE A FINDING</span><span>OPERATOR</span></div><ol>'
-                 + "".join(f'<li><span>{i + 1}</span><span>{l}</span></li>' for i, l in enumerate([
-                     "FINDING - name the row",
-                     "EVIDENCE - command + output",
-                     "BOARD - append, never chat",
-                     "√ VALIDATE - boardctl ok",
-                 ])) + "</ol></div></div>"
-                 + '<div><div class="card"><div class="bar"><span>RELEASE A CUT</span><span>OPERATOR</span></div><ol>'
-                 + "".join(f'<li><span>{i + 1}</span><span>{l}</span></li>' for i, l in enumerate([
-                     "AUTH - owner says cut",
-                     "CHECK - release_check rc 0",
-                     "TAG - annotated, on main",
-                     "√ CI - green on the tag",
-                     "√ ASSETS - wheel installs",
-                 ])) + "</ol></div></div></div>")
+    extra_fdf = (
+        '<div class="lower" style="grid-template-columns:1fr 1fr; margin-top:2mm">'
+        '<div><div class="card"><div class="bar"><span>FILE A FINDING</span><span>OPERATOR</span></div><ol>'
+        + "".join(
+            f"<li><span>{i + 1}</span><span>{l}</span></li>"
+            for i, l in enumerate(
+                [
+                    "FINDING - name the row",
+                    "EVIDENCE - command + output",
+                    "BOARD - append, never chat",
+                    "√ VALIDATE - boardctl ok",
+                ]
+            )
+        )
+        + "</ol></div></div>"
+        + '<div><div class="card"><div class="bar"><span>RELEASE A CUT</span><span>OPERATOR</span></div><ol>'
+        + "".join(
+            f"<li><span>{i + 1}</span><span>{l}</span></li>"
+            for i, l in enumerate(
+                [
+                    "AUTH - owner says cut",
+                    "CHECK - release_check rc 0",
+                    "TAG - annotated, on main",
+                    "√ CI - green on the tag",
+                    "√ ASSETS - wheel installs",
+                ]
+            )
+        )
+        + "</ol></div></div></div>"
+    )
 
     pdfs = []
     for s in SHEETS:
         body = s["body"]
         for ex in EXTRA.get(s["file"], []):
-            body = body.replace('<div class="lower">', para(ex[0], ex[1], ex[2]) + '<div class="lower">', 1)
+            body = body.replace(
+                '<div class="lower">',
+                para(ex[0], ex[1], ex[2]) + '<div class="lower">',
+                1,
+            )
         if s["file"] == "aipp-9-1":
-            body = body.replace('<footer', extra_fdf + '<footer', 1) if False else body + extra_fdf
-        html = page(doc_no=DOC_NO, part=PART, tab=s["tab"],
-                    opener=f'PART {s["part_no"]} &nbsp;&nbsp;&middot;&nbsp;&nbsp; SHEET {s["page_id"]}<br>{s["title"]}',
-                    body=body, foot_sub=s["foot"], page_id=s["page_id"])
+            body = (
+                body.replace("<footer", extra_fdf + "<footer", 1)
+                if False
+                else body + extra_fdf
+            )
+        html = page(
+            doc_no=DOC_NO,
+            part=PART,
+            tab=s["tab"],
+            opener=f"PART {s['part_no']} &nbsp;&nbsp;&middot;&nbsp;&nbsp; SHEET {s['page_id']}<br>{s['title']}",
+            body=body,
+            foot_sub=s["foot"],
+            page_id=s["page_id"],
+        )
         p = OUT / f"{s['file']}.html"
         p.write_text(html)
         pdf, fit = print_pdf(str(p))
@@ -792,13 +1185,26 @@ def main() -> None:
         sys.exit(2)
     print(f"merged: {merged}")
     # verify the rendered artifact: page count + folios present
-    chk = subprocess.run(["uv", "run", "--no-project", "--with", "pymupdf", "python", "-c", f"""
+    chk = subprocess.run(
+        [
+            "uv",
+            "run",
+            "--no-project",
+            "--with",
+            "pymupdf",
+            "python",
+            "-c",
+            f"""
 import fitz
 d = fitz.open("{merged}")
 print("pages:", d.page_count)
 missing_folio = [i + 1 for i, pg in enumerate(d) if "Change Date" not in pg.get_text()]
 print("sheets missing footer:", missing_folio or "none")
-"""], capture_output=True, text=True)
+""",
+        ],
+        capture_output=True,
+        text=True,
+    )
     print(chk.stdout.strip() or chk.stderr[:400])
 
 
