@@ -11,7 +11,7 @@ Status: DRAFT v0.1, 2026-11-11. Facts measured; quorum NOT yet convened.
 | flows/ FLOW-01, FLOW-02 | perceive-decide-act; operator console; fleet loop | failure paths + day-one + concurrency |
 | modules/ MOD-01..06 | bridge, RAM reader, vision, decision core, console, fleet | owns / does-not-own / failure modes |
 | contracts/_matrix.md | CT-01..07 + R-001..R-010 | 3 measured violations named |
-| handbook page 2.1 | RENDERED | docs/handbook/ |
+| handbook SET (10 sheets) | RENDERED, merged, folio-verified | docs/handbook/aipp-handbook.pdf |
 
 ## Coverage statement (areas measured 2026-11-11)
 - src/core/: ram_reader.py, vision.py, vision_grid.py — COVERED (MOD-02/03)
