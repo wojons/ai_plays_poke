@@ -855,10 +855,10 @@ def fdf_sheet() -> str:
         + '<div class="lower" style="grid-template-columns:1fr 1fr; margin-top:2.8mm">'
         + '<div><div class="card"><div class="bar"><span>START A RUN</span><span>OPERATOR</span></div><ol>'
         + "".join(
-            f"<li><span>{i + 1}</span><span>{l}</span></li>"
-            if not l.startswith("√")
-            else f"<li><span></span><span>{l}</span></li>"
-            for i, l in enumerate(
+            f"<li><span>{i + 1}</span><span>{line_text}</span></li>"
+            if not line_text.startswith("√")
+            else f"<li><span></span><span>{line_text}</span></li>"
+            for i, line_text in enumerate(
                 [
                     "BRIDGE - verify health op",
                     "LIVE - set OFF",
@@ -873,10 +873,10 @@ def fdf_sheet() -> str:
         + "</ol></div></div>"
         + '<div><div class="card"><div class="bar"><span>RECOVER VIDEO</span><span>OPERATOR</span></div><ol>'
         + "".join(
-            f"<li><span>{i + 1}</span><span>{l}</span></li>"
-            if not l.startswith("√")
-            else f"<li><span></span><span>{l}</span></li>"
-            for i, l in enumerate(
+            f"<li><span>{i + 1}</span><span>{line_text}</span></li>"
+            if not line_text.startswith("√")
+            else f"<li><span></span><span>{line_text}</span></li>"
+            for i, line_text in enumerate(
                 [
                     "SYMPTOM - frame 412 bytes",
                     "LIVE - set OFF",
@@ -889,10 +889,10 @@ def fdf_sheet() -> str:
         + "</ol></div></div>"
         + '<div><div class="card" style="margin-top:2mm"><div class="bar"><span>TAKE A READING</span><span>OPERATOR</span></div><ol>'
         + "".join(
-            f"<li><span>{i + 1}</span><span>{l}</span></li>"
-            if not l.startswith("√")
-            else f"<li><span></span><span>{l}</span></li>"
-            for i, l in enumerate(
+            f"<li><span>{i + 1}</span><span>{line_text}</span></li>"
+            if not line_text.startswith("√")
+            else f"<li><span></span><span>{line_text}</span></li>"
+            for i, line_text in enumerate(
                 [
                     "VISION - ask now",
                     "√ VMETA - tokens + finish",
@@ -905,10 +905,10 @@ def fdf_sheet() -> str:
         + "</ol></div></div>"
         + '<div><div class="card" style="margin-top:2mm"><div class="bar"><span>END A SESSION</span><span>OPERATOR</span></div><ol>'
         + "".join(
-            f"<li><span>{i + 1}</span><span>{l}</span></li>"
-            if not l.startswith("√")
-            else f"<li><span></span><span>{l}</span></li>"
-            for i, l in enumerate(
+            f"<li><span>{i + 1}</span><span>{line_text}</span></li>"
+            if not line_text.startswith("√")
+            else f"<li><span></span><span>{line_text}</span></li>"
+            for i, line_text in enumerate(
                 [
                     "RUN - let the cycle end",
                     "LIVE - set OFF if left on",
@@ -1122,8 +1122,8 @@ def main() -> None:
         '<div class="lower" style="grid-template-columns:1fr 1fr; margin-top:2mm">'
         '<div><div class="card"><div class="bar"><span>FILE A FINDING</span><span>OPERATOR</span></div><ol>'
         + "".join(
-            f"<li><span>{i + 1}</span><span>{l}</span></li>"
-            for i, l in enumerate(
+            f"<li><span>{i + 1}</span><span>{line_text}</span></li>"
+            for i, line_text in enumerate(
                 [
                     "FINDING - name the row",
                     "EVIDENCE - command + output",
@@ -1135,8 +1135,8 @@ def main() -> None:
         + "</ol></div></div>"
         + '<div><div class="card"><div class="bar"><span>RELEASE A CUT</span><span>OPERATOR</span></div><ol>'
         + "".join(
-            f"<li><span>{i + 1}</span><span>{l}</span></li>"
-            for i, l in enumerate(
+            f"<li><span>{i + 1}</span><span>{line_text}</span></li>"
+            for i, line_text in enumerate(
                 [
                     "AUTH - owner says cut",
                     "CHECK - release_check rc 0",

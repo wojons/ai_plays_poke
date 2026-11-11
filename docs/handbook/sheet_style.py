@@ -208,45 +208,6 @@ def figure(svg: str, caption: str, code: str) -> str:
     return f'<figure>{svg}<figcaption><span class="n">{caption.split(".")[0]}.</span>{caption.split(".", 1)[1].strip()}</figcaption></figure>'
 
 
-def lower(
-    table_caption: str,
-    table_rows: list[tuple[str, str]],
-    notice: tuple[str, str] | None,
-    card: tuple[str, list[str]] | None,
-    table_num: str,
-) -> str:
-    rows = "".join(
-        f'<tr><td>{k}</td><td class="v">{v}</td></tr>' for k, v in table_rows
-    )
-    left = (
-        '<section class="para"><div class="num">2.x.3</div><div><h2>PERFORMANCE AND DESIGN DATA.</h2></div></section>'
-        if False
-        else ""
-    )
-    notice_html = ""
-    if notice:
-        notice_html = f'<div class="notice"><span class="tag">{notice[0]}</span><p>{notice[1]}</p></div>'
-    card_html = ""
-    if card:
-        lis = "".join(
-            f"<li><span>{i + 1}</span><span>{line}</span></li>"
-            if not line.startswith("√")
-            else f"<li><span></span><span>{line}</span></li>"
-            for i, line in enumerate(card[1])
-        )
-        card_html = (
-            f'<div class="card"><div class="bar"><span>{card[0]}</span><span>OPERATOR</span></div>'
-            f"<ol>{lis}</ol></div>"
-        )
-    return (
-        f'<div class="lower"><div><section class="para"><div class="num">x.3</div>'
-        f"<div><h2>PERFORMANCE AND DESIGN DATA.</h2></div></section>"
-        f'<div class="tcap">{table_num}. {table_caption}</div>'
-        f"<table><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>{rows}</tbody></table>"
-        f"</div><div>{notice_html}{card_html}</div></div>"
-    )
-
-
 def print_pdf(html_path: str) -> tuple[str, str]:
     """Render one sheet; returns (pdf_path, fit_line). Raises on overflow."""
     out = subprocess.run(
