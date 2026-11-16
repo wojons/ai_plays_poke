@@ -14,6 +14,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened `game_bridge.py` with bounded workers and serialized emulator access.
 - Persisted RAM-derived save and run summaries, with prior memory injected at boot.
 
+## [1.2.0] - 2026-11-16
+
+### Added
+
+- Monitoring: the cron lane now writes a node_exporter textfile completion record
+  (`cron_runner.py`), so run completion is observable from the fleet scrape without
+  log parsing (MON-AIPP-2), covered by `tests/test_cron_runner_textfile.py`.
+
+### Fixed
+
+- Packaging: ship the `src` package intact so the wheel is installable —
+  `src/game_loop.py` uses package-relative imports and `pyproject.toml` declares the
+  package layout, closing the broken-wheel defect carried by `v1.0.0`/`v1.1.0`
+  (RELEASE-007), guarded by `tests/test_packaging.py`.
+- Tests: `tests/test_vision_model_e2e.py` no longer fails on a hardcoded developer
+  `.env` path — `_load_repo_env()` tolerates a missing or unreadable file and the
+  test skips instead of failing (QA-AI-PLAYS-POKE-25).
+
+### Notes
+
+- Range `v1.1.0..bb10268`: 17 commits, 3 material (1 feat, 2 fix), 14 bookkeeping
+  (10 board, 4 handbook/spec docs).
+- No breaking changes in this release (`BREAKING CHANGE:` / `type!:` census = 0).
+- `## [Unreleased]` still carries four bullets that are present unchanged since
+  `v1.0.0` and cannot be bound to any commit in this range; they are deliberately
+  not claimed by `1.2.0` and remain on the board as changelog provenance debt
+  (RELEASE-010).
+- Rollback path: previous release `v1.1.0`.
+
 ## [1.1.0] - 2026-11-04
 
 ### Added
