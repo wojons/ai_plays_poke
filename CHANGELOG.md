@@ -133,24 +133,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Backfilled provenance (RELEASE-010)
 
 These four entries describe behaviour that was in the `v1.0.0` tree but sat under
-the Unreleased heading without a commit binding. Each is now bound to the commit that
-landed it.
+the Unreleased heading without a commit binding. Two things are stated separately here,
+because a RELEASE-010 review showed they had been conflated:
+
+- **Who wrote the text:** all four bullets were authored by `9d54337` (2026-10-02,
+  `chore(release): canonical version 1.0.0 + release-check tooling`). That commit added
+  the sentences; it did not land any of the behaviour. `git log --all -S "RAM-reader-first"
+  -- CHANGELOG.md` returns only that commit.
+- **What landed the behaviour:** the feature commits named per entry below, verified by
+  `git log -S` on the CODE each sentence describes (never on this file — none of them
+  touched `CHANGELOG.md`). Dates are the landing dates.
 
 - RAM-reader-first gameplay pipeline for fast, zero-cost state extraction — `RAMReader`
-  (`src/core/ram_reader.py`) landed in `b0c6d2a`; wired as the primary observation
-  pipeline, replacing the vision cartographer, in `4ecd316`.
+  (`src/core/ram_reader.py`) landed in `b0c6d2a` (2026-07-05); wired as the primary
+  observation pipeline, replacing the vision cartographer, in `4ecd316` (2026-07-08).
 - `cron_runner.py` boot-state checkpoints and setup preflight validation — the known-good
   `data/boot.state` checkpoint plus `DEFAULT_BOOT_STATE` resolution and
-  `_resolve_boot_state()` in `31d990f` (GAP-028); the `_dry_run_precheck()` setup
-  validator in `8575fd8` (GAP-032). Two commits because the entry named two mechanisms.
+  `_resolve_boot_state()` in `31d990f` (2026-08-16, GAP-028); the `_dry_run_precheck()`
+  setup validator in `8575fd8` (2026-08-23, GAP-032). Two commits because the entry named
+  two mechanisms.
 - `game_bridge.py` bounded workers and serialized emulator access — bounded connection
   concurrency (`max_workers`, `queue.Queue(maxsize=max_workers)`) and one shared
-  `game_lock` serializing every Game/RAMReader access, in `640476c`.
+  `game_lock` serializing every Game/RAMReader access, in `640476c` (2026-09-30).
 - Persisted RAM-derived save and run summaries, with prior memory injected at boot —
   the MEM-1 end-of-run recorder writing `/game/runs/<id>/summary` and
-  `/game/save/{party,items,location}` from run truth in `ee67e9f`; the MEM-2
+  `/game/save/{party,items,location}` from run truth in `ee67e9f` (2026-09-23); the MEM-2
   once-per-run boot-memory block (mechanics, save state, runs index, learning) appended
-  to the controller system prompt in `1fe0d3c`.
+  to the controller system prompt in `1fe0d3c` (2026-09-23).
 
 ### Changed
 
