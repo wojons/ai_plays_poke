@@ -138,12 +138,11 @@ because a RELEASE-010 review showed they had been conflated:
 
 - **Who wrote the text:** all four bullets were authored by `9d54337` (2026-10-02,
   `chore(release): canonical version 1.0.0 + release-check tooling`). That commit added
-  the sentences; it did not land any of the behaviour. Measured at HEAD,
-  `git log --all -S "<phrase>" -- CHANGELOG.md` returns `9d54337` and nothing else for
-  "boot-state checkpoints", "bounded workers" and "RAM-derived save". The fourth phrase,
-  "RAM-reader-first", also lists `cc87581`, because that RELEASE-010 fix quotes the phrase
-  a second time inside this block — discount the RELEASE-010 provenance edits and the
-  answer is `9d54337` alone.
+  the sentences; it did not land any of the behaviour. Bounded to commits up to
+  2026-11-16, `git log --all -S "<phrase>" --until=2026-11-16 -- CHANGELOG.md` returns
+  `9d54337` alone for every one of the four phrases. The unbounded query adds only the
+  RELEASE-010 provenance edits, which quote the phrases in the entries below by
+  construction.
 - **What landed the behaviour:** the feature commits named per entry below, verified by
   `git log -S` on the CODE each sentence describes (never on this file — none of them
   touched `CHANGELOG.md`). Dates are the landing dates.
