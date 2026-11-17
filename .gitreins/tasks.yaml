@@ -2070,8 +2070,9 @@ tasks:
   criteria:
   - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
     missing. PROOF: paste the acceptance command output from the row.'
-  status: in_progress
+  status: complete
   created_at: '2026-11-17T07:44:44.958702+00:00'
+  completed_at: '2026-11-17T09:44:11.312619+00:00'
 - id: DOC-025
   title: node_exporter textfile completion record undocumented
   criteria:
