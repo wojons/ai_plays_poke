@@ -13,18 +13,20 @@ tasks:
   title: "SOL-SESSION: gpt-5.6-sol gameplay fixes \u2014 controller nav, stuck loops,\
     \ long-run validation"
   criteria:
-  - Controller navigation validated with live runs: "map_id changes from 0x0 (leaves\
-      \ Pallet Town) in cron_logs/run_sol_nav_proven_20260801_130349.jsonl \u2014\
-      \ reached Oak's Lab (map 40) at cycle 18"
-  - STUCK-LOOPS fixed: _reset_recovery_trackers() resets _a_press_count when recovery
-      triggers (cron_runner.py)
-  - PROGRESS-ASSERT added: test_player_coordinates_change_over_60_gameplay_cycles
-      in tests/test_full_gameplay.py asserts coordinates change over 60 cycles, gated
-      with rom marker
-  - Coordinate-aware navigation hints: _suggested_map_action() in ram_reader.py returns
-      position-based guidance (player_tile_x/y methods added)
-  - Full test suite green: pytest tests/ -k 'not benchmark' passes with zero failures
-  - Commit 0f80f4d has Co-authored-by: Alexis Okuwa <wojonstech@gmail.com> trailer
+  - "Controller navigation validated with live runs \u2014 \"map_id changes from 0x0\
+    \ (leaves\\ \\ Pallet Town) in cron_logs/run_sol_nav_proven_20260801_130349.jsonl\
+    \ \\u2014\\ \\ reached Oak's Lab (map 40) at cycle 18\""
+  - "STUCK-LOOPS fixed \u2014 _reset_recovery_trackers() resets _a_press_count when\
+    \ recovery triggers (cron_runner.py)"
+  - "PROGRESS-ASSERT added \u2014 test_player_coordinates_change_over_60_gameplay_cycles\
+    \ in tests/test_full_gameplay.py asserts coordinates change over 60 cycles, gated\
+    \ with rom marker"
+  - "Coordinate-aware navigation hints \u2014 _suggested_map_action() in ram_reader.py\
+    \ returns position-based guidance (player_tile_x/y methods added)"
+  - "Full test suite green \u2014 pytest tests/ -k 'not benchmark' passes with zero\
+    \ failures"
+  - "Commit 0f80f4d has Co-authored-by \u2014 Alexis Okuwa <wojonstech@gmail.com>\
+    \ trailer"
   status: complete
   created_at: '2026-08-01T18:44:42.334883+00:00'
   completed_at: '2026-08-01T18:49:11.823561+00:00'
@@ -1964,3 +1966,47 @@ tasks:
   status: complete
   created_at: '2026-11-04T18:55:53.519650+00:00'
   completed_at: '2026-11-04T19:18:25.001463+00:00'
+- id: VISION-GRID-UNIFY
+  title: 'one grid one legend: single geometry source'
+  criteria:
+  - 'Exactly one definition site for the geometry constants; all other sites import
+    it. FAILIF: grep -rn finds a second GRID_COLS or PLAYER_CELL assignment outside
+    src/core/vision_grid.py. PROOF: paste grep -rn output and pytest tail.'
+  - 'Focused suites pass and ruff is clean on touched files. FAILIF: any failed test
+    or ruff finding in the touched files. PROOF: paste ./venv/bin/pytest -q tail and
+    ruff output.'
+  status: in_progress
+  created_at: '2026-11-17T02:21:25.880224+00:00'
+- id: MON-AIPP-3
+  title: export progress-vs-effort prometheus metrics
+  criteria:
+  - 'Exactly one definition site for the geometry constants; all other sites import
+    it. FAILIF: grep -rn finds a second GRID_COLS or PLAYER_CELL assignment outside
+    src/core/vision_grid.py. PROOF: paste grep -rn output and pytest tail.'
+  - 'Focused suites pass and ruff is clean on touched files. FAILIF: any failed test
+    or ruff finding in the touched files. PROOF: paste ./venv/bin/pytest -q tail and
+    ruff output.'
+  status: in_progress
+  created_at: '2026-11-17T02:21:26.420682+00:00'
+- id: ARM-2-R1
+  title: remove silent decision-mode fallback
+  criteria:
+  - 'Exactly one definition site for the geometry constants; all other sites import
+    it. FAILIF: grep -rn finds a second GRID_COLS or PLAYER_CELL assignment outside
+    src/core/vision_grid.py. PROOF: paste grep -rn output and pytest tail.'
+  - 'Focused suites pass and ruff is clean on touched files. FAILIF: any failed test
+    or ruff finding in the touched files. PROOF: paste ./venv/bin/pytest -q tail and
+    ruff output.'
+  status: in_progress
+  created_at: '2026-11-17T02:21:26.940068+00:00'
+- id: QA-AI-PLAYS-POKE-25
+  title: remove absolute /home paths from tests
+  criteria:
+  - 'Exactly one definition site for the geometry constants; all other sites import
+    it. FAILIF: grep -rn finds a second GRID_COLS or PLAYER_CELL assignment outside
+    src/core/vision_grid.py. PROOF: paste grep -rn output and pytest tail.'
+  - 'Focused suites pass and ruff is clean on touched files. FAILIF: any failed test
+    or ruff finding in the touched files. PROOF: paste ./venv/bin/pytest -q tail and
+    ruff output.'
+  status: in_progress
+  created_at: '2026-11-17T02:21:27.544359+00:00'

@@ -1,0 +1,16 @@
+{
+  "wave_id": "ai-plays-poke-foreman-2026-11-17-02-12-03",
+  "project": "ai_plays_poke",
+  "workdir": "/home/kara/ai_plays_poke",
+  "base_commit": "76e7d45",
+  "budget": 4,
+  "worker_model": "openai/gpt-6.1-terra",
+  "worker_provider": "xkiro",
+  "note": "Briefs + worktrees prepared by the 19:34-19:41 tick that died before dispatch; adopted and launched here after re-verifying premises against 76e7d45.",
+  "tasks": [
+    {"id": "VISION-GRID-UNIFY", "worktree": "/home/kara/worktrees/ai_plays_poke-VISION-GRID-UNIFY", "branch": "wt/VISION-GRID-UNIFY", "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117/brief-VISION-GRID-UNIFY.txt", "depends_on": [], "files": ["src/core/vision_grid.py", "src/core/ram_reader.py", "scripts/vision_people_probe.py", "scripts/perception_diff.py"]},
+    {"id": "MON-AIPP-3", "worktree": "/home/kara/worktrees/ai_plays_poke-MON-AIPP-3", "branch": "wt/MON-AIPP-3", "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117/brief-MON-AIPP-3.txt", "depends_on": [], "files": ["src/observability/metrics.py", "cron_runner.py", "tests/test_cron_runner_metrics.py"]},
+    {"id": "ARM-2-R1", "worktree": "/home/kara/worktrees/ai_plays_poke-ARM-2-R1", "branch": "wt/ARM-2-R1", "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117/brief-ARM-2-R1.txt", "depends_on": [], "files": ["scripts/long_run.py", "tests/test_long_run_boot.py"]},
+    {"id": "QA-AI-PLAYS-POKE-25", "worktree": "/home/kara/worktrees/ai_plays_poke-QA-AI-PLAYS-POKE-25", "branch": "wt/QA-AI-PLAYS-POKE-25", "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117/brief-QA-AI-PLAYS-POKE-25.txt", "depends_on": [], "files": ["tests/test_vision_model_e2e.py", "tests/test_vision_integration.py", "tests/test_phase4_components.py", "tests/test_phase4_integration.py"]}
+  ]
+}
