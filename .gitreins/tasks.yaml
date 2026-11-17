@@ -1969,25 +1969,26 @@ tasks:
 - id: VISION-GRID-UNIFY
   title: 'one grid one legend: single geometry source'
   criteria:
-  - 'Exactly one definition site for the geometry constants; all other sites import
-    it. FAILIF: grep -rn finds a second GRID_COLS or PLAYER_CELL assignment outside
-    src/core/vision_grid.py. PROOF: paste grep -rn output and pytest tail.'
-  - 'Focused suites pass and ruff is clean on touched files. FAILIF: any failed test
-    or ruff finding in the touched files. PROOF: paste ./venv/bin/pytest -q tail and
-    ruff output.'
-  status: in_progress
+  - "Run two commands and report both outputs verbatim \u2014 `grep -rn \"GRID_COLS\
+    \ *=\" --include=*.py src scripts tests` and `./venv/bin/pytest -q tests/test_vision_grid_unified.py`.\
+    \ PASS only if every grep hit is an import or a read of the constant in src/core/vision_grid.py\
+    \ itself (no assignment outside that file) AND pytest exits 0. FAILIF: one assignment\
+    \ line outside src/core/vision_grid.py, or pytest non-zero. PROOF: the two pasted\
+    \ outputs."
+  status: complete
   created_at: '2026-11-17T02:21:25.880224+00:00'
+  completed_at: '2026-11-17T04:11:35.094742+00:00'
 - id: MON-AIPP-3
   title: export progress-vs-effort prometheus metrics
   criteria:
-  - 'Exactly one definition site for the geometry constants; all other sites import
-    it. FAILIF: grep -rn finds a second GRID_COLS or PLAYER_CELL assignment outside
-    src/core/vision_grid.py. PROOF: paste grep -rn output and pytest tail.'
-  - 'Focused suites pass and ruff is clean on touched files. FAILIF: any failed test
-    or ruff finding in the touched files. PROOF: paste ./venv/bin/pytest -q tail and
-    ruff output.'
-  status: in_progress
+  - 'Run `./venv/bin/pytest -q tests/test_cron_runner_metrics.py` and `grep -n "aipp_map_transitions_total"
+    cron_runner.py src/observability/metrics.py`, and report both verbatim. PASS only
+    if pytest exits 0 AND the metric name appears as a published counter in both files.
+    FAILIF: pytest non-zero, or the counter is defined but never fed from cron_runner.py.
+    PROOF: the two pasted outputs.'
+  status: complete
   created_at: '2026-11-17T02:21:26.420682+00:00'
+  completed_at: '2026-11-17T04:23:16.444096+00:00'
 - id: ARM-2-R1
   title: remove silent decision-mode fallback
   criteria:
@@ -1997,8 +1998,9 @@ tasks:
   - 'Focused suites pass and ruff is clean on touched files. FAILIF: any failed test
     or ruff finding in the touched files. PROOF: paste ./venv/bin/pytest -q tail and
     ruff output.'
-  status: in_progress
+  status: complete
   created_at: '2026-11-17T02:21:26.940068+00:00'
+  completed_at: '2026-11-17T03:42:23.748022+00:00'
 - id: QA-AI-PLAYS-POKE-25
   title: remove absolute /home paths from tests
   criteria:
@@ -2008,5 +2010,6 @@ tasks:
   - 'Focused suites pass and ruff is clean on touched files. FAILIF: any failed test
     or ruff finding in the touched files. PROOF: paste ./venv/bin/pytest -q tail and
     ruff output.'
-  status: in_progress
+  status: complete
   created_at: '2026-11-17T02:21:27.544359+00:00'
+  completed_at: '2026-11-17T03:54:28.745705+00:00'

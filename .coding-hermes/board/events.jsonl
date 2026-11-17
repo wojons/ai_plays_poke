@@ -871,3 +871,8 @@
 {"id": 862, "timestamp": "2026-11-17T02:22:03+00:00", "event_type": "task_updated", "task_id": "ARM-2-R1", "actor": "foreman", "tick_number": null, "detail": "{\"status\":\"in_progress\"}"}
 {"id": 863, "timestamp": "2026-11-17T02:22:03+00:00", "event_type": "task_updated", "task_id": "QA-AI-PLAYS-POKE-25", "actor": "foreman", "tick_number": null, "detail": "{\"status\":\"in_progress\"}"}
 {"id": 864, "timestamp": "2026-11-17T02:57:31+00:00", "event_type": "task_created", "task_id": "INT-GATE-1", "actor": "foreman", "tick_number": null, "detail": "{\"id\":\"INT-GATE-1\",\"status\":\"pending\"}"}
+{"id": 865, "timestamp": "2026-11-17T04:11:42+00:00", "event_type": "task_completed", "task_id": "ARM-2-R1", "actor": "foreman", "tick_number": null, "detail": "{\"status\":\"complete\"}"}
+{"id": 866, "timestamp": "2026-11-17T04:11:42+00:00", "event_type": "task_completed", "task_id": "QA-AI-PLAYS-POKE-25", "actor": "foreman", "tick_number": null, "detail": "{\"status\":\"complete\"}"}
+{"id": 867, "timestamp": "2026-11-17T04:36:54+00:00", "event_type": "task_completed", "task_id": "VISION-GRID-UNIFY", "actor": "foreman", "tick_number": null, "detail": "{\"status\":\"complete\"}"}
+{"id": 868, "timestamp": "2026-11-17T04:36:54+00:00", "event_type": "task_completed", "task_id": "MON-AIPP-3", "actor": "foreman", "tick_number": null, "detail": "{\"status\":\"complete\"}"}
+{"id": 869, "timestamp": "2026-11-17T04:37:01+00:00", "event_type": "task_created", "task_id": "INT-GATE-2", "actor": "foreman", "tick_number": null, "detail": "{\"id\":\"INT-GATE-2\",\"status\":\"pending\"}"}
