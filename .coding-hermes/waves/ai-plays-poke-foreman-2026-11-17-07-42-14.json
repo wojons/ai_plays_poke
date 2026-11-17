@@ -1,0 +1,59 @@
+{
+  "wave_id": "ai-plays-poke-foreman-2026-11-17-07-42-14",
+  "project": "ai_plays_poke",
+  "workdir": "/home/kara/ai_plays_poke",
+  "base_commit": "3a7e2d7",
+  "note_base": "branch points created by worktree.sh from origin/main=031d7b3 (the board-close commit on top of merge 3a7e2d7); all four worktrees verified at 031d7b3 with 0 divergence from origin/main at dispatch.",
+  "budget": 10,
+  "workers": 4,
+  "worker_model": "openai/gpt-6.1-terra",
+  "worker_provider": "xkiro",
+  "note": "Wave of 4 independent units covering 7 board rows (no depends_on edges between the units; verified from the rows). W1 BTL-RAM-1 is the only P1 code row: it is the chain head that unblocks BTL-STORE-1 -> BTL-COMPARE-1. W2 MON-AIPP-4 is an independent code row (observability metrics). W3 QA-AI-PLAYS-POKE-27 is a small declared-deps row (pyproject/requirements/setup.cfg). W4 is a docs-only batch of four cheap rows (RELEASE-010 + DOC-024 + DOC-025 + DOC-026) following the proven 'one brief, numbered fixes, per-row PASS/REFUTED table' pattern. File sets are disjoint except cron_runner.py: W2 touches only the key-probe functions (~:636-760), W1 is instructed NOT to touch cron_runner.py at all (run-loop wiring is a follow-up row). QA rows QA-AI-PLAYS-POKE-REVIEW-1/README-1/DOCS-1/RELENG-1/FOREMAN-3 are NOT dispatched: all five are the same host gate (bunker-mvp disk 98% > 94% threshold) and are not repo code work; left blocked pending host remediation.",
+  "tasks": [
+    {
+      "id": "BTL-RAM-1",
+      "rows": ["BTL-RAM-1"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-BTL-RAM-1",
+      "branch": "wt/BTL-RAM-1",
+      "base_sha": "031d7b3",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-07/brief-BTL-RAM-1.txt",
+      "depends_on": [],
+      "files": ["src/core/battle_telemetry.py (new)", "scripts/capture_battle_telemetry.py (new)", "tests/test_battle_telemetry.py (new)", "src/core/ram_reader.py (additive only)"],
+      "venv": "provisioned (py3.11, pytest+ruff+mypy+prometheus-client, rc 0)"
+    },
+    {
+      "id": "MON-AIPP-4",
+      "rows": ["MON-AIPP-4"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-MON-AIPP-4",
+      "branch": "wt/MON-AIPP-4",
+      "base_sha": "031d7b3",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-07/brief-MON-AIPP-4.txt",
+      "depends_on": [],
+      "files": ["src/observability/metrics.py", "src/core/ai_client.py", "cron_runner.py (probe functions only)", "docs/observability-spec.md", "tests/test_observability_model_metrics.py (new)"],
+      "venv": "provisioned (py3.11, pytest+ruff+mypy+prometheus-client, rc 0)"
+    },
+    {
+      "id": "QA-27",
+      "rows": ["QA-AI-PLAYS-POKE-27"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-QA-27",
+      "branch": "wt/QA-27",
+      "base_sha": "031d7b3",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-07/brief-QA-27.txt",
+      "depends_on": [],
+      "files": ["pyproject.toml", "requirements-dev.txt", "setup.cfg", "tests/test_requirements_parity.py or tests/test_lint_config.py"],
+      "venv": "provisioned (py3.11, pytest+ruff+mypy, rc 0)"
+    },
+    {
+      "id": "DOCS-BATCH-1",
+      "rows": ["RELEASE-010", "DOC-024", "DOC-025", "DOC-026"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-DOCS-BATCH-1",
+      "branch": "wt/DOCS-BATCH-1",
+      "base_sha": "031d7b3",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-07/brief-DOCS-BATCH-1.txt",
+      "depends_on": [],
+      "files": ["CHANGELOG.md", "docs/observability-spec.md", "docs/api/cron_runner.md"],
+      "venv": "none needed (docs only)"
+    }
+  ],
+  "manifest_written_at": "2026-11-17T07:47:00-05:00"
+}

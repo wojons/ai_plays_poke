@@ -2032,3 +2032,55 @@ tasks:
   status: complete
   created_at: '2026-11-17T06:22:31.809482+00:00'
   completed_at: '2026-11-17T06:36:44.843279+00:00'
+- id: BTL-RAM-1
+  title: 'RAM battle reader: attacks, damage, levels, wild-vs-trainer, locations'
+  criteria:
+  - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
+    missing. PROOF: paste the acceptance command output from the row.'
+  status: complete
+  created_at: '2026-11-17T07:44:43.059724+00:00'
+  completed_at: '2026-11-17T08:35:24.815343+00:00'
+- id: MON-AIPP-4
+  title: Model call cost/latency/retry metrics and credential-validity gauge
+  criteria:
+  - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
+    missing. PROOF: paste the acceptance command output from the row.'
+  status: complete
+  created_at: '2026-11-17T07:44:43.414299+00:00'
+  completed_at: '2026-11-17T09:15:25.313682+00:00'
+- id: QA-AI-PLAYS-POKE-27
+  title: Declare ruff in dev dependencies so a fresh clone reproduces the CI lint
+    gate
+  criteria:
+  - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
+    missing. PROOF: paste the acceptance command output from the row.'
+  status: in_progress
+  created_at: '2026-11-17T07:44:44.059334+00:00'
+- id: RELEASE-010
+  title: CHANGELOG unreleased bullets bound to commits or deleted
+  criteria:
+  - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
+    missing. PROOF: paste the acceptance command output from the row.'
+  status: in_progress
+  created_at: '2026-11-17T07:44:44.416753+00:00'
+- id: DOC-024
+  title: observability-spec still declares zero Prometheus instrumentation
+  criteria:
+  - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
+    missing. PROOF: paste the acceptance command output from the row.'
+  status: in_progress
+  created_at: '2026-11-17T07:44:44.958702+00:00'
+- id: DOC-025
+  title: node_exporter textfile completion record undocumented
+  criteria:
+  - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
+    missing. PROOF: paste the acceptance command output from the row.'
+  status: in_progress
+  created_at: '2026-11-17T07:44:45.851447+00:00'
+- id: DOC-026
+  title: per-mode decision model/provider keys missing from cron_runner docs
+  criteria:
+  - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
+    missing. PROOF: paste the acceptance command output from the row.'
+  status: in_progress
+  created_at: '2026-11-17T07:44:46.398539+00:00'
