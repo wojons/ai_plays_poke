@@ -1,0 +1,34 @@
+{
+  "wave_id": "ai-plays-poke-foreman-2026-11-17-06-00-43",
+  "project": "ai_plays_poke",
+  "workdir": "/home/kara/ai_plays_poke",
+  "base_commit": "9b9c3b4",
+  "budget": 2,
+  "worker_model": "openai/gpt-6.1-terra",
+  "worker_provider": "xkiro",
+  "note": "Wave of 2 independent rows (no depends_on edges between them; verified from the rows). W1 repairs the tier1 static_analysis baseline that refused every commit in the previous wave and fixes the build_book mypy error (INT-GATE-1 + RELEASE-011, same root). W2 writes the battle-telemetry data contract that unblocks BTL-RAM-1/BTL-STORE-1. File sets are disjoint: W1 = mypy.ini + docs/handbook/build_book.py, W2 = specs/.",
+  "tasks": [
+    {
+      "id": "INT-GATE-1",
+      "rows": ["INT-GATE-1", "RELEASE-011"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-INT-GATE-1",
+      "branch": "wt/INT-GATE-1",
+      "base_sha": "9b9c3b4",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-06/brief-INT-GATE-1.txt",
+      "depends_on": [],
+      "files": ["mypy.ini", "docs/handbook/build_book.py"],
+      "venv": "provisioned (cpython 3.11.15, pytest 9.1.1, 190 pkgs)"
+    },
+    {
+      "id": "BTL-SCHEMA-1",
+      "rows": ["BTL-SCHEMA-1"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-BTL-SCHEMA-1",
+      "branch": "wt/BTL-SCHEMA-1",
+      "base_sha": "76e7d45",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-06/brief-BTL-SCHEMA-1.txt",
+      "depends_on": [],
+      "files": ["specs/contracts/battle-telemetry.md", "specs/contracts/_matrix.md", "specs/SPEC_INDEX.md"],
+      "venv": "none needed (docs only)"
+    }
+  ]
+}

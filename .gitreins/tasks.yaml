@@ -2013,3 +2013,22 @@ tasks:
   status: complete
   created_at: '2026-11-17T02:21:27.544359+00:00'
   completed_at: '2026-11-17T03:54:28.745705+00:00'
+- id: INT-GATE-1
+  title: 'gitreins Tier-1 static_analysis baseline: mypy note on cron_runner.py blocks
+    every commit'
+  criteria:
+  - 'gitreins guard reports static_analysis PASS on a clean checkout: the exact command
+    ''mypy --no-error-summary --explicit-package-bases .'' exits 0 with no output'
+  status: complete
+  created_at: '2026-11-17T06:22:31.369928+00:00'
+  completed_at: '2026-11-17T06:53:31.836953+00:00'
+- id: BTL-SCHEMA-1
+  title: 'battle-telemetry data contract: partitioned small files with clean exclusion
+    keys'
+  criteria:
+  - specs/contracts/battle-telemetry.md defines the record schema, per-encounter partition
+    layout with a record cap, exclusion-by-key examples, a worked two-model comparison,
+    and a mechanically checkable never-one-big-file requirement
+  status: complete
+  created_at: '2026-11-17T06:22:31.809482+00:00'
+  completed_at: '2026-11-17T06:36:44.843279+00:00'
