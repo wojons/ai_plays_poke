@@ -77,11 +77,19 @@ def test_resolve_boot_state_empty_env_falls_back(monkeypatch):
     assert long_run.resolve_boot_state() == long_run.BOOT
 
 
-# ── (b) decision-mode resolution mirrors cron_runner precedence ─────────────
+# ── (b) decision-mode resolution: explicit, mirrors cron_runner precedence ──
+# ARM-2-R1: the silent 'jev' fallback is gone. The full contract (refusal,
+# accepted-value validation, --allow-default-mode escape hatch) lives in
+# tests/test_long_run_decision_mode.py; these keep the precedence/normalisation
+# guarantees that predate it.
 
 
-def test_mode_default_jev():
-    assert long_run.resolve_decision_mode() == "jev"
+def test_mode_missing_env_refuses_instead_of_defaulting(capsys):
+    with pytest.raises(SystemExit) as exc:
+        long_run.resolve_decision_mode()
+    assert exc.value.code != 0
+    err = capsys.readouterr().err
+    assert "AIPP_DECISION_MODE" in err and "CRON_DECISION_MODE" in err
 
 
 def test_mode_aipp_beats_cron_env(monkeypatch):
@@ -100,15 +108,16 @@ def test_mode_is_normalised_like_cron_runner(monkeypatch):
     assert long_run.resolve_decision_mode() == "llm"
 
 
-def test_mode_module_constant_matches_resolution(monkeypatch):
+def test_mode_is_never_resolved_at_import(monkeypatch):
+    """Importing the driver must not select (or refuse) an arm; main() does."""
     import importlib
 
     monkeypatch.setenv("AIPP_DECISION_MODE", "llm")
     reloaded = importlib.reload(long_run)
-    assert reloaded.DECISION_MODE == "llm"
-    monkeypatch.delenv("AIPP_DECISION_MODE", raising=False)
+    assert reloaded.DECISION_MODE is None
+    assert reloaded.resolve_decision_mode() == "llm"
     importlib.reload(long_run)
-    assert long_run.DECISION_MODE == "jev"
+    assert long_run.DECISION_MODE is None
 
 
 # ── (c) composed cron_runner argv carries the explicit arm ──────────────────
@@ -131,7 +140,9 @@ def test_episode_argv_stamps_env_resolved_mode(monkeypatch):
     assert argv[argv.index("--decision-mode") + 1] == "llm"
 
 
-def test_episode_argv_default_mode_is_jev():
+def test_episode_argv_stamps_legacy_arm_when_asked_for_it():
+    # 'jev' is still a valid, explicit choice (and what --allow-default-mode
+    # selects) — it just can no longer be reached by saying nothing.
     argv = long_run.episode_argv("run_x_ep001", str(long_run.BOOT), "jev")
     assert argv[argv.index("--decision-mode") + 1] == "jev"
 
@@ -156,9 +167,11 @@ def _dict_literals_with_key(key: str) -> list[int]:
 def test_boot_state_stamped_in_episode_row_and_status_row():
     # The board Done-when: BOTH the per-episode record and the top-level
     # status row carry the resolved boot state. The dicts are composed
-    # inline in main(), so the stamp is proven structurally.
+    # inline in main(), so the stamp is proven structurally. The third
+    # literal is the --dry-run preview, which prints the episode row's shape
+    # before anything is launched (ARM-2-R1) — it is not a record surface.
     lines = _dict_literals_with_key("boot_state")
-    assert len(lines) == 2, f"expected exactly 2 boot_state stamps, got {lines}"
+    assert len(lines) == 3, f"expected 2 record stamps + dry-run plan, got {lines}"
 
 
 def test_boot_state_stamped_next_to_decision_mode_in_episode_row():
