@@ -42,8 +42,11 @@ from pathlib import Path
 from datetime import datetime, timezone
 
 from src.observability.metrics import (
+    decision_mode_label,
     observe_cycle,
     observe_decision_seconds,
+    observe_run_end,
+    run_outcome_label,
     set_runner_up,
 )
 
@@ -5148,6 +5151,74 @@ _TEXTFILE_COUNTER_PATTERN = re.compile(
     re.MULTILINE,
 )
 
+# MON-AIPP-3: the progress-vs-effort families are accumulated the same way the
+# run counter is — read the previous sample, add this run's delta, rewrite —
+# so node_exporter and GET /metrics/prometheus report the same numbers.
+_TEXTFILE_SAMPLE_PATTERN = re.compile(
+    r"^([A-Za-z_:][A-Za-z0-9_:]*)"
+    r"(?:\{([^{}]*)\})?"
+    r"\s+(-?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?)\s*$"
+)
+_TEXTFILE_LABEL_PATTERN = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)="([^"]*)"')
+
+# family -> (openmetrics type, HELP text). Order is the emission order.
+_TEXTFILE_PROGRESS_FAMILIES: dict[str, tuple[str, str]] = {
+    "aipp_map_transitions_total": (
+        "counter",
+        "Map transitions observed across cron runs.",
+    ),
+    "aipp_backtrack_events_total": (
+        "counter",
+        "Decision rows that repeated or revisited an already-seen tile state.",
+    ),
+    "aipp_episode_decisions_total": (
+        "counter",
+        "Gameplay decisions taken across cron runs, by decision mode.",
+    ),
+    "aipp_teacher_escalations_total": (
+        "counter",
+        "Teacher escalations by whether they improved the decision.",
+    ),
+    "aipp_run_duration_seconds_count": (
+        "counter",
+        "Number of finished cron runs contributing to the duration sum.",
+    ),
+    "aipp_run_duration_seconds_sum": (
+        "counter",
+        "Total wall-clock seconds spent in finished cron runs.",
+    ),
+}
+
+
+def _read_textfile_totals(
+    text: str,
+) -> dict[str, dict[tuple[tuple[str, str], ...], float]]:
+    """Read back the accumulated samples this writer previously emitted.
+
+    Keyed by family then by the sorted ``(label, value)`` pairs, so a label
+    set is accumulated independently and a weird operator value cannot merge
+    two series into one.
+    """
+    totals: dict[str, dict[tuple[tuple[str, str], ...], float]] = {}
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        match = _TEXTFILE_SAMPLE_PATTERN.match(stripped)
+        if match is None:
+            continue
+        name, labels_blob, value = match.groups()
+        key = tuple(sorted(_TEXTFILE_LABEL_PATTERN.findall(labels_blob or "")))
+        totals.setdefault(name, {})[key] = float(value)
+    return totals
+
+
+def _render_textfile_labels(key: tuple[tuple[str, str], ...]) -> str:
+    if not key:
+        return ""
+    rendered = ",".join(f'{name}="{value}"' for name, value in key)
+    return "{" + rendered + "}"
+
 
 def _write_textfile_record(
     textfile_dir: str | Path,
@@ -5155,14 +5226,23 @@ def _write_textfile_record(
     outcome: str,
     duration_s: float,
     autonomy: dict[str, Any],
+    *,
+    mode: str | None = None,
+    teacher: dict[str, Any] | None = None,
 ) -> Path | None:
-    """Atomically publish accumulated run counters for node_exporter."""
+    """Atomically publish accumulated run counters for node_exporter.
+
+    ``mode`` and ``teacher`` feed the MON-AIPP-3 progress-vs-effort families.
+    They are keyword-only and default to the module's resolved decision mode /
+    an empty teacher block, so every existing caller keeps working unchanged.
+    """
     try:
         target_dir = Path(textfile_dir)
         target_dir.mkdir(parents=True, exist_ok=True)
         target = target_dir / "aipp_run.prom"
         temporary = target.with_name(f"{target.name}.tmp")
         accumulated = {"completed": 0.0, "error": 0.0, "gave_up": 0.0}
+        existing = ""
         if target.exists():
             existing = target.read_text(encoding="utf-8")
             for label, value in _TEXTFILE_COUNTER_PATTERN.findall(existing):
@@ -5200,12 +5280,83 @@ def _write_textfile_record(
                     f"aipp_run_last_backtrack_rate {float(backtrack_rate):g}",
                 ]
             )
+
+        # MON-AIPP-3: progress vs effort, accumulated exactly like the run
+        # counter above. Same run-end block, so a textfile scrape and a
+        # /metrics/prometheus scrape describe the same runs — a treadmill run
+        # shows episode_decisions climbing while map_transitions stays flat.
+        def _num(value: Any) -> float:
+            return float(value) if isinstance(value, (int, float)) else 0.0
+
+        previous = _read_textfile_totals(existing)
+        mode_label = decision_mode_label(mode if mode is not None else DECISION_MODE)
+        outcome_label = run_outcome_label(outcome)
+        teacher_block = teacher or {}
+        escalations = max(0.0, _num(teacher_block.get("count")))
+        improved = min(max(0.0, _num(teacher_block.get("improved"))), escalations)
+        deltas: dict[str, dict[tuple[tuple[str, str], ...], float]] = {
+            "aipp_map_transitions_total": {
+                (): _num(autonomy.get("map_transitions_observed"))
+            },
+            "aipp_backtrack_events_total": {(): _num(autonomy.get("backtrack_events"))},
+            "aipp_episode_decisions_total": {
+                (("mode", mode_label),): _num(autonomy.get("decisions_total"))
+            },
+            "aipp_teacher_escalations_total": {
+                (("improved", "true"),): improved,
+                (("improved", "false"),): escalations - improved,
+            },
+            "aipp_run_duration_seconds_count": {(("outcome", outcome_label),): 1.0},
+            "aipp_run_duration_seconds_sum": {
+                (("outcome", outcome_label),): max(0.0, _num(duration_s))
+            },
+        }
+        for family, (kind, help_text) in _TEXTFILE_PROGRESS_FAMILIES.items():
+            lines.append(f"# HELP {family} {help_text}")
+            lines.append(f"# TYPE {family} {kind}")
+            # Keep every label set this writer has ever emitted: a mode or
+            # outcome that did not run today must not vanish from the scrape.
+            merged: dict[tuple[tuple[str, str], ...], float] = dict(
+                previous.get(family, {})
+            )
+            for key, delta in deltas[family].items():
+                merged[key] = merged.get(key, 0.0) + delta
+            for key in sorted(merged):
+                suffix = _render_textfile_labels(key)
+                lines.append(f"{family}{suffix} {merged[key]:g}")
+
         temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
         os.replace(temporary, target)
         return target
     except Exception as exc:
         safe_print(f"[TEXTFILE] {run_id} failed: {exc}")
         return None
+
+
+def _publish_run_metrics(
+    outcome: str,
+    duration_s: float,
+    autonomy: dict[str, Any],
+    teacher: dict[str, Any] | None = None,
+) -> None:
+    """Export the run's progress-vs-effort counters (MON-AIPP-3).
+
+    Fed from the SAME ``autonomy`` block that the autonomy row and the
+    textfile record are written from, so the log, node_exporter and
+    ``/metrics/prometheus`` cannot disagree about a run. Kept separately
+    callable so the error close-out path publishes the same families a
+    successful run does — a run that died still burned the effort.
+    """
+    observe_run_end(
+        mode=DECISION_MODE,
+        outcome=outcome,
+        duration_s=duration_s,
+        decisions_total=_as_int(autonomy.get("decisions_total")),
+        map_transitions=_as_int(autonomy.get("map_transitions_observed")),
+        backtrack_events=_as_int(autonomy.get("backtrack_events")),
+        teacher_escalations=_as_int((teacher or {}).get("count")),
+        teacher_improved=_as_int((teacher or {}).get("improved")),
+    )
 
 
 def _count_jev_failure(
@@ -7798,13 +7949,21 @@ def main() -> None:
         started_at = getattr(args, "_run_started_at", None)
         duration_s = time.time() - started_at if started_at is not None else 0.0
         results = getattr(args, "_run_results", [])
+        autonomy = _autonomy_counters(results)
+        teacher_summary = teacher_escalation_records(results)
         _write_textfile_record(
             getattr(args, "textfile_dir", DEFAULT_TEXTFILE_DIR),
             run_id,
             "error",
             duration_s,
-            _autonomy_counters(results),
+            autonomy,
+            mode=decision_mode,
+            teacher=teacher_summary,
         )
+        # MON-AIPP-3: a run that died still burned its effort, so the error
+        # close-out publishes the same progress-vs-effort families a clean
+        # run does — from the same autonomy block, never a second count.
+        _publish_run_metrics("error", duration_s, autonomy, teacher_summary)
         raise
 
 
@@ -10267,7 +10426,12 @@ def _finalize_run(S):
         outcome,
         duration_s,
         autonomy,
+        mode=DECISION_MODE,
+        teacher=teacher_summary,
     )
+    # MON-AIPP-3: same block, same run end — the scrape and the log row are
+    # one computation.
+    _publish_run_metrics(outcome, duration_s, autonomy, teacher_summary)
     log_file.close()
 
     # Summary
