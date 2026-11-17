@@ -206,13 +206,22 @@ map_name, tile, prompt, model raw string, file path, any timestamp. Run identity
 
 #### P2 — model call cost/errors, in depth
 
-| # | Metric | Type | Unit | Labels | Question |
-|---|---|---|---|---|---|
-| 12 | `aipp_model_call_duration_seconds` | histogram | seconds | `model_family` | Is the provider slow, or are we? |
-| 13 | `aipp_model_tokens_total` | counter | tokens | `model_family`,`direction` | Is context growth eating the budget? |
-| 14 | `aipp_model_retries_total` | counter | retries | `model_family`,`reason` | Are we failing over because of auth, quota or 5xx? |
-| 15 | `aipp_credential_valid` | gauge | 0/1 | `key_name` | Which API key is dead? (see §5 on cardinality) |
-| 16 | `aipp_decision_escalations_total` | counter | escalations | `class` | Which capability is missing? |
+| # | Metric | Type | Unit | Labels | Question | Status |
+|---|---|---|---|---|---|---|
+| 12 | `aipp_model_call_duration_seconds` | histogram | seconds | `model_family` | Is the provider slow, or are we? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:99-104; observed src/core/ai_client.py:134 |
+| 13 | `aipp_model_tokens_total` | counter | tokens | `model_family`,`direction` (`input`\|`output`) | Is context growth eating the budget? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:105-110; observed src/core/ai_client.py:135 |
+| 14 | `aipp_model_retries_total` | counter | retries | `model_family`,`reason` (`auth`\|`quota`\|`5xx`\|`timeout`) | Are we failing over because of auth, quota or 5xx? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:111-116; observed src/core/ai_client.py:799 (`quota`), :808 (`5xx`), :892 (`auth`/`timeout`) |
+| 15 | `aipp_credential_valid` | gauge | 0/1 | `key_name` (static enum of probed env-var NAMES) | Which API key is dead? (see §5 on cardinality) | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:117-122; observed cron_runner.py:708 |
+| 16 | `aipp_decision_escalations_total` | counter | escalations | `class` | Which capability is missing? | not shipped — outside MON-AIPP-4 |
+
+Feed points for 12-15, as shipped:
+
+| Family | Fed from | Label mapping |
+|---|---|---|
+| 12 | `log_api_call` (`src/core/ai_client.py:109`) on every success, plus the exhausted-retry path at :916 so a dead call still carries its wall time | `model_family()` (`metrics.py:188`) — never a raw model string |
+| 13 | same `log_api_call` call (both directions from one call, so output/input needs no second path) | `direction` from the closed pair `input`/`output` |
+| 14 | counted where the retry is DECIDED: `_handle_retry_response` (`ai_client.py:780`) for 429/`quota` and >=500/`5xx`; the loop's `except` branch (…:892) for 401\|403/`auth` and socket timeout/`timeout`, classified from the status the branch already holds (`_retry_reason_for_status`, …:150) or the exception class (`_retry_reason_for_exception`, …:166) | closed enum `auth`/`quota`/`5xx`/`timeout`; an unattributable failure is NOT counted rather than bucketed into a guess |
+| 15 | `_check_configured_keys` (`cron_runner.py:687`) after each probe — live → 1, dead → 0 | static enum of the env-var NAMES in `cron_runner._KEY_PROBE_URLS` (`metrics.py:141-146`); a test pins the two sets equal |
 
 #### P3 — emulator integrity and data growth
 
@@ -239,6 +248,10 @@ map_name, tile, prompt, model raw string, file path, any timestamp. Run identity
 | 15 | `_probe_api_key` (cron_runner.py:636), `_check_configured_keys` (:675) | probes at boot, result printed once, then forgotten |
 | 17,18 | `_cycle_frame_hash` (:2247), `_ow_track_stuck` VOID/same-screen trackers (:8941-8966) | desync proxy is a threshold that triggers *recovery*, not a signal |
 | 22,23 | `handle`/`worker` in scripts/game_bridge.py (:440-500) | `except Exception: pass` around every reply (:441-444) |
+
+Rows 12-15 of this table are no longer blind spots as of MON-AIPP-4: the same
+owner sites now publish the scrapeable series listed under "Feed points" in
+§3.2. The other rows still describe the current state.
 
 ---
 
@@ -329,10 +342,29 @@ node_exporter), `product="ai-plays-poke"`, `service` (`dashboard` | `cron` | `br
 `product` and `service` are applied by the scrape config's `relabel_configs`, **not** by the
 application — the app should not know its own deployment name.
 
-Cardinality budget: ≤40 live series. If a `prometheus.<product>_series_count` style guard exists in
-the stack, the alarm is at 100 series. The single risk is metric 15 (`key_name`): the label must be a
-**static enum of key names** (`OPENROUTER_API_KEY`, `ANTHROPIC_API_KEY`, `DUCKBRAIN_TOKEN` — the
-names, never the values), not a rotated key identity.
+Cardinality budget, restated as measured (MON-AIPP-4): the original "≤40 live series" line was written
+before any histogram existed, and a histogram is not one series — the client emits one `_bucket` per
+ladder step plus `_sum`/`_count`/`_created`, so a single label-set of
+`aipp_model_call_duration_seconds` costs **18** sample lines (measured: 15 `le` buckets including
+`+Inf`, plus the three suffixes). Measured on a fresh import with no run and no key probe,
+`generate_latest(REGISTRY)` carries **80** `aipp_` sample lines — 59 from the P0/P1 families that
+shipped earlier, 21 from MON-AIPP-4 (duration 18, tokens 2, retries 1); with both keys probed it is
+82. The binding constraint is therefore the ENUM sizes, not a flat sample count:
+
+- `model_family` — 6 values max (`claude`,`gpt`,`deepseek`,`gemini`,`local`,`other`); a live run
+  normally shows 1-2, so the new families add ~21 lines typical and 144 worst case
+  (18+2+4 per family × 6).
+- `reason` — 4 values, `direction` — 2 values; both fixed.
+- `key_name` (metric 15) — **the only family that can grow with configuration**, so it keeps the
+  original rule: a **static enum of the env-var NAMES this repo probes**
+  (`OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY` — the names, never the values, never a rotated key
+  identity), and the gauge is NOT materialized at import: `_check_configured_keys` mints one series
+  per CONFIGURED name only, so a key-less host exports zero `key_name` series and this host exports
+  at most 2 (`grep -c 'key_name='` = 2, budget ≤3).
+
+If a `prometheus.<product>_series_count` guard exists in the stack, its 100-series alarm is already
+inside the histogram arithmetic above and should be set from the per-family bound, not from 40;
+trimming the bucket ladder is the knob if it ever fires.
 
 Logs (not part of the metric path, but the same blind spot): `cron_logs/run_<id>.jsonl` and
 stdout should be shipped by Alloy to Loki with `product="ai-plays-poke"`. Today they are local files
@@ -434,6 +466,11 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
    — it would export a dead zero with a live-looking `# HELP`. Wire it to the `log_api_call` cost
    parameter path, and if the dashboard field is to be fixed, fix it as a deliberate change with its
    own evidence.
+   Status (MON-AIPP-4): metric 4 is fed exactly that way — `log_api_call`
+   (src/core/ai_client.py:109) publishes the per-call cost through
+   `observe_model_call`, and it is the sole cost producer for every model call (the P2 latency/token
+   families ride the same call). The dashboard JSON field is untouched and still `0.0`; it remains
+   not a metric source.
 5. **Do not add a scrape job yourself.** `prometheus.yml` is the monitoring stack's; the textfile path
    needs no change at all.
 6. **Metric 17 (desync) has no clean primitive yet.** There is a frame-hash (:2247) and stuck trackers

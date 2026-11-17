@@ -47,6 +47,7 @@ from src.observability.metrics import (
     observe_decision_seconds,
     observe_run_end,
     run_outcome_label,
+    set_credential_valid,
     set_runner_up,
 )
 
@@ -700,6 +701,11 @@ def _check_configured_keys(skip: bool) -> list[tuple[str, str]]:
     dead: list[tuple[str, str]] = []
     for name in configured:
         live, message = _probe_api_key(name, _KEY_PROBE_URLS[name], os.environ[name])
+        # MON-AIPP-4: publish the probe result under the env-var NAME, never the
+        # value. Only CONFIGURED names reach this loop, so a key this host does
+        # not have never mints a series — the gauge reports "this credential is
+        # dead", not "a credential you never set is invalid".
+        set_credential_valid(name, live)
         if live:
             safe_print(f"  Key liveness:   {name} live")
         else:
