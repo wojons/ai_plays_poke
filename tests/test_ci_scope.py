@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import shlex
+import shutil
 import subprocess
 import sys
 
@@ -93,6 +94,94 @@ def test_vision_initializer_exports_five_symbols() -> None:
     }
     for symbol in expected:
         assert symbol in content, f"vision initializer missing export: {symbol}"
+
+
+def _load_ruff_config() -> dict:
+    """The [tool.ruff] table from pyproject.toml."""
+    toml_text = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    try:
+        import tomllib
+    except ImportError:  # Python < 3.11
+        import tomli as tomllib  # type: ignore[no-redef]
+    return tomllib.loads(toml_text)["tool"]["ruff"]
+
+
+def _ruff_executable() -> str | None:
+    """Resolve ruff the way CI does: next to the running interpreter, then PATH."""
+    lookup_path = (
+        f"{Path(sys.executable).parent}{os.pathsep}{os.environ.get('PATH', '')}"
+    )
+    return shutil.which("ruff", path=lookup_path)
+
+
+def test_ruff_does_not_honour_gitignore() -> None:
+    """QA-AI-PLAYS-POKE-029: ruff must enumerate the index, not .gitignore.
+
+    ruff applies .gitignore during file discovery and does NOT exempt paths git
+    already tracks, so `.gitignore` line 152 `_*.py` hid 9 tracked files (every
+    package `__init__.py` plus src/ptp_cli/__main__.py) and the explicit
+    `web_viewer.py` entry hid a 10th. `ruff check src/ tests/` therefore read 192 of
+    the 201 tracked files under those roots and still printed "All checks passed!".
+    `respect-gitignore = false` is what closes the hole; the coverage test below
+    proves the effect on the real file set.
+    """
+    assert _load_ruff_config().get("respect-gitignore") is False, (
+        "[tool.ruff] must keep `respect-gitignore = false`: with ruff's default "
+        "(true) every tracked file matched by .gitignore is silently skipped, so "
+        "the lint gate can pass without ever reading it"
+    )
+
+
+@pytest.mark.timeout(60)
+def test_ruff_lints_every_tracked_python_file() -> None:
+    """Every `git ls-files '*.py'` path must appear in `ruff check --show-files .`."""
+    ruff = _ruff_executable()
+    if ruff is None:
+        pytest.skip("ruff not installed (the dev extra pins ruff==0.15.22)")
+    git = shutil.which("git")
+    if git is None:
+        pytest.skip("git not available to enumerate tracked files")
+
+    tracked = subprocess.run(  # noqa: S603 — repo tooling invoked without a shell
+        [git, "ls-files", "*.py"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert tracked.returncode == 0, f"git ls-files failed: {tracked.stderr}"
+    tracked_files = {
+        line.strip() for line in tracked.stdout.splitlines() if line.strip()
+    }
+    assert tracked_files, "git ls-files '*.py' returned no files"
+
+    shown = subprocess.run(  # noqa: S603 — repo tooling invoked without a shell
+        [ruff, "check", "--show-files", "."],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert shown.returncode == 0, f"ruff check --show-files failed: {shown.stderr}"
+
+    linted: set[str] = set()
+    for line in shown.stdout.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            linted.add(Path(line).resolve().relative_to(REPO_ROOT).as_posix())
+        except ValueError:  # reported outside the repo root; keep it verbatim
+            linted.add(line)
+
+    skipped = sorted(tracked_files - linted)
+    assert not skipped, (
+        "ruff does not lint these tracked files - they are in the git index but "
+        "invisible to `ruff check src/ tests/`: " + ", ".join(skipped)
+    )
+    # The exact files .gitignore used to hide must be reported by name.
+    for hidden in ("src/__init__.py", "src/ptp_cli/__main__.py", "web_viewer.py"):
+        assert hidden in linted, f"{hidden} is tracked but ruff does not lint it"
 
 
 def test_ensure_package_inits_script_runs_successfully() -> None:

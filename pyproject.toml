@@ -155,6 +155,21 @@ disallow_untyped_defs = false
 # because `ruff format` emits 88-character lines on purpose.
 line-length = 88
 
+# The lint gate must see every file git tracks, but ruff's discovery honours
+# .gitignore and does NOT exempt tracked paths (unlike `git ls-files`, there is no
+# "already in the index" escape hatch).  This repo's .gitignore hides a broad glob -
+# line 152 `_*.py` - which silently swallowed 9 tracked files (every package
+# `__init__.py` plus src/ptp_cli/__main__.py), and a name-specific entry hid a 10th
+# (web_viewer.py).  `ruff check src/ tests/` therefore linted 192 of the 201 tracked
+# files under those roots and reported "All checks passed!" without ever reading
+# them.  Turning gitignore support off at the config level makes the CLI and CI agree
+# on the index, which is what `--no-respect-gitignore` was doing by hand: with it set,
+# `ruff check --show-files .` enumerates all 243 tracked .py files.  It does not widen
+# the rule set or narrow any exclusion ruff applies by default (`.git`, `venv`,
+# `build`, ...), and .gitignore is left untouched for the other tooling that relies
+# on it.
+respect-gitignore = false
+
 [tool.ruff.lint]
 # The retired pyproject flake8 table ignored E203 and W503. Neither is carried here:
 # measured with ruff 0.15.22, `W503` is not a valid selector at all (ruff hard-fails
