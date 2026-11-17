@@ -47,11 +47,13 @@ from src.core.vision_grid import (  # noqa: E402
 )
 from vision_blueprint_probe import parse_json  # noqa: E402
 
-ROM = Path(
-    "/home/kara/ai_plays_poke/data/rom/Pokemon - Blue Version (USA, Europe) "
-    "(SGB Enhanced).gb"
-)
+ROM = REPO / "data" / "rom" / "Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 PROMPT = REPO / "prompts/exploration/vision_map_blueprint.md"
+# The operator .env that holds the live key. It is read from the canonical checkout so
+# a run started in a worktree still finds it; AIPP_CANONICAL_ENV points elsewhere.
+CANONICAL_ENV = Path(
+    os.environ.get("AIPP_CANONICAL_ENV") or (Path.home() / "ai_plays_poke" / ".env")
+)
 
 
 # ── live state ──
@@ -92,7 +94,7 @@ def vision_grid(
     png: Path, model: str = "openai/gpt-5.6-luna"
 ) -> tuple[list[str], dict[str, Any]]:
     key = ""
-    for line in Path("/home/kara/ai_plays_poke/.env").read_text().splitlines():
+    for line in CANONICAL_ENV.read_text().splitlines():
         if line.startswith("OPENROUTER_API_KEY="):
             key = line.split("=", 1)[1].strip().strip('"').strip("'")
     key = key or os.environ.get("OPENROUTER_API_KEY", "")

@@ -15,17 +15,30 @@ from __future__ import annotations
 
 import importlib.util as _u
 import json
+import os
 import re
 import struct
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
 C = "http://127.0.0.1:8899"
-REPO = Path("/home/kara/ai_plays_poke")
-PY = str(REPO / ".venv/bin/python")
+# The checkout under test: AIPP_REPO wins, else the repo this tool sits in.
+REPO = Path(os.environ.get("AIPP_REPO") or Path(__file__).resolve().parents[2])
+# The external operator console (its own checkout, not this repo).
+CONSOLE = Path(os.environ.get("AIPP_CONSOLE_HOME") or (Path.home() / "aipp-console"))
+# The checkout's venv interpreter, whichever it carries (.venv py3.13 or venv py3.11).
+PY = next(
+    (
+        str(p)
+        for p in (REPO / ".venv/bin/python", REPO / "venv/bin/python")
+        if p.is_file()
+    ),
+    sys.executable,
+)
 RESULTS: list[tuple[str, str, str]] = []
 
 
@@ -173,7 +186,7 @@ check(
 )
 
 # self-consistency: recompute the verdict from the grids and compare to what the panel claims
-spec = _u.spec_from_file_location("srv", "/home/kara/aipp-console/server.py")
+spec = _u.spec_from_file_location("srv", str(CONSOLE / "server.py"))
 assert spec is not None
 assert spec.loader is not None
 m = _u.module_from_spec(spec)
@@ -344,6 +357,6 @@ print(f"TOTAL {len(RESULTS)}  PASS {len(RESULTS) - len(fails)}  FAIL {len(fails)
 for n, s, d in fails:
     print(f"  FAILED: {n}  [{d}]")
 print("=" * 78)
-Path("/home/kara/aipp-console/data/test_pass_results.json").write_text(
+(CONSOLE / "data/test_pass_results.json").write_text(
     json.dumps([{"name": n, "result": s, "detail": d} for n, s, d in RESULTS], indent=2)
 )

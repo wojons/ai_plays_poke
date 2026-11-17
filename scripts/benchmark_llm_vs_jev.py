@@ -63,6 +63,13 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / "scripts"))
 
+# The canonical checkout's .env holds the live key. cron_runner's own loader is
+# CWD-relative, so a run from a worktree must read it by path; AIPP_CANONICAL_ENV
+# relocates it on any other host.
+CANONICAL_ENV = Path(
+    os.environ.get("AIPP_CANONICAL_ENV") or (Path.home() / "ai_plays_poke" / ".env")
+)
+
 RUNNER = REPO / "cron_runner.py"
 DEFAULT_BOOT_STATE = REPO / "data" / "boot.state"
 ROM_PATH = (
@@ -643,7 +650,7 @@ def run_episode(
 # ---------------------------------------------------------------------- run
 def cmd_run(episodes_per_arm: int, cycles: int, boot_state: Path) -> int:
     for name in ("OPENROUTER_API_KEY",):
-        load_env_abs(Path("/home/kara/ai_plays_poke/.env"), (name,))
+        load_env_abs(CANONICAL_ENV, (name,))
     if not os.environ.get("OPENROUTER_API_KEY"):
         log(
             "ABORT: OPENROUTER_API_KEY not resolvable — refusing to burn a "

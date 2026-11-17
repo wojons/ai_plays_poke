@@ -13,6 +13,7 @@ toggles, the read endpoints, the chat box, the validation - is exercised for rea
 """
 
 import json
+import os
 import re
 import time
 import urllib.error
@@ -21,7 +22,9 @@ from pathlib import Path
 from typing import Any
 
 C = "http://127.0.0.1:8899"
-HTML = Path("/home/kara/aipp-console/static/index.html").read_text()
+# External operator console (its own checkout, not this repo): AIPP_CONSOLE_HOME wins.
+CONSOLE = Path(os.environ.get("AIPP_CONSOLE_HOME") or (Path.home() / "aipp-console"))
+HTML = (CONSOLE / "static/index.html").read_text()
 
 
 def call(
