@@ -844,7 +844,10 @@ SHEETS.append(
 
 # ════════════════════════════════ 9 FLIGHT DATA FILE ════════════════════════════════
 def fdf_sheet() -> str:
-    body = (
+    # sheet_style's helpers all annotate `-> str`; the local is declared so the
+    # builder's contract holds even if mypy cannot resolve that sibling import
+    # (RELEASE-011 — see the mypy_path note in mypy.ini).
+    body: str = (
         para(
             "9.1.1",
             "INTRODUCTION.",
