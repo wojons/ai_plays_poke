@@ -146,7 +146,7 @@ options:
 | `--handoff-ambiguity HANDOFF_AMBIGUITY` | `float` | `0.40` | Ambiguity gate for the layered confidence trigger (default 0.40); low confidence alone does not hand back unless the phase is irreversible. |
 | `--handoff-classes HANDOFF_CLASSES` | `str` | unset (any class may hand off) | Comma list of missing-information classes allowed to hand off (e.g. `map_topology`). Unset means any class may. |
 | `--teacher-max-per-episode N` | `int` | unset (unlimited) | Hard cap on teacher handoffs per episode. On exhaustion the run keeps playing on the fast tier and records why the handoff was blocked. Unset means unlimited. |
-| `--textfile-dir TEXTFILE_DIR` | `Path` | `/var/lib/node_exporter/textfile_collector` | node_exporter textfile collector directory (`cron_runner.py:7783-7791`, `DEFAULT_TEXTFILE_DIR` at `:58`). The runner writes one record per completed run to `<dir>/aipp_run.prom`, atomically, at close-out; the directory is created if absent. Point it at a scratch directory to keep a test run out of the host's collector. Full field list and write ordering: `docs/observability-spec.md` §4.3. |
+| `--textfile-dir TEXTFILE_DIR` | `Path` | `/var/lib/node_exporter/textfile_collector` | node_exporter textfile collector directory (`cron_runner.py:7789-7797`, `DEFAULT_TEXTFILE_DIR` at `:59`). The runner writes one record per completed run to `<dir>/aipp_run.prom`, atomically, at close-out; the directory is created if absent. The `--collector.textfile.directory` of node_exporter must name this same directory or nothing scrapes the file. Point it at a scratch directory to keep a test run out of the host's collector. Full field list, crash semantics and write ordering: `docs/observability-spec.md` §4.3. |
 
 ## Decision modes and handoff
 
