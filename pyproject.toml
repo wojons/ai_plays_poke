@@ -44,6 +44,11 @@ dev = [
     "black>=23.0",
     "mypy>=1.0",
     "flake8>=6.0",
+    # Exact pin, deliberately not a range: CI lints with ruff==0.15.22 and ruff
+    # renames/retires rule codes between releases, so any other version can
+    # produce a different verdict than the gate. A fresh `pip install -e '.[dev]'`
+    # must resolve the same linter CI runs.
+    "ruff==0.15.22",
     "pre-commit>=4.7.0",
 ]
 
@@ -143,15 +148,19 @@ ignore_missing_imports = true
 strict_optional = true
 disallow_untyped_defs = false
 
-[tool.flake8]
-max-line-length = 88
-extend-ignore = "E203,W503"
-per-file-ignores = "__init__.py:F401"
-exclude = [
-    ".git",
-    "__pycache__",
-    "build",
-    "dist",
-    ".venv",
-    "*.egg-info",
-]
+[tool.ruff]
+# CI runs `ruff check src/ tests/` (see .github/workflows/ci.yml) with no config of
+# its own, so these values are what the gate actually enforces. 88 also matches the
+# pycodestyle and flake8 pins in setup.cfg - the lint and format gates must agree,
+# because `ruff format` emits 88-character lines on purpose.
+line-length = 88
+
+[tool.ruff.lint]
+# The retired pyproject flake8 table ignored E203 and W503. Neither is carried here:
+# measured with ruff 0.15.22, `W503` is not a valid selector at all (ruff hard-fails
+# with "Unknown rule selector W503" if it appears in `ignore`), and E203 is
+# preview-gated and fires 0 times on this tree (`ruff check --preview --select E203`).
+# F401 in __init__.py IS load-bearing - the package __init__ files re-export names
+# without `__all__`, which measures 26 findings without this ignore and 0 with it
+# (ruff check . --no-respect-gitignore).
+per-file-ignores = { "__init__.py" = ["F401"] }

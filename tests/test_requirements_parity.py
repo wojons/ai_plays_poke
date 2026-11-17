@@ -12,6 +12,7 @@ died in fixture setup with "AttributeError: 'Function' object has no attribute
 pytest 9.2 removed). The pins below must agree and must exclude 9.2+.
 """
 
+import configparser
 import re
 from pathlib import Path
 
@@ -41,20 +42,27 @@ def _parse_requirements(path: Path) -> set[str]:
     return names
 
 
-def _dev_extras_from_pyproject() -> set[str]:
+def _load_pyproject() -> dict:
     toml_text = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     try:
         import tomllib
     except ImportError:  # Python < 3.11
         import tomli as tomllib  # type: ignore[no-redef]
-    data = tomllib.loads(toml_text)
-    deps = data["project"]["optional-dependencies"]["dev"]
-    names = set()
-    for req in deps:
+    return tomllib.loads(toml_text)
+
+
+def _dev_extra_specs() -> dict[str, str]:
+    """Distribution name -> version specifier for the dev extra, e.g. '<9.2'."""
+    specs = {}
+    for req in _load_pyproject()["project"]["optional-dependencies"]["dev"]:
         name = re.split(r"[<>=!~\[ ;]", req, 1)[0].strip()
         if name:
-            names.add(name.lower())
-    return names
+            specs[name.lower()] = req[len(name) :].strip()
+    return specs
+
+
+def _dev_extras_from_pyproject() -> set[str]:
+    return set(_dev_extra_specs())
 
 
 def _requirement_spec(text: str, name: str) -> str | None:
@@ -78,6 +86,19 @@ def _ci_pytest_install_spec(ci_text: str) -> str | None:
         if m:
             return m.group(1)
         if re.search(r"(?:^|\s)pytest(?=\s|$)", line):
+            return None
+    return None
+
+
+def _ci_ruff_install_spec(ci_text: str) -> str | None:
+    """The ruff version spec CI installs with, or None when bare or absent."""
+    for line in ci_text.splitlines():
+        if "pip install" not in line:
+            continue
+        m = re.search(r'"ruff([<>=!~][^"]*)"', line)
+        if m:
+            return m.group(1)
+        if re.search(r"(?:^|\s)ruff(?=\s|$)", line):
             return None
     return None
 
@@ -142,4 +163,49 @@ def test_ci_pytest_pin_matches_dev_requirements():
     assert _upper_bound(ci_spec) == _upper_bound(dev_spec), (
         f"pytest upper bounds drift: ci.yml {ci_spec!r} vs "
         f"requirements-dev.txt {dev_spec!r}"
+    )
+
+
+def test_ruff_declared_and_lint_config_is_effective():
+    """QA-AI-PLAYS-POKE-27: a fresh clone must reproduce CI's ruff lint gate.
+
+    ci.yml installed ``ruff==0.15.22`` ad hoc while the dev extra declared no
+    linter at all, so ``pip install -e '.[dev]'`` left a fresh clone with no
+    ``ruff`` to run; and the flake8 settings sat in a ``[tool.flake8]`` table
+    that flake8 never reads. Both regressions are asserted here.
+    """
+    dev_specs = _dev_extra_specs()
+    assert "ruff" in dev_specs, (
+        "ruff must be declared in pyproject [project.optional-dependencies].dev: "
+        "CI lints with it, and a fresh clone installs only what is declared"
+    )
+
+    dev_req_spec = _requirement_spec(
+        (REPO_ROOT / "requirements-dev.txt").read_text(encoding="utf-8"), "ruff"
+    )
+    assert dev_req_spec == dev_specs["ruff"], (
+        "ruff constraint drifts between pyproject dev extras "
+        f"({dev_specs['ruff']!r}) and requirements-dev.txt ({dev_req_spec!r})"
+    )
+
+    ci_spec = _ci_ruff_install_spec(CI_WORKFLOW.read_text(encoding="utf-8"))
+    assert ci_spec == dev_specs["ruff"], (
+        f"ci.yml installs ruff{ci_spec} but the dev extra declares "
+        f"ruff{dev_specs['ruff']}: the declared linter must be the version CI runs"
+    )
+
+    tool = _load_pyproject().get("tool", {})
+    assert tool.get("ruff", {}).get("line-length") == 88, (
+        "pyproject needs a [tool.ruff] section with line-length = 88 (matching the "
+        "pycodestyle/flake8 pins in setup.cfg); ruff does not read [tool.flake8]"
+    )
+    assert "flake8" not in tool, (
+        "[tool.flake8] is inert - flake8 reads setup.cfg/.flake8/tox.ini, never "
+        "pyproject.toml. setup.cfg must stay its single source of truth."
+    )
+    flake8_cfg = configparser.ConfigParser()
+    flake8_cfg.read(REPO_ROOT / "setup.cfg", encoding="utf-8")
+    assert flake8_cfg.get("flake8", "max-line-length", fallback=None) == "88", (
+        "setup.cfg [flake8] max-line-length must be 88 - that is the only flake8 "
+        "config file flake8 actually reads, and it must agree with [tool.ruff]"
     )
