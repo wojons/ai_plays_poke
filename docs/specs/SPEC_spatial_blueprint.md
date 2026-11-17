@@ -28,6 +28,13 @@ vocabulary and cover different areas.
 
 One observation of a space is a **grid of W x H cells**, always stating its dimensions.
 
+For this project the grid is fixed and derived from measurement, not chosen:
+**W=10, H=9** — the Game Boy screen is 160x144 px and the game's own cell is 16 px, so
+the screen holds exactly 10 columns by 9 rows. The window is the whole screen, so the
+origin of cell (0,0) is pixel (0,0), and the player sits at cell **(4,3)** (measured
+sprite box (64,60)). RAM and vision both take those numbers from
+`src/core/vision_grid.py`, which is the only place they are defined.
+
 ```
 Space: <name or "unidentified"> (<W>x<H>)
 Origin: (<ox>,<oy>)        # cell (0,0) of this grid in world terms

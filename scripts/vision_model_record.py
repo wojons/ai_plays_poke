@@ -27,7 +27,9 @@ def _grid_from_ram(raw: str) -> list[str]:
         and not line.strip().startswith(("Map:", "Pos:", "Legend:", "Unknown"))
     ][:GRID_ROWS]
     if len(rows) != GRID_ROWS:
-        raise ValueError(f"RAM bridge returned {len(rows)} grid rows, expected 9")
+        raise ValueError(
+            f"RAM bridge returned {len(rows)} grid rows, expected {GRID_ROWS}"
+        )
     return rows
 
 
@@ -54,7 +56,8 @@ def record_models(
             ):
                 shape = [len(row) for row in predicted if isinstance(row, str)]
                 raise ValueError(
-                    f"model response grid shape was {len(predicted)}x{shape}, expected 9x9"
+                    f"model response grid shape was {len(predicted)}x{shape}, "
+                    f"expected {GRID_COLS}x{GRID_ROWS}"
                 )
             usage = response.get("_usage", {})
             tokens = usage.get("total_tokens")

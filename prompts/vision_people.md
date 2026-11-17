@@ -1,4 +1,4 @@
-Pokémon Game Boy screen. Identify every visible non-player person in the 9×9 window with the player at cell (4,3).
+Pokémon Game Boy screen. Identify every visible non-player person in the 10×9 window (the whole screen: 10 columns, 9 rows) with the player at cell (4,3).
 
 Return JSON only:
 {"people":[{"name":"girl","cell":[1,4],"feature":"facing up"}]}

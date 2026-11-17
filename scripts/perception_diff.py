@@ -38,12 +38,10 @@ from PIL import Image  # noqa: E402
 
 from src.core.ram_reader import RAMReader  # noqa: E402
 from src.core.vision_grid import (  # noqa: E402
-    CELL_PIXELS as CELL,
     GRID_COLS as COLS,
     GRID_ROWS as ROWS,
-    GRID_ORIGIN_X,
-    GRID_ORIGIN_Y,
     PLAYER_CELL,
+    cell_pixel_box,
     cls_ram,
     cls_vis,
 )
@@ -117,8 +115,7 @@ def vision_grid(
                 "content": [
                     {
                         "type": "text",
-                        "text": PROMPT.read_text()
-                        + "\n\nMeasurement precedence: the final Return exactly this schema and the final 9x9 grid constraints override any earlier conflicting 10x9 whole-screen instructions. Return exactly 9 rows of 9 single-character cells.",
+                        "text": PROMPT.read_text(),
                     },
                     {
                         "type": "image_url",
@@ -144,16 +141,18 @@ def vision_grid(
 
 
 def pixel_mask(png: Path) -> list[str]:
-    """'?' where the cell is mostly black, using the player-centred 9x9 window."""
+    """'?' where the cell is mostly black, over the canonical whole-screen grid.
+
+    Cell -> pixel boxes come from ``src.core.vision_grid.cell_pixel_box``, the same
+    conversion the RAM channel uses, so a mask cell and a RAM cell are the same place.
+    """
     im = Image.open(png).convert("L")
     out = []
     for r in range(ROWS):
         row = ""
         for c in range(COLS):
-            x0 = GRID_ORIGIN_X + (c - PLAYER_CELL[0]) * CELL
-            y0 = GRID_ORIGIN_Y + (r - PLAYER_CELL[1]) * CELL
-            box = im.crop((x0, y0, x0 + CELL, y0 + CELL))
-            hist = box.histogram()
+            box = cell_pixel_box(c, r)
+            hist = im.crop(box).histogram()
             total = sum(hist) or 1
             row += "?" if sum(hist[:60]) / total >= 0.55 else "."
         out.append(row)
@@ -164,12 +163,11 @@ def pixel_mask(png: Path) -> list[str]:
 def verdict(a: str, b: str, ra: str, rb: str) -> str:
     """Classify one cell. Compares the ARROW GLYPH, not just the class.
 
-    The first version mapped both channels' arrows to the same class 'player',\
- so a frame
-    where RAM said the player faced up and vision said down scored as 'agree'.\
- Bane caught
-    it: the verdict showed a match while the directions disagreed. Facing is exactly the
-    field we know vision is unreliable on, so a silent pass there is the worst kind.
+    The first version mapped both channels' arrows to the same class 'player', so a
+    frame where RAM said the player faced up and vision said down scored as 'agree'.
+    Bane caught it: the verdict showed a match while the directions disagreed. Facing
+    is exactly the field we know vision is unreliable on, so a silent pass there is the
+    worst kind.
     """
     if ra in "←↑↓→" and rb in "←↑↓→":
         return "agree" if ra == rb else "FACING-MISMATCH"
