@@ -14,10 +14,18 @@ Outputs, all of which the hourly summary job reads:
 Goal: reach Viridian City from Pallet Town. map_topology is the single largest
 JEV escalation class, so a real map transition is the first honest proof that the
 fast tier can navigate without the teacher.
+
+The decision-mode arm is EXPLICIT. The driver refuses to start unless
+AIPP_DECISION_MODE or CRON_DECISION_MODE names the experiment
+(jev | llm | hybrid | system1 | system2 | system1+system2 | agentic), and it
+refuses an unrecognised spelling instead of forwarding it to a child that would
+degrade it silently. `--allow-default-mode` is the loud, deliberate escape hatch
+to the legacy 'jev' arm; without that flag there is no default at all.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import shutil
@@ -26,7 +34,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
@@ -129,19 +137,87 @@ def resolve_boot_state() -> Path:
     return Path(override) if override else BOOT
 
 
-def resolve_decision_mode() -> str:
-    """Mirror cron_runner.resolve_decision_mode: AIPP > CRON env > 'jev'.
+DECISION_MODE_ENV_VARS = ("AIPP_DECISION_MODE", "CRON_DECISION_MODE")
+# Mirror of cron_runner.DECISION_MODE_ALIASES (cron_runner.py:153). The child
+# re-resolves --decision-mode against exactly this set and treats anything else
+# as "no mode", i.e. a typo is silently degraded on the far side of the
+# subprocess boundary. So the spelling is validated HERE, on the near side,
+# while the driver can still refuse instead of after an episode has been spent.
+# Kept as a literal (cron_runner is not imported: it is the 10k-line runner and
+# importing it here would pull the whole harness into a scheduler summary job);
+# tests/test_long_run_decision_mode.py asserts the two sets are identical so the
+# mirror cannot drift in silence.
+DECISION_MODES = (
+    "system1",
+    "system2",
+    "system1+system2",
+    "hybrid",
+    "jev",
+    "llm",
+    "agentic",
+)
+# The arm this driver used to select in silence whenever no mode was set. It may
+# only be chosen by an operator who asks for it (--allow-default-mode): it is the
+# arm that measured 0/5 at leaving Pallet Town, so ending up on it must never be
+# a side effect of a missing environment variable.
+LEGACY_FALLBACK_MODE = "jev"
 
-    Minimal mirror (cron_runner is not imported here): the value is normalised
-    to cron_runner's spelling form, and cron_runner itself re-resolves the flag
-    and falls back to its default on unrecognised spellings, so garbage passed
-    through degrades to 'jev' on the child side exactly as before.
+
+def fail(msg: str) -> NoReturn:
+    """Refuse loudly: message on stderr, non-zero exit — never an implicit default."""
+    print(f"[ERROR] {msg}", file=sys.stderr, flush=True)
+    raise SystemExit(2)
+
+
+def warn(msg: str) -> None:
+    print(f"[WARNING] {msg}", file=sys.stderr, flush=True)
+
+
+def resolve_decision_mode(allow_default: bool = False) -> str:
+    """Resolve the decision-mode arm EXPLICITLY; there is no silent fallback.
+
+    Contract (ARM-2-R1):
+
+    * ``AIPP_DECISION_MODE`` then ``CRON_DECISION_MODE`` are read in that order;
+      the first non-empty one selects the arm (whitespace-trimmed, lowercased,
+      which is the normalisation cron_runner applies to its own flag).
+    * A non-empty value outside :data:`DECISION_MODES` is a hard error whose
+      message lists the accepted spellings. It is never forwarded: the child
+      would degrade an unrecognised spelling to its own fallback family without
+      saying so, which is exactly the silence this row removes.
+    * With neither variable set the driver refuses to run (exit 2, message
+      naming both variables). A scheduled run must state the experiment it is
+      running; an unset variable is an operator mistake, not a default.
+    * ``allow_default=True`` (CLI ``--allow-default-mode``) is the ONLY way to
+      reach :data:`LEGACY_FALLBACK_MODE`, and it emits a loud warning naming the
+      arm so the run can never be mistaken for a clean benchmark arm.
     """
-    for name in ("AIPP_DECISION_MODE", "CRON_DECISION_MODE"):
+    for name in DECISION_MODE_ENV_VARS:
         value = os.environ.get(name)
-        if value and value.strip():
-            return value.strip().lower()
-    return "jev"
+        if value is None or not value.strip():
+            continue
+        mode = value.strip().lower()
+        if mode not in DECISION_MODES:
+            fail(
+                f"{name}={value.strip()!r} is not a decision mode. Accepted values: "
+                f"{', '.join(DECISION_MODES)}. Refusing to forward an unrecognised "
+                "arm to cron_runner, which would silently degrade it."
+            )
+        return mode
+    if allow_default:
+        warn(
+            "no decision mode set ("
+            + " / ".join(DECISION_MODE_ENV_VARS)
+            + f"); --allow-default-mode given, falling back to {LEGACY_FALLBACK_MODE!r}"
+            " — the arm that measured 0/5 at leaving Pallet Town. This run is NOT"
+            " a clean benchmark arm."
+        )
+        return LEGACY_FALLBACK_MODE
+    fail(
+        f"{' / '.join(DECISION_MODE_ENV_VARS)} not set; refusing to pick a decision "
+        f"mode silently. Set one of them ({', '.join(DECISION_MODES)}), or pass "
+        f"--allow-default-mode to run the legacy default ({LEGACY_FALLBACK_MODE!r})."
+    )
 
 
 def episode_argv(run_id: str, boot: str, mode: str) -> list[str]:
@@ -160,9 +236,10 @@ def episode_argv(run_id: str, boot: str, mode: str) -> list[str]:
     ]
 
 
-# Resolved once at import; cron_runner re-resolves its own flag/env on the child
-# side — this stamp makes the arm explicit in the argv and the run records.
-DECISION_MODE = resolve_decision_mode()
+# Resolved in main() from the env/CLI, never at import: importing this module
+# (a scheduler summary job, a test) must neither select an arm nor refuse to
+# load. main() stamps it into every run record and episode_argv() forwards it.
+DECISION_MODE: str | None = None
 
 
 def newest_checkpoint(after: float) -> Path | None:
@@ -344,9 +421,64 @@ def _FINDINGS_DUE(state: dict[str, Any]) -> bool:
     return (time.time() - _LAST_FINDINGS_WRITE[0]) >= FINDINGS_INTERVAL_S
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """CLI surface. --help must work without any decision mode being set."""
+    parser = argparse.ArgumentParser(
+        description=(
+            "Long-run driver: chain game episodes for hours, validating each "
+            "episode's end state before chaining the next one."
+        ),
+        epilog=(
+            "The decision-mode arm is required: set AIPP_DECISION_MODE or "
+            f"CRON_DECISION_MODE ({', '.join(DECISION_MODES)}). There is no "
+            "implicit default — a run that does not name its arm is refused."
+        ),
+    )
+    parser.add_argument(
+        "--allow-default-mode",
+        action="store_true",
+        help=(
+            "Run with neither AIPP_DECISION_MODE nor CRON_DECISION_MODE set and "
+            f"use the legacy {LEGACY_FALLBACK_MODE!r} arm anyway (loudly warned; "
+            "it is not a benchmark arm — 0/5 at leaving Pallet Town)."
+        ),
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Resolve the mode and boot state, print the first episode's argv as "
+            "JSON and exit 0. No game, no run state created."
+        ),
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    global DECISION_MODE
+
+    args = build_parser().parse_args(argv)
+    # Resolve the arm BEFORE any run state is created: a missing or
+    # unrecognised mode must never leave a half-started run (CHAIN_DIR, status
+    # row) behind, and must never be papered over with a default.
+    mode = resolve_decision_mode(allow_default=args.allow_default_mode)
+    DECISION_MODE = mode
+
+    if args.dry_run:
+        boot = str(GOOD_STATE) if GOOD_STATE.exists() else str(resolve_boot_state())
+        plan = {
+            "decision_mode": mode,
+            "boot_state": boot,
+            "cycles": EPISODE_CYCLES,
+            "episode_argv": episode_argv(f"{RUN_ID}_ep001", boot, mode),
+        }
+        # stdout carries the plan alone so a caller (or a test) can json.loads it.
+        print(json.dumps(plan), flush=True)
+        return 0
+
     CHAIN_DIR.mkdir(parents=True, exist_ok=True)
     start = time.time()
+    log(f"decision mode: {mode}")
 
     totals = {
         "decisions": 0,
