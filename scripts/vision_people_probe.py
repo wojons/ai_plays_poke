@@ -37,6 +37,12 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
 from src.core.emulator import Emulator  # noqa: E402
+from src.core.vision_grid import (  # noqa: E402
+    CELL_PIXELS,
+    GRID_COLS,
+    GRID_ROWS,
+    PLAYER_CELL,
+)
 
 MODEL = "openai/gpt-4o-mini"
 PROMPT_PATH = REPO / "prompts/vision_people.md"
@@ -47,10 +53,6 @@ PICTURE_OFFSET = 0
 SCREEN_Y_OFFSET = 4
 SCREEN_X_OFFSET = 6
 FACING_OFFSET = 9
-CELL_SIZE = 16
-GRID_COLS = 9
-GRID_ROWS = 9
-PLAYER_CELL = (4, 3)
 DEFAULT_TOKEN_FILE = Path.home() / ".hermes/aipp_bridge/session.token"
 FACING = {0x00: "down", 0x04: "up", 0x08: "left", 0x0C: "right"}
 NON_PERSON_SPRITES = frozenset({0x05, 0x09, 0x38, 0x3C})
@@ -234,7 +236,8 @@ def parse_predictions(raw: str) -> tuple[list[Prediction], list[str]]:
         parsed_cell = (int(cell[0]), int(cell[1]))
         if not (0 <= parsed_cell[0] < GRID_COLS and 0 <= parsed_cell[1] < GRID_ROWS):
             errors.append(
-                f"people[{index}] cell {parsed_cell} was outside the 9x9 window"
+                f"people[{index}] cell {parsed_cell} was outside the "
+                f"{GRID_COLS}x{GRID_ROWS} window"
             )
             continue
         predictions.append(Prediction(name.strip(), parsed_cell, feature.strip()))
@@ -242,7 +245,11 @@ def parse_predictions(raw: str) -> tuple[list[Prediction], list[str]]:
 
 
 def visible_people(read_u8: Callable[[int], int]) -> list[TruthPerson]:
-    """Read visible human sprite cells relative to the measured player cell (4,3)."""
+    """Read visible human sprite cells relative to the shared ``PLAYER_CELL`` (4, 3).
+
+    The cell is the measured one from ``src.core.vision_grid``, so a person's cell here
+    means the same place it means in the RAM grid and the vision grid.
+    """
     player_y = read_u8(SPRITE_TABLE + SCREEN_Y_OFFSET)
     player_x = read_u8(SPRITE_TABLE + SCREEN_X_OFFSET)
     people: list[TruthPerson] = []
@@ -258,8 +265,8 @@ def visible_people(read_u8: Callable[[int], int]) -> list[TruthPerson]:
         screen_y = read_u8(base + SCREEN_Y_OFFSET)
         screen_x = read_u8(base + SCREEN_X_OFFSET)
         cell = (
-            PLAYER_CELL[0] + (screen_x - player_x) // CELL_SIZE,
-            PLAYER_CELL[1] + (screen_y - player_y) // CELL_SIZE,
+            PLAYER_CELL[0] + (screen_x - player_x) // CELL_PIXELS,
+            PLAYER_CELL[1] + (screen_y - player_y) // CELL_PIXELS,
         )
         if not (0 <= cell[0] < GRID_COLS and 0 <= cell[1] < GRID_ROWS):
             continue

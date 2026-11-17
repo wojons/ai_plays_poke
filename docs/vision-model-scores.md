@@ -1,6 +1,13 @@
 # Vision model scores (VIS-MODEL-1)
 
-Scoring uses the player-centred 9x9 grid (cell x=72+(c-4)*16, y=64+(r-4)*16), with exact class agreement. Total score includes all 81 cells. Structure score includes only reference cells that are neither floor (`.`) nor unknown (`?`); `B` is blocked and digits are objects. This prevents a mostly-floor frame from making an all-floor answer look structurally strong.
+Scoring uses the one grid both channels share — `src/core/vision_grid.py`: 10 columns by 9 rows (the whole 160x144 px screen at 16 px per cell), player at cell (4,3), cell box `x=16c, y=16r`. Class agreement is exact. Total score includes all 90 cells. Structure score includes only reference cells that are neither floor (`.`) nor unknown (`?`); `B` is blocked and digits are objects. This prevents a mostly-floor frame from making an all-floor answer look structurally strong.
+
+> Geometry note: the scores below were measured BEFORE the 10x9 unification, against the old
+> player-centred 9x9 window (81 cells) — that old geometry is the defect VISION-GRID-UNIFY fixed
+> (RAM rendered 10x9, vision 9x9, so the same frame put the player on different rows). The rows
+> are kept because they are real recorded model responses, not because they are comparable to a
+> current run; `scripts/vision_model_score.py` now rejects any grid that is not 10x9, so a
+> re-run is required to score models on the unified grid.
 
 | Model | Latency | Tokens | Total-cell score | Structure score | Evidence |
 |---|---:|---:|---:|---:|---|
@@ -11,7 +18,7 @@ Scoring uses the player-centred 9x9 grid (cell x=72+(c-4)*16, y=64+(r-4)*16), wi
 
 ## Measurement boundaries
 
-The current grid records were produced from live bridge observations with the same RAM 9x9 map and the same scoring implementation. The two successfully shaped model answers were obtained in separate captures after model responses intermittently violated the required grid dimensions; therefore these scores compare models on the observed RAM map, but are not a same-image paired trial. Each retained row is a real model response with measured wall latency and provider-reported total tokens. A response that does not return exactly 9 strings of 9 characters is not scored or reshaped. Unavailable field (failed blueprint shape; intentionally not scored): `amazon/nova-lite-v1` returned non-9x9 grids on other calls, `openai/gpt-5.6-luna` returned a missing/non-9x9 grid, `openai/gpt-4o` returned one 8-character row, and `google/gemma-3-12b-it` returned 19-character rows. These failures are not represented as successful score rows.
+The current grid records were produced from live bridge observations against the old RAM 9x9 map and the old scoring implementation, before the two channels were unified on the 10x9 whole-screen grid (see the geometry note above). The two successfully shaped model answers were obtained in separate captures after model responses intermittently violated the required grid dimensions; therefore these scores compare models on the observed RAM map, but are not a same-image paired trial. Each retained row is a real model response with measured wall latency and provider-reported total tokens. A response that does not return exactly 9 strings of 10 characters is not scored or reshaped. Unavailable field (failed blueprint shape; intentionally not scored): `amazon/nova-lite-v1` returned non-9x9 grids on other calls, `openai/gpt-5.6-luna` returned a missing/non-9x9 grid, `openai/gpt-4o` returned one 8-character row, and `google/gemma-3-12b-it` returned 19-character rows. These failures are not represented as successful score rows.
 
 The score table's current total-cell and structure scores, latency, and tokens are calculated from `data/vision_model_runs.jsonl` by `./venv/bin/python scripts/vision_model_score.py`. The `VisionClient` screen-state response in the existing E2E smoke test is distinct from these blueprint grid predictions and does not supply terrain labels. Historical results remain explicitly marked historical; fields without a defensible current measurement are named `unmeasured`.
 

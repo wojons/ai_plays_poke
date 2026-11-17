@@ -32,7 +32,9 @@ def _sprite(
     values[base + 9] = facing
 
 
-def test_visible_people_uses_player_relative_9x9_cells_and_filters_objects() -> None:
+def test_visible_people_uses_player_relative_whole_screen_cells_and_filters_objects() -> (
+    None
+):
     memory = {
         SPRITE_TABLE + 4: 60,
         SPRITE_TABLE + 6: 64,
@@ -55,7 +57,7 @@ def test_parse_predictions_requires_name_cell_and_feature() -> None:
     {"people":[
       {"name":"girl","cell":[1,4],"feature":"facing up"},
       {"name":"","cell":[2,4],"feature":"dark hair"},
-      {"name":"man","cell":[9,4],"feature":"hat"}
+      {"name":"man","cell":[10,4],"feature":"hat"}
     ]}
     ```"""
 
@@ -64,7 +66,9 @@ def test_parse_predictions_requires_name_cell_and_feature() -> None:
     assert predictions == [Prediction("girl", (1, 4), "facing up")]
     assert errors == [
         "people[1] had no name",
-        "people[2] cell (9, 4) was outside the 9x9 window",
+        # The window is the whole screen, 10 columns wide: column 10 is off the grid,
+        # column 9 is a real cell that a 9-wide window used to reject.
+        "people[2] cell (10, 4) was outside the 10x9 window",
     ]
 
 

@@ -12,6 +12,7 @@ import pytest
 from scripts.vision_model_score import score_grids, score_records
 from src.core.vision_model_registry import configured_vision_models, parse_vision_models
 from src.core.vision import VisionClient
+from src.core.vision_grid import GRID_COLS, GRID_ROWS
 from scripts import vision_model_record
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,14 +56,18 @@ def test_record_and_score_path_uses_two_configured_models(
     monkeypatch.setattr(
         vision_model_record, "capture", lambda _: tmp_path / "frame.png"
     )
-    reference = ["........." for _ in range(9)]
-    reference[2] = "..B......"
+    # Fixture geometry derives from the one definition (10x9) — the old 9-wide rows
+    # encoded the geometry defect and are rejected by score_grids since the unification.
+    reference = ["." * GRID_COLS for _ in range(GRID_ROWS)]
+    reference[2] = "..B" + "." * (GRID_COLS - 3)
     monkeypatch.setattr(vision_model_record, "ram_grid", lambda _: "\n".join(reference))
     monkeypatch.setattr(
         vision_model_record,
         "vision_grid",
         lambda _frame, model: (
-            reference if model == models[0].model else ["........." for _ in range(9)],
+            reference
+            if model == models[0].model
+            else ["." * GRID_COLS for _ in range(GRID_ROWS)],
             {"_usage": {"total_tokens": 12}},
         ),
     )
@@ -141,9 +146,9 @@ def test_two_models_select_read_record_and_score(
             f"LIVE_MEASURED model={item['model']} latency_seconds={item['latency_seconds']:.3f} tokens={tokens}"
         )
 
-    # Scoring path is exercised against a labeled 9x9 calibration fixture;
-    # live grid labels are not available from VisionClient's screen-state response.
-    reference = ["........." for _ in range(9)]
-    reference[2] = "..B......"
-    reference[4] = "....2...."
+    # Scoring path is exercised against a labeled calibration fixture at the unified
+    # 10x9 geometry (a 9-wide fixture is the geometry defect, not a test).
+    reference = ["." * GRID_COLS for _ in range(GRID_ROWS)]
+    reference[2] = "..B" + "." * (GRID_COLS - 3)
+    reference[4] = "....2" + "." * (GRID_COLS - 5)
     assert score_grids(reference, reference)["structure_score"] == 100.0

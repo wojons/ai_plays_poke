@@ -11,6 +11,7 @@ from src.core.vision_model_registry import (
     parse_vision_models,
 )
 from scripts.vision_model_score import score_grids
+from src.core.vision_grid import GRID_COLS, GRID_ROWS
 
 
 def test_parses_ordered_provider_model_pairs() -> None:
@@ -68,10 +69,12 @@ def test_rejects_invalid_registry(raw: str) -> None:
 
 
 def test_structure_score_demotes_all_floor_answer() -> None:
-    expected = ["........." for _ in range(9)]
-    expected[2] = "..B......"
-    expected[4] = "....2...."
-    all_floor = ["........." for _ in range(9)]
+    # Fixture geometry comes from the one definition (10x9): a 9-wide row would be
+    # rejected by score_grids, which is the geometry defect this suite guards.
+    expected = ["." * GRID_COLS for _ in range(GRID_ROWS)]
+    expected[2] = "..B" + "." * (GRID_COLS - 3)
+    expected[4] = "....2" + "." * (GRID_COLS - 5)
+    all_floor = ["." * GRID_COLS for _ in range(GRID_ROWS)]
     accurate = expected.copy()
 
     lazy = score_grids(expected, all_floor)

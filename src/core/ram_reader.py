@@ -20,6 +20,15 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+# The one grid: dimensions, origin and player cell live in src.core.vision_grid so the
+# RAM channel and the vision channel cannot describe different windows.
+from src.core.vision_grid import (
+    GRID_COLS,
+    GRID_ROWS,
+    PLAYER_CELL,
+    screen_px_to_cell,
+)
+
 # ── WRAM addresses (Pokémon Red/Blue) ──
 
 # Player state
@@ -1487,8 +1496,13 @@ class RAMReader:
         lines.append("".join(legend_parts))
         return "\n".join(lines)
 
-    def render_tile_grid(self, cols: int = 10, rows: int = 9) -> str:
+    def render_tile_grid(self, cols: int | None = None, rows: int | None = None) -> str:
         """Render the game's own display grid, aligned with the vision blueprint.
+
+        Dimensions default to ``GRID_COLS`` x ``GRID_ROWS`` from
+        ``src.core.vision_grid`` — the ONE definition both channels share — so callers
+        normally pass nothing. Explicit ``cols``/``rows`` remain supported for callers
+        that render a sub-window (``scripts/game_bridge.py`` passes them positionally).
 
         The window IS the screen: 160x144 px at 16 px per game cell = **10 wide by 9
         tall**. Vision sees that whole screen, so RAM has to describe the same window or
@@ -1501,6 +1515,9 @@ class RAMReader:
         (``player_screen_px``, the sprite's pixel box), not by ``cols // 2``. The screen
         is even (10) wide, so the horizontal centre falls between cells and the player
         sits at column 4, not 5 - guessing the midpoint shifts the window by a column.
+        The measured anchor is converted with ``vision_grid.screen_px_to_cell``, and
+        ``PLAYER_CELL`` — that same measured cell — is the fallback, so RAM and vision
+        agree even when the sprite box cannot be read.
 
         Symbols follow docs/specs/SPEC_spatial_blueprint.md, so the output can be
         compared cell-for-cell with the vision model's grid:
@@ -1523,6 +1540,9 @@ class RAMReader:
         if info is None:
             return f"[No map data for map {mid:#04x}]"
 
+        cols = GRID_COLS if cols is None else int(cols)
+        rows = GRID_ROWS if rows is None else int(rows)
+
         bw, bh = int(info["width"]), int(info["height"])
         tw, th = bw * 2, bh * 2  # the 16 px cell grid is 2 per block each way
         tileset = int(info["tileset"])
@@ -1538,9 +1558,10 @@ class RAMReader:
         # silently dropped the right-hand column.
         scr = self.player_screen_px()
         if scr is not None and scr[0] is not None and scr[1] is not None:
-            scx, scy = int(scr[0]) // 16, int(scr[1]) // 16
+            scx, scy = screen_px_to_cell(int(scr[0]), int(scr[1]))
         else:
-            scx, scy = cols // 2, rows // 2
+            # Same measured cell the vision channel is told to use.
+            scx, scy = PLAYER_CELL
         ox, oy = tx - scx, ty - scy
         object_numbers: dict[int, int] = {}
         legend_objects: list[str] = []
@@ -1693,26 +1714,20 @@ class RAMReader:
     def player_screen_px(self) -> tuple[int, int] | None:
         """Where the player sprite sits ON SCREEN, in pixels: (x, y) or None.
 
-        READ, never inferred. This is what removes the grid-alignment guesswork:\
- the window
-        origin becomes player_tile - (screen_px // 16), so the grid no longer needs the
-        assumption that the camera keeps the player centred. That assumption was\
- tested in
-        a second space and broke (Oak's Lab: RAM reported 71 unknown cells\
- against vision's
-        41 because the player-centred window ran off the map edge), and the measurement
-        that first appeared to support it was confounded by the floor's 16 px repeating
-        pattern.
+        READ, never inferred. This is what removes the grid-alignment guesswork: the
+        window origin becomes player_tile - (screen_px // 16), so the grid no longer
+        needs the assumption that the camera keeps the player centred. That assumption
+        was tested in a second space and broke (Oak's Lab: RAM reported 71 unknown cells
+        against vision's 41 because the player-centred window ran off the map edge), and
+        the measurement that first appeared to support it was confounded by the floor's
+        16 px repeating pattern.
 
-        NOT YET VERIFIED against a frame. The sprite is drawn with an origin\
- offset, so the
-        value here is the raw table entry, not a top-left corner. Treat as\
- unconfirmed until
-        checked: render a 16 px grid at 80-shifted values and confirm a\
- distinctive object
-        lands where it looks. Returns None when the value is out of range for a 160x144
-        screen, so a wrong layout assumption shows up as 'unknown' instead of a
-        plausible-looking number.
+        NOT a top-left corner: the sprite is drawn with an origin offset, so this is the
+        raw table entry. MEASURED against a live frame (specs/_facts.md FACT-06): in
+        Pallet Town the entry is (64, 60), which is grid cell (4, 3) on a 10x9 screen -
+        and a live render puts the player arrow on exactly that cell. Returns None when
+        the value is out of range for a 160x144 screen, so a wrong layout assumption
+        shows up as 'unknown' instead of a plausible-looking number.
         """
         try:
             x = self.read_u8(ADDR_SPRITE_SCREEN_X)

@@ -34,7 +34,9 @@ def _reference_class(cell: str) -> str:
 def score_grids(expected: list[str], predicted: list[str]) -> dict[str, float | int]:
     """Return total-cell and non-floor/non-unknown exact class agreement."""
     if not _valid_grid(expected) or not _valid_grid(predicted):
-        raise ValueError("expected and predicted grids must both be 9x9")
+        raise ValueError(
+            f"expected and predicted grids must both be {GRID_COLS}x{GRID_ROWS}"
+        )
     cells = [
         (truth, guess)
         for erow, prow in zip(expected, predicted)

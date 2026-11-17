@@ -20,7 +20,9 @@ map of it. Return ONLY a JSON object. No prose, no markdown fences.
   is worse than useless because it looks plausible.
 - The screen is **even** (10) wide, so its centre falls *between* two columns. The player
   is the **5th cell from the left** (column index 4): four cells to the left, five to the
-  right. Count from the left edge of the screen and keep that position fixed.
+  right. On a 9-row screen the player also sits **one row above centre**, at row index 3
+  (measured: the sprite box is at pixel (64, 60), which is cell (4, 3)). Count from the
+  top-left corner of the screen and keep that position fixed: **player_cell = [4, 3]**.
 - Do **not** assume the map is centred on the player. Where the player sits on screen
   depends on how close the map's edge is, not on a camera rule — a "the player is always
   centred" assumption was measured once in one room and is wrong; it only appeared true
@@ -123,17 +125,18 @@ Count the rows and columns. Read your own grid back and confirm: every black reg
 ```
 {
   "space": "<room name if the screen names it, else null>",
-  "width": 9,
+  "width": 10,
   "height": 9,
-  "player_cell": [4, 4],
+  "player_cell": [4, 3],
   "facing": "up|down|left|right",
-  "grid": ["<row 0, 9 chars>", "...", "<row 8, 9 chars>"],
+  "grid": ["<row 0, 10 chars>", "...", "<row 8, 10 chars>"],
   "legend": {"1": "television"},
   "undetermined_cells": <count of '?' cells>,
   "confidence": <0.0-1.0>
 }
 ```
 
-`grid` must have exactly **9** strings, each exactly **9** characters, using only
-`. B G W T M N $ ? ↑ ↓ ← →` and digits. The player is the **middle cell, (4,4)** — that is
-the whole point of the odd size. Every cell of black is `?`.
+`grid` must have exactly **9** strings, each exactly **10** characters, using only
+`. B G W T M N $ ? ↑ ↓ ← →` and digits. It is the whole screen: 10 columns (160 px /
+16) by 9 rows (144 px / 16). The player is at **cell (4, 3)** — fifth column from the
+left, fourth row down. Every cell of black is `?`.

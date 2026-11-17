@@ -48,6 +48,8 @@ if TYPE_CHECKING:
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
+from src.core.vision_grid import GRID_COLS, GRID_ROWS  # noqa: E402
+
 ROM = REPO / "data" / "rom" / "Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 FRAME_DIR = REPO / "play_frames"
 BUTTONS = {"a", "b", "start", "select", "up", "down", "left", "right"}
@@ -66,11 +68,14 @@ def _new_log_path() -> str:
         return log_file.name
 
 
-def _safe_grid(reader: RAMReader, cols: int = 10, rows: int = 9) -> str:
+def _safe_grid(
+    reader: RAMReader, cols: int | None = None, rows: int | None = None
+) -> str:
     """The reader's display grid, or an empty string rather than an exception.
 
-    observe() is the bridge's hot path. A tile or graphics lookup problem must not take the whole
-    observation down and leave the console with nothing to show.
+    Dimensions default to the one shared definition in ``src.core.vision_grid``
+    (10x9, the whole screen); the bridge only reports them so the console can label
+    what it rendered.
     """
     try:
         return reader.render_tile_grid(cols, rows)
@@ -152,8 +157,8 @@ class Game:
             # panel and the vision grid were describing different windows and every cell comparison
             # was meaningless. Guards stay on: a grid failure must not take observe() down.
             "grid": _safe_grid(self.reader),
-            "grid_cols": 10,
-            "grid_rows": 9,
+            "grid_cols": GRID_COLS,
+            "grid_rows": GRID_ROWS,
         }
 
     # ---- acting ------------------------------------------------------
@@ -251,8 +256,8 @@ class Game:
             "ok": True,
             "obs": self.reader.observe(),
             "grid": _safe_grid(self.reader),
-            "grid_cols": 10,
-            "grid_rows": 9,
+            "grid_cols": GRID_COLS,
+            "grid_rows": GRID_ROWS,
         }
 
     def pause(self) -> dict:

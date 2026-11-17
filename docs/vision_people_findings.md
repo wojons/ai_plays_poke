@@ -8,8 +8,9 @@ original state after the run; static screenshots were not used.
 
 Each frame was paired with a bridge save made at the same instant. Ground truth came
 from `wSpriteStateData1` (`0xC100`, 16 records × 16 bytes). The player is slot 0 and is
-excluded. Active non-player human sprites are placed in the 9×9 window relative to the
-RAM player's measured screen position, with the player fixed at cell `(4,3)`. Still
+excluded. Active non-player human sprites are placed in the 10×9 whole-screen window
+relative to the RAM player's measured screen position, with the player fixed at cell
+`(4,3)` — the same cell `src/core/vision_grid.py` defines for every channel. Still
 objects and non-human sprite archetypes are excluded.
 
 The model was `openai/gpt-4o-mini` through OpenRouter. The frame was enlarged 6× in the
@@ -18,6 +19,11 @@ there is no whole-grid score. RAM exposes a sprite archetype and facing, not a p
 true story identity or hair/clothing colours, so names and features are retained in the
 output but do not replace the cell oracle. A facing contradiction is reported as a
 non-scoring diagnostic.
+
+The window was 9 columns wide when these frames were recorded; it is now the whole
+screen (10 columns, matching the RAM grid and `src/core/vision_grid.py`). Every cell
+recorded below falls in columns 0-8, so the widening changes none of these numbers —
+only a sprite in column 9 would newly appear.
 
 ## Real probe output
 
