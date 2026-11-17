@@ -1,0 +1,63 @@
+{
+  "wave_id": "ai-plays-poke-foreman-2026-11-17-10-10-24",
+  "project": "ai_plays_poke",
+  "workdir": "/home/kara/ai_plays_poke",
+  "base_commit": "c27ab5a",
+  "note_base": "All four worktrees created by ~/.hermes/scripts/worktree.sh new from origin/main=c27ab5a with 0 divergence (git rev-list --count origin/main..HEAD == 0 at dispatch).",
+  "budget": 9,
+  "workers": 4,
+  "worker_model": "openai/gpt-6.1-terra",
+  "worker_provider": "xkiro",
+  "note": "This tick RESUMES the project's wave lineage (previous wave ai-plays-poke-foreman-2026-11-17-07-42-14 merged all 4 units; its residual rows are closeout work, not dispatch work). Four independent units, no depends_on edges between them (verified from the rows). Seams: W1 BTL-STORE-1 adds three NEW files only (no edits to battle_telemetry.py/cron_runner.py); W2 QA-029 edits pyproject.toml + a lint-config test; W3 DOC-025-R1 owns docs/observability-spec.md exclusively; W4 RELEASE-009 touches capture.py, docs (EXCLUDING observability-spec.md), scripts, tests, tools/console, .gitleaks.toml. docs/observability-spec.md is the only contested path and it is explicitly assigned to W3 with W4 instructed to defer it. Rows NOT dispatched, with route: QA-AI-PLAYS-POKE-RELENG-1/README-1/FOREMAN-3/REVIEW-1/DOCS-1 (all the same host gate: bunker-mvp disk 98% > 94% launch threshold; not repo code, host/qa-foreman owner); QA-AI-PLAYS-POKE-26 (deleting/renaming tags on the PUBLIC repo = release surface, OWNER-GATED); RELEASE-008 (public-repo security posture, needs gh settings changes = OWNER-GATED); SPEC-QUORUM-1 (process row, quorum, not code); INT-GATE-2/INT-GL-3 (gitreins judge-config rows whose only edit surface is .gitreins/config.yaml + criteria, which every concurrent worker's lifecycle writes to - shared-state hazard, kept out of a parallel wave and restated for a serial tick); MON-AIPP-5 (acceptance_criteria is null - prose-only; restated this tick into executable ACs, dispatchable next tick, and its doc home is the observability spec W3 owns this wave).",
+  "tasks": [
+    {
+      "id": "BTL-STORE-1",
+      "rows": ["BTL-STORE-1"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-BTL-STORE-1",
+      "branch": "wt/BTL-STORE-1",
+      "base_sha": "c27ab5a",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-10/brief-BTL-STORE-1.txt",
+      "depends_on": [],
+      "files": [
+        "src/core/battle_telemetry_store.py (new)",
+        "scripts/store_battle_telemetry.py (new)",
+        "tests/test_battle_store.py (new)"
+      ],
+      "venv": "provisioned (python3.11, uv, pytest+ruff+mypy+prometheus-client+pyboy)"
+    },
+    {
+      "id": "QA-029",
+      "rows": ["QA-AI-PLAYS-POKE-029"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-QA-029",
+      "branch": "wt/QA-029",
+      "base_sha": "c27ab5a",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-10/brief-QA-029.txt",
+      "depends_on": [],
+      "files": ["pyproject.toml", "tests/test_lint_config.py or tests/test_requirements_parity.py", "(fixes for newly-linted findings)"],
+      "venv": "provisioned (python3.11, uv, pytest+ruff==0.15.22+mypy)"
+    },
+    {
+      "id": "DOC-025-R1",
+      "rows": ["DOC-025"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-DOC-025-R1",
+      "branch": "wt/DOC-025-R1",
+      "base_sha": "c27ab5a",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-10/brief-DOC-025-R1.txt",
+      "depends_on": [],
+      "files": ["docs/observability-spec.md", "docs/api/cron_runner.md (only if strictly required)"],
+      "venv": "provisioned (python3.11, uv) - docs verification only"
+    },
+    {
+      "id": "RELEASE-009",
+      "rows": ["RELEASE-009"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-RELEASE-009",
+      "branch": "wt/RELEASE-009",
+      "base_sha": "c27ab5a",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-10/brief-RELEASE-009.txt",
+      "depends_on": [],
+      "files": ["capture.py", "scripts/*", "tests/test_jev4_dehardcoding.py", "tools/console/*", ".gitleaks.toml", "docs/* EXCEPT docs/observability-spec.md"],
+      "venv": "provisioned (python3.11, uv, pytest+ruff)"
+    }
+  ],
+  "manifest_written_at": "2026-11-17T05:32:00-05:00"
+}

@@ -2064,7 +2064,7 @@ tasks:
     missing. PROOF: paste the acceptance command output from the row.'
   status: complete
   created_at: '2026-11-17T07:44:44.416753+00:00'
-  completed_at: '2026-11-17T09:37:26.134548+00:00'
+  completed_at: '2026-11-17T11:46:52.478120+00:00'
 - id: DOC-024
   title: observability-spec still declares zero Prometheus instrumentation
   criteria:
@@ -2074,16 +2074,48 @@ tasks:
   created_at: '2026-11-17T07:44:44.958702+00:00'
   completed_at: '2026-11-17T09:44:11.312619+00:00'
 - id: DOC-025
-  title: node_exporter textfile completion record undocumented
+  title: Document the node_exporter textfile completion record
   criteria:
-  - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
-    missing. PROOF: paste the acceptance command output from the row.'
-  status: in_progress
-  created_at: '2026-11-17T07:44:45.851447+00:00'
+  - docs/observability-spec.md names --collector.textfile.directory and its match
+    with DEFAULT_TEXTFILE_DIR with a scrape example, states crash-before-write staleness
+    detection and that only the cron lane writes, enumerates closed label vocabularies,
+    and every cron_runner.py/metrics.py line citation resolves to the symbol it names
+  status: complete
+  created_at: '2026-11-17T10:31:04.800148+00:00'
+  completed_at: '2026-11-17T12:48:08.169790+00:00'
 - id: DOC-026
   title: per-mode decision model/provider keys missing from cron_runner docs
   criteria:
   - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
     missing. PROOF: paste the acceptance command output from the row.'
-  status: in_progress
+  status: complete
   created_at: '2026-11-17T07:44:46.398539+00:00'
+  completed_at: '2026-11-17T09:58:35.548055+00:00'
+- id: BTL-STORE-1
+  title: Append-only partitioned battle-telemetry store with per-run manifest
+  criteria:
+  - 'Implements specs/contracts/battle-telemetry.md 4/5/7/9: partition files battle-<run_id>-ep<EEE>-enc<CCC>.jsonl
+    under namespace pokemon-battle, 512-record and 262144-byte caps with continued_from
+    continuation, idempotent per-encounter rewrite, manifest at /game/battle/<run_id>/manifest
+    with E1..E6 index keys, JSONL tests green'
+  status: complete
+  created_at: '2026-11-17T10:30:54.184522+00:00'
+  completed_at: '2026-11-17T12:26:56.127458+00:00'
+- id: QA-AI-PLAYS-POKE-029
+  title: Lint every tracked .py file
+  criteria:
+  - ruff check src/ tests/ lints the same tracked file set as git ls-files *.py; default
+    and --no-respect-gitignore finding counts agree; regression test fails on pre-fix
+    config
+  status: complete
+  created_at: '2026-11-17T10:31:00.065396+00:00'
+  completed_at: '2026-11-17T12:41:46.378303+00:00'
+- id: RELEASE-009
+  title: Stop publishing absolute host paths
+  criteria:
+  - git grep -lE /home/kara excluding .coding-hermes/.gitreins returns only declared
+    dated-evidence exceptions; every runtime path made portable is exercised green;
+    docs/observability-spec.md deferred to DOC-025-R1
+  status: complete
+  created_at: '2026-11-17T10:31:07.838286+00:00'
+  completed_at: '2026-11-17T11:37:06.696231+00:00'
