@@ -105,7 +105,7 @@ Three distinct execution surfaces, all reading the same 10k-line game loop:
 
 | Surface | Entry | Lifetime | HTTP? |
 |---|---|---|---|
-| Autonomous cron lane | `.coding-hermes/cron.sh` → `cron_runner.py` (`CYCLES = 20`, cron_runner.py:51-53) | short (one run, ≤20 cycles) | none |
+| Autonomous cron lane | `.coding-hermes/cron.sh` → `cron_runner.py` (`CYCLES = 20`, cron_runner.py:63-65) | short (one run, ≤20 cycles) | none |
 | Operator dashboard | `python3 -m src.dashboard.main` (src/dashboard/main.py:562-580) | long-running (uvicorn, `PTP_DASHBOARD_PORT` default 8000) | yes, FastAPI |
 | Single-cycle CLI | `run_cycle.py` | seconds | none |
 | Emulator bridge (MCP/console backend) | `scripts/game_bridge.py`, loopback TCP 127.0.0.1 (scripts/game_bridge.py:511) | long-running | raw TCP, not HTTP-scrapable |
@@ -169,7 +169,7 @@ tests/test_logger.py:11
 
 `grep -rn "get_logger\|AILogger()" src scripts cron_runner.py` → only `logger.py` itself.
 The game loop uses `print` and a `safe_print` wrapper (cron_runner.py:18-23) and a module-level
-`json.dumps(...)` append (cron_runner.py:5913). `import logging` / `getLogger` appear **nowhere** in
+`json.dumps(event, default=str) + "\n"` append + flush (cron_runner.py:6145-6147). `import logging` / `getLogger` appear **nowhere** in
 `cron_runner.py`, `scripts/game_bridge.py`, or `src/dashboard/main.py`.
 
 Consequence, verified on disk: `logs/api/api.log`, `logs/battles/battles.log`,
@@ -181,7 +181,7 @@ or alert built on those files is built on nothing.
 
 | Artifact | Path | Written by | Contents |
 |---|---|---|---|
-| Per-run decision ledger | `cron_logs/run_<run_id>.jsonl` | `cron_runner.py:950`, `_append_run_event` :5905-5914 (append + flush) | per-cycle decision rows, navigation, teacher escalation |
+| Per-run decision ledger | `cron_logs/run_<run_id>.jsonl` | `cron_runner.py:967`, `_append_run_event` :6136-6147 (append + flush) | per-cycle decision rows, navigation, teacher escalation |
 | End-of-run autonomy block | same file, `event: run_autonomy` (`_write_autonomy_row` :5395) | cron_runner.py | counters, ratios, rates |
 | Episode summary | `cron_logs/*_episodes.jsonl` | `scripts/dist1_episodes.py`, `run_base1_baseline.py`, `benchmark_llm_vs_jev.py` | wall time, exit code, cost, map sequence, errors |
 | Long-run status | `long_run_status.json` | `scripts/long_run.py` | goal, ladder, elapsed, totals |
@@ -333,10 +333,10 @@ proposal — grep `src/observability/metrics.py` for the name and you get nothin
 | 1,2 | `_run_cycles` loop, `t0 = time.time()` (cron_runner.py:8302) and `elapsed = time.time() - t0` (:8934, :9765, :10023) | elapsed is computed, formatted into a `print`, and thrown away (:8936) |
 | 3,12,13,14 | `log_api_call(model, duration_ms, input_tokens, output_tokens, cost, success)` (src/core/ai_client.py:102-118) | every field needed for four metrics arrives **as parameters** and is `print`ed |
 | 4 | same; plus `teacher_escalation.cost_usd` (cron_runner.py, run log) | cost is summed nowhere globally; the dashboard's is hardcoded `0.0` |
-| 6,7,8 | `_autonomy_counters` (cron_runner.py:4987-...) | counters computed at run **end** from rows, written to JSONL |
+| 6,7,8 | `_autonomy_counters` (cron_runner.py:5004-...) | counters computed at run **end** from rows, written to JSONL |
 | 9,10 | `_write_autonomy_row` (:5395), episode writers in `scripts/` | terminal state never leaves the file |
 | 11,16 | `_jev_teacher_escalation` (:3651), `escalation_class_of` (:3729) | escalation counted per-run in a dict |
-| 15 | `_probe_api_key` (cron_runner.py:636), `_check_configured_keys` (:675) | probes at boot, result printed once, then forgotten |
+| 15 | `_probe_api_key` (cron_runner.py:648), `_check_configured_keys` (:687) | probes at boot, result printed once, then forgotten |
 | 17,18 | `_cycle_frame_hash` (:2247), `_ow_track_stuck` VOID/same-screen trackers (:8941-8966) | desync proxy is a threshold that triggers *recovery*, not a signal |
 | 22,23 | `handle`/`worker` in scripts/game_bridge.py (:440-500) | `except Exception: pass` around every reply (:441-444) |
 
@@ -606,7 +606,7 @@ duration families and NOT on the completed counter, so a scrape can carry
 `aipp_run_duration_seconds_count{outcome="unknown"}` while `aipp_run_completed_total{outcome="unknown"}`
 does not exist. Neither appears from the cron lane in practice — both call sites pass a literal
 (`completed`/`gave_up` at :10426, `error` at :7963) — but the dashboard surface DOES run
-`aipp_run_completed_total` through `run_outcome_label()` (metrics.py:356), so the same family name can
+`aipp_run_completed_total` through `run_outcome_label()` (metrics.py:181, called at :355), so the same family name can
 carry `unknown` on one surface and not the other.
 
 **Verifying this without a live game run.** The probe below calls the shipped writer twice into a
