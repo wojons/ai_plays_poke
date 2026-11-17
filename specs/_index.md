@@ -10,7 +10,8 @@ Status: DRAFT v0.1, 2026-11-11. Facts measured; quorum NOT yet convened.
 | 00-overview.md | actors, boundary, invariants, surfaces | INV-1 measured VIOLATED |
 | flows/ FLOW-01, FLOW-02 | perceive-decide-act; operator console; fleet loop | failure paths + day-one + concurrency |
 | modules/ MOD-01..06 | bridge, RAM reader, vision, decision core, console, fleet | owns / does-not-own / failure modes |
-| contracts/_matrix.md | CT-01..07 + R-001..R-010 | 3 measured violations named |
+| contracts/_matrix.md | CT-01..08 + R-001..R-014 | 3 measured violations named |
+| contracts/battle-telemetry.md | CONTRACT WRITTEN (BTL-SCHEMA-1) | record schema, partition layout (`battle-<run_id>-ep<EEE>-enc<CCC>.jsonl`, ≤512 rec/256 KiB), exclusion-by-key + manifest, worked 2-model comparison; judged by its own §7.1 script; children BTL-RAM-1 / BTL-STORE-1 / BTL-COMPARE-1 |
 | handbook SET (10 sheets) | RENDERED, merged, folio-verified | docs/handbook/aipp-handbook.pdf |
 
 ## Coverage statement (areas measured 2026-11-11)
