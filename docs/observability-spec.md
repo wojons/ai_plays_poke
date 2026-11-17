@@ -12,7 +12,7 @@ Audit date: 2026-11-03. Re-verified against tree `031d7b3`: 2026-11-17. Line num
 (`cron_runner.py` grew 6 lines, which is why citations measured at `031d7b3` read 5–7 lines early).
 Citations inside the 2026-11-03 body (§0–§3) are audit history measured on that day's tree; the
 dated UPDATE blocks are the ones that resolve against the current tree.
-Product repo: `/home/kara/ai_plays_poke`.
+Product repo: the checkout this page lives in (`docs/`'s parent — `git rev-parse --show-toplevel`).
 
 ---
 
