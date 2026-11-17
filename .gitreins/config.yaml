@@ -93,9 +93,15 @@ pipeline:
         secrets: harness state excluded from gitleaks scope (.gitreins/**)\"; fi; else _glrc=0; echo \"secrets: scanners=builtin cross-check only (gitleaks not on PATH)\"; echo \"secrets: gitleaks: not on PATH\"; fi; g1=$_glrc; PYTHONPATH=\"/home/kara/.local/share/pipx/venvs/gitreins/lib/python3.14/site-packages\" /home/kara/.local/share/pipx/venvs/gitreins/bin/python -c \"from engine.guard_manager import GuardManager; import sys; gm = GuardManager('.'); r = gm._builtin_secrets_scan(staged_only=False); print('secrets: builtin cross-check: ' + r.output); print('secrets: builtin cross-check status: ' + (r.scanners[0][1] if r.scanners else 'clean')); sys.exit(1 if not r.passed else 0)\"; g2=$?; [ \"$g1\" -eq 0 ] && [ \"$g2\" -eq 0 ]"
       on_fail: continue
       timeout: 600
+    # QA-AI-PLAYS-POKE-029 moved ruff off .gitignore discovery (respect-gitignore=false)
+    # so the lint gate sees every TRACKED file. `ruff check .` then also started linting
+    # gitignored host artifacts sitting in the operator's checkout (db_count.py,
+    # diag_*.py, tools/foreman-diagnostics/_*.py), failing tier1 on files CI never sees.
+    # The gate now names the same scope CI uses (.github/workflows/ci.yml:84-85), so a
+    # local guard verdict and the CI verdict cannot disagree about lint.
     - id: lint
       type: script
-      run: 'if command -v ruff >/dev/null 2>&1; then _gr_nice="nice -n 10"; if nice -n 10 true >/dev/null 2>&1; then echo "scanners: nice=nice -n 10"; else _gr_nice=""; echo "scanners: nice unavailable (nice -n 10 did not run); running at default priority"; fi; $_gr_nice ruff check . --quiet; else echo "GITREINS_SKIP: lint=no linter on PATH (ruff not found)"; exit 0; fi'
+      run: 'if command -v ruff >/dev/null 2>&1; then _gr_nice="nice -n 10"; if nice -n 10 true >/dev/null 2>&1; then echo "scanners: nice=nice -n 10"; else _gr_nice=""; echo "scanners: nice unavailable (nice -n 10 did not run); running at default priority"; fi; $_gr_nice ruff check src/ tests/ --quiet; else echo "GITREINS_SKIP: lint=no linter on PATH (ruff not found)"; exit 0; fi'
     - id: tests
       type: script
       run: '_gr_nice="nice -n 10"; if nice -n 10 true >/dev/null 2>&1; then echo "scanners: nice=nice -n 10"; else _gr_nice=""; echo "scanners: nice unavailable (nice -n 10 did not run); running at default priority"; fi; $_gr_nice sh -c ''./venv/bin/pytest -x --tb=short'''
