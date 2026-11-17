@@ -3,9 +3,10 @@
 Tests emulator boot, GameMemory, PromptStack, Tool parsing, and code structure.
 """
 
+import os  # noqa: E402
 import sys  # noqa: E402
 
-sys.path.insert(0, "/home/kara/ai_plays_poke")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 print("=== PHASE 4 INTEGRATION VERIFICATION ===\n")
 

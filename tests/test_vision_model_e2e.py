@@ -19,9 +19,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def _load_repo_env() -> str | None:
+    """Read the repo .env derived from this file's own location.
+
+    The repo root comes from ``ROOT`` (this test file's parent directory), so a
+    checkout on any host works.  There is deliberately no absolute host-path
+    fallback: when the .env is absent the caller skips the live test instead.
+    """
     env_path = ROOT / ".env"
-    if not env_path.exists():
-        env_path = Path("/home/kara/ai_plays_poke/.env")
     if not env_path.exists():
         return None
     try:

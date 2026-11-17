@@ -1,8 +1,9 @@
 """Quick smoke test for Phase 4 components."""
 
+import os  # noqa: E402
 import sys  # noqa: E402
 
-sys.path.insert(0, "/home/kara/ai_plays_poke")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.core.memory import GameMemory  # noqa: E402
 
