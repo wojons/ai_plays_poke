@@ -88,6 +88,39 @@ _TEACHER_ESCALATIONS = _metric(
     ("improved",),
 )
 
+# ── Model call cost/errors, in depth (MON-AIPP-4) ───────────────────
+# `log_api_call` already RECEIVES the duration, both token counts, the cost
+# and the success flag of every model call and only prints them, so a slow or
+# dead provider stays invisible to a scrape. These four families make the call
+# shape scrapeable: latency, context growth by direction, failover cause by
+# reason, and which configured credential is dead. `model_family` always comes
+# from `model_family()` — never a raw model string — and `key_name` is a STATIC
+# enum of the env-var NAMES this repo probes (spec §5), never a value.
+_MODEL_CALL_DURATION = _metric(
+    Histogram,
+    "aipp_model_call_duration_seconds",
+    "Model API call duration in seconds, by model family.",
+    ("model_family",),
+)
+_MODEL_TOKENS = _metric(
+    Counter,
+    "aipp_model_tokens_total",
+    "Tokens sent to and returned by model APIs, by model family and direction.",
+    ("model_family", "direction"),
+)
+_MODEL_RETRIES = _metric(
+    Counter,
+    "aipp_model_retries_total",
+    "Model API retry attempts, by model family and the reason that forced them.",
+    ("model_family", "reason"),
+)
+_CREDENTIAL_VALID = _metric(
+    Gauge,
+    "aipp_credential_valid",
+    "Boot key-liveness probe result by probed env-var name: 1 live, 0 dead.",
+    ("key_name",),
+)
+
 # Closed label vocabularies. Dashboards scrape these families, so an
 # operator-supplied spelling must never be able to mint a new series.
 _DECISION_MODE_LABELS = frozenset(
@@ -103,6 +136,14 @@ _DECISION_MODE_LABELS = frozenset(
     }
 )
 _RUN_OUTCOME_LABELS = ("completed", "error", "gave_up", "unknown")
+_TOKEN_DIRECTION_LABELS = ("input", "output")
+_RETRY_REASON_LABELS = ("auth", "quota", "5xx", "timeout")
+# The only key NAMES this repo probes (cron_runner._KEY_PROBE_URLS). The enum
+# lives here because cron_runner imports this module, not the other way round;
+# tests/test_observability_model_metrics.py pins the two sets equal, so adding
+# a probe URL without extending the enum fails loudly instead of minting a
+# series outside the closed vocabulary.
+_CREDENTIAL_KEY_LABELS = frozenset({"OPENROUTER_API_KEY", "DEEPSEEK_API_KEY"})
 
 # Materialize zero-valued series so every P0 metric is visible on the first scrape.
 _RUN_CYCLES.labels(mode="unknown", pipeline="unknown")
@@ -118,6 +159,14 @@ _RUN_COMPLETED.labels(outcome="completed").inc(0)
 _RUN_DURATION.labels(outcome="completed")
 _TEACHER_ESCALATIONS.labels(improved="true").inc(0)
 _TEACHER_ESCALATIONS.labels(improved="false").inc(0)
+_MODEL_CALL_DURATION.labels(model_family="other")
+_MODEL_TOKENS.labels(model_family="other", direction="input").inc(0)
+_MODEL_TOKENS.labels(model_family="other", direction="output").inc(0)
+_MODEL_RETRIES.labels(model_family="other", reason="auth").inc(0)
+# `_CREDENTIAL_VALID` is deliberately NOT materialized: a series minted here
+# would read as "dead" for a key this host never configured. The boot probe
+# mints one series per CONFIGURED key NAME only, which is what keeps the
+# `key_name` cardinality at the number of probes the host actually runs.
 
 
 def decision_mode_label(mode: str | None) -> str:
@@ -153,6 +202,34 @@ def model_family(model: str) -> str:
     return "other"
 
 
+def token_direction_label(direction: str | None) -> str | None:
+    """Map a token direction onto the closed vocabulary (None = do not count)."""
+    if isinstance(direction, str) and direction in _TOKEN_DIRECTION_LABELS:
+        return direction
+    return None
+
+
+def retry_reason_label(reason: str | None) -> str | None:
+    """Map a retry cause onto the closed vocabulary; None when unattributable.
+
+    An unattributable retry is NOT counted: a guessed bucket would make the
+    breakdown look classified when it is not, which is worse than a gap the
+    operator can see.
+    """
+    if isinstance(reason, str):
+        normalised = reason.strip().lower()
+        if normalised in _RETRY_REASON_LABELS:
+            return normalised
+    return None
+
+
+def credential_key_label(key_name: str | None) -> str | None:
+    """Map a probed env-var name onto the static enum; None mints no series."""
+    if isinstance(key_name, str) and key_name in _CREDENTIAL_KEY_LABELS:
+        return key_name
+    return None
+
+
 def observe_cycle(mode: str, pipeline: str) -> None:
     try:
         _RUN_CYCLES.labels(mode=mode, pipeline=pipeline).inc()
@@ -174,6 +251,70 @@ def observe_model_call(model: str, cost: float, success: bool) -> None:
         _MODEL_CALLS.labels(model_family=family, outcome=outcome).inc()
         if cost > 0:
             _MODEL_COST.labels(model_family=family).inc(cost)
+    except Exception:  # noqa: BLE001 - telemetry must never escape to callers
+        return None  # noqa: RET501
+
+
+def observe_model_duration(model: str, seconds: float) -> None:
+    """Record one model call's wall-clock duration (MON-AIPP-4)."""
+    try:
+        _MODEL_CALL_DURATION.labels(model_family=model_family(model)).observe(
+            max(0.0, float(seconds or 0.0))
+        )
+    except Exception:  # noqa: BLE001 - telemetry must never escape to callers
+        return None  # noqa: RET501
+
+
+def observe_model_tokens(model: str, input_tokens: int, output_tokens: int) -> None:
+    """Record both token directions for one model call (MON-AIPP-4).
+
+    Both directions are published from the same call so a dashboard can divide
+    output by input without two different sampling paths; a negative count is
+    clamped to zero rather than allowed to walk a counter backwards.
+    """
+    try:
+        family = model_family(model)
+        _MODEL_TOKENS.labels(model_family=family, direction="input").inc(
+            max(0, int(input_tokens or 0))
+        )
+        _MODEL_TOKENS.labels(model_family=family, direction="output").inc(
+            max(0, int(output_tokens or 0))
+        )
+    except Exception:  # noqa: BLE001 - telemetry must never escape to callers
+        return None  # noqa: RET501
+
+
+def observe_model_retry(model: str, reason: str | None, count: int = 1) -> None:
+    """Record retry attempts attributed to the cause that forced them.
+
+    Called at the point a retry is DECIDED (the backoff loop), because that is
+    where the status code or exception class is in hand. An unattributable
+    reason, or a non-positive count, records nothing.
+    """
+    try:
+        reason_label = retry_reason_label(reason)
+        amount = max(0, int(count or 0))
+        if reason_label is None or amount <= 0:
+            return None
+        _MODEL_RETRIES.labels(
+            model_family=model_family(model), reason=reason_label
+        ).inc(amount)
+    except Exception:  # noqa: BLE001 - telemetry must never escape to callers
+        return None  # noqa: RET501
+
+
+def set_credential_valid(key_name: str, valid: bool) -> None:
+    """Publish one boot key-liveness result (MON-AIPP-4).
+
+    ``key_name`` is an ENV-VAR NAME from the static enum; a name outside it
+    (a key this repo does not probe) records nothing, so an unconfigured
+    credential can never appear as a dead series.
+    """
+    try:
+        label = credential_key_label(key_name)
+        if label is None:
+            return None
+        _CREDENTIAL_VALID.labels(key_name=label).set(1 if valid else 0)
     except Exception:  # noqa: BLE001 - telemetry must never escape to callers
         return None  # noqa: RET501
 

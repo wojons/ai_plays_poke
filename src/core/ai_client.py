@@ -23,7 +23,12 @@ import numpy as np
 from PIL import Image
 import requests
 
-from src.observability.metrics import observe_model_call
+from src.observability.metrics import (
+    observe_model_call,
+    observe_model_duration,
+    observe_model_retry,
+    observe_model_tokens,
+)
 
 try:
     from src.vision import (
@@ -108,10 +113,28 @@ def log_api_call(
     output_tokens: int,
     cost: float,
     success: bool = True,
+    retry_count: int = 0,
+    reason: str | None = None,
 ) -> None:
-    """Simple logging function for API calls (survives broken stdout)"""
+    """Simple logging function for API calls (survives broken stdout).
+
+    MON-AIPP-4: the same parameters now feed the latency, token and retry
+    families (``aipp_model_call_duration_seconds``, ``aipp_model_tokens_total``,
+    ``aipp_model_retries_total``) — the values were already arriving here and
+    only being printed. ``retry_count``/``reason`` default to "no retries" so
+    every existing caller keeps working.
+
+    A retry is normally counted where it is DECIDED
+    (``_handle_retry_response``), because the status/exception that forced it is
+    in hand there. Pass ``retry_count`` here only when this call is the sole
+    recorder, or the same retry is counted twice.
+    """
     try:
         observe_model_call(model, cost, success)
+        observe_model_duration(model, duration_ms / 1000.0)
+        observe_model_tokens(model, input_tokens, output_tokens)
+        if retry_count > 0:
+            observe_model_retry(model, reason, retry_count)
     except Exception:  # noqa: BLE001 - metrics are best-effort instrumentation
         pass
     try:
@@ -122,6 +145,32 @@ def log_api_call(
         )
     except (BrokenPipeError, OSError):
         pass
+
+
+def _retry_reason_for_status(status_code: int | None) -> str | None:
+    """Map a provider status onto the retry vocabulary (MON-AIPP-4).
+
+    Only statuses this module already branches on are classified; anything else
+    returns ``None`` and is not counted, so the reason breakdown never claims a
+    cause the code did not know.
+    """
+    if status_code == 429:
+        return "quota"
+    if status_code in (401, 403):
+        return "auth"
+    if isinstance(status_code, int) and status_code >= 500:
+        return "5xx"
+    return None
+
+
+def _retry_reason_for_exception(exc: BaseException) -> str | None:
+    """Classify a failed attempt from what the exception already carries."""
+    if isinstance(exc, (requests.exceptions.Timeout, TimeoutError)):
+        return "timeout"
+    status = getattr(exc, "status_code", None)
+    if status is None:
+        status = getattr(getattr(exc, "response", None), "status_code", None)
+    return _retry_reason_for_status(status)
 
 
 def log_vision_analysis(
@@ -732,14 +781,22 @@ class OpenRouterClient:
         self,
         response: "requests.Response",
         attempt: int,
+        model: str = "",
     ) -> bool:
-        """Handle 429/5xx backoff. Return True if the caller should retry."""
+        """Handle 429/5xx backoff. Return True if the caller should retry.
+
+        MON-AIPP-4: a retry that is actually initiated is counted here, where
+        the status that forced it is in hand. ``model`` only feeds the
+        ``model_family`` label and defaults to the unattributed family, so a
+        direct caller keeps working.
+        """
         if response.status_code == 429:
             wait = 2**attempt  # 1s, 2s, 4s
             print(
                 f"  [API] Rate limited (429), backing off {wait}s (attempt {attempt + 1}/3)"
             )
             time.sleep(wait)
+            observe_model_retry(model, "quota")
             return True
 
         if response.status_code >= 500 and attempt < 2:
@@ -748,6 +805,7 @@ class OpenRouterClient:
                 f"  [API] Server error {response.status_code}, retrying in {wait}s (attempt {attempt + 1}/3)"
             )
             time.sleep(wait)
+            observe_model_retry(model, "5xx")
             return True
 
         return False
@@ -791,8 +849,10 @@ class OpenRouterClient:
 
         start_time = time.time()
         last_error = None
+        last_status: int | None = None
 
         for attempt in range(3):  # up to 3 retries with backoff
+            last_status = None
             try:
                 response = requests.post(
                     f"{base_url}/chat/completions",
@@ -802,10 +862,14 @@ class OpenRouterClient:
                 )
                 duration_ms = (time.time() - start_time) * 1000
 
-                if self._handle_retry_response(response, attempt):
+                if self._handle_retry_response(response, attempt, model):
                     continue
 
                 if response.status_code != 200:
+                    # Kept for the retry-reason attribution below: the raise is
+                    # caught by this loop's own `except`, and the status is the
+                    # only place that knows WHY the attempt failed.
+                    last_status = int(response.status_code)
                     error_info = response.json() if response.content else response.text
                     print(f"OpenRouter API error {response.status_code}: {error_info}")
                     raise Exception(
@@ -821,6 +885,15 @@ class OpenRouterClient:
                 last_error = e
                 if attempt < 2:
                     wait = 2**attempt
+                    # MON-AIPP-4: attribute this retry from what the branch
+                    # already knows — the response status when the non-200
+                    # branch raised, otherwise the exception class. An
+                    # unattributable failure counts nothing.
+                    observe_model_retry(
+                        model,
+                        _retry_reason_for_exception(e)
+                        or _retry_reason_for_status(last_status),
+                    )
                     try:
                         print(
                             f"  [API] Request failed: {e}, retrying in {wait}s (attempt {attempt + 1}/3)"
@@ -836,6 +909,18 @@ class OpenRouterClient:
 
         # All retries exhausted
         self.circuit_breaker.record_failure()
+        # MON-AIPP-4: a call that died is still a call, so its wall time and its
+        # `outcome="error"` are published through the same log_api_call path the
+        # success path uses (per-reason retries were counted where they were
+        # decided, so retry_count stays 0 here and nothing is double counted).
+        log_api_call(
+            model,
+            (time.time() - start_time) * 1000,
+            0,
+            0,
+            0.0,
+            False,
+        )
         raise last_error or Exception("All API retries exhausted")
 
     def get_vision_response(
