@@ -7,14 +7,26 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 import time
 import urllib.request
 from pathlib import Path
 from typing import Any
 
 C = "http://127.0.0.1:8899"
-REPO = Path("/home/kara/ai_plays_poke")
+# The checkout under test: AIPP_REPO wins, else the repo this tool sits in.
+REPO = Path(os.environ.get("AIPP_REPO") or Path(__file__).resolve().parents[2])
+# Its venv interpreter, whichever the checkout carries (.venv py3.13 or venv py3.11).
+PY = next(
+    (
+        str(p)
+        for p in (REPO / ".venv/bin/python", REPO / "venv/bin/python")
+        if p.is_file()
+    ),
+    sys.executable,
+)
 
 
 def get(path: str, timeout: int = 30) -> dict[str, Any]:
@@ -111,7 +123,7 @@ if new_snap:
 print("\nrestoring the game from its save...")
 subprocess.run(
     [
-        str(REPO / ".venv/bin/python"),
+        PY,
         "scripts/play.py",
         "load",
         "pallet_outside_house_20260929",

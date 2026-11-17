@@ -39,13 +39,13 @@ make qa-console-dry-run
 The QA lane should run the same target from the canonical checkout:
 
 ```bash
-cd /home/kara/ai_plays_poke && make qa-console
+cd "$(git rev-parse --show-toplevel)" && make qa-console
 ```
 
 For cron, prevent overlapping live passes and preserve the runner's exit status:
 
 ```cron
-17 * * * * cd /home/kara/ai_plays_poke && flock -n /tmp/aipp-console-qa.lock make qa-console >> /home/kara/aipp-console/data/qa.log 2>&1
+17 * * * * cd "$HOME/ai_plays_poke" && flock -n /tmp/aipp-console-qa.lock make qa-console >> "$HOME/aipp-console/data/qa.log" 2>&1
 ```
 
 A failed endpoint, ignored toggle value, tool crash, or failed panel check makes the
@@ -65,8 +65,8 @@ command exit non-zero, so the QA lane/cron can alert instead of recording a fals
 - `vision_10x9.md` — the prompt that measured best.
 
 The individual tools can still be run with the project venv when an approved
-interactive investigation needs them:
+interactive investigation needs them (from the repo root):
 
 ```bash
-/home/kara/ai_plays_poke/venv/bin/python tools/console/test_controls.py
+./venv/bin/python tools/console/test_controls.py
 ```

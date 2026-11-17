@@ -11,12 +11,21 @@ only in a figure caption is an unverified claim wearing a uniform.
 
 from __future__ import annotations
 
+import os
 import subprocess
+from pathlib import Path
 
 DOC_NO = "AP1A-03"
 PROGRAM = "AI-PLAYS-POKE OPERATIONS HANDBOOK"
 PART = "SYSTEMS DATA"
 BASIC_DATE = "24 September 2026"
+
+# The NASA-handbook renderer this house style prints through. It is a skill path, not
+# a repo path: AIPP_HANDBOOK_RENDER relocates it wherever the skill lives.
+RENDER_SH = Path(
+    os.environ.get("AIPP_HANDBOOK_RENDER")
+    or (Path.home() / ".hermes/skills/nasa-handbook/scripts/render.sh")
+)
 
 CSS = """
   @font-face { font-family: "Routed Gothic"; src: url("fonts/routed-gothic.ttf"); unicode-range: U+0000-0030, U+0032-FFFF; }
@@ -211,7 +220,7 @@ def figure(svg: str, caption: str, code: str) -> str:
 def print_pdf(html_path: str) -> tuple[str, str]:
     """Render one sheet; returns (pdf_path, fit_line). Raises on overflow."""
     out = subprocess.run(
-        ["sh", "/home/kara/.hermes/skills/nasa-handbook/scripts/render.sh", html_path],
+        ["sh", str(RENDER_SH), html_path],
         capture_output=True,
         text=True,
     )

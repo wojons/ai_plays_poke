@@ -5,7 +5,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, "/home/kara/ai_plays_poke")
+# Resolve the repo from this file so the script runs from any checkout or worktree.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from src.core.emulator import Emulator
 from PIL import Image
 
