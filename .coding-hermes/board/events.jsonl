@@ -904,3 +904,4 @@
 {"id":895,"timestamp":"2026-11-17T12:54:48+00:00","event_type":"task_completed","task_id":"QA-AI-PLAYS-POKE-029","actor":"foreman","tick_number":null,"detail":"{\"status\":\"complete\"}"}
 {"id":896,"timestamp":"2026-11-17T14:05:21+00:00","event_type":"task_created","task_id":"INT-GATE-003","actor":"foreman","tick_number":null,"detail":"{\"id\":\"INT-GATE-003\",\"status\":\"pending\"}"}
 {"id":897,"timestamp":"2026-11-17T14:05:28+00:00","event_type":"task_updated","task_id":"INT-GATE-003","actor":"foreman","tick_number":null,"detail":"{\"title\":\"[P2] acceptance_gate flag arm false-negatives flags owned by external CLIs (blocks QA-AI-PLAYS-POKE-28)\"}"}
+{"id":898,"timestamp":"2026-11-17T14:27:06+00:00","event_type":"task_created","task_id":"INT-CI-004","actor":"foreman","tick_number":null,"detail":"{\"id\":\"INT-CI-004\",\"status\":\"pending\"}"}
