@@ -3,12 +3,18 @@
 import os  # noqa: E402
 import sys  # noqa: E402
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+import pytest  # noqa: E402
 
-# Load API key from Kobayashi-Maru env
-api_key = None
-env_path = "/home/kara/Kobayashi-Maru/.hermes/.env"
-if os.path.exists(env_path):
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Resolve the credential from this checkout only: the process environment first,
+# then this repo's own .env (path derived from this file, never an absolute host
+# path or another project's .env).  Missing key ⇒ skip, never fail.
+api_key = os.environ.get("OPENROUTER_API_KEY") or None
+env_path = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"
+)
+if not api_key and os.path.exists(env_path):
     with open(env_path) as f:
         for line in f:
             line = line.strip()
@@ -17,8 +23,11 @@ if os.path.exists(env_path):
                 break
 
 if not api_key:
-    print("ERROR: Could not find OPENROUTER_API_KEY")
-    sys.exit(1)
+    pytest.skip(
+        "OPENROUTER_API_KEY not available (process env and repo .env both "
+        "absent); skipping live vision integration script",
+        allow_module_level=True,
+    )
 
 os.environ["OPENROUTER_API_KEY"] = api_key
 print(f"API key loaded ({len(api_key)} chars)")
