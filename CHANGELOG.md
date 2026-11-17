@@ -7,13 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- Added a RAM-reader-first gameplay pipeline for fast, zero-cost state extraction.
-- Added `cron_runner.py` boot-state checkpoints and setup preflight validation.
-- Hardened `game_bridge.py` with bounded workers and serialized emulator access.
-- Persisted RAM-derived save and run summaries, with prior memory injected at boot.
-
 ## [1.2.0] - 2026-11-16
 
 ### Added
@@ -37,10 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Range `v1.1.0..bb10268`: 17 commits, 3 material (1 feat, 2 fix), 14 bookkeeping
   (10 board, 4 handbook/spec docs).
 - No breaking changes in this release (`BREAKING CHANGE:` / `type!:` census = 0).
-- `## [Unreleased]` still carries four bullets that are present unchanged since
-  `v1.0.0` and cannot be bound to any commit in this range; they are deliberately
-  not claimed by `1.2.0` and remain on the board as changelog provenance debt
-  (RELEASE-010).
+- The Unreleased section carried four bullets present unchanged since `v1.0.0` and
+  unbound to any commit in this range; they were deliberately not claimed by `1.2.0`.
+  RELEASE-010 was resolved on 2026-11-17 by binding all four to the commits that landed
+  them and filing them under `[1.0.0]` — see that section's "Backfilled provenance" and
+  Notes.
 - Rollback path: previous release `v1.1.0`.
 
 ## [1.1.0] - 2026-11-04
@@ -136,6 +130,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Memory architecture (tri-tier: Observer/Strategist/Tactician)
   - Technology stack documentation
 
+#### Backfilled provenance (RELEASE-010)
+
+These four entries describe behaviour that was in the `v1.0.0` tree but sat under
+the Unreleased heading without a commit binding. Each is now bound to the commit that
+landed it.
+
+- RAM-reader-first gameplay pipeline for fast, zero-cost state extraction — `RAMReader`
+  (`src/core/ram_reader.py`) landed in `b0c6d2a`; wired as the primary observation
+  pipeline, replacing the vision cartographer, in `4ecd316`.
+- `cron_runner.py` boot-state checkpoints and setup preflight validation — the known-good
+  `data/boot.state` checkpoint plus `DEFAULT_BOOT_STATE` resolution and
+  `_resolve_boot_state()` in `31d990f` (GAP-028); the `_dry_run_precheck()` setup
+  validator in `8575fd8` (GAP-032). Two commits because the entry named two mechanisms.
+- `game_bridge.py` bounded workers and serialized emulator access — bounded connection
+  concurrency (`max_workers`, `queue.Queue(maxsize=max_workers)`) and one shared
+  `game_lock` serializing every Game/RAMReader access, in `640476c`.
+- Persisted RAM-derived save and run summaries, with prior memory injected at boot —
+  the MEM-1 end-of-run recorder writing `/game/runs/<id>/summary` and
+  `/game/save/{party,items,location}` from run truth in `ee67e9f`; the MEM-2
+  once-per-run boot-memory block (mechanics, save state, runs index, learning) appended
+  to the controller system prompt in `1fe0d3c`.
+
 ### Changed
 
 - Updated requirements.txt with correct dependencies
@@ -158,6 +174,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API key handling with environment variable configuration
 - Circuit breaker for API failure isolation
 - Rate limiting to prevent API abuse
+
+### Notes
+
+- Provenance backfill (2026-11-17, RELEASE-010): the four entries under "Backfilled
+  provenance" spent the `v1.0.0`→`v1.2.0` span under the Unreleased heading with no
+  commit binding. Each is now filed under the release whose tag tree actually contains
+  it,
+  verified two ways per entry: `git tag --contains <sha>` (all report `v1.0.0`) and a
+  read of the tag's own tree — `git ls-tree v1.0.0 src/core/ram_reader.py data/boot.state`,
+  plus `git show v1.0.0:cron_runner.py` (`DEFAULT_BOOT_STATE`, `_build_boot_memory_blocks`)
+  and `git show v1.0.0:scripts/game_bridge.py` (`max_workers`).
+- This section's date (2025-12-31) predates those commits (2026-07-05 … 2026-09-30).
+  Provenance here is bound to the tag's tree, which is what `git checkout v1.0.0` gives
+  an operator, not to the section header's date.
 
 ## Dependencies
 

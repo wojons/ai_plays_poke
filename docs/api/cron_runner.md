@@ -146,6 +146,7 @@ options:
 | `--handoff-ambiguity HANDOFF_AMBIGUITY` | `float` | `0.40` | Ambiguity gate for the layered confidence trigger (default 0.40); low confidence alone does not hand back unless the phase is irreversible. |
 | `--handoff-classes HANDOFF_CLASSES` | `str` | unset (any class may hand off) | Comma list of missing-information classes allowed to hand off (e.g. `map_topology`). Unset means any class may. |
 | `--teacher-max-per-episode N` | `int` | unset (unlimited) | Hard cap on teacher handoffs per episode. On exhaustion the run keeps playing on the fast tier and records why the handoff was blocked. Unset means unlimited. |
+| `--textfile-dir TEXTFILE_DIR` | `Path` | `/var/lib/node_exporter/textfile_collector` | node_exporter textfile collector directory (`cron_runner.py:7783-7791`, `DEFAULT_TEXTFILE_DIR` at `:58`). The runner writes one record per completed run to `<dir>/aipp_run.prom`, atomically, at close-out; the directory is created if absent. Point it at a scratch directory to keep a test run out of the host's collector. Full field list and write ordering: `docs/observability-spec.md` §4.3. |
 
 ## Decision modes and handoff
 
@@ -179,12 +180,42 @@ historical run logs); only the family branches runtime behavior.
 | Setting | Env vars (first set wins) | Default | Overriding flag |
 |---------|---------------------------|---------|-----------------|
 | Decision mode | `AIPP_DECISION_MODE`, `CRON_DECISION_MODE` | none; selection required | `--decision-mode` |
+| Controller model | `CRON_CONTROLLER_MODEL`, `POKE_CONTROLLER_MODEL` (`CONTROLLER_MODEL_ENV_VARS`, `cron_runner.py:77`) | `openai/gpt-5.6-luna` (`DEFAULT_CONTROLLER_MODEL`, `:76`) | `--controller-model` |
 | Teacher model | `AIPP_TEACHER_MODEL`, `CRON_TEACHER_MODEL` | resolved controller model | `--teacher-model` |
+| Per-mode System-Two model | `AIPP_SYSTEM2_MODEL`, `CRON_SYSTEM2_MODEL` | resolved controller model | — (env only) |
+| Per-mode System-Two provider | `AIPP_SYSTEM2_PROVIDER`, `CRON_SYSTEM2_PROVIDER` | `provider_of(model)` | — (env only) |
+| Per-mode hybrid model | `AIPP_HYBRID_MODEL`, `CRON_HYBRID_MODEL` | resolved teacher model | — (env only) |
+| Per-mode hybrid provider | `AIPP_HYBRID_PROVIDER`, `CRON_HYBRID_PROVIDER` | `provider_of(model)` | — (env only) |
+| Per-mode System-One provider | `AIPP_SYSTEM1_PROVIDER`, `CRON_SYSTEM1_PROVIDER` | `typesafe` (`provider_of("typesafe/jev-1.13")`) | — (env only) |
 | Handoff policy | `AIPP_HANDOFF`, `CRON_HANDOFF` | `any` (all three trigger families) | `--handoff` |
 
 An env var whose value is not a recognized spelling/policy is ignored and the
 next candidate is tried. If no decision-mode candidate is recognized, startup
 fails; an explicit flag always wins.
+
+**The per-mode model/provider vars** (`MODE_MODEL_ENV_VARS` / `MODE_PROVIDER_ENV_VARS`,
+`cron_runner.py:206-215`) are resolved by `resolve_mode_models()`
+(`cron_runner.py:251-313`) once at run setup, and the result is what
+`decision_model` / `decision_provider` / `mode_models` record on every decision row and on
+`run_autonomy`. Precedence inside a family is **per-mode env > the controller/teacher chain
+the caller already resolved**:
+
+| Family | Model | Provider |
+|---|---|---|
+| `system1` | `SYSTEM1_TIER_MODEL` = `typesafe/jev-1.13` — a protocol constant, not overridable | per-mode env, else `provider_of(model)` |
+| `system2` | `AIPP/CRON_SYSTEM2_MODEL`, else the resolved controller model | per-mode env, else `provider_of(model)` |
+| `system1+system2` | `AIPP/CRON_HYBRID_MODEL`, else the resolved teacher model | per-mode env, else `provider_of(model)` |
+| `active_family` | the entry of the family the run's `--decision-mode` selects | same |
+
+Two consequences worth knowing before you set one of these:
+
+- Setting a per-mode var changes the arm that *decides*, but **not** `controller_model` /
+  `teacher_model`, which keep recording the chain those families fall back to. Compare
+  `decision_model` against `controller_model` to see whether an override took effect.
+- `AIPP_SYSTEM1_MODEL` / `CRON_SYSTEM1_MODEL` are declared in `MODE_MODEL_ENV_VARS`
+  (`cron_runner.py:207`) but `resolve_mode_models()` never reads them — the System-One model
+  is the `SYSTEM1_TIER_MODEL` constant (`:219`). Setting them changes nothing; only the
+  System-One *provider* label is settable.
 
 ### Handoff policy
 
@@ -277,6 +308,10 @@ enable/revoke steps and the security model.
 
 - `cron_logs/run_<id>.jsonl` — one JSON object per line (see schema below).
 - `screenshots/run_<id>/step_NNNN.png` — 160×144 RGB frame per cycle (`BATTLE_NNNN.png` on rival battles).
+- `<textfile-dir>/aipp_run.prom` — node_exporter textfile completion record, one file per host,
+  rewritten atomically at close-out (default dir `/var/lib/node_exporter/textfile_collector`,
+  flag `--textfile-dir`). Carries the accumulated run counters and the last run's gauges; field
+  list, accumulation and write ordering live in `docs/observability-spec.md` §4.3.
 
 ## JSONL Log Schema (`cron_logs/run_<id>.jsonl`)
 
@@ -339,7 +374,7 @@ Use `jq` to inspect the decision evidence without mixing in recovery or state-sa
 
 ```bash
 # Every row carrying the JEV decision fields (overworld, starter, and JEV recovery rows)
-jq -c 'select(has("jev_answered") and .event != "run_autonomy") | {cycle,screen,event,pipeline,decision_mode,decision_mode_family,controller_model,teacher_model,jev_answered,escalated,missing_class,raw_distribution,jev_ok,jev_error}' cron_logs/run_<id>.jsonl
+jq -c 'select(has("jev_answered") and .event != "run_autonomy") | {cycle,screen,event,pipeline,decision_mode,decision_mode_family,controller_model,teacher_model,decision_model,decision_provider,jev_answered,escalated,missing_class,raw_distribution,jev_ok,jev_error}' cron_logs/run_<id>.jsonl
 
 # Run closeout plus the optional transport-degradation event
 jq -c 'select(.event == "run_autonomy" or .event == "run_degradation")' cron_logs/run_<id>.jsonl
@@ -354,6 +389,9 @@ jq -c 'select(.event == "run_autonomy" or .event == "run_degradation")' cron_log
 | `decision_mode_family` | `str` | Branchable family: `system1`, `system2`, or `system1+system2`. |
 | `controller_model` | `str` | Effective System-Two/controller model for the run. |
 | `teacher_model` | `str` | Effective hybrid teacher model; equals `controller_model` only when no teacher override was selected. |
+| `decision_model` | `str` | Model id of the arm that **actually decides** under this run's mode (ARM-2 AC3) — the `active_family` entry of `mode_models`, resolved once at run setup by `effective_decision_model(resolve_mode_models())` (`cron_runner.py:8101-8106`). Under `system1` it is the fast-tier protocol constant `typesafe/jev-1.13`; under `system2` the System-Two model; under `system1+system2` the hybrid/teacher model, because the teacher is the LLM whose output an escalated row carries. Stamped on every overworld decision row (`cron_runner.py:9117`) and on `run_autonomy`. |
+| `decision_provider` | `str \| null` | Provider the `decision_model` routes to: the per-mode provider env var when set, otherwise `provider_of(decision_model)` (`cron_runner.py:231-248`) — `typesafe` for a `typesafe/…` id, `deepseek` for any id whose name contains `deepseek`, else the segment before `/` (`openai/gpt-5.6-luna` → `openai`), else `null`. Same two row sites as `decision_model`. |
+| `mode_models` | `object` | The full per-mode map, keys `system1`, `system2`, `system1+system2`, and `active_family`. Each family entry is `{model, provider, source}`, where `source` names the precedence branch that won: `jev-fast-tier (protocol constant)`, `env per-mode`, `controller chain`, or `teacher/controller chain`. It names what every mode *would* use, not just the one that ran, so a benchmark can read a mode's model back out of the log without the launching shell. Stamped on every overworld decision row and on `run_autonomy`. |
 | `jev_answered` | `bool` | True only when the JEV request was `ok` **and** produced a valid action in that path's vocabulary. For starter selection this means a valid species; for battle recovery it means a valid battle action. A healthy transport response with an unusable choice is false and falls back rather than inventing an action. |
 | `escalated` | `bool` | True when the effective JEV decision (after any promoted-scenario re-ask) requested a handoff and the active handoff policy allowed it. A matching patch that resolves the class therefore records false without hiding the initial evidence. A policy-blocked trigger is false; inspect `handoff_trigger`, `handoff_allowed`, and `handoff_blocked_reason` to distinguish “no trigger” from “trigger blocked.” Teacher calls have their own `teacher_escalation` rows and the run-level `teacher_escalations` count. |
 | `missing_class` | `str \| null` | Effective missing-information class after any promoted-scenario re-ask (for example `none` when the patch resolved the gap). The overworld writer keeps strings only and normalizes other values to `null`. |
@@ -399,6 +437,7 @@ At normal run close, after the emulator stops, `_autonomy_counters()` derives on
 | `degraded` | `bool` | True only when there are at least 5 counted decisions **and** strictly more than 50% have `jev_ok: false`. |
 | `teacher_escalations` | `object` | `{count, improved}` summary of `teacher_escalation` event rows. |
 | `decision_mode` / `decision_mode_family` / `handoff_policy` | mixed | Effective run architecture, retained on the closeout row even when there were no decisions. |
+| `controller_model` / `teacher_model` / `decision_model` / `decision_provider` / `mode_models` | `str` / `str` / `str` / `str \| null` / `object` | The run's model chain (ARM-2 AC3): the controller and teacher models plus the deciding arm's model and provider, and the full per-mode map — identical to the values on the decision rows. See "Per-decision fields" for the semantics of each. |
 | `handoff_trigger_counts` / `handoff_blocked` | `object` / `int` | Trigger census and number refused by policy, derived from the decision rows. |
 
 For `system1` and hybrid/JEV runs, an autonomy ratio near `1.0` means the fast tier supplied nearly every counted decision; lower values mean more controller fallback. It is **not** a transport-health metric: use `jev_transport_failure_rate == 0`, `degraded == false`, and the absence of `jev_error` for that. In `system2` / `llm`, `autonomy_ratio == 0.0` is the healthy expected value because the fast tier is deliberately disabled.

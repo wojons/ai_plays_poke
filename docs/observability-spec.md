@@ -1,13 +1,66 @@
 # Observability Spec — ai-plays-poke
 
-Status: **audit + spec, no code changed.** Every claim below cites a file:line or a command that was actually run.
-Audit date: 2026-11-03. Product repo: `/home/kara/ai_plays_poke`.
+Status: **audit history retained; current state: instrumented.** The audit below is
+preserved as written on 2026-11-03 (its own status line said "audit + spec, no code
+changed"). MON-AIPP-1/2/3 have since shipped the endpoint, the metrics, and the cron-lane
+textfile record this spec proposed — so §0–§3 describe the 2026-11-03 tree, not today's.
+Read the dated UPDATE blocks as the current state; nothing historical was rewritten.
+Every claim cites a file:line or a command that was actually run, and where a command's
+answer has changed, the re-run is shown beside the original.
+Audit date: 2026-11-03. Re-verified against tree `031d7b3`: 2026-11-17.
+Product repo: `/home/kara/ai_plays_poke`.
 
 ---
 
-## 0. Verdict
+## UPDATE 2026-11-17 — what has shipped since this audit
+
+Re-measured against the tree at `031d7b3`. Numbers below are from the commands in §0,
+re-run verbatim.
+
+| Original command (2026-11-03) | Then | Now (2026-11-17) |
+|---|---|---|
+| `grep -rn "prometheus" src/ scripts/ tests/ cron_runner.py --include=*.py \| wc -l` | `0` | `13` |
+| `grep -in "prometheus\|opentelemetry\|statsd" requirements.txt pyproject.toml` | (no output) | 3 lines: `requirements.txt:48` (comment), `requirements.txt:49` `prometheus-client`, `pyproject.toml:30` `"prometheus-client",  # Prometheus metrics endpoint and runtime instrumentation` |
+
+**The scrape endpoint exists.** `src/dashboard/main.py:358` declares
+`@app.get("/metrics/prometheus")`; the handler at `:359-369` returns
+`generate_latest(REGISTRY)` with `CONTENT_TYPE_LATEST`. It carries **no** `Depends(...)`,
+so it is unauthenticated as §4.1 required, and the old JSON `/metrics` contract is
+untouched (now at `src/dashboard/main.py:370`).
+
+**Eleven metric families are defined** in `src/observability/metrics.py`, and every one of
+them is incremented from a production code path (not a test hook — §4.1's dogfood rule):
+
+| # (catalogue §3.2) | Metric | Definition | Production increment site |
+|---|---|---|---|
+| 1 | `aipp_run_cycles_total` | metrics.py:19 | `observe_cycle()` metrics.py:156 ← cron_runner.py:8563 |
+| 2 | `aipp_decision_duration_seconds` | metrics.py:25 | `observe_decision_seconds()` metrics.py:163 ← cron_runner.py:9199 |
+| 3 | `aipp_model_calls_total` | metrics.py:31 | `observe_model_call()` metrics.py:170 ← src/core/ai_client.py:114 |
+| 4 | `aipp_model_cost_usd_total` | metrics.py:37 | `observe_model_call()` metrics.py:176 ← src/core/ai_client.py:114 |
+| 5 | `aipp_runner_up` | metrics.py:43 | `set_runner_up()` metrics.py:181 ← cron_runner.py:7925 (`surface="cron"`), src/dashboard/main.py:119 (`surface="dashboard"`) |
+| 6 | `aipp_map_transitions_total` | metrics.py:58 | `observe_run_end()` metrics.py:222 ← `_publish_run_metrics()` cron_runner.py:5336, called at :7966 (error close) and :10434 (normal close) |
+| 7 | `aipp_episode_decisions_total` | metrics.py:63 | `observe_run_end()` metrics.py:219 (same call sites) |
+| 8 | `aipp_backtrack_events_total` | metrics.py:69 | `observe_run_end()` metrics.py:223 (same call sites) |
+| 9 | `aipp_run_completed_total` | metrics.py:74 | `observe_run_end()` metrics.py:215 (same call sites) |
+| 10 | `aipp_run_duration_seconds` | metrics.py:80 | `observe_run_end()` metrics.py:216 (same call sites) |
+| 11 | `aipp_teacher_escalations_total` | metrics.py:86 | `observe_run_end()` metrics.py:224-225 (same call sites) |
+
+**Not shipped: catalogue #12–#23** (P2 model depth and the whole P3 emulator/data-growth
+tier). They have no definition in `src/observability/metrics.py`. §3.2 now carries a
+per-row `Status` column so a reader cannot mistake the catalogue for an inventory.
+
+**Cron lane:** the node_exporter textfile record is live — see the UPDATE block in §4.3
+for the exact path, fields, and write ordering.
+
+---
+
+## 0. Verdict (2026-11-03 reading — superseded, see the UPDATE block above)
 
 **Before: FLYING BLIND.**
+
+> Dated framing: everything in §0 through §3 is the 2026-11-03 audit. The endpoint and the
+> eleven metric families now exist — the measurements are in the UPDATE block at the top of
+> this file. The text below is kept verbatim so the audit history stays checkable.
 
 The product has **zero** Prometheus instrumentation. Not "weak" — zero:
 
@@ -32,6 +85,11 @@ state, into a scrapeable form. A human must `ssh` in and read JSON lines.
 **After (target state of this spec):** one `/metrics` exposition endpoint on the existing
 dashboard FastAPI app, backed by `prometheus_client`, carrying 5 P0 metrics; plus a
 completed-run textfile record for the cron lane, which is short-lived and must not be scraped.
+
+**UPDATE 2026-11-17:** that target state is now the shipped state — 5 P0 + 6 P1 series on
+`GET /metrics/prometheus`, plus the cron-lane textfile record. The 2026-11-03 verdict above
+is retained verbatim as the audit-of-record; see the UPDATE block at the top of this file
+for the measurements.
 
 ---
 
@@ -71,10 +129,24 @@ it unusable as-is:
 - All counters live in an **in-process dict** per session; a restart resets them, so a rate() over them is meaningless.
 - It only knows about sessions the *dashboard* started. The cron lane (`cron_runner.py`) never touches this object, so the real 3am producer is invisible here.
 
-### 1.3 No Prometheus client, no OTel
+> **UPDATE 2026-11-17:** this section is still accurate about `/metrics` — same JSON
+> contract, same API-key gate, same hardcoded `total_cost`. Two things moved. (a) The route
+> the block above quotes as `:355-360` now sits at `src/dashboard/main.py:370-376`; the
+> contract is unchanged and `tests/test_dashboard.py` still asserts 401-without-key. (b) A
+> **separate, unauthenticated** route `GET /metrics/prometheus` now serves the Prometheus
+> text exposition format (`src/dashboard/main.py:358-369`) — the fix this section's
+> criticism called for. Nothing above was rewritten.
+
+### 1.3 No Prometheus client, no OTel (2026-11-03 reading; superseded — see UPDATE)
 
 Not in source, not in `requirements.txt`, not in `pyproject.toml` `[project].dependencies`
 (pyproject.toml:10-33). Nothing to uninstall; this is a greenfield addition.
+
+> **UPDATE 2026-11-17:** `prometheus-client` is now a declared dependency
+> (`requirements.txt:49`, `pyproject.toml:30`) and imported by
+> `src/observability/metrics.py:3` and `src/dashboard/main.py:35`. OpenTelemetry and
+> statsd are still absent — the §0 dependency grep, re-run, matches `prometheus` only.
+> The heading and body above are the audit-day reading, kept as written.
 
 ### 1.4 Logging exists but is bypassed (the biggest surprise)
 
@@ -179,40 +251,50 @@ map_name, tile, prompt, model raw string, file path, any timestamp. Run identity
 | tick rate / commands / success rate | `DashboardSession.get_metrics()` (src/dashboard/main.py:224-260) | No — JSON behind API key, restart-volatile |
 | cost | `total_cost_estimate` | No — **hardcoded `0.0`** (src/dashboard/main.py:228) |
 
-**Existing scrapeable series from this product: 0.**
+**Existing scrapeable series from this product: 0.** (Audit-day reading, 2026-11-03.)
+
+> **UPDATE 2026-11-17:** six of the nine signals in the table above now have a series.
+> `decisions per run` → `aipp_episode_decisions_total`; `map transitions` →
+> `aipp_map_transitions_total`; `backtrack rate` → `aipp_backtrack_events_total` (the
+> event counter, **not** the rate — the rate is not exported); `teacher latency / cost` →
+> `aipp_teacher_escalations_total` and `aipp_model_cost_usd_total` (per-model cost, not
+> per-teacher-call); `escalation rate by class` and `JEV transport failure rate` still have
+> **no** series; `tick rate / commands / success rate` remain JSON-only behind the API key;
+> `cost` (`total_cost_estimate`) is still hardcoded `0.0` and is **not** what metric #4
+> reads. The count sentence and the "No" column above are left as the audit-day record.
 
 ### 3.2 Required — the catalogue
 
 #### P0 — minimal viable set (first row of work)
 
-| # | Metric | Type | Unit | Labels | The one question it answers |
-|---|---|---|---|---|---|
-| 1 | `aipp_run_cycles_total` | counter | cycles | `mode`,`pipeline` | Is the agent doing work right now, and at what rate? |
-| 2 | `aipp_decision_duration_seconds` | histogram | seconds | `mode`,`pipeline` | How long does one decision take (the latency that gates everything)? |
-| 3 | `aipp_model_calls_total` | counter | calls | `model_family`,`outcome` | How often do we call a model, and how often does it fail? |
-| 4 | `aipp_model_cost_usd_total` | counter | USD | `model_family` | How much is this run costing, right now? |
-| 5 | `aipp_runner_up` | gauge | 0/1 | `surface` | Is the producer alive at all? (staleness alarm) |
+| # | Metric | Type | Unit | Labels | The one question it answers | Status (2026-11-17) |
+|---|---|---|---|---|---|---|
+| 1 | `aipp_run_cycles_total` | counter | cycles | `mode`,`pipeline` | Is the agent doing work right now, and at what rate? | **SHIPPED** — metrics.py:19 |
+| 2 | `aipp_decision_duration_seconds` | histogram | seconds | `mode`,`pipeline` | How long does one decision take (the latency that gates everything)? | **SHIPPED** — metrics.py:25 |
+| 3 | `aipp_model_calls_total` | counter | calls | `model_family`,`outcome` | How often do we call a model, and how often does it fail? | **SHIPPED** — metrics.py:31 |
+| 4 | `aipp_model_cost_usd_total` | counter | USD | `model_family` | How much is this run costing, right now? | **SHIPPED** — metrics.py:37 |
+| 5 | `aipp_runner_up` | gauge | 0/1 | `surface` | Is the producer alive at all? (staleness alarm) | **SHIPPED** — metrics.py:43 |
 
 #### P1 — episode progress and quality
 
-| # | Metric | Type | Unit | Labels | Question |
-|---|---|---|---|---|---|
-| 6 | `aipp_map_transitions_total` | counter | transitions | — | Is the agent actually getting somewhere? |
-| 7 | `aipp_episode_decisions_total` | counter | decisions | `mode` | How much work per unit of progress? |
-| 8 | `aipp_backtrack_events_total` | counter | events | — | Is it going in circles? |
-| 9 | `aipp_run_completed_total` | counter | runs | `outcome` (`completed`,`error`,`gave_up`) | How often does a run end badly, and how? |
-| 10 | `aipp_run_duration_seconds` | histogram | seconds | `outcome` | How long does a run take; is it drifting? |
-| 11 | `aipp_teacher_escalations_total` | counter | escalations | `improved` (`true`,`false`) | Is the expensive tier earning its cost? |
+| # | Metric | Type | Unit | Labels | Question | Status (2026-11-17) |
+|---|---|---|---|---|---|---|
+| 6 | `aipp_map_transitions_total` | counter | transitions | — | Is the agent actually getting somewhere? | **SHIPPED** — metrics.py:58 |
+| 7 | `aipp_episode_decisions_total` | counter | decisions | `mode` | How much work per unit of progress? | **SHIPPED** — metrics.py:63 |
+| 8 | `aipp_backtrack_events_total` | counter | events | — | Is it going in circles? | **SHIPPED** — metrics.py:69 |
+| 9 | `aipp_run_completed_total` | counter | runs | `outcome` (`completed`,`error`,`gave_up`) | How often does a run end badly, and how? | **SHIPPED** — metrics.py:74 |
+| 10 | `aipp_run_duration_seconds` | histogram | seconds | `outcome` | How long does a run take; is it drifting? | **SHIPPED** — metrics.py:80 |
+| 11 | `aipp_teacher_escalations_total` | counter | escalations | `improved` (`true`,`false`) | Is the expensive tier earning its cost? | **SHIPPED** — metrics.py:86 |
 
 #### P2 — model call cost/errors, in depth
 
-| # | Metric | Type | Unit | Labels | Question | Status |
+| # | Metric | Type | Unit | Labels | Question | Status (2026-11-17) |
 |---|---|---|---|---|---|---|
 | 12 | `aipp_model_call_duration_seconds` | histogram | seconds | `model_family` | Is the provider slow, or are we? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:99-104; observed src/core/ai_client.py:134 |
 | 13 | `aipp_model_tokens_total` | counter | tokens | `model_family`,`direction` (`input`\|`output`) | Is context growth eating the budget? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:105-110; observed src/core/ai_client.py:135 |
 | 14 | `aipp_model_retries_total` | counter | retries | `model_family`,`reason` (`auth`\|`quota`\|`5xx`\|`timeout`) | Are we failing over because of auth, quota or 5xx? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:111-116; observed src/core/ai_client.py:799 (`quota`), :808 (`5xx`), :892 (`auth`/`timeout`) |
 | 15 | `aipp_credential_valid` | gauge | 0/1 | `key_name` (static enum of probed env-var NAMES) | Which API key is dead? (see §5 on cardinality) | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:117-122; observed cron_runner.py:708 |
-| 16 | `aipp_decision_escalations_total` | counter | escalations | `class` | Which capability is missing? | not shipped — outside MON-AIPP-4 |
+| 16 | `aipp_decision_escalations_total` | counter | escalations | `class` | Which capability is missing? | NOT SHIPPED — outside MON-AIPP-4 |
 
 Feed points for 12-15, as shipped:
 
@@ -225,17 +307,22 @@ Feed points for 12-15, as shipped:
 
 #### P3 — emulator integrity and data growth
 
-| # | Metric | Type | Unit | Labels | Question |
-|---|---|---|---|---|---|
-| 17 | `aipp_emulator_desync_total` | counter | desyncs | — | Is RAM truth diverging from the frame? |
-| 18 | `aipp_emulator_frame_stale_seconds` | gauge | seconds | — | Is the emulator advancing? |
-| 19 | `aipp_screenshot_bytes` | gauge | bytes | — | Are screenshots accumulating without bound? |
-| 20 | `aipp_runlog_bytes` | gauge | bytes | — | Is the run ledger growing per cycle as expected? |
-| 21 | `aipp_runlog_last_write_timestamp_seconds` | gauge | unix seconds | — | Has the ledger stopped being written? |
-| 22 | `aipp_bridge_requests_total` | counter | requests | `cmd`,`outcome` | Is the bridge serving, erroring, or wedged? |
-| 23 | `aipp_bridge_active_connections` | gauge | connections | — | Are we leaking workers (the historical incident, scripts/game_bridge.py:455-462)? |
+| # | Metric | Type | Unit | Labels | Question | Status (2026-11-17) |
+|---|---|---|---|---|---|---|
+| 17 | `aipp_emulator_desync_total` | counter | desyncs | — | Is RAM truth diverging from the frame? | NOT SHIPPED |
+| 18 | `aipp_emulator_frame_stale_seconds` | gauge | seconds | — | Is the emulator advancing? | NOT SHIPPED |
+| 19 | `aipp_screenshot_bytes` | gauge | bytes | — | Are screenshots accumulating without bound? | NOT SHIPPED |
+| 20 | `aipp_runlog_bytes` | gauge | bytes | — | Is the run ledger growing per cycle as expected? | NOT SHIPPED |
+| 21 | `aipp_runlog_last_write_timestamp_seconds` | gauge | unix seconds | — | Has the ledger stopped being written? | NOT SHIPPED |
+| 22 | `aipp_bridge_requests_total` | counter | requests | `cmd`,`outcome` | Is the bridge serving, erroring, or wedged? | NOT SHIPPED |
+| 23 | `aipp_bridge_active_connections` | gauge | connections | — | Are we leaking workers (the historical incident, scripts/game_bridge.py:455-462)? | NOT SHIPPED |
 
-### 3.3 Where each signal must be emitted (the code that owns the state but never emits it)
+Status column added 2026-11-17: `SHIPPED` means a metric family with that exact name is
+defined in `src/observability/metrics.py` and incremented from a production path (verified
+per-metric in the UPDATE block at the top of this file). `NOT SHIPPED` means it is still a
+proposal — grep `src/observability/metrics.py` for the name and you get nothing.
+
+### 3.3 Where each signal must be emitted (2026-11-03 reading; rows 1–11 since wired)
 
 | Metric | Owner site | Why it is a blind spot today |
 |---|---|---|
@@ -249,9 +336,13 @@ Feed points for 12-15, as shipped:
 | 17,18 | `_cycle_frame_hash` (:2247), `_ow_track_stuck` VOID/same-screen trackers (:8941-8966) | desync proxy is a threshold that triggers *recovery*, not a signal |
 | 22,23 | `handle`/`worker` in scripts/game_bridge.py (:440-500) | `except Exception: pass` around every reply (:441-444) |
 
-Rows 12-15 of this table are no longer blind spots as of MON-AIPP-4: the same
-owner sites now publish the scrapeable series listed under "Feed points" in
-§3.2. The other rows still describe the current state.
+> **UPDATE 2026-11-17:** catalogue rows 1–11 are now wired, and they emit from exactly the
+> owner sites this table names — `observe_cycle`/`observe_decision_seconds`
+> (cron_runner.py:8563, :9199), `observe_model_call` (src/core/ai_client.py:114), and
+> `observe_run_end` (cron_runner.py:5336). Rows 12–15 also shipped (MON-AIPP-4) from the
+> `log_api_call` and `_check_configured_keys` sites mapped in row 3,12,13,14,15 above — the
+> scrapeable series are listed under "Feed points" in §3.2. Rows 16–23 remain blind spots as
+> mapped above. The table is the audit-day mapping, not today's.
 
 ---
 
@@ -275,7 +366,7 @@ owner sites now publish the scrapeable series listed under "Feed points" in
 - **Dogfood rule:** every metric must increment on a real code path, not in a test-only hook. A
   counter that only moves under pytest is worse than none.
 
-### 4.2 Route shape (reference implementation sketch — for the worker, not applied here)
+### 4.2 Route shape (reference sketch, 2026-11-03 — now applied as `src/dashboard/main.py:358`)
 
 ```python
 # src/dashboard/main.py — additive only
@@ -307,6 +398,114 @@ aipp_run_last_backtrack_rate 0.6076
 
 The `_last_*` gauges answer "what did the most recent run look like" — timestamps and run ids stay in
 the log, not the metric.
+
+#### UPDATE 2026-11-17 — the record as shipped
+
+The sketch above is the 2026-11-03 design. The implementation is live and differs in ways that
+matter to an operator, so this block is the reference. Read it, not the sketch, when you need
+to know what is on disk. (Original text above retained as the audit record.)
+
+**Landing commits:** `1957fe4` (2026-11-04, MON-AIPP-2 — the completion record and its
+`tests/test_cron_runner_textfile.py`) and `a77047b` (2026-11-16, MON-AIPP-3 — the
+progress-vs-effort families).
+
+**Path and flag** (`cron_runner.py`):
+
+| Thing | Value | Line |
+|---|---|---|
+| Default directory | `Path("/var/lib/node_exporter/textfile_collector")` — `DEFAULT_TEXTFILE_DIR` | :58 |
+| File name | `aipp_run.prom` (so the full default path is `/var/lib/node_exporter/textfile_collector/aipp_run.prom`) | :5242 |
+| Flag | `--textfile-dir PATH`, `type=Path`, `default=DEFAULT_TEXTFILE_DIR`; help text `node_exporter textfile collector directory (default: /var/lib/node_exporter/textfile_collector).` | :7783-7791 |
+| Threaded through | `S.textfile_dir = args.textfile_dir` at run setup; the writer reads `getattr(S, "textfile_dir", DEFAULT_TEXTFILE_DIR)` | :8374, :10424 |
+| Directory creation | `target_dir.mkdir(parents=True, exist_ok=True)` — the collector dir is created if absent, so no separate provisioning step | :5241 |
+
+**Every line the writer emits.** Order is fixed by the code; `{…}` marks labels, `<…>` the
+substituted value:
+
+| # | Emitted line (verbatim template) | Type | Value source | Line |
+|---|---|---|---|---|
+| 1 | `# HELP aipp_run_completed_total Completed cron runs by outcome.` | — | literal | :5253 |
+| 2 | `# TYPE aipp_run_completed_total counter` | — | literal | :5254 |
+| 3 | `aipp_run_completed_total{outcome="completed"} <accumulated>` | counter | prior file value + 1 for this run's outcome | :5256-5259 |
+| 4 | `aipp_run_completed_total{outcome="error"} <accumulated>` | counter | same | :5256-5259 |
+| 5 | `aipp_run_completed_total{outcome="gave_up"} <accumulated>` | counter | same | :5256-5259 |
+| 6 | `# HELP aipp_run_last_run_duration_seconds Duration of the last cron run.` | — | literal | :5262 |
+| 7 | `# TYPE aipp_run_last_run_duration_seconds gauge` | — | literal | :5263 |
+| 8 | `aipp_run_last_run_duration_seconds <%g>` | gauge | `duration_s` (wall clock from `run_started_at` to close-out) | :5264 |
+| 9 | `# HELP aipp_run_last_decisions_total Decisions observed in the last cron run.` | — | literal | :5265 |
+| 10 | `# TYPE aipp_run_last_decisions_total gauge` | — | literal | :5266 |
+| 11 | `aipp_run_last_decisions_total <int>` | gauge | `autonomy["decisions_total"]` | :5267 |
+| 12 | `# HELP aipp_run_last_map_transitions_total Map transitions observed in the last cron run.` | — | literal | :5268 |
+| 13 | `# TYPE aipp_run_last_map_transitions_total gauge` | — | literal | :5269 |
+| 14 | `aipp_run_last_map_transitions_total <int>` | gauge | `autonomy["map_transitions_observed"]` | :5270-5271 |
+| 15 | `# HELP aipp_run_last_backtrack_rate Backtrack rate in the last cron run.` | — | literal | :5278 |
+| 16 | `# TYPE aipp_run_last_backtrack_rate gauge` | — | literal | :5279 |
+| 17 | `aipp_run_last_backtrack_rate <%g>` | gauge | `autonomy["backtrack_rate"]` — **emitted only when that key is not `None`** (:5274-5275) | :5280 |
+| 18 | `# HELP aipp_map_transitions_total Map transitions observed across cron runs.` | — | literal, emitted at :5315 | :5168 |
+| 19 | `# TYPE aipp_map_transitions_total counter` | — | kind from the family tuple, emitted at :5316 | :5165-5189 |
+| 20 | `aipp_map_transitions_total <merged>` | counter | prior + `autonomy["map_transitions_observed"]`; no labels | :5298-5299, :5326 |
+| 21 | `# HELP aipp_backtrack_events_total Decision rows that repeated or revisited an already-seen tile state.` | — | literal, emitted at :5315 | :5172 |
+| 22 | `# TYPE aipp_backtrack_events_total counter` | — | emitted at :5316 | :5165-5189 |
+| 23 | `aipp_backtrack_events_total <merged>` | counter | prior + `autonomy["backtrack_events"]`; no labels | :5301, :5326 |
+| 24 | `# HELP aipp_episode_decisions_total Gameplay decisions taken across cron runs, by decision mode.` | — | literal, emitted at :5315 | :5176 |
+| 25 | `# TYPE aipp_episode_decisions_total counter` | — | emitted at :5316 | :5165-5189 |
+| 26 | `aipp_episode_decisions_total{mode="<family>"} <merged>` | counter | prior + `autonomy["decisions_total"]`, labelled by `decision_mode_label(mode)` | :5302-5303, :5326 |
+| 27 | `# HELP aipp_teacher_escalations_total Teacher escalations by whether they improved the decision.` | — | literal, emitted at :5315 | :5180 |
+| 28 | `# TYPE aipp_teacher_escalations_total counter` | — | emitted at :5316 | :5165-5189 |
+| 29 | `aipp_teacher_escalations_total{improved="true"} <merged>` | counter | prior + `teacher["improved"]` | :5306, :5326 |
+| 30 | `aipp_teacher_escalations_total{improved="false"} <merged>` | counter | prior + `teacher["count"] - improved` (clamped: `improved` cannot exceed `count`) | :5307, :5326 |
+| 31 | `# HELP aipp_run_duration_seconds_count Number of finished cron runs contributing to the duration sum.` | — | literal, emitted at :5315 | :5184 |
+| 32 | `# TYPE aipp_run_duration_seconds_count counter` | — | emitted at :5316 | :5165-5189 |
+| 33 | `aipp_run_duration_seconds_count{outcome="<label>"} <merged>` | counter | prior + 1.0 | :5309, :5326 |
+| 34 | `# HELP aipp_run_duration_seconds_sum Total wall-clock seconds spent in finished cron runs.` | — | literal, emitted at :5315 | :5188 |
+| 35 | `# TYPE aipp_run_duration_seconds_sum counter` | — | emitted at :5316 | :5165-5189 |
+| 36 | `aipp_run_duration_seconds_sum{outcome="<label>"} <merged>` | counter | prior + `max(0, duration_s)` | :5310-5311, :5326 |
+
+Three properties of that list an operator should not assume away:
+
+- **`aipp_run.prom` carries no buckets.** `aipp_run_duration_seconds` is a real histogram in
+  the dashboard export (`src/observability/metrics.py:80`), but the textfile writes only the
+  `_count` / `_sum` components as **counter** families (`:5182`, `:5186`), with no `# TYPE …
+  histogram` and no `_bucket` lines. A `histogram_quantile()` over the textfile alone therefore
+  returns nothing — take quantiles from the dashboard scrape, and use the textfile for totals.
+  The two surfaces sharing the `aipp_run_duration_seconds` base name is the one place they can
+  look inconsistent in a scrape; the shapes above are what each actually exports.
+- **Accumulation is read-modify-write against the previous file.** `_read_textfile_totals()`
+  (:5193) parses the existing samples, keyed by family then by the sorted `(label, value)`
+  pairs, and each new value is `merged[key] = merged.get(key, 0.0) + delta` (:5323). Every
+  label set the writer has ever emitted is retained, so a mode or outcome that did not run
+  today does not vanish from the scrape. `aipp_run_completed_total` is accumulated separately
+  by `_TEXTFILE_COUNTER_PATTERN` (:5148-5152), and the loop over its three outcomes only
+  emits a label whose accumulated value is non-zero or which is this run's own outcome
+  (:5256-5259).
+- **`run_id` is a function parameter, not a field.** It appears only in the failure message
+  (`:5332`). Run identity stays in the JSONL log, per the label budget in §3.
+
+**Atomic write.** The writer composes the whole record in memory, writes it to a sibling
+temporary file (`temporary = target.with_name(f"{target.name}.tmp")`, :5243) and then
+`os.replace(temporary, target)` (:5329). Both paths are in the collector directory, so the
+rename is same-filesystem and atomic on POSIX: a scrape sees either the complete previous
+record or the complete new one, never a half-written file. There is no lock — the file is
+per-host, and concurrent cron runs on one host would race the accumulate step.
+
+**When it is written, relative to the run log.** Normal close-out, in code order:
+
+1. `_write_autonomy_row(...)` — appends the `run_autonomy` row to `cron_logs/run_<id>.jsonl` (:10408)
+2. `_write_degradation_row(...)` — only when the degradation gate tripped (:10419)
+3. outcome/duration computed (`gave_up` if the run gave up, else `completed`) (:10420-10422)
+4. `_write_textfile_record(...)` — the `.prom` file (:10423)
+5. `_publish_run_metrics(outcome, ...)` — the in-process Prometheus series (:10434)
+6. `log_file.close()` (:10435)
+
+So the run log already carries the same numbers when the textfile is written (both are fed
+from the same `autonomy` block), and the scrape-visible file is published before the log
+handle closes. On the failure path the order is identical in substance: `_write_textfile_record(..., "error", ...)`
+at :7954 immediately followed by `_publish_run_metrics("error", ...)` at :7966, before the
+exception is re-raised — a run that died still records its outcome.
+
+**Failure is best-effort.** The whole body is wrapped in `try/except Exception`, which prints
+`[TEXTFILE] <run_id> failed: <exc>` via `safe_print` and returns `None` (:5331-5333). A
+collector path that is not writable costs the run its metrics line, never the run.
 
 ---
 
@@ -440,6 +639,14 @@ right `host` label. Done: series present **and** `aipp_run_last_decisions_total`
 **Done definition for the whole spec:** all five P0 queries return data, Step 2 returns `MOVED`, and
 the §1.4 dead-logger state is either fixed or explicitly re-classified as dead (see §8).
 
+> **UPDATE 2026-11-17 — what was measured and what was not.** Steps 1–4 above were **not**
+> run: there is no dashboard process and no reachable Prometheus on the host where this
+> update was written, so the `curl` checks and the PromQL remain unexecuted. What IS proven
+> is static and cited in the UPDATE block at the top: the route, the client library, the 11
+> metric definitions, and one production call site per family. Treat "the endpoint answers
+> 200 with the right content type" as **unverified** until a reviewer on a host with the
+> dashboard running executes Step 1 — the code path exists, but nobody has watched it serve.
+
 ---
 
 ## 7. Deliberately NOT instrumented
@@ -488,3 +695,10 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 | Real desync rate | No sensor exists (§8.6). The `[VOID]` print (:8951-8953) is the closest proxy and is not persisted. |
 | Whether any external dashboard already reads `cron_logs/*.jsonl` | Only `web_viewer.py` (`/api/run/{run_id}/log`) was found reading run logs; no evidence of a fleet-side consumer either way. |
 | Whether `logs/*/*.log` were ever populated | Files are 0 bytes with Jun 26 mtimes; whether they were ever non-empty is not recoverable from the repo. |
+
+> **UPDATE 2026-11-17:** the second row above still holds in its *last* clause only —
+> static analysis no longer says 0. It now counts 11 defined `aipp_*` families in
+> `src/observability/metrics.py` (listed in the UPDATE block at the top), each with a
+> production increment site. The first question is still open the same way: no Prometheus
+> on `fleet-monitor` was reachable from this host, so the number of series actually
+> **scraped** is unverified — defined ≠ ingested.
