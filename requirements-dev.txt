@@ -13,5 +13,7 @@ fastapi>=0.162.0
 black>=26.10.0
 mypy>=2.4.0
 flake8>=7.4.1
+# Exact pin, matching ci.yml's ad hoc install and pyproject [project.optional-dependencies].dev
+ruff==0.15.22
 pre-commit>=4.7.0
 python-lsp-server>=1.13.0
