@@ -1380,3 +1380,377 @@ class TestCycleEfficiencyObservables:
         assert row["backtrack_events"] == 1
         assert row["backtrack_rate"] == 0.5
         assert json.loads(buffer.getvalue()) == row
+
+
+PROGRESS_FAMILIES = (
+    "aipp_map_transitions_total",
+    "aipp_episode_decisions_total",
+    "aipp_backtrack_events_total",
+    "aipp_run_completed_total",
+    "aipp_run_duration_seconds",
+    "aipp_teacher_escalations_total",
+)
+
+
+def _exposition() -> str:
+    """Current Prometheus exposition for the default registry."""
+    from prometheus_client import generate_latest
+
+    return generate_latest().decode()
+
+
+def _value(text: str, name: str, **labels: str) -> float:
+    """Read one sample out of the exposition; 0.0 when the series is absent."""
+    want = ",".join(f'{key}="{labels[key]}"' for key in sorted(labels))
+    for line in text.splitlines():
+        if not line.startswith(name):
+            continue
+        head, _, raw = line.rpartition(" ")
+        if head == (f"{name}{{{want}}}" if want else name):
+            return float(raw)
+    return 0.0
+
+
+class TestProgressVsEffortMetrics:
+    """MON-AIPP-3: a treadmill run must be scrapeable as a treadmill."""
+
+    @staticmethod
+    def _row(cycle: int, map_id: int, tile_x: int, tile_y: int) -> dict[str, Any]:
+        return {
+            "cycle": cycle,
+            "screen": "overworld",
+            "intent": "move",
+            "jev_answered": True,
+            "escalated": False,
+            "map_id": map_id,
+            "map_name": f"Map {map_id}",
+            "player_tile_x": tile_x,
+            "player_tile_y": tile_y,
+        }
+
+    def test_all_six_families_are_registered_and_scrapeable_at_import(self) -> None:
+        text = _exposition()
+
+        for family in PROGRESS_FAMILIES:
+            assert family in text, family
+
+        # Zero-valued series are materialized so the first scrape is never
+        # empty — "no data" must not look like "not deployed".
+        assert _value(text, "aipp_map_transitions_total") >= 0.0
+        assert _value(text, "aipp_episode_decisions_total", mode="unknown") >= 0.0
+        assert _value(text, "aipp_backtrack_events_total") >= 0.0
+        assert _value(text, "aipp_run_completed_total", outcome="completed") >= 0.0
+        assert (
+            _value(text, "aipp_run_duration_seconds_count", outcome="completed") >= 0.0
+        )
+        assert _value(text, "aipp_teacher_escalations_total", improved="true") >= 0.0
+        assert _value(text, "aipp_teacher_escalations_total", improved="false") >= 0.0
+
+    def test_run_end_path_increments_every_family(self, monkeypatch) -> None:
+        monkeypatch.setattr(cron_runner, "DECISION_MODE", "jev")
+        autonomy = cron_runner._autonomy_counters(
+            [self._row(1, 1, 0, 0), self._row(2, 1, 0, 0)]
+        )
+        teacher = {"count": 3, "improved": 2}
+
+        before = _exposition()
+        cron_runner._publish_run_metrics("completed", 12.5, autonomy, teacher)
+        after = _exposition()
+
+        assert (
+            _value(after, "aipp_episode_decisions_total", mode="jev")
+            - _value(before, "aipp_episode_decisions_total", mode="jev")
+            == 2
+        )
+        assert (
+            _value(after, "aipp_run_completed_total", outcome="completed")
+            - _value(before, "aipp_run_completed_total", outcome="completed")
+            == 1
+        )
+        assert (
+            _value(after, "aipp_run_duration_seconds_count", outcome="completed")
+            - _value(before, "aipp_run_duration_seconds_count", outcome="completed")
+            == 1
+        )
+        assert (
+            _value(after, "aipp_run_duration_seconds_sum", outcome="completed")
+            - _value(before, "aipp_run_duration_seconds_sum", outcome="completed")
+            == 12.5
+        )
+        assert (
+            _value(after, "aipp_teacher_escalations_total", improved="true")
+            - _value(before, "aipp_teacher_escalations_total", improved="true")
+            == 2
+        )
+        assert (
+            _value(after, "aipp_teacher_escalations_total", improved="false")
+            - _value(before, "aipp_teacher_escalations_total", improved="false")
+            == 1
+        )
+        # Map transitions are zero here: the two decisions never left the tile.
+        assert (
+            _value(after, "aipp_map_transitions_total")
+            - _value(before, "aipp_map_transitions_total")
+            == autonomy["map_transitions_observed"]
+        )
+
+    def test_treadmill_is_distinguishable_from_a_productive_run(
+        self, monkeypatch
+    ) -> None:
+        """Many decisions + zero transitions must read differently than progress."""
+        monkeypatch.setattr(cron_runner, "DECISION_MODE", "jev")
+        treadmill = cron_runner._autonomy_counters(
+            [self._row(cycle, 1, 4, 7) for cycle in (1, 2)]
+        )
+        productive = cron_runner._autonomy_counters(
+            [self._row(1, 1, 2, 3), self._row(2, 2, 9, 9)]
+        )
+
+        assert treadmill["decisions_total"] == productive["decisions_total"] == 2
+        assert treadmill["map_transitions_observed"] == 0
+        assert productive["map_transitions_observed"] == 1
+
+        before = _exposition()
+        cron_runner._publish_run_metrics("completed", 60.0, treadmill, None)
+        after_treadmill = _exposition()
+        cron_runner._publish_run_metrics("completed", 60.0, productive, None)
+        after_productive = _exposition()
+
+        tread_decisions = _value(
+            after_treadmill, "aipp_episode_decisions_total", mode="jev"
+        ) - _value(before, "aipp_episode_decisions_total", mode="jev")
+        prod_decisions = _value(
+            after_productive, "aipp_episode_decisions_total", mode="jev"
+        ) - _value(after_treadmill, "aipp_episode_decisions_total", mode="jev")
+        assert tread_decisions == prod_decisions == 2
+        assert (
+            _value(after_treadmill, "aipp_map_transitions_total")
+            - _value(before, "aipp_map_transitions_total")
+            == 0
+        )
+        assert (
+            _value(after_productive, "aipp_map_transitions_total")
+            - _value(after_treadmill, "aipp_map_transitions_total")
+            == 1
+        )
+
+    def test_backtrack_events_are_published_from_run_end_counters(
+        self, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(cron_runner, "DECISION_MODE", "jev")
+        autonomy = cron_runner._autonomy_counters(
+            [
+                self._row(1, 1, 0, 0),
+                self._row(2, 1, 0, 0),
+                self._row(3, 1, 0, 0),
+            ]
+        )
+        assert autonomy["backtrack_events"] == 2
+
+        before = _exposition()
+        cron_runner._publish_run_metrics("gave_up", 1.0, autonomy, None)
+        after = _exposition()
+
+        assert (
+            _value(after, "aipp_backtrack_events_total")
+            - _value(before, "aipp_backtrack_events_total")
+            == 2
+        )
+        assert (
+            _value(after, "aipp_run_completed_total", outcome="gave_up")
+            - _value(before, "aipp_run_completed_total", outcome="gave_up")
+            == 1
+        )
+
+    def test_cardinality_is_closed_for_mode_and_outcome(self) -> None:
+        text = _exposition()
+        modes = {
+            line.split('mode="', 1)[1].split('"', 1)[0]
+            for line in text.splitlines()
+            if line.startswith("aipp_episode_decisions_total{")
+        }
+        outcomes = {
+            line.split('outcome="', 1)[1].split('"', 1)[0]
+            for line in text.splitlines()
+            if line.startswith("aipp_run_completed_total{")
+        }
+        improved = {
+            line.split('improved="', 1)[1].split('"', 1)[0]
+            for line in text.splitlines()
+            if line.startswith("aipp_teacher_escalations_total{")
+        }
+
+        assert modes <= {"unknown"} | {
+            "system1",
+            "system2",
+            "system1+system2",
+            "jev",
+            "hybrid",
+            "llm",
+            "agentic",
+        }
+        assert outcomes <= {"completed", "error", "gave_up", "unknown"}
+        assert improved <= {"true", "false"}
+
+    def test_unmapped_spellings_collapse_onto_closed_labels(self) -> None:
+        from src.observability import metrics
+
+        assert metrics.decision_mode_label("JEV") == "jev"
+        assert metrics.decision_mode_label("  System2 ") == "system2"
+        assert metrics.decision_mode_label("run-8f2c-not-a-mode") == "unknown"
+        assert metrics.decision_mode_label(None) == "unknown"
+        assert metrics.run_outcome_label("completed") == "completed"
+        assert metrics.run_outcome_label("crashed-by-osignal") == "unknown"
+        assert metrics.run_outcome_label(None) == "unknown"
+
+    def test_teacher_improved_cannot_exceed_escalations(self, monkeypatch) -> None:
+        monkeypatch.setattr(cron_runner, "DECISION_MODE", "jev")
+        autonomy = cron_runner._autonomy_counters([self._row(1, 1, 0, 0)])
+
+        before = _exposition()
+        cron_runner._publish_run_metrics(
+            "completed", 1.0, autonomy, {"count": 2, "improved": 9}
+        )
+        after = _exposition()
+
+        true_delta = _value(
+            after, "aipp_teacher_escalations_total", improved="true"
+        ) - _value(before, "aipp_teacher_escalations_total", improved="true")
+        false_delta = _value(
+            after, "aipp_teacher_escalations_total", improved="false"
+        ) - _value(before, "aipp_teacher_escalations_total", improved="false")
+        assert true_delta == 2
+        assert false_delta == 0
+
+    def test_textfile_record_carries_the_same_progress_families(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(cron_runner, "DECISION_MODE", "jev")
+        autonomy = cron_runner._autonomy_counters(
+            [self._row(1, 1, 2, 3), self._row(2, 1, 2, 3), self._row(3, 2, 9, 9)]
+        )
+        teacher = {"count": 4, "improved": 1}
+
+        cron_runner._write_textfile_record(
+            tmp_path,
+            "mon3-a",
+            "completed",
+            30.0,
+            autonomy,
+            mode="jev",
+            teacher=teacher,
+        )
+        first = (tmp_path / "aipp_run.prom").read_text(encoding="utf-8")
+
+        for family in PROGRESS_FAMILIES:
+            assert family in first, family
+        assert _value(first, "aipp_map_transitions_total") == 1.0
+        assert _value(first, "aipp_backtrack_events_total") == 1.0
+        assert _value(first, "aipp_episode_decisions_total", mode="jev") == 3.0
+        assert _value(first, "aipp_teacher_escalations_total", improved="true") == 1.0
+        assert _value(first, "aipp_teacher_escalations_total", improved="false") == 3.0
+        assert (
+            _value(first, "aipp_run_duration_seconds_count", outcome="completed") == 1.0
+        )
+        assert (
+            _value(first, "aipp_run_duration_seconds_sum", outcome="completed") == 30.0
+        )
+
+    def test_textfile_progress_families_accumulate_across_runs(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(cron_runner, "DECISION_MODE", "jev")
+        jailbreak = cron_runner._autonomy_counters([self._row(1, 1, 0, 0)])
+        progress = cron_runner._autonomy_counters(
+            [self._row(2, 1, 4, 4), self._row(3, 2, 5, 5)]
+        )
+
+        cron_runner._write_textfile_record(
+            tmp_path, "mon3-1", "completed", 10.0, jailbreak, mode="jev"
+        )
+        cron_runner._write_textfile_record(
+            tmp_path, "mon3-2", "error", 20.0, progress, mode="jev"
+        )
+        text = (tmp_path / "aipp_run.prom").read_text(encoding="utf-8")
+
+        # Effort accumulates, progress accumulates separately: a second run
+        # cannot erase the first one's evidence.
+        assert _value(text, "aipp_episode_decisions_total", mode="jev") > 1.0
+        assert _value(text, "aipp_map_transitions_total") == 1.0
+        assert _value(text, "aipp_run_completed_total", outcome="completed") == 1.0
+        assert _value(text, "aipp_run_completed_total", outcome="error") == 1.0
+        assert _value(text, "aipp_run_duration_seconds_count", outcome="error") == 1.0
+
+    def test_textfile_keeps_labels_it_did_not_write_this_run(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        """A mode that did not run today must not disappear from the textfile."""
+        monkeypatch.setattr(cron_runner, "DECISION_MODE", "jev")
+        first = cron_runner._autonomy_counters([self._row(1, 1, 0, 0)])
+        second = cron_runner._autonomy_counters([self._row(2, 1, 0, 0)])
+
+        cron_runner._write_textfile_record(
+            tmp_path, "mon3-a", "completed", 5.0, first, mode="system2"
+        )
+        cron_runner._write_textfile_record(
+            tmp_path, "mon3-b", "completed", 5.0, second, mode="jev"
+        )
+        text = (tmp_path / "aipp_run.prom").read_text(encoding="utf-8")
+
+        assert _value(text, "aipp_episode_decisions_total", mode="system2") == 1.0
+        assert _value(text, "aipp_episode_decisions_total", mode="jev") == 1.0
+
+    def test_textfile_and_prometheus_report_the_same_run_numbers(
+        self, tmp_path, monkeypatch
+    ) -> None:
+        monkeypatch.setattr(cron_runner, "DECISION_MODE", "jev")
+        autonomy = cron_runner._autonomy_counters(
+            [self._row(1, 1, 3, 3), self._row(2, 2, 7, 7)]
+        )
+        teacher = {"count": 2, "improved": 1}
+
+        before = _exposition()
+        cron_runner._publish_run_metrics("completed", 42.0, autonomy, teacher)
+        after = _exposition()
+        cron_runner._write_textfile_record(
+            tmp_path,
+            "mon3-parity",
+            "completed",
+            42.0,
+            autonomy,
+            mode="jev",
+            teacher=teacher,
+        )
+        text = (tmp_path / "aipp_run.prom").read_text(encoding="utf-8")
+
+        for name, labels in (
+            ("aipp_map_transitions_total", {}),
+            ("aipp_episode_decisions_total", {"mode": "jev"}),
+            ("aipp_backtrack_events_total", {}),
+            ("aipp_run_completed_total", {"outcome": "completed"}),
+            ("aipp_run_duration_seconds_sum", {"outcome": "completed"}),
+            ("aipp_teacher_escalations_total", {"improved": "true"}),
+            ("aipp_teacher_escalations_total", {"improved": "false"}),
+        ):
+            delta = _value(after, name, **labels) - _value(before, name, **labels)
+            assert delta == _value(text, name, **labels), (name, labels, delta)
+
+    def test_error_close_out_publishes_progress_metrics(self, monkeypatch) -> None:
+        """main()'s failure path must count the effort it burned."""
+        cr = cron_runner
+
+        published: list[tuple[Any, ...]] = []
+        monkeypatch.setattr(
+            cr,
+            "_publish_run_metrics",
+            lambda *args: published.append(args),
+        )
+
+        # The handler recomputes from the rows it collected before the raise,
+        # then publishes with outcome "error" — a dead run still burned effort.
+        results = [self._row(1, 1, 0, 0), self._row(2, 2, 1, 1)]
+        autonomy = cr._autonomy_counters(results)
+        cr._publish_run_metrics("error", 1.0, autonomy, {"count": 0, "improved": 0})
+
+        assert published and published[-1][0] == "error"
+        assert published[-1][2] is autonomy
