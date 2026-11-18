@@ -42,6 +42,8 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+from prometheus_client import REGISTRY
+
 if TYPE_CHECKING:
     from src.core.ram_reader import RAMReader
 
@@ -49,12 +51,23 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO))
 
 from src.core.vision_grid import GRID_COLS, GRID_ROWS  # noqa: E402
+from src.observability.metrics import (  # noqa: E402
+    observe_bridge_request,
+    set_bridge_active_connections,
+)
 
 ROM = REPO / "data" / "rom" / "Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb"
 FRAME_DIR = REPO / "play_frames"
 BUTTONS = {"a", "b", "start", "select", "up", "down", "left", "right"}
 DEFAULT_MAX_WORKERS = 4
 DEFAULT_REQUEST_TIMEOUT = 30.0
+# node_exporter's textfile-collector directory — the same one cron_runner.py:59
+# writes to. The bridge is its own process and serves raw loopback TCP, so
+# `generate_latest(REGISTRY)` behind the dashboard cannot carry its series; a
+# textfile is the only exposure that works (spec §4.1, "accept textfile only").
+DEFAULT_METRICS_FILE = Path(
+    "/var/lib/node_exporter/textfile_collector/aipp_bridge.prom"
+)
 MAX_REQUEST_BYTES = 1024 * 1024
 REQUEST_READ_CHUNK_BYTES = 64 * 1024
 SHUTDOWN_JOIN_TIMEOUT = 5.0
@@ -412,41 +425,120 @@ def handle(
     Socket parsing may happen on several fixed workers, but every Game operation is
     serialized. PyBoy, RAMReader, and the bridge's cross-cycle state are one mutable
     unit and are not safe to enter concurrently.
+
+    MON-AIPP-5: every connection is counted exactly once, on the single exit below
+    — the old `except Exception: pass` around the reply swallowed which requests
+    failed, so the bridge could error on every call and look identical to an idle
+    one. The (cmd, outcome) pair is drawn from closed vocabularies
+    (``src/observability/metrics.py``), never from operator-supplied text.
     """
     stop = stop_event or threading.Event()
-    with conn:
-        conn.settimeout(request_timeout)
-        try:
-            line = _read_request_line(conn)
-            if line is None:
-                return
-            req = json.loads(line)
-            if not isinstance(req, dict):
-                raise ValueError("request must be a JSON object")
-            if not secrets.compare_digest(str(req.get("token", "")), token):
-                _send_json(conn, {"ok": False, "error": "unauthorized"})
-                log("REJECTED unauthorized request")
-                return
+    cmd_label = "none"  # a connection that closes before sending a request line
+    outcome = "empty"
+    try:
+        with conn:
+            conn.settimeout(request_timeout)
+            try:
+                line = _read_request_line(conn)
+                if line is None:
+                    return
+                req = json.loads(line)
+                if not isinstance(req, dict):
+                    outcome = "invalid"
+                    raise ValueError("request must be a JSON object")
+                raw_cmd = req.get("cmd")
+                cmd_label = raw_cmd if isinstance(raw_cmd, str) else "unknown"
+                if not secrets.compare_digest(str(req.get("token", "")), token):
+                    outcome = "unauthorized"
+                    _send_json(conn, {"ok": False, "error": "unauthorized"})
+                    log("REJECTED unauthorized request")
+                    return
 
-            acquired = False
-            lock = game_lock or threading.Lock()
-            while not stop.is_set():
-                acquired = lock.acquire(timeout=0.1)
-                if acquired:
-                    break
-            if not acquired:
-                rep = {"ok": False, "error": "server shutting down"}
-            else:
-                try:
-                    rep = _dispatch(req, game)
-                finally:
-                    lock.release()
-        except Exception as e:  # noqa: BLE001 - a bridge must not die on one bad request
-            rep = {"ok": False, "error": f"{type(e).__name__}: {e}"}
-        try:
-            _send_json(conn, rep)
-        except Exception:
-            pass
+                acquired = False
+                lock = game_lock or threading.Lock()
+                while not stop.is_set():
+                    acquired = lock.acquire(timeout=0.1)
+                    if acquired:
+                        break
+                if not acquired:
+                    outcome = "busy"
+                    rep = {"ok": False, "error": "server shutting down"}
+                else:
+                    # From here the failure class is "the server errored on a
+                    # request it accepted", so a raise below is "error", not
+                    # "invalid" — the distinction the parse branch above owns.
+                    outcome = "error"
+                    try:
+                        rep = _dispatch(req, game)
+                        outcome = "ok" if rep.get("ok") else "error"
+                    finally:
+                        lock.release()
+            except Exception as e:  # noqa: BLE001 - a bridge must not die on one bad request
+                rep = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+                if outcome == "empty":
+                    outcome = "invalid"
+            try:
+                _send_json(conn, rep)
+            except Exception:
+                # The request was answered but the socket refused the reply: a
+                # distinct outcome, because a client retry loop looks identical
+                # to a healthy server from the counter's point of view.
+                outcome = "send_failed"
+    finally:
+        observe_bridge_request(cmd_label, outcome)
+
+
+def _bridge_request_samples() -> dict[tuple[str, str], float]:
+    """Snapshot this process's ``aipp_bridge_requests_total`` series."""
+    samples: dict[tuple[str, str], float] = {}
+    for collected in REGISTRY.collect():
+        if collected.name != "aipp_bridge_requests":
+            continue
+        for sample in collected.samples:
+            if sample.name != "aipp_bridge_requests_total":
+                continue
+            cmd = sample.labels.get("cmd", "unknown")
+            outcome = sample.labels.get("outcome", "unknown")
+            samples[(cmd, outcome)] = sample.value
+    return samples
+
+
+def _write_bridge_textfile(path: str | Path, active: int) -> None:
+    """Publish the bridge's two families for node_exporter; never raises.
+
+    A scrape cannot reach this process — it serves raw TCP on loopback, and the
+    dashboard is a different process with a different registry — so the
+    collector reads this file instead, exactly as the cron lane does for metrics
+    from a process that is not alive when the scrape arrives (spec §4.3). Called
+    once per finished connection, which is the only moment either family moves.
+    Best-effort by design: telemetry must never break a request.
+    """
+    try:
+        target = Path(path)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        lines = [
+            "# HELP aipp_bridge_requests_total Game bridge requests by command"
+            " and outcome.",
+            "# TYPE aipp_bridge_requests_total counter",
+        ]
+        for (cmd, outcome), value in sorted(_bridge_request_samples().items()):
+            lines.append(
+                f'aipp_bridge_requests_total{{cmd="{cmd}",'
+                f'outcome="{outcome}"}} {value:g}'
+            )
+        lines.extend(
+            [
+                "# HELP aipp_bridge_active_connections Game bridge connections"
+                " currently admitted to a worker.",
+                "# TYPE aipp_bridge_active_connections gauge",
+                f"aipp_bridge_active_connections {int(active)}",
+            ]
+        )
+        temporary = target.with_name(f"{target.name}.tmp")
+        temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        os.replace(temporary, target)
+    except OSError:
+        return None
 
 
 def serve(
@@ -459,6 +551,7 @@ def serve(
     request_timeout: float = DEFAULT_REQUEST_TIMEOUT,
     stop_event: threading.Event | None = None,
     on_ready: Callable[[int], None] | None = None,
+    metrics_file: str | Path | None = None,
 ) -> None:
     """Serve with a fixed worker set and a bounded pending-connection queue.
 
@@ -480,6 +573,9 @@ def serve(
     active_lock = threading.Lock()
     active: set[socket.socket] = set()
     instance = f"{id(stop):x}"
+    # MON-AIPP-5: the gauge starts at 0 so a scrape taken before the first
+    # connection reads "idle", not "unknown"; every mutation below rewrites it.
+    set_bridge_active_connections(0)
 
     def worker() -> None:
         while True:
@@ -495,6 +591,7 @@ def serve(
                     continue
                 with active_lock:
                     active.add(conn)
+                    set_bridge_active_connections(len(active))
                 try:
                     handle(
                         conn,
@@ -508,6 +605,10 @@ def serve(
                 finally:
                     with active_lock:
                         active.discard(conn)
+                        remaining = len(active)
+                        set_bridge_active_connections(remaining)
+                    if metrics_file is not None:
+                        _write_bridge_textfile(metrics_file, remaining)
             finally:
                 pending.task_done()
 
@@ -534,6 +635,8 @@ def serve(
     )
     if on_ready is not None:
         on_ready(bound_port)
+    if metrics_file is not None:
+        _write_bridge_textfile(metrics_file, 0)
 
     try:
         while not stop.is_set():
@@ -548,6 +651,10 @@ def serve(
             try:
                 pending.put_nowait(conn)
             except queue.Full:
+                # A rejection is a served connection too: without this the
+                # "server busy" path — the one the leak incident ran through —
+                # would leave no trace in the counter at all.
+                observe_bridge_request("none", "busy")
                 try:
                     conn.settimeout(1.0)
                     _send_json(conn, {"ok": False, "error": "server busy"})
@@ -584,6 +691,11 @@ def serve(
             log(f"shutdown timed out waiting for workers: {still_running}")
         else:
             log("shutdown complete; all bridge workers joined")
+        # Final sample: the process is going away, so the file must not keep
+        # claiming connections that no longer exist.
+        set_bridge_active_connections(0)
+        if metrics_file is not None:
+            _write_bridge_textfile(metrics_file, 0)
 
 
 def main() -> int:
@@ -610,6 +722,15 @@ def main() -> int:
         "--boot-state", default=str(REPO / "data" / "baselines" / "base-1_boot.state")
     )
     ap.add_argument("--log")
+    ap.add_argument(
+        "--metrics-file",
+        type=Path,
+        default=DEFAULT_METRICS_FILE,
+        help=(
+            "node_exporter textfile this process keeps current (a running bridge"
+            " is not scrapeable: it serves raw loopback TCP)"
+        ),
+    )
     a = ap.parse_args()
 
     if a.log is None:
@@ -660,6 +781,7 @@ def main() -> int:
             max_workers=a.max_workers,
             request_timeout=a.request_timeout,
             stop_event=stop,
+            metrics_file=a.metrics_file,
         )
     finally:
         try:
