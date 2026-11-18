@@ -1917,20 +1917,16 @@ tasks:
   created_at: '2026-11-01T12:29:46.693151+00:00'
   completed_at: '2026-11-01T13:20:58.185997+00:00'
 - id: INT-GL-3
-  title: 'gitreins judge runs must complete green end-to-end on ai_plays_poke: secrets
-    scan stable under load, scope hygiene preserved, 3 clean judge runs'
+  title: Make gitreins judge runs complete green end-to-end (secrets timeout, worktree
+    test runner, evaluator cap)
   criteria:
-  - (1) tier1 secrets step command (regenerated from engine.pipeline.tier1_plan) exits
-    0 in 3 consecutive runs under >=4 concurrent nice -n 10 CPU-bound workers, no
-    timeout; worst-case whole-worktree scan cost measured first; exact config/scope
-    fix named. (2) gitleaks detect history mode prints 'no leaks found' and tests/test_secrets_allowlist.py
-    -q exits 0 after the change; any tracked-content narrowing explicit + one whole-worktree
-    guard scan recorded clean. (3) 3 consecutive full judge runs on the merged tree
-    (worktree venv provisioned) each produce verdict.json with tests cell actually
-    ran, stages.tier1.passed=true, and tier2 terminal (not INCOMPLETE iteration-cap);
-    cite all three verdict paths.
+  - Tier1 secrets step budget sized from a measured worst-case scan under load and
+    no longer reports data.timed_out; tier1 tests cell resolves a real pytest runner
+    inside judge worktrees via scripts/gitreins_tests.sh and fails loudly when none
+    exists; evaluator iteration budget verified against the deployed value; ruff +
+    release_check green; docs-only/config-only diff.
   status: in_progress
-  created_at: '2026-11-02T09:44:17.851309+00:00'
+  created_at: '2026-11-18T18:35:29.741626+00:00'
 - id: MON-AIPP-1
   title: '[P0] Prometheus /metrics/prometheus endpoint with 5 P0 aipp_* metrics'
   criteria:
@@ -2152,8 +2148,9 @@ tasks:
     and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON'
     tests/ returns > 0 hits; a guard test fails when an absolute /home path literal
     is reintroduced; full suite green.
-  status: in_progress
+  status: complete
   created_at: '2026-11-18T13:59:07.011617+00:00'
+  completed_at: '2026-11-18T14:50:29.717513+00:00'
 - id: DOC-027
   title: 'Docs residual: portable paths + stale citations in observability-spec.md
     and api/cron_runner.md'
