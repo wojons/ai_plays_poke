@@ -1,0 +1,58 @@
+{
+  "wave_id": "ai-plays-poke-foreman-2026-11-17-17-45-01",
+  "project": "ai_plays_poke",
+  "workdir": "/home/kara/ai_plays_poke",
+  "base_commit": "882e446",
+  "note_base": "All three worktrees created by ~/.hermes/scripts/worktree.sh new from origin/main=882e446 with 0 divergence (git rev-list --count origin/main..HEAD == 0 at dispatch). CI green 3/3 on main at dispatch.",
+  "budget": 8,
+  "workers": 3,
+  "worker_model": "openai/gpt-6.1-terra",
+  "worker_provider": "xkiro",
+  "plan_review": "plan-unreviewed: PLAN comment posted on COS card t_fb359aa3 at 2026-11-17T17:5x; hermes kanban request-review rejected by judge ('empty response (nothing to evaluate)'); executed as drafted per Step 0.5 clause 3 (never stall a tick waiting for review).",
+  "note": "Wave size 3 of cap 8: only 3 of the 12 boardctl-ready rows are mutually independent code-in-this-repo rows after routing. Seams: W1 BTL-COMPARE-1 = NEW comparison module/script + tests only (imports battle_telemetry_store.py read-only; must NOT edit store files); W2 RELEASE-010 = CHANGELOG.md ONLY; W3 MON-AIPP-5 = src/cron_runner.py, scripts/game_bridge.py, metrics surface + tests + docs/observability-spec.md (exclusive this wave — DOC-027 deferred so the spec page has a single writer). Row-level reasons for the remaining ready rows: INT-GL-3 — held for a SERIAL post-merge slot (its only edit surface .gitreins/config.yaml + tasks.yaml is shared state every concurrent worker lifecycle writes, per wave 2026-11-17-10-10-24 seam note; its AC3 explicitly requires 3 full judge runs on the MERGED tree); DOC-027 — deferred one tick, file-seam conflict with MON-AIPP-5 (both edit docs/observability-spec.md, and MON moves cron_runner.py invalidating DOC-027's line-number citations again); INT-CI-004 — ROUTED to supervisor/cos-state-sync owner (target files ~/.hermes/scripts/cos_state_sync.py + DuckBrain cos table layer are fleet infrastructure, not this repo; row itself says route to the supervisor); INT-GATE-003 — ROUTED to supervisor (~/.hermes/scripts/acceptance_gate.py is fleet infrastructure; row says route instead of closing won-fixed); QA-AI-PLAYS-POKE-28 — ROUTED to bunker-qa/qa-foreman lane (harness-class defect in bunker-qa.sh, not ai-plays-poke code); RELEASE-008 — OWNER-GATED (gh repo security settings are a public surface); QA-AI-PLAYS-POKE-26 — OWNER-GATED (deleting/renaming tags on the PUBLIC repo is a destructive public-surface change); SPEC-QUORUM-1 — process row (quorum panel convening, never worker work), needs a dedicated foreman-direct quorum tick. Board-track during the wave: verify + close RELEASE-009 on 7d44673 evidence (landed-but-pending per board event 9695d97, do not re-dispatch).",
+  "tasks": [
+    {
+      "id": "BTL-COMPARE-1",
+      "rows": ["BTL-COMPARE-1"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-BTL-COMPARE-1",
+      "branch": "wt/BTL-COMPARE-1",
+      "base_sha": "882e446",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-1745/brief-BTL-COMPARE-1.txt",
+      "depends_on": ["BTL-STORE-1 (landed 1467a4c)"],
+      "files": [
+        "src/core/battle_run_compare.py (new)",
+        "scripts/compare_battle_runs.py (new)",
+        "tests/test_battle_run_compare.py (new)"
+      ],
+      "venv": "to provision (python3.11 via uv, requirements + requirements-dev, cp main-tree .env)"
+    },
+    {
+      "id": "RELEASE-010",
+      "rows": ["RELEASE-010"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-RELEASE-010",
+      "branch": "wt/RELEASE-010",
+      "base_sha": "882e446",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-1745/brief-RELEASE-010.txt",
+      "depends_on": [],
+      "files": ["CHANGELOG.md"],
+      "venv": "to provision (python3.11 via uv, requirements + requirements-dev, cp main-tree .env)"
+    },
+    {
+      "id": "MON-AIPP-5",
+      "rows": ["MON-AIPP-5"],
+      "worktree": "/home/kara/worktrees/ai_plays_poke-MON-AIPP-5",
+      "branch": "wt/MON-AIPP-5",
+      "base_sha": "882e446",
+      "brief": "/home/kara/.hermes/cache/scratch/aipp-wave-20261117-1745/brief-MON-AIPP-5.txt",
+      "depends_on": [],
+      "files": [
+        "src/cron_runner.py (desync counter + frame-stale gauge wiring)",
+        "scripts/game_bridge.py (bridge request/connection metrics)",
+        "metrics surface (existing metrics module or new src/metrics_registry.py)",
+        "docs/observability-spec.md (exclusive this wave)",
+        "tests/ (new metric tests)"
+      ],
+      "venv": "to provision (python3.11 via uv, requirements + requirements-dev, cp main-tree .env)"
+    }
+  ]
+}

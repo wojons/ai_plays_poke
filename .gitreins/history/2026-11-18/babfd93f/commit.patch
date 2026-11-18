@@ -1,0 +1,17 @@
+commit a8cb16752d0369e2eee4d8d883060e2482c641f3
+Merge: 937f297 9e48fc2
+Author:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+AuthorDate: Tue Nov 17 20:35:33 2026 -0500
+Commit:     totalwindupflightsystems <totalwindupflightsystems@gmail.com>
+CommitDate: Tue Nov 17 20:35:33 2026 -0500
+
+    merge MON-AIPP-5: emulator desync/frame-staleness signals and data-growth gauges (9e48fc2)
+    
+    Co-authored-by: Alexis Okuwa <wojonstech@gmail.com>
+
+ cron_runner.py               | 109 +++++++++
+ docs/observability-spec.md   | 140 ++++++++++-
+ scripts/game_bridge.py       | 188 +++++++++++---
+ src/observability/metrics.py | 204 ++++++++++++++++
+ tests/test_mon_aipp5.py      | 566 +++++++++++++++++++++++++++++++++++++++++++
+ 5 files changed, 1164 insertions(+), 43 deletions(-)

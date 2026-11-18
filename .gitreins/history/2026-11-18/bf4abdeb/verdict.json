@@ -1,0 +1,556 @@
+{
+  "task_id": "BTL-COMPARE-1",
+  "task_title": "cross-model run comparison: gameplay quality metrics from telemetry",
+  "task_criteria": [
+    "1) Two runs on the same segment produce a side-by-side metric table naming the models (fixture data must be explicitly labeled if real paired runs are absent). 2) Every number in the table is derivable from stored events (one damage figure traced back to its raw record). 3) The report states which partitions it read and which it excluded. Code: new src/core/battle_run_compare.py + scripts/compare_battle_runs.py + tests/test_battle_run_compare.py, store files unmodified, tests green."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "a8cb16752d0369e2eee4d8d883060e2482c641f3",
+  "pass_class": "judged",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "9696c603acadc5192f06c9558c614d26b0fbf2a3ef405f0c7478ff1bac451aa2",
+  "working_tree_dirty_path_count": 6707,
+  "items": [
+    {
+      "criterion": "1) Two runs on the same segment produce a side-by-side metric table naming the models (fixture data must be explicitly labeled if real paired runs are absent). 2) Every number in the table is derivable from stored events (one damage figure traced back to its raw record). 3) The report states which partitions it read and which it excluded. Code: new src/core/battle_run_compare.py + scripts/compare_battle_runs.py + tests/test_battle_run_compare.py, store files unmodified, tests green.",
+      "status": "PASS",
+      "detail": "All three sub-parts verified by running the CLI against a real store built through BattleTelemetryStore. (1) Table names the models: header 'metric  deepseek-v4-flash  glm-5.3-flash' and 'COMPARISON: 20261117_090000 (deepseek-v4-flash \u00b7 provider=openrouter \u00b7 arm=llm)  vs  20261117_093000 (glm-5.3-flash \u00b7 provider=openrouter \u00b7 arm=llm)' (render_table src/core/battle_run_compare.py:1460-1475). Fixture labelling: without --note the report prints 'label: unlabeled: every number in this table comes from stored events; nothing here proves the runs were real game runs. Pass --note with the label the store actually represents (e.g. --note fixture)' (_NOT_DERIVABLE_NOTE scripts/compare_battle_runs.py:56-60); a non-comparable pair also prints DATA_GAP_REAL_PAIRED_RUNS ('real paired runs: not established by this report ... a table built over fixture events must be labelled as a fixture'). (2) Derivable from stored events: 'damage_dealt_total 15 15  # 4 / 6 records summed', and the SPOT CHECK re-reads the raw line: 'damage_dealt_total=15 includes battle-20261117_090000-ep001-enc001.jsonl:1 = 4 HP' / 'identity 5ba46dd24975\u2026, damage=4, turn=1, side=player) \u2192 raw record MATCH' (spot_check_damage src/core/battle_run_compare.py:1560-1600). Metrics the record shape cannot answer are printed 'n/a' with a reason, never zeroed (NOT_DERIVABLE :124-135). The contract's \u00a76 table (specs/contracts/battle-telemetry.md:302-312) is reproduced number for number: turns_to_ko 4/6, attacks_to_ko 4/6, hits 4/4=1.000 vs 4/6=0.667, whiff 0/2, damage 15/15, damage_per_turn 3.75/2.50, flee 0/0, outcome won/won. (3) Partitions read/excluded: 'PARTITIONS READ (2): battle-20261117_090000-ep001-enc001.jsonl [20261117_090000 \u2014 deepseek-v4-flash]' and 'PARTITIONS EXCLUDED (2): battle-20261117_090000-ep001-enc002.jsonl [E/why: E1: map 'Route 1' != 'Viridian Forest']' (_render_partitions src/core/battle_run_compare.py:1490-1510). Code: `git show --stat 5a4a67f` = '3 files changed, 3249 insertions(+)' touching only the three named files; `git status --porcelain -- src/core/battle_telemetry_store.py src/core/battle_telemetry.py specs/contracts/battle-telemetry.md` is empty \u2192 store unmodified. Tests green: `./venv/bin/pytest tests/test_battle_run_compare.py -q` \u2192 '39 passed in 0.59s'; full suite `./venv/bin/pytest -x --tb=short -q` \u2192 '4778 passed, 14 skipped in 229.44s (0:03:49)' with no FAILED lines; `./venv/bin/ruff check` on the three files \u2192 'All checks passed!'; LSP diagnostics count 0. [resolution 0.10; src/core/battle_run_compare.py, scripts/compare_battle_runs.py, tests/test_battle_run_compare.py]"
+    },
+    {
+      "criterion": "The CLI is reachable and runnable end-to-end from the repo entrypoint (scripts/compare_battle_runs.py main()) against a real store, exiting 0 when a table is printed and 1 when nothing is comparable \u2014 not merely importable.",
+      "status": "PASS",
+      "detail": "`./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\"` \u2192 EXIT_with_data=0 with the full table; with nonexistent run ids \u2192 EXIT_no_data=1 and the DATA_GAP_NO_BATTLE_PARTITIONS line printed. main() at scripts/compare_battle_runs.py:283-290 returns 0/1/2 and is wired to `raise SystemExit(main())` at :296-297.",
+      "derived": true
+    },
+    {
+      "criterion": "The tool is read-only: running it leaves every store file byte-identical and it contains no write path (no write_manifest/append_encounter/remember/open-for-write).",
+      "status": "PASS",
+      "detail": "md5sum of every file under /tmp/btlfix identical before and after a CLI run ('STORE UNCHANGED BY TOOL RUN'). `grep -n \"write_manifest|append_encounter|\\.remember(|open(.*\\\"w\\\"|open(.*'w'\" src/core/battle_run_compare.py scripts/compare_battle_runs.py` \u2192 no matches (exit 1). The only open() calls are read-mode: read_partition src/core/battle_run_compare.py:700 and spot_check_damage :1580.",
+      "derived": true
+    },
+    {
+      "criterion": "The fixture-labelling requirement is enforced by default, not only when the operator remembers --note: an unlabelled run must print a provenance line that says it is unlabeled, and a non-comparable pair must print the \"real paired runs: not established\" gap.",
+      "status": "PASS",
+      "detail": "Running WITHOUT --note prints 'label: unlabeled: every number in this table comes from stored events; nothing here proves the runs were real game runs. Pass --note with the label the store actually represents (e.g. --note fixture) before quoting it.' (_NOT_DERIVABLE_NOTE scripts/compare_battle_runs.py:56-60, wired as the --note default at :176-184). A non-comparable pair additionally prints DATA_GAP_REAL_PAIRED_RUNS (src/core/battle_run_compare.py:110-114, appended in ComparisonReport.gaps :1290-1296).",
+      "derived": true
+    },
+    {
+      "criterion": "The damage figure traced back to its raw record is verified by identity, not just by the printed number \u2014 the spot check re-reads file:line and compares the store's record_identity hash, and reports MISMATCH rather than silently passing when it disagrees.",
+      "status": "PASS",
+      "detail": "Clean fixture \u2192 'matches: True ... raw record MATCH'. Tampering the raw record AFTER the report was built (stale report vs changed store) \u2192 'matches: False ... raw record MISMATCH'. spot_check_damage compares both raw['damage']==ref.damage AND record_identity(raw)==ref.identity (src/core/battle_run_compare.py:1590-1600), and the CLI prints the verdict via DamageSpotCheck.summary :1240-1250.",
+      "derived": true
+    },
+    {
+      "criterion": "The exclusion accounting is honest about partitions it could not select: a run with no manifest, a partition on disk but absent from the index, and a traversing manifest path are each named as a gap and never read or counted.",
+      "status": "PASS",
+      "detail": "(a) A partition copied onto disk after the manifest was written \u2192 unindexed=('battle-20261117_090000-ep009-enc001.jsonl',), absent from selected, note 'unindexed_partitions: 1 file(s) of 20261117_090000 exist on disk but are absent from the manifest index and were NOT read' (select_run src/core/battle_run_compare.py:520-535). (b) A run with partitions but no manifest \u2192 manifest_present=False, selected=(), note 'manifest_missing: /game/battle/fx_nomanifest/manifest is absent, so \u00a75.2 cannot select by key \u2014 none of fx_nomanifest's 1 partition file(s) was read' (:415-435). (c) A traversing manifest path \u2192 excluded with reason containing 'path traversal' (_unsafe_filename_reason :560-570; test_a_traversing_manifest_path_is_excluded_not_opened passes).",
+      "derived": true
+    }
+  ],
+  "merge_recommendation": "no_concerns_found",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261117T143129.446890Z.log"
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n8:42PM INF scanned ~387917123 bytes (387.92 MB) in 26.6s\n8:42PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 101530 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261117T143129.446890Z.log",
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4792 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestCommandBufferConfig::test_valid_defaults PASSED [  0%]\n\n\u2026 [519785 chars omitted \u2014 5656 line(s)] \u2026\ntest_bench_pathfinding_find_path               680.9996 (1.51)           4,769.0000 (2.78)          1,160.6923 (1.86)          1,096.4303 (6.31)            801.0002 (1.48)           180.9999 (1.0)           1;2    861,554.7725 (0.54)         13           1\ntest_bench_vision_pipeline_validate          7,915.0000 (17.55)         38,982.0002 (22.76)        10,641.0409 (17.01)         2,260.8635 (13.00)         9,446.9997 (17.46)        3,657.0004 (20.20)    5432;154     93,975.7692 (0.06)      22395           1\ntest_bench_ram_reader_observe            1,277,573.0002 (>1000.0)  242,695,801.0001 (>1000.0)   2,827,556.3543 (>1000.0)  15,729,225.9535 (>1000.0)   1,646,405.0000 (>1000.0)    419,721.7501 (>1000.0)       3;7        353.6623 (0.00)        621           1\ntest_bench_vision_pipeline_process      44,135,943.0001 (>1000.0)   55,066,171.9999 (>1000.0)  48,431,258.8333 (>1000.0)   2,951,843.8647 (>1000.0)  48,197,096.0002 (>1000.0)  3,395,891.9998 (>1000.0)       5;1         20.6478 (0.00)         18           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4778 passed, 14 skipped in 211.99s (0:03:31) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "pytest_outcome": {
+              "kind": "passed",
+              "detail": "pytest passed",
+              "first_failing_test": null,
+              "failures": 0,
+              "interrupted": false
+            },
+            "guard_log": "/home/kara/ai_plays_poke/.gitreins/logs/guard-20261117T143129.446890Z.log"
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 1) Two runs on the same segment produce a side-by-side metric table naming the models (fixture data must be explicitly labeled if real paired runs are absent). 2) Every number in the table is derivable from stored events (one damage figure traced back to its raw record). 3) The report states which partitions it read and which it excluded. Code: new src/core/battle_run_compare.py + scripts/compare_battle_runs.py + tests/test_battle_run_compare.py, store files unmodified, tests green.: All three sub-parts verified by running the CLI against a real store built through BattleTelemetryStore. (1) Table names the models: header 'metric  deepseek-v4-flash  glm-5.3-flash' and 'COMPARISON: 20261117_090000 (deepseek-v4-flash \u00b7 provider=openrouter \u00b7 arm=llm)  vs  20261117_093000 (glm-5.3-flash \u00b7 provider=openrouter \u00b7 arm=llm)' (render_table src/core/battle_run_compare.py:1460-1475). Fixture labelling: without --note the report prints 'label: unlabeled: every number in this table comes from stored events; nothing here proves the runs were real game runs. Pass --note with the label the store actually represents (e.g. --note fixture)' (_NOT_DERIVABLE_NOTE scripts/compare_battle_runs.py:56-60); a non-comparable pair also prints DATA_GAP_REAL_PAIRED_RUNS ('real paired runs: not established by this report ... a table built over fixture events must be labelled as a fixture'). (2) Derivable from stored events: 'damage_dealt_total 15 15  # 4 / 6 records summed', and the SPOT CHECK re-reads the raw line: 'damage_dealt_total=15 includes battle-20261117_090000-ep001-enc001.jsonl:1 = 4 HP' / 'identity 5ba46dd24975\u2026, damage=4, turn=1, side=player) \u2192 raw record MATCH' (spot_check_damage src/core/battle_run_compare.py:1560-1600). Metrics the record shape cannot answer are printed 'n/a' with a reason, never zeroed (NOT_DERIVABLE :124-135). The contract's \u00a76 table (specs/contracts/battle-telemetry.md:302-312) is reproduced number for number: turns_to_ko 4/6, attacks_to_ko 4/6, hits 4/4=1.000 vs 4/6=0.667, whiff 0/2, damage 15/15, damage_per_turn 3.75/2.50, flee 0/0, outcome won/won. (3) Partitions read/excluded: 'PARTITIONS READ (2): battle-20261117_090000-ep001-enc001.jsonl [20261117_090000 \u2014 deepseek-v4-flash]' and 'PARTITIONS EXCLUDED (2): battle-20261117_090000-ep001-enc002.jsonl [E/why: E1: map 'Route 1' != 'Viridian Forest']' (_render_partitions src/core/battle_run_compare.py:1490-1510). Code: `git show --stat 5a4a67f` = '3 files changed, 3249 insertions(+)' touching only the three named files; `git status --porcelain -- src/core/battle_telemetry_store.py src/core/battle_telemetry.py specs/contracts/battle-telemetry.md` is empty \u2192 store unmodified. Tests green: `./venv/bin/pytest tests/test_battle_run_compare.py -q` \u2192 '39 passed in 0.59s'; full suite `./venv/bin/pytest -x --tb=short -q` \u2192 '4778 passed, 14 skipped in 229.44s (0:03:49)' with no FAILED lines; `./venv/bin/ruff check` on the three files \u2192 'All checks passed!'; LSP diagnostics count 0. [resolution 0.10; src/core/battle_run_compare.py, scripts/compare_battle_runs.py, tests/test_battle_run_compare.py]\n  \u2713 The CLI is reachable and runnable end-to-end from the repo entrypoint (scripts/compare_battle_runs.py main()) against a real store, exiting 0 when a table is printed and 1 when nothing is comparable \u2014 not merely importable.: `./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\"` \u2192 EXIT_with_data=0 with the full table; with nonexistent run ids \u2192 EXIT_no_data=1 and the DATA_GAP_NO_BATTLE_PARTITIONS line printed. main() at scripts/compare_battle_runs.py:283-290 returns 0/1/2 and is wired to `raise SystemExit(main())` at :296-297.\n  \u2713 The tool is read-only: running it leaves every store file byte-identical and it contains no write path (no write_manifest/append_encounter/remember/open-for-write).: md5sum of every file under /tmp/btlfix identical before and after a CLI run ('STORE UNCHANGED BY TOOL RUN'). `grep -n \"write_manifest|append_encounter|\\.remember(|open(.*\\\"w\\\"|open(.*'w'\" src/core/battle_run_compare.py scripts/compare_battle_runs.py` \u2192 no matches (exit 1). The only open() calls are read-mode: read_partition src/core/battle_run_compare.py:700 and spot_check_damage :1580.\n  \u2713 The fixture-labelling requirement is enforced by default, not only when the operator remembers --note: an unlabelled run must print a provenance line that says it is unlabeled, and a non-comparable pair must print the \"real paired runs: not established\" gap.: Running WITHOUT --note prints 'label: unlabeled: every number in this table comes from stored events; nothing here proves the runs were real game runs. Pass --note with the label the store actually represents (e.g. --note fixture) before quoting it.' (_NOT_DERIVABLE_NOTE scripts/compare_battle_runs.py:56-60, wired as the --note default at :176-184). A non-comparable pair additionally prints DATA_GAP_REAL_PAIRED_RUNS (src/core/battle_run_compare.py:110-114, appended in ComparisonReport.gaps :1290-1296).\n  \u2713 The damage figure traced back to its raw record is verified by identity, not just by the printed number \u2014 the spot check re-reads file:line and compares the store's record_identity hash, and reports MISMATCH rather than silently passing when it disagrees.: Clean fixture \u2192 'matches: True ... raw record MATCH'. Tampering the raw record AFTER the report was built (stale report vs changed store) \u2192 'matches: False ... raw record MISMATCH'. spot_check_damage compares both raw['damage']==ref.damage AND record_identity(raw)==ref.identity (src/core/battle_run_compare.py:1590-1600), and the CLI prints the verdict via DamageSpotCheck.summary :1240-1250.\n  \u2713 The exclusion accounting is honest about partitions it could not select: a run with no manifest, a partition on disk but absent from the index, and a traversing manifest path are each named as a gap and never read or counted.: (a) A partition copied onto disk after the manifest was written \u2192 unindexed=('battle-20261117_090000-ep009-enc001.jsonl',), absent from selected, note 'unindexed_partitions: 1 file(s) of 20261117_090000 exist on disk but are absent from the manifest index and were NOT read' (select_run src/core/battle_run_compare.py:520-535). (b) A run with partitions but no manifest \u2192 manifest_present=False, selected=(), note 'manifest_missing: /game/battle/fx_nomanifest/manifest is absent, so \u00a75.2 cannot select by key \u2014 none of fx_nomanifest's 1 partition file(s) was read' (:415-435). (c) A traversing manifest path \u2192 excluded with reason containing 'path traversal' (_unsafe_filename_reason :560-570; test_a_traversing_manifest_path_is_excluded_not_opened passes).\nThe three new files deliver a working, read-only cross-model comparison: the CLI reproduces the contract's \u00a76 table number for number with both models named, traces a damage figure back to its raw file:line by record identity, and reports every partition read and excluded with the excluding key \u2014 with the store untouched and the full suite green (4778 passed, 14 skipped). [uncovered failure paths: failure mode 0 (The overkill_ratio / overkill_damage figures are an ESTIMATE (typical non-KO hit / HP the kill needed), not a measurement \u2014 a reader who quotes them as observed overkill would be over-reading a store whose HP delta is clamped at 0.): detected_by cites tests/test_battle_run_compare.py::test_observed_overkill_is_zero_because_r5_clamps_to_remaining_hp but no tool result in this run shows it ran \u2014 uncovered failure path; failure mode 1 (A run whose manifest index is truncated (more encounters than MAX_MANIFEST_ENCOUNTERS) silently loses the unindexed partitions from the comparison; they are named in a gap note but the table's encounter count is lower than the run's real total.): detected_by is empty \u2014 uncovered failure path; failure mode 2 (damage_per_turn is computed as damage_dealt_total / turns_total (sum of per-encounter max turns), which for a multi-encounter segment is not the same denominator as the contract's per-encounter 'total / turns_to_ko'; the two agree only on single-encounter segments.): detected_by is empty \u2014 uncovered failure path]",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n\n\u2026 [6714 chars omitted \u2014 6 line(s)] \u2026\nThe three new files deliver a working, read-only cross-model comparison: the CLI reproduces the contract's \u00a76 table number for number with both models named, traces a damage figure back to its raw file:line by record identity, and reports every partition read and excluded with the excluding key \u2014 with the store untouched and the full suite green (4778 passed, 14 skipped). [uncovered failure paths: failure mode 0 (The overkill_ratio / overkill_damage figures are an ESTIMATE (typical non-KO hit / HP the kill needed), not a measurement \u2014 a reader who quotes them as observed overkill would be over-reading a store whose HP delta is clamped at 0.): detected_by cites tests/test_battle_run_compare.py::test_observed_overkill_is_zero_because_r5_clamps_to_remaining_hp but no tool result in this run shows it ran \u2014 uncovered failure path; failure mode 1 (A run whose manifest index is truncated (more encounters than MAX_MANIFEST_ENCOUNTERS) silently loses the unindexed partitions from the comparison; they are named in a gap note but the table's encounter count is lower than the run's real total.): detected_by is empty \u2014 uncovered failure path; failure mode 2 (damage_per_turn is computed as damage_dealt_total / turns_total (sum of per-encounter max turns), which for a multi-encounter segment is not the same denominator as the contract's per-encounter 'total / turns_to_ko'; the two agree only on single-encounter segments.): detected_by is empty \u2014 uncovered failure path]",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "1) Two runs on the same segment produce a side-by-side metric table naming the models (fixture data must be explicitly labeled if real paired runs are absent). 2) Every number in the table is derivable from stored events (one damage figure traced back to its raw record). 3) The report states which partitions it read and which it excluded. Code: new src/core/battle_run_compare.py + scripts/compare_battle_runs.py + tests/test_battle_run_compare.py, store files unmodified, tests green.",
+                "status": "PASS",
+                "detail": "All three sub-parts verified by running the CLI against a real store built through BattleTelemetryStore. (1) Table names the models: header 'metric  deepseek-v4-flash  glm-5.3-flash' and 'COMPARISON: 20261117_090000 (deepseek-v4-flash \u00b7 provider=openrouter \u00b7 arm=llm)  vs  20261117_093000 (glm-5.3-flash \u00b7 provider=openrouter \u00b7 arm=llm)' (render_table src/core/battle_run_compare.py:1460-1475). Fixture labelling: without --note the report prints 'label: unlabeled: every number in this table comes from stored events; nothing here proves the runs were real game runs. Pass --note with the label the store actually represents (e.g. --note fixture)' (_NOT_DERIVABLE_NOTE scripts/compare_battle_runs.py:56-60); a non-comparable pair also prints DATA_GAP_REAL_PAIRED_RUNS ('real paired runs: not established by this report ... a table built over fixture events must be labelled as a fixture'). (2) Derivable from stored events: 'damage_dealt_total 15 15  # 4 / 6 records summed', and the SPOT CHECK re-reads the raw line: 'damage_dealt_total=15 includes battle-20261117_090000-ep001-enc001.jsonl:1 = 4 HP' / 'identity 5ba46dd24975\u2026, damage=4, turn=1, side=player) \u2192 raw record MATCH' (spot_check_damage src/core/battle_run_compare.py:1560-1600). Metrics the record shape cannot answer are printed 'n/a' with a reason, never zeroed (NOT_DERIVABLE :124-135). The contract's \u00a76 table (specs/contracts/battle-telemetry.md:302-312) is reproduced number for number: turns_to_ko 4/6, attacks_to_ko 4/6, hits 4/4=1.000 vs 4/6=0.667, whiff 0/2, damage 15/15, damage_per_turn 3.75/2.50, flee 0/0, outcome won/won. (3) Partitions read/excluded: 'PARTITIONS READ (2): battle-20261117_090000-ep001-enc001.jsonl [20261117_090000 \u2014 deepseek-v4-flash]' and 'PARTITIONS EXCLUDED (2): battle-20261117_090000-ep001-enc002.jsonl [E/why: E1: map 'Route 1' != 'Viridian Forest']' (_render_partitions src/core/battle_run_compare.py:1490-1510). Code: `git show --stat 5a4a67f` = '3 files changed, 3249 insertions(+)' touching only the three named files; `git status --porcelain -- src/core/battle_telemetry_store.py src/core/battle_telemetry.py specs/contracts/battle-telemetry.md` is empty \u2192 store unmodified. Tests green: `./venv/bin/pytest tests/test_battle_run_compare.py -q` \u2192 '39 passed in 0.59s'; full suite `./venv/bin/pytest -x --tb=short -q` \u2192 '4778 passed, 14 skipped in 229.44s (0:03:49)' with no FAILED lines; `./venv/bin/ruff check` on the three files \u2192 'All checks passed!'; LSP diagnostics count 0. [resolution 0.10; src/core/battle_run_compare.py, scripts/compare_battle_runs.py, tests/test_battle_run_compare.py]",
+                "resolution_probability": 0.1,
+                "cited_path": "src/core/battle_run_compare.py, scripts/compare_battle_runs.py, tests/test_battle_run_compare.py"
+              },
+              {
+                "criterion": "The CLI is reachable and runnable end-to-end from the repo entrypoint (scripts/compare_battle_runs.py main()) against a real store, exiting 0 when a table is printed and 1 when nothing is comparable \u2014 not merely importable.",
+                "status": "PASS",
+                "detail": "`./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\"` \u2192 EXIT_with_data=0 with the full table; with nonexistent run ids \u2192 EXIT_no_data=1 and the DATA_GAP_NO_BATTLE_PARTITIONS line printed. main() at scripts/compare_battle_runs.py:283-290 returns 0/1/2 and is wired to `raise SystemExit(main())` at :296-297.",
+                "derived": true
+              },
+              {
+                "criterion": "The tool is read-only: running it leaves every store file byte-identical and it contains no write path (no write_manifest/append_encounter/remember/open-for-write).",
+                "status": "PASS",
+                "detail": "md5sum of every file under /tmp/btlfix identical before and after a CLI run ('STORE UNCHANGED BY TOOL RUN'). `grep -n \"write_manifest|append_encounter|\\.remember(|open(.*\\\"w\\\"|open(.*'w'\" src/core/battle_run_compare.py scripts/compare_battle_runs.py` \u2192 no matches (exit 1). The only open() calls are read-mode: read_partition src/core/battle_run_compare.py:700 and spot_check_damage :1580.",
+                "derived": true
+              },
+              {
+                "criterion": "The fixture-labelling requirement is enforced by default, not only when the operator remembers --note: an unlabelled run must print a provenance line that says it is unlabeled, and a non-comparable pair must print the \"real paired runs: not established\" gap.",
+                "status": "PASS",
+                "detail": "Running WITHOUT --note prints 'label: unlabeled: every number in this table comes from stored events; nothing here proves the runs were real game runs. Pass --note with the label the store actually represents (e.g. --note fixture) before quoting it.' (_NOT_DERIVABLE_NOTE scripts/compare_battle_runs.py:56-60, wired as the --note default at :176-184). A non-comparable pair additionally prints DATA_GAP_REAL_PAIRED_RUNS (src/core/battle_run_compare.py:110-114, appended in ComparisonReport.gaps :1290-1296).",
+                "derived": true
+              },
+              {
+                "criterion": "The damage figure traced back to its raw record is verified by identity, not just by the printed number \u2014 the spot check re-reads file:line and compares the store's record_identity hash, and reports MISMATCH rather than silently passing when it disagrees.",
+                "status": "PASS",
+                "detail": "Clean fixture \u2192 'matches: True ... raw record MATCH'. Tampering the raw record AFTER the report was built (stale report vs changed store) \u2192 'matches: False ... raw record MISMATCH'. spot_check_damage compares both raw['damage']==ref.damage AND record_identity(raw)==ref.identity (src/core/battle_run_compare.py:1590-1600), and the CLI prints the verdict via DamageSpotCheck.summary :1240-1250.",
+                "derived": true
+              },
+              {
+                "criterion": "The exclusion accounting is honest about partitions it could not select: a run with no manifest, a partition on disk but absent from the index, and a traversing manifest path are each named as a gap and never read or counted.",
+                "status": "PASS",
+                "detail": "(a) A partition copied onto disk after the manifest was written \u2192 unindexed=('battle-20261117_090000-ep009-enc001.jsonl',), absent from selected, note 'unindexed_partitions: 1 file(s) of 20261117_090000 exist on disk but are absent from the manifest index and were NOT read' (select_run src/core/battle_run_compare.py:520-535). (b) A run with partitions but no manifest \u2192 manifest_present=False, selected=(), note 'manifest_missing: /game/battle/fx_nomanifest/manifest is absent, so \u00a75.2 cannot select by key \u2014 none of fx_nomanifest's 1 partition file(s) was read' (:415-435). (c) A traversing manifest path \u2192 excluded with reason containing 'path traversal' (_unsafe_filename_reason :560-570; test_a_traversing_manifest_path_is_excluded_not_opened passes).",
+                "derived": true
+              }
+            ],
+            "summary": "The three new files deliver a working, read-only cross-model comparison: the CLI reproduces the contract's \u00a76 table number for number with both models named, traces a damage figure back to its raw file:line by record identity, and reports every partition read and excluded with the excluding key \u2014 with the store untouched and the full suite green (4778 passed, 14 skipped). [uncovered failure paths: failure mode 0 (The overkill_ratio / overkill_damage figures are an ESTIMATE (typical non-KO hit / HP the kill needed), not a measurement \u2014 a reader who quotes them as observed overkill would be over-reading a store whose HP delta is clamped at 0.): detected_by cites tests/test_battle_run_compare.py::test_observed_overkill_is_zero_because_r5_clamps_to_remaining_hp but no tool result in this run shows it ran \u2014 uncovered failure path; failure mode 1 (A run whose manifest index is truncated (more encounters than MAX_MANIFEST_ENCOUNTERS) silently loses the unindexed partitions from the comparison; they are named in a gap note but the table's encounter count is lower than the run's real total.): detected_by is empty \u2014 uncovered failure path; failure mode 2 (damage_per_turn is computed as damage_dealt_total / turns_total (sum of per-encounter max turns), which for a multi-encounter segment is not the same denominator as the contract's per-encounter 'total / turns_to_ko'; the two agree only on single-encounter segments.): detected_by is empty \u2014 uncovered failure path]",
+            "provenance": {
+              "model": "deepseek-v4-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            }
+          }
+        }
+      ],
+      "model": "deepseek-v4-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"BTL-COMPARE-1\"}",
+          "exit_code": 0,
+          "output_sha": "57ecbbdc7bc7e3a3e02e19b8d3168a8b4cd2e2d92ad07ccaddb796716090e7a8"
+        },
+        {
+          "tool": "run_command",
+          "command": "ls -la; echo \"---\"; ls src/core/ | head -50; echo \"---\"; ls scripts/ | head -50; echo \"---\"; ls tests/ | grep -i compare",
+          "exit_code": 0,
+          "output_sha": "e642fad1824f48dae6aa7413928d3e980fc617bf52425874bcd6be2f6a5645eb"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"src/core/battle_run_compare.py\"}",
+          "exit_code": 0,
+          "output_sha": "c37034e56d735742e734f364185f75d52fa03f90dfcf57d12a09a6c4e87ea797"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"scripts/compare_battle_runs.py\"}",
+          "exit_code": 0,
+          "output_sha": "641e390c8ddec2ca513ba3b0d8d50ce196bb2e126519e716eb5ddd68c1316e1f"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 500, \"offset\": 400, \"path\": \"src/core/battle_run_compare.py\"}",
+          "exit_code": 0,
+          "output_sha": "f1d9753c678ab3fd7e4bb110cbe2cb7ceae7b43d7285e73701d11920e150f01f"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara 2>/dev/null; wc -l tests/test_battle_run_compare.py; cat .gitreins/config.yaml 2>/dev/null | head -40",
+          "exit_code": 0,
+          "output_sha": "274708eec9064824a263e3483d0900efd6581c766802f56d800d06df4563635f"
+        },
+        {
+          "tool": "run_command",
+          "command": "pwd; ls; wc -l tests/test_battle_run_compare.py; cat .gitreins/config.yaml",
+          "exit_code": 0,
+          "output_sha": "2f4685f0dd86a9f67734e7083edaa35454c1c55d459a8baa5d156ac8ee308678"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && timeout 900 ./venv/bin/pytest tests/test_battle_run_compare.py -q 2>&1 | tail -20",
+          "exit_code": 0,
+          "output_sha": "f9adf703fedb403ee687774d84fdd12d871a72cd9c24c7d41aa50b31adf112a4"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 300, \"path\": \"tests/test_battle_run_compare.py\"}",
+          "exit_code": 0,
+          "output_sha": "d12a74caf8957fec163d3f29e243fc20eb00d12172d8f7fdf5d681e74d2cccc1"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 500, \"offset\": 900, \"path\": \"src/core/battle_run_compare.py\"}",
+          "exit_code": 0,
+          "output_sha": "5185863d76a584976989c85779e48ade119a1a76992ca15cf1f5665f2128561b"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 410, \"offset\": 1400, \"path\": \"src/core/battle_run_compare.py\"}",
+          "exit_code": 0,
+          "output_sha": "de3f25cc7ee4e403ebad9c3498d0adb7842a6df1aa2b5e48b2e646d8dc544783"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && cat > /tmp/mkfix.py <<'EOF'\nimport sys, json\nfrom pathlib import Path\nsys.path.insert(0, \".\")\nfrom src.core.battle_telemetry_store import BattleTelemetryStore\n\nroot = Path(\"/tmp/btlfix/namespaces\")\nimport shutil\nshutil.rmtree(\"/tmp/btlfix\", ignore_errors=True)\n\ndef rec(run, ep, enc, turn, side, dmg, before, after, maxhp, outcome=\"damage\", mapn=\"Viridian Forest\", bt=\"wild\", opp=\"Weedle\", opplvl=3, plvl=5, eo=\"won\"):\n    return {\"run_id\": run, \"episode\": ep, \"encounter_id\": f\"ep{ep:03d}-enc{enc:03d}\", \"turn\": turn,\n            \"map\": mapn, \"map_resolved\": True, \"ts\": \"2026-11-17T09:00:00Z\",\n            \"model_decision\": None, \"model_vision\": None, \"provider\": None, \"decision_arm\": \"llm\",\n            \"attacker_side\": side, \"attacker_species\": \"CHARMANDER\" if side==\"player\" else opp,\n            \"attacker_species_resolved\": True, \"attacker_level\": plvl if side==\"player\" else opplvl,\n            \"defender_species\": opp if side==\"player\" else \"CHARMANDER\", \"defender_species_resolved\": True,\n            \"defender_level\": opplvl if side==\"player\" else plvl, \"battle_type\": bt,\n            \"move\": \"TACKLE\", \"move_resolved\": True, \"outcome\": outcome, \"damage\": dmg,\n            \"damage_pct_of_max\": None, \"defender_hp_before\": before, \"defender_hp_after\": after,\n            \"defender_max_hp\": maxhp, \"encounter_outcome\": eo}\n\nA = [rec(\"20261117_090000\",1,1,1,\"player\",4,15,11,15), rec(\"20261117_090000\",1,1,2,\"player\",5,11,6,15),\n     rec(\"20261117_090000\",1,1,3,\"player\",4,6,2,15), rec(\"20261117_090000\",1,1,4,\"player\",2,2,0,15)]\nB = [rec(\"20261117_093000\",1,1,1,\"player\",0,15,15,15,\"miss\"), rec(\"20261117_093000\",1,1,2,\"player\",3,15,12,15),\n     rec(\"20261117_093000\",1,1,3,\"player\",4,12,8,15), rec(\"20261117_093000\",1,1,4,\"player\",0,8,8,15,\"miss\"),\n     rec(\"20261117_093000\",1,1,5,\"player\",4,8,4,15), rec(\"20261117_093000\",1,1,6,\"player\",4,4,0,15)]\n# decoy: different map, should be excluded\nAdec = [rec(\"20261117_090000\",1,2,1,\"player\",3,12,9,12,mapn=\"Route 1\")]\nBdec = [rec(\"20261117_093000\",1,2,1,\"player\",3,12,9,12,mapn=\"Route 1\")]\n\nsa = BattleTelemetryStore(root=root, decision_arm=\"llm\", model_decision=\"deepseek-v4-flash\", provider=\"openrouter\")\nsb = BattleTelemetryStore(root=root, decision_arm=\"llm\", model_decision=\"glm-5.3-flash\", provider=\"openrouter\")\nsa.append_encounter(A, run_id=\"20261117_090000\", episode=1, encounter_ordinal=1, map_name=\"Viridian Forest\", battle_type=\"wild\", outcome=\"won\")\nsa.append_encounter(Adec, run_id=\"20261117_090000\", episode=1, encounter_ordinal=2, map_name=\"Route 1\", battle_type=\"wild\", outcome=\"won\")\nsb.append_encounter(B, run_id=\"20261117_093000\", episode=1, encounter_ordinal=1, map_name=\"Viridian Forest\", battle_type=\"wild\", outcome=\"won\")\nsb.append_encounter(Bdec, run_id=\"20261117_093000\", episode=1, encounter_ordinal=2, map_name=\"Route 1\", battle_type=\"wild\", outcome=\"won\")\nprint(\"ok\")\nEOF\n./venv/bin/python /tmp/mkfix.py && ./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\" --opponent Weedle --level-lo 3 --level-hi 3 --battle-type wild --note \"FIXTURE: hand-authored events, not real game runs\"; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "6bad3927a45432ac29455808402b024c11db2f145d88ebc52498e684e058220e"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -n \"def \\|manifest\" src/core/battle_telemetry_store.py | head -80",
+          "exit_code": 0,
+          "output_sha": "94f3997126253253090add0d8b6b11e0cd007e591eea2537f6cb896cf84c85e4"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n 860,950p src/core/battle_telemetry_store.py",
+          "exit_code": 0,
+          "output_sha": "3733816b31cc1f2820b412dcf6b14208bf544a5159cf576354d34324e1a8636b"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && cat >> /tmp/mkfix.py <<'EOF'\n\nsa.write_manifest(run_id=\"20261117_090000\")\nsb.write_manifest(run_id=\"20261117_093000\")\nprint(\"manifests written\")\nEOF\n./venv/bin/python /tmp/mkfix.py && ./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\" --opponent Weedle --level-lo 3 --level-hi 3 --battle-type wild --note \"FIXTURE: hand-authored events, not real game runs\"; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "f3fe0749dd12c84b4e6d01627bdfbeb4c99630da2b808885a353d37d94c38037"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\" --opponent Weedle --level-lo 3 --level-hi 3 --battle-type wild --note \"FIXTURE: hand-authored events, not real game runs\" 2>&1 | sed -n '20,50p'",
+          "exit_code": 0,
+          "output_sha": "135fa10709ddd3d75613b39de0b8929e0234582008b13b271150b24b7c41b0c3"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git status --porcelain | head -30; echo \"--- store files diff ---\"; git diff --stat HEAD -- src/core/battle_telemetry_store.py src/core/battle_telemetry.py specs/contracts/battle-telemetry.md; echo \"--- log ---\"; git log --oneline -3",
+          "exit_code": 0,
+          "output_sha": "0f9982a25ec45d027b6c9c9fa78e9b535c774433b0ef4627448131598669b780"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git log --oneline -8 -- src/core/battle_run_compare.py scripts/compare_battle_runs.py tests/test_battle_run_compare.py; echo \"--- store history ---\"; git log --oneline -3 -- src/core/battle_telemetry_store.py; echo \"--- files tracked? ---\"; git ls-files src/core/battle_run_compare.py scripts/compare_battle_runs.py tests/test_battle_run_compare.py",
+          "exit_code": 0,
+          "output_sha": "8d79bcaeeb4f11b823d0a017fbf40f76988e6a105865ddb943e6aba5211e11ab"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show --stat 5a4a67f",
+          "exit_code": 0,
+          "output_sha": "886860bf05095e30e776f73cc9a048c02e2eda92fefe0e19933a6472b47f6c22"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && timeout 1700 ./venv/bin/pytest -x --tb=short -q 2>&1 | tail -15",
+          "exit_code": -15,
+          "output_sha": "0729414968c60492c5b64335d98ad4c58cd89a3691d7ca9d4d066350d6055f07"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && (timeout 1500 ./venv/bin/pytest -x --tb=short -q > /tmp/fullsuite.log 2>&1; echo \"EXIT=$?\" >> /tmp/fullsuite.log) & sleep 25; echo started",
+          "exit_code": 0,
+          "output_sha": "99d82a3eda503ff445dbb7acabff8ecae3e2df4cccf44df3367fa19279f3772a"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ./venv/bin/ruff check src/core/battle_run_compare.py scripts/compare_battle_runs.py tests/test_battle_run_compare.py 2>&1 | tail -5; echo \"RUFF_EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "9d554c807d647e28b7ac01eb36b8df504ca1858ce234fb1e12f44be7d200b32a"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 450, \"offset\": 300, \"path\": \"tests/test_battle_run_compare.py\"}",
+          "exit_code": 0,
+          "output_sha": "0d092a42ad3e7a9efe9043b2a000b4c36a1df0a46129336dc5edaf84bc46f8f6"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 20; tail -5 /tmp/fullsuite.log 2>/dev/null; echo \"---\"; wc -l /tmp/fullsuite.log 2>/dev/null",
+          "exit_code": 0,
+          "output_sha": "871f2f60077b1afff5e9589a14d1d53dcb5e80e04bb8ddc220d0501770eb5c15"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 400, \"offset\": 750, \"path\": \"tests/test_battle_run_compare.py\"}",
+          "exit_code": 0,
+          "output_sha": "6989156bbdd2611436380f01be6180626b630e1d5d036e88ce424ff917f7a28f"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS (all three sub-parts verified by running the CLI against a real store):\\n1) Side-by-side table naming models: ran `./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \\\"Viridian Forest\\\" ...` -> header \\\"metric  deepseek-v4-flash  glm-5.3-flash\\\" and \\\"COMPARISON: 20261117_090000 (deepseek-v4-flash \\u00b7 provider=openrouter \\u00b7 arm=llm) vs 20261117_093000 (glm-5.3-flash ...)\\\". Fixture labelling: --note printed under \\\"DATA PROVENANCE: label: FIXTURE: hand-authored events, not real game runs\\\"; default note (scripts/compare_battle_runs.py:56-60) says \\\"unlabeled: ... Pass --note with the label the store actually represents (e.g. --note fixture)\\\"; engine DEFAULT_DATA_NOTE src/core/battle_run_compare.py:118-121; DATA_GAP_REAL_PAIRED_RUNS printed in gaps when not comparable.\\n2) Every number derivable from stored events: damage_dealt_total=15 with note \\\"4 / 6 records summed\\\"; SPOT CHECK re-read battle-20261117_090000-ep001-enc001.jsonl:1 = 4 HP, identity 5ba46dd24975..., \\\"raw record MATCH\\\" (spot_check_damage src/core/battle_run_compare.py:1560-1600 re-reads file:line and compares record_identity). items_used/switches reported n/a with reason, not zeroed.\\n3) Partitions read/excluded: output \\\"PARTITIONS READ (2): battle-...-ep001-enc001.jsonl [run \\u2014 model]\\\" and \\\"PARTITIONS EXCLUDED (2): battle-...-ep001-enc002.jsonl [E/why: E1: map 'Route 1' != 'Viridian Forest']\\\" (render _render_partitions src/core/battle_run_compare.py:1490-1510).\\nCode: commit 5a4a67f adds exactly the 3 files (git show --stat: 3 files changed, 3249 insertions); `git diff --stat HEAD -- src/core/battle_telemetry_store.py src/core/battle_telemetry.py` empty -> store unmodified. Tests: `./venv/bin/pytest tests/test_battle_run_compare.py -q` -> \\\"39 passed in 0.60s\\\". ruff on the 3 files -> \\\"All checks passed!\\\".\", \"key\": \"verified_0\"}",
+          "exit_code": 0,
+          "output_sha": "8d4fbf0f94e22ad08d402ceea647241910ca6788a3e40c9bed1decc349e13219"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 25; tail -3 /tmp/fullsuite.log; grep -c PASSED /tmp/fullsuite.log",
+          "exit_code": 0,
+          "output_sha": "cb73ebbce865804533aaf01ecba1d80944e52e2353cea0de81b85fc31e527123"
+        },
+        {
+          "tool": "read_lsp_diagnostics",
+          "command": "read_lsp_diagnostics {}",
+          "exit_code": 0,
+          "output_sha": "ef420cbeebd549fc8c5438d6ea41a3e521fa58e29563c4cae80f491b9bfe2143"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -n \"write_manifest\\|append_encounter\\|\\.remember(\\|open(.*\\\"w\\\"\\|open(.*'w'\" src/core/battle_run_compare.py scripts/compare_battle_runs.py; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "0f9e79850522c596935905a2629c665f2893245ad4b384f6a7122759ff546f52"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && find /tmp/btlfix -type f | sort | xargs md5sum > /tmp/before.md5 && ./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\" >/dev/null 2>&1; find /tmp/btlfix -type f | sort | xargs md5sum > /tmp/after.md5; diff /tmp/before.md5 /tmp/after.md5 && echo \"STORE UNCHANGED BY TOOL RUN\"",
+          "exit_code": 0,
+          "output_sha": "7de19372790957ac26fea913953c240d59fb869d6712945731f7d9663a0d935c"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 25; tail -3 /tmp/fullsuite.log; grep -c PASSED /tmp/fullsuite.log; grep -E \"FAILED|ERROR|EXIT=\" /tmp/fullsuite.log | head",
+          "exit_code": 0,
+          "output_sha": "1be49c731475a8abea08c4e1370ab2458a933062f5ca19ad5ae55a69d096d5ac"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 28; tail -2 /tmp/fullsuite.log; grep -c PASSED /tmp/fullsuite.log",
+          "exit_code": 0,
+          "output_sha": "6152bea8ad31e913fc9fdb6fd194a9256a20faea83037c07ed07a18e1d13f730"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -2 /tmp/fullsuite.log; grep -c PASSED /tmp/fullsuite.log",
+          "exit_code": 0,
+          "output_sha": "8ce341e5afd912d7a29001acb5bc36b4aa126969db40ce4a918cc140a61f544b"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -4 /tmp/fullsuite.log; grep -c PASSED /tmp/fullsuite.log",
+          "exit_code": 0,
+          "output_sha": "e57017d7ed4845b067d5609e46daacb477e066aea219e5eb68661b6bbc4caa29"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -4 /tmp/fullsuite.log; grep -c PASSED /tmp/fullsuite.log",
+          "exit_code": 0,
+          "output_sha": "684357151ffa94426f8acde07618da101f4b790b9920b9daa68aa86ce40ac6a8"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -n \"EXIT=\" /tmp/fullsuite.log; echo \"---\"; grep -n \"deepseek-v4-flash\\|glm-5.3-flash\\|## 6\\|\u00a76\" specs/contracts/battle-telemetry.md | head -20",
+          "exit_code": 0,
+          "output_sha": "73eecd2ff45c4b0474fd86aff9a6849f62e139a47ef35cbde92a2e95517c286a"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n 272,340p specs/contracts/battle-telemetry.md",
+          "exit_code": 0,
+          "output_sha": "6200976aef1e6009caf3d37804a69a01b58c88d41ed131c10686935040517115"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && tail -1 /tmp/fullsuite.log; grep -n \"EXIT\" /tmp/fullsuite.log; echo \"--- rerun tail check ---\"; ./venv/bin/pytest tests/test_battle_run_compare.py -q 2>&1 | tail -2",
+          "exit_code": 0,
+          "output_sha": "d26613fa2288ec79259f560a48b082447f64547604635feba903f3994058d839"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"Full suite: `./venv/bin/pytest -x --tb=short -q` -> \\\"4778 passed, 14 skipped in 229.44s (0:03:49)\\\" (no FAILED lines; the ERROR lines in the log are expected log output from tests/test_database.py-style negative tests). New file alone: \\\"39 passed in 1.23s\\\". ruff on the 3 files: \\\"All checks passed!\\\". LSP diagnostics: count 0.\\nStore unmodified: `git show --stat 5a4a67f` = 3 files changed, 3249 insertions (only the 3 new files); `git diff --stat HEAD -- src/core/battle_telemetry_store.py src/core/battle_telemetry.py` empty. Runtime: md5sum of every file under /tmp/btlfix before/after a CLI run -> identical (\\\"STORE UNCHANGED BY TOOL RUN\\\"). grep for write_manifest/append_encounter/.remember(/open(...,\\\"w\\\") in engine+CLI -> no matches (exit 1).\\nContract \\u00a76 (specs/contracts/battle-telemetry.md:272-330) table reproduced number for number by the CLI: turns_to_ko 4/6, attacks_to_ko 4/6, hits 4/4=1.000 vs 4/6=0.667, whiff 0/2, damage 15/15, damage_per_turn 3.75/2.50, flee 0/0, outcome won/won.\", \"key\": \"suite_and_store\"}",
+          "exit_code": 0,
+          "output_sha": "7677951ee530201cdc3386a5267a10d8922c2db708a0cc364c91edbdd3673358"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"DERIVED 0: The CLI is reachable and runnable end-to-end from the repo entrypoint (scripts/compare_battle_runs.py main()) against a real store, exiting 0 when a table is printed and 1 when nothing is comparable \\u2014 not merely importable.\\nDERIVED 1: The tool is read-only: running it leaves every store file byte-identical and it contains no write path (no write_manifest/append_encounter/remember/open-for-write).\\nDERIVED 2: The fixture-labelling requirement is enforced by default, not only when the operator remembers --note: an unlabelled run must print a provenance line that says it is unlabeled, and a non-comparable pair must print the \\\"real paired runs: not established\\\" gap.\\nDERIVED 3: The damage figure traced back to its raw record is verified by identity, not just by the printed number \\u2014 the spot check re-reads file:line and compares the store's record_identity hash, and reports MISMATCH rather than silently passing when it disagrees.\\nDERIVED 4: The exclusion accounting is honest about partitions it could not select: a run with no manifest, a partition on disk but absent from the index, and a traversing manifest path are each named as a gap and never read or counted.\", \"key\": \"derived\"}",
+          "exit_code": 0,
+          "output_sha": "a73275f8d5b89a44c13a43b7a1a637c8a798716938d8ab624a75082121302b3f"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && echo \"=== D0: exit 0 with table ===\"; ./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\" >/dev/null 2>&1; echo \"EXIT_with_data=$?\"; echo \"=== D0: exit 1 nothing comparable ===\"; ./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a nope_a --run-b nope_b 2>&1 | tail -3; ./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a nope_a --run-b nope_b >/dev/null 2>&1; echo \"EXIT_no_data=$?\"; echo \"=== D2: default note (no --note) ===\"; ./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\" 2>&1 | grep -E \"label:|real paired runs\"",
+          "exit_code": 0,
+          "output_sha": "5b32ee7c93c3826c00cf1ab67a3487500eb3bca40de11fb2a220ad42355f7900"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && cat > /tmp/d3.py <<'EOF'\nimport sys, json\nsys.path.insert(0, \".\")\nfrom pathlib import Path\nfrom src.core.battle_run_compare import compare_runs, Segment\nfrom src.core.battle_telemetry_store import BattleTelemetryStore\n\nroot = Path(\"/tmp/btlfix/namespaces\")\nseg = Segment(map_name=\"Viridian Forest\")\nrep = compare_runs(\"20261117_090000\", \"20261117_093000\", seg, root=root)\nchk = rep.spot_check_damage(\"a\")\nprint(\"clean matches:\", chk.matches, \"| ref:\", chk.ref.ref, \"| damage:\", chk.ref.damage)\n\n# Now tamper the raw record's damage on disk and re-check: identity must disagree.\np = Path(rep.data_dir) / chk.ref.file\nlines = p.read_text().splitlines()\nrec = json.loads(lines[chk.ref.line - 1])\nrec[\"damage\"] = 99\nlines[chk.ref.line - 1] = json.dumps(rec)\np.write_text(\"\\n\".join(lines) + \"\\n\")\nrep2 = compare_runs(\"20261117_090000\", \"20261117_093000\", seg, root=root)\nchk2 = rep2.spot_check_damage(\"a\")\nprint(\"tampered matches:\", chk2.matches, \"| summary:\", chk2.summary)\nEOF\n./venv/bin/python /tmp/d3.py",
+          "exit_code": 0,
+          "output_sha": "7fe0a6313e74866f8360b4ed7d412aee55d750194b1ae79907890e09afb5e5f7"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && cat > /tmp/d3b.py <<'EOF'\nimport sys, json\nsys.path.insert(0, \".\")\nfrom pathlib import Path\nfrom src.core.battle_run_compare import compare_runs, Segment\n\nroot = Path(\"/tmp/btlfix/namespaces\")\nseg = Segment(map_name=\"Viridian Forest\")\nrep = compare_runs(\"20261117_090000\", \"20261117_093000\", seg, root=root)\nchk = rep.spot_check_damage(\"a\")\nprint(\"report built: damage_dealt_total =\", rep.run_a.damage_dealt_total, \"| ref damage =\", chk.ref.damage)\n\n# Tamper the file AFTER the report was built (stale report vs changed store).\np = Path(rep.data_dir) / chk.ref.file\nlines = p.read_text().splitlines()\nrec = json.loads(lines[chk.ref.line - 1])\nrec[\"damage\"] = 99\nlines[chk.ref.line - 1] = json.dumps(rec)\np.write_text(\"\\n\".join(lines) + \"\\n\")\n\nchk2 = rep.spot_check_damage(\"a\")   # same report object, re-reads disk\nprint(\"after tamper, same report -> matches:\", chk2.matches)\nprint(\"summary:\", chk2.summary)\nEOF\n./venv/bin/python /tmp/d3b.py",
+          "exit_code": 0,
+          "output_sha": "216dbd6bbe772b14dc1895f126a16b14cc0a727a21073aa0458ccbacd97d2aef"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ./venv/bin/python /tmp/mkfix.py >/dev/null 2>&1 && ./venv/bin/python /tmp/d3b.py",
+          "exit_code": 0,
+          "output_sha": "22cbb44cf26a6596b027b4d55c745ec71f997e9ba3af5e52bb84a948678c6a80"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ./venv/bin/python /tmp/mkfix.py >/dev/null 2>&1 && cat > /tmp/d4.py <<'EOF'\nimport sys, json\nsys.path.insert(0, \".\")\nfrom pathlib import Path\nfrom src.core.battle_run_compare import compare_runs, Segment, select_run\nfrom src.core.battle_telemetry_store import BattleTelemetryStore\n\nroot = Path(\"/tmp/btlfix/namespaces\")\nstore = BattleTelemetryStore(root=root)\n\n# (a) partition on disk but absent from the manifest index\nimport shutil\nsrc = root/\"pokemon-battle\"/\"data\"/\"battle-20261117_090000-ep001-enc001.jsonl\"\ndst = root/\"pokemon-battle\"/\"data\"/\"battle-20261117_090000-ep009-enc001.jsonl\"\nshutil.copy(src, dst)\nsel = select_run(store, \"20261117_090000\", Segment())\nprint(\"(a) unindexed:\", sel.unindexed)\nprint(\"(a) read:\", [p.file for p in sel.selected])\nprint(\"(a) notes:\", [n for n in sel.notes if \"unindexed\" in n])\n\n# (b) run with partitions but no manifest\nshutil.copy(src, root/\"pokemon-battle\"/\"data\"/\"battle-fx_nomanifest-ep001-enc001.jsonl\")\nsel2 = select_run(store, \"fx_nomanifest\", Segment())\nprint(\"(b) manifest_present:\", sel2.manifest_present, \"| selected:\", sel2.selected, \"| on_disk:\", sel2.partitions_on_disk)\nprint(\"(b) notes:\", sel2.notes)\nEOF\n./venv/bin/python /tmp/d4.py",
+          "exit_code": 0,
+          "output_sha": "b4c78310f36479878c343a20ddf4b0e8861c63aa99835abdfab98664a259f7f0"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"D0 PASS: CLI reachable end-to-end. `./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \\\"Viridian Forest\\\"` -> EXIT_with_data=0 with a full table; with nonexistent runs -> EXIT_no_data=1 and the DATA_GAP_NO_BATTLE_PARTITIONS line printed. main() at scripts/compare_battle_runs.py:283-290 returns 0/1/2.\\nD1 PASS: read-only. md5sum of every file under /tmp/btlfix identical before/after a CLI run (\\\"STORE UNCHANGED BY TOOL RUN\\\"); grep for write_manifest|append_encounter|.remember(|open(...,\\\"w\\\") in src/core/battle_run_compare.py + scripts/compare_battle_runs.py -> no matches (exit 1). Only open() calls are read-mode (read_partition src/core/battle_run_compare.py:700, spot_check_damage :1580).\\nD2 PASS: default labelling enforced. Running WITHOUT --note prints \\\"label: unlabeled: every number in this table comes from stored events; nothing here proves the runs were real game runs. Pass --note with the label the store actually represents (e.g. --note fixture) before quoting it.\\\" (_NOT_DERIVABLE_NOTE scripts/compare_battle_runs.py:56-60). A non-comparable pair additionally prints DATA_GAP_REAL_PAIRED_RUNS (\\\"real paired runs: not established by this report ... a table built over fixture events must be labelled as a fixture\\\").\\nD3 PASS: identity-based spot check. Clean fixture -> \\\"matches: True ... raw record MATCH\\\". Tampering the raw record AFTER the report was built (stale report vs changed store) -> \\\"matches: False ... raw record MISMATCH\\\" (spot_check_damage compares raw[\\\"damage\\\"]==ref.damage AND record_identity(raw)==ref.identity, src/core/battle_run_compare.py:1590-1600).\\nD4 PASS: honest exclusion accounting. (a) a partition copied onto disk after the manifest was written -> unindexed=('battle-20261117_090000-ep009-enc001.jsonl',), NOT in selected, note \\\"unindexed_partitions: 1 file(s) ... were NOT read\\\". (b) a run with partitions but no manifest -> manifest_present=False, selected=(), note \\\"manifest_missing: ... none of fx_nomanifest's 1 partition file(s) was read\\\". Traversing manifest path -> excluded with \\\"path traversal\\\" (test_a_traversing_manifest_path_is_excluded_not_opened).\", \"key\": \"verified_derived\"}",
+          "exit_code": 0,
+          "output_sha": "0f63ad14867fbab33d8e7ae0323111b9954f143ade6b850c17600c2145ece8d9"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -n \"damage_per_turn\" src/core/battle_run_compare.py | head; echo \"--- contract says total/turns_to_ko ---\"; sed -n 316,318p specs/contracts/battle-telemetry.md",
+          "exit_code": 0,
+          "output_sha": "1f9a99e40f444c9d52e768b28d2512b0d227c15588781376c07099c8a080087a"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git status --porcelain -- src/core/battle_telemetry_store.py src/core/battle_telemetry.py specs/contracts/battle-telemetry.md; echo \"STORE_STATUS_EMPTY_ABOVE\"; ./venv/bin/pytest tests/test_battle_run_compare.py -q 2>&1 | tail -1",
+          "exit_code": 0,
+          "output_sha": "a17b4adc5e78552a0809c9fd83735ae2d1f5f08ebf3c8b3553d7ffe8eac158aa"
+        }
+      ]
+    }
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [
+      {
+        "severity": "high",
+        "file": ".coding-hermes/board/tasks.jsonl",
+        "line": 0,
+        "detection": "board row status contradicts the gitreins task ledger for the same id",
+        "detail": "tasks.jsonl sets BTL-COMPARE-1 to \"status\":\"in_progress\" (event 899 at 17:59:59) while .gitreins/tasks.yaml records the same id as `status: complete` with `completed_at: '2026-11-18T01:41:56'` \u2014 the two ledgers disagree on the row's state."
+      },
+      {
+        "severity": "medium",
+        "file": ".coding-hermes/board/tasks.jsonl",
+        "line": 0,
+        "detection": "closed row retains a defer_reason that contradicts its status",
+        "detail": "QA-AI-PLAYS-POKE-RELENG-1/README-1/DOCS-1 are set to \"status\": \"complete\" with \"deferred\": false but keep \"defer_reason\": \"RESOLVED (pm ...): closed as duplicate ...\", i.e. a resolution note left in the field that is supposed to hold an active deferral reason."
+      },
+      {
+        "severity": "medium",
+        "file": ".coding-hermes/board/tasks.jsonl",
+        "line": 0,
+        "detection": "literal unformatted format placeholder in persisted text",
+        "detail": "The new foreman_note text on QA-AI-PLAYS-POKE-RELENG-1, README-1, DOCS-1 and FOREMAN-3 contains the literal token \"PM tick %s\" (and \"83%%\"/\"94%%\"), showing a format string was written without being interpolated."
+      },
+      {
+        "severity": "low",
+        "file": ".coding-hermes/board/tasks.jsonl",
+        "line": 0,
+        "detection": "row closed as duplicate while its own acceptance criteria are unmet",
+        "detail": "QA-AI-PLAYS-POKE-FOREMAN-3 is the surviving canonical row and is un-deferred, yet its sibling rows were closed as \"DUPLICATE\" citing \"close this row on that row evidence run\" while FOREMAN-3's own AC1 (a fresh battery launch with an evidence path) has no evidence recorded \u2014 the closure rests on a run that has not happened."
+      },
+      {
+        "severity": "low",
+        "file": ".coding-hermes/board/events.jsonl",
+        "line": 0,
+        "detection": "event log timestamps are non-monotonic relative to existing entries",
+        "detail": "The appended events 899-903 carry timestamps 2026-11-17T17:59:59Z..18:06:27Z, which sort before the pre-existing event id 899 at 2026-11-17T21:13:59Z, so the append-only log is no longer ordered by time."
+      },
+      {
+        "severity": "low",
+        "file": ".coding-hermes/board/tasks.jsonl",
+        "line": 0,
+        "detection": "duplicate event id in append-only event log",
+        "detail": "The diff adds a second record with \"id\":899 (task_updated BTL-COMPARE-1) while an existing line already uses id 899 (the audit event for QA-AI-PLAYS-POKE-FOREMAN-3), so ids are no longer unique."
+      },
+      {
+        "severity": "low",
+        "file": ".coding-hermes/board/tasks.jsonl",
+        "line": 0,
+        "detection": "row marked complete without the evidence its own criteria require",
+        "detail": "RELEASE-009 is set to \"status\": \"complete\" with guard_result PASS / ci_result GREEN, but its own foreman_note states \"closure of this row awaits a re-judge on 78eff08\" and the cited tier2 run b3b8648c was INCOMPLETE \u2014 the close is recorded against a verdict that did not pass."
+      },
+      {
+        "severity": "observation",
+        "file": "play_frames/console.png",
+        "line": 0,
+        "detection": "binary artifact changed with no accompanying code or test change",
+        "detail": "play_frames/console.png is modified in a diff that otherwise touches only board bookkeeping and the gitreins task ledger, so the regenerated frame has no recorded provenance in this change."
+      }
+    ],
+    "summary": "The change is board/ledger bookkeeping, and its defects are consistency ones: BTL-COMPARE-1 is in_progress on the board but complete in .gitreins/tasks.yaml, closed rows keep stale defer_reason text, an unformatted \"%s\" leaked into notes, and the event log gained a duplicate id 899 with out-of-order timestamps."
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 1) Two runs on the same segment produce a side-by-side metric table naming the models (fixture data must be explicitly labeled if real paired runs are absent). 2) Every number in the table is derivable from stored events (one damage figure traced back to its raw record). 3) The report states which partitions it read and which it excluded. Code: new src/core/battle_run_compare.py + scripts/compare_battle_runs.py + tests/test_battle_run_compare.py, store files unmodified, tests green.: All three sub-parts verified by running the CLI against a real store built through BattleTelemetryStore. (1) Table names the models: header 'metric  deepseek-v4-flash  glm-5.3-flash' and 'COMPARISON: 20261117_090000 (deepseek-v4-flash \u00b7 provider=openrouter \u00b7 arm=llm)  vs  20261117_093000 (glm-5.3-flash \u00b7 provider=openrouter \u00b7 arm=llm)' (render_table src/core/battle_run_compare.py:1460-1475). Fixture labelling: without --note the report prints 'label: unlabeled: every number in this table comes from stored events; nothing here proves the runs were real game runs. Pass --note with the label the store actually represents (e.g. --note fixture)' (_NOT_DERIVABLE_NOTE scripts/compare_battle_runs.py:56-60); a non-comparable pair also prints DATA_GAP_REAL_PAIRED_RUNS ('real paired runs: not established by this report ... a table built over fixture events must be labelled as a fixture'). (2) Derivable from stored events: 'damage_dealt_total 15 15  # 4 / 6 records summed', and the SPOT CHECK re-reads the raw line: 'damage_dealt_total=15 includes battle-20261117_090000-ep001-enc001.jsonl:1 = 4 HP' / 'identity 5ba46dd24975\u2026, damage=4, turn=1, side=player) \u2192 raw record MATCH' (spot_check_damage src/core/battle_run_compare.py:1560-1600). Metrics the record shape cannot answer are printed 'n/a' with a reason, never zeroed (NOT_DERIVABLE :124-135). The contract's \u00a76 table (specs/contracts/battle-telemetry.md:302-312) is reproduced number for number: turns_to_ko 4/6, attacks_to_ko 4/6, hits 4/4=1.000 vs 4/6=0.667, whiff 0/2, damage 15/15, damage_per_turn 3.75/2.50, flee 0/0, outcome won/won. (3) Partitions read/excluded: 'PARTITIONS READ (2): battle-20261117_090000-ep001-enc001.jsonl [20261117_090000 \u2014 deepseek-v4-flash]' and 'PARTITIONS EXCLUDED (2): battle-20261117_090000-ep001-enc002.jsonl [E/why: E1: map 'Route 1' != 'Viridian Forest']' (_render_partitions src/core/battle_run_compare.py:1490-1510). Code: `git show --stat 5a4a67f` = '3 files changed, 3249 insertions(+)' touching only the three named files; `git status --porcelain -- src/core/battle_telemetry_store.py src/core/battle_telemetry.py specs/contracts/battle-telemetry.md` is empty \u2192 store unmodified. Tests green: `./venv/bin/pytest tests/test_battle_run_compare.py -q` \u2192 '39 passed in 0.59s'; full suite `./venv/bin/pytest -x --tb=short -q` \u2192 '4778 passed, 14 skipped in 229.44s (0:03:49)' with no FAILED lines; `./venv/bin/ruff check` on the three files \u2192 'All checks passed!'; LSP diagnostics count 0. [resolution 0.10; src/core/battle_run_compare.py, scripts/compare_battle_runs.py, tests/test_battle_run_compare.py]\n  \u2713 The CLI is reachable and runnable end-to-end from the repo entrypoint (scripts/compare_battle_runs.py main()) against a real store, exiting 0 when a table is printed and 1 when nothing is comparable \u2014 not merely importable.: `./venv/bin/python scripts/compare_battle_runs.py --store-root /tmp/btlfix/namespaces --run-a 20261117_090000 --run-b 20261117_093000 --map \"Viridian Forest\"` \u2192 EXIT_with_data=0 with the full table; with nonexistent run ids \u2192 EXIT_no_data=1 and the DATA_GAP_NO_BATTLE_PARTITIONS line printed. main() at scripts/compare_battle_runs.py:283-290 returns 0/1/2 and is wired to `raise SystemExit(main())` at :296-297.\n  \u2713 The tool is read-only: running it leaves every store file byte-identical and it contains no write path (no write_manifest/append_encounter/remember/open-for-write).: md5sum of every file under /tmp/btlfix identical before and after a CLI run ('STORE UNCHANGED BY TOOL RUN'). `grep -n \"write_manifest|append_encounter|\\.remember(|open(.*\\\"w\\\"|open(.*'w'\" src/core/battle_run_compare.py scripts/compare_battle_runs.py` \u2192 no matches (exit 1). The only open() calls are read-mode: read_partition src/core/battle_run_compare.py:700 and spot_check_damage :1580.\n  \u2713 The fixture-labelling requirement is enforced by default, not only when the operator remembers --note: an unlabelled run must print a provenance line that says it is unlabeled, and a non-comparable pair must print the \"real paired runs: not established\" gap.: Running WITHOUT --note prints 'label: unlabeled: every number in this table comes from stored events; nothing here proves the runs were real game runs. Pass --note with the label the store actually represents (e.g. --note fixture) before quoting it.' (_NOT_DERIVABLE_NOTE scripts/compare_battle_runs.py:56-60, wired as the --note default at :176-184). A non-comparable pair additionally prints DATA_GAP_REAL_PAIRED_RUNS (src/core/battle_run_compare.py:110-114, appended in ComparisonReport.gaps :1290-1296).\n  \u2713 The damage figure traced back to its raw record is verified by identity, not just by the printed number \u2014 the spot check re-reads file:line and compares the store's record_identity hash, and reports MISMATCH rather than silently passing when it disagrees.: Clean fixture \u2192 'matches: True ... raw record MATCH'. Tampering the raw record AFTER the report was built (stale report vs changed store) \u2192 'matches: False ... raw record MISMATCH'. spot_check_damage compares both raw['damage']==ref.damage AND record_identity(raw)==ref.identity (src/core/battle_run_compare.py:1590-1600), and the CLI prints the verdict via DamageSpotCheck.summary :1240-1250.\n  \u2713 The exclusion accounting is honest about partitions it could not select: a run with no manifest, a partition on disk but absent from the index, and a traversing manifest path are each named as a gap and never read or counted.: (a) A partition copied onto disk after the manifest was written \u2192 unindexed=('battle-20261117_090000-ep009-enc001.jsonl',), absent from selected, note 'unindexed_partitions: 1 file(s) of 20261117_090000 exist on disk but are absent from the manifest index and were NOT read' (select_run src/core/battle_run_compare.py:520-535). (b) A run with partitions but no manifest \u2192 manifest_present=False, selected=(), note 'manifest_missing: /game/battle/fx_nomanifest/manifest is absent, so \u00a75.2 cannot select by key \u2014 none of fx_nomanifest's 1 partition file(s) was read' (:415-435). (c) A traversing manifest path \u2192 excluded with reason containing 'path traversal' (_unsafe_filename_reason :560-570; test_a_traversing_manifest_path_is_excluded_not_opened passes).\nThe three new files deliver a working, read-only cross-model comparison: the CLI reproduces the contract's \u00a76 table number for number with both models named, traces a damage figure back to its raw file:line by record identity, and reports every partition read and excluded with the excluding key \u2014 with the store untouched and the full suite green (4778 passed, 14 skipped). [uncovered failure paths: failure mode 0 (The overkill_ratio / overkill_damage figures are an ESTIMATE (typical non-KO hit / HP the kill needed), not a measurement \u2014 a reader who quotes them as observed overkill would be over-reading a store whose HP delta is clamped at 0.): detected_by cites tests/test_battle_run_compare.py::test_observed_overkill_is_zero_because_r5_clamps_to_remaining_hp but no tool result in this run shows it ran \u2014 uncovered failure path; failure mode 1 (A run whose manifest index is truncated (more encounters than MAX_MANIFEST_ENCOUNTERS) silently loses the unindexed partitions from the comparison; they are named in a gap note but the table's encounter count is lower than the run's real total.): detected_by is empty \u2014 uncovered failure path; failure mode 2 (damage_per_turn is computed as damage_dealt_total / turns_total (sum of per-encounter max turns), which for a multi-encounter segment is not the same denominator as the contract's per-encounter 'total / turns_to_ko'; the two agree only on single-encounter segments.): detected_by is empty \u2014 uncovered failure path]\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-11-18T01:53:13.516433",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-18T01:53:13.596997+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 795,
+        "truncated": false,
+        "source": "git show a8cb16752d03"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 207050,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "BTL-COMPARE-1"
+  }
+}
