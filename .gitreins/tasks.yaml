@@ -2058,13 +2058,15 @@ tasks:
   created_at: '2026-11-17T07:44:44.059334+00:00'
   completed_at: '2026-11-17T09:22:55.592546+00:00'
 - id: RELEASE-010
-  title: CHANGELOG unreleased bullets bound to commits or deleted
+  title: CHANGELOG provenance debt resolution
   criteria:
-  - 'FAILIF: the row''s own acceptance command fails or its acceptance evidence is
-    missing. PROOF: paste the acceptance command output from the row.'
+  - '1) The ## [Unreleased] section contains only items with named provenance or is
+    empty. 2) Every removed/relocated bullet is accounted for in the CHANGELOG text
+    itself (no silent deletion). 3) Commit message records per-bullet archaeology:
+    attributed commit(s) or unprovable-relocated. Only CHANGELOG.md modified.'
   status: complete
-  created_at: '2026-11-17T07:44:44.416753+00:00'
-  completed_at: '2026-11-17T11:46:52.478120+00:00'
+  created_at: '2026-11-17T17:59:37.292647+00:00'
+  completed_at: '2026-11-18T01:55:31.674083+00:00'
 - id: DOC-024
   title: observability-spec still declares zero Prometheus instrumentation
   criteria:
@@ -2119,3 +2121,27 @@ tasks:
   status: complete
   created_at: '2026-11-17T10:31:07.838286+00:00'
   completed_at: '2026-11-17T11:37:06.696231+00:00'
+- id: BTL-COMPARE-1
+  title: 'cross-model run comparison: gameplay quality metrics from telemetry'
+  criteria:
+  - '1) Two runs on the same segment produce a side-by-side metric table naming the
+    models (fixture data must be explicitly labeled if real paired runs are absent).
+    2) Every number in the table is derivable from stored events (one damage figure
+    traced back to its raw record). 3) The report states which partitions it read
+    and which it excluded. Code: new src/core/battle_run_compare.py + scripts/compare_battle_runs.py
+    + tests/test_battle_run_compare.py, store files unmodified, tests green.'
+  status: complete
+  created_at: '2026-11-17T17:59:36.930500+00:00'
+  completed_at: '2026-11-18T01:41:56.437968+00:00'
+- id: MON-AIPP-5
+  title: Emulator desync/frame-staleness signals and data-growth gauges
+  criteria:
+  - Implement documented-proxy metrics aipp_emulator_desync_total, aipp_emulator_frame_stale_seconds,
+    aipp_screenshot_bytes, aipp_runlog_bytes, aipp_runlog_last_write_timestamp_seconds,
+    aipp_bridge_requests_total{cmd,outcome}, aipp_bridge_active_connections. 1) runlog-last-write
+    query empty during active run, valued after ledger stops. 2) bridge active connections
+    return to 0 after burst of 50. 3) desync counter increments on deliberately corrupted
+    boot state (before/after captured). Spec sections 3.2/3.3/8.6 updated. Tests green.
+  status: complete
+  created_at: '2026-11-17T17:59:37.641418+00:00'
+  completed_at: '2026-11-18T02:02:07.519659+00:00'
