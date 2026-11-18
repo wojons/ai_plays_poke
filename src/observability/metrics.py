@@ -121,6 +121,51 @@ _CREDENTIAL_VALID = _metric(
     ("key_name",),
 )
 
+# ── Emulator integrity and data growth (MON-AIPP-5) ─────────────────
+# A desync silently invalidates every other number: the agent keeps deciding
+# against a RAM view that no longer matches the frame, the run looks busy, and
+# nothing says the ground truth is gone. Nothing in this repo compares RAM with
+# pixels (docs/observability-spec.md §8.6), so `aipp_emulator_desync_total` is a
+# DOCUMENTED PROXY — read ``observe_emulator_desync`` before trusting it. The
+# staleness gauge and the three data-growth gauges are direct measurements
+# (monotonic clock, stat sizes, ledger mtime) and carry no proxy caveat.
+_EMULATOR_DESYNC = _metric(
+    Counter,
+    "aipp_emulator_desync_total",
+    "Desync PROXY events: repeated identical frame hash with an unchanged RAM tile.",
+)
+_EMULATOR_FRAME_STALE = _metric(
+    Gauge,
+    "aipp_emulator_frame_stale_seconds",
+    "Seconds since the emulator frame last changed (monotonic clock).",
+)
+_SCREENSHOT_BYTES = _metric(
+    Gauge,
+    "aipp_screenshot_bytes",
+    "Total bytes stored under the current run's screenshot directory.",
+)
+_RUNLOG_BYTES = _metric(
+    Gauge,
+    "aipp_runlog_bytes",
+    "Size in bytes of the current run's JSONL ledger.",
+)
+_RUNLOG_LAST_WRITE = _metric(
+    Gauge,
+    "aipp_runlog_last_write_timestamp_seconds",
+    "Unix timestamp of the last write to the run's JSONL ledger.",
+)
+_BRIDGE_REQUESTS = _metric(
+    Counter,
+    "aipp_bridge_requests_total",
+    "Game bridge requests by command and outcome.",
+    ("cmd", "outcome"),
+)
+_BRIDGE_ACTIVE = _metric(
+    Gauge,
+    "aipp_bridge_active_connections",
+    "Game bridge connections currently admitted to a worker.",
+)
+
 # Closed label vocabularies. Dashboards scrape these families, so an
 # operator-supplied spelling must never be able to mint a new series.
 _DECISION_MODE_LABELS = frozenset(
@@ -144,6 +189,48 @@ _RETRY_REASON_LABELS = ("auth", "quota", "5xx", "timeout")
 # a probe URL without extending the enum fails loudly instead of minting a
 # series outside the closed vocabulary.
 _CREDENTIAL_KEY_LABELS = frozenset({"OPENROUTER_API_KEY", "DEEPSEEK_API_KEY"})
+# Bridge `cmd` mirrors `scripts/game_bridge.py::_dispatch` verbatim plus the two
+# non-verbs an operator still needs to see: "unknown" (a cmd the bridge does not
+# serve) and "none" (a connection that closed before sending a request line).
+# A test pins this set equal to the dispatch table, so adding a bridge verb
+# without extending the enum fails loudly instead of minting a series outside
+# the closed vocabulary.
+_BRIDGE_CMD_LABELS = frozenset(
+    {
+        "health",
+        "observe",
+        "press",
+        "step",
+        "save",
+        "load",
+        "frame",
+        "raw",
+        "pause",
+        "resume",
+        "list_saves",
+        "delete_save",
+        "reset",
+        "goal",
+        "unknown",
+        "none",
+    }
+)
+# Every exit path through `handle()` lands on exactly one of these: answered ok,
+# answered with an error (dispatch raised, or returned ok=False), refused for the
+# token, refused because shutdown took the lock, rejected as unparseable, a reply
+# the socket would not accept, and a connection that never sent a request.
+_BRIDGE_OUTCOME_LABELS = frozenset(
+    {
+        "ok",
+        "error",
+        "unauthorized",
+        "busy",
+        "invalid",
+        "send_failed",
+        "empty",
+        "unknown",
+    }
+)
 
 # Materialize zero-valued series so every P0 metric is visible on the first scrape.
 _RUN_CYCLES.labels(mode="unknown", pipeline="unknown")
@@ -167,6 +254,17 @@ _MODEL_RETRIES.labels(model_family="other", reason="auth").inc(0)
 # would read as "dead" for a key this host never configured. The boot probe
 # mints one series per CONFIGURED key NAME only, which is what keeps the
 # `key_name` cardinality at the number of probes the host actually runs.
+_EMULATOR_DESYNC.inc(0)
+_EMULATOR_FRAME_STALE.set(0.0)
+_SCREENSHOT_BYTES.set(0.0)
+_RUNLOG_BYTES.set(0.0)
+_BRIDGE_REQUESTS.labels(cmd="unknown", outcome="error").inc(0)
+_BRIDGE_ACTIVE.set(0.0)
+# `_RUNLOG_LAST_WRITE` is deliberately NOT materialized, for the same reason as
+# `_CREDENTIAL_VALID`: an unmaterialized 0 reads as "1970", i.e. a ledger that
+# stopped two thousand weeks ago, and the staleness alarm in spec §6 would fire
+# on any process that has simply not written a ledger yet. The gauge is minted
+# by the first real `set_data_growth` with an mtime behind it.
 
 
 def decision_mode_label(mode: str | None) -> str:
@@ -322,6 +420,112 @@ def set_credential_valid(key_name: str, valid: bool) -> None:
 def set_runner_up(surface: str, up: bool = True) -> None:
     try:
         _RUNNER_UP.labels(surface=surface).set(1 if up else 0)
+    except Exception:  # noqa: BLE001 - telemetry must never escape to callers
+        return None  # noqa: RET501
+
+
+def bridge_cmd_label(cmd: str | None) -> str:
+    """Map a bridge request verb onto the closed exporter vocabulary."""
+    if isinstance(cmd, str):
+        normalised = cmd.strip().lower()
+        if normalised in _BRIDGE_CMD_LABELS:
+            return normalised
+    return "unknown"
+
+
+def bridge_outcome_label(outcome: str | None) -> str:
+    """Map a bridge request outcome onto the closed exporter vocabulary."""
+    if isinstance(outcome, str) and outcome in _BRIDGE_OUTCOME_LABELS:
+        return outcome
+    return "unknown"
+
+
+def observe_bridge_request(cmd: str | None, outcome: str | None) -> None:
+    """Count one finished bridge request by verb and outcome (MON-AIPP-5).
+
+    Called once per connection from the single exit of
+    ``scripts/game_bridge.py::handle``, so the counter's total equals the
+    connections the bridge served: a connection that closed before sending a
+    request line counts as ``cmd="none", outcome="empty"`` instead of vanishing.
+    """
+    try:
+        _BRIDGE_REQUESTS.labels(
+            cmd=bridge_cmd_label(cmd), outcome=bridge_outcome_label(outcome)
+        ).inc()
+    except Exception:  # noqa: BLE001 - telemetry must never escape to callers
+        return None  # noqa: RET501
+
+
+def set_bridge_active_connections(count: int) -> None:
+    """Publish how many bridge connections are admitted to a worker now.
+
+    The number is a point-in-time count of the socket set the bridge's fixed
+    workers own, not a cumulative total: the leak the P3 row names (threads
+    that never return) shows up here as a count that does not fall back to 0.
+    """
+    try:
+        _BRIDGE_ACTIVE.set(max(0, int(count or 0)))
+    except Exception:  # noqa: BLE001 - telemetry must never escape to callers
+        return None  # noqa: RET501
+
+
+def observe_emulator_frame(stale_seconds: float) -> None:
+    """Publish seconds since the emulator frame last changed (MON-AIPP-5).
+
+    Measured by the caller against ``time.monotonic()`` from the last cycle whose
+    frame hash differed, so a wall-clock step cannot fake freshness. The caller
+    passes 0.0 on the cycle the frame changed.
+    """
+    try:
+        _EMULATOR_FRAME_STALE.set(max(0.0, float(stale_seconds or 0.0)))
+    except Exception:  # noqa: BLE001 - telemetry must never escape to callers
+        return None  # noqa: RET501
+
+
+def observe_emulator_desync(count: int = 1) -> None:
+    """Count desync PROXY events (MON-AIPP-5) — this is NOT a desync detector.
+
+    The counter name cannot carry the caveat, so it lives here: this repo has no
+    RAM-vs-frame comparator (docs/observability-spec.md §8.6, which asks for the
+    proxy rather than a claim). What is observable is the *shadow* of a desync —
+    two consecutive cycles in which
+
+    (a) the frame hash is byte-identical, and
+    (b) the RAM tile triple (map_id, player_tile_x, player_tile_y) is unchanged.
+
+    A genuinely desynced emulator looks exactly like that; so does a screen that
+    is legitimately idle (a dialog page nobody is dismissing, an NPC blocking the
+    path). Read the series as "cycles that were indistinguishable from a desync",
+    never as "desyncs that happened", and corroborate with
+    ``aipp_emulator_frame_stale_seconds`` before calling a run invalid.
+    """
+    try:
+        amount = max(0, int(count or 0))
+        if amount:
+            _EMULATOR_DESYNC.inc(amount)
+    except Exception:  # noqa: BLE001 - telemetry must never escape to callers
+        return None  # noqa: RET501
+
+
+def set_data_growth(
+    *,
+    screenshot_bytes: int,
+    runlog_bytes: int,
+    runlog_last_write_ts: float | None,
+) -> None:
+    """Publish the data-growth gauges for the current run (MON-AIPP-5).
+
+    ``runlog_last_write_ts`` is the ledger's mtime as a unix timestamp. ``None``
+    (no ledger on disk yet) records nothing rather than stamping 1970, because
+    the staleness alert in spec §6 is ``time() - aipp_runlog_last_write_timestamp
+    _seconds > 3600``: a 1970 stamp would fire it for a process that has not
+    started writing, which is a false alarm rather than a missing signal.
+    """
+    try:
+        _SCREENSHOT_BYTES.set(max(0, int(screenshot_bytes or 0)))
+        _RUNLOG_BYTES.set(max(0, int(runlog_bytes or 0)))
+        if runlog_last_write_ts is not None:
+            _RUNLOG_LAST_WRITE.set(float(runlog_last_write_ts))
     except Exception:  # noqa: BLE001 - telemetry must never escape to callers
         return None  # noqa: RET501
 

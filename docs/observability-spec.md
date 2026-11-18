@@ -12,6 +12,14 @@ Audit date: 2026-11-03. Re-verified against tree `031d7b3`: 2026-11-17. Line num
 (`cron_runner.py` grew 6 lines, which is why citations measured at `031d7b3` read 5–7 lines early).
 Citations inside the 2026-11-03 body (§0–§3) are audit history measured on that day's tree; the
 dated UPDATE blocks are the ones that resolve against the current tree.
+**Citation offsets after MON-AIPP-5 (2026-11-17, later):** that work INSERTED lines in two files
+without removing any, so every number inside a block written before it reads low by the inserts
+above it — `src/observability/metrics.py` +45 lines at :122 and `cron_runner.py` +3 at :48, +4 at
+:8585, +9 at :8461, +94 at :8680, +4 at :9004, +3 at :10550 (plus `scripts/game_bridge.py` +2 at
+:45, +4 at :54 and a rewritten `handle()`). The blocks that describe MON-AIPP-5 itself — the UPDATE
+tables above, §3.2 P3 rows and feed table, §3.3 later UPDATE and §3.3.1, §4.1 bridge status, §6
+queries, §8.6 item 6, §9 — were re-derived with `grep -n` against the commit that landed it and are
+exact. Older numbers elsewhere were left as written, per this page's audit-history rule.
 Product repo: the checkout this page lives in (`docs/`'s parent — `git rev-parse --show-toplevel`).
 
 ---
@@ -49,12 +57,27 @@ them is incremented from a production code path (not a test hook — §4.1's dog
 | 10 | `aipp_run_duration_seconds` | metrics.py:80 | `observe_run_end()` — its `_RUN_DURATION…observe` at metrics.py:357 (same call sites) |
 | 11 | `aipp_teacher_escalations_total` | metrics.py:86 | `observe_run_end()` — its two `_TEACHER_ESCALATIONS` increments at metrics.py:365-366 (same call sites) |
 
-**Not shipped: catalogue #12–#23** (P2 model depth and the whole P3 emulator/data-growth
-tier). They have no definition in `src/observability/metrics.py`. §3.2 now carries a
+**Not shipped: catalogue #16** (`aipp_decision_escalations_total` — the one P2 row outside
+MON-AIPP-4's scope). Its neighbours #12–#15 shipped with MON-AIPP-4 (feed points in §3.2), and
+all seven P3 rows (#17–#23) shipped with MON-AIPP-5 — see the next block. §3.2 carries a
 per-row `Status` column so a reader cannot mistake the catalogue for an inventory.
 
+**MON-AIPP-5 added the seven P3 families** (definitions in `src/observability/metrics.py`,
+one production feed site each — table in §3.2):
+
+| # | Metric | Definition | Production feed site |
+|---|---|---|---|
+| 17 | `aipp_emulator_desync_total` | metrics.py:132 | `_track_emulator_integrity` cron_runner.py:8680 ← `_cycle_header` :9004 — **documented proxy**, §3.3.1 |
+| 18 | `aipp_emulator_frame_stale_seconds` | metrics.py:137 | same call (`observe_emulator_frame` metrics.py:463, monotonic clock) |
+| 19 | `aipp_screenshot_bytes` | metrics.py:142 | `_publish_data_growth_metrics` cron_runner.py:8728 (per cycle :8585, run end :10550) |
+| 20 | `aipp_runlog_bytes` | metrics.py:147 | same call |
+| 21 | `aipp_runlog_last_write_timestamp_seconds` | metrics.py:152 | same call — the ledger's `st_mtime`, deliberately not materialized at import (:254) |
+| 22 | `aipp_bridge_requests_total` | metrics.py:157 | `handle()`'s `finally` scripts/game_bridge.py:486 + the busy rejection :655 |
+| 23 | `aipp_bridge_active_connections` | metrics.py:163 | `serve()` worker pool :592/:607, 0 at bind :576 and shutdown :694 |
+
 **Cron lane:** the node_exporter textfile record is live — see the UPDATE block in §4.3
-for the exact path, fields, and write ordering.
+for the exact path, fields, and write ordering. The bridge's own textfile
+(`aipp_bridge.prom`) is described in §4.1.
 
 ---
 
@@ -313,18 +336,28 @@ Feed points for 12-15, as shipped:
 
 | # | Metric | Type | Unit | Labels | Question | Status (2026-11-17) |
 |---|---|---|---|---|---|---|
-| 17 | `aipp_emulator_desync_total` | counter | desyncs | — | Is RAM truth diverging from the frame? | NOT SHIPPED |
-| 18 | `aipp_emulator_frame_stale_seconds` | gauge | seconds | — | Is the emulator advancing? | NOT SHIPPED |
-| 19 | `aipp_screenshot_bytes` | gauge | bytes | — | Are screenshots accumulating without bound? | NOT SHIPPED |
-| 20 | `aipp_runlog_bytes` | gauge | bytes | — | Is the run ledger growing per cycle as expected? | NOT SHIPPED |
-| 21 | `aipp_runlog_last_write_timestamp_seconds` | gauge | unix seconds | — | Has the ledger stopped being written? | NOT SHIPPED |
-| 22 | `aipp_bridge_requests_total` | counter | requests | `cmd`,`outcome` | Is the bridge serving, erroring, or wedged? | NOT SHIPPED |
-| 23 | `aipp_bridge_active_connections` | gauge | connections | — | Are we leaking workers (the historical incident, scripts/game_bridge.py:455-462)? | NOT SHIPPED |
+| 17 | `aipp_emulator_desync_total` | counter | desyncs | — | Is RAM truth diverging from the frame? | **SHIPPED (MON-AIPP-5) — PROXY, not a detector** — defined metrics.py:132; observed `_track_emulator_integrity` cron_runner.py:8680 ← `_cycle_header` cron_runner.py:9004. Semantics in §3.3.1 and §8.6. |
+| 18 | `aipp_emulator_frame_stale_seconds` | gauge | seconds | — | Is the emulator advancing? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:137; observed `observe_emulator_frame` metrics.py:463 ← the same tracker call (monotonic clock). |
+| 19 | `aipp_screenshot_bytes` | gauge | bytes | — | Are screenshots accumulating without bound? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:142; observed `_publish_data_growth_metrics` cron_runner.py:8728 (per cycle cron_runner.py:8585, run end cron_runner.py:10550). |
+| 20 | `aipp_runlog_bytes` | gauge | bytes | — | Is the run ledger growing per cycle as expected? | **SHIPPED (MON-AIPP-5)** — same definition/paths as row 19. |
+| 21 | `aipp_runlog_last_write_timestamp_seconds` | gauge | unix seconds | — | Has the ledger stopped being written? | **SHIPPED (MON-AIPP-5)** — ledger **mtime**, not "now": the gauge is minted only when a ledger exists (metrics.py:254), so an unwritten ledger leaves the §6 query empty instead of alarming on a 1970 stamp. |
+| 22 | `aipp_bridge_requests_total` | counter | requests | `cmd`,`outcome` | Is the bridge serving, erroring, or wedged? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:157; observed `handle()`'s single exit scripts/game_bridge.py:486 (every path counts exactly once, including a connection that sent nothing). |
+| 23 | `aipp_bridge_active_connections` | gauge | connections | — | Are we leaking workers (the historical incident, scripts/game_bridge.py:455-462)? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:163; observed `set_bridge_active_connections` around the fixed worker pool scripts/game_bridge.py:592/607, forced to 0 at bind (:576) and at shutdown (:694). |
 
 Status column added 2026-11-17: `SHIPPED` means a metric family with that exact name is
 defined in `src/observability/metrics.py` and incremented from a production path (verified
 per-metric in the UPDATE block at the top of this file). `NOT SHIPPED` means it is still a
 proposal — grep `src/observability/metrics.py` for the name and you get nothing.
+
+**P3 feed points, as shipped** (line numbers re-derived against this page's own commit):
+
+| Family | Fed from | Label mapping / measurement |
+|---|---|---|
+| 17 | `_track_emulator_integrity` (cron_runner.py:8680), called from `_cycle_header` (cron_runner.py:9004) — the one place both the frame hash (`_cycle_capture`, :8614) and the RAM observation (`_cycle_observe`, :8635) exist, on every screen path including the RAM-reader branch that returns before the cartographer cache | no labels; increments only when the frame hash **and** the RAM tile triple are both unchanged from the previous cycle (§3.3.1) |
+| 18 | same call | monotonic `now - last_changed_at`, reset to 0 on the cycle the hash changes — a wall-clock step cannot fake freshness |
+| 19,20,21 | `_publish_data_growth_metrics` (cron_runner.py:8728) per cycle and once at run end **after** `log_file.close()` | direct `stat`/`scandir` of `screenshots/run_<id>/` and `cron_logs/run_<id>.jsonl`; the timestamp is the ledger's `st_mtime` |
+| 22 | `handle()`'s single exit (scripts/game_bridge.py:486) plus the "server busy" rejection in the accept loop (:655) — connection counting is in the worker pool (:592/:607) | `cmd` = a verb `_dispatch` serves, else `unknown`; `none` when no request line arrived. `outcome` ∈ `ok`,`error`,`unauthorized`,`busy`,`invalid`,`send_failed`,`empty`. A test pins the `cmd` enum to the dispatch table verb for verb |
+| 23 | `serve()`'s `active` set (:592 add, :607 discard), 0 at bind (:576) and at shutdown (:694) | point-in-time count of sockets the fixed workers own — a leak shows as a count that never falls back to 0 |
 
 ### 3.3 Where each signal must be emitted (2026-11-03 reading; rows 1–11 since wired)
 
@@ -347,6 +380,51 @@ proposal — grep `src/observability/metrics.py` for the name and you get nothin
 > `log_api_call` and `_check_configured_keys` sites mapped in row 3,12,13,14,15 above — the
 > scrapeable series are listed under "Feed points" in §3.2. Rows 16–23 remain blind spots as
 > mapped above. The table is the audit-day mapping, not today's.
+>
+> **UPDATE 2026-11-17 (later, MON-AIPP-5):** rows 17–23 shipped too. They do NOT reuse the
+> two sites the audit mapped:
+>
+> * Rows 17–18 were believed to live at `_cycle_frame_hash` (:2247, now :2267) and the
+>   `_ow_track_stuck` VOID trackers (:8941 region, now :9212). Those two are still
+>   *thresholds that trigger recovery*, not signals, and they were left alone: the frame hash
+>   is computed in `_cycle_capture` (:8614) and the RAM observation in `_cycle_observe`
+>   (:8635), so `_track_emulator_integrity` (:8680) is called from `_cycle_header` (:9004)
+>   where BOTH exist. Wiring it inside `_ow_track_stuck` would have missed every
+>   battle/dialog/name-entry cycle, because that function only runs on the overworld path.
+> * Rows 22–23 needed more than removing the `except Exception: pass` around the reply. The
+>   `handle()` function had four exits (`return` before any request line, `return` on a bad
+>   token, the dispatch path, and the send failure) and a `return` cannot be counted after the
+>   fact — the counter is incremented in a `finally` around the whole connection, so a
+>   connection that sends nothing at all still appears as `cmd="none", outcome="empty"`.
+>   The connection gauge lives in the worker pool (`serve`), which is the only place that
+>   owns the live socket set.
+>
+> Remaining blind spot: row 16 (`aipp_decision_escalations_total`) — outside MON-AIPP-5.
+
+#### 3.3.1 Desync proxy semantics — what `aipp_emulator_desync_total` does and does not mean
+
+There is **no RAM-vs-frame comparator** in this repo (§8.6, item 6). The reader consumes RAM;
+the emulator renders pixels; nothing compares the two. So the counter is a **proxy**, and its
+docstring (`cron_runner._track_emulator_integrity`, :8680) says so:
+
+> increments when, over two consecutive cycles, the **frame hash is byte-identical** AND the
+> **RAM tile triple** `(map_id, player_tile_x, player_tile_y)` **is unchanged**.
+
+Read it as *"cycles that were indistinguishable from a desync"*, never as *"desyncs that
+happened"*. A legitimately idle frame — an open dialog nobody is dismissing, an NPC blocking
+the path, a paused battle — produces the same shadow. Two behaviours follow from that and are
+deliberate:
+
+* An observation with **no tile coordinates** (cartographer/vision frames omit them) never
+  increments: "unknown == unknown" is not evidence of a still tile.
+* The counter is **not** an error signal on its own. The operational sequence is
+  `aipp_emulator_desync_total` rising **while** `aipp_emulator_frame_stale_seconds` keeps
+  climbing **and** `aipp_map_transitions_total` stays flat — the last one is what separates
+  "stuck screen" from "desynced".
+
+`aipp_emulator_frame_stale_seconds` carries no such caveat: it is a direct monotonic-clock
+measurement of the last frame **hash** change, so a frozen emulator is visible there even when
+the tile did move (RAM advancing while pixels do not is the other half of the same failure).
 
 ---
 
@@ -367,6 +445,14 @@ proposal — grep `src/observability/metrics.py` for the name and you get nothin
 - **Bridge (`scripts/game_bridge.py`) — raw loopback TCP, not HTTP.** Do not invent an HTTP server
   for it. Export its counters through the dashboard process if both run on the same box, or accept
   textfile only. Keep it P3.
+  Status (MON-AIPP-5): **textfile only**, because the "export through the dashboard" half of this
+  rule is not implementable as written — `prometheus_client`'s `REGISTRY` is per-process, so a
+  dashboard in another process cannot see the bridge's counters no matter which host they share.
+  The bridge writes `/var/lib/node_exporter/textfile_collector/aipp_bridge.prom` (constant
+  `DEFAULT_METRICS_FILE`, `scripts/game_bridge.py:68`), atomically, once per finished connection plus
+  once at bind and once at shutdown — the only three moments either family moves. `--metrics-file`
+  overrides the path; `serve(metrics_file=None)` (the library default, used by the tests) writes
+  nothing at all, so importing the module never touches `/var/lib`.
 - **Dogfood rule:** every metric must increment on a real code path, not in a test-only hook. A
   counter that only moves under pytest is worse than none.
 
@@ -600,6 +686,8 @@ counts cron-lane runs and nothing else: a 40-minute dashboard run leaves
 | `aipp_run_completed_total` | `outcome` | `completed`, `error`, `gave_up` — **no `unknown`** | **asserted** — the caller passes the literal and the writer iterates a hardcoded tuple; the accumulator's regex only recognises those three | cron_runner.py:5262-5265, regex :5154-5158, call sites :10426 / :7963 |
 | `aipp_teacher_escalations_total` | `improved` | `true`, `false` | **asserted** — literal label pairs in the writer | cron_runner.py:5312-5313 |
 | `aipp_map_transitions_total`, `aipp_backtrack_events_total` | — | no labels | n/a | cron_runner.py:5305, :5307 |
+| `aipp_bridge_requests_total` (MON-AIPP-5) | `cmd` | the 14 verbs `_dispatch` serves (`health`, `observe`, `press`, `step`, `save`, `load`, `frame`, `raw`, `pause`, `resume`, `list_saves`, `delete_save`, `reset`, `goal`) plus `unknown` and `none` | **computed** — `bridge_cmd_label()` strips+lowercases; anything outside the set becomes `unknown`, and `none` means the connection never sent a request line. `tests/test_mon_aipp5.py` re-parses `_dispatch` and fails if a verb is added without extending the enum | set metrics.py:198-217, map metrics.py:427-433 |
+| `aipp_bridge_requests_total` (MON-AIPP-5) | `outcome` | `ok`, `error`, `unauthorized`, `busy`, `invalid`, `send_failed`, `empty`, `unknown` | **computed** — one outcome per connection, chosen by the single exit in `handle()`; `unknown` only for a spelling outside the set (never produced by the bridge itself) | set metrics.py:222-233, map metrics.py:436-440 |
 
 The asymmetry is deliberate and worth naming: `outcome="unknown"` is representable on the two
 duration families and NOT on the completed counter, so a scrape can carry
@@ -825,12 +913,26 @@ min by (key_name) (aipp_credential_valid) == 0
 
 # ledger stopped writing (P3 #21)
 time() - aipp_runlog_last_write_timestamp_seconds > 3600
+
+# emulator frozen, or frozen AND RAM still (P3 #17,18) — the §3.3.1 pair
+max(aipp_emulator_frame_stale_seconds) > 300
+  and increase(aipp_emulator_desync_total[30m]) > 0
+
+# bridge serving, erroring or wedged (P3 #22,23)
+sum(rate(aipp_bridge_requests_total{outcome="ok"}[15m])) == 0
+  and sum(rate(aipp_bridge_requests_total[15m])) > 0
+max_over_time(aipp_bridge_active_connections[15m]) > 0   # leak: never falls back
+
+# data growth (P3 #19,20) — the disk question, not the health question
+delta(aipp_runlog_bytes[1h])
+aipp_screenshot_bytes
 ```
 
 **Step 4 — textfile lane**
 
 ```bash
 ls -l /var/lib/node_exporter/textfile_collector/aipp_run.prom
+ls -l /var/lib/node_exporter/textfile_collector/aipp_bridge.prom   # bridge, P3 #22,23
 ```
 The file existing is only half of it: node_exporter must be running with
 `--collector.textfile.directory=/var/lib/node_exporter/textfile_collector` (the same directory as
@@ -886,6 +988,14 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 6. **Metric 17 (desync) has no clean primitive yet.** There is a frame-hash (:2247) and stuck trackers
    (:8941) but no RAM-vs-frame comparison. Implement it as a bounded proxy (repeated frame hash with
    unchanged RAM tile) and document the proxy, or defer it — do not claim a true desync detector exists.
+   Status (MON-AIPP-5): shipped exactly as this item asked. `_track_emulator_integrity`
+   (cron_runner.py:8680) increments the counter when the frame hash is unchanged **and** the RAM
+   tile triple is unchanged, the docstring says in so many words that "a true desync cannot be
+   detected here", and §3.3.1 states the reading. The VOID/same-frame thresholds were NOT
+   converted into signals: they still trigger recovery, which is a different job. The one
+   remaining false-positive source is a legitimately idle screen (dialog page, NPC block) —
+   that is inherent to the proxy and is why the counter must be read with
+   `aipp_emulator_frame_stale_seconds` and `aipp_map_transitions_total`, not alone.
 
 ---
 
@@ -905,3 +1015,13 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 > production increment site. The first question is still open the same way: no Prometheus
 > on `fleet-monitor` was reachable from this host, so the number of series actually
 > **scraped** is unverified — defined ≠ ingested.
+>
+> **UPDATE 2026-11-17 (MON-AIPP-5):** the count above is corrected to **22** families —
+> `grep -n '^_[A-Z_]* = _metric(' src/observability/metrics.py` prints 22 assignments and 22
+> distinct `aipp_*` names: the top block's original 11, the 4 MON-AIPP-4 P2 families, and the
+> 7 MON-AIPP-5 P3 families. The "11" was written before MON-AIPP-4 landed and was never
+> updated then; it stays in the sentence above as the record of that block. The "Real desync
+> rate" row now has a **proxy** answer and still no sensor: `aipp_emulator_desync_total`
+> (§3.3.1) counts cycles that were *indistinguishable* from a desync, so an actual desync
+> **rate** remains unmeasurable — and no run has been graded with it yet, on this host or any
+> other, so even the proxy's real-world magnitude is unmeasured.

@@ -45,9 +45,12 @@ from src.observability.metrics import (
     decision_mode_label,
     observe_cycle,
     observe_decision_seconds,
+    observe_emulator_desync,
+    observe_emulator_frame,
     observe_run_end,
     run_outcome_label,
     set_credential_valid,
+    set_data_growth,
     set_runner_up,
 )
 
@@ -8455,6 +8458,15 @@ def _init_recovery_trackers(S):
     S._cached_patch = {}  # cached cartographer output
     S._cached_carto_raw = ""  # cached raw cartographer text
 
+    # ── Emulator integrity tracking (MON-AIPP-5) ───────────────────
+    # Two independent facts per cycle, both needed by the desync PROXY: the
+    # frame hash (did the pixels move?) and the RAM tile (did the reader's
+    # ground truth move?). `_frame_changed_at` is a monotonic instant so
+    # `aipp_emulator_frame_stale_seconds` cannot be fooled by a wall-clock step.
+    S._integrity_frame_hash = ""  # previous cycle's frame hash (proxy input)
+    S._integrity_ram_tile = None  # previous cycle's (map_id, x, y) RAM tile
+    S._frame_changed_at = time.monotonic()  # last cycle whose frame hash differed
+
     # ── Frame hashing for Luna vision (controller screenshot dedup) ─
     # Only attach the screenshot to the controller prompt when the
     # frame CHANGED since the last call. Identical frames (standing
@@ -8569,6 +8581,8 @@ def _run_cycles(S):
         observe_cycle(mode, pipeline_name)
         try:
             header = _cycle_header(S, cycle)
+            # MON-AIPP-5: data-growth gauges move with the files, every cycle.
+            _publish_data_growth_metrics()
             t0 = time.time()
 
             # Oak's empty-party menu routes to JEV's starter-species choice.
@@ -8661,6 +8675,94 @@ def _cycle_observe(S, screenshot, frame_hash):
         S._same_frame_count = 0
     S._prev_frame_hash = frame_hash
     return patch_data, carto_raw
+
+
+def _track_emulator_integrity(S, frame_hash, patch_data) -> None:
+    """Publish frame staleness and the desync PROXY counter for one cycle.
+
+    PROXY SEMANTICS (docs/observability-spec.md §8.6) — read this before
+    trusting ``aipp_emulator_desync_total``. Nothing in this repo compares the
+    RAM view with the rendered frame, so a true desync cannot be detected here.
+    What IS tracked is the observable shadow of one, over two consecutive
+    observations:
+
+        the frame hash is byte-identical   (the pixels did not move)
+        AND the RAM tile triple is equal   (the reader's ground truth did not move)
+
+    Both holding means the agent is about to decide against a view that has not
+    advanced. A genuinely desynced emulator looks exactly like that — and so
+    does a legitimately idle frame (a dialog page nobody dismisses, an NPC
+    block, a paused battle), which is why the counter answers "how many cycles
+    were indistinguishable from a desync" and never "a desync happened". The
+    staleness gauge is a direct measurement and carries no such caveat.
+    """
+    now = time.monotonic()
+    frame_changed = frame_hash != S._integrity_frame_hash
+    if frame_changed:
+        S._frame_changed_at = now
+
+    tile = (
+        patch_data.get("map_id"),
+        patch_data.get("player_tile_x"),
+        patch_data.get("player_tile_y"),
+    )
+    # An observation without tile coordinates is not evidence of a still tile:
+    # cartographer/vision frames legitimately omit them, so the proxy stays
+    # silent instead of counting "unknown == unknown" as a desync.
+    tile_known = all(value is not None for value in tile)
+    ram_tile_unchanged = (
+        tile_known
+        and S._integrity_ram_tile is not None
+        and tile == S._integrity_ram_tile
+    )
+    repeated_frame = S._integrity_frame_hash != "" and not frame_changed
+
+    observe_emulator_frame(0.0 if frame_changed else now - S._frame_changed_at)
+    if repeated_frame and ram_tile_unchanged:
+        observe_emulator_desync()
+
+    S._integrity_frame_hash = frame_hash
+    S._integrity_ram_tile = tile if tile_known else None
+
+
+def _publish_data_growth_metrics(
+    ledger_path: str | Path | None = None,
+    screenshot_dir: str | Path | None = None,
+) -> None:
+    """Publish screenshot/ledger growth for the current run (MON-AIPP-5).
+
+    Called once per cycle and once at run end, so the gauges track the files
+    while they grow instead of reporting a single end-of-run number. Every value
+    is a direct filesystem measurement (``stat``/``scandir``), so the exposed
+    series and what ``du -sb`` reports cannot disagree. A path that does not
+    exist records 0 bytes and leaves the timestamp untouched, because nothing
+    has been written yet.
+
+    ``aipp_runlog_last_write_timestamp_seconds`` is the LEDGER's mtime, not the
+    process's idea of "now" — that is what makes
+    ``time() - aipp_runlog_last_write_timestamp_seconds > 3600`` mean "the
+    ledger stopped", which a per-cycle "now" could never show.
+    """
+    ledger = Path(ledger_path) if ledger_path is not None else log_path
+    shots = Path(screenshot_dir) if screenshot_dir is not None else SCREENSHOT_DIR
+    try:
+        stat = ledger.stat()
+        runlog_bytes = stat.st_size
+        last_write: float | None = stat.st_mtime
+    except OSError:
+        runlog_bytes = 0
+        last_write = None
+    try:
+        screenshot_bytes = sum(
+            entry.stat().st_size for entry in os.scandir(shots) if entry.is_file()
+        )
+    except OSError:
+        screenshot_bytes = 0
+    set_data_growth(
+        screenshot_bytes=screenshot_bytes,
+        runlog_bytes=runlog_bytes,
+        runlog_last_write_ts=last_write,
+    )
 
 
 def _cycle_track_tiles(S, patch_data):
@@ -8896,6 +8998,10 @@ def _cycle_header(S, cycle):
     """
     screenshot, frame_hash = _cycle_capture(S, cycle)
     patch_data, carto_raw = _cycle_observe(S, screenshot, frame_hash)
+    # MON-AIPP-5: the integrity tracker runs on EVERY screen path (the RAM-reader
+    # branch of `_cycle_observe` returns before the cartographer cache logic), so
+    # it is wired here, where both the frame hash and the RAM tile are in hand.
+    _track_emulator_integrity(S, frame_hash, patch_data)
     st = patch_data.get("result", "unknown")
     if st != "battle":
         S._failed_flee_attempts = 0
@@ -10439,6 +10545,9 @@ def _finalize_run(S):
     # one computation.
     _publish_run_metrics(outcome, duration_s, autonomy, teacher_summary)
     log_file.close()
+    # MON-AIPP-5: the ledger is closed, so its size and mtime are final. This is
+    # the sample the staleness alert reads once the run stops writing.
+    _publish_data_growth_metrics()
 
     # Summary
     screens = set(r.get("screen", "unknown") for r in S.results)
