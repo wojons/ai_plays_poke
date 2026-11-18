@@ -69,7 +69,7 @@ one production feed site each — table in §3.2):
 
 | # | Metric | Definition | Production feed site |
 |---|---|---|---|
-| 17 | `aipp_emulator_desync_total` | metrics.py:132 | `_track_emulator_integrity` cron_runner.py:8680 ← `_cycle_header` :9004 — **documented proxy**, §3.3.1 |
+| 17 | `aipp_emulator_desync_total` | metrics.py:132 | `_track_emulator_integrity` cron_runner.py:8680 ← `_cycle_header` :8993 — **documented proxy**, §3.3.1 |
 | 18 | `aipp_emulator_frame_stale_seconds` | metrics.py:137 | same call (`observe_emulator_frame` metrics.py:472, monotonic clock) |
 | 19 | `aipp_screenshot_bytes` | metrics.py:142 | `_publish_data_growth_metrics` cron_runner.py:8728 (per cycle :8585, run end :10550) |
 | 20 | `aipp_runlog_bytes` | metrics.py:147 | same call |
@@ -338,7 +338,7 @@ Feed points for 12-15, as shipped:
 
 | # | Metric | Type | Unit | Labels | Question | Status (2026-11-17) |
 |---|---|---|---|---|---|---|
-| 17 | `aipp_emulator_desync_total` | counter | desyncs | — | Is RAM truth diverging from the frame? | **SHIPPED (MON-AIPP-5) — PROXY, not a detector** — defined metrics.py:132; observed `_track_emulator_integrity` cron_runner.py:8680 ← `_cycle_header` cron_runner.py:9004. Semantics in §3.3.1 and §8.6. |
+| 17 | `aipp_emulator_desync_total` | counter | desyncs | — | Is RAM truth diverging from the frame? | **SHIPPED (MON-AIPP-5) — PROXY, not a detector** — defined metrics.py:132; observed `_track_emulator_integrity` cron_runner.py:8680 ← `_cycle_header` cron_runner.py:8993. Semantics in §3.3.1 and §8.6. |
 | 18 | `aipp_emulator_frame_stale_seconds` | gauge | seconds | — | Is the emulator advancing? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:137; observed `observe_emulator_frame` metrics.py:472 ← the same tracker call (monotonic clock). |
 | 19 | `aipp_screenshot_bytes` | gauge | bytes | — | Are screenshots accumulating without bound? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:142; observed `_publish_data_growth_metrics` cron_runner.py:8728 (per cycle cron_runner.py:8585, run end cron_runner.py:10550). |
 | 20 | `aipp_runlog_bytes` | gauge | bytes | — | Is the run ledger growing per cycle as expected? | **SHIPPED (MON-AIPP-5)** — same definition/paths as row 19. |
@@ -355,7 +355,7 @@ proposal — grep `src/observability/metrics.py` for the name and you get nothin
 
 | Family | Fed from | Label mapping / measurement |
 |---|---|---|
-| 17 | `_track_emulator_integrity` (cron_runner.py:8680), called from `_cycle_header` (cron_runner.py:9004) — the one place both the frame hash (`_cycle_capture`, :8614) and the RAM observation (`_cycle_observe`, :8635) exist, on every screen path including the RAM-reader branch that returns before the cartographer cache | no labels; increments only when the frame hash **and** the RAM tile triple are both unchanged from the previous cycle (§3.3.1) |
+| 17 | `_track_emulator_integrity` (cron_runner.py:8680), called from `_cycle_header` (cron_runner.py:8993) — the one place both the frame hash (`_cycle_capture`, :8614) and the RAM observation (`_cycle_observe`, :8635) exist, on every screen path including the RAM-reader branch that returns before the cartographer cache | no labels; increments only when the frame hash **and** the RAM tile triple are both unchanged from the previous cycle (§3.3.1) |
 | 18 | same call | monotonic `now - last_changed_at`, reset to 0 on the cycle the hash changes — a wall-clock step cannot fake freshness |
 | 19,20,21 | `_publish_data_growth_metrics` (cron_runner.py:8728) per cycle and once at run end **after** `log_file.close()` | direct `stat`/`scandir` of `screenshots/run_<id>/` and `cron_logs/run_<id>.jsonl`; the timestamp is the ledger's `st_mtime` |
 | 22 | `handle()`'s single exit (scripts/game_bridge.py:488) plus the "server busy" rejection in the accept loop (:657) — connection counting is in the worker pool (:593/:607) | `cmd` = a verb `_dispatch` serves, else `unknown`; `none` when no request line arrived. `outcome` ∈ `ok`,`error`,`unauthorized`,`busy`,`invalid`,`send_failed`,`empty`. A test pins the `cmd` enum to the dispatch table verb for verb |
@@ -390,7 +390,7 @@ proposal — grep `src/observability/metrics.py` for the name and you get nothin
 >   `_ow_track_stuck` VOID trackers (:8941 region, now :9318). Those two are still
 >   *thresholds that trigger recovery*, not signals, and they were left alone: the frame hash
 >   is computed in `_cycle_capture` (:8614) and the RAM observation in `_cycle_observe`
->   (:8635), so `_track_emulator_integrity` (:8680) is called from `_cycle_header` (:9004)
+>   (:8635), so `_track_emulator_integrity` (:8680) is called from `_cycle_header` (:8993)
 >   where BOTH exist. Wiring it inside `_ow_track_stuck` would have missed every
 >   battle/dialog/name-entry cycle, because that function only runs on the overworld path.
 > * Rows 22–23 needed more than removing the `except Exception: pass` around the reply. The
