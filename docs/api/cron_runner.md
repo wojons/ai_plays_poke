@@ -146,7 +146,7 @@ options:
 | `--handoff-ambiguity HANDOFF_AMBIGUITY` | `float` | `0.40` | Ambiguity gate for the layered confidence trigger (default 0.40); low confidence alone does not hand back unless the phase is irreversible. |
 | `--handoff-classes HANDOFF_CLASSES` | `str` | unset (any class may hand off) | Comma list of missing-information classes allowed to hand off (e.g. `map_topology`). Unset means any class may. |
 | `--teacher-max-per-episode N` | `int` | unset (unlimited) | Hard cap on teacher handoffs per episode. On exhaustion the run keeps playing on the fast tier and records why the handoff was blocked. Unset means unlimited. |
-| `--textfile-dir TEXTFILE_DIR` | `Path` | `/var/lib/node_exporter/textfile_collector` | node_exporter textfile collector directory (`cron_runner.py:7789-7797`, `DEFAULT_TEXTFILE_DIR` at `:59`). The runner writes one record per completed run to `<dir>/aipp_run.prom`, atomically, at close-out; the directory is created if absent. The `--collector.textfile.directory` of node_exporter must name this same directory or nothing scrapes the file. Point it at a scratch directory to keep a test run out of the host's collector. Full field list, crash semantics and write ordering: `docs/observability-spec.md` §4.3. |
+| `--textfile-dir TEXTFILE_DIR` | `Path` | `/var/lib/node_exporter/textfile_collector` | node_exporter textfile collector directory (`cron_runner.py:7792-7800`, `DEFAULT_TEXTFILE_DIR` at `:62`). The runner writes one record per completed run to `<dir>/aipp_run.prom`, atomically, at close-out; the directory is created if absent. The `--collector.textfile.directory` of node_exporter must name this same directory or nothing scrapes the file. Point it at a scratch directory to keep a test run out of the host's collector. Full field list, crash semantics and write ordering: `docs/observability-spec.md` §4.3. |
 
 ## Decision modes and handoff
 
@@ -180,7 +180,7 @@ historical run logs); only the family branches runtime behavior.
 | Setting | Env vars (first set wins) | Default | Overriding flag |
 |---------|---------------------------|---------|-----------------|
 | Decision mode | `AIPP_DECISION_MODE`, `CRON_DECISION_MODE` | none; selection required | `--decision-mode` |
-| Controller model | `CRON_CONTROLLER_MODEL`, `POKE_CONTROLLER_MODEL` (`CONTROLLER_MODEL_ENV_VARS`, `cron_runner.py:77`) | `openai/gpt-5.6-luna` (`DEFAULT_CONTROLLER_MODEL`, `:76`) | `--controller-model` |
+| Controller model | `CRON_CONTROLLER_MODEL`, `POKE_CONTROLLER_MODEL` (`CONTROLLER_MODEL_ENV_VARS`, `cron_runner.py:81`) | `openai/gpt-5.6-luna` (`DEFAULT_CONTROLLER_MODEL`, `:80`) | `--controller-model` |
 | Teacher model | `AIPP_TEACHER_MODEL`, `CRON_TEACHER_MODEL` | resolved controller model | `--teacher-model` |
 | Per-mode System-Two model | `AIPP_SYSTEM2_MODEL`, `CRON_SYSTEM2_MODEL` | resolved controller model | — (env only) |
 | Per-mode System-Two provider | `AIPP_SYSTEM2_PROVIDER`, `CRON_SYSTEM2_PROVIDER` | `provider_of(model)` | — (env only) |
@@ -193,9 +193,8 @@ An env var whose value is not a recognized spelling/policy is ignored and the
 next candidate is tried. If no decision-mode candidate is recognized, startup
 fails; an explicit flag always wins.
 
-**The per-mode model/provider vars** (`MODE_MODEL_ENV_VARS` / `MODE_PROVIDER_ENV_VARS`,
-`cron_runner.py:206-215`) are resolved by `resolve_mode_models()`
-(`cron_runner.py:251-313`) once at run setup, and the result is what
+**The per-mode model/provider vars** (`MODE_MODEL_ENV_VARS` / `MODE_PROVIDER_ENV_VARS`, `cron_runner.py:210-219`)
+are resolved by `resolve_mode_models()` (`cron_runner.py:255-317`) once at run setup, and the result is what
 `decision_model` / `decision_provider` / `mode_models` record on every decision row and on
 `run_autonomy`. Precedence inside a family is **per-mode env > the controller/teacher chain
 the caller already resolved**:
@@ -212,9 +211,9 @@ Two consequences worth knowing before you set one of these:
 - Setting a per-mode var changes the arm that *decides*, but **not** `controller_model` /
   `teacher_model`, which keep recording the chain those families fall back to. Compare
   `decision_model` against `controller_model` to see whether an override took effect.
-- `AIPP_SYSTEM1_MODEL` / `CRON_SYSTEM1_MODEL` are declared in `MODE_MODEL_ENV_VARS`
-  (`cron_runner.py:207`) but `resolve_mode_models()` never reads them — the System-One model
-  is the `SYSTEM1_TIER_MODEL` constant (`:219`). Setting them changes nothing; only the
+- `AIPP_SYSTEM1_MODEL` / `CRON_SYSTEM1_MODEL` are declared in `MODE_MODEL_ENV_VARS` (`cron_runner.py:211`)
+  but `resolve_mode_models()` never reads them — the System-One model is the
+  `SYSTEM1_TIER_MODEL` constant (`:223`). Setting them changes nothing; only the
   System-One *provider* label is settable.
 
 ### Handoff policy
@@ -389,8 +388,8 @@ jq -c 'select(.event == "run_autonomy" or .event == "run_degradation")' cron_log
 | `decision_mode_family` | `str` | Branchable family: `system1`, `system2`, or `system1+system2`. |
 | `controller_model` | `str` | Effective System-Two/controller model for the run. |
 | `teacher_model` | `str` | Effective hybrid teacher model; equals `controller_model` only when no teacher override was selected. |
-| `decision_model` | `str` | Model id of the arm that **actually decides** under this run's mode (ARM-2 AC3) — the `active_family` entry of `mode_models`, resolved once at run setup by `effective_decision_model(resolve_mode_models())` (`cron_runner.py:8101-8106`). Under `system1` it is the fast-tier protocol constant `typesafe/jev-1.13`; under `system2` the System-Two model; under `system1+system2` the hybrid/teacher model, because the teacher is the LLM whose output an escalated row carries. Stamped on every overworld decision row (`cron_runner.py:9117`) and on `run_autonomy`. |
-| `decision_provider` | `str \| null` | Provider the `decision_model` routes to: the per-mode provider env var when set, otherwise `provider_of(decision_model)` (`cron_runner.py:231-248`) — `typesafe` for a `typesafe/…` id, `deepseek` for any id whose name contains `deepseek`, else the segment before `/` (`openai/gpt-5.6-luna` → `openai`), else `null`. Same two row sites as `decision_model`. |
+| `decision_model` | `str` | Model id of the arm that **actually decides** under this run's mode (ARM-2 AC3) — the `active_family` entry of `mode_models`, resolved once at run setup by `effective_decision_model(resolve_mode_models())` (`cron_runner.py:8110-8115`). Under `system1` it is the fast-tier protocol constant `typesafe/jev-1.13`; under `system2` the System-Two model; under `system1+system2` the hybrid/teacher model, because the teacher is the LLM whose output an escalated row carries. Stamped on every overworld decision row (`cron_runner.py:9229`) and on `run_autonomy`. |
+| `decision_provider` | `str \| null` | Provider the `decision_model` routes to: the per-mode provider env var when set, otherwise `provider_of(decision_model)` (`cron_runner.py:235-252`) — `typesafe` for a `typesafe/…` id, `deepseek` for any id whose name contains `deepseek`, else the segment before `/` (`openai/gpt-5.6-luna` → `openai`), else `null`. Same two row sites as `decision_model`. |
 | `mode_models` | `object` | The full per-mode map, keys `system1`, `system2`, `system1+system2`, and `active_family`. Each family entry is `{model, provider, source}`, where `source` names the precedence branch that won: `jev-fast-tier (protocol constant)`, `env per-mode`, `controller chain`, or `teacher/controller chain`. It names what every mode *would* use, not just the one that ran, so a benchmark can read a mode's model back out of the log without the launching shell. Stamped on every overworld decision row and on `run_autonomy`. |
 | `jev_answered` | `bool` | True only when the JEV request was `ok` **and** produced a valid action in that path's vocabulary. For starter selection this means a valid species; for battle recovery it means a valid battle action. A healthy transport response with an unusable choice is false and falls back rather than inventing an action. |
 | `escalated` | `bool` | True when the effective JEV decision (after any promoted-scenario re-ask) requested a handoff and the active handoff policy allowed it. A matching patch that resolves the class therefore records false without hiding the initial evidence. A policy-blocked trigger is false; inspect `handoff_trigger`, `handoff_allowed`, and `handoff_blocked_reason` to distinguish “no trigger” from “trigger blocked.” Teacher calls have their own `teacher_escalation` rows and the run-level `teacher_escalations` count. |

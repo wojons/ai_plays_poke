@@ -8,18 +8,20 @@ Read the dated UPDATE blocks as the current state; nothing historical was rewrit
 Every claim cites a file:line or a command that was actually run, and where a command's
 answer has changed, the re-run is shown beside the original.
 Audit date: 2026-11-03. Re-verified against tree `031d7b3`: 2026-11-17. Line numbers in the dated
-2026-11-17 blocks re-derived against `c27ab5a` on 2026-11-17, because the tree moved under them
-(`cron_runner.py` grew 6 lines, which is why citations measured at `031d7b3` read 5–7 lines early).
+2026-11-17 blocks were re-derived against `f3d7774` on 2026-11-18 (DOC-027), because the tree kept
+moving under them.
 Citations inside the 2026-11-03 body (§0–§3) are audit history measured on that day's tree; the
 dated UPDATE blocks are the ones that resolve against the current tree.
-**Citation offsets after MON-AIPP-5 (2026-11-17, later):** that work INSERTED lines in two files
-without removing any, so every number inside a block written before it reads low by the inserts
-above it — `src/observability/metrics.py` +45 lines at :122 and `cron_runner.py` +3 at :48, +4 at
-:8585, +9 at :8461, +94 at :8680, +4 at :9004, +3 at :10550 (plus `scripts/game_bridge.py` +2 at
-:45, +4 at :54 and a rewritten `handle()`). The blocks that describe MON-AIPP-5 itself — the UPDATE
-tables above, §3.2 P3 rows and feed table, §3.3 later UPDATE and §3.3.1, §4.1 bridge status, §6
-queries, §8.6 item 6, §9 — were re-derived with `grep -n` against the commit that landed it and are
-exact. Older numbers elsewhere were left as written, per this page's audit-history rule.
+**Citation re-derivation (2026-11-18, DOC-027):** the offset arithmetic this page used to carry
+("`metrics.py` +45 lines at :122, `cron_runner.py` +3 at :48, +4 at :8585, +9 at :8461, +94 at
+:8680, +4 at :9004, +3 at :10550") is **superseded** — two more waves of work landed after it was
+written, so adding those offsets no longer lands on the right line. Every `<file>.py:<line>`
+citation on this page was instead resolved against the tree with a throwaway script: the cited
+line is read back and must contain the symbol the page names for it. Only **line pointers** were
+corrected — no observation, verdict, or quoted command output was rewritten; where a recorded
+command's answer moved, the re-run is shown beside the original. Re-run the same check after any
+change to `cron_runner.py`, `scripts/game_bridge.py` or `src/observability/metrics.py`, because
+absolute line numbers do not survive edits.
 Product repo: the checkout this page lives in (`docs/`'s parent — `git rev-parse --show-toplevel`).
 
 ---
@@ -45,17 +47,17 @@ them is incremented from a production code path (not a test hook — §4.1's dog
 
 | # (catalogue §3.2) | Metric | Definition | Production increment site |
 |---|---|---|---|
-| 1 | `aipp_run_cycles_total` | metrics.py:19 | `observe_cycle()` metrics.py:233 ← cron_runner.py:8569 |
-| 2 | `aipp_decision_duration_seconds` | metrics.py:25 | `observe_decision_seconds()` metrics.py:240 ← cron_runner.py:9205 |
-| 3 | `aipp_model_calls_total` | metrics.py:31 | `observe_model_call()` metrics.py:247 ← src/core/ai_client.py:133 |
-| 4 | `aipp_model_cost_usd_total` | metrics.py:37 | `observe_model_call()` metrics.py:253 (the `_MODEL_COST…inc` branch) ← src/core/ai_client.py:133 |
-| 5 | `aipp_runner_up` | metrics.py:43 | `set_runner_up()` metrics.py:322 ← cron_runner.py:7931 (`surface="cron"`), src/dashboard/main.py:119 (`surface="dashboard"`) |
-| 6 | `aipp_map_transitions_total` | metrics.py:58 | `observe_run_end()` metrics.py:363 (its `_MAP_TRANSITIONS.inc`) ← `_publish_run_metrics()` cron_runner.py:5342, called at :7972 (error close) and :10440 (normal close) |
-| 7 | `aipp_episode_decisions_total` | metrics.py:63 | `observe_run_end()` — its `_EPISODE_DECISIONS…inc` at metrics.py:360 (same call sites) |
-| 8 | `aipp_backtrack_events_total` | metrics.py:69 | `observe_run_end()` — its `_BACKTRACK_EVENTS.inc` at metrics.py:364 (same call sites) |
-| 9 | `aipp_run_completed_total` | metrics.py:74 | `observe_run_end()` — its `_RUN_COMPLETED…inc` at metrics.py:356 (same call sites) |
-| 10 | `aipp_run_duration_seconds` | metrics.py:80 | `observe_run_end()` — its `_RUN_DURATION…observe` at metrics.py:357 (same call sites) |
-| 11 | `aipp_teacher_escalations_total` | metrics.py:86 | `observe_run_end()` — its two `_TEACHER_ESCALATIONS` increments at metrics.py:365-366 (same call sites) |
+| 1 | `aipp_run_cycles_total` | metrics.py:19 | `observe_cycle()` metrics.py:331 ← cron_runner.py:8581 |
+| 2 | `aipp_decision_duration_seconds` | metrics.py:25 | `observe_decision_seconds()` metrics.py:338 ← cron_runner.py:9311 |
+| 3 | `aipp_model_calls_total` | metrics.py:31 | `observe_model_call()` metrics.py:345 ← src/core/ai_client.py:133 |
+| 4 | `aipp_model_cost_usd_total` | metrics.py:37 | `observe_model_call()` metrics.py:345 (the `_MODEL_COST.inc` branch at :351) ← src/core/ai_client.py:133 |
+| 5 | `aipp_runner_up` | metrics.py:43 | `set_runner_up()` metrics.py:420 ← cron_runner.py:7934 (`surface="cron"`), src/dashboard/main.py:119 (`surface="dashboard"`) |
+| 6 | `aipp_map_transitions_total` | metrics.py:58 | `observe_run_end()` metrics.py:533 (its `_MAP_TRANSITIONS.inc` at :567) ← `_publish_run_metrics()` cron_runner.py:5345, called at :7975 (error close) and :10546 (normal close) |
+| 7 | `aipp_episode_decisions_total` | metrics.py:63 | `observe_run_end()` — its `_EPISODE_DECISIONS.inc` at metrics.py:564 (same call sites) |
+| 8 | `aipp_backtrack_events_total` | metrics.py:69 | `observe_run_end()` — its `_BACKTRACK_EVENTS.inc` at metrics.py:568 (same call sites) |
+| 9 | `aipp_run_completed_total` | metrics.py:74 | `observe_run_end()` — its `_RUN_COMPLETED.inc` at metrics.py:560 (same call sites) |
+| 10 | `aipp_run_duration_seconds` | metrics.py:80 | `observe_run_end()` — its `_RUN_DURATION.observe` at metrics.py:561 (same call sites) |
+| 11 | `aipp_teacher_escalations_total` | metrics.py:86 | `observe_run_end()` — its two `_TEACHER_ESCALATIONS` increments at metrics.py:569-570 (same call sites) |
 
 **Not shipped: catalogue #16** (`aipp_decision_escalations_total` — the one P2 row outside
 MON-AIPP-4's scope). Its neighbours #12–#15 shipped with MON-AIPP-4 (feed points in §3.2), and
@@ -68,12 +70,12 @@ one production feed site each — table in §3.2):
 | # | Metric | Definition | Production feed site |
 |---|---|---|---|
 | 17 | `aipp_emulator_desync_total` | metrics.py:132 | `_track_emulator_integrity` cron_runner.py:8680 ← `_cycle_header` :9004 — **documented proxy**, §3.3.1 |
-| 18 | `aipp_emulator_frame_stale_seconds` | metrics.py:137 | same call (`observe_emulator_frame` metrics.py:463, monotonic clock) |
+| 18 | `aipp_emulator_frame_stale_seconds` | metrics.py:137 | same call (`observe_emulator_frame` metrics.py:472, monotonic clock) |
 | 19 | `aipp_screenshot_bytes` | metrics.py:142 | `_publish_data_growth_metrics` cron_runner.py:8728 (per cycle :8585, run end :10550) |
 | 20 | `aipp_runlog_bytes` | metrics.py:147 | same call |
-| 21 | `aipp_runlog_last_write_timestamp_seconds` | metrics.py:152 | same call — the ledger's `st_mtime`, deliberately not materialized at import (:254) |
-| 22 | `aipp_bridge_requests_total` | metrics.py:157 | `handle()`'s `finally` scripts/game_bridge.py:486 + the busy rejection :655 |
-| 23 | `aipp_bridge_active_connections` | metrics.py:163 | `serve()` worker pool :592/:607, 0 at bind :576 and shutdown :694 |
+| 21 | `aipp_runlog_last_write_timestamp_seconds` | metrics.py:152 | same call — the ledger's `st_mtime`, deliberately not materialized at import (:263) |
+| 22 | `aipp_bridge_requests_total` | metrics.py:157 | `handle()`'s `finally` scripts/game_bridge.py:488 + the busy rejection :657 |
+| 23 | `aipp_bridge_active_connections` | metrics.py:163 | `serve()` worker pool :593/:607, 0 at bind :578 and shutdown :696 |
 
 **Cron lane:** the node_exporter textfile record is live — see the UPDATE block in §4.3
 for the exact path, fields, and write ordering. The bridge's own textfile
@@ -128,15 +130,15 @@ Three distinct execution surfaces, all reading the same 10k-line game loop:
 
 | Surface | Entry | Lifetime | HTTP? |
 |---|---|---|---|
-| Autonomous cron lane | `.coding-hermes/cron.sh` → `cron_runner.py` (`CYCLES = 20`, cron_runner.py:63-65) | short (one run, ≤20 cycles) | none |
-| Operator dashboard | `python3 -m src.dashboard.main` (src/dashboard/main.py:562-580) | long-running (uvicorn, `PTP_DASHBOARD_PORT` default 8000) | yes, FastAPI |
+| Autonomous cron lane | `.coding-hermes/cron.sh` → `cron_runner.py` (`CYCLES = 20`, cron_runner.py:66-68) | short (one run, ≤20 cycles) | none |
+| Operator dashboard | `python3 -m src.dashboard.main` (src/dashboard/main.py:577-580) | long-running (uvicorn, `PTP_DASHBOARD_PORT` default 8000) | yes, FastAPI |
 | Single-cycle CLI | `run_cycle.py` | seconds | none |
-| Emulator bridge (MCP/console backend) | `scripts/game_bridge.py`, loopback TCP 127.0.0.1 (scripts/game_bridge.py:511) | long-running | raw TCP, not HTTP-scrapable |
+| Emulator bridge (MCP/console backend) | `scripts/game_bridge.py`, loopback TCP 127.0.0.1 (`srv.bind(("127.0.0.1", port))`, scripts/game_bridge.py:617) | long-running | raw TCP, not HTTP-scrapable |
 | Live viewer | `web_viewer.py` FastAPI (web_viewer.py:25) | long-running | yes, read-only log/screenshot viewer |
 
 ### 1.2 The `/metrics` route is NOT a metrics endpoint
 
-`src/dashboard/main.py:355-360`:
+`src/dashboard/main.py:370-375`:
 
 ```python
 @app.get("/metrics")
@@ -147,12 +149,12 @@ async def get_metrics(_x_api_key: bool = Depends(verify_api_key), session_id: st
 
 It returns **JSON** (`Content-Type: application/json`), it is **API-key gated**
 (`Depends(verify_api_key)`), and its payload is session-scoped and volatile
-(src/dashboard/main.py:224-260 — `ticks_per_second`, `total_ticks`, `success_rate`,
+(src/dashboard/main.py:227-262 — `ticks_per_second`, `total_ticks`, `success_rate`,
 `avg_confidence`, `total_cost_estimate`, …). A Prometheus scrape would get a 401, and even
 authorized would get a JSON object, not the text exposition format. Three further problems make
 it unusable as-is:
 
-- `total_cost = 0.0` is a **hardcoded literal** and is never incremented (src/dashboard/main.py:225) — the field `total_cost_estimate` is permanently `0.0`.
+- `total_cost = 0.0` is a **hardcoded literal** and is never incremented (src/dashboard/main.py:228) — the field `total_cost_estimate` is permanently `0.0`.
 - All counters live in an **in-process dict** per session; a restart resets them, so a rate() over them is meaningless.
 - It only knows about sessions the *dashboard* started. The cron lane (`cron_runner.py`) never touches this object, so the real 3am producer is invisible here.
 
@@ -192,7 +194,7 @@ tests/test_logger.py:11
 
 `grep -rn "get_logger\|AILogger()" src scripts cron_runner.py` → only `logger.py` itself.
 The game loop uses `print` and a `safe_print` wrapper (cron_runner.py:18-23) and a module-level
-`json.dumps(event, default=str) + "\n"` append + flush (cron_runner.py:6145-6147). `import logging` / `getLogger` appear **nowhere** in
+`json.dumps(event, default=str) + "\n"` append + flush (cron_runner.py:6147-6148). `import logging` / `getLogger` appear **nowhere** in
 `cron_runner.py`, `scripts/game_bridge.py`, or `src/dashboard/main.py`.
 
 Consequence, verified on disk: `logs/api/api.log`, `logs/battles/battles.log`,
@@ -204,11 +206,11 @@ or alert built on those files is built on nothing.
 
 | Artifact | Path | Written by | Contents |
 |---|---|---|---|
-| Per-run decision ledger | `cron_logs/run_<run_id>.jsonl` | `cron_runner.py:967`, `_append_run_event` :6136-6147 (append + flush) | per-cycle decision rows, navigation, teacher escalation |
-| End-of-run autonomy block | same file, `event: run_autonomy` (`_write_autonomy_row` :5395) | cron_runner.py | counters, ratios, rates |
+| Per-run decision ledger | `cron_logs/run_<run_id>.jsonl` | `LOG_DIR` (`cron_runner.py:967`), `_append_run_event` :6139-6148 (append + flush) | per-cycle decision rows, navigation, teacher escalation |
+| End-of-run autonomy block | same file, `event: run_autonomy` (`_write_autonomy_row` :5629) | cron_runner.py | counters, ratios, rates |
 | Episode summary | `cron_logs/*_episodes.jsonl` | `scripts/dist1_episodes.py`, `run_base1_baseline.py`, `benchmark_llm_vs_jev.py` | wall time, exit code, cost, map sequence, errors |
 | Long-run status | `long_run_status.json` | `scripts/long_run.py` | goal, ladder, elapsed, totals |
-| Screenshots | `screenshots/run_<id>/` | `_save_cycle_screenshot` :2252 | per-cycle PNG |
+| Screenshots | `screenshots/run_<id>/` | `_save_cycle_screenshot` :2272 | per-cycle PNG |
 | DuckBrain | remote memory namespace | `_record_run_memory`, etc. | run lessons, world facts |
 
 Rich, and **structurally unobservable**: nothing counts it, ages it, or exports it.
@@ -235,7 +237,7 @@ and per-escalation `teacher_escalation` rows already carry `latency_s` (observed
 The product is healthy when **all** of the following hold:
 
 1. **It is up and working.** A cron run completes within its expected wall time and reports
-   `run_completed: true`; the dashboard answers `/health` (src/dashboard/main.py:516-518).
+   `run_completed: true`; the dashboard answers `/health` (src/dashboard/main.py:531-532).
 2. **It is progressing.** Maps are being crossed (`map_transitions_observed` grows across runs) and
    the persistent goal marker advances up the ladder in `long_run_status.json`. A run with many
    decisions and zero map transitions over hours is the canonical failure — it is "working" by every
@@ -275,8 +277,8 @@ map_name, tile, prompt, model raw string, file path, any timestamp. Run identity
 | map transitions | `run_autonomy.map_transitions_observed` | No |
 | backtrack rate | `run_autonomy.backtrack_rate` | No |
 | teacher latency / cost | `teacher_escalation.latency_s`, `.cost_usd` | No |
-| tick rate / commands / success rate | `DashboardSession.get_metrics()` (src/dashboard/main.py:224-260) | No — JSON behind API key, restart-volatile |
-| cost | `total_cost_estimate` | No — **hardcoded `0.0`** (src/dashboard/main.py:228) |
+| tick rate / commands / success rate | `DashboardSession.get_metrics()` (src/dashboard/main.py:227-262) | No — JSON behind API key, restart-volatile |
+| cost | `total_cost_estimate` | No — **hardcoded `0.0`** (src/dashboard/main.py:260) |
 
 **Existing scrapeable series from this product: 0.** (Audit-day reading, 2026-11-03.)
 
@@ -317,32 +319,32 @@ map_name, tile, prompt, model raw string, file path, any timestamp. Run identity
 
 | # | Metric | Type | Unit | Labels | Question | Status (2026-11-17) |
 |---|---|---|---|---|---|---|
-| 12 | `aipp_model_call_duration_seconds` | histogram | seconds | `model_family` | Is the provider slow, or are we? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:99-104; observed src/core/ai_client.py:134 |
-| 13 | `aipp_model_tokens_total` | counter | tokens | `model_family`,`direction` (`input`\|`output`) | Is context growth eating the budget? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:105-110; observed src/core/ai_client.py:135 |
-| 14 | `aipp_model_retries_total` | counter | retries | `model_family`,`reason` (`auth`\|`quota`\|`5xx`\|`timeout`) | Are we failing over because of auth, quota or 5xx? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:111-116; observed src/core/ai_client.py:799 (`quota`), :808 (`5xx`), :892 (`auth`/`timeout`) |
-| 15 | `aipp_credential_valid` | gauge | 0/1 | `key_name` (static enum of probed env-var NAMES) | Which API key is dead? (see §5 on cardinality) | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:117-122; observed cron_runner.py:708 |
+| 12 | `aipp_model_call_duration_seconds` | histogram | seconds | `model_family` | Is the provider slow, or are we? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:99-104; observed `observe_model_duration` src/core/ai_client.py:134 |
+| 13 | `aipp_model_tokens_total` | counter | tokens | `model_family`,`direction` (`input`\|`output`) | Is context growth eating the budget? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:105-110; observed `observe_model_tokens` src/core/ai_client.py:135 |
+| 14 | `aipp_model_retries_total` | counter | retries | `model_family`,`reason` (`auth`\|`quota`\|`5xx`\|`timeout`) | Are we failing over because of auth, quota or 5xx? | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:111-116; observed `observe_model_retry` src/core/ai_client.py:799 (`quota`), :808 (`5xx`), :892 (`auth`/`timeout`) |
+| 15 | `aipp_credential_valid` | gauge | 0/1 | `key_name` (static enum of probed env-var NAMES) | Which API key is dead? (see §5 on cardinality) | **SHIPPED (MON-AIPP-4)** — defined src/observability/metrics.py:117-122; observed cron_runner.py:711 |
 | 16 | `aipp_decision_escalations_total` | counter | escalations | `class` | Which capability is missing? | NOT SHIPPED — outside MON-AIPP-4 |
 
 Feed points for 12-15, as shipped:
 
 | Family | Fed from | Label mapping |
 |---|---|---|
-| 12 | `log_api_call` (`src/core/ai_client.py:109`) on every success, plus the exhausted-retry path at :916 so a dead call still carries its wall time | `model_family()` (`metrics.py:188`) — never a raw model string |
+| 12 | `log_api_call` (`src/core/ai_client.py:109`) on every success, plus the exhausted-retry path at :916 so a dead call still carries its wall time | `model_family()` (`metrics.py:286`) — never a raw model string |
 | 13 | same `log_api_call` call (both directions from one call, so output/input needs no second path) | `direction` from the closed pair `input`/`output` |
 | 14 | counted where the retry is DECIDED: `_handle_retry_response` (`ai_client.py:780`) for 429/`quota` and >=500/`5xx`; the loop's `except` branch (…:892) for 401\|403/`auth` and socket timeout/`timeout`, classified from the status the branch already holds (`_retry_reason_for_status`, …:150) or the exception class (`_retry_reason_for_exception`, …:166) | closed enum `auth`/`quota`/`5xx`/`timeout`; an unattributable failure is NOT counted rather than bucketed into a guess |
-| 15 | `_check_configured_keys` (`cron_runner.py:687`) after each probe — live → 1, dead → 0 | static enum of the env-var NAMES in `cron_runner._KEY_PROBE_URLS` (`metrics.py:141-146`); a test pins the two sets equal |
+| 15 | `_check_configured_keys` (`cron_runner.py:690`) after each probe — live → 1, dead → 0 | static enum of the env-var NAMES in `cron_runner._KEY_PROBE_URLS` (`metrics.py:186-191`); a test pins the two sets equal |
 
 #### P3 — emulator integrity and data growth
 
 | # | Metric | Type | Unit | Labels | Question | Status (2026-11-17) |
 |---|---|---|---|---|---|---|
 | 17 | `aipp_emulator_desync_total` | counter | desyncs | — | Is RAM truth diverging from the frame? | **SHIPPED (MON-AIPP-5) — PROXY, not a detector** — defined metrics.py:132; observed `_track_emulator_integrity` cron_runner.py:8680 ← `_cycle_header` cron_runner.py:9004. Semantics in §3.3.1 and §8.6. |
-| 18 | `aipp_emulator_frame_stale_seconds` | gauge | seconds | — | Is the emulator advancing? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:137; observed `observe_emulator_frame` metrics.py:463 ← the same tracker call (monotonic clock). |
+| 18 | `aipp_emulator_frame_stale_seconds` | gauge | seconds | — | Is the emulator advancing? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:137; observed `observe_emulator_frame` metrics.py:472 ← the same tracker call (monotonic clock). |
 | 19 | `aipp_screenshot_bytes` | gauge | bytes | — | Are screenshots accumulating without bound? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:142; observed `_publish_data_growth_metrics` cron_runner.py:8728 (per cycle cron_runner.py:8585, run end cron_runner.py:10550). |
 | 20 | `aipp_runlog_bytes` | gauge | bytes | — | Is the run ledger growing per cycle as expected? | **SHIPPED (MON-AIPP-5)** — same definition/paths as row 19. |
-| 21 | `aipp_runlog_last_write_timestamp_seconds` | gauge | unix seconds | — | Has the ledger stopped being written? | **SHIPPED (MON-AIPP-5)** — ledger **mtime**, not "now": the gauge is minted only when a ledger exists (metrics.py:254), so an unwritten ledger leaves the §6 query empty instead of alarming on a 1970 stamp. |
-| 22 | `aipp_bridge_requests_total` | counter | requests | `cmd`,`outcome` | Is the bridge serving, erroring, or wedged? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:157; observed `handle()`'s single exit scripts/game_bridge.py:486 (every path counts exactly once, including a connection that sent nothing). |
-| 23 | `aipp_bridge_active_connections` | gauge | connections | — | Are we leaking workers (the historical incident, scripts/game_bridge.py:455-462)? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:163; observed `set_bridge_active_connections` around the fixed worker pool scripts/game_bridge.py:592/607, forced to 0 at bind (:576) and at shutdown (:694). |
+| 21 | `aipp_runlog_last_write_timestamp_seconds` | gauge | unix seconds | — | Has the ledger stopped being written? | **SHIPPED (MON-AIPP-5)** — ledger **mtime**, not "now": the gauge is minted only when a ledger exists (`_RUNLOG_LAST_WRITE`, metrics.py:263), so an unwritten ledger leaves the §6 query empty instead of alarming on a 1970 stamp. |
+| 22 | `aipp_bridge_requests_total` | counter | requests | `cmd`,`outcome` | Is the bridge serving, erroring, or wedged? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:157; observed `handle()`'s single exit scripts/game_bridge.py:488 (every path counts exactly once, including a connection that sent nothing). |
+| 23 | `aipp_bridge_active_connections` | gauge | connections | — | Are we leaking workers (the incident `handle()`'s own docstring records at scripts/game_bridge.py:429-433)? | **SHIPPED (MON-AIPP-5)** — defined metrics.py:163; observed `set_bridge_active_connections` around the fixed worker pool scripts/game_bridge.py:593/607, forced to 0 at bind (:578) and at shutdown (:696). |
 
 Status column added 2026-11-17: `SHIPPED` means a metric family with that exact name is
 defined in `src/observability/metrics.py` and incremented from a production path (verified
@@ -356,27 +358,27 @@ proposal — grep `src/observability/metrics.py` for the name and you get nothin
 | 17 | `_track_emulator_integrity` (cron_runner.py:8680), called from `_cycle_header` (cron_runner.py:9004) — the one place both the frame hash (`_cycle_capture`, :8614) and the RAM observation (`_cycle_observe`, :8635) exist, on every screen path including the RAM-reader branch that returns before the cartographer cache | no labels; increments only when the frame hash **and** the RAM tile triple are both unchanged from the previous cycle (§3.3.1) |
 | 18 | same call | monotonic `now - last_changed_at`, reset to 0 on the cycle the hash changes — a wall-clock step cannot fake freshness |
 | 19,20,21 | `_publish_data_growth_metrics` (cron_runner.py:8728) per cycle and once at run end **after** `log_file.close()` | direct `stat`/`scandir` of `screenshots/run_<id>/` and `cron_logs/run_<id>.jsonl`; the timestamp is the ledger's `st_mtime` |
-| 22 | `handle()`'s single exit (scripts/game_bridge.py:486) plus the "server busy" rejection in the accept loop (:655) — connection counting is in the worker pool (:592/:607) | `cmd` = a verb `_dispatch` serves, else `unknown`; `none` when no request line arrived. `outcome` ∈ `ok`,`error`,`unauthorized`,`busy`,`invalid`,`send_failed`,`empty`. A test pins the `cmd` enum to the dispatch table verb for verb |
-| 23 | `serve()`'s `active` set (:592 add, :607 discard), 0 at bind (:576) and at shutdown (:694) | point-in-time count of sockets the fixed workers own — a leak shows as a count that never falls back to 0 |
+| 22 | `handle()`'s single exit (scripts/game_bridge.py:488) plus the "server busy" rejection in the accept loop (:657) — connection counting is in the worker pool (:593/:607) | `cmd` = a verb `_dispatch` serves, else `unknown`; `none` when no request line arrived. `outcome` ∈ `ok`,`error`,`unauthorized`,`busy`,`invalid`,`send_failed`,`empty`. A test pins the `cmd` enum to the dispatch table verb for verb |
+| 23 | `serve()`'s `active` set (:593 add, :607 discard), 0 at bind (:578) and at shutdown (:696) | point-in-time count of sockets the fixed workers own — a leak shows as a count that never falls back to 0 |
 
 ### 3.3 Where each signal must be emitted (2026-11-03 reading; rows 1–11 since wired)
 
 | Metric | Owner site | Why it is a blind spot today |
 |---|---|---|
-| 1,2 | `_run_cycles` loop, `t0 = time.time()` (cron_runner.py:8302) and `elapsed = time.time() - t0` (:8934, :9765, :10023) | elapsed is computed, formatted into a `print`, and thrown away (:8936) |
-| 3,12,13,14 | `log_api_call(model, duration_ms, input_tokens, output_tokens, cost, success)` (src/core/ai_client.py:102-118) | every field needed for four metrics arrives **as parameters** and is `print`ed |
+| 1,2 | `_run_cycles` loop, `t0 = time.time()` (cron_runner.py:8586) and `elapsed = time.time() - t0` (:9310, :10142, :10400) | elapsed is computed, formatted into a `print`, and thrown away (:9312) |
+| 3,12,13,14 | `log_api_call(model, duration_ms, input_tokens, output_tokens, cost, success)` (src/core/ai_client.py:109-118) | every field needed for four metrics arrives **as parameters** and is `print`ed |
 | 4 | same; plus `teacher_escalation.cost_usd` (cron_runner.py, run log) | cost is summed nowhere globally; the dashboard's is hardcoded `0.0` |
-| 6,7,8 | `_autonomy_counters` (cron_runner.py:5004-...) | counters computed at run **end** from rows, written to JSONL |
-| 9,10 | `_write_autonomy_row` (:5395), episode writers in `scripts/` | terminal state never leaves the file |
-| 11,16 | `_jev_teacher_escalation` (:3651), `escalation_class_of` (:3729) | escalation counted per-run in a dict |
-| 15 | `_probe_api_key` (cron_runner.py:648), `_check_configured_keys` (:687) | probes at boot, result printed once, then forgotten |
-| 17,18 | `_cycle_frame_hash` (:2247), `_ow_track_stuck` VOID/same-screen trackers (:8941-8966) | desync proxy is a threshold that triggers *recovery*, not a signal |
-| 22,23 | `handle`/`worker` in scripts/game_bridge.py (:440-500) | `except Exception: pass` around every reply (:441-444) |
+| 6,7,8 | `_autonomy_counters` (cron_runner.py:5007-...) | counters computed at run **end** from rows, written to JSONL |
+| 9,10 | `_write_autonomy_row` (:5629), episode writers in `scripts/` | terminal state never leaves the file |
+| 11,16 | `_jev_teacher_escalation` (:3671), `escalation_class_of` (:3749) | escalation counted per-run in a dict |
+| 15 | `_probe_api_key` (cron_runner.py:651), `_check_configured_keys` (:690) | probes at boot, result printed once, then forgotten |
+| 17,18 | `_cycle_frame_hash` (:2267), `_ow_track_stuck` VOID/same-screen trackers (:9318 region) | desync proxy is a threshold that triggers *recovery*, not a signal |
+| 22,23 | `handle`/`worker` in scripts/game_bridge.py (:440-500) | on the audit-day tree the reply sat inside `except Exception: pass` (:441-444) — **the reply path no longer swallows failures**; see the dated note below |
 
 > **UPDATE 2026-11-17:** catalogue rows 1–11 are now wired, and they emit from exactly the
 > owner sites this table names — `observe_cycle`/`observe_decision_seconds`
-> (cron_runner.py:8569, :9205), `observe_model_call` (src/core/ai_client.py:133), and
-> `_publish_run_metrics` → `observe_run_end` (cron_runner.py:5342, called at :7972 and :10440). Rows 12–15 also shipped (MON-AIPP-4) from the
+> (cron_runner.py:8581, :9311), `observe_model_call` (src/core/ai_client.py:133), and
+> `_publish_run_metrics` → `observe_run_end` (cron_runner.py:5345, called at :7975 and :10546). Rows 12–15 also shipped (MON-AIPP-4) from the
 > `log_api_call` and `_check_configured_keys` sites mapped in row 3,12,13,14,15 above — the
 > scrapeable series are listed under "Feed points" in §3.2. Rows 16–23 remain blind spots as
 > mapped above. The table is the audit-day mapping, not today's.
@@ -385,7 +387,7 @@ proposal — grep `src/observability/metrics.py` for the name and you get nothin
 > two sites the audit mapped:
 >
 > * Rows 17–18 were believed to live at `_cycle_frame_hash` (:2247, now :2267) and the
->   `_ow_track_stuck` VOID trackers (:8941 region, now :9212). Those two are still
+>   `_ow_track_stuck` VOID trackers (:8941 region, now :9318). Those two are still
 >   *thresholds that trigger recovery*, not signals, and they were left alone: the frame hash
 >   is computed in `_cycle_capture` (:8614) and the RAM observation in `_cycle_observe`
 >   (:8635), so `_track_emulator_integrity` (:8680) is called from `_cycle_header` (:9004)
@@ -398,6 +400,24 @@ proposal — grep `src/observability/metrics.py` for the name and you get nothin
 >   connection that sends nothing at all still appears as `cmd="none", outcome="empty"`.
 >   The connection gauge lives in the worker pool (`serve`), which is the only place that
 >   owns the live socket set.
+>
+> **UPDATE 2026-11-18 (DOC-027) — the reply path no longer swallows failures.**
+> Proof, run at `f3d7774`:
+>
+> ```
+> $ git grep -n 'except Exception: pass' -- scripts/game_bridge.py
+> scripts/game_bridge.py:430:    — the old `except Exception: pass` around the reply swallowed which requests
+> ```
+>
+> That single hit is the `handle()` docstring describing the **removed** construct, not a live
+> handler. The shipped reply path is `try: _send_json(...) / except Exception: outcome =
+> "send_failed"` (scripts/game_bridge.py:480-486) inside one `finally` that calls
+> `observe_bridge_request` (:487-488) — a failed reply is counted as `send_failed`, never swallowed.
+>
+> The file is **not** free of the pattern altogether, and the claim is scoped accordingly: the only
+> remaining `except Exception:` + `pass` pair is `Game.reset()`'s best-effort `self.emu.stop()`
+> (scripts/game_bridge.py:313-316), which touches no request or connection counter. Read the rows
+> above as the audit-day defect in the reply path, not as a description of today's `handle()`.
 >
 > Remaining blind spot: row 16 (`aipp_decision_escalations_total`) — outside MON-AIPP-5.
 
@@ -503,26 +523,26 @@ progress-vs-effort families).
 
 | Thing | Value | Line |
 |---|---|---|
-| Default directory | `Path("/var/lib/node_exporter/textfile_collector")` — `DEFAULT_TEXTFILE_DIR` | :59 |
-| File name | `aipp_run.prom` (so the full default path is `/var/lib/node_exporter/textfile_collector/aipp_run.prom`) | :5248 |
-| Flag | `--textfile-dir PATH`, `type=Path`, `default=DEFAULT_TEXTFILE_DIR`; help text `node_exporter textfile collector directory (default: /var/lib/node_exporter/textfile_collector).` | :7789-7797 |
-| Threaded through | `S.textfile_dir = args.textfile_dir` at run setup (:8380); the normal close-out passes `getattr(S, "textfile_dir", DEFAULT_TEXTFILE_DIR)` (:10430), the error path passes `getattr(args, "textfile_dir", DEFAULT_TEXTFILE_DIR)` (:7961) | :8380, :10430, :7961 |
-| Directory creation | `target_dir.mkdir(parents=True, exist_ok=True)` — the collector dir is created if absent, so there is no separate provisioning step (and no complaint when it is the wrong directory) | :5247 |
-| Temp sibling | `temporary = target.with_name(f"{target.name}.tmp")` | :5249 |
+| Default directory | `Path("/var/lib/node_exporter/textfile_collector")` — `DEFAULT_TEXTFILE_DIR` | :62 |
+| File name | `aipp_run.prom` (so the full default path is `/var/lib/node_exporter/textfile_collector/aipp_run.prom`) | :5251 |
+| Flag | `--textfile-dir PATH`, `type=Path`, `default=DEFAULT_TEXTFILE_DIR`; help text `node_exporter textfile collector directory (default: /var/lib/node_exporter/textfile_collector).` | :7792-7800 |
+| Threaded through | `S.textfile_dir = args.textfile_dir` at run setup (:8383); the normal close-out passes `getattr(S, "textfile_dir", DEFAULT_TEXTFILE_DIR)` (:10536), the error path passes `getattr(args, "textfile_dir", DEFAULT_TEXTFILE_DIR)` (:7964) | :8383, :10536, :7964 |
+| Directory creation | `target_dir.mkdir(parents=True, exist_ok=True)` — the collector dir is created if absent, so there is no separate provisioning step (and no complaint when it is the wrong directory) | :5250 |
+| Temp sibling | `temporary = target.with_name(f"{target.name}.tmp")` | :5252 |
 
 **The other half of the lane: node_exporter must be told to read that directory.** The product
 writes the file; the exporter only reads it when its own textfile-collector flag points at the same
 directory. That flag is **`--collector.textfile.directory`**, and its value must be the SAME
-directory as `DEFAULT_TEXTFILE_DIR` (`cron_runner.py:59`) — or whatever `--textfile-dir` was set
+directory as `DEFAULT_TEXTFILE_DIR` (`cron_runner.py:62`) — or whatever `--textfile-dir` was set
 to. Nothing validates the pair, and a mismatch is silent on the product's side: the writer creates
-its own directory (:5247), so it never fails either way, and an exporter pointed at a directory
+its own directory (:5250), so it never fails either way, and an exporter pointed at a directory
 nobody writes to reports no `aipp_*` series at all rather than "the product is not writing here".
 The symptom is a file that exists and grows on disk while the scrape returns nothing for it:
 `curl -s localhost:9100/metrics | grep aipp_run` prints no lines.
 
 ```ini
 # /etc/systemd/system/node_exporter.service.d/textfile.conf
-# This value must be the SAME directory as DEFAULT_TEXTFILE_DIR (cron_runner.py:59).
+# This value must be the SAME directory as DEFAULT_TEXTFILE_DIR (cron_runner.py:62).
 [Service]
 ExecStart=
 ExecStart=/usr/bin/node_exporter \
@@ -621,34 +641,34 @@ Three properties of that list an operator should not assume away:
 
 **Atomic write.** The writer composes the whole record in memory, writes it to a sibling
 temporary file (`temporary = target.with_name(f"{target.name}.tmp")`, :5249) and then
-`os.replace(temporary, target)` (:5335). Both paths are in the collector directory, so the
+`os.replace(temporary, target)` (:5338). Both paths are in the collector directory, so the
 rename is same-filesystem and atomic on POSIX: a scrape sees either the complete previous
 record or the complete new one, never a half-written file. There is no lock — the file is
 per-host, and concurrent cron runs on one host would race the accumulate step.
 
 **When it is written, relative to the run log.** Normal close-out, in code order:
 
-1. `_write_autonomy_row(...)` — appends the `run_autonomy` row to `cron_logs/run_<id>.jsonl` (:10414-10424)
-2. `_write_degradation_row(...)` — only when the degradation gate tripped (:10425)
-3. outcome/duration computed (`gave_up` if the run gave up, else `completed`) (:10426-10428)
-4. `_write_textfile_record(...)` — the `.prom` file (:10429-10437)
-5. `_publish_run_metrics(outcome, ...)` — the in-process Prometheus series (:10440)
-6. `log_file.close()` (:10441)
+1. `_write_autonomy_row(...)` — appends the `run_autonomy` row to `cron_logs/run_<id>.jsonl` (:10520-10530)
+2. `_write_degradation_row(...)` — only when the degradation gate tripped (:10531)
+3. outcome/duration computed (`gave_up` if the run gave up, else `completed`) (:10532-10534)
+4. `_write_textfile_record(...)` — the `.prom` file (:10535-10543)
+5. `_publish_run_metrics(outcome, ...)` — the in-process Prometheus series (:10546)
+6. `log_file.close()` (:10547)
 
 So the run log already carries the same numbers when the textfile is written (both are fed
 from the same `autonomy` block), and the scrape-visible file is published before the log
 handle closes. On the failure path the order is identical in substance: `_write_textfile_record(..., "error", ...)`
-at :7960-7968 immediately followed by `_publish_run_metrics("error", ...)` at :7972, before the
-exception is re-raised (:7973) — a run that died still records its outcome.
+at :7963-7971 immediately followed by `_publish_run_metrics("error", ...)` at :7975, before the
+exception is re-raised (:7976) — a run that died still records its outcome.
 
 **Failure is best-effort.** The whole body is wrapped in `try/except Exception`, which prints
-`[TEXTFILE] <run_id> failed: <exc>` via `safe_print` and returns `None` (:5337-5339). A
+`[TEXTFILE] <run_id> failed: <exc>` via `safe_print` and returns `None` (:5340-5342). A
 collector path that is not writable costs the run its metrics line, never the run.
 
 **If the process dies before close-out, the previous record survives untouched and looks healthy.**
-The file has exactly two write sites and both are at close-out (:10429 normal, :7960 error), nothing
+The file has exactly two write sites and both are at close-out (:10535 normal, :7963 error), nothing
 writes it mid-run, and the file carries no timestamp, run id, or heartbeat (the run id appears only
-in the failure message, :5338). A SIGKILL, a host reboot, or an OOM during the loop therefore leaves
+in the failure message, :5341). A SIGKILL, a host reboot, or an OOM during the loop therefore leaves
 the **previous** run's sample set in place, byte-for-byte, with its previous mtime: a stale record is
 indistinguishable from a fresh one by content, because every value in it is plausible. The live shape
 is worth keeping in mind — the file on the host where this block was written was 13 days old,
@@ -660,16 +680,16 @@ Two ways to tell stale from fresh, and neither is optional:
 1. **mtime against the run window.** Close-out rewrites the file, so its mtime is at or after the
    run's start: `stat -c '%y %s' /var/lib/node_exporter/textfile_collector/aipp_run.prom`, compared
    with the run's own window in `cron_logs/run_<id>.jsonl` (the `preflight` row opens it, the
-   `run_autonomy` row closes it, :10414-10424). An mtime older than the newest `run_autonomy` row
+   `run_autonomy` row closes it, :10520-10530). An mtime older than the newest `run_autonomy` row
    means that run never reached the write.
-2. **the counter family.** `aipp_run_completed_total` rises by exactly one per finished run (:5256),
+2. **the counter family.** `aipp_run_completed_total` rises by exactly one per finished run (:5259),
    so a sample that did not move across a run which produced a `run_autonomy` row is a lost write —
    and if the write was attempted and failed, stdout carries `[TEXTFILE] <run_id> failed: <exc>`
    (:5338). The `aipp_run_last_*` gauges are the trap: they are named "last", so a stale one cannot
    be spotted from its value, only from the two checks above.
 
 **Only the cron lane writes this record.** `_write_textfile_record` has exactly two call sites, both
-in `cron_runner.py`'s cron entrypoint (:10429 in `_finalize_run`, :7960 in the `except` of `__main__`);
+in `cron_runner.py`'s cron entrypoint (`:10535` in `_finalize_run`, `:7963` in the `except` of `__main__`);
 the dashboard process and the single-cycle CLI (`run_cycle.py`) never call it, so their runs increment
 only the in-process `/metrics/prometheus` series (§4.2). Every number in `aipp_run.prom` therefore
 counts cron-lane runs and nothing else: a 40-minute dashboard run leaves
@@ -681,20 +701,20 @@ counts cron-lane runs and nothing else: a 40-minute dashboard run leaves
 
 | Family | Label | Values | Computed or asserted | Source |
 |---|---|---|---|---|
-| `aipp_episode_decisions_total` | `mode` | `system1`, `system2`, `system1+system2`, `jev`, `hybrid`, `llm`, `agentic`, `unknown` | **computed** — `decision_mode_label()` strips+lowercases and falls back to `unknown` for anything outside the set | set metrics.py:126-137, map metrics.py:172-178, applied cron_runner.py:5298 |
-| `aipp_run_duration_seconds_count`, `aipp_run_duration_seconds_sum` | `outcome` | `completed`, `error`, `gave_up`, `unknown` | **computed** — `run_outcome_label()`; exact match only (no normalisation), else `unknown` | tuple metrics.py:138, map metrics.py:181-185, applied cron_runner.py:5299 |
-| `aipp_run_completed_total` | `outcome` | `completed`, `error`, `gave_up` — **no `unknown`** | **asserted** — the caller passes the literal and the writer iterates a hardcoded tuple; the accumulator's regex only recognises those three | cron_runner.py:5262-5265, regex :5154-5158, call sites :10426 / :7963 |
-| `aipp_teacher_escalations_total` | `improved` | `true`, `false` | **asserted** — literal label pairs in the writer | cron_runner.py:5312-5313 |
+| `aipp_episode_decisions_total` | `mode` | `system1`, `system2`, `system1+system2`, `jev`, `hybrid`, `llm`, `agentic`, `unknown` | **computed** — `decision_mode_label()` strips+lowercases and falls back to `unknown` for anything outside the set | set `_DECISION_MODE_LABELS` metrics.py:171-182, map `decision_mode_label()` metrics.py:270-276, applied cron_runner.py:5301 |
+| `aipp_run_duration_seconds_count`, `aipp_run_duration_seconds_sum` | `outcome` | `completed`, `error`, `gave_up`, `unknown` | **computed** — `run_outcome_label()`; exact match only (no normalisation), else `unknown` | tuple `_RUN_OUTCOME_LABELS` metrics.py:183, map `run_outcome_label()` metrics.py:279-283, applied cron_runner.py:5302 |
+| `aipp_run_completed_total` | `outcome` | `completed`, `error`, `gave_up` — **no `unknown`** | **asserted** — the caller passes the literal and the writer iterates a hardcoded tuple; the accumulator's regex only recognises those three | cron_runner.py:5265-5268, regex `_TEXTFILE_COUNTER_PATTERN` :5157-5158, call sites :10535 / :7963 |
+| `aipp_teacher_escalations_total` | `improved` | `true`, `false` | **asserted** — literal label pairs in the writer | cron_runner.py:5315-5316 |
 | `aipp_map_transitions_total`, `aipp_backtrack_events_total` | — | no labels | n/a | cron_runner.py:5305, :5307 |
-| `aipp_bridge_requests_total` (MON-AIPP-5) | `cmd` | the 14 verbs `_dispatch` serves (`health`, `observe`, `press`, `step`, `save`, `load`, `frame`, `raw`, `pause`, `resume`, `list_saves`, `delete_save`, `reset`, `goal`) plus `unknown` and `none` | **computed** — `bridge_cmd_label()` strips+lowercases; anything outside the set becomes `unknown`, and `none` means the connection never sent a request line. `tests/test_mon_aipp5.py` re-parses `_dispatch` and fails if a verb is added without extending the enum | set metrics.py:198-217, map metrics.py:427-433 |
-| `aipp_bridge_requests_total` (MON-AIPP-5) | `outcome` | `ok`, `error`, `unauthorized`, `busy`, `invalid`, `send_failed`, `empty`, `unknown` | **computed** — one outcome per connection, chosen by the single exit in `handle()`; `unknown` only for a spelling outside the set (never produced by the bridge itself) | set metrics.py:222-233, map metrics.py:436-440 |
+| `aipp_bridge_requests_total` (MON-AIPP-5) | `cmd` | the 14 verbs `_dispatch` serves (`health`, `observe`, `press`, `step`, `save`, `load`, `frame`, `raw`, `pause`, `resume`, `list_saves`, `delete_save`, `reset`, `goal`) plus `unknown` and `none` | **computed** — `bridge_cmd_label()` strips+lowercases; anything outside the set becomes `unknown`, and `none` means the connection never sent a request line. `tests/test_mon_aipp5.py` re-parses `_dispatch` and fails if a verb is added without extending the enum | set `_BRIDGE_CMD_LABELS` metrics.py:198-217, map `bridge_cmd_label()` metrics.py:427-433 |
+| `aipp_bridge_requests_total` (MON-AIPP-5) | `outcome` | `ok`, `error`, `unauthorized`, `busy`, `invalid`, `send_failed`, `empty`, `unknown` | **computed** — one outcome per connection, chosen by the single exit in `handle()`; `unknown` only for a spelling outside the set (never produced by the bridge itself) | set `_BRIDGE_OUTCOME_LABELS` metrics.py:222-233, map `bridge_outcome_label()` metrics.py:436-440 |
 
 The asymmetry is deliberate and worth naming: `outcome="unknown"` is representable on the two
 duration families and NOT on the completed counter, so a scrape can carry
 `aipp_run_duration_seconds_count{outcome="unknown"}` while `aipp_run_completed_total{outcome="unknown"}`
 does not exist. Neither appears from the cron lane in practice — both call sites pass a literal
-(`completed`/`gave_up` at :10426, `error` at :7963) — but the dashboard surface DOES run
-`aipp_run_completed_total` through `run_outcome_label()` (metrics.py:181, called at :355), so the same family name can
+(`completed`/`gave_up` at :10535, `error` at :7963) — but the dashboard surface DOES run
+`aipp_run_completed_total` through `run_outcome_label()` (metrics.py:279, called at :557), so the same family name can
 carry `unknown` on one surface and not the other.
 
 **Verifying this without a live game run.** The probe below calls the shipped writer twice into a
@@ -776,6 +796,15 @@ $ grep -n "_write_textfile_record" cron_runner.py
 5229:def _write_textfile_record(
 7960:        _write_textfile_record(
 10429:    _write_textfile_record(
+```
+
+Re-run at `f3d7774` on 2026-11-18 (DOC-027) — the same three sites, all moved:
+
+```bash
+$ grep -n "_write_textfile_record" cron_runner.py
+5232:def _write_textfile_record(
+7963:        _write_textfile_record(
+10535:    _write_textfile_record(
 ```
 
 **Two checks need a live host, and only these two.** The first needs a host where the cron lane has
@@ -963,7 +992,7 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 | Screenshot content / vision verdicts as metrics | Semantic content, not health. Belongs in the run log; already there (`vision_usage`, `screen`). |
 | Grouping by `missing_class` beyond a fixed enum | `missing_class` is already an enum (`none`, `map_topology`, …); anything free-form must be bucketed to `other` before it becomes a label. |
 | `logs/api/*.log` etc. ingestion | The files are empty and the writer is dead (§1.4). Instrumenting them would create a metric measuring a phantom. |
-| Exact per-token cost per model | Cost is already summed with `cost_usd` per call across all clients (src/core/ai_client.py:102-118). A second derivation would drift. |
+| Exact per-token cost per model | Cost is already summed with `cost_usd` per call across all clients (src/core/ai_client.py:109-118). A second derivation would drift. |
 
 ---
 
@@ -974,7 +1003,7 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 3. **`src/core/logger.py` is a trap.** It looks like the logging solution and is 100% unwired. Do not
    assume it runs. If step 1 of the work "fixes logging" by calling `get_logger()`, verify the files
    actually grow (`wc -c logs/errors/errors.log`) — that is a separate, larger piece of work than metrics.
-4. **`total_cost_estimate` is hardcoded `0.0`** (src/dashboard/main.py:225). Do not wire metric 4 to it
+4. **`total_cost_estimate` is hardcoded `0.0`** (`total_cost = 0.0`, src/dashboard/main.py:228). Do not wire metric 4 to it
    — it would export a dead zero with a live-looking `# HELP`. Wire it to the `log_api_call` cost
    parameter path, and if the dashboard field is to be fixed, fix it as a deliberate change with its
    own evidence.
@@ -986,7 +1015,7 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 5. **Do not add a scrape job yourself.** `prometheus.yml` is the monitoring stack's; the textfile path
    needs no change at all.
 6. **Metric 17 (desync) has no clean primitive yet.** There is a frame-hash (:2247) and stuck trackers
-   (:8941) but no RAM-vs-frame comparison. Implement it as a bounded proxy (repeated frame hash with
+   (:9318) but no RAM-vs-frame comparison. Implement it as a bounded proxy (repeated frame hash with
    unchanged RAM tile) and document the proxy, or defer it — do not claim a true desync detector exists.
    Status (MON-AIPP-5): shipped exactly as this item asked. `_track_emulator_integrity`
    (cron_runner.py:8680) increments the counter when the frame hash is unchanged **and** the RAM
