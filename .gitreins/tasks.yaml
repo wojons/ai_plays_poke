@@ -2145,3 +2145,21 @@ tasks:
   status: complete
   created_at: '2026-11-17T17:59:37.641418+00:00'
   completed_at: '2026-11-18T02:02:07.519659+00:00'
+- id: RELEASE-009-R1
+  title: Test coverage for portable AIPP_* runtime-path resolvers
+  criteria:
+  - pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default
+    and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON'
+    tests/ returns > 0 hits; a guard test fails when an absolute /home path literal
+    is reintroduced; full suite green.
+  status: in_progress
+  created_at: '2026-11-18T13:59:07.011617+00:00'
+- id: DOC-027
+  title: 'Docs residual: portable paths + stale citations in observability-spec.md
+    and api/cron_runner.md'
+  criteria:
+  - No absolute /home path in docs/observability-spec.md; every cron_runner.py:NNNN
+    and metrics.py:NNN citation resolves to a line containing the named symbol; docs-only
+    diff; scripts/release_check.py rc=0 and ruff check src/ tests/ rc=0.
+  status: in_progress
+  created_at: '2026-11-18T13:59:07.378039+00:00'
