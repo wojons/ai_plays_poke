@@ -2150,7 +2150,7 @@ tasks:
     is reintroduced; full suite green.
   status: complete
   created_at: '2026-11-18T13:59:07.011617+00:00'
-  completed_at: '2026-11-18T14:50:29.717513+00:00'
+  completed_at: '2026-11-18T19:17:37.977319+00:00'
 - id: DOC-027
   title: 'Docs residual: portable paths + stale citations in observability-spec.md
     and api/cron_runner.md'
@@ -2158,5 +2158,6 @@ tasks:
   - No absolute /home path in docs/observability-spec.md; every cron_runner.py:NNNN
     and metrics.py:NNN citation resolves to a line containing the named symbol; docs-only
     diff; scripts/release_check.py rc=0 and ruff check src/ tests/ rc=0.
-  status: in_progress
+  status: complete
   created_at: '2026-11-18T13:59:07.378039+00:00'
+  completed_at: '2026-11-18T19:11:07.726563+00:00'
