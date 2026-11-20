@@ -1925,8 +1925,9 @@ tasks:
     inside judge worktrees via scripts/gitreins_tests.sh and fails loudly when none
     exists; evaluator iteration budget verified against the deployed value; ruff +
     release_check green; docs-only/config-only diff.
-  status: in_progress
+  status: complete
   created_at: '2026-11-18T18:35:29.741626+00:00'
+  completed_at: '2026-11-20T10:28:44.012255+00:00'
 - id: MON-AIPP-1
   title: '[P0] Prometheus /metrics/prometheus endpoint with 5 P0 aipp_* metrics'
   criteria:
