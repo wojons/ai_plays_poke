@@ -16,10 +16,11 @@ import os
 import socket
 import sys
 import time
+from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from fastapi import (
     Depends,
@@ -36,9 +37,15 @@ from prometheus_client import CONTENT_TYPE_LATEST, REGISTRY, generate_latest
 
 from src.core.screenshot_manager import ScreenshotManager
 from src.db.database import GameDatabase
+from src.dashboard.play_loop import DashboardPlayLoop, PlayLoop
 from src.observability import metrics as _observability_metrics
 
 API_KEY = os.getenv("PTP_API_KEY")
+
+# QA-CONSOLE-4: how long ``POST /control/start`` waits for the play loop's first
+# tick before refusing. A start that cannot produce progress must fail loudly
+# instead of answering ``started`` for a session that will never tick.
+START_TIMEOUT_SECONDS = float(os.getenv("PTP_DASHBOARD_START_TIMEOUT", "20"))
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 INDEX_HTML_PATH = STATIC_DIR / "index.html"
@@ -118,6 +125,11 @@ async def lifespan(_app: FastAPI):  # type: ignore[no-untyped-def]
     connection_manager.clear()
     _observability_metrics.set_runner_up("dashboard")
     yield
+    # A started session owns a background play loop (QA-CONSOLE-4); never leave
+    # an emulator thread running past the server it belongs to.
+    for session in list(dashboard_sessions.values()):
+        session.stop()
+    dashboard_sessions.clear()
 
 
 app = FastAPI(
@@ -151,26 +163,80 @@ class DashboardSession:
             "location": "Unknown",
             "start_time": None,
             "last_action_time": None,
+            "last_error": None,
         }
         self.command_history: list[dict[str, Any]] = []
+        # Operator input waiting for the play loop to execute it (oldest first).
+        # Kept separate from ``command_history`` because that list also records
+        # the loop's own presses — which must never be re-consumed.
+        self._pending_commands: deque[dict[str, Any]] = deque(maxlen=64)
         self._tick_rate_window: list[float] = []
         self._last_tick_time = time.time()
+        self._play_loop: PlayLoop | None = None
 
     def start(self) -> None:
+        """Start this session's play loop (the production tick source).
+
+        QA-CONSOLE-4: this used to only set ``running``/``paused``/``start_time``,
+        so ``GET /status`` read ``running: true`` with ``tick_count: 0`` forever
+        — ``update_tick()`` had no caller outside the test suite. The loop is
+        built through ``PLAY_LOOP_FACTORY`` (patched in tests) and reports
+        progress through ``update_tick()``.
+        """
+        self.stop()
         self.state["running"] = True
         self.state["paused"] = False
         self.state["start_time"] = datetime.now().isoformat()
+        self.state["last_error"] = None
         self._last_tick_time = time.time()
+        loop = PLAY_LOOP_FACTORY(self)
+        self._play_loop = loop
+        loop.start()
 
     def pause(self) -> None:
         if self.state["running"]:
             self.state["paused"] = True
+            if self._play_loop is not None:
+                self._play_loop.pause()
 
     def resume(self) -> None:
         if self.state["running"]:
             self.state["paused"] = False
+            if self._play_loop is not None:
+                self._play_loop.resume()
 
     def stop(self) -> None:
+        loop, self._play_loop = self._play_loop, None
+        if loop is not None:
+            loop.stop()
+        self.state["running"] = False
+        self.state["paused"] = False
+
+    def wait_for_first_tick(self, timeout: float) -> bool:
+        """Wait up to *timeout* seconds for the loop's first tick.
+
+        Returns ``False`` as soon as the loop reports an error, so a start that
+        cannot run refuses immediately instead of burning the whole budget.
+        """
+        deadline = time.monotonic() + max(0.0, timeout)
+        while True:
+            if self.state["tick_count"] > 0:
+                return True
+            if self.state["last_error"]:
+                return False
+            if time.monotonic() >= deadline:
+                return bool(self.state["tick_count"] > 0)
+            time.sleep(0.05)
+
+    def record_loop_error(self, message: str) -> None:
+        """Publish a play-loop failure on the state users read.
+
+        The session stops claiming to run: ``/status`` answers ``running: false``
+        plus ``last_error``. This is what keeps the console from ever showing
+        ``running: true, tick_count: 0`` with no explanation.
+        """
+        self.state["last_error"] = message
+        self.state["current_state"] = "error"
         self.state["running"] = False
         self.state["paused"] = False
 
@@ -201,6 +267,14 @@ class DashboardSession:
         if len(self.command_history) > 1000:
             self.command_history = self.command_history[-1000:]
 
+    def queue_command(self, command: dict[str, Any]) -> None:
+        """Hand operator input to the play loop (``POST /control/command``)."""
+        self._pending_commands.append(command)
+
+    def next_pending_command(self) -> dict[str, Any] | None:
+        """Oldest operator command waiting for the loop, or ``None``."""
+        return self._pending_commands.popleft() if self._pending_commands else None
+
     def get_status(self) -> dict[str, Any]:
         elapsed = 0.0
         if self.state["start_time"]:
@@ -222,6 +296,7 @@ class DashboardSession:
             "location": self.state["location"],
             "start_time": self.state["start_time"],
             "last_action_time": self.state["last_action_time"],
+            "last_error": self.state["last_error"],
         }
 
     def get_metrics(self) -> dict[str, Any]:
@@ -269,12 +344,21 @@ class DashboardSession:
         return self.screenshot_manager.get_latest_screenshot()
 
 
+def default_play_loop_factory(session: "DashboardSession") -> PlayLoop:
+    """Build the session's real play loop (patched by the unit suite)."""
+    return DashboardPlayLoop(session)
+
+
+PLAY_LOOP_FACTORY: Callable[["DashboardSession"], PlayLoop] = default_play_loop_factory
+
 dashboard_sessions: dict[str, DashboardSession] = {}
 
 
-def get_session(session_id: str = "default") -> DashboardSession:
+def get_session(
+    session_id: str = "default", save_dir: str = "./game_saves"
+) -> DashboardSession:
     if session_id not in dashboard_sessions:
-        dashboard_sessions[session_id] = DashboardSession(session_id)
+        dashboard_sessions[session_id] = DashboardSession(session_id, save_dir)
     return dashboard_sessions[session_id]
 
 
@@ -406,17 +490,56 @@ async def stop_session(
     return {"status": "stopped", "session_id": session_id}
 
 
-@app.post("/control/start")
+@app.post("/control/start", response_model=None)
 async def start_session(
     _x_api_key: bool = Depends(verify_api_key),
     session_id: str = "default",
     save_dir: str = "./game_saves",
-) -> dict[str, Any]:
-    if session_id in dashboard_sessions:
-        dashboard_sessions[session_id].stop()
-    dashboard_sessions[session_id] = DashboardSession(session_id, save_dir)
-    dashboard_sessions[session_id].start()
-    return {"status": "started", "session_id": session_id}
+) -> JSONResponse:
+    """Start a session with its own play loop and wait for the first tick.
+
+    QA-CONSOLE-4: the old handler put a ``DashboardSession`` in the dict, set
+    its flags and answered ``{"status": "started"}`` — nothing advanced the
+    emulator, so every follow-up read showed ``tick_count: 0`` and
+    ``location: "Unknown"`` with no error (phantom start). The handler now
+    starts a real play loop (``src/dashboard/play_loop.py``) and only reports
+    ``started`` once that loop has published its first tick through
+    ``update_tick()``; otherwise it refuses with 503 and the reason, and the
+    session record carries ``last_error``.
+    """
+    previous = dashboard_sessions.pop(session_id, None)
+    if previous is not None:
+        previous.stop()
+    session = DashboardSession(session_id, save_dir)
+    dashboard_sessions[session_id] = session
+
+    session.start()
+    # The loop boots PyBoy in its own thread; wait on it without blocking the
+    # event loop (other routes must keep answering while a session boots).
+    started = await asyncio.to_thread(
+        session.wait_for_first_tick, START_TIMEOUT_SECONDS
+    )
+    if not started:
+        session.stop()
+        error = session.state["last_error"] or (
+            "play loop produced no tick within "
+            f"{START_TIMEOUT_SECONDS:g}s — no emulator progress"
+        )
+        return JSONResponse(
+            status_code=503,
+            content={"status": "failed", "session_id": session_id, "error": error},
+        )
+
+    status = session.get_status()
+    return JSONResponse(
+        content={
+            "status": "started",
+            "session_id": session_id,
+            "tick_count": status["tick_count"],
+            "current_state": status["current_state"],
+            "location": status["location"],
+        }
+    )
 
 
 @app.post("/control/command", response_model=None)
@@ -436,6 +559,10 @@ async def send_command(
         "success": True,
     }
     session.add_command(command_entry)
+    # Record it for /actions/recent AND hand it to the play loop, which is the
+    # only code holding the emulator (QA-CONSOLE-4: the console used to log a
+    # command nothing could execute).
+    session.queue_command(command_entry)
     return {"status": "queued", "command": command}
 
 
@@ -546,7 +673,9 @@ async def api_docs() -> dict[str, Any]:
             "POST /control/pause": "Pause session",
             "POST /control/resume": "Resume session",
             "POST /control/stop": "Stop session",
-            "POST /control/start": "Start new session",
+            "POST /control/start": (
+                "Start a session's play loop; returns the first tick or 503"
+            ),
             "POST /control/command": "Queue a command",
             "GET /sessions": "List all sessions",
             "WS /ws/screenshots/{id}": "Real-time screenshot stream",

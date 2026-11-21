@@ -9,6 +9,8 @@ import json
 import re
 import socket
 import sys
+import threading
+import time
 from pathlib import Path
 from unittest.mock import patch
 
@@ -46,6 +48,85 @@ class FakeGameDatabase:
 
     def __init__(self, *args, **kwargs):
         pass
+
+
+class FakePlayLoop:
+    """ROM-free stand-in for ``src.dashboard.play_loop.DashboardPlayLoop``.
+
+    The HTTP suite must not boot PyBoy, but ``POST /control/start`` is only
+    honest if it PROVES the production wiring: start → loop → ``update_tick()``
+    → ``GET /status``. This stub drives the exact same session methods the real
+    loop drives, so a regression that drops the loop start (the QA-CONSOLE-4
+    defect: flags flipped, nothing ticking) fails these tests. The real
+    emulator loop is covered by ``tests/test_dashboard_play_loop.py``.
+    """
+
+    def __init__(self, session, *, failure=None, silent=False, delay=0.01):
+        self.session = session
+        self.failure = failure
+        self.silent = silent
+        self.delay = delay
+        self.started = False
+        self.stopped = False
+        self._stop = threading.Event()
+        self._thread = None
+
+    def start(self):
+        self.started = True
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def _run(self):
+        if self.failure is not None:
+            self.session.record_loop_error(self.failure)
+            return
+        if self.silent:
+            # A loop that claims to be alive but never ticks: the phantom start
+            # the endpoint must refuse instead of reporting "started".
+            self._stop.wait()
+            return
+        while not self._stop.wait(self.delay):
+            if self.session.state["paused"]:
+                continue
+            self.session.update_tick("overworld", "Pallet Town (6,6)")
+
+    def stop(self):
+        self.stopped = True
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+
+    def pause(self):
+        pass
+
+    def resume(self):
+        pass
+
+
+class LoopFactoryControl:
+    """Lets a test choose how the next ``PLAY_LOOP_FACTORY`` call behaves."""
+
+    def __init__(self):
+        self.failure = None
+        self.silent = False
+        self.instances: list[FakePlayLoop] = []
+
+
+@pytest.fixture(autouse=True)
+def fake_play_loop(monkeypatch):
+    """Keep every dashboard test hermetic: no ROM, no emulator, no PyBoy."""
+    import src.dashboard.main as dashboard_main
+
+    control = LoopFactoryControl()
+
+    def factory(session):
+        loop = FakePlayLoop(session, failure=control.failure, silent=control.silent)
+        control.instances.append(loop)
+        return loop
+
+    monkeypatch.setattr(dashboard_main, "PLAY_LOOP_FACTORY", factory)
+    monkeypatch.setattr(dashboard_main, "START_TIMEOUT_SECONDS", 5.0)
+    return control
 
 
 TEST_API_KEY = "unit-test-dashboard-key"
@@ -580,15 +661,83 @@ class TestControlEndpoints:
         assert resp.status_code == 200
         assert resp.json()["status"] == "stopped"
 
-    def test_start_creates_session(self, client, auth):
+    def test_start_returns_the_first_tick(self, client, auth):
+        """QA-CONSOLE-4: ``started`` must mean the session is actually ticking."""
         resp = client.post("/control/start", headers=auth)
         assert resp.status_code == 200
-        assert resp.json()["status"] == "started"
+        body = resp.json()
+        assert body["status"] == "started"
+        assert body["session_id"] == "default"
+        assert body["tick_count"] >= 1
+        assert body["location"] != "Unknown"
 
-    def test_start_then_status_running(self, client, auth):
-        client.post("/control/start", headers=auth)
-        resp = client.get("/status", headers=auth)
-        assert resp.json()["running"] is True
+    def test_start_drives_update_tick_to_a_non_idle_status(self, client, auth):
+        """The production read path must show progress, not just the flags."""
+        assert client.post("/control/start", headers=auth).status_code == 200
+        status = client.get("/status", headers=auth).json()
+        assert status["running"] is True
+        assert status["tick_count"] >= 1
+        assert status["location"] == "Pallet Town (6,6)"
+        assert status["current_state"] == "overworld"
+        assert status["last_action_time"] is not None
+        assert status["last_error"] is None
+        metrics = client.get("/metrics", headers=auth).json()
+        assert metrics["total_ticks"] >= 1
+        assert metrics["session_active"] is True
+
+    def test_start_reports_a_loop_failure_instead_of_a_phantom_start(
+        self, client, auth, fake_play_loop
+    ):
+        """A loop that cannot run refuses loudly: never running:true, 0 ticks."""
+        fake_play_loop.failure = "PlayLoopError: ROM not found: /nope/rom.gb"
+        resp = client.post("/control/start", headers=auth)
+        assert resp.status_code == 503
+        body = resp.json()
+        assert body["status"] == "failed"
+        assert "ROM not found" in body["error"]
+        status = client.get("/status", headers=auth).json()
+        assert status["running"] is False
+        assert status["tick_count"] == 0
+        assert "ROM not found" in status["last_error"]
+        assert status["current_state"] == "error"
+
+    def test_start_refuses_when_the_loop_never_ticks(
+        self, client, auth, fake_play_loop, monkeypatch
+    ):
+        """The bounded wait closes the "alive but silent" phantom-start hole."""
+        import src.dashboard.main as dashboard_main
+
+        monkeypatch.setattr(dashboard_main, "START_TIMEOUT_SECONDS", 0.2)
+        fake_play_loop.silent = True
+        resp = client.post("/control/start", headers=auth)
+        assert resp.status_code == 503
+        assert "no tick within 0.2s" in resp.json()["error"]
+        assert client.get("/status", headers=auth).json()["running"] is False
+
+    def test_start_replaces_an_existing_session_and_stops_its_loop(
+        self, client, auth, fake_play_loop
+    ):
+        assert (
+            client.post("/control/start?session_id=existing", headers=auth).status_code
+            == 200
+        )
+        first = fake_play_loop.instances[-1]
+        assert (
+            client.post("/control/start?session_id=existing", headers=auth).status_code
+            == 200
+        )
+        assert first.stopped is True
+        assert fake_play_loop.instances[-1] is not first
+
+    def test_stop_stops_the_play_loop(self, client, auth, fake_play_loop):
+        assert client.post("/control/start", headers=auth).status_code == 200
+        loop = fake_play_loop.instances[-1]
+        assert client.post("/control/stop", headers=auth).status_code == 200
+        assert loop.stopped is True
+        ticks = client.get("/status", headers=auth).json()["tick_count"]
+        time.sleep(0.15)
+        # A stopped loop must not keep incrementing the session.
+        assert client.get("/status", headers=auth).json()["tick_count"] == ticks
 
     def test_command_not_running_returns_400(self, client, auth):
         # Use unique session ID to avoid cross-test state leak from test_start
@@ -601,7 +750,7 @@ class TestControlEndpoints:
         assert resp.status_code == 400
 
     def test_command_when_started(self, client, auth):
-        client.post("/control/start", headers=auth)
+        assert client.post("/control/start", headers=auth).status_code == 200
         resp = client.post(
             "/control/command",
             json={"command": "A", "reasoning": "test", "confidence": 0.8},
@@ -619,6 +768,43 @@ class TestSessionsEndpoint:
         resp = client.get("/sessions", headers=auth)
         assert resp.status_code == 200
         assert "sessions" in resp.json()
+
+
+class TestStartedSessionReachesFirstTick:
+    """AC-4 (QA-CONSOLE-4): a started session reaches ``tick_count >= 1``.
+
+    The defect was a start that only flipped flags: nothing in production ever
+    called ``update_tick()``, so the live console sat at ``tick_count: 0``
+    forever while this suite was green. This test drives the real HTTP control
+    path and polls the real read path under a bounded wait.
+    """
+
+    BOUND_SECONDS = 5.0
+
+    def test_tick_count_reaches_one_within_the_bound(self, client, auth):
+        assert client.post("/control/start", headers=auth).status_code == 200
+        deadline = time.monotonic() + self.BOUND_SECONDS
+        status = client.get("/status", headers=auth).json()
+        while time.monotonic() < deadline and status["tick_count"] < 1:
+            time.sleep(0.05)
+            status = client.get("/status", headers=auth).json()
+
+        assert status["tick_count"] >= 1
+        assert status["location"] != "Unknown"
+        assert status["current_state"] != "idle"
+        assert status["last_action_time"] is not None
+        assert status["last_error"] is None
+
+    def test_default_factory_builds_the_real_play_loop(self, tmp_path):
+        """The production factory must not be a stub the tests hid behind."""
+        import src.dashboard.main as dashboard_main
+        from src.dashboard.play_loop import DashboardPlayLoop
+
+        session = dashboard_main.DashboardSession("factory-check", str(tmp_path))
+        loop = dashboard_main.default_play_loop_factory(session)
+        assert isinstance(loop, DashboardPlayLoop)
+        assert loop.session is session
+        assert loop.rom_path.suffix == ".gb"
 
 
 class TestApiDocs:
@@ -653,7 +839,6 @@ class TestCreateDashboardApp:
 
 class TestSessionsIntegration:
     def test_full_lifecycle(self, client, auth):
-        # Start → status running
         assert client.post("/control/start", headers=auth).status_code == 200
         assert client.get("/status", headers=auth).json()["running"] is True
 
@@ -670,8 +855,12 @@ class TestSessionsIntegration:
         assert client.get("/status", headers=auth).json()["running"] is False
 
     def test_multi_session_independent(self, client, auth):
-        client.post("/control/start?session_id=s1", headers=auth)
-        client.post("/control/start?session_id=s2", headers=auth)
+        assert (
+            client.post("/control/start?session_id=s1", headers=auth).status_code == 200
+        )
+        assert (
+            client.post("/control/start?session_id=s2", headers=auth).status_code == 200
+        )
         client.post("/control/stop?session_id=s1", headers=auth)
         assert (
             client.get("/status?session_id=s1", headers=auth).json()["running"] is False
@@ -681,8 +870,12 @@ class TestSessionsIntegration:
         )
 
     def test_list_sessions(self, client, auth):
-        client.post("/control/start?session_id=s1", headers=auth)
-        client.post("/control/start?session_id=s2", headers=auth)
+        assert (
+            client.post("/control/start?session_id=s1", headers=auth).status_code == 200
+        )
+        assert (
+            client.post("/control/start?session_id=s2", headers=auth).status_code == 200
+        )
         sessions = client.get("/sessions", headers=auth).json()["sessions"]
         assert len(sessions) >= 2
 
@@ -901,7 +1094,8 @@ class TestControlTransportQueryParam:
         # stays idle (the regression was everything landing on "default").
         started = client.post(f"/control/start?session_id={sid}", headers=auth)
         assert started.status_code == 200
-        assert started.json() == {"status": "started", "session_id": sid}
+        assert started.json()["status"] == "started"
+        assert started.json()["session_id"] == sid
         assert (
             client.get(f"/status?session_id={sid}", headers=auth).json()["running"]
             is True
@@ -969,7 +1163,10 @@ class TestControlTransportQueryParam:
         selected session keeps running. Asserts the defect is real in the
         handler contract and therefore cannot be reintroduced in the UI.
         """
-        client.post("/control/start?session_id=dfui", headers=auth)
+        assert (
+            client.post("/control/start?session_id=dfui", headers=auth).status_code
+            == 200
+        )
         resp = client.post("/control/pause", json={"session_id": "dfui"}, headers=auth)
         assert resp.status_code == 400
         assert resp.json() == {"error": "Session not running"}
