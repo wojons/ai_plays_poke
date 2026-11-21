@@ -2174,3 +2174,13 @@ tasks:
   status: complete
   created_at: '2026-11-21T01:16:29.450301+00:00'
   completed_at: '2026-11-21T01:37:25.873794+00:00'
+- id: INT-CI-WALLCLOCK-1
+  title: De-flake wall-clock-cap delegate test
+  criteria:
+  - test_model_research_delegate_returns_at_wall_clock_cap must prove the wall-clock
+    cap fires without depending on a 60ms scheduler budget (mock provider sleep >>
+    cap, assertion margin >= 10x the cap), pass 10/10 local repeats, and no production
+    code change.
+  status: complete
+  created_at: '2026-11-21T02:34:28.701174+00:00'
+  completed_at: '2026-11-21T02:52:41.938702+00:00'
