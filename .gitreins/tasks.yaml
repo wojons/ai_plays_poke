@@ -2199,3 +2199,24 @@ tasks:
   status: complete
   created_at: '2026-11-21T04:20:27.238601+00:00'
   completed_at: '2026-11-21T05:02:14.830946+00:00'
+- id: QA-CONSOLE-4
+  title: '[P1] console POST /control/start answers {"status":"started"} but the session
+    never ticks: update_tick() is called only from tests, never by the dashboard process'
+  criteria:
+  - "1) Make /control/start produce observable progress, OR make it fail honestly.\
+    \ Preferred: wire the session to the documented play loop so a started session\
+    \ updates tick_count, location and screenshots (cite the file:line of the loop\
+    \ you attach in worker_summary). 2) Proof: start the dashboard, POST /control/start,\
+    \ wait 20s, and record GET /status with tick_count > 0 and a non-'Unknown' location,\
+    \ plus GET /screenshots/latest returning an image (200 + bytes) instead of 404.\
+    \ Paste the exact curl commands and responses in worker_summary. 3) Negative proof:\
+    \ if the console is intentionally a remote-control surface only (no play loop),\
+    \ then change the response contract instead \u2014 return 409/501 with a message\
+    \ naming the required outside driver, and update docs/api/dashboard.md:57/:74\
+    \ to match. Either way the state a user reads must never be 'running: true, ticks\
+    \ forever 0' with no error. 4) Add a test that a started session reaches tick_count\
+    \ >= 1 within a bounded wait, or asserts the explicit refusal \u2014 test path\
+    \ in worker_summary."
+  status: complete
+  created_at: '2026-11-21T09:07:17.738874+00:00'
+  completed_at: '2026-11-21T09:54:15.413341+00:00'
