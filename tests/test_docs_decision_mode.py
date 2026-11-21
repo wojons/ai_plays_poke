@@ -57,3 +57,49 @@ def test_architecture_does_not_claim_cron_runner_defaults_to_jev() -> None:
     assert not re.search(r"defaults to JEV", text, re.I), (
         "docs/architecture.md still claims cron_runner.py defaults to JEV"
     )
+
+
+def test_long_run_doc_states_the_refusal_not_a_default() -> None:
+    """docs/api/long_run.md must mirror scripts/long_run.py's exit-2 refusal."""
+    text = _read(BASE / "docs" / "api" / "long_run.md")
+    assert "refuses (exit 2)" in text, (
+        "docs/api/long_run.md must state that the driver refuses without a mode"
+    )
+
+
+def test_long_run_refuses_without_a_mode(monkeypatch, capsys) -> None:
+    """Behavioural pin for the claim above: no env, no flag -> exit 2."""
+    import sys
+
+    monkeypatch.syspath_prepend(str(BASE / "scripts"))
+    for name in ("AIPP_DECISION_MODE", "CRON_DECISION_MODE"):
+        monkeypatch.delenv(name, raising=False)
+    import long_run
+
+    import pytest
+
+    with pytest.raises(SystemExit) as exc:
+        long_run.resolve_decision_mode()
+    assert exc.value.code == 2
+    err = capsys.readouterr()
+    assert "AIPP_DECISION_MODE" in (err.out + err.err)
+    assert sys  # keep the import meaningful for readers
+
+
+HISTORICAL_REPORTS = [
+    "docs/dogfood/2026-10-27-integration.md",
+    "docs/dogfood/diagnostics.md",
+    "docs/dogfood/2026-08-26-integration.md",
+    "docs/dogfood/2026-09-24-integration.md",
+    "docs/dependency_review_20261010.md",
+    "docs/dependency_review_20261013.md",
+]
+
+
+def test_historical_reports_are_annotated() -> None:
+    """Dated reports keep their original commands, but must carry the caveat."""
+    for rel in HISTORICAL_REPORTS:
+        text = _read(BASE / rel)
+        assert "Annotation (2026-11-21, DOC-029)" in text, (
+            f"{rel} shows mode-less commands without the DOC-029 annotation"
+        )

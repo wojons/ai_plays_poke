@@ -1,5 +1,7 @@
 # ai_plays_poke — dogfood integration report, 2026-10-27
 
+> **Annotation (2026-11-21, DOC-029):** the commands in this dated report omit `--decision-mode`, which `cron_runner.py` now requires (it exits 2 without one). The report below records what was executed at the time and is deliberately not rewritten; add `--decision-mode jev` when re-running any command here.
+
 Tick `ai-plays-poke-dogfood-2026-10-27-15-09-28`
 Canonical repo `/home/kara/ai_plays_poke`, HEAD `2d75ced1bc5c9f93d8427ac83401389a7e0c7da5` (== origin/main, 0 unpushed).
 Executor: the dogfood lane itself (the `dogfood-scheduler-tick.sh` / `dogfooding.ts` driver is retired).

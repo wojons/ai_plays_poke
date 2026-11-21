@@ -1,5 +1,7 @@
 # Dogfood Integration Report — 2026-09-24 (ai-plays-poke-pm lane)
 
+> **Annotation (2026-11-21, DOC-029):** the commands in this dated report omit `--decision-mode`, which `cron_runner.py` now requires (it exits 2 without one). The report below records what was executed at the time and is deliberately not rewritten; add `--decision-mode jev` when re-running any command here.
+
 **Angle:** past dogfood runs swept the CLI/cron surface (08-07, 08-16, 08-26,
 09-09, 09-09b) and the memory layer (09-23). This run took the surface those
 runs never touched with real use: **the JEV / PRD-v3 decision tier that the

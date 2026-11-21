@@ -1,5 +1,7 @@
 # Dogfood Integration Report — 2026-08-26
 
+> **Annotation (2026-11-21, DOC-029):** the commands in this dated report omit `--decision-mode`, which `cron_runner.py` now requires (it exits 2 without one). The report below records what was executed at the time and is deliberately not rewritten; add `--decision-mode jev` when re-running any command here.
+
 **Project:** ai-plays-poke (PTP-01X) — autonomous Pokémon AI benchmarking system
 **Verdict:** ✅ SHIPPABLE (with P2 debt GAP-035..038)
 **Runner:** dogfood cron (real use, not test suite)

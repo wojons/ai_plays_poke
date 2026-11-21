@@ -55,7 +55,7 @@ which are resolved by functions (`scripts/long_run.py:126-128` and `:132-144`).
 | `LONG_RUN_BOOT_STATE` | resolved by `resolve_boot_state()` (`:126-128`) | `data/baselines/base-1_boot.state` (`BOOT`, `:50`) | Explicit boot-state override. An empty value falls back to the default. It only applies while no `long_run/<RUN_ID>_good.state` exists: from the second episode on (and on any restart of the same `LONG_RUN_ID`) the validated good state is what boots. |
 | `AIPP_DECISION_MODE` | `DECISION_MODE` via `resolve_decision_mode()` (`:132`) | — (checked first) | Decision-mode arm, forwarded to each episode as `cron_runner.py --decision-mode <mode>`. Highest precedence. |
 | `CRON_DECISION_MODE` | same | — (checked second) | Same arm; used when `AIPP_DECISION_MODE` is unset/blank. |
-| *(neither set)* | same | `jev` | `resolve_decision_mode()` returns `"jev"` after lower-casing and stripping the chosen value; unrecognised spellings are re-resolved (and degraded to the child's own default) by `cron_runner.py` itself. |
+| *(neither set)* | same | none — the driver refuses (exit 2) | `resolve_decision_mode()` (`scripts/long_run.py:174`) returns no arm: it prints a message naming both env vars and exits 2, so a scheduled run cannot silently pick an experiment. The only fallback path is the explicit `--allow-default-mode` flag, which warns loudly and uses the legacy arm (`jev`). An unrecognised spelling is a hard error that lists the accepted values. |
 
 `scripts/long_run.py` keeps its own minimal mirror of `cron_runner`'s
 decision-mode precedence (it does not import `cron_runner`), so a restart of the

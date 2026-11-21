@@ -1,5 +1,7 @@
 # Dependency Review — 2026-10-09 Supervisor Scan (SUP-DEPS-20261009-AIP)
 
+> **Annotation (2026-11-21, DOC-029):** the commands in this dated report omit `--decision-mode`, which `cron_runner.py` now requires (it exits 2 without one). The report below records what was executed at the time and is deliberately not rewritten; add `--decision-mode jev` when re-running any command here.
+
 **Type:** Analysis only. No requirements files were modified, nothing was installed, no bulk upgrade was executed.
 **Scope:** Python 3.11 runtime venv (`venv/`, pip 26.1.2) — the environment the supervisor scan measured. The Py3.13 test venv (`.venv/`) exists separately (see "Environment note" at the end).
 **Method:** `pip list --outdated --format=json` (142 pkgs, reproduced live, matches the supervisor scan exactly) → classified against `requirements.txt` + `requirements-dev.txt` + `pyproject.toml [project]` → advisories from OSV/PyPI via `pip-audit` over the frozen environment (69 unique advisories across 19 packages) → resolver dry-runs (`pip install --dry-run`) for every risky direct bump → grep-level usage checks in `src/`, `tests/`, `cron_runner.py`.

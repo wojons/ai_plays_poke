@@ -1,5 +1,7 @@
 # Dependency Review — 2026-10-13 Supervisor Scan (SUP-DEPS-20261013-AIP)
 
+> **Annotation (2026-11-21, DOC-029):** the commands in this dated report omit `--decision-mode`, which `cron_runner.py` now requires (it exits 2 without one). The report below records what was executed at the time and is deliberately not rewritten; add `--decision-mode jev` when re-running any command here.
+
 **Type:** Analysis only. **No package was installed, upgraded, or removed.** `requirements.txt`,
 `requirements-dev.txt`, `pyproject.toml` and `uv.lock` are unchanged by this task.
 

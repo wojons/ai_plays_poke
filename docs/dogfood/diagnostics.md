@@ -1,5 +1,6 @@
 # ai-plays-poke — Diagnostics Trail (dogfood 2026-08-07)
 
+> **Annotation (2026-11-21, DOC-029):** the commands in this dated report omit `--decision-mode`, which `cron_runner.py` now requires (it exits 2 without one). The report below records what was executed at the time and is deliberately not rewritten; add `--decision-mode jev` when re-running any command here.
 
 ## 2026-10-19 — the fix opened a door, and the projection still describes the old room
 
