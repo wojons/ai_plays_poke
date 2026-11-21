@@ -530,9 +530,8 @@ def _is_sufficiency_floor_reason(reason: Any) -> bool:
     which in the S0 boot state is almost every cycle (JEV-404), so its
     escalations are capped instead of re-arming.
     """
-    return (
-        isinstance(reason, str)
-        and reason.strip().lower().startswith(JEV_REASON_INSUFFICIENT_STATE)
+    return isinstance(reason, str) and reason.strip().lower().startswith(
+        JEV_REASON_INSUFFICIENT_STATE
     )
 
 
@@ -563,9 +562,10 @@ def repair_allowance_rearms(decision: dict[str, Any]) -> bool:
     cycles (JEV-404).
     """
     escalation_class = escalation_class_of(decision)
-    return not _is_sufficiency_floor_reason(
-        decision.get("escalate_reason")
-    ) and escalation_class not in TEACHER_NON_CLASS_SENTINELS
+    return (
+        not _is_sufficiency_floor_reason(decision.get("escalate_reason"))
+        and escalation_class not in TEACHER_NON_CLASS_SENTINELS
+    )
 
 
 def repair_block_reason(decision: dict[str, Any]) -> str:
@@ -598,9 +598,7 @@ def _consume_class_repair(class_repairs: Any, allowance_key: str) -> None:
     if isinstance(class_repairs, set):
         class_repairs.add(allowance_key)
     else:
-        class_repairs[allowance_key] = (
-            int(class_repairs.get(allowance_key, 0)) + 1
-        )
+        class_repairs[allowance_key] = int(class_repairs.get(allowance_key, 0)) + 1
 
 
 # ── --dry-run precheck (GAP-032) ────────────────────────────────────
@@ -1270,6 +1268,436 @@ class _MemoryNavigationBlockState:
         )
         if intended is not None and executed == intended:
             self._pending_attempt = (tile, route_key, intended)
+
+
+# ── DF-AIPP-13-R3: tile-level seam oscillation ─────────────────────────────
+# A two-tile ping-pong (A→B→A→B) is not a collision failure: every press moves,
+# so movement-progress reads 100% while the run learns nothing and backtrack
+# pins near 1.0. It is an exploration-policy defect — the controller keeps
+# undoing its own step — and the dead-end escape routes (DF-AIPP-13/-R2) cannot
+# fire on it because no tile in the pair is a dead end. The escape here is a
+# bounded COMMITMENT: once the position trail proves the reversal streak, the
+# reversing press is replaced by a step around the blocked seam, and the
+# harness holds that intent for a few cycles so the controller cannot undo it
+# on the very next decision. Collision truth still owns every candidate (a
+# direction is only ever chosen from the walkable set), and the blocked seam
+# direction stays exactly as the ROM reports it.
+TILE_OSCILLATION_REVERSALS = 2  # trailing reversals that prove a two-tile loop
+TILE_OSCILLATION_COMMIT_CYCLES = 4  # cycles a committed escape is protected
+TILE_OSCILLATION_TRAIL_LEN = 8  # bounded position trail (consecutive-deduped)
+TILE_OSCILLATION_POCKET_TILES = 6  # distinct tiles that still make a treadmill
+TILE_OSCILLATION_SWEEP_CYCLES = 14  # cycles a wall sweep may run before yielding
+TILE_OSCILLATION_DOOR_BUDGET = 1  # door/warp entries a run may spend on detours
+TILE_OSCILLATION_EVENT = "tile_oscillation_guard"
+_DIRECTION_ORDER: tuple[str, ...] = ("UP", "RIGHT", "DOWN", "LEFT")
+
+
+def _tile_delta(direction: str) -> tuple[int, int]:
+    """Return the (dx, dy) step for a compass direction (0,0 when unknown)."""
+    normalized = direction.upper()
+    for name, delta in _GRID_ROUTE_STEPS:
+        if name == normalized:
+            return delta
+    return (0, 0)
+
+
+def _neighbour_tile(tile: tuple[int, int, int], direction: str) -> tuple[int, int, int]:
+    """Return the adjacent tile key one step along ``direction``."""
+    dx, dy = _tile_delta(direction)
+    return (tile[0], tile[1] + dx, tile[2] + dy)
+
+
+def _local_grid_walkable(collision_grid: Any, dx: int, dy: int) -> bool | None:
+    """Read one offset out of the 5x5 ROM collision window (centre = player).
+
+    Returns True for a walkable cell, False for a blocked one, and None when
+    the offset falls outside the window or the cell is unresolved — an unknown
+    cell is never treated as open ground.
+    """
+    if not isinstance(collision_grid, str) or not collision_grid.strip():
+        return None
+    rows = collision_grid.splitlines()
+    row = 2 + dy
+    column = 2 + dx
+    if row < 0 or row >= len(rows):
+        return None
+    if column < 0 or column >= len(rows[row]):
+        return None
+    cell = rows[row][column]
+    if cell in _COLLISION_PLAYER_GLYPHS or cell == ".":
+        return True
+    if cell == "#":
+        return False
+    return None
+
+
+def _reversal_streak(trail: list[tuple[int, int, int]]) -> int:
+    """Count trailing moves that exactly undo the move before them."""
+    streak = 0
+    index = len(trail) - 1
+    while index >= 2:
+        if trail[index] == trail[index - 2] and trail[index] != trail[index - 1]:
+            streak += 1
+            index -= 1
+        else:
+            break
+    return streak
+
+
+def _trail_last_direction(trail: list[tuple[int, int, int]]) -> str:
+    """Compass direction of the last recorded move ("" when unknown)."""
+    if len(trail) < 2:
+        return ""
+    source, target = trail[-2], trail[-1]
+    if source[0] != target[0]:
+        return ""
+    for name, (dx, dy) in _GRID_ROUTE_STEPS:
+        if target[1] - source[1] == dx and target[2] - source[2] == dy:
+            return name
+    return ""
+
+
+def _oscillation_axis(trail: list[tuple[int, int, int]]) -> str | None:
+    """Axis of the trailing two-tile loop, or None when the pair is unusable."""
+    if len(trail) < 3:
+        return None
+    first, second = trail[-1], trail[-2]
+    if first[0] != second[0]:
+        return None
+    if first[1] == second[1] and first[2] != second[2]:
+        return "VERTICAL"
+    if first[2] == second[2] and first[1] != second[1]:
+        return "HORIZONTAL"
+    return None
+
+
+def _pocket_tiles(trail: list[tuple[int, int, int]]) -> set[tuple[int, int, int]]:
+    """Distinct tiles in the trailing window.
+
+    Measured run df13r3repro did not alternate A,B,A,B: it circled a handful of
+    tiles (5 distinct over 80 cycles, 75% of the observations split across two
+    of them, 96% backtrack). A trailing-reversal counter alone never fires on
+    that shape, so the loop test is "the run is confined to a pocket AND the
+    planned press undoes the last step".
+    """
+    return set(trail[-TILE_OSCILLATION_TRAIL_LEN:])
+
+
+def _second_step_tile(
+    tile: tuple[int, int, int],
+    direction: str,
+    collision_grid: Any,
+) -> tuple[int, int, int] | None:
+    """Tile reached by pressing ``direction`` twice, when both steps are open."""
+    if _local_grid_walkable(collision_grid, *_tile_delta(direction)) is not True:
+        return None
+    return _neighbour_tile(_neighbour_tile(tile, direction), direction)
+
+
+def _escape_visit_score(
+    tile: tuple[int, int, int],
+    direction: str,
+    collision_grid: Any,
+    visit_counts: dict[tuple[int, int, int], int],
+) -> tuple[int, int]:
+    """Rank a candidate by (visits at the 2nd step, visits at the 1st step).
+
+    Looking two steps out is what lets a pocket escape become a real departure:
+    the adjacent tile may be well-worn while the tile behind it is fresh ground.
+    """
+    near = visit_counts.get(_neighbour_tile(tile, direction), 0)
+    far_tile = _second_step_tile(tile, direction, collision_grid)
+    far = near if far_tile is None else visit_counts.get(far_tile, 0)
+    return (far, near)
+
+
+def _perpendicular_directions(axis: str) -> tuple[str, ...]:
+    """Directions that leave a loop on ``axis`` perpendicular to it."""
+    return ("LEFT", "RIGHT") if axis == "VERTICAL" else ("UP", "DOWN")
+
+
+def _seam_direction(axis: str, blocked: set[str]) -> str:
+    """The collision-blocked direction ON the oscillation axis, if any.
+
+    That blocked direction is why the loop exists: the controller wants to
+    travel along the axis and thrashes against the seam instead of going
+    around it. An empty string means the axis is open here.
+    """
+    axis_directions = ("UP", "DOWN") if axis == "VERTICAL" else ("LEFT", "RIGHT")
+    for direction in axis_directions:
+        if direction in blocked:
+            return direction
+    return ""
+
+
+def _seam_opens_beyond(direction: str, seam: str, collision_grid: Any) -> bool:
+    """True when stepping ``direction`` leaves the seam direction walkable.
+
+    This is the detour test: one perpendicular step lands on a tile whose
+    seam-side neighbour (read from the ROM window, never guessed) is open, so
+    the run can turn the corner instead of pressing into the wall again.
+    """
+    if not seam:
+        return False
+    dx, dy = _tile_delta(direction)
+    sx, sy = _tile_delta(seam)
+    return _local_grid_walkable(collision_grid, dx + sx, dy + sy) is True
+
+
+def _least_visited_direction(
+    candidates: list[str],
+    tile: tuple[int, int, int],
+    visit_counts: dict[tuple[int, int, int], int],
+    collision_grid: Any = None,
+) -> str | None:
+    """Pick the candidate leading to the least-explored legal neighbour."""
+    if not candidates:
+        return None
+    return min(
+        candidates,
+        key=lambda direction: (
+            *_escape_visit_score(tile, direction, collision_grid, visit_counts),
+            _DIRECTION_ORDER.index(direction),
+        ),
+    )
+
+
+def _drop_doors(candidates: list[str], doors: set[str]) -> list[str]:
+    """Keep door/warp steps as a last resort.
+
+    Measured run df13r3fix answered a reversal by walking UP through the
+    Pallet Town house door at (5,6): it recorded its one map transition into
+    Red's House 1F and then spent 65 of 80 cycles pinned on two indoor tiles.
+    A door is a detour, not progress toward a map edge, so an escape prefers
+    any non-door legal step.
+    """
+    if not doors:
+        return candidates
+    outside = [direction for direction in candidates if direction not in doors]
+    return outside or candidates
+
+
+def _sweep_side(
+    tile: tuple[int, int, int],
+    *,
+    seam: str,
+    walkable: list[str],
+    reverse: str,
+    collision_grid: Any,
+    visit_counts: dict[tuple[int, int, int], int],
+    doors: set[str] | None = None,
+) -> str | None:
+    """Pick the along-wall direction for a sweep.
+
+    The seam is the blocked direction; the sweep runs perpendicular to it. A
+    side is preferred when it is collision-legal, is not the press we are
+    replacing, and the ground two steps along it is the least worn.
+    """
+    axis = "VERTICAL" if seam in ("UP", "DOWN") else "HORIZONTAL"
+    candidates = _drop_doors(
+        [
+            direction
+            for direction in _perpendicular_directions(axis)
+            if direction in walkable
+        ],
+        doors or set(),
+    )
+    if not candidates:
+        return None
+    preferred = [direction for direction in candidates if direction != reverse]
+    pool = preferred or candidates
+    return _least_visited_direction(pool, tile, visit_counts, collision_grid)
+
+
+def _escape_oscillation_direction(
+    tile: tuple[int, int, int],
+    *,
+    axis: str,
+    seam: str,
+    reverse: str,
+    walkable: list[str],
+    collision_grid: Any,
+    visit_counts: dict[tuple[int, int, int], int],
+    straight: str = "",
+    doors: set[str] | None = None,
+) -> str | None:
+    """Choose the commitment step out of a proven two-tile loop.
+
+    Order of intent, every candidate inside live collision truth:
+    1. the seam direction itself, when it is walkable HERE (the detour has
+       already rounded the wall and can turn toward new ground);
+    2. the STRAIGHT continuation of the last move (never undoes our own step,
+       so it always advances) — without this the breaker answers a reversal at
+       the mouth of an exit with a sideways step and the run never leaves;
+    3. a perpendicular step that lands where the seam re-opens;
+    4. any other legal perpendicular step;
+    5. any legal non-reversing step.
+    Ties go to the least-visited neighbour, then to ``_DIRECTION_ORDER``.
+    """
+    candidates = [
+        direction
+        for direction in walkable
+        if direction in _WALK_DIRECTIONS and direction != reverse
+    ]
+    candidates = _drop_doors(candidates, doors or set())
+    if not candidates:
+        return None
+    if seam and seam in candidates:
+        return seam
+    if straight and straight in candidates:
+        return straight
+    perpendicular = _perpendicular_directions(axis)
+    opening = [
+        direction
+        for direction in candidates
+        if direction in perpendicular
+        and _seam_opens_beyond(direction, seam, collision_grid)
+    ]
+    pool = (
+        opening
+        or [direction for direction in candidates if direction in perpendicular]
+        or candidates
+    )
+    return _least_visited_direction(pool, tile, visit_counts, collision_grid)
+
+
+@dataclass
+class _TileOscillationState:
+    """Run-local evidence + commitment for the tile-level oscillation policy.
+
+    ``trail`` holds one position per decided cycle (consecutive duplicates are
+    collapsed so a no-movement cycle cannot fake a reversal), ``visit_counts``
+    scores escape candidates, and the commitment fields protect a chosen escape
+    for ``commit_remaining`` cycles. The state never suppresses a direction:
+    it only replaces the press that undoes the player's own last step.
+    """
+
+    trail: list[tuple[int, int, int]] = field(default_factory=list)
+    visit_counts: dict[tuple[int, int, int], int] = field(default_factory=dict)
+    tile_blocked: dict[tuple[int, int, int], frozenset[str]] = field(
+        default_factory=dict
+    )
+    committed_direction: str = ""
+    committed_seam: str = ""
+    commit_remaining: int = 0
+    committed_tile: tuple[int, int, int] | None = None
+    sweep_direction: str = ""
+    sweep_seam: str = ""
+    sweep_remaining: int = 0
+    sweep_map: int | None = None
+    map_entries: int = 0
+    applied_cycles: int = 0
+    last_outcome: str = ""
+
+    @staticmethod
+    def tile_key(observation: dict[str, Any]) -> tuple[int, int, int] | None:
+        """Current RAM tile as a (map_id, x, y) key, when the read succeeded."""
+        map_id = observation.get("map_id")
+        x = observation.get("player_tile_x")
+        y = observation.get("player_tile_y")
+        if isinstance(map_id, int) and isinstance(x, int) and isinstance(y, int):
+            return (map_id, x, y)
+        return None
+
+    def observe(
+        self,
+        tile: tuple[int, int, int],
+        blocked: set[str] | None = None,
+    ) -> None:
+        """Record one decided cycle's position and its collision truth."""
+        self.visit_counts[tile] = self.visit_counts.get(tile, 0) + 1
+        if blocked is not None:
+            self.tile_blocked[tile] = frozenset(blocked)
+            if len(self.tile_blocked) > TILE_OSCILLATION_TRAIL_LEN * 2:
+                for stale in [
+                    key for key in self.tile_blocked if key not in self.trail
+                ]:
+                    del self.tile_blocked[stale]
+        if self.trail and self.trail[-1][0] != tile[0]:
+            self.map_entries += 1
+        if self.trail and self.trail[-1] == tile:
+            return
+        self.trail.append(tile)
+        if len(self.trail) > TILE_OSCILLATION_TRAIL_LEN:
+            del self.trail[:-TILE_OSCILLATION_TRAIL_LEN]
+
+    def loop_blocked(self) -> set[str]:
+        """Collision blocks observed at the two tiles of the trailing loop.
+
+        The blocked seam usually belongs to the tile the controller is trying
+        to leave, not to the one it is standing on when the reversal is
+        decided, so the loop's evidence is read from both ends of the pair.
+        """
+        blocked: set[str] = set()
+        for offset in (1, 2):
+            if len(self.trail) >= offset:
+                blocked.update(self.tile_blocked.get(self.trail[-offset], ()))
+        return blocked
+
+    def trail_blocked(self) -> set[str]:
+        """Collision blocks observed anywhere in the retained trail.
+
+        A pocket's seam does not have to be blocked at the tile where the
+        decision happens: measured run df13r3fix pressed UP at (9,2) (blocked),
+        stepped east to (10,2) and then (10,1) -- where the pair-based read
+        found no seam at all -- so the policy answered the controller's DOWN
+        with a sideways step instead of continuing UP through the gap.
+        """
+        blocked: set[str] = set()
+        for tile in self.trail:
+            blocked.update(self.tile_blocked.get(tile, ()))
+        return blocked
+
+    def release(self) -> None:
+        """Drop any active commitment (progress, veto, or window spent)."""
+        self.committed_direction = ""
+        self.committed_seam = ""
+        self.commit_remaining = 0
+        self.committed_tile = None
+
+    def start_sweep(
+        self,
+        seam: str,
+        direction: str,
+        map_id: int,
+    ) -> None:
+        """Walk along a blocked seam until the seam opens (or the budget ends).
+
+        A pocket that touches a wall cannot be escaped by re-picking a
+        least-visited neighbour each cycle: measured run df13r3fix2 walked the
+        Pallet Town fence row west for ~40 cycles that way, passed the corridor
+        twice, and never turned north. Holding ONE along-wall direction until
+        the wall opens (then reversing if it dead-ends) is what actually walks
+        the perimeter to the gap.
+        """
+        self.committed_direction = direction
+        self.committed_seam = seam
+        self.commit_remaining = 0
+        self.committed_tile = None
+        self.sweep_direction = direction
+        self.sweep_seam = seam
+        self.sweep_remaining = TILE_OSCILLATION_SWEEP_CYCLES
+        self.sweep_map = map_id
+
+    def end_sweep(self) -> None:
+        """Stop the wall sweep (opening found, blocked, or map changed)."""
+        self.sweep_direction = ""
+        self.sweep_seam = ""
+        self.sweep_remaining = 0
+        self.sweep_map = None
+
+    def commit(
+        self,
+        direction: str,
+        tile: tuple[int, int, int],
+        *,
+        seam: str = "",
+    ) -> None:
+        """Arm the commitment window for ``direction`` at ``tile``."""
+        self.committed_direction = direction
+        self.committed_seam = seam
+        self.commit_remaining = TILE_OSCILLATION_COMMIT_CYCLES
+        self.committed_tile = tile
 
 
 @dataclass(frozen=True)
@@ -8628,6 +9056,8 @@ def _init_memory_state(S):
     # DF-ARM1-2: path-memory directions proven blocked at one RAM tile stay
     # suppressed until movement changes that tile.
     S._memory_navigation_blocks = _MemoryNavigationBlockState()
+    # DF-AIPP-13-R3: tile-level oscillation evidence + commitment window.
+    S._tile_oscillation = _TileOscillationState()
 
     # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
     # Built ONCE here (not per cycle) from the four DuckBrain layers
@@ -9299,6 +9729,15 @@ def _overworld_cycle(S, cycle, header, t0):
     # completed edge's forward direction, so suppress proven-blocked directions
     # once more after that replacement.
     plan = _ow_memory_navigation_guard(S, cycle, plan, navigation_context)
+
+    # DF-AIPP-13-R3: a proven two-tile ping-pong is the exploration policy
+    # undoing its own step, not a collision problem — every press moves. Break
+    # it with a bounded commitment that is chosen from collision truth and
+    # held across cycles; HOLD-1 and path memory still outrank it (the guard
+    # declines while either owns the step).
+    plan = _ow_tile_oscillation_guard(
+        S, cycle, plan, decision, patch_data, navigation_context
+    )
 
     plan_entry = {
         "cycle": cycle + 1,
@@ -10121,6 +10560,418 @@ def _ow_memory_navigation_guard(S, cycle, plan, navigation_context=None):
         "  [NAV-MEM-BLOCK] final plan "
         f"{original[:3]}→{guarded[:3]} at "
         f"{S._memory_navigation_blocks.current_tile}"
+    )
+    return guarded
+
+
+def _ow_tile_oscillation_guard(
+    S, cycle, plan, decision, patch_data, navigation_context=None
+):
+    """Break a proven two-tile loop with a bounded collision-legal commitment.
+
+    DF-AIPP-13-R3. The trail (one position per decided cycle) proves the loop;
+    this guard replaces only the press that undoes the player's own last step,
+    choosing the replacement out of live collision truth, and then holds that
+    intent for ``TILE_OSCILLATION_COMMIT_CYCLES`` so the controller cannot
+    immediately reverse the escape. It never suppresses a direction, never
+    rewrites the collision truth, and declines whenever another mechanism owns
+    the step: HOLD-1's held edge (an active navigation hold) outranks a policy
+    commitment unconditionally. A proven path-memory route outranks it only
+    while the route is making progress — when the route's own press is the
+    reversal that completes the proven loop, the route is the treadmill (a
+    measured case: the stored Pallet Town -> Route 1 route steps toward a wall),
+    so the guard overrides it and stamps ``overrode_path_memory`` on the row.
+
+    Returns the guarded plan; appends one ``tile_oscillation_guard`` row (and
+    prints one line) whenever the plan changed.
+    """
+    state = S._tile_oscillation
+    tile = state.tile_key(patch_data)
+    if tile is None:
+        return plan
+
+    # Collision truth arrives lower-cased from the spatial filter and the
+    # memory walkability map, while every direction constant here is upper-case
+    # — normalize or the walkable set silently becomes "all four" and the
+    # commitment presses walls.
+    blocked = {
+        str(direction).upper() for direction in _blocked_spatial_directions(patch_data)
+    }
+    blocked.update(
+        str(direction).upper()
+        for direction, status in _memory_walkability(patch_data).items()
+        if str(status) == "blocked"
+    )
+    blocked.update(
+        str(direction).upper()
+        for direction in S._memory_navigation_blocks.blocked_directions
+    )
+    blocked.discard("")
+    state.observe(tile, blocked)
+    walkable = [direction for direction in _DIRECTION_ORDER if direction not in blocked]
+    collision_grid = patch_data.get("collision_grid")
+    # A door/warp step is a detour, not progress toward a map edge; the escape
+    # choosers keep it as a last resort.
+    doors = {
+        str(direction).upper()
+        for direction, kind in (patch_data.get("adjacent") or {}).items()
+        if str(kind).lower() in ("door", "stairs", "warp")
+    }
+
+    original = [str(button).upper() for button in plan]
+    move_index = next(
+        (index for index, button in enumerate(original) if button in _DIR_ROTATION),
+        None,
+    )
+    if move_index is None:
+        return plan
+
+    if isinstance(navigation_context, dict) and navigation_context.get("active"):
+        state.release()
+        state.last_outcome = "declined_navigation_hold"
+        return plan
+    memory_navigation = decision.get("memory_navigation")
+    memory_navigation_hit = (
+        isinstance(memory_navigation, dict) and memory_navigation.get("result") == "hit"
+    )
+
+    planned = original[move_index]
+
+    # ── A wall sweep owns the step until the seam opens or the budget ends ──
+    if state.sweep_remaining > 0:
+        if state.sweep_map is not None and state.sweep_map != tile[0]:
+            state.end_sweep()
+            state.last_outcome = "idle_map_changed"
+            return plan
+        seam_walkable = (
+            bool(state.sweep_seam)
+            and state.sweep_seam in walkable
+            and state.sweep_seam not in doors
+        )
+        if seam_walkable and planned != state.sweep_seam:
+            replacement = state.sweep_seam
+            state.end_sweep()
+            return _ow_apply_oscillation_override(
+                S,
+                cycle,
+                original,
+                move_index,
+                planned,
+                replacement,
+                tile=tile,
+                walkable=walkable,
+                blocked=blocked,
+                axis=None,
+                seam=state.committed_seam,
+                streak=0,
+                outcome="sweep_seam",
+                overrode_path_memory=memory_navigation_hit,
+            )
+        direction = state.sweep_seam if seam_walkable else state.sweep_direction
+        if direction == planned:
+            state.sweep_remaining -= 1
+            state.last_outcome = "sweep_aligned"
+            return plan
+        if direction and direction in walkable:
+            state.sweep_remaining -= 1
+            return _ow_apply_oscillation_override(
+                S,
+                cycle,
+                original,
+                move_index,
+                planned,
+                direction,
+                tile=tile,
+                walkable=walkable,
+                blocked=blocked,
+                axis=None,
+                seam=state.sweep_seam,
+                streak=0,
+                outcome="sweep",
+                overrode_path_memory=memory_navigation_hit,
+            )
+        flipped = _OPPOSITE_DIR.get(state.sweep_direction, "")
+        if flipped and flipped in walkable and flipped != planned:
+            state.sweep_direction = flipped
+            state.sweep_remaining -= 1
+            return _ow_apply_oscillation_override(
+                S,
+                cycle,
+                original,
+                move_index,
+                planned,
+                flipped,
+                tile=tile,
+                walkable=walkable,
+                blocked=blocked,
+                axis=None,
+                seam=state.sweep_seam,
+                streak=0,
+                outcome="sweep_flip",
+                overrode_path_memory=memory_navigation_hit,
+            )
+        state.end_sweep()
+        state.last_outcome = "sweep_blocked"
+        return plan
+
+    # ── Door veto: a warp is a detour unless the run is stuck or under budget ─
+    pocket_size = len(_pocket_tiles(state.trail))
+    if (
+        planned in doors
+        and pocket_size > TILE_OSCILLATION_POCKET_TILES
+        and state.map_entries >= TILE_OSCILLATION_DOOR_BUDGET
+    ):
+        last_direction = _trail_last_direction(state.trail)
+        alternative = _escape_oscillation_direction(
+            tile,
+            axis=_oscillation_axis(state.trail)
+            or ("VERTICAL" if planned in ("UP", "DOWN") else "HORIZONTAL"),
+            seam="",
+            reverse=planned,
+            walkable=walkable,
+            collision_grid=collision_grid,
+            visit_counts=state.visit_counts,
+            straight=last_direction,
+            doors=doors,
+        )
+        if alternative is not None and alternative != planned:
+            return _ow_apply_oscillation_override(
+                S,
+                cycle,
+                original,
+                move_index,
+                planned,
+                alternative,
+                tile=tile,
+                walkable=walkable,
+                blocked=blocked,
+                axis=None,
+                seam="",
+                streak=_reversal_streak(state.trail),
+                outcome="door_veto",
+                overrode_path_memory=memory_navigation_hit,
+                pocket_tiles=pocket_size,
+            )
+
+    # ── An armed commitment is protected until it buys progress or expires ──
+    if state.commit_remaining > 0:
+        committed_tile = state.committed_tile
+        if committed_tile is not None and committed_tile[0] != tile[0]:
+            # A map change is forward progress: the seam is behind us.
+            state.release()
+            state.last_outcome = "released_on_map_change"
+            return plan
+        state.commit_remaining -= 1
+        committed = state.committed_direction
+        if planned != _OPPOSITE_DIR.get(committed, ""):
+            # The controller is travelling with the commitment: leave it alone.
+            if state.commit_remaining <= 0:
+                state.release()
+            return plan
+        # The stored seam direction identifies the loop's axis even after the
+        # run has stepped sideways off the pair.
+        seam = state.committed_seam
+        axis = (
+            "VERTICAL"
+            if seam in ("UP", "DOWN")
+            else "HORIZONTAL"
+            if seam in ("LEFT", "RIGHT")
+            else _oscillation_axis(state.trail)
+        )
+        ordered: list[str] = []
+        for candidate in (seam, committed):
+            if (
+                candidate
+                and candidate in walkable
+                and candidate != planned
+                and candidate not in ordered
+            ):
+                ordered.append(candidate)
+        if ordered:
+            replacement = ordered[0]
+        else:
+            replacement = _escape_oscillation_direction(
+                tile,
+                axis=axis or "VERTICAL",
+                seam=_seam_direction(axis or "VERTICAL", blocked) or seam,
+                reverse=planned,
+                walkable=walkable,
+                collision_grid=collision_grid,
+                visit_counts=state.visit_counts,
+            )
+        if replacement is None or replacement == planned:
+            state.release()
+            state.last_outcome = "declined_no_legal_escape"
+            return plan
+        if replacement == seam:
+            # The detour rounded the boundary: hold the seam direction now, so
+            # the next reversal cannot drag the run back to the wall.
+            state.commit(seam, tile, seam=seam)
+        return _ow_apply_oscillation_override(
+            S,
+            cycle,
+            original,
+            move_index,
+            planned,
+            replacement,
+            tile=tile,
+            walkable=walkable,
+            blocked=blocked,
+            axis=axis,
+            seam=state.committed_seam,
+            streak=_reversal_streak(state.trail),
+            outcome="commitment_held",
+            overrode_path_memory=memory_navigation_hit,
+        )
+
+    # ── Detect the loop: a pocket where the planned press undoes our own step ─
+    pocket = _pocket_tiles(state.trail)
+    streak = _reversal_streak(state.trail)
+    if len(pocket) > TILE_OSCILLATION_POCKET_TILES:
+        state.last_outcome = "idle_free_roam"
+        return plan
+    axis = _oscillation_axis(state.trail)
+    if axis is None:
+        state.last_outcome = "idle_non_adjacent_pair"
+        return plan
+    last_direction = _trail_last_direction(state.trail)
+    reverse = _OPPOSITE_DIR.get(last_direction, "")
+    if not reverse or planned != reverse:
+        state.last_outcome = "idle_plan_not_reversal"
+        return plan
+    seam = _seam_direction(axis, state.trail_blocked() | blocked)
+    if seam and not any(
+        _seam_opens_beyond(direction, seam, collision_grid)
+        for direction in _perpendicular_directions(
+            "VERTICAL" if seam in ("UP", "DOWN") else "HORIZONTAL"
+        )
+    ):
+        # No adjacent step reaches the other side of the wall: walk the wall
+        # instead of re-picking a neighbour every cycle.
+        side = _sweep_side(
+            tile,
+            seam=seam,
+            walkable=walkable,
+            reverse=reverse,
+            collision_grid=collision_grid,
+            visit_counts=state.visit_counts,
+            doors=doors,
+        )
+        if side is not None and side != planned:
+            state.start_sweep(seam, side, tile[0])
+            return _ow_apply_oscillation_override(
+                S,
+                cycle,
+                original,
+                move_index,
+                planned,
+                side,
+                tile=tile,
+                walkable=walkable,
+                blocked=blocked,
+                axis=axis,
+                seam=seam,
+                streak=streak,
+                outcome="sweep_start",
+                overrode_path_memory=memory_navigation_hit,
+                pocket_tiles=len(pocket),
+            )
+    replacement = _escape_oscillation_direction(
+        tile,
+        axis=axis,
+        seam=seam,
+        reverse=reverse,
+        walkable=walkable,
+        collision_grid=collision_grid,
+        visit_counts=state.visit_counts,
+        straight=last_direction,
+        doors=doors,
+    )
+    if replacement is None or replacement == planned:
+        state.last_outcome = "declined_no_legal_escape"
+        return plan
+    state.commit(replacement, tile, seam=seam)
+    return _ow_apply_oscillation_override(
+        S,
+        cycle,
+        original,
+        move_index,
+        planned,
+        replacement,
+        tile=tile,
+        walkable=walkable,
+        blocked=blocked,
+        axis=axis,
+        seam=seam,
+        streak=streak,
+        outcome="applied",
+        overrode_path_memory=memory_navigation_hit,
+        pocket_tiles=len(pocket),
+    )
+
+
+def _ow_apply_oscillation_override(
+    S,
+    cycle,
+    original,
+    move_index,
+    planned,
+    replacement,
+    *,
+    tile,
+    walkable,
+    blocked,
+    axis,
+    streak,
+    outcome,
+    seam="",
+    overrode_path_memory=False,
+    pocket_tiles=None,
+):
+    """Write the guarded plan + its evidence row; returns the guarded plan."""
+    guarded = list(original)
+    guarded[move_index] = replacement
+    # A later press in the same plan must not undo the commitment either.
+    reverse = _OPPOSITE_DIR.get(replacement, "")
+    guarded = [
+        button
+        for index, button in enumerate(guarded)
+        if index <= move_index or button != reverse
+    ]
+    if guarded == original:
+        S._tile_oscillation.last_outcome = "declined_no_change"
+        return original
+    state = S._tile_oscillation
+    state.applied_cycles += 1
+    state.last_outcome = outcome
+    event = {
+        "cycle": cycle + 1,
+        "event": TILE_OSCILLATION_EVENT,
+        "policy": "tile_oscillation_commitment",
+        "tile": tile,
+        "trail": state.trail[-4:],
+        "reversal_streak": streak,
+        "axis": axis,
+        "seam_direction": seam or None,
+        "blocked_directions": sorted(blocked),
+        "walkable_directions": walkable,
+        "planned_direction": planned,
+        "replacement_direction": replacement,
+        "commit_direction": state.committed_direction or None,
+        "commit_remaining": state.commit_remaining,
+        "original_plan": original,
+        "guarded_plan": guarded,
+        "outcome": outcome,
+        "overrode_path_memory": bool(overrode_path_memory),
+        "pocket_tiles": pocket_tiles,
+    }
+    S.results.append(event)
+    S.log_file.write(json.dumps(event, default=str) + "\n")
+    S.log_file.flush()
+    safe_print(
+        "  [OSCILLATION] "
+        f"tile={tile[1]},{tile[2]} reversal_streak={streak} axis={axis} "
+        f"{outcome}: {planned} -> {replacement} | plan={guarded}"
     )
     return guarded
 

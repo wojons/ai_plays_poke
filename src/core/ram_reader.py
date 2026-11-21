@@ -2145,7 +2145,13 @@ class RAMReader:
                     "Move DOWN away from the house door before turning toward "
                     "Route 1. Do not press UP here; it re-enters the house."
                 )
-            if tile_x < 9:
+            if tile_x < 10:
+                # Measured from the ROM block map (2026-11-21): Pallet Town's
+                # north connection row is y=0, but the fence row y=1 is a solid
+                # wall for every column EXCEPT x=10..11. Aligning at x=9 (one
+                # short of the corridor) makes the "move UP" advice below walk
+                # straight into the fence, which is what pinned the run on the
+                # seam tiles.
                 return (
                     "Move RIGHT only until aligned with Pallet Town's north "
                     "exit near tile x=10."
