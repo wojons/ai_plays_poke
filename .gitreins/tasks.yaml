@@ -2184,3 +2184,18 @@ tasks:
   status: complete
   created_at: '2026-11-21T02:34:28.701174+00:00'
   completed_at: '2026-11-21T02:52:41.938702+00:00'
+- id: DF-AIPP-13-R3
+  title: jev default arm treadmills on the Pallet Town north seam (0 map transitions
+    in 80 cycles)
+  criteria:
+  - 'Run ./venv/bin/python cron_runner.py --run-id df13r3judge --cycles 80 --decision-mode
+    jev from the repo root and read the final summary line plus cron_logs/run_df13r3judge.jsonl:
+    PASS iff the run records at least one map transition AND no pair of adjacent tiles
+    holds more than 10 of the 80 cycles AND backtrack is below 50 percent in the summary
+    line. FAILIF: zero map transitions, or any pair of adjacent tiles holds more than
+    10 of the 80 cycles, or backtrack is 50 percent or above. Context: partial fix
+    landed this tick; treadmill broken (distinct tiles 5 to 24-37, adjacent-pair max
+    4) but backtrack remains 54-71 percent across runs.'
+  status: complete
+  created_at: '2026-11-21T04:20:27.238601+00:00'
+  completed_at: '2026-11-21T05:02:14.830946+00:00'
