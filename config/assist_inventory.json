@@ -398,6 +398,20 @@
       "button": "button",
       "call": "emu.press_button(button, frames=request.frames)",
       "reason": "Environment service /env/act: presses client-supplied buttons verbatim as transport; the external agent owns every button decision."
+    },
+    {
+      "file": "src/dashboard/play_loop.py",
+      "context": "DashboardPlayLoop._press",
+      "button": "button",
+      "call": "press_button(button, frames=5)",
+      "reason": "Dashboard console play loop: deterministic exploration cycle that rotates a fixed button list when no operator command is queued; transport only, it makes no game-state decision."
+    },
+    {
+      "file": "src/dashboard/play_loop.py",
+      "context": "DashboardPlayLoop._execute_pending",
+      "button": "button",
+      "call": "press_button(button, frames=5)",
+      "reason": "Dashboard console play loop: presses operator-supplied /control/command buttons verbatim as transport; the human operator owns every button decision."
     }
   ]
 }

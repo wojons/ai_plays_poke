@@ -623,6 +623,9 @@
 
                 if (response.ok) {
                     updateAfterControl();
+                } else {
+                    const result = await response.json();
+                    alert(result.error || 'Failed to start session');
                 }
             } catch (e) {
                 console.error('Failed to start session:', e);

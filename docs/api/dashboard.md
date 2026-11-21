@@ -20,6 +20,9 @@ Running the file directly (`python3 src/dashboard/main.py`) also works — the u
 | `PTP_DASHBOARD_PORT` | `8000` | Port uvicorn binds |
 | `PTP_DASHBOARD_HOST` | `127.0.0.1` | Bind address (set `0.0.0.0` for LAN access) |
 | `PTP_API_KEY` | unset | API key required by authenticated routes (see below) |
+| `PTP_DASHBOARD_ROM` | `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb` | ROM a started session plays (see Play loop) |
+| `PTP_DASHBOARD_BOOT_STATE` | `data/boot.state` | Checkpoint a started session boots from; `skip` forces the intro bypass |
+| `PTP_DASHBOARD_START_TIMEOUT` | `20` | Seconds `POST /control/start` waits for the loop's first tick before refusing |
 
 If the configured address is already occupied, startup fails with a non-zero exit and
 reports the bind error (for example, `Errno 98` / `address already in use`). The
@@ -46,7 +49,7 @@ CORS is wide open (`allow_origins=["*"]` with `allow_credentials=True`), and `/s
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/` | — | Dashboard UI; `static/index.html` with `PTP_API_KEY` injected into `window.ENV` |
-| GET | `/status` | 🔑 | Session status: running/paused, tick count, average tick rate, current state, location, elapsed seconds; accepts `?session_id=<id>` (default: `default`) |
+| GET | `/status` | 🔑 | Session status: running/paused, tick count, average tick rate, current state, location, elapsed seconds, and `last_error` (the play loop's failure message, `null` when healthy); accepts `?session_id=<id>` (default: `default`) |
 | GET | `/screenshots/latest` | 🔑 | Latest screenshot as JSON (`path`, `url`, `timestamp`) or, with `?format=base64`, a `data:image/png;base64` URI; accepts `?session_id=<id>` (default: `default`); 404 when none exist |
 | GET | `/screenshots/file` | — | Raw screenshot file; required `path` query parameter; 404 when missing |
 | GET | `/actions/recent` | 🔑 | Recent command history (`?limit=50` or `?session_id=<id>&limit=50`); accepts `?session_id=<id>` (default: `default`); last 1000 kept with `total_count` |
@@ -54,7 +57,7 @@ CORS is wide open (`allow_origins=["*"]` with `allow_credentials=True`), and `/s
 | POST | `/control/pause` | 🔑 | Pause a running session (400 if not running); accepts `?session_id=<id>` (default: `default`) |
 | POST | `/control/resume` | 🔑 | Resume a paused session (400 if not running); accepts `?session_id=<id>` (default: `default`) |
 | POST | `/control/stop` | 🔑 | Stop the session; accepts `?session_id=<id>` (default: `default`) |
-| POST | `/control/start` | 🔑 | Start a fresh session (`?session_id=default&save_dir=./game_saves`); stops and replaces an existing session with the same id |
+| POST | `/control/start` | 🔑 | Start a session with its own play loop (`?session_id=default&save_dir=./game_saves`; replaces an existing session with the same id). Answers 200 with `tick_count >= 1` once the loop publishes its first tick, or 503 with the failure reason — never `started` for a session that cannot tick |
 | POST | `/control/command` | 🔑 | Queue a command; JSON body `{"command": "...", "reasoning": "...", "confidence": 0.9}` (400 when not running or paused) |
 | GET | `/sessions` | 🔑 | List all live sessions with their status |
 | GET | `/health` | — | Liveness probe: `{"status": "healthy", "timestamp": ...}` |
@@ -71,9 +74,22 @@ Both streams create the session on first connect if it does not exist yet.
 
 ## State model
 
-Sessions are **in-memory** (`dashboard_sessions` dict): `POST /control/start` creates a `DashboardSession` that owns a `GameDatabase` (`<save_dir>/game_data.db`) and a `ScreenshotManager` (`<save_dir>/screenshots`). Restarting the server clears all sessions, command history (capped at 1000 entries), and tick-rate windows.
+Sessions are **in-memory** (`dashboard_sessions` dict). Read routes and WebSocket connections lazily create a `DashboardSession` with a `GameDatabase` (`<save_dir>/game_data.db`) and `ScreenshotManager` (`<save_dir>/screenshots`). A started session also owns a live play loop (see below), so `tick_count`, `location`, `last_action_time` and the screenshots all come from real emulator progress. Restarting the server clears in-memory session state, command history (capped at 1000 entries), and tick-rate windows, and stops any running play loop.
 
-A session started under a fresh `session_id` is **invisible** to any read route that omits `session_id` — those reads default to the `default` session. To verify a session you just started, always include `?session_id=<your_id>` on the follow-up reads.
+Read routes default to the `default` session; include `?session_id=<your_id>` to select another session.
+
+## Play loop
+
+`DashboardSession.start()` (`src/dashboard/main.py`) starts a **session-owned background thread** (`src/dashboard/play_loop.py`, `DashboardPlayLoop`); it no longer just flips flags. The loop:
+
+1. boots PyBoy on the ROM (`PTP_DASHBOARD_ROM`, else `data/rom/<pokemon blue>.gb`) from the checkpoint (`PTP_DASHBOARD_BOOT_STATE`, else `data/boot.state`; `skip` forces the intro bypass),
+2. ticks the emulator, reads the RAM-derived state and location, and executes queued `/control/command` input (`emulator.press_buttons`, else the AI decision loop when no command is queued),
+3. publishes every iteration through `DashboardSession.update_tick(state, location)` — the single writer of `tick_count` / `location` / `last_action_time`,
+4. saves a PNG every 5 ticks through `ScreenshotManager`, which is what `/screenshots/latest` and `/ws/screenshots/{session_id}` serve.
+
+Honesty contract: `POST /control/start` waits up to `PTP_DASHBOARD_START_TIMEOUT` seconds (default 20) for the first tick. A loop that cannot boot (missing ROM, PyBoy error, provider failure) or that never ticks stops the session and the route answers **503** with `{"status": "failed", "session_id": ..., "error": "<reason>"}`; `GET /status` then reports `running: false`, `tick_count: 0`, `current_state: "error"` and the same message in `last_error`. The console never reports `running: true` with endless zero ticks and no error. `POST /control/pause` / `resume` gate the loop's tick execution, `POST /control/stop` joins the loop thread and closes the emulator.
+
+`cron_runner.py` is a separate driver for long campaigns; it shares the components (`Emulator`, `GameAIManager`) but not these dashboard sessions.
 
 ## See Also
 
