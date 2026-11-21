@@ -555,10 +555,18 @@ def test_model_research_delegate_enforces_cost_ceiling_without_tools() -> None:
 
 
 def test_model_research_delegate_returns_at_wall_clock_cap() -> None:
+    """The cap must be honoured without waiting for the provider.
+
+    The mock provider blocks far longer than the cap so the assertion measures the
+    delegate, not scheduler jitter: the previous 0.08s mock sleep against a 0.06s
+    budget left only 20ms of margin and went red on shared CI runners (two runs,
+    elapsed 0.086s and 0.130s) while the code was correct.
+    """
+
     class _SlowResearchClient:
         def chat_completion(self, **kwargs: Any) -> dict[str, str]:
             _ = kwargs
-            time.sleep(0.08)
+            time.sleep(2.0)
             return {"content": '{"finding": "late"}'}
 
     delegate = ModelResearchDelegate(_SlowResearchClient(), "openai/gpt-5.6-luna")
@@ -569,4 +577,6 @@ def test_model_research_delegate_returns_at_wall_clock_cap() -> None:
             public_context={"screen": "overworld"},
             caps=AgenticCaps(delegate_wall_seconds=0.01),
         )
-    assert time.monotonic() - started < 0.06
+    # 0.5s is 50x the cap and still 4x below the provider's 2.0s block, so the
+    # assertion fails only if the delegate actually waited on the provider.
+    assert time.monotonic() - started < 0.5
