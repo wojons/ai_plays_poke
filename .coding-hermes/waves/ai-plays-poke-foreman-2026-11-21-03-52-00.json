@@ -1,0 +1,20 @@
+{
+  "scheduler_tick": "ai-plays-poke-foreman-2026-11-21-03-52-00",
+  "mode": "serial_fallback",
+  "wave_budget": 8,
+  "reason_not_wave": "project rule caps this foreman at one worker per tick (prompt-mode ai-plays-poke foreman)",
+  "dispatched_at": "2026-11-21T03:55:00-05:00",
+  "workers": [
+    {
+      "task_id": "DF-AIPP-13-R3",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-DF-AIPP-13-R3",
+      "branch": "wt/DF-AIPP-13-R3",
+      "base_sha": "eb23e03",
+      "model": "cx/gpt-6.1-terra",
+      "provider": "9router",
+      "brief": "/tmp/aipp_t386_df13r3_brief.md",
+      "gitreins_task": "DF-AIPP-13-R3",
+      "redispatch_note": "first dispatch openai/gpt-6.1-terra@xkiro silently fell back to fireworks deepseek-v4p1 (APIStatusError 22:57:57, agent.log); killed per dispatch law; re-dispatched cx/gpt-6.1-terra@9router :20128, seat verified via session_model_usage billing_base_url"
+    }
+  ]
+}

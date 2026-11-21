@@ -1,0 +1,20 @@
+{
+  "scheduler_tick": "ai-plays-poke-foreman-2026-11-21-09-02-33",
+  "mode": "serial_fallback",
+  "wave_budget": 6,
+  "reason_not_wave": "project rule caps this foreman at one worker per tick (prompt-mode ai-plays-poke foreman rule; precedent ai-plays-poke-foreman-2026-11-21-03-52-00)",
+  "dispatched_at": "2026-11-21T09:10:00-05:00",
+  "workers": [
+    {
+      "task_id": "QA-CONSOLE-4",
+      "worktree": "/home/kara/worktrees/ai-plays-poke-QA-CONSOLE-4",
+      "branch": "wt/QA-CONSOLE-4",
+      "base_sha": "cc19060",
+      "model": "openai/gpt-6.1-terra",
+      "provider": "xkiro",
+      "brief": "/tmp/aipp_t387_qa_console4_brief.md",
+      "gitreins_task": "QA-CONSOLE-4",
+      "note": "dispatch law: seat must be verified via state.db session_model_usage billing_base_url ~90s after launch; xkiro terra silently fell back to fireworks deepseek-v4p1 at the 03:52 tick — kill + redispatch cx/gpt-6.1-terra@9router if it recurs"
+    }
+  ]
+}
