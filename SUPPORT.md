@@ -5,7 +5,7 @@ AI Plays Pokémon is an experimental research and gameplay-automation project. S
 ## Before asking for help
 
 1. Use the project virtual environment (`.venv`) and install both runtime and development requirements.
-2. Run `cron_runner.py --dry-run` to check the configured paths and environment without starting a game or making model calls.
+2. Run `cron_runner.py --decision-mode jev --dry-run` to check the configured paths and environment without starting a game or making model calls.
 3. Confirm that you supplied your own legally obtained Pokémon ROM; ROM files are not distributed with this repository.
 4. Remove API keys, tokens, save files, screenshots, and other private data from logs before sharing them.
 5. Check existing GitHub issues for the same error and include the exact command and exit status if it is not already reported.
@@ -35,7 +35,7 @@ This project is maintained on a best-effort basis. Reproduction steps and small,
 ## Useful checks
 
 ```bash
-.venv/bin/python cron_runner.py --dry-run
+.venv/bin/python cron_runner.py --decision-mode jev --dry-run
 .venv/bin/python -m pytest tests/ --collect-only -q
 .venv/bin/ruff check src/ tests/
 .venv/bin/mypy src/ --ignore-missing-imports

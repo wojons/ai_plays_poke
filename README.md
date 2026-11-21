@@ -19,7 +19,7 @@ PTP-01X treats autonomous Pokémon play as a repeated observe-decide-act loop wi
 |--------------|---------------|-------------|
 | Pixel-only observation | Default gameplay state comes directly from emulator RAM instead of a paid vision call each tick. | The multi-phase vision/OCR state machine remains design-only in `specs/`. |
 | Context amnesia | Structured JSONL decision history and DuckBrain persistence carry evidence and selected knowledge across cycles and runs. | The Observer → Strategist → Tactician tri-tier hierarchy remains a design-only specification. |
-| One policy for every situation | The default `jev` hybrid uses fast System-1 decisions and invokes an LLM System-2 teacher on configured handoff triggers. | The GOAP planning core remains a design-only specification. |
+| One policy for every situation | The `jev` hybrid mode (selected per run via `--decision-mode jev`) uses fast System-1 decisions and invokes an LLM System-2 teacher on configured handoff triggers. | The GOAP planning core remains a design-only specification. |
 | Unverifiable autonomy | Every cycle records the selected mode, decision evidence, action, and outcome where available. | End-to-end completion of the designed 20+ hour journey is not yet a shipped capability. |
 
 ## Architecture Overview
@@ -38,7 +38,7 @@ RAM projection → StateWindow flow for structured game state
                               │
                               ▼
 src/core/jev_client.py
---decision-mode flag > AIPP_DECISION_MODE / CRON_DECISION_MODE > jev default
+--decision-mode flag > AIPP_DECISION_MODE / CRON_DECISION_MODE > none: startup refuses (rc 2)
 jev = fast System-1 policy + LLM System-2 teacher on handoff triggers
                               │
                               ▼
@@ -49,7 +49,7 @@ validated emulator button/tool execution
 cron_logs/run_<id>.jsonl decision rows + DuckBrain persistence
 ```
 
-The selectable decision modes are `system1`, `system2`/`llm`, `system1+system2`/`hybrid`/`jev`, and `agentic`; `jev` is the default spelling for the hybrid family. Boot-state recovery, RAM observation, decision routing, tool execution, structured logging, and DuckBrain integration are the running architecture.
+The selectable decision modes are `system1`, `system2`/`llm`, `system1+system2`/`hybrid`/`jev`, and `agentic`; `jev` is the shorthand spelling for the hybrid family. No mode is selected implicitly — pass `--decision-mode` or set `AIPP_DECISION_MODE` / `CRON_DECISION_MODE`, otherwise the runner exits 2. Boot-state recovery, RAM observation, decision routing, tool execution, structured logging, and DuckBrain integration are the running architecture.
 
 **Runtime boundary:** the later Complete Specification and Key Components sections catalog design documents. Their 69-state machine, GOAP core, tri-tier memory hierarchy, and vision/OCR pipeline are **SPEC-DRIVEN / design-only** and are not imported or executed by `cron_runner.py`.
 
@@ -205,7 +205,7 @@ Before running the first setup command:
 
 - Runtime deps install cleanly from wheels (`pyboy 2.7.0`, `pysdl2 0.9.17`,
   `pysdl2-dll 2.32.10`) — verified 2026-10-09 on a fresh `python3` venv:
-  `pip install -r requirements.txt` (exit 0) then `python3 cron_runner.py --dry-run`
+  `pip install -r requirements.txt` (exit 0) then `python3 cron_runner.py --decision-mode jev --dry-run`
   (exit 0, even with zero API keys).
 - On glibc x86_64 Linux no system packages are required: `pysdl2-dll` bundles the SDL2
   runtime and PyBoy ships prebuilt wheels.
@@ -231,8 +231,8 @@ cp .env.example .env
 # Edit .env — OPENROUTER_API_KEY is required for real AI decisions.
 # DEEPSEEK_API_KEY is optional fallback for DeepSeek models.
 
-# 5. Run (example: 80 AI decision cycles)
-python3 cron_runner.py --run-id demo1 --cycles 80
+# 5. Run (example: 80 AI decision cycles; --decision-mode is required — no implicit default)
+python3 cron_runner.py --decision-mode jev --run-id demo1 --cycles 80
 ```
 
 > **Run `cron_runner.py` with the project venv:** every invocation — even
@@ -306,7 +306,7 @@ unknown bucket) rather than a specific screen type.
 | `--skip-key-check` | off | With `--dry-run`: skip the API-key liveness probes and report key presence only (fully offline validation) |
 | `--skip-preflight` | off | Skip the real JEV startup probe for a JEV-mode run; the skip is still stamped in the run log |
 | `--controller-model` | `openai/gpt-5.6-luna` | Model id for the overworld controller (e.g. `deepseek-chat` via `DEEPSEEK_API_KEY`); overrides `CRON_CONTROLLER_MODEL` / `POKE_CONTROLLER_MODEL` |
-| `--decision-mode` | `system1+system2` (alias `jev`) | Who decides each cycle: `system1`, `system2`, `system1+system2`, `hybrid`, `jev`, `llm`, `agentic`; overrides `AIPP_DECISION_MODE` / `CRON_DECISION_MODE` |
+| `--decision-mode` | none — required by flag or env | Who decides each cycle: `system1`, `system2`, `system1+system2`, `hybrid`, `jev`, `llm`, `agentic`; overrides `AIPP_DECISION_MODE` / `CRON_DECISION_MODE`. Startup exits 2 when neither source names a mode |
 | `--handoff` | `any` | Which trigger families may hand back to the teacher in system1+system2; `--handoff off` equals system1; values: `off`, `any`, `failure`, `gap`, `confidence`, or comma list |
 | `--handoff-confidence` | 0.5 | Action-confidence floor for the confidence trigger; changing it invalidates comparison against existing runs |
 | `--handoff-ambiguity` | 0.4 | Ambiguity gate for the layered confidence trigger; low confidence alone does not hand back unless the phase is irreversible |
@@ -318,8 +318,11 @@ Step 5 above needs a real key in `.env` (`OPENROUTER_API_KEY`, or the
 validate the setup offline instead:
 
 ```bash
-python3 cron_runner.py --dry-run --skip-key-check
+python3 cron_runner.py --decision-mode jev --dry-run --skip-key-check
 ```
+
+(`--decision-mode` is required even for `--dry-run`: the flag or its env var is
+resolved before the dry-run branch, so omitting it exits 2.)
 
 **Full reference:** [docs/api/cron_runner.md](docs/api/cron_runner.md) — CLI flags,
 pipeline stages, JSONL log schema, checkpoint/rollback behavior, and cost notes.
@@ -628,7 +631,7 @@ ERROR: Emulator crashed at tick 150
 4. No settings.yaml step is needed — no maintained code reads `config/settings.yaml`.
    Routing is automatic: `OPENROUTER_API_KEY` is used first; when `DEEPSEEK_API_KEY`
    is set, DeepSeek models (the `deepseek-v4-flash` thinking model) route direct to
-   `api.deepseek.com`. Validate either with `python3 cron_runner.py --dry-run`.
+   `api.deepseek.com`. Validate either with `python3 cron_runner.py --decision-mode jev --dry-run`.
 
 #### Verifying API Connection
 The command below only verifies that `.env` loads and prints `API Key set:
@@ -640,7 +643,7 @@ source .venv/bin/activate
 python3 -c "from dotenv import load_dotenv; from pathlib import Path; load_dotenv(Path('.env')); import os; print('API Key set:', bool(os.getenv('OPENROUTER_API_KEY')))"
 
 # Real liveness check (validates ROM, boot state, and live API keys; zero LLM calls)
-python3 cron_runner.py --dry-run
+python3 cron_runner.py --decision-mode jev --dry-run
 ```
 
 ### Emulator Issues

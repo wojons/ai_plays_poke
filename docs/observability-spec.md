@@ -907,7 +907,7 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/metrics      # ex
 
 ```bash
 before=$(curl -s localhost:8000/metrics/prometheus | awk '/^aipp_run_cycles_total/{print $2}')
-# run one real cycle (not a test): python3 cron_runner.py --cycles 5
+# run one real cycle (not a test): python3 cron_runner.py --decision-mode jev --cycles 5
 sleep 5
 after=$(curl -s localhost:8000/metrics/prometheus | awk '/^aipp_run_cycles_total/{print $2}')
 test "$after" -gt "$before" && echo MOVED

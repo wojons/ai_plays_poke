@@ -547,7 +547,7 @@ Memory consolidation flows upward: Observer data is periodically summarized into
 | Numeric Computing | NumPy | Array operations |
 | HTTP Client | requests | OpenRouter API calls |
 
-The system requires Python 3.12 or higher for type system support. PyBoy provides low-level emulator access including memory reading and input injection. The primary `cron_runner.py` path defaults to JEV (`system1+system2`) decision mode and uses `openai/gpt-5.6-luna` when the controller/System Two path is invoked; its controller model can be overridden by its documented flag or environment variables. The legacy `src/game_loop.py` path also routes vision and thinking through `openai/gpt-5.6-luna`. SQLite stores all persistent data in a single file (`game_data.db`), avoiding complex database administration.
+The system requires Python 3.12 or higher for type system support. PyBoy provides low-level emulator access including memory reading and input injection. The primary `cron_runner.py` path requires an explicit decision mode (`--decision-mode`, or `AIPP_DECISION_MODE` / `CRON_DECISION_MODE`) — there is no implicit default, and startup exits 2 without one; runs normally select `jev` (`system1+system2`). It uses `openai/gpt-5.6-luna` when the controller/System Two path is invoked; its controller model can be overridden by its documented flag or environment variables. The legacy `src/game_loop.py` path also routes vision and thinking through `openai/gpt-5.6-luna`. SQLite stores all persistent data in a single file (`game_data.db`), avoiding complex database administration.
 
 ## 8. Key Design Patterns
 

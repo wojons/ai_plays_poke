@@ -25,8 +25,8 @@ pytest tests/ -v
 python ram_map_server.py
 # Then open http://localhost:8099
 
-# Run autonomous game loop
-python cron_runner.py
+# Run autonomous game loop (--decision-mode is required; jev = hybrid fast + teacher)
+python cron_runner.py --decision-mode jev
 ```
 
 ## Architecture

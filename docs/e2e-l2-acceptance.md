@@ -104,4 +104,4 @@ the capped command and the result names two independent passing run ids.
 A short smoke remains available when needed, but its meaning is intentionally L0-only:
 
     RUN_ID="smoke_$(date -u +%Y%m%d_%H%M%S)"
-    ./venv/bin/python cron_runner.py --boot-state data/boot.state --cycles 20 --run-id "$RUN_ID"
+    ./venv/bin/python cron_runner.py --decision-mode jev --boot-state data/boot.state --cycles 20 --run-id "$RUN_ID"

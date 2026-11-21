@@ -35,7 +35,7 @@ Everything on this page is verified against `scripts/long_run.py` at base commit
 > and validate the *child* runner offline:
 >
 > ```bash
-> ./.venv/bin/python cron_runner.py --dry-run --skip-key-check
+> ./.venv/bin/python cron_runner.py --decision-mode jev --dry-run --skip-key-check
 > ```
 >
 > which is a separate program with a real parser (see

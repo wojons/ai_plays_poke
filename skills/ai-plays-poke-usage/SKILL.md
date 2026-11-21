@@ -22,7 +22,7 @@ This is the **real autonomous gameplay** path that bypasses expensive vision API
 
 ```bash
 source .venv/bin/activate
-python3 cron_runner.py --run-id <label> --cycles <N>
+python3 cron_runner.py --decision-mode jev --run-id <label> --cycles <N>
 ```
 
 **Key features:**
@@ -60,13 +60,13 @@ input.
 ### Basic Autonomous Run
 ```bash
 source .venv/bin/activate
-python3 cron_runner.py --run-id autonomous-demo --cycles 80
+python3 cron_runner.py --decision-mode jev --run-id autonomous-demo --cycles 80
 ```
 
 ### Dry Run (Validation Only)
 ```bash
 source .venv/bin/activate
-python3 cron_runner.py --dry-run
+python3 cron_runner.py --decision-mode jev --dry-run
 ```
 Validates the resolved ROM path, the boot-state path, and the API keys; zero LLM
 completions and no emulator boot. **The exit code is a result, not a promise** — the
@@ -90,13 +90,13 @@ otherwise the run fails on the ROM check before anything else is evaluated.
 ```bash
 source .venv/bin/activate
 # Override ROM path
-python3 cron_runner.py --run-id custom-rom --cycles 40 --rom data/rom/pokemon_red.gb
+python3 cron_runner.py --decision-mode jev --run-id custom-rom --cycles 40 --rom data/rom/pokemon_red.gb
 
 # Force legacy intro bypass (not recommended)
-python3 cron_runner.py --run-id no-checkpoint --cycles 20 --boot-state skip
+python3 cron_runner.py --decision-mode jev --run-id no-checkpoint --cycles 20 --boot-state skip
 
 # Use specific checkpoint
-python3 cron_runner.py --run-id from-save --cycles 60 --boot-state data/boot.state
+python3 cron_runner.py --decision-mode jev --run-id from-save --cycles 60 --boot-state data/boot.state
 ```
 
 ### Flags Reference
@@ -157,9 +157,9 @@ Measured with the project venv on a normally loaded host; re-measure before quot
 
 | operation | exact command | time |
 |---|---|---|
-| offline validation (cold) | `.venv/bin/python cron_runner.py --dry-run --skip-key-check` | 0.11 s (rc=0) |
-| validation + key liveness | `.venv/bin/python cron_runner.py --dry-run` | 1.15 s (rc=0) |
-| **headline: real gameplay** | `/usr/bin/time -p .venv/bin/python cron_runner.py --run-id <id> --cycles 80` | **49.40 s (rc=0) = 0.62 s/cycle** |
+| offline validation (cold) | `.venv/bin/python cron_runner.py --decision-mode jev --dry-run --skip-key-check` | 0.11 s (rc=0) |
+| validation + key liveness | `.venv/bin/python cron_runner.py --decision-mode jev --dry-run` | 1.15 s (rc=0) |
+| **headline: real gameplay** | `/usr/bin/time -p .venv/bin/python cron_runner.py --decision-mode jev --run-id <id> --cycles 80` | **49.40 s (rc=0) = 0.62 s/cycle** |
 | per-cycle fast path (jev) | (inside the run) | ~0.36 s/cycle |
 | teacher repair (LLM call) | 2 calls inside the run | 12.05 s / 8.79 s ($0.0015 / $0.0016) |
 | dashboard route (`/status`, `/metrics`) | `curl` on a scratch port | 0.7–1.3 ms |
@@ -175,13 +175,13 @@ Do not quote one as if it were the other; re-measure before quoting anything as 
 - **2026-09-26 (DOGFOOD-PERF-001):** 22.42 s for 5 cycles cold / 8.02 s warm (~4.5 s and ~1.6 s
   per cycle), recorded in `docs/dogfood/2026-09-26-integration.md`. That record carries the
   5-cycle shape but not the exact invocation, so the command **shape** was
-  `.venv/bin/python cron_runner.py --run-id <id> --cycles 5` with `/usr/bin/time -p`
+  `.venv/bin/python cron_runner.py --decision-mode jev --run-id <id> --cycles 5` with `/usr/bin/time -p`
   (cold = first run in the checkout, warm = immediate repeat with the frame cache populated).
   A 5-cycle run pays fixed boot+import cost that an 80-cycle run amortises, so its "per cycle"
   figure is not a steady-state rate.
 - **2026-09-26 (PERF-2 cold decomposition, archived in
   `data/baselines/perf2_cold_decomp_20260926.json`):** the same 5-cycle shape, run as
-  `./venv/bin/python -m cProfile -o /tmp/cold_perfcold.prof cron_runner.py --run-id perfcold_perf0926 --cycles 5 --boot-state skip`,
+  `./venv/bin/python -m cProfile -o /tmp/cold_perfcold.prof cron_runner.py --decision-mode jev --run-id perfcold_perf0926 --cycles 5 --boot-state skip`,
   totalled 14.4 s under cProfile — a *different sample* of the same era (and it used
   `--boot-state skip`, i.e. the intro bypass, not the shipped checkpoint). It is not a
   reproduction of the 22.42 s figure.
@@ -245,7 +245,7 @@ When using PTP-01X, you integrate with:
 ### Smoke Test
 ```bash
 source .venv/bin/activate
-python3 cron_runner.py --dry-run
+python3 cron_runner.py --decision-mode jev --dry-run
 ```
 Two legitimate outcomes — read which one you got:
 - **rc=0** with `[DRY-RUN] Validation OK` — the checkout has the ROM (`data/rom/...gb`) and the keys
@@ -256,13 +256,13 @@ Two legitimate outcomes — read which one you got:
   clone**, because ROMs are not bundled. Measured on a clean Ubuntu 24.04.4 box (2026-10-27): rc=1,
   zero LLM calls. This is not a broken install; supply the ROM and re-run.
 
-Offline variant that never touches the network: `python3 cron_runner.py --dry-run --skip-key-check`.
+Offline variant that never touches the network: `python3 cron_runner.py --decision-mode jev --dry-run --skip-key-check`.
 
 
 ### Quick Functional Test
 ```bash
 source .venv/bin/activate  
-python3 cron_runner.py --run-id smoke-test --cycles 5
+python3 cron_runner.py --decision-mode jev --run-id smoke-test --cycles 5
 # Should complete 5 cycles, produce logs and screenshots
 ```
 
@@ -345,7 +345,7 @@ held by an unrelated process (here: `dexdat-api` behind `docker-proxy`). Confirm
 `ss -ltnp | grep <port>` names *your* pid, and use `PTP_DASHBOARD_PORT` for scratch instances.
 
 ### 5. The 1-second preflight, and exit codes read directly
-`.venv/bin/python cron_runner.py --dry-run` validates ROM/boot-state/keys with no LLM completions (the
+`.venv/bin/python cron_runner.py --decision-mode jev --dry-run` validates ROM/boot-state/keys with no LLM completions (the
 bare form still makes the key-liveness GETs — add `--skip-key-check` for zero network) and exits 0 in
 ~1.1 s **when the ROM resolves and every configured key passes**; it exits **1** on a missing ROM (a
 fresh clone, naming the file to place) or a failed key probe. Capture `$?` directly — a status read
