@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import inspect
 from collections import Counter
+from typing import Any
 
 import pytest
 
@@ -562,33 +563,154 @@ def test_handoff_class_repairs_plain_dict_counts_and_rearms(monkeypatch):
     assert allowance == {"map_topology": 3}
 
 
-def test_handoff_non_class_sentinel_never_spends_class_dedupe():
-    """The literal missing_class=none is not a class shared by every trigger."""
+def _floor_decision(missing_class: str = "none") -> dict[str, Any]:
+    """A decision the sufficiency floor escalated, as Jev reports it."""
+    return {
+        "ok": True,
+        "next_action": "RIGHT",
+        "sufficient_state": 0.44,
+        "missing_class": missing_class,
+        "escalate": True,
+        "escalate_reason": f"insufficient_state (0.44) missing={missing_class}",
+        "raw": {},
+    }
+
+
+def _drive_floor_cycles(
+    monkeypatch: Any, *, missing_class: str = "none", cycles: int = 3
+) -> tuple[list[dict[str, Any]], dict[str, int], Counter[str]]:
+    """Drive N overworld decisions against a stubbed floor-escalating tier."""
+    calls = {"teacher": 0}
+    monkeypatch.setattr(
+        cron_runner.jev_client,
+        "decide",
+        lambda *_a, **_k: _floor_decision(missing_class),
+    )
+    monkeypatch.setattr(cron_runner.state_projection, "build", lambda *_a, **_k: "proj")
+    monkeypatch.setattr(
+        cron_runner,
+        "_memory_navigation_decision",
+        lambda *_a, **_k: {"result": "miss", "reason": "hermetic fixture"},
+    )
+
+    def counting_teacher(*_a: Any, **_k: Any) -> dict[str, Any]:
+        calls["teacher"] += 1
+        return {"ok": False, "error": "stubbed"}
+
+    monkeypatch.setattr(cron_runner.jev_client, "escalate_and_reask", counting_teacher)
+    allowance: Counter[str] = Counter()
+    kwargs = {
+        "handoff_policy": cron_runner.build_handoff_policy(handoff="any"),
+        "teacher_api_client": object(),
+        "teacher_model": "some-model",
+        "class_repairs": allowance,
+    }
+    rows = [cron_runner._jev_overworld_decision({}, **kwargs) for _ in range(cycles)]
+    return rows, calls, allowance
+
+
+def test_sufficiency_floor_escalation_is_bounded_under_its_own_identity(
+    monkeypatch: Any,
+) -> None:
+    """JEV-404: the chronic sufficiency floor spends a bounded bucket.
+
+    Pre-fix the floor named no class (``missing=none``), ``none`` was exempt from
+    the per-class allowance, and every permitted trigger re-armed — so nothing
+    bounded it and one 80-cycle run escalated on 78 cycles.
+    """
+    rows, calls, allowance = _drive_floor_cycles(monkeypatch)
+
+    assert calls["teacher"] == cron_runner.TEACHER_REPAIR_ATTEMPTS_PER_CLASS
+    assert rows[2]["escalated"] is False
+    assert rows[2]["handoff_allowed"] is False
+    blocked = rows[2]["handoff_blocked_reason"] or ""
+    # The named constant is what the run log row carries verbatim.
+    assert blocked.startswith(cron_runner.HANDOFF_BLOCK_SUFFICIENCY_FLOOR_EXHAUSTED)
+    assert "'none'" in blocked
+    assert allowance == Counter({"insufficient_state:none": 2})
+
+
+def test_sufficiency_floor_bucket_is_per_class_not_one_global_bucket(
+    monkeypatch: Any,
+) -> None:
+    """A class named on a floor trigger keeps its own bucket so the floor
+    allowance for ``none`` cannot silently cap a named class (or vice versa)."""
+    rows, calls, allowance = _drive_floor_cycles(monkeypatch, missing_class="map_topology")
+
+    assert calls["teacher"] == cron_runner.TEACHER_REPAIR_ATTEMPTS_PER_CLASS
+    assert allowance == Counter({"insufficient_state:map_topology": 2})
+    assert rows[2]["handoff_blocked_reason"].startswith(
+        cron_runner.HANDOFF_BLOCK_SUFFICIENCY_FLOOR_EXHAUSTED
+    )
+
+
+def test_sufficiency_floor_identity_matches_the_reason_jev_actually_emits() -> None:
+    """The bounded identity is the real producer string, not a copy of it."""
+    assert (
+        cron_runner.JEV_REASON_INSUFFICIENT_STATE
+        == cron_runner.jev_client.INSUFFICIENT_STATE_REASON
+    )
+    escalated, reason = cron_runner.jev_client.should_escalate(
+        {"ok": True, "sufficient_state": 0.44, "missing_class": "none"}
+    )
+    assert escalated is True
+    assert reason.startswith(cron_runner.TEACHER_SUFFICIENCY_FLOOR_IDENTITY)
+    assert cron_runner._is_sufficiency_floor_reason(reason) is True
+    assert cron_runner._is_sufficiency_floor_reason("missing_class=map_topology") is False
+
+
+def test_handoff_non_class_sentinel_spends_its_own_bounded_bucket() -> None:
+    """``missing_class=none`` is not a class, but it is still bounded.
+
+    It spends one bucket per trigger family: a spent confidence bucket must not
+    bind the failure family (the DF-AIPP-13-R2 defect), and once a family's
+    bucket is spent the refusal names the non-class constant (JEV-404).
+    """
+    confidence_decision = {
+        "escalate": True,
+        "missing_class": "none",
+        "escalate_reason": "low_confidence+ambiguous (0.31/0.61)",
+    }
     allowed, reason = cron_runner._jev_handoff_delivery_gate(
-        {"escalate": True},
+        confidence_decision,
         handoff_ok=True,
         handoff_why="allowed",
         handoff_trigger=cron_runner.HANDOFF_CONFIDENCE,
         escalation_class="none",
         teacher_api_client=object(),
         teacher_model="some-model",
-        class_repairs=Counter({"none": 53}),
+        class_repairs=Counter({"none:confidence": 2}),
     )
+    assert allowed is False
+    assert reason.startswith(cron_runner.HANDOFF_BLOCK_NON_CLASS_REPAIRS_EXHAUSTED)
 
-    assert allowed is True
-    assert reason == "allowed"
+    other_family, _ = cron_runner._jev_handoff_delivery_gate(
+        {
+            **confidence_decision,
+            "escalate_reason": "failure: last action changed nothing",
+        },
+        handoff_ok=True,
+        handoff_why="allowed",
+        handoff_trigger=cron_runner.HANDOFF_FAILURE,
+        escalation_class="none",
+        teacher_api_client=object(),
+        teacher_model="some-model",
+        class_repairs=Counter({"none:confidence": 2}),
+    )
+    assert other_family is True
     assert "none" in cron_runner.TEACHER_NON_CLASS_SENTINELS
 
 
 def test_handoff_repair_block_reason_is_the_named_constant():
-    """The spent-allowance reason is the named policy constant, and the
+    """The spent-allowance reasons are named policy constants, and the
     module carries no inline copy of the legacy dedupe string (DF-AIPP-13-R2:
     the re-escalation policy must be findable in code, not scattered)."""
     assert cron_runner.TEACHER_REPAIR_ATTEMPTS_PER_CLASS == 2
     assert cron_runner.TEACHER_REPAIR_REARM_TRIGGERS == frozenset(
         cron_runner.HANDOFF_ALL_FAMILIES
     )
-    assert cron_runner.TEACHER_NON_CLASS_SENTINELS == frozenset({"none"})
+    assert cron_runner.TEACHER_NON_CLASS_SENTINELS == frozenset({"none", "unknown"})
+    assert cron_runner.TEACHER_SUFFICIENCY_FLOOR_IDENTITY == "insufficient_state"
     lines = inspect.getsource(cron_runner).splitlines()
     hits = [i for i, ln in enumerate(lines) if "already escalated this run" in ln]
     assert len(hits) == 1, "the dedupe text must live only in the constant"

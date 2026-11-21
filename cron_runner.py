@@ -371,6 +371,11 @@ HANDOFF_GAP = "gap"
 HANDOFF_CONFIDENCE = "confidence"
 HANDOFF_ALL_FAMILIES = (HANDOFF_FAILURE, HANDOFF_GAP, HANDOFF_CONFIDENCE)
 HANDOFF_CHOICES = ("off", "any", "failure", "gap", "confidence")
+# The reason prefixes Jev emits, mirrored from jev_client's producer constants.
+# They are named here because the classifiers below run before src.* is imported
+# — the --dry-run precheck must stay stdlib-only (GAP-032).
+JEV_REASON_INSUFFICIENT_STATE = "insufficient_state"
+JEV_REASON_MISSING_CLASS = "missing_class"
 
 DEFAULT_HANDOFF = "any"
 DEFAULT_HANDOFF_CONFIDENCE = 0.50  # mirrors jev_client.ESCALATE_THRESHOLD
@@ -392,7 +397,9 @@ def classify_handoff_trigger(reason: str | None) -> str:
         return "transport"
     if text.startswith("failure"):
         return HANDOFF_FAILURE
-    if text.startswith("insufficient_state") or text.startswith("missing_class"):
+    if text.startswith(JEV_REASON_INSUFFICIENT_STATE) or text.startswith(
+        JEV_REASON_MISSING_CLASS
+    ):
         return HANDOFF_GAP
     if text.startswith("low_confidence"):
         return HANDOFF_CONFIDENCE
@@ -478,48 +485,121 @@ def handoff_allowed(
 DECISION_MODE: str | None = resolve_decision_mode()
 HANDOFF_POLICY = build_handoff_policy()
 
-# Re-escalation policy: a concrete missing-information class always gets an
-# initial repair plus a second repair attempt. Every permitted handoff trigger
-# then re-arms when it recurs because recurrence is direct evidence that the
-# prior repair did not resolve the cause. The per-episode teacher budget remains
-# the outer operator-controlled cap.
+# Re-escalation policy: a concrete missing-information class gets an initial
+# repair plus a second repair attempt (TEACHER_REPAIR_ATTEMPTS_PER_CLASS). A
+# genuinely-named class arriving on a permitted trigger then RE-ARMS when it
+# recurs, because recurrence is direct evidence that the prior repair did not
+# resolve the cause (DF-AIPP-13-R2).
+#
+# What does not re-arm is the chronic sufficiency floor and the non-class
+# sentinels. Neither names a repair that repeating can resolve, and leaving them
+# unbounded let one 80-cycle run escalate on 78 cycles (JEV-404: suff 0.38-0.48,
+# 36 of 78 improved nothing). Those two shapes spend a BOUNDED bucket each, so
+# the allowance can bind; the per-episode teacher budget remains the outer
+# operator-controlled cap.
 TEACHER_REPAIR_ATTEMPTS_PER_CLASS = 2
 TEACHER_REPAIR_REARM_TRIGGERS = frozenset(HANDOFF_ALL_FAMILIES)
-# ``none`` means the fast tier reported no missing class. Treating that sentinel
-# as one shared class caused confidence, failure, and gap triggers to exhaust
-# each other's allowance for the rest of the run.
-TEACHER_NON_CLASS_SENTINELS = frozenset({"none"})
-# Named block reason when a concrete non-gap class allowance is spent. A
-# constant, not an inline string: run logs grep for it, and the re-escalation
-# policy must be findable in code (DF-AIPP-13-R2).
+# ``none`` means the fast tier reported no missing class; ``unknown`` means a
+# decision escalated without naming one. Neither is a class: they never share a
+# bucket with a named class (that let confidence, failure, and gap triggers
+# exhaust each other's allowance, the defect R2 fixed) and each trigger family
+# gets its own bounded bucket instead.
+TEACHER_NON_CLASS_SENTINELS = frozenset({"none", "unknown"})
+# The bounded identity a sufficiency-floor escalation spends under. It is a
+# TRIGGER identity, not a missing-information class: the floor sits above the
+# projection's achievable score in the S0 boot state, so its escalation is
+# capped per class instead of re-arming on every cycle.
+TEACHER_SUFFICIENCY_FLOOR_IDENTITY = JEV_REASON_INSUFFICIENT_STATE
+# Named block reasons. Constants, not inline strings: run logs grep for them and
+# the re-escalation policy must be findable in code (DF-AIPP-13-R2).
 HANDOFF_BLOCK_REPAIRS_EXHAUSTED = (
     "missing-class repair allowance exhausted (already escalated this run)"
 )
+HANDOFF_BLOCK_SUFFICIENCY_FLOOR_EXHAUSTED = (
+    "sufficiency-floor repair allowance exhausted (chronic insufficient_state)"
+)
+HANDOFF_BLOCK_NON_CLASS_REPAIRS_EXHAUSTED = (
+    "non-class repair allowance exhausted (sentinel bucket spent)"
+)
 
 
-def _class_repairs_used(class_repairs: Any, escalation_class: str) -> int:
-    """Repair attempts this class has already spent, per the allowance shape.
+def _is_sufficiency_floor_reason(reason: Any) -> bool:
+    """Whether a handoff reason came from Jev's chronic sufficiency floor.
+
+    The floor fires whenever the projection scores below ``SUFFICIENCY_FLOOR``,
+    which in the S0 boot state is almost every cycle (JEV-404), so its
+    escalations are capped instead of re-arming.
+    """
+    return (
+        isinstance(reason, str)
+        and reason.strip().lower().startswith(JEV_REASON_INSUFFICIENT_STATE)
+    )
+
+
+def repair_allowance_key(decision: dict[str, Any]) -> str:
+    """The ledger key this decision's teacher repair attempt spends under.
+
+    A concrete missing-information class spends its own named allowance, as it
+    always has. The two non-class shapes get a bounded bucket each: a
+    sufficiency-floor escalation spends ``<floor identity>:<class>`` and a
+    non-class sentinel spends ``<sentinel>:<trigger family>``, so families never
+    exhaust each other's share (the DF-AIPP-13-R2 defect).
+    """
+    escalation_class = escalation_class_of(decision)
+    if _is_sufficiency_floor_reason(decision.get("escalate_reason")):
+        return f"{TEACHER_SUFFICIENCY_FLOOR_IDENTITY}:{escalation_class}"
+    if escalation_class in TEACHER_NON_CLASS_SENTINELS:
+        family = classify_handoff_trigger(decision.get("escalate_reason"))
+        return f"{escalation_class}:{family}"
+    return escalation_class
+
+
+def repair_allowance_rearms(decision: dict[str, Any]) -> bool:
+    """Whether a spent allowance for this decision may re-arm on recurrence.
+
+    Only a genuinely-named class does (DF-AIPP-13-R2). The chronic floor and the
+    non-class sentinels do not: a repair that never names what it repairs cannot
+    resolve by being repeated, which is how one run reached 78 escalations in 80
+    cycles (JEV-404).
+    """
+    escalation_class = escalation_class_of(decision)
+    return not _is_sufficiency_floor_reason(
+        decision.get("escalate_reason")
+    ) and escalation_class not in TEACHER_NON_CLASS_SENTINELS
+
+
+def repair_block_reason(decision: dict[str, Any]) -> str:
+    """The named block reason for a spent allowance on this decision's bucket."""
+    escalation_class = escalation_class_of(decision)
+    if _is_sufficiency_floor_reason(decision.get("escalate_reason")):
+        return HANDOFF_BLOCK_SUFFICIENCY_FLOOR_EXHAUSTED
+    if escalation_class in TEACHER_NON_CLASS_SENTINELS:
+        return HANDOFF_BLOCK_NON_CLASS_REPAIRS_EXHAUSTED
+    return HANDOFF_BLOCK_REPAIRS_EXHAUSTED
+
+
+def _class_repairs_used(class_repairs: Any, allowance_key: str) -> int:
+    """Repair attempts this ledger bucket has already spent, per the shape.
 
     The allowance is the caller-owned accumulator so its spend survives across
-    game cycles. A ``Counter``/``dict`` counts attempts for the R2 delivery
-    policy; a legacy ``set`` records membership only. Delivery interprets this
-    ledger together with the trigger: every permitted handoff trigger re-arms
-    when it recurs, while the per-episode teacher budget supplies the bound.
+    game cycles. A ``Counter``/``dict`` counts attempts; a legacy ``set`` records
+    membership only. The bucket key comes from ``repair_allowance_key``: a named
+    missing-information class, or one of the bounded non-class buckets.
     """
     if isinstance(class_repairs, set):
-        if escalation_class in class_repairs:
+        if allowance_key in class_repairs:
             return TEACHER_REPAIR_ATTEMPTS_PER_CLASS
         return 0
-    return int(class_repairs.get(escalation_class, 0))
+    return int(class_repairs.get(allowance_key, 0))
 
 
-def _consume_class_repair(class_repairs: Any, escalation_class: str) -> None:
-    """Spend one repair attempt on this class, in the caller's accumulator."""
+def _consume_class_repair(class_repairs: Any, allowance_key: str) -> None:
+    """Spend one repair attempt on this ledger bucket, in the caller's accumulator."""
     if isinstance(class_repairs, set):
-        class_repairs.add(escalation_class)
+        class_repairs.add(allowance_key)
     else:
-        class_repairs[escalation_class] = (
-            int(class_repairs.get(escalation_class, 0)) + 1
+        class_repairs[allowance_key] = (
+            int(class_repairs.get(allowance_key, 0)) + 1
         )
 
 
@@ -3543,8 +3623,8 @@ def _reconcile_map_topology_gap(
     topology_gap = (
         isinstance(reason, str)
         and (
-            reason.startswith("insufficient_state")
-            or reason.startswith("missing_class=map_topology")
+            reason.startswith(JEV_REASON_INSUFFICIENT_STATE)
+            or reason.startswith(f"{JEV_REASON_MISSING_CLASS}=map_topology")
         )
         and decision.get("missing_class") == "map_topology"
     )
@@ -3638,12 +3718,15 @@ def _jev_handoff_delivery_gate(
     their original reason.  The remaining checks mirror the call boundary that
     used to be embedded in ``can_call_teacher``.  Keeping them in the handoff
     result prevents a permitted trigger from disappearing silently when
-    teacher wiring is unavailable. Every policy-permitted trigger re-arms under
+    teacher wiring is unavailable. Every policy-permitted trigger that names a
+    concrete missing-information class re-arms under
     ``TEACHER_REPAIR_REARM_TRIGGERS`` because seeing it again proves the prior
-    repair did not resolve it. ``missing_class=none`` is not a class and never
-    participates in class dedupe. A path-memory hit may still supply the action,
-    but it does not suppress the teacher handoff; the episode budget remains the
-    outer bound (DF-AIPP-13-R2).
+    repair did not resolve it. The chronic sufficiency floor and the
+    ``none``/``unknown`` sentinels name no class, so they spend a BOUNDED bucket
+    instead (``repair_allowance_key``) and are refused with the matching
+    ``HANDOFF_BLOCK_*`` reason once it is spent (JEV-404). A path-memory hit may
+    still supply the action, but it does not suppress the teacher handoff; the
+    episode budget remains the outer bound (DF-AIPP-13-R2).
     """
     if not decision.get("escalate") or not handoff_ok:
         return handoff_ok, handoff_why
@@ -3653,17 +3736,18 @@ def _jev_handoff_delivery_gate(
         return False, "teacher model unavailable"
     if class_repairs is None:
         return False, "teacher per-class allowance unavailable"
+    allowance_key = repair_allowance_key(decision)
     repairs_exhausted = (
-        _class_repairs_used(class_repairs, escalation_class)
+        _class_repairs_used(class_repairs, allowance_key)
         >= TEACHER_REPAIR_ATTEMPTS_PER_CLASS
     )
-    class_dedupe_applies = (
-        escalation_class not in TEACHER_NON_CLASS_SENTINELS
-        and handoff_trigger not in TEACHER_REPAIR_REARM_TRIGGERS
+    rearm_applies = (
+        handoff_trigger in TEACHER_REPAIR_REARM_TRIGGERS
+        and repair_allowance_rearms(decision)
     )
-    if repairs_exhausted and class_dedupe_applies:
+    if repairs_exhausted and not rearm_applies:
         return False, (
-            f"{HANDOFF_BLOCK_REPAIRS_EXHAUSTED} (missing_class {escalation_class!r})"
+            f"{repair_block_reason(decision)} (missing_class {escalation_class!r})"
         )
     return True, handoff_why
 
@@ -3696,7 +3780,9 @@ def _jev_teacher_escalation(
 
     Records this class's repair attempt before the API boundary so accounting
     survives a failed or raising teacher, and spends the episode budget at the
-    same boundary. A recurring gap may deliberately re-arm on the next cycle;
+    same boundary. The spend goes on the SAME allowance key the delivery gate
+    read (``repair_allowance_key``), so a refused bucket stays refused. A
+    recurring named class may deliberately re-arm on the next cycle;
     ``--teacher-max-per-episode`` is the outer cap when callers need one.
     """
     teacher_record: dict[str, Any] | None = None
@@ -3706,7 +3792,7 @@ def _jev_teacher_escalation(
     # The predicate above narrows this for readers; the assertion also makes
     # the Optional contract explicit to static analyzers.
     assert class_repairs is not None
-    _consume_class_repair(class_repairs, escalation_class_of(decision))
+    _consume_class_repair(class_repairs, repair_allowance_key(decision))
     if teacher_budget is not None:
         teacher_budget["used"] = teacher_budget.get("used", 0) + 1
     prior_turn_count = len(

@@ -500,7 +500,7 @@ def test_teacher_call_disables_thinking_and_sends_budget() -> None:
     assert call["max_tokens"] == 32
 
 
-def test_overworld_escalation_reasks_with_distribution_and_is_bounded(
+def test_overworld_escalation_reasks_with_distribution_and_a_named_class_rearms(
     monkeypatch: Any,
 ) -> None:
     distribution = {
@@ -512,6 +512,9 @@ def test_overworld_escalation_reasks_with_distribution_and_is_bounded(
     }
     pre_decision = {
         **_pre_decision(),
+        # A NAMED class on a non-chronic trigger: this is the R2 re-arm path.
+        # (A sufficiency-floor reason is bounded instead — JEV-404.)
+        "escalate_reason": "missing_class=map_topology",
         "next_action": "RIGHT",
         "raw": distribution,
     }
@@ -623,7 +626,9 @@ def test_overworld_teacher_failure_degrades_to_normal_jev_decision(
 
     assert result["plan"] == ["RIGHT"]
     assert result["intent"] == "jev RIGHT"
-    assert class_repairs == Counter({"map_topology": 1})
+    # The attempt is spent on the sufficiency-floor bucket, not on the bare
+    # class name: the floor is a bounded identity (JEV-404).
+    assert class_repairs == Counter({"insufficient_state:map_topology": 1})
     assert len(results) == 1
     assert results[0]["ok"] is False
     assert results[0]["error"] == "teacher offline"

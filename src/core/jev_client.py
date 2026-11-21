@@ -41,6 +41,10 @@ MODEL = "typesafe/jev-1.13"
 ESCALATE_THRESHOLD = 0.50  # action confidence floor
 AMBIGUITY_GATE = 0.40  # low confidence alone is not enough (layered gate)
 SUFFICIENCY_FLOOR = 0.50  # Jev says "I lack the state to decide" below this
+# Named prefix of the reason this module emits when the sufficiency floor fires.
+# It is a contract, not prose: cron_runner classifies the reason and bounds the
+# escalations it produces under this same identity (JEV-404).
+INSUFFICIENT_STATE_REASON = "insufficient_state"
 PROGRESS_FLOOR = 1.0  # score 0..3; below this = not making progress
 
 # Shared bound for the rolling prior-turn window in both reasoning paths.
@@ -394,7 +398,7 @@ def should_escalate(
     miss = decision.get("missing_class")
 
     if suff is not None and suff < SUFFICIENCY_FLOOR:
-        return True, f"insufficient_state ({suff:.2f}) missing={miss}"
+        return True, f"{INSUFFICIENT_STATE_REASON} ({suff:.2f}) missing={miss}"
 
     if miss and miss != "none" and (suff is None or suff < 0.8):
         return True, f"missing_class={miss}"
