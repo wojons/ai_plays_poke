@@ -2162,3 +2162,15 @@ tasks:
   status: complete
   created_at: '2026-11-18T13:59:07.378039+00:00'
   completed_at: '2026-11-18T19:11:07.726563+00:00'
+- id: JEV-404
+  title: 'Escalation storm: sufficiency-floor ''none'' escalations bypass the per-class
+    allowance (78/80 cycles)'
+  criteria:
+  - An 80-cycle jev run (--decision-mode jev) records teacher_escalation count under
+    20; a unit test proves an 'insufficient_state ... missing=none' escalation is
+    refused once its named allowance is spent, citing the grep-able HANDOFF_BLOCK_*
+    constant; collision truth and movement metrics are not weakened; constants stay
+    grep-able (DF-AIPP-13-R2 law)
+  status: complete
+  created_at: '2026-11-21T01:16:29.450301+00:00'
+  completed_at: '2026-11-21T01:37:25.873794+00:00'
