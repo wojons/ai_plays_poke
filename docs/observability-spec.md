@@ -523,8 +523,8 @@ progress-vs-effort families).
 
 | Thing | Value | Line |
 |---|---|---|
-| Default directory | `Path("/var/lib/node_exporter/textfile_collector")` — `DEFAULT_TEXTFILE_DIR` | :62 |
-| File name | `aipp_run.prom` (so the full default path is `/var/lib/node_exporter/textfile_collector/aipp_run.prom`) | :5251 |
+| Default directory | `Path("/var/lib/node_exporter/textfile_collector")` — `DEFAULT_TEXTFILE_DIR` | :55 |
+| File name | `aipp_run.prom` (so the full default path is `/var/lib/node_exporter/textfile_collector/aipp_run.prom`) | :5803 |
 | Flag | `--textfile-dir PATH`, `type=Path`, `default=DEFAULT_TEXTFILE_DIR`; help text `node_exporter textfile collector directory (default: /var/lib/node_exporter/textfile_collector).` | :7792-7800 |
 | Threaded through | `S.textfile_dir = args.textfile_dir` at run setup (:8383); the normal close-out passes `getattr(S, "textfile_dir", DEFAULT_TEXTFILE_DIR)` (:10536), the error path passes `getattr(args, "textfile_dir", DEFAULT_TEXTFILE_DIR)` (:7964) | :8383, :10536, :7964 |
 | Directory creation | `target_dir.mkdir(parents=True, exist_ok=True)` — the collector dir is created if absent, so there is no separate provisioning step (and no complaint when it is the wrong directory) | :5250 |
@@ -533,7 +533,7 @@ progress-vs-effort families).
 **The other half of the lane: node_exporter must be told to read that directory.** The product
 writes the file; the exporter only reads it when its own textfile-collector flag points at the same
 directory. That flag is **`--collector.textfile.directory`**, and its value must be the SAME
-directory as `DEFAULT_TEXTFILE_DIR` (`cron_runner.py:62`) — or whatever `--textfile-dir` was set
+directory as `DEFAULT_TEXTFILE_DIR` (`cron_runner.py:55`) — or whatever `--textfile-dir` was set
 to. Nothing validates the pair, and a mismatch is silent on the product's side: the writer creates
 its own directory (:5250), so it never fails either way, and an exporter pointed at a directory
 nobody writes to reports no `aipp_*` series at all rather than "the product is not writing here".
@@ -542,7 +542,7 @@ The symptom is a file that exists and grows on disk while the scrape returns not
 
 ```ini
 # /etc/systemd/system/node_exporter.service.d/textfile.conf
-# This value must be the SAME directory as DEFAULT_TEXTFILE_DIR (cron_runner.py:62).
+# This value must be the SAME directory as DEFAULT_TEXTFILE_DIR (cron_runner.py:55).
 [Service]
 ExecStart=
 ExecStart=/usr/bin/node_exporter \
@@ -587,20 +587,20 @@ substituted value. `%g` formatting is why a duration of 12.0 prints as `12`:
 | 3 | `aipp_run_completed_total{outcome="completed"} <accumulated>` | counter | prior file value + 1 when this run's outcome is `completed` | :5262-5265 |
 | 4 | `aipp_run_completed_total{outcome="error"} <accumulated>` | counter | same | :5262-5265 |
 | 5 | `aipp_run_completed_total{outcome="gave_up"} <accumulated>` | counter | same | :5262-5265 |
-| 6 | `# HELP aipp_run_last_run_duration_seconds Duration of the last cron run.` | — | literal | :5268 |
+| 6 | `# HELP aipp_run_last_run_duration_seconds Duration of the last cron run.` | — | literal | :5823 |
 | 7 | `# TYPE aipp_run_last_run_duration_seconds gauge` | — | literal | :5269 |
 | 8 | `aipp_run_last_run_duration_seconds <%g>` | gauge | `duration_s` (wall clock from `run_started_at` to close-out) | :5270 |
-| 9 | `# HELP aipp_run_last_decisions_total Decisions observed in the last cron run.` | — | literal | :5271 |
+| 9 | `# HELP aipp_run_last_decisions_total Decisions observed in the last cron run.` | — | literal | :5826 |
 | 10 | `# TYPE aipp_run_last_decisions_total gauge` | — | literal | :5272 |
 | 11 | `aipp_run_last_decisions_total <int>` | gauge | `autonomy["decisions_total"]` | :5273 |
-| 12 | `# HELP aipp_run_last_map_transitions_total Map transitions observed in the last cron run.` | — | literal | :5274 |
+| 12 | `# HELP aipp_run_last_map_transitions_total Map transitions observed in the last cron run.` | — | literal | :5829 |
 | 13 | `# TYPE aipp_run_last_map_transitions_total gauge` | — | literal | :5275 |
 | 14 | `aipp_run_last_map_transitions_total <int>` | gauge | `autonomy["map_transitions_observed"]` | :5276-5277 |
-| 15 | `# HELP aipp_run_last_backtrack_rate Backtrack rate in the last cron run.` | — | literal | :5284 |
+| 15 | `# HELP aipp_run_last_backtrack_rate Backtrack rate in the last cron run.` | — | literal | :5839 |
 | 16 | `# TYPE aipp_run_last_backtrack_rate gauge` | — | literal | :5285 |
 | 17 | `aipp_run_last_backtrack_rate <%g>` | gauge | `autonomy["backtrack_rate"]` — **this trio is emitted only when that key is not `None`** (:5280-5281) | :5286 |
 | 18 | `# HELP aipp_map_transitions_total Map transitions observed across cron runs.` | — | literal in the family table (:5174) | :5321 |
-| 19 | `# TYPE aipp_map_transitions_total counter` | — | kind from the family table (:5173) | :5322 |
+| 19 | `# TYPE aipp_map_transitions_total counter` | — | kind from the family table (:5727) | :5322 |
 | 20 | `aipp_map_transitions_total <merged>` | counter | prior + `autonomy["map_transitions_observed"]` (:5305); no labels | :5332 |
 | 21 | `# HELP aipp_backtrack_events_total Decision rows that repeated or revisited an already-seen tile state.` | — | literal (:5178) | :5321 |
 | 22 | `# TYPE aipp_backtrack_events_total counter` | — | kind (:5177) | :5322 |
@@ -623,7 +623,7 @@ Three properties of that list an operator should not assume away:
 
 - **`aipp_run.prom` carries no buckets.** `aipp_run_duration_seconds` is a real histogram in
   the dashboard export (`src/observability/metrics.py:80`), but the textfile writes only the
-  `_count` / `_sum` components as **counter** families (family table :5188-5195), with no
+  `_count` / `_sum` components as **counter** families (family table :5743-5750), with no
   `# TYPE … histogram` and no `_bucket` lines. A `histogram_quantile()` over the textfile alone
   therefore returns nothing — take quantiles from the dashboard scrape, and use the textfile for
   totals. The two surfaces sharing the `aipp_run_duration_seconds` base name is the one place they
@@ -701,7 +701,7 @@ counts cron-lane runs and nothing else: a 40-minute dashboard run leaves
 
 | Family | Label | Values | Computed or asserted | Source |
 |---|---|---|---|---|
-| `aipp_episode_decisions_total` | `mode` | `system1`, `system2`, `system1+system2`, `jev`, `hybrid`, `llm`, `agentic`, `unknown` | **computed** — `decision_mode_label()` strips+lowercases and falls back to `unknown` for anything outside the set | set `_DECISION_MODE_LABELS` metrics.py:171-182, map `decision_mode_label()` metrics.py:270-276, applied cron_runner.py:5301 |
+| `aipp_episode_decisions_total` | `mode` | `system1`, `system2`, `system1+system2`, `jev`, `hybrid`, `llm`, `agentic`, `unknown` | **computed** — `decision_mode_label()` strips+lowercases and falls back to `unknown` for anything outside the set | set `_DECISION_MODE_LABELS` metrics.py:171-182, map `decision_mode_label()` metrics.py:270-276, applied cron_runner.py:5863 |
 | `aipp_run_duration_seconds_count`, `aipp_run_duration_seconds_sum` | `outcome` | `completed`, `error`, `gave_up`, `unknown` | **computed** — `run_outcome_label()`; exact match only (no normalisation), else `unknown` | tuple `_RUN_OUTCOME_LABELS` metrics.py:183, map `run_outcome_label()` metrics.py:279-283, applied cron_runner.py:5302 |
 | `aipp_run_completed_total` | `outcome` | `completed`, `error`, `gave_up` — **no `unknown`** | **asserted** — the caller passes the literal and the writer iterates a hardcoded tuple; the accumulator's regex only recognises those three | cron_runner.py:5265-5268, regex `_TEXTFILE_COUNTER_PATTERN` :5157-5158, call sites :10535 / :7963 |
 | `aipp_teacher_escalations_total` | `improved` | `true`, `false` | **asserted** — literal label pairs in the writer | cron_runner.py:5315-5316 |
@@ -1034,7 +1034,7 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 |---|---|
 | Whether the dashboard is actually running anywhere right now | No network access from the audit host; no process check was possible. The `/health` and `/metrics/prometheus` curl checks are unrun. |
 | Actual Prometheus series count for this product today | Requires querying Prometheus on `fleet-monitor`; not reachable from here. Static analysis says 0. |
-| Real desync rate | No sensor exists (§8.6). The `[VOID]` print (:8951-8953) is the closest proxy and is not persisted. |
+| Real desync rate | No sensor exists (§8.6). The `[VOID]` print (:9892) is the closest proxy and is not persisted. |
 | Whether any external dashboard already reads `cron_logs/*.jsonl` | Only `web_viewer.py` (`/api/run/{run_id}/log`) was found reading run logs; no evidence of a fleet-side consumer either way. |
 | Whether `logs/*/*.log` were ever populated | Files are 0 bytes with Jun 26 mtimes; whether they were ever non-empty is not recoverable from the repo. |
 

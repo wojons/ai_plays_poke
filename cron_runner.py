@@ -41,18 +41,11 @@ import threading
 from pathlib import Path
 from datetime import datetime, timezone
 
-from src.observability.metrics import (
-    decision_mode_label,
-    observe_cycle,
-    observe_decision_seconds,
-    observe_emulator_desync,
-    observe_emulator_frame,
-    observe_run_end,
-    run_outcome_label,
-    set_credential_valid,
-    set_data_growth,
-    set_runner_up,
-)
+# NOTE(INT-CLI-DRYRUN-1): the src.observability.metrics import used to sit
+# here, ahead of every constant and of the GAP-032 --dry-run precheck — a
+# bare `python3 cron_runner.py --dry-run` died on prometheus_client at this
+# line before the precheck could run. The import now lives directly below
+# the _dry_run_precheck() call site, with the other heavy imports.
 
 # ── Config constants (early) ─────────────────────────────────────────
 # Defined before the heavy third-party imports (yaml/numpy/PIL/src.*) so
@@ -765,6 +758,22 @@ def _probe_api_key(
     return False, _extract_provider_error(body, status)
 
 
+def _publish_credential_metric(name: str, live: bool) -> None:
+    """Publish a GAP-048 key-probe result to the metrics registry.
+
+    Lazy import so the stdlib-only --dry-run fast path (GAP-032) can run
+    key-liveness probes before src.observability.metrics (prometheus_client)
+    is importable. Publication is best-effort there: the precheck exits right
+    after the summary, so the process never serves /metrics. Real runs import
+    metrics below and publish exactly as before (MON-AIPP-4).
+    """
+    try:
+        from src.observability.metrics import set_credential_valid
+    except ImportError:  # bare-python3 --dry-run: metrics not reachable yet
+        return
+    set_credential_valid(name, live)
+
+
 def _check_configured_keys(skip: bool) -> list[tuple[str, str]]:
     """Probe every CONFIGURED key and report the dead ones (GAP-048).
 
@@ -786,7 +795,7 @@ def _check_configured_keys(skip: bool) -> list[tuple[str, str]]:
         # value. Only CONFIGURED names reach this loop, so a key this host does
         # not have never mints a series — the gauge reports "this credential is
         # dead", not "a credential you never set is invalid".
-        set_credential_valid(name, live)
+        _publish_credential_metric(name, live)
         if live:
             safe_print(f"  Key liveness:   {name} live")
         else:
@@ -928,6 +937,35 @@ def _dry_run_precheck(argv: list[str] | None = None) -> None:
             teacher_model=args.teacher_model,
         )
     )
+
+
+# ── GAP-032: stdlib-only --dry-run fast path (restored INT-CLI-DRYRUN-1) ──
+# Fires at import time, BEFORE every third-party import below: a bare
+# `python3 cron_runner.py --dry-run` validates setup with stdlib only.
+# DOGFOOD-PERF-001 (db3f3efb) deleted this call while deferring the heavy
+# imports, and the metrics import had landed above it — --dry-run died with
+# ModuleNotFoundError under a dependency-free interpreter and, under the
+# venv, needed --decision-mode because the in-main branch sat behind the
+# mode gate. Real runs fall straight through: the heavy imports and the
+# mode gate in _main_parse_and_dry_run are unchanged.
+_dry_run_precheck()
+
+# ── Heavy third-party imports (MUST stay below _dry_run_precheck) ────
+# Everything from here down may require the project venv. Do NOT move an
+# import above the _dry_run_precheck() call — the stdlib-only --dry-run
+# contract (GAP-032) depends on this ordering.
+# ruff: noqa: E402 — the fast path precedes project imports by design
+from src.observability.metrics import (
+    decision_mode_label,
+    observe_cycle,
+    observe_decision_seconds,
+    observe_emulator_desync,
+    observe_emulator_frame,
+    observe_run_end,
+    run_outcome_label,
+    set_data_growth,
+    set_runner_up,
+)
 
 
 if TYPE_CHECKING:

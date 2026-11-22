@@ -235,16 +235,22 @@ cp .env.example .env
 python3 cron_runner.py --decision-mode jev --run-id demo1 --cycles 80
 ```
 
-> **Run `cron_runner.py` with the project venv:** every invocation — even
-> `python3 cron_runner.py --help` — should use the venv
+> **Run `cron_runner.py` with the project venv — except `--dry-run`:** every
+> invocation that does real work — including `--help` — should use the venv
 > (`.venv/bin/python cron_runner.py --help`, or `source .venv/bin/activate`
-> first). `cron_runner.py` imports its third-party dependencies at module level,
-> before argparse is reached (`cron_runner.py:721` → `src/core/prompt_loader.py:16`),
-> so on an interpreter that lacks them even the help screen exits 1 with
-> `ModuleNotFoundError: No module named 'yaml'`. Measured 2026-10-17:
-> `env -i /usr/bin/python3 -S cron_runner.py --help` → that `yaml` traceback, rc 1;
-> `.venv/bin/python cron_runner.py --help` → full usage, rc 0. (PyYAML is the first
-> module to fail — not numpy.)
+> first): the third-party imports run at module level, ahead of argparse, so on
+> an interpreter that lacks them the process exits 1 with `ModuleNotFoundError`.
+> Measured 2026-11-22 (INT-CLI-DRYRUN-1): `env -i /usr/bin/python3 -S
+> cron_runner.py --help` → `ModuleNotFoundError: No module named
+> 'prometheus_client'`, rc 1 (the observability metrics import is the first to
+> fail — not yaml, not numpy); `.venv/bin/python cron_runner.py --help` → full
+> usage, rc 0. The one exception is `--dry-run` (add `--skip-key-check` for a
+> fully offline check): the GAP-032 precheck fires at import time BEFORE the
+> heavy imports, so setup validation needs neither the venv nor
+> `--decision-mode` — `env -i /usr/bin/python3 -S cron_runner.py --dry-run
+> --skip-key-check` prints the `[DRY-RUN]` validation summary and exits 0.
+> Real runs (no `--dry-run`) still require `--decision-mode` (flag or env) and
+> the venv.
 
 **What this does:** Each cycle reads the game state directly from emulator RAM (no paid
 vision API calls per tick), sends the spatial data to the LLM controller

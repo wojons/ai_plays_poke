@@ -224,37 +224,17 @@ KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {
         [606],
         "f3d7774:5177 ('\"Map transitions observed across cron runs.\",') now at :5691",
     ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5178, 5178): _d(
-        [605],
-        "f3d7774:5178 ('),') now at :292,306,454",
-    ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 5181, 5181): _d(
         [609],
         "f3d7774:5181 ('\"Decision rows that repeated or revisited an already-seen ') now at :5695",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5182, 5182): _d(
-        [608],
-        "f3d7774:5182 ('),') now at :292,306,454",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5185, 5185): _d(
-        [612],
-        "f3d7774:5185 ('\"Gameplay decisions taken across cron runs, by decision mo') now at :5699",
     ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 5186, 5186): _d(
         [611],
         "f3d7774:5186 ('),') now at :292,306,454",
     ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5189, 5189): _d(
-        [616],
-        "f3d7774:5189 ('\"Teacher escalations by whether they improved the decision') now at :5703",
-    ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 5190, 5190): _d(
         [615],
         "f3d7774:5190 ('),') now at :292,306,454",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5193, 5193): _d(
-        [619],
-        "f3d7774:5193 ('\"Number of finished cron runs contributing to the duration') now at :5707",
     ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 5194, 5194): _d(
         [618],
@@ -264,17 +244,9 @@ KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {
         [633],
         "f3d7774:5217 ('if match is None:') now at :5731",
     ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5249, 5249): _d(
-        [643],
-        "f3d7774:5249 ('target_dir = Path(textfile_dir)') now at :5763",
-    ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 5250, 5250): _d(
         [530, 538],
         "f3d7774:5250 ('target_dir.mkdir(parents=True, exist_ok=True)') now at :5764",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5252, 5252): _d(
-        [531],
-        "f3d7774:5252 ('temporary = target.with_name(f\"{target.name}.tmp\")') now at :5766",
     ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 5259, 5259): _d(
         [685],
@@ -391,10 +363,6 @@ KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {
     ("observability-spec.md", "cron_runner.py", 5338, 5338): _d(
         [640, 644, 688],
         "f3d7774:5338 ('os.replace(temporary, target)') now at :5852",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5340, 5342): _d(
-        [665],
-        "f3d7774:5340 ('except Exception as exc:') now at :4627",
     ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 5341, 5341): _d(
         [671],
@@ -954,7 +922,7 @@ def test_declared_history_regions_are_skipped():
     # The top UPDATE block (current tree) is checked.
     assert mask[idx("| metrics.py:19 |")]
     # §4 onward is checked.
-    assert mask[idx("`DEFAULT_TEXTFILE_DIR` | :62")]
+    assert mask[idx("`DEFAULT_TEXTFILE_DIR` | :55")]
 
     # cron_runner.md declares no history body → walked in full.
     cr_lines = (
@@ -981,7 +949,7 @@ def test_guard_bites_when_cited_anchor_moves(tmp_path: Path):
     assert not pre_failures, _format_failures(pre_failures)
     pre_fail_keys = {c.key for c in pre_checks if not c.ok}
 
-    # Sabotage: push cron_runner.py's DEFAULT_TEXTFILE_DIR (cited at :62 by
+    # Sabotage: push cron_runner.py's DEFAULT_TEXTFILE_DIR (cited at :55 by
     # both docs) 20 lines down with padding comments. Lives and dies inside
     # tmp_path — never committed.
     cr = scratch_root / "cron_runner.py"
@@ -1005,7 +973,7 @@ def test_guard_bites_when_cited_anchor_moves(tmp_path: Path):
         f
         for f in new_failures
         if f.target == "cron_runner.py"
-        and f.start == 62
+        and f.start == 55
         and "DEFAULT_TEXTFILE_DIR" in f.tokens
     ]
     assert sabotaged, (
