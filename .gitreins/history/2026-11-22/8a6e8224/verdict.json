@@ -1,0 +1,210 @@
+{
+  "task_id": "DOC-028",
+  "task_title": "DOC-028 citation drift guard: pytest module re-resolves every file:line citation in docs/observability-spec.md and docs/api/cron_runner.md",
+  "task_criteria": [
+    "Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "9896904866109599cc602bfb428a714f8f489cbf",
+  "pass_class": "judged",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "0cac6d23a423e73c1aa241da218f1fc7ef00f24a907968d80a2a348f77c2d2ea",
+  "working_tree_dirty_path_count": 6759,
+  "items": [
+    {
+      "criterion": "Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.",
+      "status": "FAIL",
+      "detail": "Exact command exits 4, not 0: pytest prints \"ERROR: file or directory not found: tests/test_doc_citation_drift.py\" / \"no tests ran\". The module is missing \u2014 `ls tests/test_doc_citation_drift.py` \u2192 \"No such file or directory\", and `git log --all --oneline -- tests/test_doc_citation_drift.py` returns empty (never existed in any commit). DOC-028's commit 98969048 added the guard under a different filename: `git show 98969048 --name-status` \u2192 \"A tests/test_docs_citation_drift.py\". The near-miss module is real and green (.venv/bin/pytest tests/test_docs_citation_drift.py -q \u2192 exit 0, \"4 passed in 2.00s\": test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves), but the criterion's own FAILIF condition \u2014 \"the module is missing, fails to collect\" \u2014 is literally triggered. The commit message's \"PREMISE DISCLOSURE\" admits the filename divergence instead of fixing it."
+    }
+  ],
+  "merge_recommendation": "changes_required",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n6:53AM INF scanned ~394275702 bytes (394.28 MB) in 33.9s\n6:53AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 102122 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\ngitreins_tests: runner=./venv/bin/pytest (pytest 9.1.1) cwd=/home/kara/ai_plays_poke\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4880 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\n\n\u2026 [533322 chars omitted \u2014 5783 line(s)] \u2026\ntest_bench_pathfinding_find_path               910.9935 (1.21)           4,949.9940 (2.17)          1,555.2198 (1.62)          1,287.7447 (13.45)         1,061.9988 (1.12)           371.7541 (5.31)          1;1    642,995.9408 (0.62)          9           1\ntest_bench_vision_pipeline_validate          7,915.0050 (10.54)        725,884.0051 (317.81)       13,540.6613 (14.13)        10,911.1695 (113.94)       12,873.0026 (13.52)        3,887.9953 (55.55)     595;793     73,851.6367 (0.07)      25457           1\ntest_bench_ram_reader_observe            1,268,198.9901 (>1000.0)  283,926,174.9905 (>1000.0)   3,366,153.6878 (>1000.0)  16,902,982.4089 (>1000.0)   2,227,589.4953 (>1000.0)    483,845.9863 (>1000.0)      3;27        297.0750 (0.00)        698           1\ntest_bench_vision_pipeline_process      56,950,865.9974 (>1000.0)   80,550,846.0035 (>1000.0)  64,222,087.8550 (>1000.0)   7,552,799.8333 (>1000.0)  61,671,501.4912 (>1000.0)  8,676,015.9902 (>1000.0)       2;1         15.5710 (0.00)         14           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4866 passed, 14 skipped in 270.72s (0:04:30) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.: Exact command exits 4, not 0: pytest prints \"ERROR: file or directory not found: tests/test_doc_citation_drift.py\" / \"no tests ran\". The module is missing \u2014 `ls tests/test_doc_citation_drift.py` \u2192 \"No such file or directory\", and `git log --all --oneline -- tests/test_doc_citation_drift.py` returns empty (never existed in any commit). DOC-028's commit 98969048 added the guard under a different filename: `git show 98969048 --name-status` \u2192 \"A tests/test_docs_citation_drift.py\". The near-miss module is real and green (.venv/bin/pytest tests/test_docs_citation_drift.py -q \u2192 exit 0, \"4 passed in 2.00s\": test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves), but the criterion's own FAILIF condition \u2014 \"the module is missing, fails to collect\" \u2014 is literally triggered. The commit message's \"PREMISE DISCLOSURE\" admits the filename divergence instead of fixing it.\n  \u2717 Coverage FAILED \u2014 not passing: Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.\nThe DOC-028 commit built a real, passing citation-drift guard but landed it one character off the required path (tests/test_docs_citation_drift.py instead of tests/test_doc_citation_drift.py), so the exact acceptance command exits 4 with 'file or directory not found' \u2014 the criterion's explicit FAILIF (module missing / fails to collect) is met and the task is INCOMPLETE. [uncovered failure paths: failure mode 0 (The citation-drift guard is unreachable via the acceptance command: any consumer invoking the specified path (CI step, board verification, a human following the criterion) gets pytest usage-error exit 4 and no guard execution; if the invocation is globbed or error-tolerant, the drift guard silently never runs.): detected_by is empty \u2014 uncovered failure path]",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.: Exact command exits 4, not 0: pytest prints \"ERROR: file or directory not found: tests/test_doc_citation_drift.py\" / \"no tests ran\". The module is missing \u2014 `ls tests/test_doc_citation_drift.py` \u2192 \"No such file or directory\", and `git log --all --oneline -- tests/test_doc_citation_drift.py` returns empty (never existed in any commit). DOC-028's commit 98969048 added the guard under a different filename: `git show 98969048 --name-status` \u2192 \"A tests/test_docs_citation_drift.py\". The near-miss module is real and green (.venv/bin/pytest tests/test_docs_citation_drift.py -q \u2192 exit 0, \"4 passed in 2.00s\": test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves), but the criterion's own FAILIF condition \u2014 \"the module is missing, fails to collect\" \u2014 is literally triggered. The commit message's \"PREMISE DISCLOSURE\" admits the filename divergence instead of fixing it.\n  \u2717 Coverage FAILED \u2014 not passing: Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.\nThe DOC-028 commit built a real, passing citation-drift guard but landed it one character off the required path (tests/test_docs_citation_drift.py instead of tests/test_doc_citation_drift.py), so the exact acceptance command exits 4 with 'file or directory not found' \u2014 the criterion's explicit FAILIF (module missing / fails to collect) is met and the task is INCOMPLETE. [uncovered failure paths: failure mode 0 (The citation-drift guard is unreachable via the acceptance command: any consumer invoking the specified path (CI step, board verification, a human following the criterion) gets pytest usage-error exit 4 and no guard execution; if the invocation is globbed or error-tolerant, the drift guard silently never runs.): detected_by is empty \u2014 uncovered failure path]",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.",
+                "status": "FAIL",
+                "detail": "Exact command exits 4, not 0: pytest prints \"ERROR: file or directory not found: tests/test_doc_citation_drift.py\" / \"no tests ran\". The module is missing \u2014 `ls tests/test_doc_citation_drift.py` \u2192 \"No such file or directory\", and `git log --all --oneline -- tests/test_doc_citation_drift.py` returns empty (never existed in any commit). DOC-028's commit 98969048 added the guard under a different filename: `git show 98969048 --name-status` \u2192 \"A tests/test_docs_citation_drift.py\". The near-miss module is real and green (.venv/bin/pytest tests/test_docs_citation_drift.py -q \u2192 exit 0, \"4 passed in 2.00s\": test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves), but the criterion's own FAILIF condition \u2014 \"the module is missing, fails to collect\" \u2014 is literally triggered. The commit message's \"PREMISE DISCLOSURE\" admits the filename divergence instead of fixing it."
+              }
+            ],
+            "summary": "The DOC-028 commit built a real, passing citation-drift guard but landed it one character off the required path (tests/test_docs_citation_drift.py instead of tests/test_doc_citation_drift.py), so the exact acceptance command exits 4 with 'file or directory not found' \u2014 the criterion's explicit FAILIF (module missing / fails to collect) is met and the task is INCOMPLETE. [uncovered failure paths: failure mode 0 (The citation-drift guard is unreachable via the acceptance command: any consumer invoking the specified path (CI step, board verification, a human following the criterion) gets pytest usage-error exit 4 and no guard execution; if the invocation is globbed or error-tolerant, the drift guard silently never runs.): detected_by is empty \u2014 uncovered failure path]",
+            "provenance": {
+              "model": "glm-5.3-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            }
+          }
+        }
+      ],
+      "model": "glm-5.3-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"DOC-028\"}",
+          "exit_code": 0,
+          "output_sha": "c5fdde97038398734ae26fad861c22e39ef0bfb38dc5c154eb1f3896bb8dfc67"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"tests/test_doc_citation_drift.py\"}",
+          "exit_code": 1,
+          "output_sha": "1c9565e0266b959003f48a69bdcfd4c1af72a270df8e7670e41c1e8eda2a3719"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ls -la tests/test_doc_citation_drift.py 2>&1; echo \"---\"; ls tests/ | grep -i doc 2>&1; echo \"---\"; find . -name \"test_doc_citation_drift.py\" -not -path \"./venv/*\" -not -path \"./.git/*\" 2>/dev/null; echo \"exit: $?\"",
+          "exit_code": 0,
+          "output_sha": "9332d7e059c3df709a6a5e788d15ebdef551e0578c0cae428a3f504232c62978"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && .venv/bin/pytest tests/test_doc_citation_drift.py -q 2>&1 | tail -20; echo \"EXIT_CODE=$?\"",
+          "exit_code": 0,
+          "output_sha": "cf4fb300723f0c0c6a915a50bcb61baec573b94e497169a57ff6bbd231ca3b3a"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && .venv/bin/pytest tests/test_doc_citation_drift.py -q > /tmp/docdrift_exact.out 2>&1; echo \"PYTEST_EXIT=$?\"; tail -3 /tmp/docdrift_exact.out",
+          "exit_code": 0,
+          "output_sha": "ab860909312ed7c4ef788adc8f5c5533d26d01fd6b907e6fa6d1ccbc7f4cdce4"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git log --oneline -5 -- tests/test_docs_citation_drift.py; echo \"---git status---\"; git status --short | head -20; echo \"---diff names HEAD~1---\"; git diff HEAD~1 --name-only 2>/dev/null | head -20",
+          "exit_code": 0,
+          "output_sha": "9ddb4ec86e88def36c38e0f1443c6145eeea7affa02faa9fd1f67684c9d8f096"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"tests/test_docs_citation_drift.py\"}",
+          "exit_code": 0,
+          "output_sha": "004d4a7e9ff96944bd72342e8c3e1bdb62ee0891dcb80ed5550b7ee0351ac7ad"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show 98969048 --stat | head -20; echo \"---\"; git show 98969048 --name-status",
+          "exit_code": 0,
+          "output_sha": "d78bc9d14fbf39b37d024c6942b276580832b75da0c69d2245ee00299a528404"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git log --all --oneline -- tests/test_doc_citation_drift.py; echo \"---exact-name history above (empty=never existed)---\"; .venv/bin/pytest tests/test_docs_citation_drift.py -q > /tmp/docdrift_s.out 2>&1; echo \"S_VARIANT_EXIT=$?\"; tail -3 /tmp/docdrift_s.out",
+          "exit_code": 0,
+          "output_sha": "f4f3ad220837b29ce50bf795c4f09978e6962bb4ca71d60704827486a194cb96"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 145, \"offset\": 870, \"path\": \"tests/test_docs_citation_drift.py\"}",
+          "exit_code": 0,
+          "output_sha": "28d96c87cb0ead3c983895b1870f3da1832b9b3a1e5f4bf30cd7aee112cabc9f"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"FAIL: criterion 1 \\u2014 exact command `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke exits 4 (pytest usage error): output \\\"ERROR: file or directory not found: tests/test_doc_citation_drift.py\\\". File absent on disk (ls: cannot access 'tests/test_doc_citation_drift.py': No such file or directory) and absent from ALL git history (git log --all -- tests/test_doc_citation_drift.py \\u2192 empty). DOC-028 commit 98969048 added the guard under a DIFFERENT name, tests/test_docs_citation_drift.py (git show 98969048 --name-status \\u2192 \\\"A tests/test_docs_citation_drift.py\\\"). That near-miss module passes (.venv/bin/pytest tests/test_docs_citation_drift.py -q \\u2192 exit 0, \\\"4 passed in 2.00s\\\", python 3.13.13/pytest 9.2.0), but the criterion as written FAILIFs on \\\"the module is missing\\\" \\u2014 and it is missing. The commit message itself admits the premise disclosure. No derived criteria needed: the single given criterion is exactly checkable and fails.\", \"key\": \"verified_0\"}",
+          "exit_code": 0,
+          "output_sha": "8ac0e37d099561a997845e985e375c91264b6d7e9a59cebd8e22daf9751eb6f2"
+        }
+      ]
+    }
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [],
+    "summary": "",
+    "error": "unparseable reviewer reply: no parseable JSON object in reply: ''",
+    "review_state": {
+      "emitted": [],
+      "carried": []
+    }
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.: Exact command exits 4, not 0: pytest prints \"ERROR: file or directory not found: tests/test_doc_citation_drift.py\" / \"no tests ran\". The module is missing \u2014 `ls tests/test_doc_citation_drift.py` \u2192 \"No such file or directory\", and `git log --all --oneline -- tests/test_doc_citation_drift.py` returns empty (never existed in any commit). DOC-028's commit 98969048 added the guard under a different filename: `git show 98969048 --name-status` \u2192 \"A tests/test_docs_citation_drift.py\". The near-miss module is real and green (.venv/bin/pytest tests/test_docs_citation_drift.py -q \u2192 exit 0, \"4 passed in 2.00s\": test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves), but the criterion's own FAILIF condition \u2014 \"the module is missing, fails to collect\" \u2014 is literally triggered. The commit message's \"PREMISE DISCLOSURE\" admits the filename divergence instead of fixing it.\n  \u2717 Coverage FAILED \u2014 not passing: Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.\nThe DOC-028 commit built a real, passing citation-drift guard but landed it one character off the required path (tests/test_docs_citation_drift.py instead of tests/test_doc_citation_drift.py), so the exact acceptance command exits 4 with 'file or directory not found' \u2014 the criterion's explicit FAILIF (module missing / fails to collect) is met and the task is INCOMPLETE. [uncovered failure paths: failure mode 0 (The citation-drift guard is unreachable via the acceptance command: any consumer invoking the specified path (CI step, board verification, a human following the criterion) gets pytest usage-error exit 4 and no guard execution; if the invocation is globbed or error-tolerant, the drift guard silently never runs.): detected_by is empty \u2014 uncovered failure path]\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-11-22T12:00:21.261384",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-22T12:00:21.291913+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 50127,
+        "truncated": false,
+        "source": "git show 989690486610"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 37760,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-028"
+  }
+}

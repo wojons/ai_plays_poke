@@ -2233,3 +2233,13 @@ tasks:
   status: complete
   created_at: '2026-11-21T13:39:33.798592+00:00'
   completed_at: '2026-11-21T14:40:36.633979+00:00'
+- id: DOC-028
+  title: 'DOC-028 citation drift guard: pytest module re-resolves every file:line
+    citation in docs/observability-spec.md and docs/api/cron_runner.md'
+  criteria:
+  - 'Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke:
+    expect exit 0 with every test in the new citation-drift module passing. FAILIF:
+    the module is missing, fails to collect, or any test inside it fails.'
+  status: complete
+  created_at: '2026-11-22T10:32:47.946841+00:00'
+  completed_at: '2026-11-22T12:08:12.530270+00:00'

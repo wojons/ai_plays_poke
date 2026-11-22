@@ -1,0 +1,270 @@
+{
+  "task_id": "DOC-028",
+  "task_title": "DOC-028 citation drift guard: pytest module re-resolves every file:line citation in docs/observability-spec.md and docs/api/cron_runner.md",
+  "task_criteria": [
+    "Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "856adcc308aea83bbfc6a7de2bd48d8853ebcc83",
+  "pass_class": "judged",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "c001befe5413ac8f0447baaf414e3e129dd179750ee8ea44378d4bc7b56321be",
+  "working_tree_dirty_path_count": 6763,
+  "items": [
+    {
+      "criterion": "Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.",
+      "status": "PASS",
+      "detail": "Ran the exact command: exit_code 0, output '4 passed in 3.59s'. Module exists at tests/test_doc_citation_drift.py (1014 lines, 45KB, mtime Nov 22) and collects 4 tests, all passing: test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves. (An initial run showed '/bin/sh: Bad substitution' \u2014 that was the shell rejecting ${PIPESTATUS}, not a test failure; re-run captured EXIT_CODE=0.) The module is also green in the full tier1 suite (4866 passed, 14 skipped, prior tests finding)."
+    },
+    {
+      "criterion": "Guard walks BOTH docs named in the task title (docs/observability-spec.md and docs/api/cron_runner.md), not just one",
+      "status": "PASS",
+      "detail": "tests/test_doc_citation_drift.py:63 DOCS=(\"observability-spec.md\", \"api/cron_runner.md\"); the parametrized resolver test ran per-doc and pytest output shows BOTH PASSED. Both files confirmed on disk (ls docs/observability-spec.md docs/api/cron_runner.md \u2192 both present); api/cron_runner.md is walked in full per tests/test_doc_citation_drift.py:958-963 (test_declared_history_regions_are_skipped asserts all(_checked_mask(cr_lines))).",
+      "derived": true
+    },
+    {
+      "criterion": "Guard is a real drift detector, not a vacuous pass \u2014 negative proof that a moved cited anchor produces a new failure",
+      "status": "PASS",
+      "detail": "tests/test_doc_citation_drift.py:963-1014 test_guard_bites_when_cited_anchor_moves: copies docs + cited sources into tmp_path, proves the scratch tree audits clean, inserts 20 sabotage padding lines above cron_runner.py's DEFAULT_TEXTFILE_DIR anchor (anchor confirmed real at cron_runner.py:62), re-audits, and asserts a NEW failure with target=='cron_runner.py', start==62 and 'DEFAULT_TEXTFILE_DIR' in tokens. Test PASSED in the run \u2014 the guard demonstrably bites on a 20-line anchor move. Resolution is ast-based (no import of product code): _function_spans/_stmt_index at tests/test_doc_citation_drift.py:648-700.",
+      "derived": true
+    },
+    {
+      "criterion": "Ratchet is bidirectional: unbaselined new drift fails AND stale KNOWN_DRIFT entries (re-resolved after a docs refresh) also fail, so the baseline can only shrink",
+      "status": "PASS",
+      "detail": "tests/test_doc_citation_drift.py:935-943 test_doc_citations_resolve asserts three things: checks non-empty ('walker found no citations \u2014 regex or region logic broke'), no unbaselined failures, and no stale KNOWN_DRIFT keys ('docs were refreshed; shrink the baseline'). KNOWN_DRIFT (tests/test_doc_citation_drift.py:148-514) holds ~91 evidenced entries each with doc_line pointers and f3d7774 content hints \u2014 an explicit, auditable baseline, not a silent allowlist.",
+      "derived": true
+    }
+  ],
+  "merge_recommendation": "no_concerns_found",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n7:08AM INF scanned ~394278533 bytes (394.28 MB) in 39.9s\n7:08AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 102126 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\ngitreins_tests: runner=./venv/bin/pytest (pytest 9.1.1) cwd=/home/kara/ai_plays_poke\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4880 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\n\n\u2026 [533322 chars omitted \u2014 5783 line(s)] \u2026\ntest_bench_pathfinding_small_grid              631.0001 (1.23)           8,105.0093 (1.35)            762.2905 (1.0)             222.5654 (1.0)             731.0009 (1.0)              71.0133 (1.0)         11;71  1,311,835.8692 (1.0)        1250           1\ntest_bench_vision_pipeline_validate          8,406.0011 (16.45)        949,167.9957 (157.91)       15,553.3901 (20.40)        21,533.9077 (96.75)        13,836.0047 (18.93)         2,183.9951 (30.75)    266;1487     64,294.6648 (0.05)      11446           1\ntest_bench_ram_reader_observe            1,380,426.9984 (>1000.0)  255,694,909.9962 (>1000.0)   3,260,876.9671 (>1000.0)  15,344,737.4619 (>1000.0)   2,295,249.9858 (>1000.0)     463,202.7485 (>1000.0)      2;16        306.6660 (0.00)        521           1\ntest_bench_vision_pipeline_process      49,860,157.9893 (>1000.0)   75,279,331.9989 (>1000.0)  65,411,805.4188 (>1000.0)   7,614,697.3125 (>1000.0)  65,864,154.9962 (>1000.0)  13,941,603.7491 (>1000.0)       9;0         15.2878 (0.00)         19           1\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4866 passed, 14 skipped in 264.07s (0:04:24) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.: Ran the exact command: exit_code 0, output '4 passed in 3.59s'. Module exists at tests/test_doc_citation_drift.py (1014 lines, 45KB, mtime Nov 22) and collects 4 tests, all passing: test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves. (An initial run showed '/bin/sh: Bad substitution' \u2014 that was the shell rejecting ${PIPESTATUS}, not a test failure; re-run captured EXIT_CODE=0.) The module is also green in the full tier1 suite (4866 passed, 14 skipped, prior tests finding).\n  \u2713 Guard walks BOTH docs named in the task title (docs/observability-spec.md and docs/api/cron_runner.md), not just one: tests/test_doc_citation_drift.py:63 DOCS=(\"observability-spec.md\", \"api/cron_runner.md\"); the parametrized resolver test ran per-doc and pytest output shows BOTH PASSED. Both files confirmed on disk (ls docs/observability-spec.md docs/api/cron_runner.md \u2192 both present); api/cron_runner.md is walked in full per tests/test_doc_citation_drift.py:958-963 (test_declared_history_regions_are_skipped asserts all(_checked_mask(cr_lines))).\n  \u2713 Guard is a real drift detector, not a vacuous pass \u2014 negative proof that a moved cited anchor produces a new failure: tests/test_doc_citation_drift.py:963-1014 test_guard_bites_when_cited_anchor_moves: copies docs + cited sources into tmp_path, proves the scratch tree audits clean, inserts 20 sabotage padding lines above cron_runner.py's DEFAULT_TEXTFILE_DIR anchor (anchor confirmed real at cron_runner.py:62), re-audits, and asserts a NEW failure with target=='cron_runner.py', start==62 and 'DEFAULT_TEXTFILE_DIR' in tokens. Test PASSED in the run \u2014 the guard demonstrably bites on a 20-line anchor move. Resolution is ast-based (no import of product code): _function_spans/_stmt_index at tests/test_doc_citation_drift.py:648-700.\n  \u2713 Ratchet is bidirectional: unbaselined new drift fails AND stale KNOWN_DRIFT entries (re-resolved after a docs refresh) also fail, so the baseline can only shrink: tests/test_doc_citation_drift.py:935-943 test_doc_citations_resolve asserts three things: checks non-empty ('walker found no citations \u2014 regex or region logic broke'), no unbaselined failures, and no stale KNOWN_DRIFT keys ('docs were refreshed; shrink the baseline'). KNOWN_DRIFT (tests/test_doc_citation_drift.py:148-514) holds ~91 evidenced entries each with doc_line pointers and f3d7774 content hints \u2014 an explicit, auditable baseline, not a silent allowlist.\nThe new tests/test_doc_citation_drift.py module exists, collects, and passes 4/4 under the exact criterion command (.venv/bin/pytest tests/test_doc_citation_drift.py -q \u2192 exit 0, '4 passed in 3.59s'), walks both named docs, carries a negative-proof bite test that provably fails on a moved anchor, and implements a bidirectional ratchet over an explicit, evidenced drift baseline.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.: Ran the exact command: exit_code 0, output '4 passed in 3.59s'. Module exists at tests/test_doc_citation_drift.py (1014 lines, 45KB, mtime Nov 22) and collects 4 tests, all passing: test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves. (An initial run showed '/bin/sh: Bad substitution' \u2014 that was the shell rejecting ${PIPESTATUS}, not a test failure; re-run captured EXIT_CODE=0.) The module is also green in the full tier1 suite (4866 passed, 14 skipped, prior tests finding).\n  \u2713 Guard walks BOTH docs named in the task title (docs/observability-spec.md and docs/api/cron_runner.md), not just one: tests/test_doc_citation_drift.py:63 DOCS=(\"observability-spec.md\", \"api/cron_runner.md\"); the parametrized resolver test ran per-doc and pytest output shows BOTH PASSED. Both files confirmed on disk (ls docs/observability-spec.md docs/api/cron_runner.md \u2192 both present); api/cron_runner.md is walked in full per tests/test_doc_citation_drift.py:958-963 (test_declared_history_regions_are_skipped asserts all(_checked_mask(cr_lines))).\n  \u2713 Guard is a real drift detector, not a vacuous pass \u2014 negative proof that a moved cited anchor produces a new failure: tests/test_doc_citation_drift.py:963-1014 test_guard_bites_when_cited_anchor_moves: copies docs + cited sources into tmp_path, proves the scratch tree audits clean, inserts 20 sabotage padding lines above cron_runner.py's DEFAULT_TEXTFILE_DIR anchor (anchor confirmed real at cron_runner.py:62), re-audits, and asserts a NEW failure with target=='cron_runner.py', start==62 and 'DEFAULT_TEXTFILE_DIR' in tokens. Test PASSED in the run \u2014 the guard demonstrably bites on a 20-line anchor move. Resolution is ast-based (no import of product code): _function_spans/_stmt_index at tests/test_doc_citation_drift.py:648-700.\n  \u2713 Ratchet is bidirectional: unbaselined new drift fails AND stale KNOWN_DRIFT entries (re-resolved after a docs refresh) also fail, so the baseline can only shrink: tests/test_doc_citation_drift.py:935-943 test_doc_citations_resolve asserts three things: checks non-empty ('walker found no citations \u2014 regex or region logic broke'), no unbaselined failures, and no stale KNOWN_DRIFT keys ('docs were refreshed; shrink the baseline'). KNOWN_DRIFT (tests/test_doc_citation_drift.py:148-514) holds ~91 evidenced entries each with doc_line pointers and f3d7774 content hints \u2014 an explicit, auditable baseline, not a silent allowlist.\nThe new tests/test_doc_citation_drift.py module exists, collects, and passes 4/4 under the exact criterion command (.venv/bin/pytest tests/test_doc_citation_drift.py -q \u2192 exit 0, '4 passed in 3.59s'), walks both named docs, carries a negative-proof bite test that provably fails on a moved anchor, and implements a bidirectional ratchet over an explicit, evidenced drift baseline.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.",
+                "status": "PASS",
+                "detail": "Ran the exact command: exit_code 0, output '4 passed in 3.59s'. Module exists at tests/test_doc_citation_drift.py (1014 lines, 45KB, mtime Nov 22) and collects 4 tests, all passing: test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves. (An initial run showed '/bin/sh: Bad substitution' \u2014 that was the shell rejecting ${PIPESTATUS}, not a test failure; re-run captured EXIT_CODE=0.) The module is also green in the full tier1 suite (4866 passed, 14 skipped, prior tests finding)."
+              },
+              {
+                "criterion": "Guard walks BOTH docs named in the task title (docs/observability-spec.md and docs/api/cron_runner.md), not just one",
+                "status": "PASS",
+                "detail": "tests/test_doc_citation_drift.py:63 DOCS=(\"observability-spec.md\", \"api/cron_runner.md\"); the parametrized resolver test ran per-doc and pytest output shows BOTH PASSED. Both files confirmed on disk (ls docs/observability-spec.md docs/api/cron_runner.md \u2192 both present); api/cron_runner.md is walked in full per tests/test_doc_citation_drift.py:958-963 (test_declared_history_regions_are_skipped asserts all(_checked_mask(cr_lines))).",
+                "derived": true
+              },
+              {
+                "criterion": "Guard is a real drift detector, not a vacuous pass \u2014 negative proof that a moved cited anchor produces a new failure",
+                "status": "PASS",
+                "detail": "tests/test_doc_citation_drift.py:963-1014 test_guard_bites_when_cited_anchor_moves: copies docs + cited sources into tmp_path, proves the scratch tree audits clean, inserts 20 sabotage padding lines above cron_runner.py's DEFAULT_TEXTFILE_DIR anchor (anchor confirmed real at cron_runner.py:62), re-audits, and asserts a NEW failure with target=='cron_runner.py', start==62 and 'DEFAULT_TEXTFILE_DIR' in tokens. Test PASSED in the run \u2014 the guard demonstrably bites on a 20-line anchor move. Resolution is ast-based (no import of product code): _function_spans/_stmt_index at tests/test_doc_citation_drift.py:648-700.",
+                "derived": true
+              },
+              {
+                "criterion": "Ratchet is bidirectional: unbaselined new drift fails AND stale KNOWN_DRIFT entries (re-resolved after a docs refresh) also fail, so the baseline can only shrink",
+                "status": "PASS",
+                "detail": "tests/test_doc_citation_drift.py:935-943 test_doc_citations_resolve asserts three things: checks non-empty ('walker found no citations \u2014 regex or region logic broke'), no unbaselined failures, and no stale KNOWN_DRIFT keys ('docs were refreshed; shrink the baseline'). KNOWN_DRIFT (tests/test_doc_citation_drift.py:148-514) holds ~91 evidenced entries each with doc_line pointers and f3d7774 content hints \u2014 an explicit, auditable baseline, not a silent allowlist.",
+                "derived": true
+              }
+            ],
+            "summary": "The new tests/test_doc_citation_drift.py module exists, collects, and passes 4/4 under the exact criterion command (.venv/bin/pytest tests/test_doc_citation_drift.py -q \u2192 exit 0, '4 passed in 3.59s'), walks both named docs, carries a negative-proof bite test that provably fails on a moved anchor, and implements a bidirectional ratchet over an explicit, evidenced drift baseline.",
+            "provenance": {
+              "model": "glm-5.3-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            }
+          }
+        }
+      ],
+      "model": "glm-5.3-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"DOC-028\"}",
+          "exit_code": 0,
+          "output_sha": "cbbefedec4d88dd74483c983825c88adbdcf6b86a05cc708fb8b63cb335cd7c3"
+        },
+        {
+          "tool": "run_command",
+          "command": "ls -la /home/kara/ai_plays_poke/tests/test_doc_citation_drift.py 2>&1; echo \"---\"; wc -l /home/kara/ai_plays_poke/tests/test_doc_citation_drift.py 2>&1",
+          "exit_code": 0,
+          "output_sha": "c35b9d79541d5445feb089cc065a9cd6dcc9f1d548f34d0860763562a99e75ac"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && .venv/bin/pytest tests/test_doc_citation_drift.py -q 2>&1 | tail -30; echo \"EXIT:${PIPESTATUS[0]}\"",
+          "exit_code": 2,
+          "output_sha": "8cbb4673d2c33621554a4932031a66fbe7dccd258ae5d395f12c6a5b3e5599a7"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 150, \"path\": \"tests/test_doc_citation_drift.py\"}",
+          "exit_code": 0,
+          "output_sha": "fe245c07c9159e93e1a34fdf777c90981fe661c098f487b7b05a3f4734c65124"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && .venv/bin/pytest tests/test_doc_citation_drift.py -q > /tmp/doc028_out.txt 2>&1; echo \"EXIT_CODE=$?\"; tail -3 /tmp/doc028_out.txt",
+          "exit_code": 0,
+          "output_sha": "b53f0a94ac92279750c3a2dcfab04c0d1d7fa619014362415d27944489e67cb5"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 330, \"offset\": 150, \"path\": \"tests/test_doc_citation_drift.py\"}",
+          "exit_code": 0,
+          "output_sha": "9d9639f7ecb3a7e7a0537ab897af4a314a17c124f58dc7f1f5daf85cd963edf8"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 345, \"offset\": 480, \"path\": \"tests/test_doc_citation_drift.py\"}",
+          "exit_code": 0,
+          "output_sha": "5252d5e739a52f6874b59ab351d01cafec57ea90d85c64cb9a76e0e97bc625a5"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 190, \"offset\": 825, \"path\": \"tests/test_doc_citation_drift.py\"}",
+          "exit_code": 0,
+          "output_sha": "beb268f696969e3df7b277aac8a37bf62849a2fcf76c05cdc8ec6cc7f8c63399"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: Ran `cd /home/kara/ai_plays_poke && .venv/bin/pytest tests/test_doc_citation_drift.py -q` \\u2014 exit_code 0, output tail: \\\"4 passed in 3.59s\\\". Module exists (tests/test_doc_citation_drift.py, 1014 lines, mtime Nov 22) and collects 4 tests, all passing: test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves. (First run showed \\\"Bad substitution\\\" \\u2014 that was /bin/sh rejecting ${PIPESTATUS}, not a test failure; re-run captured EXIT_CODE=0.)\", \"key\": \"verified_0\"}",
+          "exit_code": 0,
+          "output_sha": "644793fd54c4e0c8e18b481d4168be00c00d6c703e4b8563690fd52435ce35e8"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"Derived 0: The guard actually walks BOTH docs named in the task title (docs/observability-spec.md AND docs/api/cron_runner.md) \\u2014 it must not silently check only one of them.\", \"key\": \"derived_0\"}",
+          "exit_code": 0,
+          "output_sha": "c40e979bba632aa70719051cd8d1f08e1486ed1e58c8d0d8998b00d45b56e74a"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"Derived 1: The module is a genuine drift guard, not a vacuous pass \\u2014 it contains a negative-proof test that moves a cited anchor in a scratch tree and asserts the guard produces a new failure, and that test passes.\", \"key\": \"derived_1\"}",
+          "exit_code": 0,
+          "output_sha": "65986911d7da83ea594aa8eb0beac553481d763e870dde6ca07eba336a8b349d"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ls docs/observability-spec.md docs/api/cron_runner.md 2>&1; grep -n \"DEFAULT_TEXTFILE_DIR\" cron_runner.py | head -3; echo \"---known-drift-size---\"; grep -c \"moved by\\|note=\" tests/test_doc_citation_drift.py",
+          "exit_code": 0,
+          "output_sha": "2c21dba0e498db60ba5b8370e162834b2e6f7ee10201fee77e72cde20e27e1d8"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"Derived 2: The suite-level ratchet is real \\u2014 an unbaselined new drift fails, AND a stale KNOWN_DRIFT entry (citation that resolves again after a docs refresh) also fails, so the baseline can only shrink toward empty.\\n\", \"key\": \"derived_2\"}",
+          "exit_code": 0,
+          "output_sha": "567676fc8efc6f10adb0e01486200032ca2361147c98cd567268899811767264"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"Derived 0 \\u2014 PASS: tests/test_doc_citation_drift.py:63 DOCS = (\\\"observability-spec.md\\\", \\\"api/cron_runner.md\\\"); @pytest.mark.parametrize runs test_doc_citations_resolve for both. Pytest output shows BOTH passing: \\\"test_doc_citations_resolve[observability-spec.md] PASSED\\\" and \\\"test_doc_citations_resolve[api/cron_runner.md] PASSED\\\". Both doc files confirmed on disk (ls docs/observability-spec.md docs/api/cron_runner.md \\u2192 both listed).\\n\\nDerived 1 \\u2014 PASS: negative-proof test exists and passes. tests/test_doc_citation_drift.py:963-1014 test_guard_bites_when_cited_anchor_moves copies docs+cited sources into tmp_path, verifies the scratch tree audits clean, inserts 20 sabotage padding lines above cron_runner.py's DEFAULT_TEXTFILE_DIR anchor (verified real on disk: cron_runner.py:62), then asserts a NEW failure targeting cron_runner.py:62 with DEFAULT_TEXTFILE_DIR in tokens. It passed in the run (last line, PASSED). Not vacuous.\\n\\nDerived 2 \\u2014 PASS: ratchet closes both directions. test_doc_citations_resolve (tests/test_doc_citation_drift.py:935-943) asserts `not failures` (new drift fails unless in KNOWN_DRIFT) AND `not stale` (a KNOWN_DRIFT entry whose citation resolves again after docs refresh also fails \\u2192 baseline must shrink). KNOWN_DRIFT holds ~91 entries with mechanical f3d7774-based evidence per entry (lines 148-514), each doc_line-referenced \\u2014 a documented, non-silent baseline.\\n\\nResidual check NOT needed as criterion: sabotage cleanup \\u2014 tmp_path fixture auto-removes; verified sabotage only writes to scratch_root (tmp_path) and scratch copies, never the real cron_runner.py; the full-suite tier1 run (4866 passed incl. this module, per prior stage tests finding) confirms no cross-test contamination.\\n\", \"key\": \"verified_derived_0\"}",
+          "exit_code": 0,
+          "output_sha": "e4aed47505ae5f4ca86a96d99529c813b46d0b7023f4bdc9bbf9495896dcf3b2"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"verified_derived_0 = PASS (derived 0: both docs walked, parametrized, both PASSED in pytest output)\\nverified_derived_1 = PASS (derived 1: bite test real, passed)\\nverified_derived_2 = PASS (derived 2: bidirectional ratchet in test_doc_citations_resolve asserts not failures and not stale)\\n\", \"key\": \"derived_summary\"}",
+          "exit_code": 0,
+          "output_sha": "74523154cb600729631e40125ebf48517e1408996ec25f07a2782a1585aa08ef"
+        }
+      ]
+    }
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [],
+    "summary": "",
+    "error": "unparseable reviewer reply: no parseable JSON object in reply: ''",
+    "review_state": {
+      "emitted": [],
+      "carried": []
+    }
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 Run `.venv/bin/pytest tests/test_doc_citation_drift.py -q` from /home/kara/ai_plays_poke: expect exit 0 with every test in the new citation-drift module passing. FAILIF: the module is missing, fails to collect, or any test inside it fails.: Ran the exact command: exit_code 0, output '4 passed in 3.59s'. Module exists at tests/test_doc_citation_drift.py (1014 lines, 45KB, mtime Nov 22) and collects 4 tests, all passing: test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves. (An initial run showed '/bin/sh: Bad substitution' \u2014 that was the shell rejecting ${PIPESTATUS}, not a test failure; re-run captured EXIT_CODE=0.) The module is also green in the full tier1 suite (4866 passed, 14 skipped, prior tests finding).\n  \u2713 Guard walks BOTH docs named in the task title (docs/observability-spec.md and docs/api/cron_runner.md), not just one: tests/test_doc_citation_drift.py:63 DOCS=(\"observability-spec.md\", \"api/cron_runner.md\"); the parametrized resolver test ran per-doc and pytest output shows BOTH PASSED. Both files confirmed on disk (ls docs/observability-spec.md docs/api/cron_runner.md \u2192 both present); api/cron_runner.md is walked in full per tests/test_doc_citation_drift.py:958-963 (test_declared_history_regions_are_skipped asserts all(_checked_mask(cr_lines))).\n  \u2713 Guard is a real drift detector, not a vacuous pass \u2014 negative proof that a moved cited anchor produces a new failure: tests/test_doc_citation_drift.py:963-1014 test_guard_bites_when_cited_anchor_moves: copies docs + cited sources into tmp_path, proves the scratch tree audits clean, inserts 20 sabotage padding lines above cron_runner.py's DEFAULT_TEXTFILE_DIR anchor (anchor confirmed real at cron_runner.py:62), re-audits, and asserts a NEW failure with target=='cron_runner.py', start==62 and 'DEFAULT_TEXTFILE_DIR' in tokens. Test PASSED in the run \u2014 the guard demonstrably bites on a 20-line anchor move. Resolution is ast-based (no import of product code): _function_spans/_stmt_index at tests/test_doc_citation_drift.py:648-700.\n  \u2713 Ratchet is bidirectional: unbaselined new drift fails AND stale KNOWN_DRIFT entries (re-resolved after a docs refresh) also fail, so the baseline can only shrink: tests/test_doc_citation_drift.py:935-943 test_doc_citations_resolve asserts three things: checks non-empty ('walker found no citations \u2014 regex or region logic broke'), no unbaselined failures, and no stale KNOWN_DRIFT keys ('docs were refreshed; shrink the baseline'). KNOWN_DRIFT (tests/test_doc_citation_drift.py:148-514) holds ~91 evidenced entries each with doc_line pointers and f3d7774 content hints \u2014 an explicit, auditable baseline, not a silent allowlist.\nThe new tests/test_doc_citation_drift.py module exists, collects, and passes 4/4 under the exact criterion command (.venv/bin/pytest tests/test_doc_citation_drift.py -q \u2192 exit 0, '4 passed in 3.59s'), walks both named docs, carries a negative-proof bite test that provably fails on a moved anchor, and implements a bidirectional ratchet over an explicit, evidenced drift baseline.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-11-22T12:16:30.263187",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-22T12:16:30.311193+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 1477,
+        "truncated": false,
+        "source": "git show 856adcc308ae"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 38084,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-028"
+  }
+}
