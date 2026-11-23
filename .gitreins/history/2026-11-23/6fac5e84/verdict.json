@@ -1,0 +1,319 @@
+{
+  "task_id": "VERIFY-MON5-1",
+  "task_title": "Split MON-AIPP-5's bundle criterion so a tier-2 judge can pass it without hitting the iteration cap",
+  "task_criteria": [
+    "PROOF: awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml | grep -c 'PROOF:' prints exactly 5 and the same awk block piped to grep -c 'FAILIF:' prints exactly 5. FAILIF: fewer than five criteria items in the MON-AIPP-5 block, any item lacking a PROOF: or FAILIF: clause, or the original single bundle criterion naming all seven aipp_* metric families in one item still present.",
+    "PROOF: .venv/bin/pytest tests/test_mon_aipp5.py -q exits 0 with every test passing on the graded tree. FAILIF: any test failure/error or the file missing.",
+    "PROOF: the verdict.json in the newest MON-AIPP-5 verdict directory under .gitreins/history/ (timestamped after the criteria-replacement commit) has passed=true with all five criteria graded true and contains no 'iteration cap'/'300 reached' text. FAILIF: the newest MON-AIPP-5 verdict predates the criteria commit, shows evaluator-cap language, or leaves any criterion failed/ungraded."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "57c76aa8f4fc0b84b47aaca9f5a98ff5576fe8f7",
+  "pass_class": "judged",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "90484de4671c9f72ba746fb52a543bd4749da35d9aab70026932c058ec54e60f",
+  "working_tree_dirty_path_count": 6821,
+  "items": [
+    {
+      "criterion": "PROOF: awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml | grep -c 'PROOF:' prints exactly 5 and the same awk block piped to grep -c 'FAILIF:' prints exactly 5. FAILIF: fewer than five criteria items in the MON-AIPP-5 block, any item lacking a PROOF: or FAILIF: clause, or the original single bundle criterion naming all seven aipp_* metric families in one item still present.",
+      "status": "PASS",
+      "detail": "Command output: '5\\n---\\n5'. Full awk block shows exactly 5 criteria, every one carrying both a PROOF: and a FAILIF: clause. git show c9faa59a confirms the original bundle item ('Implement documented-proxy metrics aipp_emulator_desync_total, aipp_emulator_frame_stale_seconds, aipp_screenshot_bytes, aipp_runlog_bytes, aipp_runlog_last_write_timestamp_seconds, aipp_bridge_requests_total{cmd,outcome}, aipp_bridge_active_connections...') was deleted in the split commit and no bundle item naming all seven families in one criterion remains in the block."
+    },
+    {
+      "criterion": "PROOF: .venv/bin/pytest tests/test_mon_aipp5.py -q exits 0 with every test passing on the graded tree. FAILIF: any test failure/error or the file missing.",
+      "status": "PASS",
+      "detail": "Ran '.venv/bin/pytest tests/test_mon_aipp5.py -q' fresh: exit_code 0, decisive output '21 passed in 1.82s'. File present: tests/test_mon_aipp5.py (23123 bytes, executable interpreter .venv/bin/pytest confirmed)."
+    },
+    {
+      "criterion": "PROOF: the verdict.json in the newest MON-AIPP-5 verdict directory under .gitreins/history/ (timestamped after the criteria-replacement commit) has passed=true with all five criteria graded true and contains no 'iteration cap'/'300 reached' text. FAILIF: the newest MON-AIPP-5 verdict predates the criteria commit, shows evaluator-cap language, or leaves any criterion failed/ungraded.",
+      "status": "PASS",
+      "detail": "Newest MON-AIPP-5 verdict is .gitreins/history/2026-11-23/acd4f59d/verdict.json (mtime 11:54:54, commit 10946e88 'verdict: MON-AIPP-5 \u2014 PASS'), which postdates the split commit c9faa59a (11:13:41) and thin-criteria commit 3ecef23e (11:42:21, which the verdict references as its commit). JSON parse shows passed=true and all 5 criteria items status PASS (plus 2 derived items PASS). grep -ci 'iteration cap|300 reached|iteration_cap' on that file returns 0 matches. 'find .gitreins/history -name verdict.json -newermt 2026-11-23 11:54:55 | xargs grep -l MON-AIPP-5' returns nothing \u2014 no newer MON-AIPP-5 verdict exists."
+    },
+    {
+      "criterion": "Derived: the split criteria preserve the substance of the removed bundle criterion \u2014 all seven aipp_* metric families remain verifiable through the referenced check script",
+      "status": "PASS",
+      "detail": "scripts/mon5_checks.sh line 14 (check e) enumerates all seven families in its grep regex, and 'bash scripts/mon5_checks.sh e' run live exits 0 printing 'families: 7' and 'MON5-E OK', proving each family is still present in docs/observability-spec.md sections referenced by the criteria (341-347, 381-430, 990-1000). The thinning indirection does not drop any family.",
+      "derived": true
+    },
+    {
+      "criterion": "Derived: .gitreins/tasks.yaml remains valid YAML after the criteria replacement (no quoting corruption from the embedded PROOF/FAILIF strings)",
+      "status": "PASS",
+      "detail": "python3 -c \"yaml.safe_load(open('.gitreins/tasks.yaml'))\" succeeds parsing 222 tasks; the criteria strings with nested single quotes are correctly escaped (verified by both yaml parse and the awk block returning exactly the 5 criteria intact).",
+      "derived": true
+    }
+  ],
+  "merge_recommendation": "no_concerns_found",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 tests: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\ngitreins_tests: runner=./venv/bin/pytest (pytest 9.1.1) cwd=/home/kara/ai_plays_poke\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4885 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\n\n\u2026 [533925 chars omitted \u2014 5788 line(s)] \u2026\ntest_bench_pathfinding_find_path               470.9873 (1.12)           4,547.9974 (1.0)             938.0932 (1.72)          1,203.3042 (6.00)            541.0111 (1.08)            248.2411 (4.14)          1;1  1,065,992.1820 (0.58)         11           1\ntest_bench_vision_pipeline_validate          7,434.0205 (17.70)      3,962,357.9942 (871.23)       11,332.1655 (20.81)        29,569.0352 (147.45)        9,026.9896 (18.05)         3,481.5166 (58.04)     236;904     88,244.3872 (0.05)      24936           1\ntest_bench_ram_reader_observe            1,113,962.9933 (>1000.0)  268,229,967.0123 (>1000.0)   3,093,193.7799 (>1000.0)  17,096,219.1013 (>1000.0)   1,637,848.4870 (>1000.0)     691,955.9964 (>1000.0)      2;26        323.2904 (0.00)        440           1\ntest_bench_vision_pipeline_process      42,072,965.9963 (>1000.0)  105,913,251.9877 (>1000.0)  56,980,061.6417 (>1000.0)  14,321,527.9732 (>1000.0)  53,462,748.0083 (>1000.0)  15,471,744.9986 (>1000.0)       4;1         17.5500 (0.00)         25           1\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4871 passed, 14 skipped in 303.46s (0:05:03) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n11:58AM INF scanned ~398196644 bytes (398.20 MB) in 33.7s\n11:58AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 102356 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 PROOF: awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml | grep -c 'PROOF:' prints exactly 5 and the same awk block piped to grep -c 'FAILIF:' prints exactly 5. FAILIF: fewer than five criteria items in the MON-AIPP-5 block, any item lacking a PROOF: or FAILIF: clause, or the original single bundle criterion naming all seven aipp_* metric families in one item still present.: Command output: '5\\n---\\n5'. Full awk block shows exactly 5 criteria, every one carrying both a PROOF: and a FAILIF: clause. git show c9faa59a confirms the original bundle item ('Implement documented-proxy metrics aipp_emulator_desync_total, aipp_emulator_frame_stale_seconds, aipp_screenshot_bytes, aipp_runlog_bytes, aipp_runlog_last_write_timestamp_seconds, aipp_bridge_requests_total{cmd,outcome}, aipp_bridge_active_connections...') was deleted in the split commit and no bundle item naming all seven families in one criterion remains in the block.\n  \u2713 PROOF: .venv/bin/pytest tests/test_mon_aipp5.py -q exits 0 with every test passing on the graded tree. FAILIF: any test failure/error or the file missing.: Ran '.venv/bin/pytest tests/test_mon_aipp5.py -q' fresh: exit_code 0, decisive output '21 passed in 1.82s'. File present: tests/test_mon_aipp5.py (23123 bytes, executable interpreter .venv/bin/pytest confirmed).\n  \u2713 PROOF: the verdict.json in the newest MON-AIPP-5 verdict directory under .gitreins/history/ (timestamped after the criteria-replacement commit) has passed=true with all five criteria graded true and contains no 'iteration cap'/'300 reached' text. FAILIF: the newest MON-AIPP-5 verdict predates the criteria commit, shows evaluator-cap language, or leaves any criterion failed/ungraded.: Newest MON-AIPP-5 verdict is .gitreins/history/2026-11-23/acd4f59d/verdict.json (mtime 11:54:54, commit 10946e88 'verdict: MON-AIPP-5 \u2014 PASS'), which postdates the split commit c9faa59a (11:13:41) and thin-criteria commit 3ecef23e (11:42:21, which the verdict references as its commit). JSON parse shows passed=true and all 5 criteria items status PASS (plus 2 derived items PASS). grep -ci 'iteration cap|300 reached|iteration_cap' on that file returns 0 matches. 'find .gitreins/history -name verdict.json -newermt 2026-11-23 11:54:55 | xargs grep -l MON-AIPP-5' returns nothing \u2014 no newer MON-AIPP-5 verdict exists.\n  \u2713 Derived: the split criteria preserve the substance of the removed bundle criterion \u2014 all seven aipp_* metric families remain verifiable through the referenced check script: scripts/mon5_checks.sh line 14 (check e) enumerates all seven families in its grep regex, and 'bash scripts/mon5_checks.sh e' run live exits 0 printing 'families: 7' and 'MON5-E OK', proving each family is still present in docs/observability-spec.md sections referenced by the criteria (341-347, 381-430, 990-1000). The thinning indirection does not drop any family.\n  \u2713 Derived: .gitreins/tasks.yaml remains valid YAML after the criteria replacement (no quoting corruption from the embedded PROOF/FAILIF strings): python3 -c \"yaml.safe_load(open('.gitreins/tasks.yaml'))\" succeeds parsing 222 tasks; the criteria strings with nested single quotes are correctly escaped (verified by both yaml parse and the awk block returning exactly the 5 criteria intact).\nAll three given criteria verified by direct command execution (5/5 PROOF/FAILIF counts, 21 passed pytest, newest verdict passed=true with 5/5 PASS and zero cap language post-split-commit), plus two derived integrity checks (7-family substance preserved via mon5_checks.sh e, tasks.yaml still valid YAML) \u2014 task is complete.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 PROOF: awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml | grep -c 'PROOF:' prints exactly 5 and the same awk block piped to grep -c 'FAILIF:' prints exactly 5. FAILIF: fewer than five criteria items in the MON-AIPP-5 block, any item lacking a PROOF: or FAILIF: clause, or the original single bundle criterion naming all seven aipp_* metric families in one item still present.: Command output: '5\\n---\\n5'. Full awk block shows exactly 5 criteria, every one carrying both a PROOF: and a FAILIF: clause. git show c9faa59a confirms the original bundle item ('Implement documented-proxy metrics aipp_emulator_desync_total, aipp_emulator_frame_stale_seconds, aipp_screenshot_bytes, aipp_runlog_bytes, aipp_runlog_last_write_timestamp_seconds, aipp_bridge_requests_total{cmd,outcome}, aipp_bridge_active_connections...') was deleted in the split commit and no bundle item naming all seven families in one criterion remains in the block.\n  \u2713 PROOF: .venv/bin/pytest tests/test_mon_aipp5.py -q exits 0 with every test passing on the graded tree. FAILIF: any test failure/error or the file missing.: Ran '.venv/bin/pytest tests/test_mon_aipp5.py -q' fresh: exit_code 0, decisive output '21 passed in 1.82s'. File present: tests/test_mon_aipp5.py (23123 bytes, executable interpreter .venv/bin/pytest confirmed).\n  \u2713 PROOF: the verdict.json in the newest MON-AIPP-5 verdict directory under .gitreins/history/ (timestamped after the criteria-replacement commit) has passed=true with all five criteria graded true and contains no 'iteration cap'/'300 reached' text. FAILIF: the newest MON-AIPP-5 verdict predates the criteria commit, shows evaluator-cap language, or leaves any criterion failed/ungraded.: Newest MON-AIPP-5 verdict is .gitreins/history/2026-11-23/acd4f59d/verdict.json (mtime 11:54:54, commit 10946e88 'verdict: MON-AIPP-5 \u2014 PASS'), which postdates the split commit c9faa59a (11:13:41) and thin-criteria commit 3ecef23e (11:42:21, which the verdict references as its commit). JSON parse shows passed=true and all 5 criteria items status PASS (plus 2 derived items PASS). grep -ci 'iteration cap|300 reached|iteration_cap' on that file returns 0 matches. 'find .gitreins/history -name verdict.json -newermt 2026-11-23 11:54:55 | xargs grep -l MON-AIPP-5' returns nothing \u2014 no newer MON-AIPP-5 verdict exists.\n  \u2713 Derived: the split criteria preserve the substance of the removed bundle criterion \u2014 all seven aipp_* metric families remain verifiable through the referenced check script: scripts/mon5_checks.sh line 14 (check e) enumerates all seven families in its grep regex, and 'bash scripts/mon5_checks.sh e' run live exits 0 printing 'families: 7' and 'MON5-E OK', proving each family is still present in docs/observability-spec.md sections referenced by the criteria (341-347, 381-430, 990-1000). The thinning indirection does not drop any family.\n  \u2713 Derived: .gitreins/tasks.yaml remains valid YAML after the criteria replacement (no quoting corruption from the embedded PROOF/FAILIF strings): python3 -c \"yaml.safe_load(open('.gitreins/tasks.yaml'))\" succeeds parsing 222 tasks; the criteria strings with nested single quotes are correctly escaped (verified by both yaml parse and the awk block returning exactly the 5 criteria intact).\nAll three given criteria verified by direct command execution (5/5 PROOF/FAILIF counts, 21 passed pytest, newest verdict passed=true with 5/5 PASS and zero cap language post-split-commit), plus two derived integrity checks (7-family substance preserved via mon5_checks.sh e, tasks.yaml still valid YAML) \u2014 task is complete.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "PROOF: awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml | grep -c 'PROOF:' prints exactly 5 and the same awk block piped to grep -c 'FAILIF:' prints exactly 5. FAILIF: fewer than five criteria items in the MON-AIPP-5 block, any item lacking a PROOF: or FAILIF: clause, or the original single bundle criterion naming all seven aipp_* metric families in one item still present.",
+                "status": "PASS",
+                "detail": "Command output: '5\\n---\\n5'. Full awk block shows exactly 5 criteria, every one carrying both a PROOF: and a FAILIF: clause. git show c9faa59a confirms the original bundle item ('Implement documented-proxy metrics aipp_emulator_desync_total, aipp_emulator_frame_stale_seconds, aipp_screenshot_bytes, aipp_runlog_bytes, aipp_runlog_last_write_timestamp_seconds, aipp_bridge_requests_total{cmd,outcome}, aipp_bridge_active_connections...') was deleted in the split commit and no bundle item naming all seven families in one criterion remains in the block."
+              },
+              {
+                "criterion": "PROOF: .venv/bin/pytest tests/test_mon_aipp5.py -q exits 0 with every test passing on the graded tree. FAILIF: any test failure/error or the file missing.",
+                "status": "PASS",
+                "detail": "Ran '.venv/bin/pytest tests/test_mon_aipp5.py -q' fresh: exit_code 0, decisive output '21 passed in 1.82s'. File present: tests/test_mon_aipp5.py (23123 bytes, executable interpreter .venv/bin/pytest confirmed)."
+              },
+              {
+                "criterion": "PROOF: the verdict.json in the newest MON-AIPP-5 verdict directory under .gitreins/history/ (timestamped after the criteria-replacement commit) has passed=true with all five criteria graded true and contains no 'iteration cap'/'300 reached' text. FAILIF: the newest MON-AIPP-5 verdict predates the criteria commit, shows evaluator-cap language, or leaves any criterion failed/ungraded.",
+                "status": "PASS",
+                "detail": "Newest MON-AIPP-5 verdict is .gitreins/history/2026-11-23/acd4f59d/verdict.json (mtime 11:54:54, commit 10946e88 'verdict: MON-AIPP-5 \u2014 PASS'), which postdates the split commit c9faa59a (11:13:41) and thin-criteria commit 3ecef23e (11:42:21, which the verdict references as its commit). JSON parse shows passed=true and all 5 criteria items status PASS (plus 2 derived items PASS). grep -ci 'iteration cap|300 reached|iteration_cap' on that file returns 0 matches. 'find .gitreins/history -name verdict.json -newermt 2026-11-23 11:54:55 | xargs grep -l MON-AIPP-5' returns nothing \u2014 no newer MON-AIPP-5 verdict exists."
+              },
+              {
+                "criterion": "Derived: the split criteria preserve the substance of the removed bundle criterion \u2014 all seven aipp_* metric families remain verifiable through the referenced check script",
+                "status": "PASS",
+                "detail": "scripts/mon5_checks.sh line 14 (check e) enumerates all seven families in its grep regex, and 'bash scripts/mon5_checks.sh e' run live exits 0 printing 'families: 7' and 'MON5-E OK', proving each family is still present in docs/observability-spec.md sections referenced by the criteria (341-347, 381-430, 990-1000). The thinning indirection does not drop any family.",
+                "derived": true
+              },
+              {
+                "criterion": "Derived: .gitreins/tasks.yaml remains valid YAML after the criteria replacement (no quoting corruption from the embedded PROOF/FAILIF strings)",
+                "status": "PASS",
+                "detail": "python3 -c \"yaml.safe_load(open('.gitreins/tasks.yaml'))\" succeeds parsing 222 tasks; the criteria strings with nested single quotes are correctly escaped (verified by both yaml parse and the awk block returning exactly the 5 criteria intact).",
+                "derived": true
+              }
+            ],
+            "summary": "All three given criteria verified by direct command execution (5/5 PROOF/FAILIF counts, 21 passed pytest, newest verdict passed=true with 5/5 PASS and zero cap language post-split-commit), plus two derived integrity checks (7-family substance preserved via mon5_checks.sh e, tasks.yaml still valid YAML) \u2014 task is complete.",
+            "provenance": {
+              "model": "glm-5.3-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            },
+            "context_stats": {
+              "diff_source": "working-tree",
+              "diff_bytes": 548,
+              "prompt_bytes": 18138
+            }
+          }
+        }
+      ],
+      "model": "glm-5.3-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "context_stats": {
+        "diff_source": "working-tree",
+        "diff_bytes": 548,
+        "prompt_bytes": 18138
+      },
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"VERIFY-MON5-1\"}",
+          "exit_code": 0,
+          "output_sha": "b4ebe4a910d1a227632a301f1b7516a81a449f045af9e586f934d42a96e80f11"
+        },
+        {
+          "tool": "run_command",
+          "command": "awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml | grep -c 'PROOF:'; echo \"---\"; awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml | grep -c 'FAILIF:'",
+          "exit_code": 0,
+          "output_sha": "6ceb5d30eff797dba5045003f9a110158b4d4e32441d62eb2445ed31e571355c"
+        },
+        {
+          "tool": "run_command",
+          "command": "awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml",
+          "exit_code": 0,
+          "output_sha": "cf37368dd09bce634a09c5c794b148735d28cb2019499bd8b673c15a60a8d94e"
+        },
+        {
+          "tool": "run_command",
+          "command": "git -C /home/kara/ai_plays_poke log --oneline -8 -- .gitreins/tasks.yaml; echo \"===\"; git -C /home/kara/ai_plays_poke log --all --oneline -12 | head -20",
+          "exit_code": 0,
+          "output_sha": "8da58bf2f34fb801010a22dc98f7d7b5b90bae485e1bee72de3acbd6c8d28eb4"
+        },
+        {
+          "tool": "run_command",
+          "command": "ls -la /home/kara/ai_plays_poke/.gitreins/history/ 2>/dev/null | grep -i aipp; echo \"---dirs---\"; ls /home/kara/ai_plays_poke/.gitreins/history/ | head -30",
+          "exit_code": 0,
+          "output_sha": "28d61872cf06fc5e114e8242b555f5e9de0a45c21e5c683b359eb943b363f8b9"
+        },
+        {
+          "tool": "run_command",
+          "command": "git -C /home/kara/ai_plays_poke show -s --format='%H %cI %s' c9faa59a 3ecef23e 10946e88 57c76aa8 44ab9433",
+          "exit_code": 0,
+          "output_sha": "f800daa8dde54fc46b968758ff512fee9f48dc12a505adc7ec2887c4ca5e05d9"
+        },
+        {
+          "tool": "run_command",
+          "command": "grep -rl \"MON-AIPP-5\" /home/kara/ai_plays_poke/.gitreins/history/ 2>/dev/null | grep -v tasks.yaml | head -20",
+          "exit_code": 0,
+          "output_sha": "fa0b0c6c7dc86ffaddf213b264f30eb31eb9e21e0fb94eaed0abf5eb7eb95ccd"
+        },
+        {
+          "tool": "run_command",
+          "command": "for f in $(grep -rl \"MON-AIPP-5\" /home/kara/ai_plays_poke/.gitreins/history/ 2>/dev/null | grep verdict.json); do d=$(dirname $f); ts=$(stat -c %y \"$f\"); passed=$(python3 -c \"import json;d=json.load(open('$f'));print(d.get('passed'))\" 2>/dev/null); echo \"$ts | passed=$passed | $d\"; done | sort",
+          "exit_code": 0,
+          "output_sha": "add4ec724533c162cf1c2258507ba2e926fe52befc055aa1772b21ed202199f1"
+        },
+        {
+          "tool": "run_command",
+          "command": "python3 -m json.tool /home/kara/ai_plays_poke/.gitreins/history/2026-11-23/acd4f59d/verdict.json | head -80",
+          "exit_code": 0,
+          "output_sha": "efb30f455aa6fd79c51663fc084ab2825b1d5e08231004f7fc2be6bce562ddb1"
+        },
+        {
+          "tool": "run_command",
+          "command": "python3 -c \"\nimport json\nd=json.load(open('/home/kara/ai_plays_poke/.gitreins/history/2026-11-23/acd4f59d/verdict.json'))\nprint('passed:', d['passed'])\nfor i,it in enumerate(d['items']):\n    print(i, it['criterion'][:60], '->', it['status'])\n\"",
+          "exit_code": 0,
+          "output_sha": "00fe0280ff310f7420d7c52f074754172787abf11092aa6faf9bbae59b9d0d6c"
+        },
+        {
+          "tool": "run_command",
+          "command": "grep -ci \"iteration cap\\|300 reached\\|iteration_cap\" /home/kara/ai_plays_poke/.gitreins/history/2026-11-23/acd4f59d/verdict.json; echo \"---old-b99a1a4e---\"; grep -ci \"iteration cap\\|300 reached\\|iteration_cap\" /home/kara/ai_plays_poke/.gitreins/history/2026-11-23/b99a1a4e/verdict.json",
+          "exit_code": 1,
+          "output_sha": "e327ee47f28419d3f85a10bcd3bfb7b787c7e8ce98ac8af5e4fedcb17465ffb0"
+        },
+        {
+          "tool": "run_command",
+          "command": "ls -la /home/kara/ai_plays_poke/.venv/bin/pytest /home/kara/ai_plays_poke/tests/test_mon_aipp5.py 2>&1; echo \"===\"; cd /home/kara/ai_plays_poke && .venv/bin/pytest tests/test_mon_aipp5.py -q 2>&1 | tail -15",
+          "exit_code": 0,
+          "output_sha": "98f0ebcba01c6450af450f52271fa5ed7056ff24022bad0f981d0608f68cdfc1"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show c9faa59a -- .gitreins/tasks.yaml | grep -E \"^\\+.*aipp_|^-.*aipp_\" | head -20",
+          "exit_code": 0,
+          "output_sha": "7312bf521a64e7ccfb7a6abd0996e7ccfd41beac74b1d0365717dba9b61c4239"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: awk|grep -c 'PROOF:' = 5 and awk|grep -c 'FAILIF:' = 5 (command output \\\"5\\\\n---\\\\n5\\\"). Full awk block shows exactly 5 criteria, each with PROOF: and FAILIF: clauses. git show c9faa59a confirms original bundle criterion (\\\"Implement documented-proxy metrics aipp_emulator_desync_total, ...\\\") was removed; no bundle item remains in the block.\", \"key\": \"verified_0\"}",
+          "exit_code": 0,
+          "output_sha": "8258cade480b90f2023cb13bfc154431a90813344d562357bd5a79976b38b4c1"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && python3 -c \"\nimport yaml\nd = yaml.safe_load(open('.gitreins/tasks.yaml'))\nprint('YAML OK, tasks:', len(d['tasks']))\n\" 2>&1; echo \"===\"; awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml | grep -oE 'aipp_(emulator_desync_total|emulator_frame_stale_seconds|screenshot_bytes|runlog_bytes|runlog_last_write_timestamp_seconds|bridge_requests_total|bridge_active_connections)' | sort -u",
+          "exit_code": 0,
+          "output_sha": "efb9c8fbe3ab9789662e7fd47841d0dd747bb50abe4d7c2de343f4005646a849"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ls -la scripts/mon5_checks.sh && grep -n \"families\" scripts/mon5_checks.sh | head -5; echo \"===\"; grep -oE 'aipp_(emulator_desync_total|emulator_frame_stale_seconds|screenshot_bytes|runlog_bytes|runlog_last_write_timestamp_seconds|bridge_requests_total|bridge_active_connections)' scripts/mon5_checks.sh | sort -u | wc -l",
+          "exit_code": 0,
+          "output_sha": "101b9b947dc36489601c98434adce133927d61a841b34e0f921795d46e5c9d54"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && bash scripts/mon5_checks.sh e; echo \"exit=$?\"",
+          "exit_code": 0,
+          "output_sha": "bd25ffb79382872053dc40b7721df2a0047a330ca00cfd225cb5d6ef85451998"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ls .gitreins/history/ | sort | tail -4; echo \"---\"; find .gitreins/history -name verdict.json -newermt \"2026-11-23 11:54:55\" 2>/dev/null | xargs -r grep -l \"MON-AIPP-5\" 2>/dev/null | head; echo \"(none above = acd4f59d is newest)\"",
+          "exit_code": 0,
+          "output_sha": "3eedb70b377a8d67bf8cb00ecf128ce53dc8a38dfba2af1fd975572edb2fb02f"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: .venv/bin/pytest tests/test_mon_aipp5.py -q \\u2192 exit_code 0, \\\"21 passed in 1.82s\\\" on graded tree; tests/test_mon_aipp5.py exists (23123 bytes).\\n---\\nPASS: newest verdict .gitreins/history/2026-11-23/acd4f59d/verdict.json (mtime 11:54:54 = commit 10946e88) has passed=true, all 5 criteria PASS (python json parse output), grep -ci 'iteration cap|300 reached|iteration_cap' = 0; verdict commit 3ecef23e (11:42:21) postdates split commit c9faa59a (11:13:41); find -newermt 11:54:55 \\u2192 no newer MON-AIPP-5 verdict exists.\\n---\\nPASS derived_0: scripts/mon5_checks.sh:14 lists all 7 aipp_* alternatives; bash scripts/mon5_checks.sh e \\u2192 exit 0, \\\"families: 7\\\" + \\\"MON5-E OK\\\" \\u2014 substance (7 families) preserved through the thinning indirection.\\n---\\nPASS derived_1: python3 yaml.safe_load('.gitreins/tasks.yaml') OK, 222 tasks \\u2014 split criteria did not corrupt the task file.\", \"key\": \"verified_1_and_rest\"}",
+          "exit_code": 0,
+          "output_sha": "f0868ae12b8ee5f15b21ba6686cd4f966256d574bdd923e981dd68fa58ae8674"
+        }
+      ]
+    }
+  },
+  "context_stats": {
+    "diff_source": "working-tree",
+    "diff_bytes": 548,
+    "prompt_bytes": 18138
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [],
+    "summary": "",
+    "error": "unparseable reviewer reply: no parseable JSON object in reply: ''",
+    "review_state": {
+      "emitted": [],
+      "carried": []
+    }
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 tests: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 PROOF: awk '/^- id: MON-AIPP-5$/{f=1;next} /^- id: /{if(f)exit} f' .gitreins/tasks.yaml | grep -c 'PROOF:' prints exactly 5 and the same awk block piped to grep -c 'FAILIF:' prints exactly 5. FAILIF: fewer than five criteria items in the MON-AIPP-5 block, any item lacking a PROOF: or FAILIF: clause, or the original single bundle criterion naming all seven aipp_* metric families in one item still present.: Command output: '5\\n---\\n5'. Full awk block shows exactly 5 criteria, every one carrying both a PROOF: and a FAILIF: clause. git show c9faa59a confirms the original bundle item ('Implement documented-proxy metrics aipp_emulator_desync_total, aipp_emulator_frame_stale_seconds, aipp_screenshot_bytes, aipp_runlog_bytes, aipp_runlog_last_write_timestamp_seconds, aipp_bridge_requests_total{cmd,outcome}, aipp_bridge_active_connections...') was deleted in the split commit and no bundle item naming all seven families in one criterion remains in the block.\n  \u2713 PROOF: .venv/bin/pytest tests/test_mon_aipp5.py -q exits 0 with every test passing on the graded tree. FAILIF: any test failure/error or the file missing.: Ran '.venv/bin/pytest tests/test_mon_aipp5.py -q' fresh: exit_code 0, decisive output '21 passed in 1.82s'. File present: tests/test_mon_aipp5.py (23123 bytes, executable interpreter .venv/bin/pytest confirmed).\n  \u2713 PROOF: the verdict.json in the newest MON-AIPP-5 verdict directory under .gitreins/history/ (timestamped after the criteria-replacement commit) has passed=true with all five criteria graded true and contains no 'iteration cap'/'300 reached' text. FAILIF: the newest MON-AIPP-5 verdict predates the criteria commit, shows evaluator-cap language, or leaves any criterion failed/ungraded.: Newest MON-AIPP-5 verdict is .gitreins/history/2026-11-23/acd4f59d/verdict.json (mtime 11:54:54, commit 10946e88 'verdict: MON-AIPP-5 \u2014 PASS'), which postdates the split commit c9faa59a (11:13:41) and thin-criteria commit 3ecef23e (11:42:21, which the verdict references as its commit). JSON parse shows passed=true and all 5 criteria items status PASS (plus 2 derived items PASS). grep -ci 'iteration cap|300 reached|iteration_cap' on that file returns 0 matches. 'find .gitreins/history -name verdict.json -newermt 2026-11-23 11:54:55 | xargs grep -l MON-AIPP-5' returns nothing \u2014 no newer MON-AIPP-5 verdict exists.\n  \u2713 Derived: the split criteria preserve the substance of the removed bundle criterion \u2014 all seven aipp_* metric families remain verifiable through the referenced check script: scripts/mon5_checks.sh line 14 (check e) enumerates all seven families in its grep regex, and 'bash scripts/mon5_checks.sh e' run live exits 0 printing 'families: 7' and 'MON5-E OK', proving each family is still present in docs/observability-spec.md sections referenced by the criteria (341-347, 381-430, 990-1000). The thinning indirection does not drop any family.\n  \u2713 Derived: .gitreins/tasks.yaml remains valid YAML after the criteria replacement (no quoting corruption from the embedded PROOF/FAILIF strings): python3 -c \"yaml.safe_load(open('.gitreins/tasks.yaml'))\" succeeds parsing 222 tasks; the criteria strings with nested single quotes are correctly escaped (verified by both yaml parse and the awk block returning exactly the 5 criteria intact).\nAll three given criteria verified by direct command execution (5/5 PROOF/FAILIF counts, 21 passed pytest, newest verdict passed=true with 5/5 PASS and zero cap language post-split-commit), plus two derived integrity checks (7-family substance preserved via mon5_checks.sh e, tasks.yaml still valid YAML) \u2014 task is complete.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-11-23T17:07:24.906182",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-23T17:07:25.141544+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 262176,
+        "truncated": true,
+        "source": "git show 57c76aa8f4fc"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 27359,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "VERIFY-MON5-1"
+  }
+}
