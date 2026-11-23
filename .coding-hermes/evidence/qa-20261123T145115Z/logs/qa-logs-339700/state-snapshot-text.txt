@@ -1,0 +1,12 @@
+./data/baselines/base1_control_2026-09-27.json
+./data/baselines/base-1_long_0926_0014.json
+./data/baselines/boot_state_pin.json
+./data/baselines/ctrl-win_2026-09-26.json
+./data/baselines/ctrlwin_llm_2026-09-27.json
+./data/baselines/dist1_ctrlwin_distribution_2026-09-27.json
+./data/baselines/mem_pop_20260926T205640Z.json
+./data/baselines/perf2_cold_decomp_20260926.json
+./data/baselines/perf2_recheck_20260927.json
+./data/baselines/perf3_ram_walkability_20260927.json
+./data/baselines/perf3_topology_refresh_20260927.json
+./data/vision_model_runs.jsonl

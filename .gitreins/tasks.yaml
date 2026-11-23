@@ -2243,3 +2243,34 @@ tasks:
   status: complete
   created_at: '2026-11-22T10:32:47.946841+00:00'
   completed_at: '2026-11-22T12:08:12.530270+00:00'
+- id: INT-CLI-DRYRUN-1
+  title: Restore or retire the stdlib-only --dry-run fast path
+  criteria:
+  - 'PROOF: env -i /usr/bin/python3 -S cron_runner.py --dry-run --skip-key-check exits
+    per the worker-declared contract (option a: rc 0 with the validation summary;
+    option b: rc 1-2 with a message naming the interpreter/deps requirement), never
+    a bare traceback; and the new regression test passes via the repo venv pytest
+    (path named in the commit/summary). FAILIF: the dry-run path emits a bare ImportError/traceback
+    under env -i python3 -S, or the regression test fails, or README:238-247 and docs/api/cron_runner.md
+    still disagree with the shipped behaviour.'
+  status: complete
+  created_at: '2026-11-22T21:02:49.606455+00:00'
+  completed_at: '2026-11-22T21:54:25.156440+00:00'
+- id: INT-GATE-003
+  title: '[P2] acceptance_gate flag arm false-negatives flags owned by external CLIs
+    (blocks QA-AI-PLAYS-POKE-28)'
+  criteria:
+  - "1) Reproduce the false negative: run `python3 ~/.hermes/scripts/acceptance_gate.py\
+    \ audit .` and expect QA-AI-PLAYS-POKE-28 in the FAIL list with the reason that\
+    \ one flag named in its criterion does not exist, even though that flag belongs\
+    \ to the external bunker CLI (verified live: \"bunker list\" accepts it) and not\
+    \ to this repo. 2) Fix the flag arm so it reports a flag missing only when the\
+    \ tool that owns the flag is itself repo-local: expect the audit to list QA-AI-PLAYS-POKE-28\
+    \ as passing, while every row naming a genuinely absent repo-local flag still\
+    \ FAILs \u2014 paste both FAIL id lists and state the exact delta. 3) Guard the\
+    \ fix: run `python3 ~/.hermes/scripts/acceptance_gate.py audit .` and expect the\
+    \ total FAIL count to drop by exactly the number of false positives proven in\
+    \ step 1, with no previously failing row silently passing."
+  status: complete
+  created_at: '2026-11-23T04:55:29.465507+00:00'
+  completed_at: '2026-11-23T05:18:28.781834+00:00'
