@@ -1,0 +1,431 @@
+{
+  "task_id": "MON-AIPP-5",
+  "task_title": "Emulator desync/frame-staleness signals and data-growth gauges",
+  "task_criteria": [
+    "PROOF: bash scripts/mon5_checks.sh a exits 0 printing \"21 passed\" and \"MON5-A OK\". FAILIF: any test failure/error, collection error, or a different count.",
+    "PROOF: bash scripts/mon5_checks.sh b exits 0 printing \"age_before 0.0 fires_before False age_after 7200 fires_after True\" and \"MON5-B OK\". FAILIF: the gauge reads the wall clock instead of the ledger mtime, the age does not jump to 7200, or the PromQL age>3600 query does not go from empty to firing.",
+    "PROOF: bash scripts/mon5_checks.sh c exits 0 printing \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" and \"MON5-C OK\". FAILIF: the health/ok counter is not exactly 50 after the 5x10 burst, or any active-connection worker leaks (gauge not back to 0 after burst and shutdown).",
+    "PROOF: bash scripts/mon5_checks.sh d exits 0 printing \"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\" and \"MON5-D OK\". FAILIF: the counter increments on the first frozen cycle, fails to increment on the second, or the integrity tracker is not wired after _cycle_observe.",
+    "PROOF: bash scripts/mon5_checks.sh e exits 0 printing \"families: 7\" and \"MON5-E OK\" (all seven aipp_* families named in docs/observability-spec.md sections 3.2 rows 17-23, 3.3 + 3.3.1, and 8.6 item 6). FAILIF: any of the seven family names is missing from those sections or a feed-site line was dropped from the SHIPPED rows."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "3ecef23e7f94d9220274bf81da61bb48c3cdc94a",
+  "pass_class": "judged",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "1b1b48429b7af40237dc6d8cb84be5fb733cfb605e346cd95c415cdbb73c0a98",
+  "working_tree_dirty_path_count": 6825,
+  "items": [
+    {
+      "criterion": "PROOF: bash scripts/mon5_checks.sh a exits 0 printing \"21 passed\" and \"MON5-A OK\". FAILIF: any test failure/error, collection error, or a different count.",
+      "status": "PASS",
+      "detail": "Ran `bash scripts/mon5_checks.sh a` fresh: exit_code=0, output \"collected 21 items ... 21 passed in 3.37s\" and \"MON5-A OK\". All 21 tests in tests/test_mon_aipp5.py (TestDeclarations, TestDesyncProxy, TestRunlogStalenessQuery, TestBridgeBurst) collected and passed with zero errors; re-ran in the batch loop \u2014 stable at exit=0."
+    },
+    {
+      "criterion": "PROOF: bash scripts/mon5_checks.sh b exits 0 printing \"age_before 0.0 fires_before False age_after 7200 fires_after True\" and \"MON5-B OK\". FAILIF: the gauge reads the wall clock instead of the ledger mtime, the age does not jump to 7200, or the PromQL age>3600 query does not go from empty to firing.",
+      "status": "PASS",
+      "detail": "Ran `bash scripts/mon5_checks.sh b`: exit_code=0, output exactly \"age_before 0.0 fires_before False age_after 7200 fires_after True\" + \"MON5-B OK\". The check drives the real cron_runner._publish_data_growth_metrics against a temp ledger, ages the file with os.utime to 7200s old, re-publishes, and asserts a0<3600, a1>3600, |a1-7200|<120 \u2014 proving the gauge is fed from stat.st_mtime (cron_runner.py:9304-9307 sets last_write from st_mtime; metrics.py:154 help \"Unix timestamp of the last write\"), not a synthetic now, and the age>3600 query goes empty\u2192firing."
+    },
+    {
+      "criterion": "PROOF: bash scripts/mon5_checks.sh c exits 0 printing \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" and \"MON5-C OK\". FAILIF: the health/ok counter is not exactly 50 after the 5x10 burst, or any active-connection worker leaks (gauge not back to 0 after burst and shutdown).",
+      "status": "PASS",
+      "detail": "Ran `bash scripts/mon5_checks.sh c`: exit_code=0, output exactly \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" + \"MON5-C OK\". The check opens 50 real TCP connections (5 waves \u00d7 10, ThreadPoolExecutor) against a live game_bridge.serve thread (max_workers=4, stop_event), reads aipp_bridge_requests_total{cmd=health,outcome=ok}==50.0 and aipp_bridge_active_connections==0.0 after stop.set()+join \u2014 no worker leak. Feed sites verified in source: scripts/game_bridge.py:488 (observe_bridge_request in handle() finally \u2014 every exit counted once) and :578/:594/:609/:696 (set_bridge_active_connections at bind, admit, discard, shutdown)."
+    },
+    {
+      "criterion": "PROOF: bash scripts/mon5_checks.sh d exits 0 printing \"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\" and \"MON5-D OK\". FAILIF: the counter increments on the first frozen cycle, fails to increment on the second, or the integrity tracker is not wired after _cycle_observe.",
+      "status": "PASS",
+      "detail": "Ran `bash scripts/mon5_checks.sh d`: exit_code=0, output \"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\" + \"MON5-D OK\". The check runs the REAL cron_runner._cycle_header against a frozen-frame/frozen-tile emulator stub: counter stays 0.0 through cycle 1 (no previous observation) and reaches 1.0 after the second identical cycle. Wiring verified in source: _cycle_header calls _cycle_observe at cron_runner.py:9546 then _track_emulator_integrity at :9558 (tracker after both frame hash and RAM observation exist), and the proxy logic at :9255-9280 requires repeated_frame AND ram_tile_unchanged with tile_known."
+    },
+    {
+      "criterion": "PROOF: bash scripts/mon5_checks.sh e exits 0 printing \"families: 7\" and \"MON5-E OK\" (all seven aipp_* families named in docs/observability-spec.md sections 3.2 rows 17-23, 3.3 + 3.3.1, and 8.6 item 6). FAILIF: any of the seven family names is missing from those sections or a feed-site line was dropped from the SHIPPED rows.",
+      "status": "PASS",
+      "detail": "Ran `bash scripts/mon5_checks.sh e`: exit_code=0, output \"families: 7\" + \"MON5-E OK\". Verified the ranges map to the named sections: lines 341-347 are \u00a73.2 P3 rows 17-23 and alone contain all seven family names; lines 381-430 are the \u00a73.3 UPDATE block + \u00a73.3.1 desync-proxy semantics (aipp_emulator_desync_total, \u00a78.6 item-6 reference at :426); lines 990-1000 reach \u00a78. Known risks (item 6 status at :1021-1031, adjacent). SHIPPED feed-site rows intact: lines 71-78 list all seven rows 17-23 with definition + production feed site each (e.g. row 22 \u2192 game_bridge.py:488, row 23 \u2192 serve() :593/:607/:578/:696), none dropped."
+    },
+    {
+      "criterion": "Derived: the mon5 checks exercise REAL production code paths (cron_runner._cycle_header/_run_cycles/_finalize_run, game_bridge handle()/serve()), not parallel scaffolding \u2014 the seven families are fed from the shipped wiring",
+      "status": "PASS",
+      "detail": "Source evidence: cron_runner.py:9558 (_track_emulator_integrity inside _cycle_header after _cycle_observe at :9546), cron_runner.py:9139 (_publish_data_growth_metrics() per cycle in _run_cycles), cron_runner.py:11525 (published after log_file.close() at :11523 in _finalize_run), scripts/game_bridge.py:488/578/594/609/696, src/observability/metrics.py:132-167 (all seven declared once with correct Counter/Gauge types \u2014 also asserted by tests/test_mon_aipp5.py TestDeclarations). The module-level seam holds: main() declares `global log_path` (cron_runner.py:8472) so the no-arg per-cycle call reads the real ledger path.",
+      "derived": true
+    },
+    {
+      "criterion": "Derived: all five checks are deterministic and re-run stable (exit 0 twice in the same session, exact output both times)",
+      "status": "PASS",
+      "detail": "Command `for x in a b c d e; do bash scripts/mon5_checks.sh $x; done` (fresh second run): \"check a exit=0 :: MON5-A OK / check b exit=0 :: MON5-B OK / check c exit=0 :: MON5-C OK / check d exit=0 :: MON5-D OK / check e exit=0 :: MON5-E OK\". The d check also prints frame_stale_seconds \u22480.0005 (fresh monotonic measurement), consistent across runs.",
+      "derived": true
+    }
+  ],
+  "merge_recommendation": "no_concerns_found",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n11:45AM INF scanned ~398193254 bytes (398.19 MB) in 1m54s\n11:45AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 102352 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\ngitreins_tests: runner=./venv/bin/pytest (pytest 9.1.1) cwd=/home/kara/ai_plays_poke\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4885 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\n\n\u2026 [533929 chars omitted \u2014 5788 line(s)] \u2026\ntest_bench_pathfinding_find_path              1,072.0105 (1.70)         126,844.9996 (1.0)           27,765.6072 (18.21)        55,452.5198 (4.60)           1,664.0115 (2.02)         35,973.9934 (356.11)        1;1   36,015.7799 (0.05)          5           1\ntest_bench_vision_pipeline_validate           9,767.9731 (15.48)      7,254,044.0015 (57.19)         25,538.6698 (16.75)       169,327.0796 (14.06)         13,665.9946 (16.63)         1,833.0174 (18.15)    146;1238   39,156.3072 (0.06)      18770           1\ntest_bench_ram_reader_observe             1,959,738.9910 (>1000.0)  445,528,317.9996 (>1000.0)    6,747,582.7420 (>1000.0)  32,119,330.0080 (>1000.0)    3,580,329.9834 (>1000.0)   2,504,648.0005 (>1000.0)      2;24      148.2012 (0.00)        374           1\ntest_bench_vision_pipeline_process      137,507,180.9744 (>1000.0)  280,126,509.0238 (>1000.0)  207,472,084.3359 (>1000.0)  47,883,687.3001 (>1000.0)  211,860,256.9972 (>1000.0)  68,587,760.2664 (>1000.0)       4;0        4.8199 (0.00)          9           1\n------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4871 passed, 14 skipped in 393.81s (0:06:33) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 PROOF: bash scripts/mon5_checks.sh a exits 0 printing \"21 passed\" and \"MON5-A OK\". FAILIF: any test failure/error, collection error, or a different count.: Ran `bash scripts/mon5_checks.sh a` fresh: exit_code=0, output \"collected 21 items ... 21 passed in 3.37s\" and \"MON5-A OK\". All 21 tests in tests/test_mon_aipp5.py (TestDeclarations, TestDesyncProxy, TestRunlogStalenessQuery, TestBridgeBurst) collected and passed with zero errors; re-ran in the batch loop \u2014 stable at exit=0.\n  \u2713 PROOF: bash scripts/mon5_checks.sh b exits 0 printing \"age_before 0.0 fires_before False age_after 7200 fires_after True\" and \"MON5-B OK\". FAILIF: the gauge reads the wall clock instead of the ledger mtime, the age does not jump to 7200, or the PromQL age>3600 query does not go from empty to firing.: Ran `bash scripts/mon5_checks.sh b`: exit_code=0, output exactly \"age_before 0.0 fires_before False age_after 7200 fires_after True\" + \"MON5-B OK\". The check drives the real cron_runner._publish_data_growth_metrics against a temp ledger, ages the file with os.utime to 7200s old, re-publishes, and asserts a0<3600, a1>3600, |a1-7200|<120 \u2014 proving the gauge is fed from stat.st_mtime (cron_runner.py:9304-9307 sets last_write from st_mtime; metrics.py:154 help \"Unix timestamp of the last write\"), not a synthetic now, and the age>3600 query goes empty\u2192firing.\n  \u2713 PROOF: bash scripts/mon5_checks.sh c exits 0 printing \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" and \"MON5-C OK\". FAILIF: the health/ok counter is not exactly 50 after the 5x10 burst, or any active-connection worker leaks (gauge not back to 0 after burst and shutdown).: Ran `bash scripts/mon5_checks.sh c`: exit_code=0, output exactly \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" + \"MON5-C OK\". The check opens 50 real TCP connections (5 waves \u00d7 10, ThreadPoolExecutor) against a live game_bridge.serve thread (max_workers=4, stop_event), reads aipp_bridge_requests_total{cmd=health,outcome=ok}==50.0 and aipp_bridge_active_connections==0.0 after stop.set()+join \u2014 no worker leak. Feed sites verified in source: scripts/game_bridge.py:488 (observe_bridge_request in handle() finally \u2014 every exit counted once) and :578/:594/:609/:696 (set_bridge_active_connections at bind, admit, discard, shutdown).\n  \u2713 PROOF: bash scripts/mon5_checks.sh d exits 0 printing \"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\" and \"MON5-D OK\". FAILIF: the counter increments on the first frozen cycle, fails to increment on the second, or the integrity tracker is not wired after _cycle_observe.: Ran `bash scripts/mon5_checks.sh d`: exit_code=0, output \"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\" + \"MON5-D OK\". The check runs the REAL cron_runner._cycle_header against a frozen-frame/frozen-tile emulator stub: counter stays 0.0 through cycle 1 (no previous observation) and reaches 1.0 after the second identical cycle. Wiring verified in source: _cycle_header calls _cycle_observe at cron_runner.py:9546 then _track_emulator_integrity at :9558 (tracker after both frame hash and RAM observation exist), and the proxy logic at :9255-9280 requires repeated_frame AND ram_tile_unchanged with tile_known.\n  \u2713 PROOF: bash scripts/mon5_checks.sh e exits 0 printing \"families: 7\" and \"MON5-E OK\" (all seven aipp_* families named in docs/observability-spec.md sections 3.2 rows 17-23, 3.3 + 3.3.1, and 8.6 item 6). FAILIF: any of the seven family names is missing from those sections or a feed-site line was dropped from the SHIPPED rows.: Ran `bash scripts/mon5_checks.sh e`: exit_code=0, output \"families: 7\" + \"MON5-E OK\". Verified the ranges map to the named sections: lines 341-347 are \u00a73.2 P3 rows 17-23 and alone contain all seven family names; lines 381-430 are the \u00a73.3 UPDATE block + \u00a73.3.1 desync-proxy semantics (aipp_emulator_desync_total, \u00a78.6 item-6 reference at :426); lines 990-1000 reach \u00a78. Known risks (item 6 status at :1021-1031, adjacent). SHIPPED feed-site rows intact: lines 71-78 list all seven rows 17-23 with definition + production feed site each (e.g. row 22 \u2192 game_bridge.py:488, row 23 \u2192 serve() :593/:607/:578/:696), none dropped.\n  \u2713 Derived: the mon5 checks exercise REAL production code paths (cron_runner._cycle_header/_run_cycles/_finalize_run, game_bridge handle()/serve()), not parallel scaffolding \u2014 the seven families are fed from the shipped wiring: Source evidence: cron_runner.py:9558 (_track_emulator_integrity inside _cycle_header after _cycle_observe at :9546), cron_runner.py:9139 (_publish_data_growth_metrics() per cycle in _run_cycles), cron_runner.py:11525 (published after log_file.close() at :11523 in _finalize_run), scripts/game_bridge.py:488/578/594/609/696, src/observability/metrics.py:132-167 (all seven declared once with correct Counter/Gauge types \u2014 also asserted by tests/test_mon_aipp5.py TestDeclarations). The module-level seam holds: main() declares `global log_path` (cron_runner.py:8472) so the no-arg per-cycle call reads the real ledger path.\n  \u2713 Derived: all five checks are deterministic and re-run stable (exit 0 twice in the same session, exact output both times): Command `for x in a b c d e; do bash scripts/mon5_checks.sh $x; done` (fresh second run): \"check a exit=0 :: MON5-A OK / check b exit=0 :: MON5-B OK / check c exit=0 :: MON5-C OK / check d exit=0 :: MON5-D OK / check e exit=0 :: MON5-E OK\". The d check also prints frame_stale_seconds \u22480.0005 (fresh monotonic measurement), consistent across runs.\nAll five scripted acceptance checks (a-e) exit 0 with the exact required output on fresh, repeated runs, and the seven aipp_* families are verifiably declared in src/observability/metrics.py, fed from the shipped cron_runner/game_bridge production paths, and named in the required docs/observability-spec.md sections.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 PROOF: bash scripts/mon5_checks.sh a exits 0 printing \"21 passed\" and \"MON5-A OK\". FAILIF: any test failure/error, collection error, or a different count.: Ran `bash scripts/mon5_checks.sh a` fresh: exit_code=0, output \"collected 21 items ... 21 passed in 3.37s\" and \"MON5-A OK\". All 21 tests in tests/test_mon_aipp5.py (TestDeclarations, TestDesyncProxy, TestRunlogStalenessQuery, TestBridgeBurst) collected and passed with zero errors; re-ran in the batch loop \u2014 stable at exit=0.\n  \u2713 PROOF: bash scripts/mon5_checks.sh b exits 0 printing \"age_before 0.0 fires_before False age_after 7200 fires_after True\" and \"MON5-B OK\". FAILIF: the gauge reads the wall clock instead of the ledger mtime, the age does not jump to 7200, or the PromQL age>3600 query does not go from empty to firing.: Ran `bash scripts/mon5_checks.sh b`: exit_code=0, output exactly \"age_before 0.0 fires_before False age_after 7200 fires_after True\" + \"MON5-B OK\". The check drives the real cron_runner._publish_data_growth_metrics against a temp ledger, ages the file with os.utime to 7200s old, re-publishes, and asserts a0<3600, a1>3600, |a1-7200|<120 \u2014 proving the gauge is fed from stat.st_mtime (cron_runner.py:9304-9307 sets last_write from st_mtime; metrics.py:154 help \"Unix timestamp of the last write\"), not a synthetic now, and the age>3600 query goes empty\u2192firing.\n  \u2713 PROOF: bash scripts/mon5_checks.sh c exits 0 printing \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" and \"MON5-C OK\". FAILIF: the health/ok counter is not exactly 50 after the 5x10 burst, or any active-connection worker leaks (gauge not back to 0 after burst and shutdown).: Ran `bash scripts/mon5_checks.sh c`: exit_code=0, output exactly \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" + \"MON5-C OK\". The check opens 50 real TCP connections (5 waves \u00d7 10, ThreadPoolExecutor) against a live game_bridge.serve thread (max_workers=4, stop_event), reads aipp_bridge_requests_total{cmd=health,outcome=ok}==50.0 and aipp_bridge_active_connections==0.0 after stop.set()+join \u2014 no worker leak. Feed sites verified in source: scripts/game_bridge.py:488 (observe_bridge_request in handle() finally \u2014 every exit counted once) and :578/:594/:609/:696 (set_bridge_active_connections at bind, admit, discard, shutdown).\n\n\u2026 [2717 chars omitted \u2014 3 line(s)] \u2026\n  \u2713 Derived: all five checks are deterministic and re-run stable (exit 0 twice in the same session, exact output both times): Command `for x in a b c d e; do bash scripts/mon5_checks.sh $x; done` (fresh second run): \"check a exit=0 :: MON5-A OK / check b exit=0 :: MON5-B OK / check c exit=0 :: MON5-C OK / check d exit=0 :: MON5-D OK / check e exit=0 :: MON5-E OK\". The d check also prints frame_stale_seconds \u22480.0005 (fresh monotonic measurement), consistent across runs.\nAll five scripted acceptance checks (a-e) exit 0 with the exact required output on fresh, repeated runs, and the seven aipp_* families are verifiably declared in src/observability/metrics.py, fed from the shipped cron_runner/game_bridge production paths, and named in the required docs/observability-spec.md sections.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "PROOF: bash scripts/mon5_checks.sh a exits 0 printing \"21 passed\" and \"MON5-A OK\". FAILIF: any test failure/error, collection error, or a different count.",
+                "status": "PASS",
+                "detail": "Ran `bash scripts/mon5_checks.sh a` fresh: exit_code=0, output \"collected 21 items ... 21 passed in 3.37s\" and \"MON5-A OK\". All 21 tests in tests/test_mon_aipp5.py (TestDeclarations, TestDesyncProxy, TestRunlogStalenessQuery, TestBridgeBurst) collected and passed with zero errors; re-ran in the batch loop \u2014 stable at exit=0."
+              },
+              {
+                "criterion": "PROOF: bash scripts/mon5_checks.sh b exits 0 printing \"age_before 0.0 fires_before False age_after 7200 fires_after True\" and \"MON5-B OK\". FAILIF: the gauge reads the wall clock instead of the ledger mtime, the age does not jump to 7200, or the PromQL age>3600 query does not go from empty to firing.",
+                "status": "PASS",
+                "detail": "Ran `bash scripts/mon5_checks.sh b`: exit_code=0, output exactly \"age_before 0.0 fires_before False age_after 7200 fires_after True\" + \"MON5-B OK\". The check drives the real cron_runner._publish_data_growth_metrics against a temp ledger, ages the file with os.utime to 7200s old, re-publishes, and asserts a0<3600, a1>3600, |a1-7200|<120 \u2014 proving the gauge is fed from stat.st_mtime (cron_runner.py:9304-9307 sets last_write from st_mtime; metrics.py:154 help \"Unix timestamp of the last write\"), not a synthetic now, and the age>3600 query goes empty\u2192firing."
+              },
+              {
+                "criterion": "PROOF: bash scripts/mon5_checks.sh c exits 0 printing \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" and \"MON5-C OK\". FAILIF: the health/ok counter is not exactly 50 after the 5x10 burst, or any active-connection worker leaks (gauge not back to 0 after burst and shutdown).",
+                "status": "PASS",
+                "detail": "Ran `bash scripts/mon5_checks.sh c`: exit_code=0, output exactly \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" + \"MON5-C OK\". The check opens 50 real TCP connections (5 waves \u00d7 10, ThreadPoolExecutor) against a live game_bridge.serve thread (max_workers=4, stop_event), reads aipp_bridge_requests_total{cmd=health,outcome=ok}==50.0 and aipp_bridge_active_connections==0.0 after stop.set()+join \u2014 no worker leak. Feed sites verified in source: scripts/game_bridge.py:488 (observe_bridge_request in handle() finally \u2014 every exit counted once) and :578/:594/:609/:696 (set_bridge_active_connections at bind, admit, discard, shutdown)."
+              },
+              {
+                "criterion": "PROOF: bash scripts/mon5_checks.sh d exits 0 printing \"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\" and \"MON5-D OK\". FAILIF: the counter increments on the first frozen cycle, fails to increment on the second, or the integrity tracker is not wired after _cycle_observe.",
+                "status": "PASS",
+                "detail": "Ran `bash scripts/mon5_checks.sh d`: exit_code=0, output \"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\" + \"MON5-D OK\". The check runs the REAL cron_runner._cycle_header against a frozen-frame/frozen-tile emulator stub: counter stays 0.0 through cycle 1 (no previous observation) and reaches 1.0 after the second identical cycle. Wiring verified in source: _cycle_header calls _cycle_observe at cron_runner.py:9546 then _track_emulator_integrity at :9558 (tracker after both frame hash and RAM observation exist), and the proxy logic at :9255-9280 requires repeated_frame AND ram_tile_unchanged with tile_known."
+              },
+              {
+                "criterion": "PROOF: bash scripts/mon5_checks.sh e exits 0 printing \"families: 7\" and \"MON5-E OK\" (all seven aipp_* families named in docs/observability-spec.md sections 3.2 rows 17-23, 3.3 + 3.3.1, and 8.6 item 6). FAILIF: any of the seven family names is missing from those sections or a feed-site line was dropped from the SHIPPED rows.",
+                "status": "PASS",
+                "detail": "Ran `bash scripts/mon5_checks.sh e`: exit_code=0, output \"families: 7\" + \"MON5-E OK\". Verified the ranges map to the named sections: lines 341-347 are \u00a73.2 P3 rows 17-23 and alone contain all seven family names; lines 381-430 are the \u00a73.3 UPDATE block + \u00a73.3.1 desync-proxy semantics (aipp_emulator_desync_total, \u00a78.6 item-6 reference at :426); lines 990-1000 reach \u00a78. Known risks (item 6 status at :1021-1031, adjacent). SHIPPED feed-site rows intact: lines 71-78 list all seven rows 17-23 with definition + production feed site each (e.g. row 22 \u2192 game_bridge.py:488, row 23 \u2192 serve() :593/:607/:578/:696), none dropped."
+              },
+              {
+                "criterion": "Derived: the mon5 checks exercise REAL production code paths (cron_runner._cycle_header/_run_cycles/_finalize_run, game_bridge handle()/serve()), not parallel scaffolding \u2014 the seven families are fed from the shipped wiring",
+                "status": "PASS",
+                "detail": "Source evidence: cron_runner.py:9558 (_track_emulator_integrity inside _cycle_header after _cycle_observe at :9546), cron_runner.py:9139 (_publish_data_growth_metrics() per cycle in _run_cycles), cron_runner.py:11525 (published after log_file.close() at :11523 in _finalize_run), scripts/game_bridge.py:488/578/594/609/696, src/observability/metrics.py:132-167 (all seven declared once with correct Counter/Gauge types \u2014 also asserted by tests/test_mon_aipp5.py TestDeclarations). The module-level seam holds: main() declares `global log_path` (cron_runner.py:8472) so the no-arg per-cycle call reads the real ledger path.",
+                "derived": true
+              },
+              {
+                "criterion": "Derived: all five checks are deterministic and re-run stable (exit 0 twice in the same session, exact output both times)",
+                "status": "PASS",
+                "detail": "Command `for x in a b c d e; do bash scripts/mon5_checks.sh $x; done` (fresh second run): \"check a exit=0 :: MON5-A OK / check b exit=0 :: MON5-B OK / check c exit=0 :: MON5-C OK / check d exit=0 :: MON5-D OK / check e exit=0 :: MON5-E OK\". The d check also prints frame_stale_seconds \u22480.0005 (fresh monotonic measurement), consistent across runs.",
+                "derived": true
+              }
+            ],
+            "summary": "All five scripted acceptance checks (a-e) exit 0 with the exact required output on fresh, repeated runs, and the seven aipp_* families are verifiably declared in src/observability/metrics.py, fed from the shipped cron_runner/game_bridge production paths, and named in the required docs/observability-spec.md sections.",
+            "provenance": {
+              "model": "glm-5.3-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            },
+            "context_stats": {
+              "diff_source": "working-tree",
+              "diff_bytes": 3403,
+              "prompt_bytes": 21371
+            }
+          }
+        }
+      ],
+      "model": "glm-5.3-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "context_stats": {
+        "diff_source": "working-tree",
+        "diff_bytes": 3403,
+        "prompt_bytes": 21371
+      },
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"MON-AIPP-5\"}",
+          "exit_code": 0,
+          "output_sha": "dee43c8add7dc7d715f9e4728f71e91f3225067b0989b4b6db9890424fa214a0"
+        },
+        {
+          "tool": "read_lsp_diagnostics",
+          "command": "read_lsp_diagnostics {}",
+          "exit_code": 0,
+          "output_sha": "ef420cbeebd549fc8c5438d6ea41a3e521fa58e29563c4cae80f491b9bfe2143"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"scripts/mon5_checks.sh\"}",
+          "exit_code": 0,
+          "output_sha": "30f511ae6e85210e2086b925fee1ed73e1dfffd86f5f3652be8bf58fdb9c471a"
+        },
+        {
+          "tool": "run_command",
+          "command": "ls scripts/ | head -50",
+          "exit_code": 0,
+          "output_sha": "30906913a0e1ac7744fb2631a7739b5dbd18911bcd9545c5e84078c135ca1279"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && bash scripts/mon5_checks.sh a; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "307b1f1875530ce94b27cdd01a16713418237c4afc988168a5c2ae12c9e25667"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"tests/test_mon_aipp5.py\"}",
+          "exit_code": 0,
+          "output_sha": "cd68b3d6dd93f1b86d488904799a5feb0457e4b5f0fc0e44e3c1a31e5c23d33b"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && bash scripts/mon5_checks.sh b; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "f3edf27c54d3f055085a2418741e1fec5174a35f2e947ab72cd90002bee5a0d1"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: ran `bash scripts/mon5_checks.sh a` \\u2014 exit_code=0, output \\\"21 passed in 3.37s\\\" and \\\"MON5-A OK\\\". All 21 tests in tests/test_mon_aipp5.py collected and passed, no errors.\", \"key\": \"verified_0\"}",
+          "exit_code": 0,
+          "output_sha": "a66e032fb5a343ab87eab5af63510954d6141544a29a9ebc051d00b73bc9a8ad"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && bash scripts/mon5_checks.sh c; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "9251ac7ea52a5076b90890e61133f6b7e471cfb34ae0fd705a1c22f5a530945e"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: ran `bash scripts/mon5_checks.sh b` \\u2014 exit_code=0, output exactly \\\"age_before 0.0 fires_before False age_after 7200 fires_after True\\\" + \\\"MON5-B OK\\\". The script drives cron_runner._publish_data_growth_metrics against a temp ledger, sets mtime 7200s old via os.utime, and asserts a0<3600, a1>3600, |a1-7200|<120 \\u2014 gauge tracks ledger mtime, not wall clock; PromQL-style age>3600 goes empty->firing.\", \"key\": \"verified_1\"}",
+          "exit_code": 0,
+          "output_sha": "e427a377256ac1b7ca48b67f823388e4d7bbd387983dc718d54daf2219b38c81"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && bash scripts/mon5_checks.sh d; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "6201b5154eeffaa0bb4a9908687d12ab739e3e074afca99e6dd8a702c001cb7e"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: ran `bash scripts/mon5_checks.sh c` \\u2014 exit_code=0, output exactly \\\"requests health/ok: [50.0] active after burst+shutdown: [0.0]\\\" + \\\"MON5-C OK\\\". Script opens real TCP connections to a live game_bridge.serve thread (5 waves x 10 conns, max_workers=4), asserts health/ok counter == 50.0 and active_connections gauge == 0.0 after stop_event + thread join \\u2014 no worker leak.\", \"key\": \"verified_2\"}",
+          "exit_code": 0,
+          "output_sha": "08c71d827b5b38bcf725ffa6deef2780a24e7e8663a3aab4bd1421ce824dfa4b"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && bash scripts/mon5_checks.sh e; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "03c0c4ddf85e220b78b21d046d8d88895481d0ce2923084fddc7d72bf29f3411"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: ran `bash scripts/mon5_checks.sh d` \\u2014 exit_code=0, output \\\"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\\\" + \\\"MON5-D OK\\\". Counter at 0.0 before, 0.0 after first _cycle_header (no previous frame), 1.0 after second frozen cycle; runs against real cron_runner._cycle_header with monkeypatched tail, integrity tracker wired after _cycle_observe.\", \"key\": \"verified_3\"}",
+          "exit_code": 0,
+          "output_sha": "d1feba50dd43529090b98a7f48c3798add61e3f3191a768cf9d9e28190141716"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n '335,350p' docs/observability-spec.md && echo \"=====3.2/3.3 zone=====\" && sed -n '375,435p' docs/observability-spec.md && echo \"=====8.6 zone=====\" && sed -n '985,1005p' docs/observability-spec.md",
+          "exit_code": 0,
+          "output_sha": "a3d62e1e5a7a6e3c9b4002af52331d8a8acf4213d34e50714532a75d2b810c7e"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: ran `bash scripts/mon5_checks.sh e` \\u2014 exit_code=0, output \\\"families: 7\\\" + \\\"MON5-E OK\\\". Need to additionally confirm the sed line ranges map to the named doc sections (3.2 rows 17-23, 3.3+3.3.1, 8.6 item 6) and no feed-site line was dropped from SHIPPED rows.\", \"key\": \"verified_4\"}",
+          "exit_code": 0,
+          "output_sha": "e486070aabcf9203f1c07aeebf69a0dace65e5713ebdbd2038cb3c7464a8db28"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -n '^####\\|^###\\|^## ' docs/observability-spec.md | sed -n '1,60p' && echo \"---row23---\" && grep -n 'aipp_bridge_active_connections' docs/observability-spec.md && echo \"---8.6 item 6---\" && grep -n 'aipp_emulator' docs/observability-spec.md",
+          "exit_code": 0,
+          "output_sha": "3c83f04937aa8de35ba5f0c43cf30f198e50a142b5bde87913f65ea4107850b1"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n '364,450p' docs/observability-spec.md",
+          "exit_code": 0,
+          "output_sha": "180dadbd85590481fe2f3088988515aaa10208b4a97ac698d062baefada3a5d0"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -rn '8\\.6' docs/observability-spec.md | head -20 && echo \"---\" && sed -n '999,1031p' docs/observability-spec.md",
+          "exit_code": 0,
+          "output_sha": "f9ba8ba6d51a3b971d9ff5a378757e949739b56b0974c54f883b07dc47c48f66"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n '388,423p' docs/observability-spec.md",
+          "exit_code": 0,
+          "output_sha": "a835e799ca620a95fded7b6610cc9fe3baf987fb0e76e1c058c3083e97182485"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git log --oneline -5 && git diff HEAD --stat | tail -20",
+          "exit_code": 0,
+          "output_sha": "5525cce3104061c49faf6d574cb1a8e37708846d2ca4dc078ac0cb03cb3b4a88"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -n '_track_emulator_integrity\\|_publish_data_growth_metrics' cron_runner.py | head -20",
+          "exit_code": 0,
+          "output_sha": "14cb358b213ee12c0c014ec9e8156c0d8728d3e4a2a73279f0a7183dabee6baa"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -n 'observe_bridge_request\\|set_bridge_active_connections\\|bridge_cmd_label' scripts/game_bridge.py | head -20 && echo \"---metrics defs---\" && grep -n 'aipp_emulator_desync_total\\|aipp_emulator_frame_stale_seconds\\|aipp_screenshot_bytes\\|aipp_runlog_bytes\\|aipp_runlog_last_write_timestamp_seconds\\|aipp_bridge_requests_total\\|aipp_bridge_active_connections' src/observability/metrics.py | head -20",
+          "exit_code": 0,
+          "output_sha": "fb2a1db453d5896fb03df9e4bd097b71d3ef3966a5d1c58ee6a4e73348d4b3b3"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n '9234,9340p' cron_runner.py",
+          "exit_code": 0,
+          "output_sha": "687607cb381c1de1d594e7c589ddc3d1b55e36ba86c2e6d1e7fe663cccfd7be8"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n '9530,9565p' cron_runner.py",
+          "exit_code": 0,
+          "output_sha": "f27cd2a93e138ae03933da0b442c53494ed3e6f8cc8d053c8d305aa9519df443"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n '470,500p' scripts/game_bridge.py && echo \"===serve pool===\" && sed -n '570,615p' scripts/game_bridge.py",
+          "exit_code": 0,
+          "output_sha": "b942d174bc3f52427f1020712ca7d177ba09753ac5a2fa4b70b84517c4acf452"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n '125,170p' src/observability/metrics.py && sed -n '460,485p' src/observability/metrics.py",
+          "exit_code": 0,
+          "output_sha": "a92ce21038b073e86006c48989db7a1fa2c75d3689a99c3ea8a7346e694c75e0"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && echo \"== lines 990-1000 (script range 3) ==\" && sed -n '990,1000p' docs/observability-spec.md && echo \"== families found in each range ==\" && for r in \"341,347\" \"381,430\" \"990,1000\"; do echo \"-- $r:\"; sed -n \"${r}p\" docs/observability-spec.md | grep -oE 'aipp_(emulator_desync_total|emulator_frame_stale_seconds|screenshot_bytes|runlog_bytes|runlog_last_write_timestamp_seconds|bridge_requests_total|bridge_active_connections)' | sort -u | tr '\\n' ' '; echo; done",
+          "exit_code": 0,
+          "output_sha": "643ff8acae6ab74f17931476e275f73371bba47524166c96704a49f6bf07cfdf"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -n '^log_path\\|log_path =' cron_runner.py | head -10 && echo \"---call sites---\" && sed -n '9130,9145p' cron_runner.py && echo \"---finalize---\" && sed -n '11500,11530p' cron_runner.py && echo \"---set_data_growth---\" && grep -n 'def set_data_growth' src/observability/metrics.py",
+          "exit_code": 0,
+          "output_sha": "5003cd2ed3023abbdb81fc47a35aaf117170d064230a1d3291f4806939cf276a"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && awk 'NR>=8460 && NR<=8500' cron_runner.py | grep -n 'def \\|global' ; grep -n 'global log_path' cron_runner.py; echo \"---\"; sed -n '8485,8495p' cron_runner.py",
+          "exit_code": 0,
+          "output_sha": "bfc49a92b76bc055c327af7453a048c27020f526d63d90fc176f86b1d70e7279"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n '60,85p' docs/observability-spec.md",
+          "exit_code": 0,
+          "output_sha": "b0c3bbd8f3f4a41cc0e2835ebfd20b7299ad32ba8854c0677d188cd4fdac64da"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && for x in a b c d e; do bash scripts/mon5_checks.sh $x > /tmp/mon5_$x.out 2>&1; echo \"check $x exit=$? :: $(tail -1 /tmp/mon5_$x.out)\"; done",
+          "exit_code": 0,
+          "output_sha": "ba093a167e516f812c66fca9012891e4bd11fb5e188a2259c5fa13562114ba10"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"DERIVED criterion proposed before final grading: \\\"The mon5 checks exercise REAL production code paths, not parallel test scaffolding \\u2014 the seven families are fed from cron_runner._cycle_header / _run_cycles / _finalize_run and game_bridge handle()/serve() in the shipped wiring.\\\"\\nEvidence: cron_runner.py:9546 (_cycle_observe) -> :9558 (_track_emulator_integrity) inside _cycle_header; cron_runner.py:9139 (_publish_data_growth_metrics() per cycle in _run_cycles); cron_runner.py:11525 (post log_file.close() in _finalize_run, after close at :11523); scripts/game_bridge.py:488 (observe_bridge_request in handle() finally), :578/:594/:609/:696 (set_bridge_active_connections in serve()); src/observability/metrics.py:132-167 (all 7 declarations with correct types).\\nStatus: PASS\", \"key\": \"verified_derived_0\"}",
+          "exit_code": 0,
+          "output_sha": "10a9d43dc4463da5daafa0b9405d8d3ac891de27402421e4cbf157e71b14b2ee"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"DERIVED criterion proposed: \\\"Checks are deterministic/re-run stable \\u2014 all five exit 0 on a fresh second run in the same session.\\\"\\nEvidence: `for x in a b c d e; do bash scripts/mon5_checks.sh $x; done` \\u2014 output \\\"check a exit=0 :: MON5-A OK / check b exit=0 :: MON5-B OK / check c exit=0 :: MON5-C OK / check d exit=0 :: MON5-D OK / check e exit=0 :: MON5-E OK\\\".\\nStatus: PASS\", \"key\": \"verified_derived_1\"}",
+          "exit_code": 0,
+          "output_sha": "4cbf22907c2fa1bca6abf74476586df4babf4202d6b6d91690c1b57a52c9b621"
+        }
+      ]
+    }
+  },
+  "context_stats": {
+    "diff_source": "working-tree",
+    "diff_bytes": 3403,
+    "prompt_bytes": 21371
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [],
+    "summary": "",
+    "error": "unparseable reviewer reply: no parseable JSON object in reply: ''",
+    "review_state": {
+      "emitted": [],
+      "carried": []
+    }
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 PROOF: bash scripts/mon5_checks.sh a exits 0 printing \"21 passed\" and \"MON5-A OK\". FAILIF: any test failure/error, collection error, or a different count.: Ran `bash scripts/mon5_checks.sh a` fresh: exit_code=0, output \"collected 21 items ... 21 passed in 3.37s\" and \"MON5-A OK\". All 21 tests in tests/test_mon_aipp5.py (TestDeclarations, TestDesyncProxy, TestRunlogStalenessQuery, TestBridgeBurst) collected and passed with zero errors; re-ran in the batch loop \u2014 stable at exit=0.\n  \u2713 PROOF: bash scripts/mon5_checks.sh b exits 0 printing \"age_before 0.0 fires_before False age_after 7200 fires_after True\" and \"MON5-B OK\". FAILIF: the gauge reads the wall clock instead of the ledger mtime, the age does not jump to 7200, or the PromQL age>3600 query does not go from empty to firing.: Ran `bash scripts/mon5_checks.sh b`: exit_code=0, output exactly \"age_before 0.0 fires_before False age_after 7200 fires_after True\" + \"MON5-B OK\". The check drives the real cron_runner._publish_data_growth_metrics against a temp ledger, ages the file with os.utime to 7200s old, re-publishes, and asserts a0<3600, a1>3600, |a1-7200|<120 \u2014 proving the gauge is fed from stat.st_mtime (cron_runner.py:9304-9307 sets last_write from st_mtime; metrics.py:154 help \"Unix timestamp of the last write\"), not a synthetic now, and the age>3600 query goes empty\u2192firing.\n  \u2713 PROOF: bash scripts/mon5_checks.sh c exits 0 printing \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" and \"MON5-C OK\". FAILIF: the health/ok counter is not exactly 50 after the 5x10 burst, or any active-connection worker leaks (gauge not back to 0 after burst and shutdown).: Ran `bash scripts/mon5_checks.sh c`: exit_code=0, output exactly \"requests health/ok: [50.0] active after burst+shutdown: [0.0]\" + \"MON5-C OK\". The check opens 50 real TCP connections (5 waves \u00d7 10, ThreadPoolExecutor) against a live game_bridge.serve thread (max_workers=4, stop_event), reads aipp_bridge_requests_total{cmd=health,outcome=ok}==50.0 and aipp_bridge_active_connections==0.0 after stop.set()+join \u2014 no worker leak. Feed sites verified in source: scripts/game_bridge.py:488 (observe_bridge_request in handle() finally \u2014 every exit counted once) and :578/:594/:609/:696 (set_bridge_active_connections at bind, admit, discard, shutdown).\n  \u2713 PROOF: bash scripts/mon5_checks.sh d exits 0 printing \"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\" and \"MON5-D OK\". FAILIF: the counter increments on the first frozen cycle, fails to increment on the second, or the integrity tracker is not wired after _cycle_observe.: Ran `bash scripts/mon5_checks.sh d`: exit_code=0, output \"desync before / after cycle1 / after cycle2: 0.0 0.0 1.0\" + \"MON5-D OK\". The check runs the REAL cron_runner._cycle_header against a frozen-frame/frozen-tile emulator stub: counter stays 0.0 through cycle 1 (no previous observation) and reaches 1.0 after the second identical cycle. Wiring verified in source: _cycle_header calls _cycle_observe at cron_runner.py:9546 then _track_emulator_integrity at :9558 (tracker after both frame hash and RAM observation exist), and the proxy logic at :9255-9280 requires repeated_frame AND ram_tile_unchanged with tile_known.\n  \u2713 PROOF: bash scripts/mon5_checks.sh e exits 0 printing \"families: 7\" and \"MON5-E OK\" (all seven aipp_* families named in docs/observability-spec.md sections 3.2 rows 17-23, 3.3 + 3.3.1, and 8.6 item 6). FAILIF: any of the seven family names is missing from those sections or a feed-site line was dropped from the SHIPPED rows.: Ran `bash scripts/mon5_checks.sh e`: exit_code=0, output \"families: 7\" + \"MON5-E OK\". Verified the ranges map to the named sections: lines 341-347 are \u00a73.2 P3 rows 17-23 and alone contain all seven family names; lines 381-430 are the \u00a73.3 UPDATE block + \u00a73.3.1 desync-proxy semantics (aipp_emulator_desync_total, \u00a78.6 item-6 reference at :426); lines 990-1000 reach \u00a78. Known risks (item 6 status at :1021-1031, adjacent). SHIPPED feed-site rows intact: lines 71-78 list all seven rows 17-23 with definition + production feed site each (e.g. row 22 \u2192 game_bridge.py:488, row 23 \u2192 serve() :593/:607/:578/:696), none dropped.\n  \u2713 Derived: the mon5 checks exercise REAL production code paths (cron_runner._cycle_header/_run_cycles/_finalize_run, game_bridge handle()/serve()), not parallel scaffolding \u2014 the seven families are fed from the shipped wiring: Source evidence: cron_runner.py:9558 (_track_emulator_integrity inside _cycle_header after _cycle_observe at :9546), cron_runner.py:9139 (_publish_data_growth_metrics() per cycle in _run_cycles), cron_runner.py:11525 (published after log_file.close() at :11523 in _finalize_run), scripts/game_bridge.py:488/578/594/609/696, src/observability/metrics.py:132-167 (all seven declared once with correct Counter/Gauge types \u2014 also asserted by tests/test_mon_aipp5.py TestDeclarations). The module-level seam holds: main() declares `global log_path` (cron_runner.py:8472) so the no-arg per-cycle call reads the real ledger path.\n  \u2713 Derived: all five checks are deterministic and re-run stable (exit 0 twice in the same session, exact output both times): Command `for x in a b c d e; do bash scripts/mon5_checks.sh $x; done` (fresh second run): \"check a exit=0 :: MON5-A OK / check b exit=0 :: MON5-B OK / check c exit=0 :: MON5-C OK / check d exit=0 :: MON5-D OK / check e exit=0 :: MON5-E OK\". The d check also prints frame_stale_seconds \u22480.0005 (fresh monotonic measurement), consistent across runs.\nAll five scripted acceptance checks (a-e) exit 0 with the exact required output on fresh, repeated runs, and the seven aipp_* families are verifiably declared in src/observability/metrics.py, fed from the shipped cron_runner/game_bridge production paths, and named in the required docs/observability-spec.md sections.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-11-23T16:54:54.403713",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-23T16:54:54.454974+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 16090,
+        "truncated": false,
+        "source": "git show 3ecef23e7f94"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 43613,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "MON-AIPP-5"
+  }
+}

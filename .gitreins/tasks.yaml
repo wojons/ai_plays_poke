@@ -2133,14 +2133,28 @@ tasks:
 - id: MON-AIPP-5
   title: Emulator desync/frame-staleness signals and data-growth gauges
   criteria:
-  - 'PROOF: bash scripts/mon5_checks.sh a exits 0 printing "21 passed" and "MON5-A OK". FAILIF: any test failure/error, collection error, or a different count.'
-  - 'PROOF: bash scripts/mon5_checks.sh b exits 0 printing "age_before 0.0 fires_before False age_after 7200 fires_after True" and "MON5-B OK". FAILIF: the gauge reads the wall clock instead of the ledger mtime, the age does not jump to 7200, or the PromQL age>3600 query does not go from empty to firing.'
-  - 'PROOF: bash scripts/mon5_checks.sh c exits 0 printing "requests health/ok: [50.0] active after burst+shutdown: [0.0]" and "MON5-C OK". FAILIF: the health/ok counter is not exactly 50 after the 5x10 burst, or any active-connection worker leaks (gauge not back to 0 after burst and shutdown).'
-  - 'PROOF: bash scripts/mon5_checks.sh d exits 0 printing "desync before / after cycle1 / after cycle2: 0.0 0.0 1.0" and "MON5-D OK". FAILIF: the counter increments on the first frozen cycle, fails to increment on the second, or the integrity tracker is not wired after _cycle_observe.'
-  - 'PROOF: bash scripts/mon5_checks.sh e exits 0 printing "families: 7" and "MON5-E OK" (all seven aipp_* families named in docs/observability-spec.md sections 3.2 rows 17-23, 3.3 + 3.3.1, and 8.6 item 6). FAILIF: any of the seven family names is missing from those sections or a feed-site line was dropped from the SHIPPED rows.'
+  - 'PROOF: bash scripts/mon5_checks.sh a exits 0 printing "21 passed" and "MON5-A
+    OK". FAILIF: any test failure/error, collection error, or a different count.'
+  - 'PROOF: bash scripts/mon5_checks.sh b exits 0 printing "age_before 0.0 fires_before
+    False age_after 7200 fires_after True" and "MON5-B OK". FAILIF: the gauge reads
+    the wall clock instead of the ledger mtime, the age does not jump to 7200, or
+    the PromQL age>3600 query does not go from empty to firing.'
+  - 'PROOF: bash scripts/mon5_checks.sh c exits 0 printing "requests health/ok: [50.0]
+    active after burst+shutdown: [0.0]" and "MON5-C OK". FAILIF: the health/ok counter
+    is not exactly 50 after the 5x10 burst, or any active-connection worker leaks
+    (gauge not back to 0 after burst and shutdown).'
+  - 'PROOF: bash scripts/mon5_checks.sh d exits 0 printing "desync before / after
+    cycle1 / after cycle2: 0.0 0.0 1.0" and "MON5-D OK". FAILIF: the counter increments
+    on the first frozen cycle, fails to increment on the second, or the integrity
+    tracker is not wired after _cycle_observe.'
+  - 'PROOF: bash scripts/mon5_checks.sh e exits 0 printing "families: 7" and "MON5-E
+    OK" (all seven aipp_* families named in docs/observability-spec.md sections 3.2
+    rows 17-23, 3.3 + 3.3.1, and 8.6 item 6). FAILIF: any of the seven family names
+    is missing from those sections or a feed-site line was dropped from the SHIPPED
+    rows.'
   status: complete
   created_at: '2026-11-17T17:59:37.641418+00:00'
-  completed_at: '2026-11-23T16:32:20.060687+00:00'
+  completed_at: '2026-11-23T16:43:10.019722+00:00'
 - id: RELEASE-009-R1
   title: Test coverage for portable AIPP_* runtime-path resolvers
   criteria:
