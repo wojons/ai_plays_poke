@@ -1474,9 +1474,7 @@ class _PathMemoryReplayBound:
             ]
         return self._strike_edge(from_slug, to_slug)
 
-    def _strike_edge(
-        self, from_slug: str, to_slug: str
-    ) -> list[dict[str, Any]]:
+    def _strike_edge(self, from_slug: str, to_slug: str) -> list[dict[str, Any]]:
         """Strike both directions of a regression-crossed edge."""
         events: list[dict[str, Any]] = []
         for key in (
@@ -3649,7 +3647,9 @@ def _memory_navigation_route(
     ):
         parsed = _parse_path_memory_key(record.get("key"))
         rank = gateways.get(parsed[1], 0) if parsed else 0
-        ranked.append((rank, str(record.get("created_at") or ""), record, direction, door))
+        ranked.append(
+            (rank, str(record.get("created_at") or ""), record, direction, door)
+        )
     # Newest first within the same rank: a later crossing is the more recent proof.
     for _rank, _created, record, direction, door in sorted(
         ranked,
@@ -3940,9 +3940,7 @@ def _memory_navigation_decision(
         return {**base, "result": "error", "reason": type(exc).__name__}
     if route is None:
         bounded_keys = (
-            list(replay_bound.last_suppressed_keys)
-            if replay_bound is not None
-            else []
+            list(replay_bound.last_suppressed_keys) if replay_bound is not None else []
         )
         if blocked_directions:
             blocked = sorted(blocked_directions)
@@ -5900,6 +5898,11 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
     decisions_total = 0
     jev_answered = 0
     escalated = 0
+    # MON-AIPP-006: disambiguating counters for autonomy_ratio. Both are
+    # counted from the same stamped decision rows, never incremented by the
+    # summary printer.
+    memory_navigation_resolved = 0
+    no_teacher_resolved = 0
     jev_transport_failures = 0
     jev_errors: list[str] = []
     escalated_by_class: Counter[str | None] = Counter()
@@ -5943,6 +5946,17 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         pipeline = row.get("pipeline")
         if isinstance(pipeline, str) and pipeline:
             pipeline_counts[pipeline] += 1
+        # MON-AIPP-006: a row stamped with the memory-nav pipeline had its
+        # decision resolved by replaying a proven route from path memory —
+        # no model call was made for that cycle. These cycles sit inside
+        # decisions_total, so autonomy_ratio reads worse as the loop gets
+        # cheaper; this counter is the no-model-call part of the denominator.
+        if pipeline == MEMORY_NAV_PIPELINE:
+            memory_navigation_resolved += 1
+        # Cycles resolved without any teacher escalation — the complement of
+        # ``escalated`` within the same decision population.
+        if not row.get("escalated"):
+            no_teacher_resolved += 1
         agentic_tool_calls += _as_int(row.get("agentic_tool_calls"))
         if row.get("jev_answered"):
             jev_answered += 1
@@ -6003,6 +6017,12 @@ def _autonomy_counters(results: list[dict[str, Any]]) -> dict[str, Any]:
         # vs those that were consulted and fell through to the existing path.
         "memory_navigation_hits": memory_navigation_hits,
         "memory_navigation_fallbacks": memory_navigation_fallbacks,
+        # MON-AIPP-006: disambiguation for autonomy_ratio — the count of
+        # decision cycles resolved by memory navigation (no model call; they
+        # sit in decisions_total and drag the ratio down as the loop gets
+        # cheaper) and the count resolved without a teacher escalation.
+        "memory_navigation_resolved": memory_navigation_resolved,
+        "no_teacher_resolved": no_teacher_resolved,
         # Escape hits are re-walks of an already-crossed edge; they are part of
         # the hit count but must never be read as progress toward new ground.
         "memory_navigation_escapes": memory_navigation_escapes,
@@ -6312,6 +6332,18 @@ def _autonomy_rates(
     Returns ``(autonomy_ratio, rates, jev_failure_rate, degraded,
     decisions_per_map_transition, backtrack_rate)``. Ratios are rounded to 4 dp
     and remain ``None`` when their denominator is unavailable or zero.
+    MON-AIPP-006: ``autonomy_ratio`` measures the share of ALL decision
+    cycles stamped this run whose decision was answered by the JEV model
+    lane: ``jev_answered / decisions_total``. ``decisions_total`` includes
+    cycles whose decision was resolved by replaying a proven route from
+    path memory (``pipeline == "memory_nav"``, counted separately below as
+    ``memory_navigation_resolved``), and those cycles make no model call at
+    all — so the ratio reads WORSE as the loop gets CHEAPER, not only when
+    autonomy actually regresses. Readers comparing runs must also read
+    ``memory_navigation_resolved`` (the no-model-call part of the
+    denominator) and ``no_teacher_resolved`` (the part resolved without a
+    teacher escalation) from the same block to tell fewer model calls from
+    worse autonomy.
     """
     ratio: float | None = (
         round(jev_answered / decisions_total, 4) if decisions_total else None
@@ -6576,6 +6608,14 @@ def _write_autonomy_row(
             autonomy.get("memory_navigation_fallbacks")
         ),
         "memory_navigation_escapes": _as_int(autonomy.get("memory_navigation_escapes")),
+        # MON-AIPP-006: disambiguation for autonomy_ratio — the no-model-call
+        # (memory-nav-resolved) part of the denominator and the part resolved
+        # without a teacher escalation, so a regression reader can tell fewer
+        # model calls from worse autonomy.
+        "memory_navigation_resolved": _as_int(
+            autonomy.get("memory_navigation_resolved")
+        ),
+        "no_teacher_resolved": _as_int(autonomy.get("no_teacher_resolved")),
     }
     log_file.write(json.dumps(row, default=str) + "\n")
     log_file.flush()

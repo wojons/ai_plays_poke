@@ -84,6 +84,19 @@ def _real_fallback_row(cycle: int) -> dict[str, Any]:
     return _decision_row(cycle, intent=decision.get("intent", ""))
 
 
+def _nav_decision_row(cycle: int) -> dict[str, Any]:
+    """A decision row whose plan was replayed from path memory (S6 NAV-MEM).
+
+    The cycle made NO model call: the plan came from ``world/path/*`` and is
+    stamped with ``pipeline="memory_nav"`` (MON-AIPP-006: these rows are the
+    denominator confound in ``autonomy_ratio``).
+    """
+    row = _decision_row(cycle)
+    row["pipeline"] = cron_runner.MEMORY_NAV_PIPELINE
+    row["memory_navigation"] = {"result": "hit", "key": "pallet:0:12|up"}
+    return row
+
+
 def _assigned_expr(name: str) -> ast.expr:
     """The value expression of the first ``<name> = ...`` in cron_runner.py.
 
@@ -221,6 +234,91 @@ def test_escalated_row_with_non_string_missing_class_lands_in_the_none_bucket() 
 
     assert block["escalated"] == 1
     assert block["escalation_rate_by_missing_class"] == {None: 1.0}
+
+
+# ── MON-AIPP-006: nav-resolved cycles in the ratio denominator ──────
+
+
+def test_nav_resolved_cycles_sit_in_the_ratio_denominator() -> None:
+    """The df13r3r4a confound, replayed at unit level.
+
+    Run df13r3r4a: 80 decision cycles, 50 resolved by memory navigation, 30
+    jev_answered, 4 escalated → autonomy_ratio 0.3750, even though every
+    model-called cycle was answered. The ratio counts nav-resolved cycles in
+    its denominator, so the metric reads worse as the loop gets cheaper.
+    """
+    rows = [
+        *(_nav_decision_row(cycle) for cycle in range(1, 51)),
+        *(_decision_row(cycle, jev_answered=True) for cycle in range(51, 77)),
+        *(
+            _decision_row(
+                cycle, jev_answered=True, escalated=True, missing_class="map_topology"
+            )
+            for cycle in range(78, 82)
+        ),
+        *_NON_DECISION_ROWS,
+    ]
+
+    block = cron_runner._autonomy_counters(rows)
+
+    assert block["decisions_total"] == 80
+    assert block["jev_answered"] == 30
+    assert block["escalated"] == 4
+    assert block["autonomy_ratio"] == 0.375
+    # The disambiguating counters: 50 of the 80 cycles made no model call,
+    # and 76 of the 80 resolved without a teacher escalation.
+    assert block["memory_navigation_resolved"] == 50
+    assert block["no_teacher_resolved"] == 76
+    # Both counters stay inside the same population as every other counter.
+    assert block["pipeline_counts"]["memory_nav"] == block["memory_navigation_resolved"]
+
+
+def test_disambiguating_counters_are_counted_from_rows_not_the_printer() -> None:
+    """A no-decision run reports 0/0; non-decision rows move nothing."""
+    block = cron_runner._autonomy_counters(list(_NON_DECISION_ROWS))
+
+    assert block["decisions_total"] == 0
+    assert block["memory_navigation_resolved"] == 0
+    assert block["no_teacher_resolved"] == 0
+
+
+def test_disambiguating_keys_reach_the_run_autonomy_row() -> None:
+    """The keys a regression reader needs are in the greppable summary row."""
+    rows = [
+        _nav_decision_row(1),
+        _decision_row(2, jev_answered=True),
+        _decision_row(
+            3, jev_answered=True, escalated=True, missing_class="map_topology"
+        ),
+        *_NON_DECISION_ROWS,
+    ]
+    buffer = io.StringIO()
+
+    cron_runner._write_autonomy_row(
+        buffer, "mon-aipp-006", cron_runner._autonomy_counters(rows)
+    )
+
+    parsed = json.loads(buffer.getvalue())
+    assert parsed["memory_navigation_resolved"] == 1
+    assert parsed["no_teacher_resolved"] == 2
+
+
+def test_ratio_keeps_the_full_denominator_with_nav_cycles_present() -> None:
+    """The ratio's arithmetic is unchanged: jev_answered / decisions_total.
+
+    MON-AIPP-006 disambiguates with extra counters instead of redefining the
+    ratio, so existing dashboards keep their denominator.
+    """
+    rows = [
+        *(_nav_decision_row(cycle) for cycle in range(1, 10)),  # 9 nav cycles
+        *(_decision_row(cycle, jev_answered=True) for cycle in range(10, 13)),
+    ]
+
+    block = cron_runner._autonomy_counters(rows)
+
+    assert block["decisions_total"] == 12
+    assert block["memory_navigation_resolved"] == 9
+    assert block["autonomy_ratio"] == round(3 / 12, 4) == 0.25
 
 
 # ── run-log row (AC-1's grep target) ────────────────────────────────
