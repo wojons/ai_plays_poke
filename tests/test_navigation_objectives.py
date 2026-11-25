@@ -157,6 +157,7 @@ def test_both_text_decision_paths_receive_the_structured_objective(
         _teacher_class_repairs=Counter(),
         _teacher_budget={"used": 0},
         _memory_navigation_blocks=cron_runner._MemoryNavigationBlockState(),
+        _path_replay_bound=cron_runner._PathMemoryReplayBound(),
         R=SimpleNamespace(
             controller_client=object(),
             controller_model="model",
