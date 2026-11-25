@@ -2317,3 +2317,13 @@ tasks:
   status: complete
   created_at: '2026-11-24T19:44:04.415729+00:00'
   completed_at: '2026-11-24T21:07:20.802326+00:00'
+- id: QA-AI-PLAYS-POKE-FOREMAN-3
+  title: Fresh-system QA battery launches on bunker-mvp (disk preflight refusal cleared)
+  criteria:
+  - 'A fresh-system battery launches instead of being refused: bunker-qa.sh launch
+    /home/kara/ai_plays_poke exits 0 with a printed evidence path and EVIDENCE_SHA256,
+    zero ''exceeds 94% launch threshold'' lines in the launch log, the launched agent
+    shows status=running in bunker list --server bunker-mvp, and the board row foreman_note
+    carries the evidence path so sibling observer rows close on this run.'
+  status: in_progress
+  created_at: '2026-11-25T04:23:01.168082+00:00'
