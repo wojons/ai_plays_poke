@@ -32,6 +32,10 @@ CONFIGURATION (all optional, env vars)
     ``PTP_DASHBOARD_ROM``          ROM path (default: ``data/rom/<Blue SGB>.gb``)
     ``PTP_DASHBOARD_BOOT_STATE``   checkpoint path, or ``skip`` for intro bypass
     ``PTP_DASHBOARD_START_TIMEOUT`` seconds ``/control/start`` waits for tick 1
+    ``PTP_DASHBOARD_STALL_TIMEOUT`` seconds without a tick before a running
+                                   session is reported stalled (mid-run wedge
+                                   bound; see ``DashboardSession``
+                                   ``.check_tick_staleness``)
 """
 
 from __future__ import annotations

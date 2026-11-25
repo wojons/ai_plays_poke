@@ -47,6 +47,15 @@ API_KEY = os.getenv("PTP_API_KEY")
 # instead of answering ``started`` for a session that will never tick.
 START_TIMEOUT_SECONDS = float(os.getenv("PTP_DASHBOARD_START_TIMEOUT", "20"))
 
+# QA-CONSOLE-5: how long a RUNNING session may go without a new tick before a
+# status read stops claiming ``running: true``. The start gate above covers
+# start-up and ``record_loop_error()`` covers a crash, but a MID-RUN wedge —
+# a PyBoy hang inside ``emulator.tick()`` — raises nothing: the loop thread
+# just sits blocked and nothing publishes progress again. The staleness check
+# (``DashboardSession.check_tick_staleness``, evaluated on every read) flips
+# the session to ``error`` once ticks stop advancing past this bound.
+STALL_TIMEOUT_SECONDS = float(os.getenv("PTP_DASHBOARD_STALL_TIMEOUT", "30"))
+
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 INDEX_HTML_PATH = STATIC_DIR / "index.html"
 
@@ -172,6 +181,7 @@ class DashboardSession:
         self._pending_commands: deque[dict[str, Any]] = deque(maxlen=64)
         self._tick_rate_window: list[float] = []
         self._last_tick_time = time.time()
+        self.stall_timeout = STALL_TIMEOUT_SECONDS
         self._play_loop: PlayLoop | None = None
 
     def start(self) -> None:
@@ -275,7 +285,34 @@ class DashboardSession:
         """Oldest operator command waiting for the loop, or ``None``."""
         return self._pending_commands.popleft() if self._pending_commands else None
 
+    def check_tick_staleness(self) -> None:
+        """Stop a wedged session from claiming ``running`` once ticks stall.
+
+        QA-CONSOLE-5: the honesty contract already covers start-up (the
+        ``/control/start`` gate) and a crash (``record_loop_error``), but a
+        mid-run wedge raises nothing — the loop thread blocks inside
+        ``emulator.tick()`` and ``update_tick()`` is simply never called
+        again, leaving ``GET /status`` at ``running: true`` with a frozen
+        ``tick_count`` and no ``last_error``. Evaluated on every status read:
+        after ``stall_timeout`` seconds without a tick the session reports
+        ``running: false``, ``current_state: "error"`` and a ``last_error``
+        naming the stall. Paused sessions are exempt — their ticks stop by
+        design — and the flip is one-way: ``record_loop_error`` clears
+        ``running``, so later reads cannot re-trip it.
+        """
+        if not self.state["running"] or self.state["paused"]:
+            return
+        stalled_for = time.time() - self._last_tick_time
+        if stalled_for > self.stall_timeout:
+            self.record_loop_error(
+                f"play loop stalled: no tick for {stalled_for:.1f}s "
+                f"(bound: {self.stall_timeout:g}s) — emulator may be wedged"
+            )
+
     def get_status(self) -> dict[str, Any]:
+        # QA-CONSOLE-5: evaluate the mid-run staleness bound on every read, so
+        # a wedged loop cannot keep the console honest-looking forever.
+        self.check_tick_staleness()
         elapsed = 0.0
         if self.state["start_time"]:
             start = datetime.fromisoformat(self.state["start_time"])

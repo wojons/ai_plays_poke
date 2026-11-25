@@ -571,7 +571,7 @@ def test_declared_history_regions_are_skipped():
     assert not mask[idx("kept verbatim so the audit history stays checkable")]
     assert not mask[idx("wrapper (cron_runner.py:18-23)")]  # §1.4 audit body
     # …except dated UPDATE blockquotes, which resolve against the current tree.
-    assert mask[idx("now sits at `src/dashboard/main.py:454-459`")]
+    assert mask[idx("now sits at `src/dashboard/main.py:491-496`")]
     assert mask[idx("**UPDATE 2026-11-17:** this section is still accurate")]
     # The self-declared superseded offset note (lines 15–24) is skipped.
     assert not mask[idx("+4 at :8585")]

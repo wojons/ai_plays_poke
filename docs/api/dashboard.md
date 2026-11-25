@@ -23,6 +23,7 @@ Running the file directly (`python3 src/dashboard/main.py`) also works — the u
 | `PTP_DASHBOARD_ROM` | `data/rom/Pokemon - Blue Version (USA, Europe) (SGB Enhanced).gb` | ROM a started session plays (see Play loop) |
 | `PTP_DASHBOARD_BOOT_STATE` | `data/boot.state` | Checkpoint a started session boots from; `skip` forces the intro bypass |
 | `PTP_DASHBOARD_START_TIMEOUT` | `20` | Seconds `POST /control/start` waits for the loop's first tick before refusing |
+| `PTP_DASHBOARD_STALL_TIMEOUT` | `30` | Seconds a running session may go without a new tick before a status read reports it stalled (`running: false`, `current_state: "error"`, `last_error` naming the stall) — the mid-run wedge bound; pauses are exempt |
 
 If the configured address is already occupied, startup fails with a non-zero exit and
 reports the bind error (for example, `Errno 98` / `address already in use`). The
@@ -83,11 +84,11 @@ Read routes default to the `default` session; include `?session_id=<your_id>` to
 `DashboardSession.start()` (`src/dashboard/main.py`) starts a **session-owned background thread** (`src/dashboard/play_loop.py`, `DashboardPlayLoop`); it no longer just flips flags. The loop:
 
 1. boots PyBoy on the ROM (`PTP_DASHBOARD_ROM`, else `data/rom/<pokemon blue>.gb`) from the checkpoint (`PTP_DASHBOARD_BOOT_STATE`, else `data/boot.state`; `skip` forces the intro bypass),
-2. ticks the emulator, reads the RAM-derived state and location, and executes queued `/control/command` input (`emulator.press_buttons`, else the AI decision loop when no command is queued),
+2. ticks the emulator, reads the RAM-derived state and location, and executes queued `/control/command` input (`emulator.press_button` per queued command; with nothing queued, a deterministic down/left/up/right exploration cycle — no LLM is involved and a started session costs no API spend),
 3. publishes every iteration through `DashboardSession.update_tick(state, location)` — the single writer of `tick_count` / `location` / `last_action_time`,
 4. saves a PNG every 5 ticks through `ScreenshotManager`, which is what `/screenshots/latest` and `/ws/screenshots/{session_id}` serve.
 
-Honesty contract: `POST /control/start` waits up to `PTP_DASHBOARD_START_TIMEOUT` seconds (default 20) for the first tick. A loop that cannot boot (missing ROM, PyBoy error, provider failure) or that never ticks stops the session and the route answers **503** with `{"status": "failed", "session_id": ..., "error": "<reason>"}`; `GET /status` then reports `running: false`, `tick_count: 0`, `current_state: "error"` and the same message in `last_error`. The console never reports `running: true` with endless zero ticks and no error. `POST /control/pause` / `resume` gate the loop's tick execution, `POST /control/stop` joins the loop thread and closes the emulator.
+Honesty contract: `POST /control/start` waits up to `PTP_DASHBOARD_START_TIMEOUT` seconds (default 20) for the first tick. A loop that cannot boot (missing ROM, PyBoy error, provider failure) or that never ticks stops the session and the route answers **503** with `{"status": "failed", "session_id": ..., "error": "<reason>"}`; `GET /status` then reports `running: false`, `tick_count: 0`, `current_state: "error"` and the same message in `last_error`. The console never reports `running: true` with endless zero ticks and no error. The same contract covers a **mid-run wedge**: a PyBoy hang inside `emulator.tick()` raises nothing, so a wedged loop just stops publishing. A running session that publishes no tick for `PTP_DASHBOARD_STALL_TIMEOUT` seconds (default 30; paused sessions are exempt) is flipped by the next status read to `running: false`, `current_state: "error"` and a `last_error` naming the stall — no restart required. `POST /control/pause` / `resume` gate the loop's tick execution, `POST /control/stop` joins the loop thread and closes the emulator.
 
 `cron_runner.py` is a separate driver for long campaigns; it shares the components (`Emulator`, `GameAIManager`) but not these dashboard sessions.
 
