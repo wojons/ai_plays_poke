@@ -2369,3 +2369,16 @@ tasks:
   status: complete
   created_at: '2026-11-25T17:28:31.487203+00:00'
   completed_at: '2026-11-25T17:52:18.273380+00:00'
+- id: QA-CONSOLE-5
+  title: 'console honesty: doc-vs-code decision-loop claim + mid-run emulator wedge
+    liveness'
+  criteria:
+  - 'Run .venv/bin/pytest tests/test_dashboard.py -q and expect exit 0 with a new
+    staleness/wedge regression test collected, GET /status flipping to running:false
+    current_state error with a configurable PTP_DASHBOARD_* staleness bound once ticks
+    stop advancing, and docs/api/dashboard.md no longer claiming an AI decision loop
+    for the deterministic play_loop.py direction cycle (FAILIF: the doc still promises
+    an AI decision loop, the bound is absent, or no new stall test is collected)'
+  status: complete
+  created_at: '2026-11-25T22:14:43.294572+00:00'
+  completed_at: '2026-11-25T23:20:51.643806+00:00'
