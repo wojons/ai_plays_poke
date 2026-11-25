@@ -1,0 +1,278 @@
+{
+  "task_id": "INT-GATE-2",
+  "task_title": "Standing verdict-coverage audit guard: detect complete-without-verdict and stale in_progress gitreins lifecycles",
+  "task_criteria": [
+    "PROOF: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with every test passing on the graded tree; python3 scripts/gitreins_verdict_audit.py . exits 0 printing a summary naming window, tasks audited, verdicts found, and exceptions skipped (DF-AIPP-13-R3 expected in exceptions); with a synthetic tasks.yaml fixture holding a completed task inside the audit window with no verdict.json and no exception entry, the script exits 1 naming that task id (asserted by unit test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan fixture, live-tree exit non-zero, or the audit covering only in_progress tasks."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "7e0304f324349a478483beabb105f2874c3d1789",
+  "pass_class": "degraded",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "56bbbf2a1fc42720ed6b3c7e8cc94d9106d3d447ab5e3003b06957ffc30d5095",
+  "working_tree_dirty_path_count": 6831,
+  "items": [
+    {
+      "criterion": "PROOF: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with every test passing on the graded tree; python3 scripts/gitreins_verdict_audit.py . exits 0 printing a summary naming window, tasks audited, verdicts found, and exceptions skipped (DF-AIPP-13-R3 expected in exceptions); with a synthetic tasks.yaml fixture holding a completed task inside the audit window with no verdict.json and no exception entry, the script exits 1 naming that task id (asserted by unit test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan fixture, live-tree exit non-zero, or the audit covering only in_progress tasks.",
+      "status": "FAIL",
+      "detail": "Most sub-elements pass: pytest exit_code=0 '14 passed in 0.23s'; ruff exit 0 and .venv/bin/ruff exit 0 (clean on src/ tests/ --quiet); mypy 'Success: no issues found in 1 source file'; synthetic orphan asserted by tests/test_gitreins_verdict_audit.py:84-100 (main==1, 'ORPHAN-NOVERDICT: T-ORPHAN'). BUT the live-tree run fails the explicit FAILIF 'live-tree exit non-zero': `python3 scripts/gitreins_verdict_audit.py .` printed 'tasks_audited: 224 / verdicts_found: 306 / exceptions_skipped: 2 (DF-AIPP-13-R3 + DEPS-005)' yet exited 1 with 'ORPHAN-NOVERDICT: INT-GATE-2' and 'RESULT: FAIL (orphan tasks: INT-GATE-2)'. Cause: the task's own row was flipped to status: complete with completed_at '2026-11-25T07:34:52.530270+00:00' (verified in .gitreins/tasks.yaml), i.e. inside the 30-day window, while no verdict.json naming INT-GATE-2 exists anywhere under .gitreins/history (grep '\"task_id\": \"INT-GATE-2\"' --include=verdict.json over .gitreins/history = 0 hits) and .gitreins/verdict_audit_exceptions.yaml contains no INT-GATE-2 entry (only DF-AIPP-13-R3, DEPS-005). The guard works exactly as designed \u2014 and its own closeout is the first instance of the defect class it was built to catch."
+    },
+    {
+      "criterion": "The audit flags completed tasks inside the window, not only in_progress ones (FAILIF clause: 'the audit covering only in_progress tasks')",
+      "status": "PASS",
+      "detail": "scripts/gitreins_verdict_audit.py:268-273 has an `elif status == \"complete\":` branch appending to orphan_noverdict when completed_at >= now-window_days; the live run reached it (flagged complete task INT-GATE-2, an in_progress flag would be impossible for that row), and test_fresh_in_progress_and_old_complete_not_flagged plus test_complete_without_verdict_inside_window_fails cover both sides.",
+      "derived": true
+    },
+    {
+      "criterion": "The synthetic completed-task-in-window orphan fixture makes the script exit 1 naming that task id, asserted by unit test rather than live state",
+      "status": "PASS",
+      "detail": "tests/test_gitreins_verdict_audit.py:84-100 (test_complete_without_verdict_inside_window_fails) builds the exact fixture named in the criterion (completed_at now-1d, no verdict.json, no exceptions file) and asserts audit_mod.main([str(root)]) == 1 with 'ORPHAN-NOVERDICT: T-ORPHAN' in stdout; fresh run of the module: exit_code 0, '14 passed in 0.23s'.",
+      "derived": true
+    }
+  ],
+  "merge_recommendation": "needs_review",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n2:35AM INF scanned ~398261676 bytes (398.26 MB) in 50s\n2:35AM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 102421 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\ngitreins_tests: runner=./venv/bin/pytest (pytest 9.1.1) cwd=/home/kara/ai_plays_poke\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4899 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\n\n\u2026 [535222 chars omitted \u2014 5802 line(s)] \u2026\ntest_bench_pathfinding_find_path               480.9699 (1.23)           4,447.9966 (3.15)            945.2536 (1.87)          1,111.1236 (9.64)            566.0113 (1.23)           245.9856 (4.10)          1;1  1,057,917.1467 (0.54)         12           1\ntest_bench_vision_pipeline_validate          7,352.9663 (18.85)      1,284,288.0096 (909.55)       13,472.4663 (26.60)        10,805.2656 (93.75)        12,924.0216 (28.03)        2,385.0007 (39.74)    641;1902     74,225.4593 (0.04)      27430           1\ntest_bench_ram_reader_observe            1,202,667.0156 (>1000.0)  238,871,106.9943 (>1000.0)   3,141,599.5603 (>1000.0)  16,691,298.5043 (>1000.0)   1,875,443.0057 (>1000.0)    569,935.0149 (>1000.0)      3;10        318.3092 (0.00)        542           1\ntest_bench_vision_pipeline_process      51,851,373.9808 (>1000.0)   73,973,211.9837 (>1000.0)  59,022,576.1749 (>1000.0)   5,910,957.9385 (>1000.0)  57,633,542.9796 (>1000.0)  6,473,693.6911 (>1000.0)       6;1         16.9427 (0.00)         17           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4885 passed, 14 skipped in 271.64s (0:04:31) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 PROOF: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with every test passing on the graded tree; python3 scripts/gitreins_verdict_audit.py . exits 0 printing a summary naming window, tasks audited, verdicts found, and exceptions skipped (DF-AIPP-13-R3 expected in exceptions); with a synthetic tasks.yaml fixture holding a completed task inside the audit window with no verdict.json and no exception entry, the script exits 1 naming that task id (asserted by unit test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan fixture, live-tree exit non-zero, or the audit covering only in_progress tasks.: Most sub-elements pass: pytest exit_code=0 '14 passed in 0.23s'; ruff exit 0 and .venv/bin/ruff exit 0 (clean on src/ tests/ --quiet); mypy 'Success: no issues found in 1 source file'; synthetic orphan asserted by tests/test_gitreins_verdict_audit.py:84-100 (main==1, 'ORPHAN-NOVERDICT: T-ORPHAN'). BUT the live-tree run fails the explicit FAILIF 'live-tree exit non-zero': `python3 scripts/gitreins_verdict_audit.py .` printed 'tasks_audited: 224 / verdicts_found: 306 / exceptions_skipped: 2 (DF-AIPP-13-R3 + DEPS-005)' yet exited 1 with 'ORPHAN-NOVERDICT: INT-GATE-2' and 'RESULT: FAIL (orphan tasks: INT-GATE-2)'. Cause: the task's own row was flipped to status: complete with completed_at '2026-11-25T07:34:52.530270+00:00' (verified in .gitreins/tasks.yaml), i.e. inside the 30-day window, while no verdict.json naming INT-GATE-2 exists anywhere under .gitreins/history (grep '\"task_id\": \"INT-GATE-2\"' --include=verdict.json over .gitreins/history = 0 hits) and .gitreins/verdict_audit_exceptions.yaml contains no INT-GATE-2 entry (only DF-AIPP-13-R3, DEPS-005). The guard works exactly as designed \u2014 and its own closeout is the first instance of the defect class it was built to catch.\n  \u2713 The audit flags completed tasks inside the window, not only in_progress ones (FAILIF clause: 'the audit covering only in_progress tasks'): scripts/gitreins_verdict_audit.py:268-273 has an `elif status == \"complete\":` branch appending to orphan_noverdict when completed_at >= now-window_days; the live run reached it (flagged complete task INT-GATE-2, an in_progress flag would be impossible for that row), and test_fresh_in_progress_and_old_complete_not_flagged plus test_complete_without_verdict_inside_window_fails cover both sides.\n  \u2713 The synthetic completed-task-in-window orphan fixture makes the script exit 1 naming that task id, asserted by unit test rather than live state: tests/test_gitreins_verdict_audit.py:84-100 (test_complete_without_verdict_inside_window_fails) builds the exact fixture named in the criterion (completed_at now-1d, no verdict.json, no exceptions file) and asserts audit_mod.main([str(root)]) == 1 with 'ORPHAN-NOVERDICT: T-ORPHAN' in stdout; fresh run of the module: exit_code 0, '14 passed in 0.23s'.\n  \u2717 Coverage FAILED \u2014 not passing: PROOF: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with every test passing on the graded tree; python3 scripts/gitreins_verdict_audit.py . exits 0 printing a summary naming window, tasks audited, verdicts found, and exceptions skipped (DF-AIPP-13-R3 expected in exceptions); with a synthetic tasks.yaml fixture holding a completed task inside the audit window with no verdict.json and no exception entry, the script exits 1 naming that task id (asserted by unit test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan fixture, live-tree exit non-zero, or the audit covering only in_progress tasks.\nScript logic, 14/14 tests, ruff, mypy, and the synthetic-orphan assertion all pass, but the live-tree audit exits 1 flagging INT-GATE-2 itself as complete-without-verdict (row flipped complete at 07:34:52Z with no verdict.json and no exception entry), tripping the criterion's explicit FAILIF 'live-tree exit non-zero'.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 PROOF: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with every test passing on the graded tree; python3 scripts/gitreins_verdict_audit.py . exits 0 printing a summary naming window, tasks audited, verdicts found, and exceptions skipped (DF-AIPP-13-R3 expected in exceptions); with a synthetic tasks.yaml fixture holding a completed task inside the audit window with no verdict.json and no exception entry, the script exits 1 naming that task id (asserted by unit test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan fixture, live-tree exit non-zero, or the audit covering only in_progress tasks.: Most sub-elements pass: pytest exit_code=0 '14 passed in 0.23s'; ruff exit 0 and .venv/bin/ruff exit 0 (clean on src/ tests/ --quiet); mypy 'Success: no issues found in 1 source file'; synthetic orphan asserted by tests/test_gitreins_verdict_audit.py:84-100 (main==1, 'ORPHAN-NOVERDICT: T-ORPHAN'). BUT the live-tree run fails the explicit FAILIF 'live-tree exit non-zero': `python3 scripts/gitreins_verdict_audit.py .` printed 'tasks_audited: 224 / verdicts_found: 306 / exceptions_skipped: 2 (DF-AIPP-13-R3 + DEPS-005)' yet exited 1 with 'ORPHAN-NOVERDICT: INT-GATE-2' and 'RESULT: FAIL (orphan tasks: INT-GATE-2)'. Cause: the task's own row was flipped to status: complete with completed_at '2026-11-25T07:34:52.530270+00:00' (verified in .gitreins/tasks.yaml), i.e. inside the 30-day window, while no verdict.json naming INT-GATE-2 exists anywhere under .gitreins/history (grep '\"task_id\": \"INT-GATE-2\"' --include=verdict.json over .gitreins/history = 0 hits) and .gitreins/verdict_audit_exceptions.yaml contains no INT-GATE-2 entry (only DF-AIPP-13-R3, DEPS-005). The guard works exactly as designed \u2014 and its own closeout is the first instance of the defect class it was built to catch.\n\n\u2026 [1041 chars omitted \u2014 2 line(s)] \u2026\n  \u2717 Coverage FAILED \u2014 not passing: PROOF: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with every test passing on the graded tree; python3 scripts/gitreins_verdict_audit.py . exits 0 printing a summary naming window, tasks audited, verdicts found, and exceptions skipped (DF-AIPP-13-R3 expected in exceptions); with a synthetic tasks.yaml fixture holding a completed task inside the audit window with no verdict.json and no exception entry, the script exits 1 naming that task id (asserted by unit test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan fixture, live-tree exit non-zero, or the audit covering only in_progress tasks.\nScript logic, 14/14 tests, ruff, mypy, and the synthetic-orphan assertion all pass, but the live-tree audit exits 1 flagging INT-GATE-2 itself as complete-without-verdict (row flipped complete at 07:34:52Z with no verdict.json and no exception entry), tripping the criterion's explicit FAILIF 'live-tree exit non-zero'.",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [
+              {
+                "criterion": "PROOF: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with every test passing on the graded tree; python3 scripts/gitreins_verdict_audit.py . exits 0 printing a summary naming window, tasks audited, verdicts found, and exceptions skipped (DF-AIPP-13-R3 expected in exceptions); with a synthetic tasks.yaml fixture holding a completed task inside the audit window with no verdict.json and no exception entry, the script exits 1 naming that task id (asserted by unit test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan fixture, live-tree exit non-zero, or the audit covering only in_progress tasks.",
+                "status": "FAIL",
+                "detail": "Most sub-elements pass: pytest exit_code=0 '14 passed in 0.23s'; ruff exit 0 and .venv/bin/ruff exit 0 (clean on src/ tests/ --quiet); mypy 'Success: no issues found in 1 source file'; synthetic orphan asserted by tests/test_gitreins_verdict_audit.py:84-100 (main==1, 'ORPHAN-NOVERDICT: T-ORPHAN'). BUT the live-tree run fails the explicit FAILIF 'live-tree exit non-zero': `python3 scripts/gitreins_verdict_audit.py .` printed 'tasks_audited: 224 / verdicts_found: 306 / exceptions_skipped: 2 (DF-AIPP-13-R3 + DEPS-005)' yet exited 1 with 'ORPHAN-NOVERDICT: INT-GATE-2' and 'RESULT: FAIL (orphan tasks: INT-GATE-2)'. Cause: the task's own row was flipped to status: complete with completed_at '2026-11-25T07:34:52.530270+00:00' (verified in .gitreins/tasks.yaml), i.e. inside the 30-day window, while no verdict.json naming INT-GATE-2 exists anywhere under .gitreins/history (grep '\"task_id\": \"INT-GATE-2\"' --include=verdict.json over .gitreins/history = 0 hits) and .gitreins/verdict_audit_exceptions.yaml contains no INT-GATE-2 entry (only DF-AIPP-13-R3, DEPS-005). The guard works exactly as designed \u2014 and its own closeout is the first instance of the defect class it was built to catch."
+              },
+              {
+                "criterion": "The audit flags completed tasks inside the window, not only in_progress ones (FAILIF clause: 'the audit covering only in_progress tasks')",
+                "status": "PASS",
+                "detail": "scripts/gitreins_verdict_audit.py:268-273 has an `elif status == \"complete\":` branch appending to orphan_noverdict when completed_at >= now-window_days; the live run reached it (flagged complete task INT-GATE-2, an in_progress flag would be impossible for that row), and test_fresh_in_progress_and_old_complete_not_flagged plus test_complete_without_verdict_inside_window_fails cover both sides.",
+                "derived": true
+              },
+              {
+                "criterion": "The synthetic completed-task-in-window orphan fixture makes the script exit 1 naming that task id, asserted by unit test rather than live state",
+                "status": "PASS",
+                "detail": "tests/test_gitreins_verdict_audit.py:84-100 (test_complete_without_verdict_inside_window_fails) builds the exact fixture named in the criterion (completed_at now-1d, no verdict.json, no exceptions file) and asserts audit_mod.main([str(root)]) == 1 with 'ORPHAN-NOVERDICT: T-ORPHAN' in stdout; fresh run of the module: exit_code 0, '14 passed in 0.23s'.",
+                "derived": true
+              }
+            ],
+            "summary": "Script logic, 14/14 tests, ruff, mypy, and the synthetic-orphan assertion all pass, but the live-tree audit exits 1 flagging INT-GATE-2 itself as complete-without-verdict (row flipped complete at 07:34:52Z with no verdict.json and no exception entry), tripping the criterion's explicit FAILIF 'live-tree exit non-zero'.",
+            "provenance": {
+              "model": "glm-5.3-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            },
+            "context_stats": {
+              "diff_source": "working-tree",
+              "diff_bytes": 2029,
+              "prompt_bytes": 19833
+            }
+          }
+        }
+      ],
+      "model": "glm-5.3-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "context_stats": {
+        "diff_source": "working-tree",
+        "diff_bytes": 2029,
+        "prompt_bytes": 19833
+      },
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"INT-GATE-2\"}",
+          "exit_code": 0,
+          "output_sha": "42a50c32e77a62a5757e8e0578e9d5303ad56a903d588d0589579b7f448d91a8"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"scripts/gitreins_verdict_audit.py\"}",
+          "exit_code": 0,
+          "output_sha": "2d9d02459ec824f507c38c40d972a1f97a6a12c742c53384e34cd87aa5d92bbd"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"tests/test_gitreins_verdict_audit.py\"}",
+          "exit_code": 0,
+          "output_sha": "dafc9005b8c91ad9a68bc7a34ba125838fb9f69574a58e1e7e253293f7c6f5ef"
+        },
+        {
+          "tool": "run_command",
+          "command": ".venv/bin/pytest tests/test_gitreins_verdict_audit.py -q 2>&1 | tail -20; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "d92d6133626582bb74d4fc16caf7f41a7e9c30ec561b9098caa9329f18ab74d9"
+        },
+        {
+          "tool": "run_command",
+          "command": ".venv/bin/pytest tests/test_gitreins_verdict_audit.py -q > /dev/null 2>&1; echo \"PYTEST_EXIT=$?\"; python3 scripts/gitreins_verdict_audit.py . ; echo \"AUDIT_EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "262229c833bdf55c06457ad1982eeabbbdf932c0c8a44cf95a71bd28665e1f07"
+        },
+        {
+          "tool": "run_command",
+          "command": "date -u; git -C . log -1 --format='%H %cI %s'; ls .gitreins/history/ | tail -5; grep -rl \"INT-GATE-2\" .gitreins/history/ 2>/dev/null | head -5; echo \"---\"; find .gitreins/history -name verdict.json -newermt \"2026-11-20\" | head -20",
+          "exit_code": 0,
+          "output_sha": "8731ce1721ab7d6ce7fbd6dd208e9855d16688149e5f38819fd0c683084f3dad"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"offset\": 300, \"path\": \"tests/test_gitreins_verdict_audit.py\"}",
+          "exit_code": 0,
+          "output_sha": "b0ea1a38094830e5774e82c5cc3d11ed8249f1779ef6220799e6b27397a7e616"
+        },
+        {
+          "tool": "run_command",
+          "command": "grep -rl '\"task_id\": *\"INT-GATE-2\"' .gitreins/history/ --include=verdict.json | head; echo \"VERDICT_GREP_DONE\"; ruff check src/ tests/ --quiet 2>&1 | head -5; echo \"RUFF_EXIT=$?\"; .venv/bin/ruff check src/ tests/ --quiet > /dev/null 2>&1; echo \"VENV_RUFF_EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "862f8492e6d975d4d8b0d3c98ff3fd0d76c46431bedf9dbc6b3363c57f5073c7"
+        },
+        {
+          "tool": "run_command",
+          "command": ".venv/bin/mypy scripts/gitreins_verdict_audit.py 2>&1 | tail -5; echo \"MYPY_EXIT=$?\"; grep -A6 \"id: INT-GATE-2\" .gitreins/tasks.yaml | grep -E \"status|created_at|completed_at\"",
+          "exit_code": 1,
+          "output_sha": "dca437fc31d052c9e6f51673cab9d5f9ddd28022d77b9cc8cc57db4480daa071"
+        },
+        {
+          "tool": "run_command",
+          "command": "grep -B2 -A40 \"^- id: INT-GATE-2\" .gitreins/tasks.yaml | grep -E \"^\\s*(status|created_at|completed_at|id):\" | head -5; echo \"---SAMPLE_VERDICT---\"; head -c 400 .gitreins/history/2026-11-25/413a8fc9/verdict.json",
+          "exit_code": 0,
+          "output_sha": "568908e6a27d2e473fc066cd23e108dd47e316200bc8be8d49b74a337a460959"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PARTIAL-FAIL evidence: pytest 14/14 pass (exit 0); ruff+venv ruff exit 0; mypy 'Success: no issues found in 1 source file'; audit summary prints window_days/stale_days/tasks_audited: 224/verdicts_found: 306/exceptions_skipped: 2 incl. DF-AIPP-13-R3. BUT 'python3 scripts/gitreins_verdict_audit.py .' exits 1: 'ORPHAN-NOVERDICT: INT-GATE-2' / 'RESULT: FAIL (orphan tasks: INT-GATE-2)'. INT-GATE-2 row flipped to status: complete with completed_at 2026-11-25T07:34:52Z (inside 30d window), no verdict.json naming INT-GATE-2 exists (grep '\\\"task_id\\\": \\\"INT-GATE-2\\\"' over .gitreins/history --include=verdict.json = 0 hits), and no exceptions entry for INT-GATE-2 in .gitreins/verdict_audit_exceptions.yaml. Criterion demands live exit 0 and FAILIF names 'live-tree exit non-zero' -> FAIL.\", \"key\": \"verified_0\"}",
+          "exit_code": 0,
+          "output_sha": "9be7f84bbbea756a5405d9aff3d2d28d68c653ba6ff7fac63e421167dc6a3876"
+        },
+        {
+          "tool": "run_command",
+          "command": "grep -n \"elif status\\|orphan_noverdict.append\\|orphan_stale.append\\|exceptions_skipped.append\" scripts/gitreins_verdict_audit.py",
+          "exit_code": 0,
+          "output_sha": "54318736400b1156ac7cc5bb16b023ed6254de100d0d239d7f6e80c90e8a887d"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"derived_0: The audit flags completed tasks inside the window, not only in_progress ones (audit_repo has an ORPHAN-NOVERDICT branch for status == \\\"complete\\\").\\nderived_1: A unit test asserts the synthetic orphan fixture (completed task in window, no verdict.json, no exception) makes the script exit 1 naming that task id.\\n\", \"key\": \"derived_list\"}",
+          "exit_code": 0,
+          "output_sha": "5b4b746dced0dd12b97f0bebe036bf642121ab963ec0391eb44ff9821569da89"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"verified_derived_0: PASS \\u2014 scripts/gitreins_verdict_audit.py:268-273 `elif status == \\\"complete\\\":` branch appends to orphan_noverdict for completed tasks with completed_at within window_days; audit of live tree flagged INT-GATE-2 (a complete task, not in_progress) proving the branch is reached. Audit covers both lifecycles, not only in_progress.\\n\", \"key\": \"verified_derived_0\"}",
+          "exit_code": 0,
+          "output_sha": "9728884dd9d0b02d26fa7cae3b98f4f20758aa70e307c2355d3dc2e844eb53cd"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"verified_derived_1: PASS \\u2014 tests/test_gitreins_verdict_audit.py::test_complete_without_verdict_inside_window_fails (lines 84-100): synthetic fixture with completed_at now-1d, no verdict.json, no exceptions file; asserts main([str(root)]) == 1 and 'ORPHAN-NOVERDICT: T-ORPHAN' in output. Ran fresh: 14 passed in 0.23s, exit 0.\\n\", \"key\": \"verified_derived_1\"}",
+          "exit_code": 0,
+          "output_sha": "dc189caa9b66b5fcb40a17928d58b0e7238fc7b5656c025157fd386735cde1bc"
+        }
+      ]
+    }
+  },
+  "context_stats": {
+    "diff_source": "working-tree",
+    "diff_bytes": 2029,
+    "prompt_bytes": 19833
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [],
+    "summary": "",
+    "error": "unparseable reviewer reply: no parseable JSON object in reply: ''",
+    "raw_reply": "",
+    "retry": {
+      "count": 1,
+      "raw_reply": ""
+    },
+    "review_state": {
+      "emitted": [],
+      "carried": []
+    }
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 PROOF: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with every test passing on the graded tree; python3 scripts/gitreins_verdict_audit.py . exits 0 printing a summary naming window, tasks audited, verdicts found, and exceptions skipped (DF-AIPP-13-R3 expected in exceptions); with a synthetic tasks.yaml fixture holding a completed task inside the audit window with no verdict.json and no exception entry, the script exits 1 naming that task id (asserted by unit test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan fixture, live-tree exit non-zero, or the audit covering only in_progress tasks.: Most sub-elements pass: pytest exit_code=0 '14 passed in 0.23s'; ruff exit 0 and .venv/bin/ruff exit 0 (clean on src/ tests/ --quiet); mypy 'Success: no issues found in 1 source file'; synthetic orphan asserted by tests/test_gitreins_verdict_audit.py:84-100 (main==1, 'ORPHAN-NOVERDICT: T-ORPHAN'). BUT the live-tree run fails the explicit FAILIF 'live-tree exit non-zero': `python3 scripts/gitreins_verdict_audit.py .` printed 'tasks_audited: 224 / verdicts_found: 306 / exceptions_skipped: 2 (DF-AIPP-13-R3 + DEPS-005)' yet exited 1 with 'ORPHAN-NOVERDICT: INT-GATE-2' and 'RESULT: FAIL (orphan tasks: INT-GATE-2)'. Cause: the task's own row was flipped to status: complete with completed_at '2026-11-25T07:34:52.530270+00:00' (verified in .gitreins/tasks.yaml), i.e. inside the 30-day window, while no verdict.json naming INT-GATE-2 exists anywhere under .gitreins/history (grep '\"task_id\": \"INT-GATE-2\"' --include=verdict.json over .gitreins/history = 0 hits) and .gitreins/verdict_audit_exceptions.yaml contains no INT-GATE-2 entry (only DF-AIPP-13-R3, DEPS-005). The guard works exactly as designed \u2014 and its own closeout is the first instance of the defect class it was built to catch.\n  \u2713 The audit flags completed tasks inside the window, not only in_progress ones (FAILIF clause: 'the audit covering only in_progress tasks'): scripts/gitreins_verdict_audit.py:268-273 has an `elif status == \"complete\":` branch appending to orphan_noverdict when completed_at >= now-window_days; the live run reached it (flagged complete task INT-GATE-2, an in_progress flag would be impossible for that row), and test_fresh_in_progress_and_old_complete_not_flagged plus test_complete_without_verdict_inside_window_fails cover both sides.\n  \u2713 The synthetic completed-task-in-window orphan fixture makes the script exit 1 naming that task id, asserted by unit test rather than live state: tests/test_gitreins_verdict_audit.py:84-100 (test_complete_without_verdict_inside_window_fails) builds the exact fixture named in the criterion (completed_at now-1d, no verdict.json, no exceptions file) and asserts audit_mod.main([str(root)]) == 1 with 'ORPHAN-NOVERDICT: T-ORPHAN' in stdout; fresh run of the module: exit_code 0, '14 passed in 0.23s'.\n  \u2717 Coverage FAILED \u2014 not passing: PROOF: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with every test passing on the graded tree; python3 scripts/gitreins_verdict_audit.py . exits 0 printing a summary naming window, tasks audited, verdicts found, and exceptions skipped (DF-AIPP-13-R3 expected in exceptions); with a synthetic tasks.yaml fixture holding a completed task inside the audit window with no verdict.json and no exception entry, the script exits 1 naming that task id (asserted by unit test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan fixture, live-tree exit non-zero, or the audit covering only in_progress tasks.\nScript logic, 14/14 tests, ruff, mypy, and the synthetic-orphan assertion all pass, but the live-tree audit exits 1 flagging INT-GATE-2 itself as complete-without-verdict (row flipped complete at 07:34:52Z with no verdict.json and no exception entry), tripping the criterion's explicit FAILIF 'live-tree exit non-zero'.\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-11-25T07:43:05.512552",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-25T07:43:05.549920+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 28581,
+        "truncated": false,
+        "source": "git show 7e0304f32434"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 42908,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "INT-GATE-2"
+  }
+}

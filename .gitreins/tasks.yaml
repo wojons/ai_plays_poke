@@ -1679,16 +1679,6 @@ tasks:
   status: complete
   created_at: '2026-10-20T02:02:51.695830+00:00'
   completed_at: '2026-10-20T02:03:12.650822+00:00'
-- id: DF-AIPP-11
-  title: 'dashboard: control buttons send session_id in body, handlers read from query'
-  criteria:
-  - 'UI control buttons (Start/Pause/Resume/Stop) send session_id in JSON body while
-    handlers read it from query string, causing controls to always act on ''default''
-    session. Fix: make transports agree - either send controls as query strings or
-    declare params as Body on handlers. Add test covering non-default session through
-    start->command->pause->resume->stop.'
-  status: in_progress
-  created_at: '2026-10-20T04:08:57.796940+00:00'
 - id: DOC-19
   title: Add missing standard project governance documents
   criteria:
@@ -2341,5 +2331,6 @@ tasks:
     test, not live state). ruff check src/ tests/ --quiet exits 0 and mypy scripts/gitreins_verdict_audit.py
     reports no errors. FAILIF: any pytest failure, exit 0 on the synthetic orphan
     fixture, live-tree exit non-zero, or the audit covering only in_progress tasks.'
-  status: in_progress
+  status: complete
   created_at: '2026-11-25T06:54:45.415404+00:00'
+  completed_at: '2026-11-25T07:43:53.551438+00:00'

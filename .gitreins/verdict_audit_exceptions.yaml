@@ -1,2 +1,4 @@
 - id: DF-AIPP-13-R3
   reason: judge in flight at tick-386 closeout, never landed; CLOSED PARTIAL on CI+gates evidence, residual DF-AIPP-13-R4 filed (board event 939)
+- id: DEPS-005
+  reason: async judge dispatched 2026-10-26 never landed a verdict; row closed foreman-direct on full-suite evidence (4526 passed/14 skipped, mypy/ruff clean, fastapi 0.139.2->0.162.0 drift fix)
