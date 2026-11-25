@@ -36,11 +36,11 @@ re-run verbatim.
 | `grep -rn "prometheus" src/ scripts/ tests/ cron_runner.py --include=*.py \| wc -l` | `0` | `13` |
 | `grep -in "prometheus\|opentelemetry\|statsd" requirements.txt pyproject.toml` | (no output) | 3 lines: `requirements.txt:48` (comment), `requirements.txt:49` `prometheus-client`, `pyproject.toml:30` `"prometheus-client",  # Prometheus metrics endpoint and runtime instrumentation` |
 
-**The scrape endpoint exists.** `src/dashboard/main.py:442` declares
-`@app.get("/metrics/prometheus")`; the handler at `:443-451` returns
+**The scrape endpoint exists.** `src/dashboard/main.py:479` declares
+`@app.get("/metrics/prometheus")`; the handler at `:480-488` returns
 `generate_latest(REGISTRY)` with `CONTENT_TYPE_LATEST`. It carries **no** `Depends(...)`,
 so it is unauthenticated as §4.1 required, and the old JSON `/metrics` contract is
-untouched (now at `src/dashboard/main.py:454`).
+untouched (now at `src/dashboard/main.py:491`).
 
 **Eleven metric families are defined** in `src/observability/metrics.py`, and every one of
 them is incremented from a production code path (not a test hook — §4.1's dogfood rule):
@@ -51,7 +51,7 @@ them is incremented from a production code path (not a test hook — §4.1's dog
 | 2 | `aipp_decision_duration_seconds` | metrics.py:25 | `observe_decision_seconds()` metrics.py:338 ← cron_runner.py:10232 |
 | 3 | `aipp_model_calls_total` | metrics.py:31 | `observe_model_call()` metrics.py:345 ← src/core/ai_client.py:133 |
 | 4 | `aipp_model_cost_usd_total` | metrics.py:37 | `observe_model_call()` metrics.py:345 (the `_MODEL_COST.inc` branch at :351) ← src/core/ai_client.py:133 |
-| 5 | `aipp_runner_up` | metrics.py:43 | `set_runner_up()` metrics.py:420 ← cron_runner.py:8841 (`surface="cron"`), src/dashboard/main.py:126 (`surface="dashboard"`) |
+| 5 | `aipp_runner_up` | metrics.py:43 | `set_runner_up()` metrics.py:420 ← cron_runner.py:8841 (`surface="cron"`), src/dashboard/main.py:135 (`surface="dashboard"`) |
 | 6 | `aipp_map_transitions_total` | metrics.py:58 | `observe_run_end()` metrics.py:533 (its `_MAP_TRANSITIONS.inc` at :567) ← `_publish_run_metrics()` cron_runner.py:6232, called at :8882 (error close) and :11910 (normal close) |
 | 7 | `aipp_episode_decisions_total` | metrics.py:63 | `observe_run_end()` — its `_EPISODE_DECISIONS.inc` at metrics.py:564 (same call sites) |
 | 8 | `aipp_backtrack_events_total` | metrics.py:69 | `observe_run_end()` — its `_BACKTRACK_EVENTS.inc` at metrics.py:568 (same call sites) |
@@ -138,7 +138,7 @@ Three distinct execution surfaces, all reading the same 10k-line game loop:
 
 ### 1.2 The `/metrics` route is NOT a metrics endpoint
 
-`src/dashboard/main.py:370-375`:
+`src/dashboard/main.py:407-412`:
 
 ```python
 @app.get("/metrics")
@@ -160,10 +160,10 @@ it unusable as-is:
 
 > **UPDATE 2026-11-17:** this section is still accurate about `/metrics` — same JSON
 > contract, same API-key gate, same hardcoded `total_cost`. Two things moved. (a) The route
-> the block above quotes as `:355-360` now sits at `src/dashboard/main.py:454-459`; the
+> the block above quotes as `:392-397` now sits at `src/dashboard/main.py:491-496`; the
 > contract is unchanged and `tests/test_dashboard.py` still asserts 401-without-key. (b) A
 > **separate, unauthenticated** route `GET /metrics/prometheus` now serves the Prometheus
-> text exposition format (`src/dashboard/main.py:442-451`) — the fix this section's
+> text exposition format (`src/dashboard/main.py:479-488`) — the fix this section's
 > criticism called for. Nothing above was rewritten.
 
 ### 1.3 No Prometheus client, no OTel (2026-11-03 reading; superseded — see UPDATE)
@@ -476,7 +476,7 @@ the tile did move (RAM advancing while pixels do not is the other half of the sa
 - **Dogfood rule:** every metric must increment on a real code path, not in a test-only hook. A
   counter that only moves under pytest is worse than none.
 
-### 4.2 Route shape (reference sketch, 2026-11-03 — now applied as `src/dashboard/main.py:358`)
+### 4.2 Route shape (reference sketch, 2026-11-03 — now applied as `src/dashboard/main.py:395`)
 
 ```python
 # src/dashboard/main.py — additive only
@@ -998,12 +998,12 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 
 ## 8. Known risks for the implementing worker
 
-1. **`/metrics` is taken.** Use a new path. Do not modify `tests/test_dashboard.py:203,570`.
+1. **`/metrics` is taken.** Use a new path. Do not modify `tests/test_dashboard.py:221,588`.
 2. **The cron lane must not try to serve HTTP.** It exits; a scrape will never catch it. Textfile only.
 3. **`src/core/logger.py` is a trap.** It looks like the logging solution and is 100% unwired. Do not
    assume it runs. If step 1 of the work "fixes logging" by calling `get_logger()`, verify the files
    actually grow (`wc -c logs/errors/errors.log`) — that is a separate, larger piece of work than metrics.
-4. **`total_cost_estimate` is hardcoded `0.0`** (`total_cost = 0.0`, src/dashboard/main.py:303). Do not wire metric 4 to it
+4. **`total_cost_estimate` is hardcoded `0.0`** (`total_cost = 0.0`, src/dashboard/main.py:340). Do not wire metric 4 to it
    — it would export a dead zero with a live-looking `# HELP`. Wire it to the `log_api_call` cost
    parameter path, and if the dashboard field is to be fixed, fix it as a deliberate change with its
    own evidence.

@@ -61,14 +61,27 @@ class FakePlayLoop:
     emulator loop is covered by ``tests/test_dashboard_play_loop.py``.
     """
 
-    def __init__(self, session, *, failure=None, silent=False, delay=0.01):
+    def __init__(
+        self,
+        session,
+        *,
+        failure=None,
+        silent=False,
+        delay=0.01,
+        wedge_after_first_tick=False,
+    ):
         self.session = session
         self.failure = failure
         self.silent = silent
         self.delay = delay
+        # QA-CONSOLE-5: publish one tick, then hang forever — the shape of a
+        # PyBoy wedge inside ``emulator.tick()`` AFTER a healthy boot and a
+        # healthy first publish (which is what lets /control/start pass).
+        self.wedge_after_first_tick = wedge_after_first_tick
         self.started = False
         self.stopped = False
         self._stop = threading.Event()
+        self._wedged = threading.Event()
         self._thread = None
 
     def start(self):
@@ -85,6 +98,10 @@ class FakePlayLoop:
             # the endpoint must refuse instead of reporting "started".
             self._stop.wait()
             return
+        if self.wedge_after_first_tick:
+            self.session.update_tick("overworld", "Pallet Town (6,6)")
+            self._wedged.wait()  # the mid-run wedge: tick() never returns
+            return
         while not self._stop.wait(self.delay):
             if self.session.state["paused"]:
                 continue
@@ -93,6 +110,7 @@ class FakePlayLoop:
     def stop(self):
         self.stopped = True
         self._stop.set()
+        self._wedged.set()
         if self._thread is not None:
             self._thread.join(timeout=2.0)
 
@@ -805,6 +823,92 @@ class TestStartedSessionReachesFirstTick:
         assert isinstance(loop, DashboardPlayLoop)
         assert loop.session is session
         assert loop.rom_path.suffix == ".gb"
+
+
+class TestMidRunStallDetection:
+    """QA-CONSOLE-5: a loop wedged AFTER boot must not keep /status running.
+
+    The start gate (``PTP_DASHBOARD_START_TIMEOUT``) and ``record_loop_error``
+    cover start-up and crash. A mid-run wedge — a PyBoy hang inside
+    ``emulator.tick()`` — raises nothing: the loop thread just sits blocked
+    and nothing publishes again, so the pre-fix console read ``running: true``
+    with a frozen ``tick_count`` and ``last_error: null`` forever. The
+    staleness bound (``PTP_DASHBOARD_STALL_TIMEOUT``) is evaluated on every
+    status read; these tests prove the flip, the paused exemption, and that
+    the bound is the module-configurable env constant.
+    """
+
+    # Generous against host load: the flip needs a stall LONGER than this,
+    # and the loop is already wedged when the first read lands.
+    STALL_BOUND = 0.5
+
+    def test_status_flips_to_error_once_ticks_stop_past_the_bound(
+        self, client, auth, monkeypatch
+    ):
+        """Regression: wedge the loop after its first publish; /status flips.
+
+        On the pre-fix tree ``get_status()`` never evaluated staleness, so the
+        final assertions fail with ``running: true`` / ``last_error: None``.
+        """
+        import src.dashboard.main as dashboard_main
+
+        monkeypatch.setattr(dashboard_main, "STALL_TIMEOUT_SECONDS", self.STALL_BOUND)
+        monkeypatch.setattr(
+            dashboard_main,
+            "PLAY_LOOP_FACTORY",
+            lambda session: FakePlayLoop(session, wedge_after_first_tick=True),
+        )
+
+        resp = client.post("/control/start", headers=auth)
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["tick_count"] >= 1  # the wedge is AFTER a good start
+
+        # Inside the bound the session is still honestly running.
+        early = client.get("/status", headers=auth).json()
+        assert early["running"] is True
+        assert early["last_error"] is None
+
+        # Past the bound the staleness check must stop the session from
+        # claiming to run with a frozen tick_count and no explanation.
+        deadline = time.monotonic() + 5.0
+        status = client.get("/status", headers=auth).json()
+        while time.monotonic() < deadline and status["running"]:
+            time.sleep(0.05)
+            status = client.get("/status", headers=auth).json()
+
+        assert status["running"] is False, status
+        assert status["current_state"] == "error", status
+        assert "stalled" in status["last_error"], status
+        assert f"bound: {self.STALL_BOUND:g}s" in status["last_error"], status
+
+        # The flip is one-way and stable across later reads.
+        assert client.get("/status", headers=auth).json()["running"] is False
+
+    def test_paused_session_is_exempt_from_the_stall_flip(self, tmp_path):
+        """A paused session stops ticking by design; staleness must not fire."""
+        import src.dashboard.main as dashboard_main
+
+        session = dashboard_main.DashboardSession("stall-paused", str(tmp_path))
+        session.stall_timeout = 0.0  # any tick gap would trip a non-exempt read
+        session.start()
+        session.pause()
+        time.sleep(0.05)
+
+        status = session.get_status()
+        assert status["running"] is True
+        assert status["paused"] is True
+        assert status["last_error"] is None
+        session.stop()
+
+    def test_stall_bound_reads_the_module_env_constant(self, tmp_path):
+        """The bound is configurable the way PTP_DASHBOARD_START_TIMEOUT is."""
+        import src.dashboard.main as dashboard_main
+
+        session = dashboard_main.DashboardSession("stall-default", str(tmp_path))
+        assert session.stall_timeout == dashboard_main.STALL_TIMEOUT_SECONDS
+        assert dashboard_main.STALL_TIMEOUT_SECONDS == float(
+            dashboard_main.os.getenv("PTP_DASHBOARD_STALL_TIMEOUT", "30")
+        )
 
 
 class TestApiDocs:
