@@ -1308,6 +1308,207 @@ class _MemoryNavigationBlockState:
             self._pending_attempt = (tile, route_key, intended)
 
 
+@dataclass
+class _PathMemoryReplayBound:
+    """Run-local replay bookkeeping for proven route keys (DF-AIPP-13-R4).
+
+    A regression crossing — entering a map the run has already visited —
+    strikes BOTH directions of the crossed edge; after
+    ``PATH_MEMORY_REGRESSION_STRIKES`` strikes a route key is skipped for
+    ``PATH_MEMORY_REPLAY_COOLDOWN`` navigation consults and the navigation gap
+    falls back to the live exploration policy. The first-visit crossing of any
+    edge resets the bookkeeping: real progress pays the replay debt, so a
+    DF-AIPP-17 dead-end escape stays available wherever no regression cycle
+    actually happened. Purely advisory to ``_memory_navigation_route`` — it
+    never edits collision truth, the movement-progress metric, or backtrack
+    counting, and it composes with the tile-oscillation guard (which keeps
+    declining while HOLD-1 or a proven route owns the step).
+    """
+
+    strikes: dict[str, int] = field(default_factory=dict)
+    cooldowns: dict[str, int] = field(default_factory=dict)
+    last_suppressed_keys: list[str] = field(default_factory=list)
+    ever_bounded: bool = False
+    active_key: str | None = None
+    active_map_id: int | None = None
+    active_consults: int = 0
+    replays_without_transition: dict[str, int] = field(default_factory=dict)
+    pending_events: list[dict[str, Any]] = field(default_factory=list)
+
+    def note_replay_arm(
+        self,
+        route: dict[str, Any],
+        observation: dict[str, Any],
+    ) -> None:
+        """Arm or refresh the sticky replay window for the route that won.
+
+        A NEW key starts a fresh budget; the same key continuing spends one
+        consult of the current window, so a replay that keeps being consulted
+        but never converges is lifetime-bounded.
+        """
+        key = route.get("key")
+        if not isinstance(key, str):
+            # An unkeyed payload cannot be tracked safely: no sticky window.
+            self.release_replay()
+            return
+        if key != self.active_key or self.active_consults <= 0:
+            self.active_consults = PATH_MEMORY_REPLAY_STICKY_CONSULTS
+        else:
+            self.active_consults = max(0, self.active_consults - 1)
+        self.active_key = key
+        map_id = observation.get("map_id")
+        self.active_map_id = map_id if isinstance(map_id, int) else None
+
+    def note_replay_consult(self) -> None:
+        """Spend one consult of the sticky window."""
+        if self.active_consults > 0:
+            self.active_consults -= 1
+
+    def sticky_consult_due(self, observation: dict[str, Any]) -> bool:
+        """Whether a live replay should keep navigating this cycle.
+
+        The window dies when its budget runs out or the map changed since the
+        route was armed (the crossing happened — the replay converged).
+        """
+        if self.active_key is None or self.active_consults <= 0:
+            return False
+        map_id = observation.get("map_id")
+        if (
+            isinstance(map_id, int)
+            and self.active_map_id is not None
+            and map_id != self.active_map_id
+        ):
+            self.release_replay()
+            return False
+        return True
+
+    def release_replay(self) -> None:
+        """Drop the sticky replay window (converged, miss, or crossing)."""
+        self.active_key = None
+        self.active_map_id = None
+        self.active_consults = 0
+
+    def note_route_hit(self, key: str) -> None:
+        """Count one executed replay of ``key`` that produced no transition.
+
+        The counter resets on any observed crossing; a key that keeps being
+        replayed while the run never crosses its edge is bounded like a
+        repeat-regression edge.
+        """
+        if not key:
+            return
+        self.replays_without_transition[key] = (
+            self.replays_without_transition.get(key, 0) + 1
+        )
+        if (
+            self.replays_without_transition[key]
+            % PATH_MEMORY_REPLAY_NO_TRANSITION_LIMIT
+            != 0
+        ):
+            return
+        self.cooldowns[key] = PATH_MEMORY_REPLAY_COOLDOWN
+        self.ever_bounded = True
+        self.pending_events.append(
+            {
+                "event": PATH_MEMORY_REPLAY_EVENT,
+                "route_key": key,
+                "strikes": self.replays_without_transition[key],
+                "cooldown_consults": PATH_MEMORY_REPLAY_COOLDOWN,
+                "reason": "no_transition_replays",
+            }
+        )
+
+    def drain(self) -> list[dict[str, Any]]:
+        """Consult-time bound events for the cycle logger to persist."""
+        drained = self.pending_events
+        self.pending_events = []
+        return drained
+
+    def start_consult(self) -> None:
+        """Reset per-consult evidence and age the cooldown windows."""
+        self.last_suppressed_keys = []
+        for key in list(self.cooldowns):
+            remaining = self.cooldowns[key] - 1
+            if remaining > 0:
+                self.cooldowns[key] = remaining
+            else:
+                del self.cooldowns[key]
+
+    def suppresses(self, key: Any) -> bool:
+        """Whether this route key is currently bounded out of replays."""
+        return isinstance(key, str) and self.cooldowns.get(key, 0) > 0
+
+    def note_suppressed(self, key: str) -> None:
+        """Record a route key this consult declined so the miss names it."""
+        if key not in self.last_suppressed_keys:
+            self.last_suppressed_keys.append(key)
+
+    def note_transition(self, transition: dict[str, Any]) -> list[dict[str, Any]]:
+        """Fold one observed map transition into the strike/cooldown state."""
+        from_id = transition.get("from_map_id")
+        to_id = transition.get("to_map_id")
+        if not isinstance(from_id, int) or not isinstance(to_id, int):
+            return []
+        if from_id < 0 or to_id < 0:
+            return []
+        from_slug = _map_slug(str(transition.get("from_map_name") or ""), from_id)
+        to_slug = _map_slug(str(transition.get("to_map_name") or ""), to_id)
+        # Any crossing — progress or regression — ends the in-flight replay:
+        # the walk is over on whichever side it landed. It also pays every
+        # no-transition replay debt: a crossing concluded the walk cycle.
+        self.release_replay()
+        self.replays_without_transition.clear()
+        if not bool(transition.get("regression")):
+            if not self.ever_bounded:
+                return []
+            cleared = sorted(
+                {*self.strikes, *self.cooldowns, *self.last_suppressed_keys}
+            )
+            self.reset()
+            return [
+                {
+                    "event": PATH_MEMORY_REPLAY_CLEAR_EVENT,
+                    "cleared_keys": cleared,
+                    "crossing": f"{from_slug}->{to_slug}",
+                }
+            ]
+        return self._strike_edge(from_slug, to_slug)
+
+    def _strike_edge(
+        self, from_slug: str, to_slug: str
+    ) -> list[dict[str, Any]]:
+        """Strike both directions of a regression-crossed edge."""
+        events: list[dict[str, Any]] = []
+        for key in (
+            _path_memory_key(from_slug, to_slug),
+            _path_memory_key(to_slug, from_slug),
+        ):
+            self.strikes[key] = self.strikes.get(key, 0) + 1
+            if self.strikes[key] % PATH_MEMORY_REGRESSION_STRIKES == 0:
+                self.cooldowns[key] = PATH_MEMORY_REPLAY_COOLDOWN
+                self.ever_bounded = True
+                events.append(
+                    {
+                        "event": PATH_MEMORY_REPLAY_EVENT,
+                        "route_key": key,
+                        "strikes": self.strikes[key],
+                        "cooldown_consults": PATH_MEMORY_REPLAY_COOLDOWN,
+                        "crossing": f"{from_slug}->{to_slug}",
+                    }
+                )
+        return events
+
+    def reset(self) -> None:
+        """Clear all replay debt (a first-visit crossing was observed)."""
+        self.strikes.clear()
+        self.cooldowns.clear()
+        self.last_suppressed_keys = []
+        self.ever_bounded = False
+        self.replays_without_transition.clear()
+        self.pending_events = []
+        self.release_replay()
+
+
 # ── DF-AIPP-13-R3: tile-level seam oscillation ─────────────────────────────
 # A two-tile ping-pong (A→B→A→B) is not a collision failure: every press moves,
 # so movement-progress reads 100% while the run learns nothing and backtrack
@@ -3089,6 +3290,39 @@ def _teacher_world_memory_targets(
 # state, so a route recorded by an earlier run is usable after a restart.
 PATH_MEMORY_PREFIX = "/world/path/"
 PATH_MEMORY_RECALL_LIMIT = 16
+# DF-AIPP-13-R4: bound the map-level replay ping-pong. Post-R3 residual runs
+# replay a proven edge cycle after cycle — cross forward, regress back, cross
+# again — and every leg walks already-visited tiles, so backtrack pins above
+# 50% while no new ground is reached. A regression crossing (entering an
+# already-visited map) strikes BOTH directions of the crossed edge; after
+# PATH_MEMORY_REGRESSION_STRIKES strikes the edge's route keys are skipped for
+# PATH_MEMORY_REPLAY_COOLDOWN navigation consults and the gap falls back to
+# the live exploration policy (JEV/controller, still collision-truth-checked).
+# Any first-visit crossing clears the bookkeeping, so a run that discovers a
+# new map never carries replay debt, and DF-AIPP-17 dead-end escapes stay
+# available wherever no regression cycle actually happened. Counted in
+# navigation consults (each ``_memory_navigation_route`` call ticks the
+# windows), which keeps the bound deterministic and unit-testable without a
+# live emulator.
+PATH_MEMORY_REGRESSION_STRIKES = 2
+PATH_MEMORY_REPLAY_COOLDOWN = 8
+PATH_MEMORY_REPLAY_EVENT = "path_replay_bound"
+PATH_MEMORY_REPLAY_CLEAR_EVENT = "path_replay_bound_cleared"
+PATH_MEMORY_REPLAY_BOUNDED_REASON = "route_replay_bounded"
+# A route replay that is walking toward its recorded door tile keeps
+# consulting memory on the following decision cycles even when JEV no longer
+# classifies a navigation gap — otherwise the model's fresh answer overrides
+# the replay mid-walk and the run never converges on the proven edge. Bounded
+# in consults and released on any map crossing; every sticky press is still
+# ROM walkability-checked and still passes through HOLD-1, the spatial filter
+# and the tile-oscillation guard, so collision truth stays the final owner.
+PATH_MEMORY_REPLAY_STICKY_CONSULTS = 16
+# A route key consulted this many times in a row without producing ANY map
+# transition is not a walk in progress — it is a treadmill (measured run
+# df13r3r4a: 37 replays of a stale newest-recorded edge, zero crossings). It
+# cools down like a repeat-regression edge; any crossing resets the counters,
+# so a legitimate long walk that lands within the budget is never punished.
+PATH_MEMORY_REPLAY_NO_TRANSITION_LIMIT = 14
 # A route that leaves a dead-end map through a map the run has already visited.
 # It is not progress toward new ground by itself, but the objective ladder runs
 # back through those maps (Pallet Town is the only way to Route 1), so a run
@@ -3366,13 +3600,16 @@ def _memory_navigation_route(
     *,
     visited_maps: tuple[tuple[int, str], ...] | None = None,
     blocked_directions: set[str] | None = None,
+    replay_bound: _PathMemoryReplayBound | None = None,
 ) -> dict[str, Any] | None:
     """Return a proven route toward new ground, a dead-end escape, or None.
 
     Reads the store (never in-process state). A route to a NOT-YET-VISITED map
     always wins: that is the only kind that is progress by itself, and a route
     whose next step the ROM contradicts is refused here so the caller keeps its
-    existing path.
+    existing path. ``replay_bound`` (DF-AIPP-13-R4) skips route keys whose
+    edge has cycled regression crossings; skipped keys are recorded on the
+    bound so the caller's miss can name them.
 
     When no unvisited destination has an executable route from this tile, the
     map is a dead end and the planner searches escapes instead: the run's own
@@ -3384,6 +3621,8 @@ def _memory_navigation_route(
     any OTHER visited map is not an escape: it re-enters the map the run just
     came from, which is the 1F<->2F ping-pong the edge hold exists to stop.
     """
+    if replay_bound is not None:
+        replay_bound.start_consult()
     from_slug = _observation_map_slug(observation)
     if from_slug is None:
         return None
@@ -3400,12 +3639,27 @@ def _memory_navigation_route(
     walkability = _memory_walkability(observation)
     for blocked_direction in blocked_directions or set():
         walkability[blocked_direction.lower()] = "blocked"
-    # Newest first: a later crossing is the more recent proof.
-    for _, record, direction, door in sorted(
-        _memory_route_candidates(records, visited_slugs),
-        key=lambda item: item[0],
+    # Objective first, then recency: a later ladder step outranks a newer
+    # record whose destination is off-ladder (DF-AIPP-13-R4 — the newest
+    # record must not drag a run away from its objective edge).
+    gateways = _memory_gateway_ranks()
+    ranked: list[tuple[int, str, dict[str, Any], str, tuple[int, int] | None]] = []
+    for created_at, record, direction, door in _memory_route_candidates(
+        records, visited_slugs
+    ):
+        parsed = _parse_path_memory_key(record.get("key"))
+        rank = gateways.get(parsed[1], 0) if parsed else 0
+        ranked.append((rank, str(record.get("created_at") or ""), record, direction, door))
+    # Newest first within the same rank: a later crossing is the more recent proof.
+    for _rank, _created, record, direction, door in sorted(
+        ranked,
+        key=lambda item: (item[0], item[1]),
         reverse=True,
     ):
+        record_key = record.get("key")
+        if replay_bound is not None and replay_bound.suppresses(record_key):
+            replay_bound.note_suppressed(str(record_key))
+            continue
         plan_result = _memory_route_plan(
             current_tile,
             door,
@@ -3416,6 +3670,8 @@ def _memory_navigation_route(
         if plan_result is None:
             continue
         plan, mechanism = plan_result
+        if replay_bound is not None and isinstance(record_key, str):
+            replay_bound.note_route_hit(record_key)
         return _memory_route_payload(record, direction, door, plan, mechanism)
 
     # No executable route to new ground: this map is a dead end for the run.
@@ -3430,6 +3686,12 @@ def _memory_navigation_route(
         from_slug=from_slug,
         visited_slugs=visited_slugs,
     ):
+        # The walked edge is always current-map -> candidate destination,
+        # for both proven edges and reversed inbound edges (DF-AIPP-13-R4).
+        walked_key = _path_memory_key(from_slug, str(candidate["to_slug"]))
+        if replay_bound is not None and replay_bound.suppresses(walked_key):
+            replay_bound.note_suppressed(walked_key)
+            continue
         plan_result = _memory_route_plan(
             current_tile,
             candidate["door"],
@@ -3440,6 +3702,8 @@ def _memory_navigation_route(
         if plan_result is None:
             continue
         plan, mechanism = plan_result
+        if replay_bound is not None:
+            replay_bound.note_route_hit(walked_key)
         return _memory_route_payload(
             candidate["record"],
             candidate["direction"],
@@ -3645,12 +3909,14 @@ def _memory_navigation_decision(
     *,
     visited_maps: tuple[tuple[int, str], ...] | None = None,
     block_state: _MemoryNavigationBlockState | None = None,
+    replay_bound: _PathMemoryReplayBound | None = None,
 ) -> dict[str, Any]:
     """Resolve a navigation gap from ``world/path/*`` memory.
 
     Always returns a recordable outcome: a hit carries the cited key and the
     plan; a miss/error carries why, so the run summary can separate "no proven
-    route exists" from "the store could not be read".
+    route exists" from "the store could not be read" — and from "every proven
+    route key is bounded out of replays this window" (DF-AIPP-13-R4).
     """
     base: dict[str, Any] = {
         "source": "world/path",
@@ -3667,14 +3933,20 @@ def _memory_navigation_decision(
             observation,
             visited_maps=visited_maps,
             blocked_directions=blocked_directions,
+            replay_bound=replay_bound,
         )
     except Exception as exc:  # noqa: BLE001 - memory must not stop gameplay
         safe_print(f"  [NAV-MEM] path memory read failed: {exc!r}")
         return {**base, "result": "error", "reason": type(exc).__name__}
     if route is None:
+        bounded_keys = (
+            list(replay_bound.last_suppressed_keys)
+            if replay_bound is not None
+            else []
+        )
         if blocked_directions:
             blocked = sorted(blocked_directions)
-            return {
+            suppressed: dict[str, Any] = {
                 **base,
                 "result": "suppressed",
                 "reason": "collision_blocked_route_step",
@@ -3684,6 +3956,20 @@ def _memory_navigation_decision(
                     f"current tile: {', '.join(blocked)} blocked"
                 ),
             }
+            if bounded_keys:
+                suppressed["bounded_route_keys"] = bounded_keys
+            return suppressed
+        if bounded_keys:
+            return {
+                **base,
+                "result": "miss",
+                "reason": PATH_MEMORY_REPLAY_BOUNDED_REASON,
+                "bounded_route_keys": bounded_keys,
+                "contradiction": (
+                    "proven route keys bounded after repeated regression "
+                    f"crossings: {', '.join(bounded_keys)}"
+                ),
+            }
         return {
             **base,
             "result": "miss",
@@ -3691,6 +3977,8 @@ def _memory_navigation_decision(
         }
     if blocked_directions:
         route = {**route, "replanned_from_blocked": sorted(blocked_directions)}
+    if replay_bound is not None:
+        replay_bound.note_replay_arm(route, observation)
     return {**base, **route, "result": "hit"}
 
 
@@ -3885,6 +4173,7 @@ def _jev_overworld_decision(
     scenario_path: str | Path | None = None,
     visited_maps: tuple[tuple[int, str], ...] | None = None,
     memory_navigation_blocks: _MemoryNavigationBlockState | None = None,
+    path_replay_bound: _PathMemoryReplayBound | None = None,
 ) -> dict[str, Any]:
     """Ask the JEV tier for this overworld cycle's plan (PRD v3 stages 5-6).
 
@@ -3925,6 +4214,7 @@ def _jev_overworld_decision(
         decision,
         visited_maps=visited_maps,
         block_state=memory_navigation_blocks,
+        replay_bound=path_replay_bound,
     )
     missing_class = decision.get("missing_class")
     escalation_class = (
@@ -4107,22 +4397,47 @@ def _jev_consult_memory_navigation(
     *,
     visited_maps: tuple[tuple[int, str], ...] | None,
     block_state: _MemoryNavigationBlockState | None = None,
+    replay_bound: _PathMemoryReplayBound | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Consult proven path-memory routes for a navigation gap (S6 NAV-MEM).
 
     Only a navigation gap reads ``world/path/*``; a hit replaces the teacher
     call entirely and stamps the cited memory key on the row. A miss leaves
     the existing hand-off byte-identical, so an empty store cannot change a
-    run's behaviour.
+    run's behaviour. ``replay_bound`` (DF-AIPP-13-R4) bounds keys whose edges
+    keep producing regression crossings.
     """
     memory_navigation: dict[str, Any] | None = None
     memory_hit: dict[str, Any] | None = None
     if not _is_navigation_gap(decision):
+        if replay_bound is not None and replay_bound.sticky_consult_due(obs):
+            # DF-AIPP-13-R4: an in-flight route replay keeps navigating until
+            # it converges even when JEV no longer classifies a gap. The
+            # consult is collision-checked; a miss releases the window and
+            # hands the cycle back to the fresh model answer.
+            replay_bound.note_replay_consult()
+            memory_navigation = _memory_navigation_decision(
+                obs,
+                visited_maps=visited_maps,
+                block_state=block_state,
+                replay_bound=replay_bound,
+            )
+            if memory_navigation.get("result") == "hit":
+                memory_hit = memory_navigation
+                safe_print(
+                    f"  [NAV-MEM] sticky replay {memory_hit['key']} "
+                    f"({memory_hit['mechanism']}) -> {memory_hit['plan']} "
+                    f"| {replay_bound.active_consults} consults left"
+                )
+            else:
+                replay_bound.release_replay()
+            return memory_navigation, memory_hit
         return memory_navigation, memory_hit
     memory_navigation = _memory_navigation_decision(
         obs,
         visited_maps=visited_maps,
         block_state=block_state,
+        replay_bound=replay_bound,
     )
     if memory_navigation.get("result") == "hit":
         memory_hit = memory_navigation
@@ -9096,6 +9411,8 @@ def _init_memory_state(S):
     S._memory_navigation_blocks = _MemoryNavigationBlockState()
     # DF-AIPP-13-R3: tile-level oscillation evidence + commitment window.
     S._tile_oscillation = _TileOscillationState()
+    # DF-AIPP-13-R4: per-route-key replay bounding across regression crossings.
+    S._path_replay_bound = _PathMemoryReplayBound()
 
     # ── Boot memory (MEM-2, PRD_v2_lifecycle.md §R3) ───────────────
     # Built ONCE here (not per cycle) from the four DuckBrain layers
@@ -9571,6 +9888,7 @@ def _cycle_header(S, cycle):
     transition = _handle_navigation_transition(
         S, cycle, st, patch_data, tiles["current_tile"], tiles["map_id"]
     )
+    _ow_note_path_replay_bound(S, cycle, transition)
     world_facts = _cycle_world_and_goal(
         S, cycle, patch_data, tiles["map_id"], transition
     )
@@ -10133,6 +10451,10 @@ def _ow_jev_attempt(S, header):
         # proven route is only replayed toward NEW ground.
         visited_maps=S._navigation_state.visited_maps,
         memory_navigation_blocks=S._memory_navigation_blocks,
+        # DF-AIPP-13-R4: bound route keys that keep producing regressions.
+        # Fixture states (SimpleNamespace) predate the bound; treat its
+        # absence as "no replay bound" rather than a live attr requirement.
+        path_replay_bound=getattr(S, "_path_replay_bound", None),
     )
     return _jev_attempt
 
@@ -10316,6 +10638,33 @@ def _ow_reconcile_memory_navigation(S, cycle, patch_data):
             f"tile={tile_text} suppressing {event['blocked_direction']} "
             f"({event['reason']})"
         )
+
+
+def _ow_note_path_replay_bound(S, cycle, transition):
+    """Fold a map transition into the route replay bound (DF-AIPP-13-R4).
+
+    A regression crossing strikes both directions of the crossed edge; a
+    first-visit crossing clears any bound. Consult-time bounding (a route key
+    replayed without a transition) queues events on the bound state, which are
+    drained and logged here every cycle. Every state change is logged so a
+    log reader can see when nav-mem replays were retired to the exploration
+    policy.
+    """
+    bound = getattr(S, "_path_replay_bound", None)
+    if bound is None:
+        return
+    events = list(bound.drain())
+    if isinstance(transition, dict):
+        events.extend(bound.note_transition(transition))
+    for event in events:
+        row = {"cycle": cycle + 1, **event}
+        S.results.append(row)
+        S.log_file.write(json.dumps(row, default=str) + "\n")
+        S.log_file.flush()
+        detail = event.get("route_key") or ",".join(
+            str(key) for key in event.get("cleared_keys", [])
+        )
+        safe_print(f"  [PATH-REPLAY] {event['event']}: {detail}")
 
 
 def _ow_note_memory_navigation_attempt(S, decision, plan, patch_data):

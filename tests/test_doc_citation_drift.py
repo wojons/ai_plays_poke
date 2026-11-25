@@ -200,241 +200,21 @@ KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {
         "657",
         note='anchor INTACT (game_bridge.py unchanged since f3d7774): :657 is the accept-loop busy rejection (`observe_bridge_request("none", "busy")`), but the doc line names no backticked code symbol for it — unverifiable, verified manually 2026-11-22',
     ),
-    ("observability-spec.md", "cron_runner.py", 2247, 2247): _d(
-        [389],
-        "f3d7774:2247 ('tile_y = int(spatial_desc.get(\"player_tile_y\", 99))') now at :2755",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 2267, 2267): _d(
-        [389],
-        "f3d7774:2267 ('def _cycle_frame_hash(screenshot: np.ndarray) -> str:') now at :2775",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5154, 5158): _d(
-        [636],
-        "f3d7774:5154 ('_TEXTFILE_COUNTER_PATTERN = re.compile(') now at :5671",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5157, 5158): _d(
-        [706],
-        "f3d7774:5157 ('_TEXTFILE_COUNTER_PATTERN = re.compile(') now at :5671",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5174, 5174): _d(
-        [602],
-        "f3d7774:5174 ('_TEXTFILE_PROGRESS_FAMILIES: dict[str, tuple[str, str]] = ') now at :5688",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5177, 5177): _d(
-        [606],
-        "f3d7774:5177 ('\"Map transitions observed across cron runs.\",') now at :5691",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5181, 5181): _d(
-        [609],
-        "f3d7774:5181 ('\"Decision rows that repeated or revisited an already-seen ') now at :5695",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5186, 5186): _d(
-        [611],
-        "f3d7774:5186 ('),') now at :292,306,454",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5190, 5190): _d(
-        [615],
-        "f3d7774:5190 ('),') now at :292,306,454",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5194, 5194): _d(
-        [618],
-        "f3d7774:5194 ('),') now at :292,306,454",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5217, 5217): _d(
-        [633],
-        "f3d7774:5217 ('if match is None:') now at :5731",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5250, 5250): _d(
-        [530, 538],
-        "f3d7774:5250 ('target_dir.mkdir(parents=True, exist_ok=True)') now at :5764",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5259, 5259): _d(
-        [685],
-        "f3d7774:5259 ('accumulated[outcome] += 1') now at :5773",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5260, 5260): _d(
-        [586],
-        "no content at f3d7774:5260 in cron_runner.py",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5262, 5265): _d(
-        [587, 588, 589],
-        "f3d7774:5262 ('\"# HELP aipp_run_completed_total Completed cron runs by ou') now at :5776",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5265, 5268): _d(
-        [706],
-        'f3d7774:5265 (\'for label in ("completed", "error", "gave_up"):\') now at :5779',
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5269, 5269): _d(
-        [591],
-        "f3d7774:5269 ('lines.extend(') now at :5783,5799",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5270, 5270): _d(
-        [592],
-        "f3d7774:5270 ('[') now at :1498,5784,5800",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5272, 5272): _d(
-        [594],
-        "f3d7774:5272 ('\"# TYPE aipp_run_last_run_duration_seconds gauge\",') now at :5786",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5273, 5273): _d(
-        [595],
-        "f3d7774:5273 ('f\"aipp_run_last_run_duration_seconds {float(duration_s):g}') now at :5787",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5275, 5275): _d(
-        [597],
-        "f3d7774:5275 ('\"# TYPE aipp_run_last_decisions_total gauge\",') now at :5789",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5276, 5277): _d(
-        [598],
-        "f3d7774:5276 ('f\"aipp_run_last_decisions_total {int(autonomy.get(\\'decisio') now at :5790",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5280, 5281): _d(
-        [601],
-        "f3d7774:5280 ('f\"{int(autonomy.get(\\'map_transitions_observed\\', 0))}\",') now at :5794",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5285, 5285): _d(
-        [600],
-        "f3d7774:5285 ('lines.extend(') now at :5783,5799",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5286, 5286): _d(
-        [601],
-        "f3d7774:5286 ('[') now at :1498,5784,5800",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5298, 5298): _d(
-        [610],
-        "f3d7774:5298 ('return float(value) if isinstance(value, (int, float)) els') now at :5812",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5299, 5299): _d(
-        [617],
-        "no content at f3d7774:5299 in cron_runner.py",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5302, 5302): _d(
-        [613],
-        "f3d7774:5302 ('outcome_label = run_outcome_label(outcome)') now at :5816",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5305, 5305): _d(
-        [604],
-        "f3d7774:5305 ('improved = min(max(0.0, _num(teacher_block.get(\"improved\")') now at :5819",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5307, 5307): _d(
-        [607, 708],
-        "f3d7774:5307 ('\"aipp_map_transitions_total\": {') now at :5821",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5309, 5309): _d(
-        [610],
-        "f3d7774:5309 ('},') now at :1864,1886,2524",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5310, 5310): _d(
-        [708],
-        'f3d7774:5310 (\'"aipp_backtrack_events_total": {(): _num(autonomy.get("bac\') now at :5824',
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5312, 5312): _d(
-        [613],
-        'f3d7774:5312 (\'(("mode", mode_label),): _num(autonomy.get("decisions_tota\') now at :5826',
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5313, 5313): _d(
-        [614],
-        "f3d7774:5313 ('},') now at :1864,1886,2524",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5315, 5315): _d(
-        [617],
-        'f3d7774:5315 (\'(("improved", "true"),): improved,\') now at :5829',
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5315, 5316): _d(
-        [707],
-        'f3d7774:5315 (\'(("improved", "true"),): improved,\') now at :5829',
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5317, 5317): _d(
-        [620],
-        "f3d7774:5317 ('},') now at :1864,1886,2524",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5321, 5321): _d(
-        [602, 608, 611, 615, 618],
-        "f3d7774:5321 ('},') now at :1864,1886,2524",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5322, 5322): _d(
-        [603, 606, 609, 612, 616, 619],
-        "f3d7774:5322 ('}') now at :170,214,219",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5332, 5332): _d(
-        [604, 607, 610, 613, 614, 617, 620],
-        "f3d7774:5332 ('merged[key] = merged.get(key, 0.0) + delta') now at :5846",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5338, 5338): _d(
-        [640, 644, 688],
-        "f3d7774:5338 ('os.replace(temporary, target)') now at :5852",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 5341, 5341): _d(
-        [671],
-        "f3d7774:5341 ('safe_print(f\"[TEXTFILE] {run_id} failed: {exc}\")') now at :5855",
-    ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 5345, 5345): _d(
         [55, 381],
         "f3d7774:5345 ('def _publish_run_metrics(') now at :5859",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 7792, 7800): _d(
-        [528],
-        "f3d7774:7792 ('parser.add_argument(') now at :8289",
     ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 7934, 7934): _d(
         [54],
         "f3d7774:7934 ('set_runner_up(\"cron\", True)') now at :8448",
     ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 7963, 7971): _d(
-        [661],
-        "f3d7774:7963 ('_write_textfile_record(') now at :8477",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 7963, 7963): _d(
-        [669, 692, 706, 716],
-        "f3d7774:7963 ('_write_textfile_record(') now at :8477,11472",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 7964, 7964): _d(
-        [529],
-        "f3d7774:7964 ('getattr(args, \"textfile_dir\", DEFAULT_TEXTFILE_DIR),') now at :8478",
-    ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 7975, 7975): _d(
         [55, 381, 661],
         "f3d7774:7975 ('_publish_run_metrics(\"error\", duration_s, autonomy, teache') now at :8489",
     ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 7976, 7976): _d(
-        [662],
-        "f3d7774:7976 ('raise') now at :8490",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 8383, 8383): _d(
-        [529],
-        "f3d7774:8383 ('S.textfile_dir = args.textfile_dir') now at :8897",
-    ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 8581, 8581): _d(
         [50, 380],
         "f3d7774:8581 ('observe_cycle(mode, pipeline_name)') now at :9097",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 8585, 8585): _d(
-        [74],
-        "f3d7774:8585 ('_publish_data_growth_metrics()') now at :9101,11487",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 8614, 8614): _d(
-        [392],
-        "f3d7774:8614 ('def _cycle_capture(S, cycle):') now at :9130",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 8635, 8635): _d(
-        [393],
-        "f3d7774:8635 ('def _cycle_observe(S, screenshot, frame_hash):') now at :9151",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 8680, 8680): _d(
-        [72, 393, 1021],
-        "f3d7774:8680 ('def _track_emulator_integrity(S, frame_hash, patch_data) -') now at :9196",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 8728, 8728): _d(
-        [74],
-        "f3d7774:8728 ('def _publish_data_growth_metrics(') now at :9244",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 8941, 8941): _d(
-        [390],
-        "f3d7774:8941 ('written_keys=S._world_memory_written_keys,') now at :9457",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 8993, 8993): _d(
-        [393],
-        "f3d7774:8993 ('def _cycle_header(S, cycle):') now at :9509",
     ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 9311, 9311): _d(
         [51, 380],
@@ -444,41 +224,9 @@ KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {
         [390, 1018],
         "f3d7774:9318 ('def _ow_track_stuck(S, patch_data, st):') now at :9843",
     ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 10520, 10530): _d(
-        [651, 683],
-        "f3d7774:10520 ('_write_autonomy_row(') now at :11457",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 10531, 10531): _d(
-        [652],
-        "f3d7774:10531 ('_write_degradation_row(log_file, S.run_id, autonomy)') now at :11468",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 10532, 10534): _d(
-        [653],
-        'f3d7774:10532 (\'outcome = "gave_up" if getattr(S, "_gave_up", False) else \') now at :11469',
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 10535, 10543): _d(
-        [654],
-        "f3d7774:10535 ('_write_textfile_record(') now at :8477",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 10535, 10535): _d(
-        [669, 692, 706, 716],
-        "f3d7774:10535 ('_write_textfile_record(') now at :8477,11472",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 10536, 10536): _d(
-        [529],
-        "f3d7774:10536 ('getattr(S, \"textfile_dir\", DEFAULT_TEXTFILE_DIR),') now at :11473",
-    ),  # moved by bcc61b68+0f9d6477
     ("observability-spec.md", "cron_runner.py", 10546, 10546): _d(
         [55, 381, 655],
         "f3d7774:10546 ('_publish_run_metrics(outcome, duration_s, autonomy, teache') now at :11483",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 10547, 10547): _d(
-        [656],
-        "f3d7774:10547 ('log_file.close()') now at :11484",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 10550, 10550): _d(
-        [74],
-        "f3d7774:10550 ('_publish_data_growth_metrics()') now at :9101,11487",
     ),  # moved by bcc61b68+0f9d6477
 }
 

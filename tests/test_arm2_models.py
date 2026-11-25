@@ -110,6 +110,7 @@ def test_hybrid_teacher_uses_independent_runtime_model(
         _teacher_class_repairs={},
         _teacher_budget={"used": 0},
         _memory_navigation_blocks=cron_runner._MemoryNavigationBlockState(),
+        _path_replay_bound=cron_runner._PathMemoryReplayBound(),
     )
 
     cron_runner._ow_jev_attempt(
