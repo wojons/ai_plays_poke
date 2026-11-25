@@ -1,0 +1,290 @@
+{
+  "task_id": "DOC-030",
+  "task_title": "re-baseline drifted DOC-027 citations, shrink KNOWN_DRIFT",
+  "task_criteria": [
+    ".venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with the KNOWN_DRIFT table reduced and no new failures"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "8bad21f7f11d254b853ff2436194774215a7f2fb",
+  "pass_class": "degraded",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "db4356d575ab04f0644f9def1a417f4cf332390dc7a58e8a7c42d4d33074fa0a",
+  "working_tree_dirty_path_count": 6791,
+  "items": [
+    {
+      "criterion": ".venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with the KNOWN_DRIFT table reduced and no new failures",
+      "status": "PASS",
+      "detail": "Ran the exact command fresh in /home/kara/ai_plays_poke: exit_code 0, \"4 passed in 0.75s\" (test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves). KNOWN_DRIFT reduced: git show 7309046b^:tests/test_doc_citation_drift.py counted 20 pinned entries (17 observability-spec.md + 3 api/cron_runner.md, matching the commit message); at HEAD tests/test_doc_citation_drift.py:139 reads `KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {}` \u2014 20 \u2192 0. Both parametrized resolve tests now audit every citation against the real tree with zero unbaselined failures and zero stale entries, so the reduction is a genuine re-baseline (anchors re-derived in docs/observability-spec.md and docs/api/cron_runner.md by commits 7309046b and follow-up 8bad21f7 after MON-AIPP-006 shifted cron_runner.py), not hidden drift. No new failures: the ratchet mechanism is intact (tests/test_doc_citation_drift.py:537 failures check, :539 stale-entry check, :626 KNOWN_DRIFT exclusion in the bite test), the bite test still proves a 20-line anchor move produces a NEW failure, and the repo-wide guard suite ran green (4913 passed, 14 skipped, exit 0)."
+    },
+    {
+      "criterion": "KNOWN_DRIFT was shrunk by re-deriving anchors rather than weakening/deleting the guard tests (guard mechanism preserved)",
+      "status": "PASS",
+      "detail": "git show 7309046b -- tests/test_doc_citation_drift.py shows the only functional deletions are the 20 KNOWN_DRIFT entries and the now-unused _d() helper (118 diff lines, all entry table + comment text); no test function removed (still 3 test defs / 4 collected before and after), no skip/xfail added (grep of diff shows none; current run collects and PASSES all 4). test_doc_citations_resolve still asserts `assert checks` (walker sanity), `assert not failures`, and `assert not stale`; test_guard_bites_when_cited_anchor_moves still sabotages cron_runner.py inside tmp_path and asserts the guard fails \u2014 all proven by my fresh run: exit 0, 4 passed. Working tree matches HEAD for tests/test_doc_citation_drift.py and both docs (git status shows no modifications to them), and running the suite with the already-emptied baseline at HEAD passing confirms the docs themselves resolve, i.e. the re-baseline is content-backed.",
+      "derived": true
+    }
+  ],
+  "merge_recommendation": "needs_review",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n12:52PM INF scanned ~398202144 bytes (398.20 MB) in 19.7s\n12:52PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 102411 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\ngitreins_tests: runner=./venv/bin/pytest (pytest 9.1.1) cwd=/home/kara/ai_plays_poke\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4927 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\n\n\u2026 [538038 chars omitted \u2014 5830 line(s)] \u2026\ntest_bench_pathfinding_find_path               720.9601 (1.67)           7,304.0137 (5.70)          1,338.7887 (2.67)          1,722.1879 (37.61)           836.5023 (1.67)           211.0028 (5.15)          1;1    746,943.8750 (0.37)         14           1\ntest_bench_vision_pipeline_validate          6,762.9735 (15.69)        200,331.0365 (156.27)        8,659.9834 (17.26)         4,519.3116 (98.70)         8,034.9855 (16.04)          379.9796 (9.27)     990;3935    115,473.6621 (0.06)      37148           1\ntest_bench_ram_reader_observe            1,061,315.9975 (>1000.0)  247,937,207.0520 (>1000.0)   2,485,518.9514 (>1000.0)  14,224,616.6942 (>1000.0)   1,417,955.9948 (>1000.0)    382,599.0134 (>1000.0)      4;38        402.3305 (0.00)        842           1\ntest_bench_vision_pipeline_process      42,391,054.9725 (>1000.0)   66,777,897.0092 (>1000.0)  45,153,580.5012 (>1000.0)   5,275,147.7869 (>1000.0)  43,871,471.0181 (>1000.0)  1,057,993.9990 (>1000.0)       1;3         22.1466 (0.00)         20           1\n----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4913 passed, 14 skipped in 221.21s (0:03:41) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 .venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with the KNOWN_DRIFT table reduced and no new failures: Ran the exact command fresh in /home/kara/ai_plays_poke: exit_code 0, \"4 passed in 0.75s\" (test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves). KNOWN_DRIFT reduced: git show 7309046b^:tests/test_doc_citation_drift.py counted 20 pinned entries (17 observability-spec.md + 3 api/cron_runner.md, matching the commit message); at HEAD tests/test_doc_citation_drift.py:139 reads `KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {}` \u2014 20 \u2192 0. Both parametrized resolve tests now audit every citation against the real tree with zero unbaselined failures and zero stale entries, so the reduction is a genuine re-baseline (anchors re-derived in docs/observability-spec.md and docs/api/cron_runner.md by commits 7309046b and follow-up 8bad21f7 after MON-AIPP-006 shifted cron_runner.py), not hidden drift. No new failures: the ratchet mechanism is intact (tests/test_doc_citation_drift.py:537 failures check, :539 stale-entry check, :626 KNOWN_DRIFT exclusion in the bite test), the bite test still proves a 20-line anchor move produces a NEW failure, and the repo-wide guard suite ran green (4913 passed, 14 skipped, exit 0).\n  \u2713 KNOWN_DRIFT was shrunk by re-deriving anchors rather than weakening/deleting the guard tests (guard mechanism preserved): git show 7309046b -- tests/test_doc_citation_drift.py shows the only functional deletions are the 20 KNOWN_DRIFT entries and the now-unused _d() helper (118 diff lines, all entry table + comment text); no test function removed (still 3 test defs / 4 collected before and after), no skip/xfail added (grep of diff shows none; current run collects and PASSES all 4). test_doc_citations_resolve still asserts `assert checks` (walker sanity), `assert not failures`, and `assert not stale`; test_guard_bites_when_cited_anchor_moves still sabotages cron_runner.py inside tmp_path and asserts the guard fails \u2014 all proven by my fresh run: exit 0, 4 passed. Working tree matches HEAD for tests/test_doc_citation_drift.py and both docs (git status shows no modifications to them), and running the suite with the already-emptied baseline at HEAD passing confirms the docs themselves resolve, i.e. the re-baseline is content-backed.\nDOC-030 landed: the KNOWN_DRIFT baseline was shrunk from 20 entries to empty by genuinely re-deriving the drifted doc anchors (commits 7309046b + 8bad21f7), the guard's ratchet and bite tests remain intact, and .venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with 4 passed and no new failures.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 .venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with the KNOWN_DRIFT table reduced and no new failures: Ran the exact command fresh in /home/kara/ai_plays_poke: exit_code 0, \"4 passed in 0.75s\" (test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves). KNOWN_DRIFT reduced: git show 7309046b^:tests/test_doc_citation_drift.py counted 20 pinned entries (17 observability-spec.md + 3 api/cron_runner.md, matching the commit message); at HEAD tests/test_doc_citation_drift.py:139 reads `KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {}` \u2014 20 \u2192 0. Both parametrized resolve tests now audit every citation against the real tree with zero unbaselined failures and zero stale entries, so the reduction is a genuine re-baseline (anchors re-derived in docs/observability-spec.md and docs/api/cron_runner.md by commits 7309046b and follow-up 8bad21f7 after MON-AIPP-006 shifted cron_runner.py), not hidden drift. No new failures: the ratchet mechanism is intact (tests/test_doc_citation_drift.py:537 failures check, :539 stale-entry check, :626 KNOWN_DRIFT exclusion in the bite test), the bite test still proves a 20-line anchor move produces a NEW failure, and the repo-wide guard suite ran green (4913 passed, 14 skipped, exit 0).\n  \u2713 KNOWN_DRIFT was shrunk by re-deriving anchors rather than weakening/deleting the guard tests (guard mechanism preserved): git show 7309046b -- tests/test_doc_citation_drift.py shows the only functional deletions are the 20 KNOWN_DRIFT entries and the now-unused _d() helper (118 diff lines, all entry table + comment text); no test function removed (still 3 test defs / 4 collected before and after), no skip/xfail added (grep of diff shows none; current run collects and PASSES all 4). test_doc_citations_resolve still asserts `assert checks` (walker sanity), `assert not failures`, and `assert not stale`; test_guard_bites_when_cited_anchor_moves still sabotages cron_runner.py inside tmp_path and asserts the guard fails \u2014 all proven by my fresh run: exit 0, 4 passed. Working tree matches HEAD for tests/test_doc_citation_drift.py and both docs (git status shows no modifications to them), and running the suite with the already-emptied baseline at HEAD passing confirms the docs themselves resolve, i.e. the re-baseline is content-backed.\nDOC-030 landed: the KNOWN_DRIFT baseline was shrunk from 20 entries to empty by genuinely re-deriving the drifted doc anchors (commits 7309046b + 8bad21f7), the guard's ratchet and bite tests remain intact, and .venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with 4 passed and no new failures.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": ".venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with the KNOWN_DRIFT table reduced and no new failures",
+                "status": "PASS",
+                "detail": "Ran the exact command fresh in /home/kara/ai_plays_poke: exit_code 0, \"4 passed in 0.75s\" (test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves). KNOWN_DRIFT reduced: git show 7309046b^:tests/test_doc_citation_drift.py counted 20 pinned entries (17 observability-spec.md + 3 api/cron_runner.md, matching the commit message); at HEAD tests/test_doc_citation_drift.py:139 reads `KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {}` \u2014 20 \u2192 0. Both parametrized resolve tests now audit every citation against the real tree with zero unbaselined failures and zero stale entries, so the reduction is a genuine re-baseline (anchors re-derived in docs/observability-spec.md and docs/api/cron_runner.md by commits 7309046b and follow-up 8bad21f7 after MON-AIPP-006 shifted cron_runner.py), not hidden drift. No new failures: the ratchet mechanism is intact (tests/test_doc_citation_drift.py:537 failures check, :539 stale-entry check, :626 KNOWN_DRIFT exclusion in the bite test), the bite test still proves a 20-line anchor move produces a NEW failure, and the repo-wide guard suite ran green (4913 passed, 14 skipped, exit 0)."
+              },
+              {
+                "criterion": "KNOWN_DRIFT was shrunk by re-deriving anchors rather than weakening/deleting the guard tests (guard mechanism preserved)",
+                "status": "PASS",
+                "detail": "git show 7309046b -- tests/test_doc_citation_drift.py shows the only functional deletions are the 20 KNOWN_DRIFT entries and the now-unused _d() helper (118 diff lines, all entry table + comment text); no test function removed (still 3 test defs / 4 collected before and after), no skip/xfail added (grep of diff shows none; current run collects and PASSES all 4). test_doc_citations_resolve still asserts `assert checks` (walker sanity), `assert not failures`, and `assert not stale`; test_guard_bites_when_cited_anchor_moves still sabotages cron_runner.py inside tmp_path and asserts the guard fails \u2014 all proven by my fresh run: exit 0, 4 passed. Working tree matches HEAD for tests/test_doc_citation_drift.py and both docs (git status shows no modifications to them), and running the suite with the already-emptied baseline at HEAD passing confirms the docs themselves resolve, i.e. the re-baseline is content-backed.",
+                "derived": true
+              }
+            ],
+            "summary": "DOC-030 landed: the KNOWN_DRIFT baseline was shrunk from 20 entries to empty by genuinely re-deriving the drifted doc anchors (commits 7309046b + 8bad21f7), the guard's ratchet and bite tests remain intact, and .venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with 4 passed and no new failures.",
+            "provenance": {
+              "model": "glm-5.3-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            },
+            "context_stats": {
+              "diff_source": "working-tree",
+              "diff_bytes": 1492,
+              "prompt_bytes": 18180
+            }
+          }
+        }
+      ],
+      "model": "glm-5.3-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "context_stats": {
+        "diff_source": "working-tree",
+        "diff_bytes": 1492,
+        "prompt_bytes": 18180
+      },
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"DOC-030\"}",
+          "exit_code": 0,
+          "output_sha": "0006663045f3148a55ca3bf40997426b89f55de01f6e7132af1698abde668bd3"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke 2>/dev/null || pwd; ls",
+          "exit_code": 0,
+          "output_sha": "c03a76ab721b1a861bc91ab2bf7f5f1abecf739113e410f30964de58974278cf"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ls -d .venv venv 2>&1; ls tests/test_doc_citation_drift.py 2>&1",
+          "exit_code": 0,
+          "output_sha": "dfd121b2a1a98f85bc672f0c7ac3c7b7018c2bb0980fa6f0ef30296271a38dae"
+        },
+        {
+          "tool": "search_pattern",
+          "command": "search_pattern {\"regex\": \"KNOWN_DRIFT\"}",
+          "exit_code": 0,
+          "output_sha": "edfff261bb3e653e6faf7e4072fcef905cd36c159c548b731df41ecbcf86e76b"
+        },
+        {
+          "tool": "read_diff",
+          "command": "read_diff {}",
+          "exit_code": 0,
+          "output_sha": "06a90fcc90a11d11bd47092cb2bceb68c6b200ebaae1946d4d6e60bc879a5752"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git log --oneline -15 && git status --short | head -20",
+          "exit_code": 0,
+          "output_sha": "a64cd3a6350edb2dffe122e6de6d757f538e21b6891a89c4e9df507a442c7a83"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show --stat 7309046b && echo ---- && git show --stat 8bad21f7",
+          "exit_code": 0,
+          "output_sha": "200378ef9634474f63a66d35175ca2c66431a1c181f11112425f2d000625eccd"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && .venv/bin/pytest tests/test_doc_citation_drift.py -q; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "bb59cbdb2ece43dbadfdb9ef416dd07b980c2b2179d803b9a1b4638bbfa4c51e"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show 7309046b -- tests/test_doc_citation_drift.py | head -120 && echo ===== && git show 7309046b^:tests/test_doc_citation_drift.py | grep -c \"def test_\" && git show 7309046b^:tests/test_doc_citation_drift.py | sed -n '139,160p'",
+          "exit_code": 0,
+          "output_sha": "d354e77a97052c2b72145c06dc081dfaa12adeb43cba935d795624d3101d8d42"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show 7309046b^:tests/test_doc_citation_drift.py | grep -n \"KNOWN_DRIFT: dict\" && git show 7309046b^:tests/test_doc_citation_drift.py | awk '/KNOWN_DRIFT: dict/,/^}/' | grep -c '): _d' ",
+          "exit_code": 0,
+          "output_sha": "cfb97eb02c4b8434627c41139693cf23ad471389dcecfe5e4a5ba85a1263eb54"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 160, \"offset\": 20, \"path\": \"tests/test_doc_citation_drift.py\"}",
+          "exit_code": 0,
+          "output_sha": "90aa73279c9befa12f4bafe00ec7127b24bde2e693d782ad492e4ca4ce7d297c"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show 7309046b -- tests/test_doc_citation_drift.py | grep -E \"^[-+]\" | grep -vE \"^[-+]\\s*\\)|^[-+]\\s*\\\"|^[-+]\\s*\\[|^[-+]\\s*#\" | head -60",
+          "exit_code": 0,
+          "output_sha": "fde67aee6a491501bc2397a9f5e52216e84685adee79e09e2a2f5109d85c79e8"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show 7309046b -- tests/test_doc_citation_drift.py | grep -cE \"^[-+]\" && git show 7309046b -- tests/test_doc_citation_drift.py | grep -E \"^\\+def |^-def |^-KNOWN_DRIFT|^\\+KNOWN_DRIFT|^-@|^\\+@\" && echo ===DOCSDIFF=== && git show 7309046b -- docs/observability-spec.md | grep -E \"^\\+\" | grep -E \"cite|UPDATE\" | head -20",
+          "exit_code": 0,
+          "output_sha": "bc72baa0f73cd7025a459ebcb6cbe22e6a4b6cc152f70f9955d2a0571c06e722"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show 7309046b -- tests/test_doc_citation_drift.py | grep -E \"^[-+]\" | grep -E \"def |skip|mask|marker\" | head -30",
+          "exit_code": 0,
+          "output_sha": "2ef2f4aff6e1d828f0f50137d91692a7846475d42a6f80242adf609bdbe0bcbd"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && git show 7309046b -- tests/test_doc_citation_drift.py | grep -E \"^[-+].*(test_|assert)\" | head -40",
+          "exit_code": 0,
+          "output_sha": "5950abf79736d28d299eb16c42ea8dd2c955bd4c1c6cbbac94305797debd96a1"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 198, \"offset\": 440, \"path\": \"tests/test_doc_citation_drift.py\"}",
+          "exit_code": 0,
+          "output_sha": "5f8826aab750726a8e4fd3823de40f2b7be895d733b582873010d235ff86b41b"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ls .venv/bin/pytest && .venv/bin/python --version && git status --short tests/test_doc_citation_drift.py docs/",
+          "exit_code": 0,
+          "output_sha": "97798d69b1255ed6009403a99c0ffba329739b2cff8685baece1e0d8193d649c"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: ran `.venv/bin/pytest tests/test_doc_citation_drift.py -q` fresh in /home/kara/ai_plays_poke \\u2014 exit_code 0, \\\"4 passed in 0.75s\\\" (both citation tests + skip-regions + bite test).\", \"key\": \"verified_0\"}",
+          "exit_code": 0,
+          "output_sha": "f69911460b2c0f5ead61e62b76eb0018582bb9e9dda897ab7505b4d8f4f0ae3d"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"- KNOWN_DRIFT was 20 entries pre-change (git show 7309046b^:tests/test_doc_citation_drift.py, awk over table = 20 `): _d`), now {} at tests/test_doc_citation_drift.py:139-145 (HEAD). Ratchet (failures + stale check) intact at :537-560. test count unchanged at 4.\\n- Change is commit 7309046b (docs + KNOWN_DRIFT emptied) + follow-up 8bad21f7 (re-derive 73 anchors after MON-AIPP-006 shifted cron_runner.py). Working tree matches HEAD for test file and docs; no local edit games.\\n- Running the two citation tests with KNOWN_DRIFT forced to {} at HEAD also passes (4 passed) \\u2014 re-baseline is genuine, not baseline-padded.\\n- Non-invocation of _d helper: benign dead code from the emptying (empty-parametrize edge is covered by test_doc_citations_resolve's `assert checks` guard; lint/secrets/tests guards green in this stage).\\n\", \"key\": \"checked\"}",
+          "exit_code": 0,
+          "output_sha": "92cee4cab5279fa20450e6a0b677d676eda81c3350a43c1fcbea18ae056e69ca"
+        }
+      ]
+    }
+  },
+  "context_stats": {
+    "diff_source": "working-tree",
+    "diff_bytes": 1492,
+    "prompt_bytes": 18180
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [],
+    "summary": "",
+    "error": "unparseable reviewer reply: no parseable JSON object in reply: ''",
+    "raw_reply": "",
+    "retry": {
+      "count": 1,
+      "raw_reply": ""
+    },
+    "review_state": {
+      "emitted": [],
+      "carried": []
+    }
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 .venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with the KNOWN_DRIFT table reduced and no new failures: Ran the exact command fresh in /home/kara/ai_plays_poke: exit_code 0, \"4 passed in 0.75s\" (test_doc_citations_resolve[observability-spec.md], test_doc_citations_resolve[api/cron_runner.md], test_declared_history_regions_are_skipped, test_guard_bites_when_cited_anchor_moves). KNOWN_DRIFT reduced: git show 7309046b^:tests/test_doc_citation_drift.py counted 20 pinned entries (17 observability-spec.md + 3 api/cron_runner.md, matching the commit message); at HEAD tests/test_doc_citation_drift.py:139 reads `KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {}` \u2014 20 \u2192 0. Both parametrized resolve tests now audit every citation against the real tree with zero unbaselined failures and zero stale entries, so the reduction is a genuine re-baseline (anchors re-derived in docs/observability-spec.md and docs/api/cron_runner.md by commits 7309046b and follow-up 8bad21f7 after MON-AIPP-006 shifted cron_runner.py), not hidden drift. No new failures: the ratchet mechanism is intact (tests/test_doc_citation_drift.py:537 failures check, :539 stale-entry check, :626 KNOWN_DRIFT exclusion in the bite test), the bite test still proves a 20-line anchor move produces a NEW failure, and the repo-wide guard suite ran green (4913 passed, 14 skipped, exit 0).\n  \u2713 KNOWN_DRIFT was shrunk by re-deriving anchors rather than weakening/deleting the guard tests (guard mechanism preserved): git show 7309046b -- tests/test_doc_citation_drift.py shows the only functional deletions are the 20 KNOWN_DRIFT entries and the now-unused _d() helper (118 diff lines, all entry table + comment text); no test function removed (still 3 test defs / 4 collected before and after), no skip/xfail added (grep of diff shows none; current run collects and PASSES all 4). test_doc_citations_resolve still asserts `assert checks` (walker sanity), `assert not failures`, and `assert not stale`; test_guard_bites_when_cited_anchor_moves still sabotages cron_runner.py inside tmp_path and asserts the guard fails \u2014 all proven by my fresh run: exit 0, 4 passed. Working tree matches HEAD for tests/test_doc_citation_drift.py and both docs (git status shows no modifications to them), and running the suite with the already-emptied baseline at HEAD passing confirms the docs themselves resolve, i.e. the re-baseline is content-backed.\nDOC-030 landed: the KNOWN_DRIFT baseline was shrunk from 20 entries to empty by genuinely re-deriving the drifted doc anchors (commits 7309046b + 8bad21f7), the guard's ratchet and bite tests remain intact, and .venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with 4 passed and no new failures.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-11-25T17:58:50.592459",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-25T17:58:50.656874+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 34397,
+        "truncated": false,
+        "source": "git show 8bad21f7f11d"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 38945,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "DOC-030"
+  }
+}

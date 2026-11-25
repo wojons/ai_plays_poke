@@ -2343,3 +2343,29 @@ tasks:
   status: complete
   created_at: '2026-11-25T08:07:36.686363+00:00'
   completed_at: '2026-11-25T09:49:03.582953+00:00'
+- id: INT-GATE-004
+  title: verdict-coverage audit flags verdicts graded on unmerged tips
+  criteria:
+  - python3 scripts/gitreins_verdict_audit.py . exits 1 naming INT-GL-3 when its only
+    verdicts graded an unmerged branch tip; .venv/bin/pytest tests/test_gitreins_verdict_audit.py
+    -q exits 0 with the new fixture arm
+  status: complete
+  created_at: '2026-11-25T17:28:28.823508+00:00'
+  completed_at: '2026-11-25T17:28:39.223021+00:00'
+- id: MON-AIPP-006
+  title: autonomy summary disambiguates nav-resolved cycles
+  criteria:
+  - cron_runner.py run_autonomy block carries nav_resolved and no_escalation keys;
+    .venv/bin/pytest tests/test_autonomy_counters.py -q exits 0 with new assertions
+    collected
+  status: complete
+  created_at: '2026-11-25T17:28:30.181880+00:00'
+  completed_at: '2026-11-25T17:40:14.092424+00:00'
+- id: DOC-030
+  title: re-baseline drifted DOC-027 citations, shrink KNOWN_DRIFT
+  criteria:
+  - .venv/bin/pytest tests/test_doc_citation_drift.py -q exits 0 with the KNOWN_DRIFT
+    table reduced and no new failures
+  status: complete
+  created_at: '2026-11-25T17:28:31.487203+00:00'
+  completed_at: '2026-11-25T17:52:18.273380+00:00'

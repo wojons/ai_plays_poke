@@ -1,0 +1,308 @@
+{
+  "task_id": "INT-GATE-004",
+  "task_title": "verdict-coverage audit flags verdicts graded on unmerged tips",
+  "task_criteria": [
+    "python3 scripts/gitreins_verdict_audit.py . exits 1 naming INT-GL-3 when its only verdicts graded an unmerged branch tip; .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with the new fixture arm"
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "8bad21f7f11d254b853ff2436194774215a7f2fb",
+  "pass_class": "degraded",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "ef14c669480420c6a08207bdd2688229cbab3b460ac9c4fcd077ff45e648a54c",
+  "working_tree_dirty_path_count": 6783,
+  "items": [
+    {
+      "criterion": "python3 scripts/gitreins_verdict_audit.py . exits 1 naming INT-GL-3 when its only verdicts graded an unmerged branch tip; .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with the new fixture arm",
+      "status": "PASS",
+      "detail": "Both halves executed fresh. (a) `python3 scripts/gitreins_verdict_audit.py .` \u2192 exit_code=1 with 'ORPHAN-NOVERDICT: DF-AIPP-17-R2, ARM-2, ..., INT-GL-3, ..., INT-GATE-004' and 'RESULT: FAIL'. Causality confirmed: all 11 verdicts under .gitreins/history with task_id INT-GL-3 grade commits != shipped tip 8bad21f7f11d (6 distinct graded commits incl. f4750e94081c \u2014 the INT-GL-3 branch tip), the row (.gitreins/tasks.yaml:1909) records no commit_hash and the board row (.coding-hermes/board/tasks.jsonl) has commit_hash None, so under verdict_covers() (scripts/gitreins_verdict_audit.py:326-345) only shipped-tip equality could rescue it and it fails \u2014 exactly the unmerged-tip defect class. (b) `.venv/bin/pytest tests/test_gitreins_verdict_audit.py -q` \u2192 exit_code=0, '23 passed in 0.96s', with the new INT-GATE-004 fixture arms collected and PASSED (test_verdict_on_unmerged_tip_is_not_coverage, tests/test_gitreins_verdict_audit.py:456; plus test_verdict_on_unrelated_commit_without_git_is_not_coverage, test_row_without_commit_and_verdict_off_shipped_tip_is_not_coverage, test_board_commit_hash_rescues_matching_verdict, test_board_commit_hash_mismatch_still_fails, test_verdict_on_shipped_tip_covers_row_without_recorded_commit, test_verdict_on_ancestor_of_row_commit_covers, test_verdict_graded_at_worktree_tip_above_row_commit_is_not_coverage, test_verdict_without_commit_field_is_not_coverage)."
+    },
+    {
+      "criterion": "INT-GL-3 is flagged specifically because its only verdicts graded an unmerged branch tip, not for an unrelated reason (e.g. missing dates or stale in_progress)",
+      "status": "PASS",
+      "detail": "INT-GL-3 is status: complete with completed_at 2026-11-20T10:28:44 (inside the 30-day window), so it enters ORPHAN-NOVERDICT only via the coverage predicate; python3 enumeration over .gitreins/history printed 'commit: f4750e9408... == NOT shipped tip files: 3' for every graded commit (aac143da, 694ff0d3, 9e8c7915, 8af7a8e4, 394c3cc3, f4750e94 \u2014 all 'NOT shipped tip') and 'board INT-GL-3 commit_hash: None'; git confirms shipped tip HEAD=8bad21f7f11d != f4750e9408, so the fail-closed shipped-tip-equality-only path is the operative arm.",
+      "derived": true
+    },
+    {
+      "criterion": "The INT-GATE-004 fixture arms are newly delivered (not pre-existing) in this task's commit and none are skipped",
+      "status": "PASS",
+      "detail": "git log shows the arms landed in commit 1d490ade9330 'fix(audit): verdict coverage requires graded commit == row commit or ancestor (INT-GATE-004)' with Co-authored-by trailer, on top of 7e0304f3 (INT-GATE-2 base); the pytest run collected and PASSED all 9 new arms with 0 skipped in tests/test_gitreins_verdict_audit.py (requires_git markers were inactive since git is available).",
+      "derived": true
+    }
+  ],
+  "merge_recommendation": "needs_review",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n12:29PM INF scanned ~398197025 bytes (398.20 MB) in 50.5s\n12:29PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 102402 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\ngitreins_tests: runner=./venv/bin/pytest (pytest 9.1.1) cwd=/home/kara/ai_plays_poke\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4927 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\n\n\u2026 [538042 chars omitted \u2014 5830 line(s)] \u2026\ntest_bench_pathfinding_find_path               902.0441 (1.36)           7,063.0340 (1.0)           1,815.8826 (2.01)          2,125.5856 (2.25)          1,026.9869 (1.19)            320.9861 (3.55)          1;1    550,696.4033 (0.50)          8           1\ntest_bench_vision_pipeline_validate          7,594.9938 (11.49)        257,506.9666 (36.46)        12,204.2155 (13.50)         7,665.9632 (8.10)         11,981.9888 (13.90)         4,086.9927 (45.17)     828;875     81,938.9005 (0.07)      30228           1\ntest_bench_ram_reader_observe            1,195,634.9481 (>1000.0)  309,638,181.9923 (>1000.0)   3,497,668.8732 (>1000.0)  16,566,401.4681 (>1000.0)   2,385,027.0081 (>1000.0)     469,859.7477 (>1000.0)      2;40        285.9047 (0.00)        513           1\ntest_bench_vision_pipeline_process      57,779,722.9635 (>1000.0)   80,915,318.0453 (>1000.0)  71,122,087.2684 (>1000.0)   7,360,983.2462 (>1000.0)  73,786,285.9969 (>1000.0)  11,424,729.0185 (>1000.0)       5;0         14.0603 (0.00)         11           1\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4913 passed, 14 skipped in 346.99s (0:05:46) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 python3 scripts/gitreins_verdict_audit.py . exits 1 naming INT-GL-3 when its only verdicts graded an unmerged branch tip; .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with the new fixture arm: Both halves executed fresh. (a) `python3 scripts/gitreins_verdict_audit.py .` \u2192 exit_code=1 with 'ORPHAN-NOVERDICT: DF-AIPP-17-R2, ARM-2, ..., INT-GL-3, ..., INT-GATE-004' and 'RESULT: FAIL'. Causality confirmed: all 11 verdicts under .gitreins/history with task_id INT-GL-3 grade commits != shipped tip 8bad21f7f11d (6 distinct graded commits incl. f4750e94081c \u2014 the INT-GL-3 branch tip), the row (.gitreins/tasks.yaml:1909) records no commit_hash and the board row (.coding-hermes/board/tasks.jsonl) has commit_hash None, so under verdict_covers() (scripts/gitreins_verdict_audit.py:326-345) only shipped-tip equality could rescue it and it fails \u2014 exactly the unmerged-tip defect class. (b) `.venv/bin/pytest tests/test_gitreins_verdict_audit.py -q` \u2192 exit_code=0, '23 passed in 0.96s', with the new INT-GATE-004 fixture arms collected and PASSED (test_verdict_on_unmerged_tip_is_not_coverage, tests/test_gitreins_verdict_audit.py:456; plus test_verdict_on_unrelated_commit_without_git_is_not_coverage, test_row_without_commit_and_verdict_off_shipped_tip_is_not_coverage, test_board_commit_hash_rescues_matching_verdict, test_board_commit_hash_mismatch_still_fails, test_verdict_on_shipped_tip_covers_row_without_recorded_commit, test_verdict_on_ancestor_of_row_commit_covers, test_verdict_graded_at_worktree_tip_above_row_commit_is_not_coverage, test_verdict_without_commit_field_is_not_coverage).\n  \u2713 INT-GL-3 is flagged specifically because its only verdicts graded an unmerged branch tip, not for an unrelated reason (e.g. missing dates or stale in_progress): INT-GL-3 is status: complete with completed_at 2026-11-20T10:28:44 (inside the 30-day window), so it enters ORPHAN-NOVERDICT only via the coverage predicate; python3 enumeration over .gitreins/history printed 'commit: f4750e9408... == NOT shipped tip files: 3' for every graded commit (aac143da, 694ff0d3, 9e8c7915, 8af7a8e4, 394c3cc3, f4750e94 \u2014 all 'NOT shipped tip') and 'board INT-GL-3 commit_hash: None'; git confirms shipped tip HEAD=8bad21f7f11d != f4750e9408, so the fail-closed shipped-tip-equality-only path is the operative arm.\n  \u2713 The INT-GATE-004 fixture arms are newly delivered (not pre-existing) in this task's commit and none are skipped: git log shows the arms landed in commit 1d490ade9330 'fix(audit): verdict coverage requires graded commit == row commit or ancestor (INT-GATE-004)' with Co-authored-by trailer, on top of 7e0304f3 (INT-GATE-2 base); the pytest run collected and PASSED all 9 new arms with 0 skipped in tests/test_gitreins_verdict_audit.py (requires_git markers were inactive since git is available).\nThe live audit exits 1 naming INT-GL-3 for precisely the unmerged-tip cause (all its verdicts grade f4750e94\u2026 et al., none equal to shipped tip 8bad21f7\u2026, no recorded row/board commit), and .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with 23 passed including all nine new INT-GATE-004 fixture arms.",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 python3 scripts/gitreins_verdict_audit.py . exits 1 naming INT-GL-3 when its only verdicts graded an unmerged branch tip; .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with the new fixture arm: Both halves executed fresh. (a) `python3 scripts/gitreins_verdict_audit.py .` \u2192 exit_code=1 with 'ORPHAN-NOVERDICT: DF-AIPP-17-R2, ARM-2, ..., INT-GL-3, ..., INT-GATE-004' and 'RESULT: FAIL'. Causality confirmed: all 11 verdicts under .gitreins/history with task_id INT-GL-3 grade commits != shipped tip 8bad21f7f11d (6 distinct graded commits incl. f4750e94081c \u2014 the INT-GL-3 branch tip), the row (.gitreins/tasks.yaml:1909) records no commit_hash and the board row (.coding-hermes/board/tasks.jsonl) has commit_hash None, so under verdict_covers() (scripts/gitreins_verdict_audit.py:326-345) only shipped-tip equality could rescue it and it fails \u2014 exactly the unmerged-tip defect class. (b) `.venv/bin/pytest tests/test_gitreins_verdict_audit.py -q` \u2192 exit_code=0, '23 passed in 0.96s', with the new INT-GATE-004 fixture arms collected and PASSED (test_verdict_on_unmerged_tip_is_not_coverage, tests/test_gitreins_verdict_audit.py:456; plus test_verdict_on_unrelated_commit_without_git_is_not_coverage, test_row_without_commit_and_verdict_off_shipped_tip_is_not_coverage, test_board_commit_hash_rescues_matching_verdict, test_board_commit_hash_mismatch_still_fails, test_verdict_on_shipped_tip_covers_row_without_recorded_commit, test_verdict_on_ancestor_of_row_commit_covers, test_verdict_graded_at_worktree_tip_above_row_commit_is_not_coverage, test_verdict_without_commit_field_is_not_coverage).\n  \u2713 INT-GL-3 is flagged specifically because its only verdicts graded an unmerged branch tip, not for an unrelated reason (e.g. missing dates or stale in_progress): INT-GL-3 is status: complete with completed_at 2026-11-20T10:28:44 (inside the 30-day window), so it enters ORPHAN-NOVERDICT only via the coverage predicate; python3 enumeration over .gitreins/history printed 'commit: f4750e9408... == NOT shipped tip files: 3' for every graded commit (aac143da, 694ff0d3, 9e8c7915, 8af7a8e4, 394c3cc3, f4750e94 \u2014 all 'NOT shipped tip') and 'board INT-GL-3 commit_hash: None'; git confirms shipped tip HEAD=8bad21f7f11d != f4750e9408, so the fail-closed shipped-tip-equality-only path is the operative arm.\n  \u2713 The INT-GATE-004 fixture arms are newly delivered (not pre-existing) in this task's commit and none are skipped: git log shows the arms landed in commit 1d490ade9330 'fix(audit): verdict coverage requires graded commit == row commit or ancestor (INT-GATE-004)' with Co-authored-by trailer, on top of 7e0304f3 (INT-GATE-2 base); the pytest run collected and PASSED all 9 new arms with 0 skipped in tests/test_gitreins_verdict_audit.py (requires_git markers were inactive since git is available).\nThe live audit exits 1 naming INT-GL-3 for precisely the unmerged-tip cause (all its verdicts grade f4750e94\u2026 et al., none equal to shipped tip 8bad21f7\u2026, no recorded row/board commit), and .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with 23 passed including all nine new INT-GATE-004 fixture arms.",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "python3 scripts/gitreins_verdict_audit.py . exits 1 naming INT-GL-3 when its only verdicts graded an unmerged branch tip; .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with the new fixture arm",
+                "status": "PASS",
+                "detail": "Both halves executed fresh. (a) `python3 scripts/gitreins_verdict_audit.py .` \u2192 exit_code=1 with 'ORPHAN-NOVERDICT: DF-AIPP-17-R2, ARM-2, ..., INT-GL-3, ..., INT-GATE-004' and 'RESULT: FAIL'. Causality confirmed: all 11 verdicts under .gitreins/history with task_id INT-GL-3 grade commits != shipped tip 8bad21f7f11d (6 distinct graded commits incl. f4750e94081c \u2014 the INT-GL-3 branch tip), the row (.gitreins/tasks.yaml:1909) records no commit_hash and the board row (.coding-hermes/board/tasks.jsonl) has commit_hash None, so under verdict_covers() (scripts/gitreins_verdict_audit.py:326-345) only shipped-tip equality could rescue it and it fails \u2014 exactly the unmerged-tip defect class. (b) `.venv/bin/pytest tests/test_gitreins_verdict_audit.py -q` \u2192 exit_code=0, '23 passed in 0.96s', with the new INT-GATE-004 fixture arms collected and PASSED (test_verdict_on_unmerged_tip_is_not_coverage, tests/test_gitreins_verdict_audit.py:456; plus test_verdict_on_unrelated_commit_without_git_is_not_coverage, test_row_without_commit_and_verdict_off_shipped_tip_is_not_coverage, test_board_commit_hash_rescues_matching_verdict, test_board_commit_hash_mismatch_still_fails, test_verdict_on_shipped_tip_covers_row_without_recorded_commit, test_verdict_on_ancestor_of_row_commit_covers, test_verdict_graded_at_worktree_tip_above_row_commit_is_not_coverage, test_verdict_without_commit_field_is_not_coverage)."
+              },
+              {
+                "criterion": "INT-GL-3 is flagged specifically because its only verdicts graded an unmerged branch tip, not for an unrelated reason (e.g. missing dates or stale in_progress)",
+                "status": "PASS",
+                "detail": "INT-GL-3 is status: complete with completed_at 2026-11-20T10:28:44 (inside the 30-day window), so it enters ORPHAN-NOVERDICT only via the coverage predicate; python3 enumeration over .gitreins/history printed 'commit: f4750e9408... == NOT shipped tip files: 3' for every graded commit (aac143da, 694ff0d3, 9e8c7915, 8af7a8e4, 394c3cc3, f4750e94 \u2014 all 'NOT shipped tip') and 'board INT-GL-3 commit_hash: None'; git confirms shipped tip HEAD=8bad21f7f11d != f4750e9408, so the fail-closed shipped-tip-equality-only path is the operative arm.",
+                "derived": true
+              },
+              {
+                "criterion": "The INT-GATE-004 fixture arms are newly delivered (not pre-existing) in this task's commit and none are skipped",
+                "status": "PASS",
+                "detail": "git log shows the arms landed in commit 1d490ade9330 'fix(audit): verdict coverage requires graded commit == row commit or ancestor (INT-GATE-004)' with Co-authored-by trailer, on top of 7e0304f3 (INT-GATE-2 base); the pytest run collected and PASSED all 9 new arms with 0 skipped in tests/test_gitreins_verdict_audit.py (requires_git markers were inactive since git is available).",
+                "derived": true
+              }
+            ],
+            "summary": "The live audit exits 1 naming INT-GL-3 for precisely the unmerged-tip cause (all its verdicts grade f4750e94\u2026 et al., none equal to shipped tip 8bad21f7\u2026, no recorded row/board commit), and .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with 23 passed including all nine new INT-GATE-004 fixture arms.",
+            "provenance": {
+              "model": "glm-5.3-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            },
+            "context_stats": {
+              "diff_source": "working-tree",
+              "diff_bytes": 1394,
+              "prompt_bytes": 18197
+            }
+          }
+        }
+      ],
+      "model": "glm-5.3-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "context_stats": {
+        "diff_source": "working-tree",
+        "diff_bytes": 1394,
+        "prompt_bytes": 18197
+      },
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"INT-GATE-004\"}",
+          "exit_code": 0,
+          "output_sha": "7f00fc9b0dea4f317c38f7714dbd8f5f19a54f026d37c21fbdb52747a19240b5"
+        },
+        {
+          "tool": "run_command",
+          "command": "ls scripts/ | grep -i verdict; ls tests/ | grep -i verdict",
+          "exit_code": 0,
+          "output_sha": "2ab1361b9c2bfa3f7dec445ab90ce5a999c625ff68eb2d4aa65160d69c2ddab8"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"scripts/gitreins_verdict_audit.py\"}",
+          "exit_code": 0,
+          "output_sha": "7003ba4d038057ca810ff62449265dedac37620d3bfae9fd3c8b9451bb47d9e1"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"tests/test_gitreins_verdict_audit.py\"}",
+          "exit_code": 0,
+          "output_sha": "ffd797c97b137923f7627e31f1f5ce2576d4c7b366600dc99019b681a2a52a5c"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"offset\": 400, \"path\": \"scripts/gitreins_verdict_audit.py\"}",
+          "exit_code": 0,
+          "output_sha": "317d3f9e556a6a9759d738db511ad7acb30d6a189c654f66c1c92f1c1977e868"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"offset\": 400, \"path\": \"tests/test_gitreins_verdict_audit.py\"}",
+          "exit_code": 0,
+          "output_sha": "370b5bbe7220a4c8a89bbfd8f6be19d4b9ef7f7ffeceab53e3a3d69d579aa606"
+        },
+        {
+          "tool": "run_command",
+          "command": "python3 scripts/gitreins_verdict_audit.py . ; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "548d5a5e6e4a451d77e0276ffd8d220c9cea1ae49f5007792b80cf2c63ebe375"
+        },
+        {
+          "tool": "run_command",
+          "command": "grep -n \"INT-GL-3\" .gitreins/tasks.yaml | head -5; grep -rln \"INT-GL-3\" .gitreins/history --include=verdict.json | head -20",
+          "exit_code": 0,
+          "output_sha": "35f240ad9790652fdc4b7622941410fc018de901ebb2b863c60d1ca19c11c14b"
+        },
+        {
+          "tool": "run_command",
+          "command": "sed -n 1909,1925p .gitreins/tasks.yaml; echo ---; for f in .gitreins/history/2026-11-20/ff12322b/verdict.json .gitreins/history/2026-11-20/a82440e6/verdict.json .gitreins/history/2026-11-20/cca6bf5e/verdict.json .gitreins/history/2026-11-02/d57d9f15/verdict.json .gitreins/history/2026-11-18/b5128a5b/verdict.json; do python3 -c \"import json,sys; d=json.load(open('$f')); print('$f', d.get('task_id'), 'commit=', d.get('commit'), 'eval=', d.get('evaluated_at'))\"; done",
+          "exit_code": 0,
+          "output_sha": "f181bfe55e91ec6f3357e54262bf390dad13089dac3b681b9043443785689145"
+        },
+        {
+          "tool": "run_command",
+          "command": "ls .venv/bin/pytest venv/bin/pytest 2>&1; git rev-parse HEAD",
+          "exit_code": 0,
+          "output_sha": "083e5d52f261e22ceae6eb0db44a3cdbc0022cb6e83574108a875575df2cd05c"
+        },
+        {
+          "tool": "run_command",
+          "command": "git merge-base --is-ancestor f4750e94081c37ffe5b214609ea17279ad531168 8bad21f7f11d254b853ff2436194774215a7f2fb; echo \"ancestor_of_HEAD=$?\"; grep -o '\"id\": \"INT-GL-3\"[^}]*' .coding-hermes/board/tasks.jsonl | tail -2; git cat-file -t c5eb28d 2>&1 | head -1; git merge-base --is-ancestor f4750e94081c37ffe5b214609ea17279ad531168 c5eb28d 2>/dev/null; echo \"ancestor_of_c5eb28d=$?\"",
+          "exit_code": 0,
+          "output_sha": "94046e0f62db3dc5d4d99c6eb118a0b5d282f94a5e960af42c849f55d326b09a"
+        },
+        {
+          "tool": "run_command",
+          "command": ".venv/bin/pytest tests/test_gitreins_verdict_audit.py -q 2>&1 | tail -15; echo \"EXIT=$?\"",
+          "exit_code": 0,
+          "output_sha": "b7c67f0351e7199b6927d56e911df81cd0bb635a49446b33fec056caaefbd941"
+        },
+        {
+          "tool": "run_command",
+          "command": "python3 - <<'EOF'\nimport json\nrefs={}\nfor line in open('.coding-hermes/board/tasks.jsonl', encoding='utf-8'):\n    line=line.strip()\n    if not line: continue\n    try: row=json.loads(line)\n    except Exception: continue\n    if isinstance(row,dict) and row.get('id')=='INT-GL-3':\n        refs[row.get('commit_hash')]\n        refs=row.get('commit_hash')\n        print('board row commit_hash:', repr(row.get('commit_hash')))\nprint('final:', repr(refs))\nEOF\ngit rev-parse c5eb28d^{commit} 2>/dev/null; git merge-base --is-ancestor c5eb28d 8bad21f7f11d254b853ff2436194774215a7f2fb; echo \"c5eb28d_ancestor_of_HEAD=$?\"; git log --oneline -1 f4750e94081c37ffe5b214609ea17279ad531168 2>/dev/null",
+          "exit_code": 0,
+          "output_sha": "2d89cf74b3a8a2df7040e75cdc87fa84d118ce50705c795cbafd0e604af4e1ae"
+        },
+        {
+          "tool": "run_command",
+          "command": "git diff --stat HEAD 2>/dev/null | tail -5; git status --porcelain | head -20",
+          "exit_code": 0,
+          "output_sha": "9702849e37f9ce6012c1affd46119398ea2c0782a4c2cb62befca8695d929c57"
+        },
+        {
+          "tool": "run_command",
+          "command": "python3 - <<'EOF'\nimport json, pathlib\nship = \"8bad21f7f11d254b853ff2436194774215a7f2fb\"\ncommits = {}\nfor p in pathlib.Path('.gitreins/history').rglob('verdict.json'):\n    try: d = json.loads(p.read_text(encoding='utf-8', errors='replace'))\n    except Exception: continue\n    if isinstance(d, dict) and d.get('task_id') == 'INT-GL-3':\n        commits.setdefault(d.get('commit'), []).append(str(p))\nfor c, paths in commits.items():\n    print('commit:', c, '==' , 'SHIPPED-TIP' if c==ship else 'NOT shipped tip', 'files:', len(paths))\nboard = None\nfor line in open('.coding-hermes/board/tasks.jsonl', encoding='utf-8'):\n    line=line.strip()\n    if not line: continue\n    try: row=json.loads(line)\n    except Exception: continue\n    if isinstance(row,dict) and row.get('id')=='INT-GL-3':\n        board = row.get('commit_hash')\nprint('board INT-GL-3 commit_hash:', repr(board))\nEOF",
+          "exit_code": 0,
+          "output_sha": "604011b8028415dcbedba314be0c0769248352576e96f6676248c92e8f9706ab"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"pending final causality check\", \"key\": \"verified_0\"}",
+          "exit_code": 0,
+          "output_sha": "c6a22a6e7facef416a1656663ca2b05979112f5dbdbfabb11ef79b772b29f73d"
+        },
+        {
+          "tool": "run_command",
+          "command": "git log --oneline -5 -- scripts/gitreins_verdict_audit.py tests/test_gitreins_verdict_audit.py; echo ---; git log -1 --format='%H%n%an <%ae>%n%(trailers:only=true)' $(git log --format=%H -1 -- tests/test_gitreins_verdict_audit.py) 2>/dev/null | head -8",
+          "exit_code": 0,
+          "output_sha": "5309650451a797bbaf51b3416776f957250101dce1ef3a7781257b1df5e07144"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"Derived 0: INT-GL-3's flag is caused by the unmerged-tip rule specifically \\u2014 every verdict with task_id INT-GL-3 grades a commit != shipped tip (verified: 6 distinct graded commits incl. f4750e94; ALL \\\"NOT shipped tip\\\"; shipped tip 8bad21f7; tasks.yaml row INT-GL-3 (.gitreins/tasks.yaml:1909) has no commit_hash; board .coding-hermes/board/tasks.jsonl INT-GL-3 commit_hash=None), so under verdict_covers() (scripts/gitreins_verdict_audit.py:326-345) only shipped-tip equality could rescue it and it fails -> row in ORPHAN-NOVERDICT.\\nPASS: python3 script over .gitreins/history + board printed \\\"commit: f4750e9... == NOT shipped tip files: 3\\\" and \\\"board INT-GL-3 commit_hash: None\\\"; audit output names INT-GL-3 in ORPHAN-NOVERDICT.\", \"key\": \"derived_0\"}",
+          "exit_code": 0,
+          "output_sha": "50ac035b9b36cc992c401e50399fa6f086233615a030904bdd97b838182c5f43"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"Derived 1: The INT-GATE-004 fixture arms are new in the delivered commit (1d490ade \\\"fix(audit): verdict coverage requires graded commit == row commit or ancestor (INT-GATE-004)\\\", Co-authored-by trailer present) and are collected+green: 9 new tests (test_verdict_on_unmerged_tip_is_not_coverage, test_verdict_on_unrelated_commit_without_git_is_not_coverage, test_row_without_commit_and_verdict_off_shipped_tip_is_not_coverage, test_board_commit_hash_rescues_matching_verdict, test_board_commit_hash_mismatch_still_fails, test_verdict_on_shipped_tip_covers_row_without_recorded_commit, test_verdict_on_ancestor_of_row_commit_covers, test_verdict_graded_at_worktree_tip_above_row_commit_is_not_coverage, test_verdict_without_commit_field_is_not_coverage).\\nPASS: .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q -> \\\"23 passed in 0.96s\\\", all 9 arms listed as PASSED (none skipped).\", \"key\": \"derived_1\"}",
+          "exit_code": 0,
+          "output_sha": "5870b1d910a0e07e717331aa42a456edf21b2a898380df47b971b5c0f39f9b34"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"verified_0 = PASS \\u2014 criterion 1 (two halves): (a) python3 scripts/gitreins_verdict_audit.py . exited 1 (\\\"EXIT=1\\\"), ORPHAN-NOVERDICT list names INT-GL-3; causality confirmed: all 11 verdicts with task_id INT-GL-3 grade commits != shipped tip 8bad21f7 (6 distinct commits incl. f4750e9408, aac143da), row has no commit_hash and board commit_hash None -> only rescue is shipped-tip equality which fails. (b) .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q -> \\\"23 passed in 0.96s\\\", EXIT=0, including new INT-GATE-004 fixture arms test_verdict_on_unmerged_tip_is_not_coverage PASSED (tests/test_gitreins_verdict_audit.py:456) and 8 sibling arms.\\nverified_derived_0 = PASS \\u2014 causality proven (see derived_0 content).\\nverified_derived_1 = PASS \\u2014 fixture arms are new in 1d490ade and collected/green (see derived_1 content).\", \"key\": \"verified_all\"}",
+          "exit_code": 0,
+          "output_sha": "470bea881ecabc749cbe35cd4e0035840b82420f98e9476982b81a2bc698e183"
+        }
+      ]
+    }
+  },
+  "context_stats": {
+    "diff_source": "working-tree",
+    "diff_bytes": 1394,
+    "prompt_bytes": 18197
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [],
+    "summary": "",
+    "error": "unparseable reviewer reply: no parseable JSON object in reply: ''",
+    "raw_reply": "",
+    "retry": {
+      "count": 1,
+      "raw_reply": ""
+    },
+    "review_state": {
+      "emitted": [],
+      "carried": []
+    }
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 python3 scripts/gitreins_verdict_audit.py . exits 1 naming INT-GL-3 when its only verdicts graded an unmerged branch tip; .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with the new fixture arm: Both halves executed fresh. (a) `python3 scripts/gitreins_verdict_audit.py .` \u2192 exit_code=1 with 'ORPHAN-NOVERDICT: DF-AIPP-17-R2, ARM-2, ..., INT-GL-3, ..., INT-GATE-004' and 'RESULT: FAIL'. Causality confirmed: all 11 verdicts under .gitreins/history with task_id INT-GL-3 grade commits != shipped tip 8bad21f7f11d (6 distinct graded commits incl. f4750e94081c \u2014 the INT-GL-3 branch tip), the row (.gitreins/tasks.yaml:1909) records no commit_hash and the board row (.coding-hermes/board/tasks.jsonl) has commit_hash None, so under verdict_covers() (scripts/gitreins_verdict_audit.py:326-345) only shipped-tip equality could rescue it and it fails \u2014 exactly the unmerged-tip defect class. (b) `.venv/bin/pytest tests/test_gitreins_verdict_audit.py -q` \u2192 exit_code=0, '23 passed in 0.96s', with the new INT-GATE-004 fixture arms collected and PASSED (test_verdict_on_unmerged_tip_is_not_coverage, tests/test_gitreins_verdict_audit.py:456; plus test_verdict_on_unrelated_commit_without_git_is_not_coverage, test_row_without_commit_and_verdict_off_shipped_tip_is_not_coverage, test_board_commit_hash_rescues_matching_verdict, test_board_commit_hash_mismatch_still_fails, test_verdict_on_shipped_tip_covers_row_without_recorded_commit, test_verdict_on_ancestor_of_row_commit_covers, test_verdict_graded_at_worktree_tip_above_row_commit_is_not_coverage, test_verdict_without_commit_field_is_not_coverage).\n  \u2713 INT-GL-3 is flagged specifically because its only verdicts graded an unmerged branch tip, not for an unrelated reason (e.g. missing dates or stale in_progress): INT-GL-3 is status: complete with completed_at 2026-11-20T10:28:44 (inside the 30-day window), so it enters ORPHAN-NOVERDICT only via the coverage predicate; python3 enumeration over .gitreins/history printed 'commit: f4750e9408... == NOT shipped tip files: 3' for every graded commit (aac143da, 694ff0d3, 9e8c7915, 8af7a8e4, 394c3cc3, f4750e94 \u2014 all 'NOT shipped tip') and 'board INT-GL-3 commit_hash: None'; git confirms shipped tip HEAD=8bad21f7f11d != f4750e9408, so the fail-closed shipped-tip-equality-only path is the operative arm.\n  \u2713 The INT-GATE-004 fixture arms are newly delivered (not pre-existing) in this task's commit and none are skipped: git log shows the arms landed in commit 1d490ade9330 'fix(audit): verdict coverage requires graded commit == row commit or ancestor (INT-GATE-004)' with Co-authored-by trailer, on top of 7e0304f3 (INT-GATE-2 base); the pytest run collected and PASSED all 9 new arms with 0 skipped in tests/test_gitreins_verdict_audit.py (requires_git markers were inactive since git is available).\nThe live audit exits 1 naming INT-GL-3 for precisely the unmerged-tip cause (all its verdicts grade f4750e94\u2026 et al., none equal to shipped tip 8bad21f7\u2026, no recorded row/board commit), and .venv/bin/pytest tests/test_gitreins_verdict_audit.py -q exits 0 with 23 passed including all nine new INT-GATE-004 fixture arms.\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-11-25T17:38:54.284548",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-25T17:38:54.337696+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 34397,
+        "truncated": false,
+        "source": "git show 8bad21f7f11d"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 38847,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "INT-GATE-004"
+  }
+}

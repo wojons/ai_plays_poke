@@ -1,0 +1,33 @@
+{
+  "scheduler_tick_id": "ai-plays-poke-foreman-2026-11-25-15-43-56",
+  "wave_budget": 4,
+  "workers": [
+    {
+      "task_id": "INT-GATE-004",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-INT-GATE-004",
+      "branch": "wt/INT-GATE-004",
+      "base": "origin/main",
+      "base_sha": "118496f5",
+      "brief": "/tmp/aipp_t396_brief_INT-GATE-004.txt"
+    },
+    {
+      "task_id": "MON-AIPP-006",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-MON-AIPP-006",
+      "branch": "wt/MON-AIPP-006",
+      "base": "origin/main",
+      "base_sha": "118496f5",
+      "brief": "/tmp/aipp_t396_brief_MON-AIPP-006.txt"
+    },
+    {
+      "task_id": "DOC-030",
+      "worktree": "/home/kara/worktrees/ai_plays_poke-DOC-030",
+      "branch": "wt/DOC-030",
+      "base": "origin/main",
+      "base_sha": "118496f5",
+      "brief": "/tmp/aipp_t396_brief_DOC-030.txt"
+    }
+  ],
+  "independence_check": "disjoint file sets: audit script+test / cron_runner+autonomy test / docs+citation-drift test; no depends_on edges among rows",
+  "worker_model": "glm-5.3-flash",
+  "worker_provider": "opencode-go-2"
+}
