@@ -2325,5 +2325,6 @@ tasks:
     zero ''exceeds 94% launch threshold'' lines in the launch log, the launched agent
     shows status=running in bunker list --server bunker-mvp, and the board row foreman_note
     carries the evidence path so sibling observer rows close on this run.'
-  status: in_progress
+  status: complete
   created_at: '2026-11-25T04:23:01.168082+00:00'
+  completed_at: '2026-11-25T04:49:49.571164+00:00'
