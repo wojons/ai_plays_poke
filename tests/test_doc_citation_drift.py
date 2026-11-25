@@ -35,11 +35,11 @@ anchor overflows the bound file's length falls back to the linear carry.
 KNOWN DRIFT BASELINE (read this before "fixing" the guard): the DOC-027
 re-derivation was cut against ``f3d7774`` (2026-11-17). Later commits
 (``bcc61b68``, ``0f9d6477``, ``73c8faaa``) moved ``cron_runner.py`` and
-``src/dashboard/main.py``, so a set of pre-existing anchors already drifts
-TODAY (measured 2026-11-22). Editing the docs is outside this guard's
-test-only scope, so ``KNOWN_DRIFT`` records each such citation with evidence
-instead of hiding it. The ratchet bites in BOTH directions: any citation
-that drifts and is NOT in ``KNOWN_DRIFT`` fails the suite, and any
+``src/dashboard/main.py``, so a set of pre-existing anchors had drifted.
+``KNOWN_DRIFT`` records each such citation with evidence instead of hiding
+it, and DOC-030 re-derived every entry against the current tree and shrank
+the table to empty (2026-11-25). The ratchet bites in BOTH directions: any
+citation that drifts and is NOT in ``KNOWN_DRIFT`` fails the suite, and any
 ``KNOWN_DRIFT`` entry whose citation resolves again (i.e. the docs were
 refreshed) fails the suite until the entry is removed. Goal state:
 ``KNOWN_DRIFT`` shrinks to empty.
@@ -131,104 +131,12 @@ _IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]{3,}")
 _UPDATE_BLOCK_RE = re.compile(r"\*\*UPDATE \d{4}-\d{2}-\d{2}")
 
 
-def _d(doc_lines: list[int], hint: str, note: str = "") -> dict[str, object]:
-    """Baseline entry: doc lines citing the drifted anchor, a re-derivation
-    hint (old f3d7774 line content located in today's tree), and — only for
-    intact-but-unverifiable anchors — a note."""
-    entry: dict[str, object] = {"doc_lines": doc_lines, "hint": hint}
-    if note:
-        entry["note"] = note
-    return entry
-
-
-# Measured against the tree on 2026-11-22. Every entry below FAILS the audit
-# today; hints were derived mechanically from f3d7774 content. Entries MUST be
-# removed (not relaxed) the moment the docs refresh re-derives their anchors —
-# the stale-entry check enforces that.
-KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {
-    ("api/cron_runner.md", "cron_runner.py", 7792, 7800): _d(
-        [149],
-        "f3d7774:7792 ('parser.add_argument(') now at :8289",
-    ),  # moved by bcc61b68+0f9d6477
-    ("api/cron_runner.md", "cron_runner.py", 8110, 8115): _d(
-        [391],
-        "f3d7774:8110 ('R.mode_models = resolve_mode_models(') now at :8624",
-    ),  # moved by bcc61b68+0f9d6477
-    ("api/cron_runner.md", "cron_runner.py", 9229, 9229): _d(
-        [391],
-        "f3d7774:9229 ('\"decision_model\": S.R.decision_model,') now at :9754",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "src/dashboard/main.py", 35, 35): _d(
-        [176],
-        "f3d7774:35 ('from prometheus_client import CONTENT_TYPE_LATEST, REGISTR') now at :36",
-    ),  # moved by 73c8faaa
-    ("observability-spec.md", "src/core/ai_client.py", 109, 118): _d(
-        [995],
-        "109-118",
-        note="anchor INTACT (ai_client.py unchanged since f3d7774): :109-118 is the log_api_call signature; the doc's symbol `cost_usd` does not appear in the source at all (the parameter is `cost`) — spelling mismatch, not drift",
-    ),
-    ("observability-spec.md", "src/dashboard/main.py", 119, 119): _d(
-        [54],
-        "f3d7774:119 ('_observability_metrics.set_runner_up(\"dashboard\")') now at :126",
-    ),  # moved by 73c8faaa
-    ("observability-spec.md", "tests/test_dashboard.py", 122, 122): _d(
-        [1001],
-        "f3d7774:122 ('assert client.get(\"/metrics\").status_code == 401') now at :203,596",
-    ),  # moved by 73c8faaa
-    ("observability-spec.md", "src/dashboard/main.py", 228, 228): _d(
-        [1006],
-        "f3d7774:228 ('total_cost = 0.0') now at :303",
-    ),  # moved by 73c8faaa
-    ("observability-spec.md", "src/dashboard/main.py", 359, 369): _d(
-        [40],
-        "f3d7774:359 ('async def prometheus_metrics() -> Response:') now at :443",
-    ),  # moved by 73c8faaa
-    ("observability-spec.md", "src/dashboard/main.py", 370, 370): _d(
-        [43],
-        "f3d7774:370 ('@app.get(\"/metrics\")') now at :454",
-    ),  # moved by 73c8faaa
-    ("observability-spec.md", "src/dashboard/main.py", 370, 376): _d(
-        [163],
-        "f3d7774:370 ('@app.get(\"/metrics\")') now at :454",
-    ),  # moved by 73c8faaa
-    ("observability-spec.md", "tests/test_dashboard.py", 489, 492): _d(
-        [458],
-        "f3d7774:489 ('assert client.get(\"/metrics\").status_code in (401, 403)') now at :570",
-    ),  # moved by 73c8faaa
-    ("observability-spec.md", "scripts/game_bridge.py", 657, 657): _d(
-        [77],
-        "657",
-        note='anchor INTACT (game_bridge.py unchanged since f3d7774): :657 is the accept-loop busy rejection (`observe_bridge_request("none", "busy")`), but the doc line names no backticked code symbol for it — unverifiable, verified manually 2026-11-22',
-    ),
-    ("observability-spec.md", "cron_runner.py", 5345, 5345): _d(
-        [55, 381],
-        "f3d7774:5345 ('def _publish_run_metrics(') now at :5859",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 7934, 7934): _d(
-        [54],
-        "f3d7774:7934 ('set_runner_up(\"cron\", True)') now at :8448",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 7975, 7975): _d(
-        [55, 381, 661],
-        "f3d7774:7975 ('_publish_run_metrics(\"error\", duration_s, autonomy, teache') now at :8489",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 8581, 8581): _d(
-        [50, 380],
-        "f3d7774:8581 ('observe_cycle(mode, pipeline_name)') now at :9097",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 9311, 9311): _d(
-        [51, 380],
-        "f3d7774:9311 ('observe_decision_seconds(DECISION_MODE or \"unknown\", pipel') now at :9836",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 9318, 9318): _d(
-        [390, 1018],
-        "f3d7774:9318 ('def _ow_track_stuck(S, patch_data, st):') now at :9843",
-    ),  # moved by bcc61b68+0f9d6477
-    ("observability-spec.md", "cron_runner.py", 10546, 10546): _d(
-        [55, 381, 655],
-        "f3d7774:10546 ('_publish_run_metrics(outcome, duration_s, autonomy, teache') now at :11483",
-    ),  # moved by bcc61b68+0f9d6477
-}
+# The drift baseline: DOC-030 re-derived every pinned entry against the
+# current tree (2026-11-25) and the table is now empty. Keep the mechanism:
+# a NEW drifted citation fails the suite until it is either re-derived in the
+# docs or — if it must ship drifted — added here with evidence, and a stale
+# entry whose citation resolves again also fails until it is removed.
+KNOWN_DRIFT: dict[tuple[str, str, int, int], dict[str, object]] = {}
 
 
 # ── doc parsing ──────────────────────────────────────────────────────────
@@ -663,7 +571,7 @@ def test_declared_history_regions_are_skipped():
     assert not mask[idx("kept verbatim so the audit history stays checkable")]
     assert not mask[idx("wrapper (cron_runner.py:18-23)")]  # §1.4 audit body
     # …except dated UPDATE blockquotes, which resolve against the current tree.
-    assert mask[idx("now sits at `src/dashboard/main.py:370-376`")]
+    assert mask[idx("now sits at `src/dashboard/main.py:454-459`")]
     assert mask[idx("**UPDATE 2026-11-17:** this section is still accurate")]
     # The self-declared superseded offset note (lines 15–24) is skipped.
     assert not mask[idx("+4 at :8585")]

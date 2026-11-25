@@ -36,23 +36,23 @@ re-run verbatim.
 | `grep -rn "prometheus" src/ scripts/ tests/ cron_runner.py --include=*.py \| wc -l` | `0` | `13` |
 | `grep -in "prometheus\|opentelemetry\|statsd" requirements.txt pyproject.toml` | (no output) | 3 lines: `requirements.txt:48` (comment), `requirements.txt:49` `prometheus-client`, `pyproject.toml:30` `"prometheus-client",  # Prometheus metrics endpoint and runtime instrumentation` |
 
-**The scrape endpoint exists.** `src/dashboard/main.py:358` declares
-`@app.get("/metrics/prometheus")`; the handler at `:359-369` returns
+**The scrape endpoint exists.** `src/dashboard/main.py:442` declares
+`@app.get("/metrics/prometheus")`; the handler at `:443-451` returns
 `generate_latest(REGISTRY)` with `CONTENT_TYPE_LATEST`. It carries **no** `Depends(...)`,
 so it is unauthenticated as §4.1 required, and the old JSON `/metrics` contract is
-untouched (now at `src/dashboard/main.py:370`).
+untouched (now at `src/dashboard/main.py:454`).
 
 **Eleven metric families are defined** in `src/observability/metrics.py`, and every one of
 them is incremented from a production code path (not a test hook — §4.1's dogfood rule):
 
 | # (catalogue §3.2) | Metric | Definition | Production increment site |
 |---|---|---|---|
-| 1 | `aipp_run_cycles_total` | metrics.py:19 | `observe_cycle()` metrics.py:331 ← cron_runner.py:8581 |
-| 2 | `aipp_decision_duration_seconds` | metrics.py:25 | `observe_decision_seconds()` metrics.py:338 ← cron_runner.py:9311 |
+| 1 | `aipp_run_cycles_total` | metrics.py:19 | `observe_cycle()` metrics.py:331 ← cron_runner.py:9452 |
+| 2 | `aipp_decision_duration_seconds` | metrics.py:25 | `observe_decision_seconds()` metrics.py:338 ← cron_runner.py:10192 |
 | 3 | `aipp_model_calls_total` | metrics.py:31 | `observe_model_call()` metrics.py:345 ← src/core/ai_client.py:133 |
 | 4 | `aipp_model_cost_usd_total` | metrics.py:37 | `observe_model_call()` metrics.py:345 (the `_MODEL_COST.inc` branch at :351) ← src/core/ai_client.py:133 |
-| 5 | `aipp_runner_up` | metrics.py:43 | `set_runner_up()` metrics.py:420 ← cron_runner.py:7934 (`surface="cron"`), src/dashboard/main.py:119 (`surface="dashboard"`) |
-| 6 | `aipp_map_transitions_total` | metrics.py:58 | `observe_run_end()` metrics.py:533 (its `_MAP_TRANSITIONS.inc` at :567) ← `_publish_run_metrics()` cron_runner.py:5345, called at :7975 (error close) and :10546 (normal close) |
+| 5 | `aipp_runner_up` | metrics.py:43 | `set_runner_up()` metrics.py:420 ← cron_runner.py:8801 (`surface="cron"`), src/dashboard/main.py:126 (`surface="dashboard"`) |
+| 6 | `aipp_map_transitions_total` | metrics.py:58 | `observe_run_end()` metrics.py:533 (its `_MAP_TRANSITIONS.inc` at :567) ← `_publish_run_metrics()` cron_runner.py:6212, called at :8842 (error close) and :11870 (normal close) |
 | 7 | `aipp_episode_decisions_total` | metrics.py:63 | `observe_run_end()` — its `_EPISODE_DECISIONS.inc` at metrics.py:564 (same call sites) |
 | 8 | `aipp_backtrack_events_total` | metrics.py:69 | `observe_run_end()` — its `_BACKTRACK_EVENTS.inc` at metrics.py:568 (same call sites) |
 | 9 | `aipp_run_completed_total` | metrics.py:74 | `observe_run_end()` — its `_RUN_COMPLETED.inc` at metrics.py:560 (same call sites) |
@@ -74,7 +74,7 @@ one production feed site each — table in §3.2):
 | 19 | `aipp_screenshot_bytes` | metrics.py:142 | `_publish_data_growth_metrics` cron_runner.py:9599 (per cycle :9599, run end :9599) |
 | 20 | `aipp_runlog_bytes` | metrics.py:147 | same call |
 | 21 | `aipp_runlog_last_write_timestamp_seconds` | metrics.py:152 | same call — the ledger's `st_mtime`, deliberately not materialized at import (:263) |
-| 22 | `aipp_bridge_requests_total` | metrics.py:157 | `handle()`'s `finally` scripts/game_bridge.py:488 + the busy rejection :657 |
+| 22 | `aipp_bridge_requests_total` | metrics.py:157 | `handle()`'s `finally` scripts/game_bridge.py:488 + the busy rejection `observe_bridge_request("none", "busy")` :657 |
 | 23 | `aipp_bridge_active_connections` | metrics.py:163 | `serve()` worker pool :593/:607, 0 at bind :578 and shutdown :696 |
 
 **Cron lane:** the node_exporter textfile record is live — see the UPDATE block in §4.3
@@ -160,10 +160,10 @@ it unusable as-is:
 
 > **UPDATE 2026-11-17:** this section is still accurate about `/metrics` — same JSON
 > contract, same API-key gate, same hardcoded `total_cost`. Two things moved. (a) The route
-> the block above quotes as `:355-360` now sits at `src/dashboard/main.py:370-376`; the
+> the block above quotes as `:355-360` now sits at `src/dashboard/main.py:454-459`; the
 > contract is unchanged and `tests/test_dashboard.py` still asserts 401-without-key. (b) A
 > **separate, unauthenticated** route `GET /metrics/prometheus` now serves the Prometheus
-> text exposition format (`src/dashboard/main.py:358-369`) — the fix this section's
+> text exposition format (`src/dashboard/main.py:442-451`) — the fix this section's
 > criticism called for. Nothing above was rewritten.
 
 ### 1.3 No Prometheus client, no OTel (2026-11-03 reading; superseded — see UPDATE)
@@ -173,7 +173,7 @@ Not in source, not in `requirements.txt`, not in `pyproject.toml` `[project].dep
 
 > **UPDATE 2026-11-17:** `prometheus-client` is now a declared dependency
 > (`requirements.txt:49`, `pyproject.toml:30`) and imported by
-> `src/observability/metrics.py:3` and `src/dashboard/main.py:35`. OpenTelemetry and
+> `src/observability/metrics.py:3` and `src/dashboard/main.py:36`. OpenTelemetry and
 > statsd are still absent — the §0 dependency grep, re-run, matches `prometheus` only.
 > The heading and body above are the audit-day reading, kept as written.
 
@@ -376,9 +376,9 @@ proposal — grep `src/observability/metrics.py` for the name and you get nothin
 | 22,23 | `handle`/`worker` in scripts/game_bridge.py (:440-500) | on the audit-day tree the reply sat inside `except Exception: pass` (:441-444) — **the reply path no longer swallows failures**; see the dated note below |
 
 > **UPDATE 2026-11-17:** catalogue rows 1–11 are now wired, and they emit from exactly the
-> owner sites this table names — `observe_cycle`/`observe_decision_seconds`
-> (cron_runner.py:8581, :9311), `observe_model_call` (src/core/ai_client.py:133), and
-> `_publish_run_metrics` → `observe_run_end` (cron_runner.py:6212, called at :6212 and :6212). Rows 12–15 also shipped (MON-AIPP-4) from the
+> owner sites this table names — `observe_cycle` (cron_runner.py:9452),
+> `observe_decision_seconds` (cron_runner.py:10192), `observe_model_call` (src/core/ai_client.py:133), and
+> `_publish_run_metrics` → `observe_run_end` (cron_runner.py:6212, called at :8842 and :11870). Rows 12–15 also shipped (MON-AIPP-4) from the
 > `log_api_call` and `_check_configured_keys` sites mapped in row 3,12,13,14,15 above — the
 > scrapeable series are listed under "Feed points" in §3.2. Rows 16–23 remain blind spots as
 > mapped above. The table is the audit-day mapping, not today's.
@@ -455,7 +455,7 @@ the tile did move (RAM advancing while pixels do not is the other half of the sa
 - **Dashboard (`src/dashboard/main.py`) — long-running, already FastAPI → add a real `/metrics`.**
   Use `prometheus_client`'s `generate_latest` + `CONTENT_TYPE_LATEST` on a **new, unauthenticated,
   separate route**. Do not reuse, and do not break, the existing `/metrics` JSON contract
-  (tests/test_dashboard.py:489-492 assert on it).
+  (tests/test_dashboard.py:570 assert on it).
 - **Cron lane (`cron_runner.py`) — short-lived, ≤20 cycles, exits → do NOT scrape it.**
   Write a **textfile-collector** record at run end (`--textfile-dir`, default
   `/var/lib/node_exporter/textfile_collector/aipp_run.prom`), so node_exporter (already on every
@@ -652,14 +652,14 @@ per-host, and concurrent cron runs on one host would race the accumulate step.
 2. `_write_degradation_row(...)` — only when the degradation gate tripped (:11855)
 3. outcome/duration computed (`gave_up` if the run gave up, else `completed`) (:11856)
 4. `_write_textfile_record(...)` — the `.prom` file (:6099)
-5. `_publish_run_metrics(outcome, ...)` — the in-process Prometheus series (:11865)
+5. `_publish_run_metrics(outcome, ...)` — the in-process Prometheus series (:11870)
 6. `log_file.close()` (:9248)
 
 So the run log already carries the same numbers when the textfile is written (both are fed
 from the same `autonomy` block), and the scrape-visible file is published before the log
 handle closes. On the failure path the order is identical in substance: `_write_textfile_record(..., "error", ...)`
-at :8842 immediately followed by `_publish_run_metrics("error", ...)` at :8842, before the
-exception is re-raised (:8830) — a run that died still records its outcome.
+at :8838 immediately followed by `_publish_run_metrics("error", ...)` at :8842, before the
+exception is re-raised (`raise` at :8843) — a run that died still records its outcome.
 
 **Failure is best-effort.** The whole body is wrapped in `try/except Exception`, which prints
 `[TEXTFILE] <run_id> failed: <exc>` via `safe_print` and returns `None` (:4600). A
@@ -992,18 +992,18 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 | Screenshot content / vision verdicts as metrics | Semantic content, not health. Belongs in the run log; already there (`vision_usage`, `screen`). |
 | Grouping by `missing_class` beyond a fixed enum | `missing_class` is already an enum (`none`, `map_topology`, …); anything free-form must be bucketed to `other` before it becomes a label. |
 | `logs/api/*.log` etc. ingestion | The files are empty and the writer is dead (§1.4). Instrumenting them would create a metric measuring a phantom. |
-| Exact per-token cost per model | Cost is already summed with `cost_usd` per call across all clients (src/core/ai_client.py:109-118). A second derivation would drift. |
+| Exact per-token cost per model | Cost is already summed with `cost` per call across all clients (src/core/ai_client.py:109-118). A second derivation would drift. |
 
 ---
 
 ## 8. Known risks for the implementing worker
 
-1. **`/metrics` is taken.** Use a new path. Do not modify `tests/test_dashboard.py:122,489-492`.
+1. **`/metrics` is taken.** Use a new path. Do not modify `tests/test_dashboard.py:203,570`.
 2. **The cron lane must not try to serve HTTP.** It exits; a scrape will never catch it. Textfile only.
 3. **`src/core/logger.py` is a trap.** It looks like the logging solution and is 100% unwired. Do not
    assume it runs. If step 1 of the work "fixes logging" by calling `get_logger()`, verify the files
    actually grow (`wc -c logs/errors/errors.log`) — that is a separate, larger piece of work than metrics.
-4. **`total_cost_estimate` is hardcoded `0.0`** (`total_cost = 0.0`, src/dashboard/main.py:228). Do not wire metric 4 to it
+4. **`total_cost_estimate` is hardcoded `0.0`** (`total_cost = 0.0`, src/dashboard/main.py:303). Do not wire metric 4 to it
    — it would export a dead zero with a live-looking `# HELP`. Wire it to the `log_api_call` cost
    parameter path, and if the dashboard field is to be fixed, fix it as a deliberate change with its
    own evidence.
@@ -1015,7 +1015,7 @@ the §1.4 dead-logger state is either fixed or explicitly re-classified as dead 
 5. **Do not add a scrape job yourself.** `prometheus.yml` is the monitoring stack's; the textfile path
    needs no change at all.
 6. **Metric 17 (desync) has no clean primitive yet.** There is a frame-hash (:2247) and stuck trackers
-   (:9318) but no RAM-vs-frame comparison. Implement it as a bounded proxy (repeated frame hash with
+   (`_ow_track_stuck`, :10199) but no RAM-vs-frame comparison. Implement it as a bounded proxy (repeated frame hash with
    unchanged RAM tile) and document the proxy, or defer it — do not claim a true desync detector exists.
    Status (MON-AIPP-5): shipped exactly as this item asked. `_track_emulator_integrity`
    (cron_runner.py:8680) increments the counter when the frame hash is unchanged **and** the RAM
