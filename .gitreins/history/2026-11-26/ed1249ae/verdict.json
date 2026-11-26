@@ -1,0 +1,492 @@
+{
+  "task_id": "RELEASE-009-R1",
+  "task_title": "Test coverage for portable AIPP_* runtime-path resolvers",
+  "task_criteria": [
+    "pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green."
+  ],
+  "passed": false,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "94eb34b0d0dd235b63e5c2936519388befbd6d01",
+  "pass_class": "degraded",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "5c1ae518001c694a93be1838d3a2ad22a802950ca4581f3dfadf2e34d0519ed5",
+  "working_tree_dirty_path_count": 6798,
+  "items": [],
+  "merge_recommendation": "needs_review",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n7:21PM INF scanned ~398258172 bytes (398.26 MB) in 53.7s\n7:21PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 102453 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\ngitreins_tests: runner=./venv/bin/pytest (pytest 9.1.1) cwd=/home/kara/ai_plays_poke\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4930 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\n\n\u2026 [539692 chars omitted \u2014 5847 line(s)] \u2026\ntest_bench_pathfinding_find_path                911.9976 (1.52)           6,211.9798 (1.0)            2,136.3958 (1.02)          2,283.9777 (1.0)            1,153.0356 (1.52)          1,550.7394 (15.51)         1;1  468,078.0640 (0.98)          5           1\ntest_bench_vision_pipeline_validate           8,837.0289 (14.70)     15,452,277.0317 (>1000.0)       32,182.5425 (15.43)       304,712.4513 (133.41)        13,715.9950 (18.02)         1,643.0276 (16.43)    190;1484   31,072.7470 (0.06)      23564           1\ntest_bench_ram_reader_observe             2,040,698.9497 (>1000.0)  496,774,091.0361 (>1000.0)    5,374,891.9347 (>1000.0)  28,722,156.7922 (>1000.0)    2,710,258.9956 (>1000.0)   1,551,948.9825 (>1000.0)      1;32      186.0503 (0.00)        297           1\ntest_bench_vision_pipeline_process      109,323,348.0351 (>1000.0)  222,409,863.0250 (>1000.0)  151,171,303.3833 (>1000.0)  39,112,449.7422 (>1000.0)  145,458,390.9945 (>1000.0)  53,550,570.9704 (>1000.0)       3;0        6.6150 (0.00)          8           1\n------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4916 passed, 14 skipped in 341.11s (0:05:41) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": false,
+      "any_failed": true,
+      "summary": "INCOMPLETE\n  \u2717 Coverage FAILED \u2014 ungraded: pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green.\nEvaluator error: LLM call failed: LLM request failed after 3 attempts (provider=openai model=deepseek-flash url=https://api.deepseek.com/chat/completions key=<GITREINS_LLM_API_KEY>) \u2014 last error: HTTPSConnectionPool(host='api.deepseek.com', port=443): Max retries exceeded with url: /chat/completions (Caused by NameResolutionError(\"HTTPSConnection(host='api.deepseek.com', port=443): Failed to resolve 'api.deepseek.com' ([Errno -3] Temporary failure in name resolution)\"))",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": false,
+          "output": "INCOMPLETE\n  \u2717 Coverage FAILED \u2014 ungraded: pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green.\nEvaluator error: LLM call failed: LLM request failed after 3 attempts (provider=openai model=deepseek-flash url=https://api.deepseek.com/chat/completions key=<GITREINS_LLM_API_KEY>) \u2014 last error: HTTPSConnectionPool(host='api.deepseek.com', port=443): Max retries exceeded with url: /chat/completions (Caused by NameResolutionError(\"HTTPSConnection(host='api.deepseek.com', port=443): Failed to resolve 'api.deepseek.com' ([Errno -3] Temporary failure in name resolution)\"))",
+          "error": "",
+          "data": {
+            "verdict": "INCOMPLETE",
+            "items": [],
+            "summary": "Evaluator error: LLM call failed: LLM request failed after 3 attempts (provider=openai model=deepseek-flash url=https://api.deepseek.com/chat/completions key=<GITREINS_LLM_API_KEY>) \u2014 last error: HTTPSConnectionPool(host='api.deepseek.com', port=443): Max retries exceeded with url: /chat/completions (Caused by NameResolutionError(\"HTTPSConnection(host='api.deepseek.com', port=443): Failed to resolve 'api.deepseek.com' ([Errno -3] Temporary failure in name resolution)\"))",
+            "ungraded_criteria": [
+              "pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green."
+            ],
+            "provenance": {
+              "model": "deepseek-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            },
+            "context_stats": {
+              "diff_source": "working-tree",
+              "diff_bytes": 513,
+              "prompt_bytes": 17408
+            }
+          }
+        }
+      ],
+      "model": "deepseek-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "ungraded_criteria": [
+        "pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green."
+      ],
+      "context_stats": {
+        "diff_source": "working-tree",
+        "diff_bytes": 513,
+        "prompt_bytes": 17408
+      },
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"RELEASE-009-R1\"}",
+          "exit_code": 0,
+          "output_sha": "2632aa08571234c899ea041ddcf0f514566b1ee9e71e26f78da0db3627fc2edf"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke 2>/dev/null || cd .; pwd; ls",
+          "exit_code": 0,
+          "output_sha": "64cee32b10ecb6598bc79e279bdf117c43688cacc5ecc22828146b210e3b9e3d"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; ls -la tests/test_path_resolvers.py 2>&1; echo \"---\"; git log --oneline -5; echo \"---\"; git status --short | head -30",
+          "exit_code": 0,
+          "output_sha": "6ed46a3000b762fd2b4a7fb118bae0f24cd8b2e554d8b95e6fe8468eaa5eb959"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; grep -rn 'AIPP_CANONICAL_ENV\\|AIPP_CONSOLE_HOME\\|AIPP_HANDBOOK_RENDER\\|AIPP_REPO\\|AIPP_PYTHON' tests/ | head -50; echo \"EXIT=$?\"; echo \"--- count:\"; grep -rn 'AIPP_CANONICAL_ENV\\|AIPP_CONSOLE_HOME\\|AIPP_HANDBOOK_RENDER\\|AIPP_REPO\\|AIPP_PYTHON' tests/ | wc -l",
+          "exit_code": 0,
+          "output_sha": "411696288caf1dc4044da62e55f8ddd5267e5b1ae719973210dfddce50c56184"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"tests/test_path_resolvers.py\"}",
+          "exit_code": 0,
+          "output_sha": "f2fb4e5f1bd5cae465e312810943c9518a7ce133de0c5956bfafb78fed37694a"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 150, \"offset\": 400, \"path\": \"tests/test_path_resolvers.py\"}",
+          "exit_code": 0,
+          "output_sha": "90d0fc682a4ff7480c82d8355428cdc9927c0627de14ca30a93f88a1e4904c10"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; ./venv/bin/pytest tests/test_path_resolvers.py -q 2>&1 | tail -20",
+          "exit_code": 0,
+          "output_sha": "d6eac953a06674fc5193d465000f9e97fe274a5f9485d83335174bc4d6ef7da3"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; for f in scripts/perception_diff.py scripts/run_base1_baseline.py scripts/benchmark_llm_vs_jev.py docs/handbook/sheet_style.py tools/console/test_auto_vision.py tools/console/test_controls.py tools/console/test_pass.py capture.py; do echo \"=== $f\"; grep -n 'AIPP_\\|^REPO\\|^CANONICAL_ENV\\|^RENDER_SH\\|^CONSOLE\\|^PY \\|^PY=\\|^ROM' $f | head -20; done",
+          "exit_code": 0,
+          "output_sha": "36af6c03ac46dfdf11f279cb1fe832eefeb6b6063d64ef078aa3d6bf3dc8f1db"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; sed -n 15,45p tools/console/test_auto_vision.py; echo \"=== test_pass 25-50\"; sed -n 25,50p tools/console/test_pass.py; echo \"=== sheet_style 20-35\"; sed -n 20,35p docs/handbook/sheet_style.py; echo \"=== wrapper\"; cat scripts/aipp-mcp-wrapper.sh",
+          "exit_code": 0,
+          "output_sha": "fcb192da0e7ef4990a4ffe122f69a09a0d161620e80b6aa629ece466d0d8ef72"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; grep -rn '/home/' capture.py scripts/perception_diff.py scripts/run_base1_baseline.py scripts/benchmark_llm_vs_jev.py scripts/aipp-mcp-wrapper.sh docs/handbook/sheet_style.py tools/console/test_auto_vision.py tools/console/test_controls.py tools/console/test_pass.py; echo \"grep_exit=$?\"",
+          "exit_code": 0,
+          "output_sha": "e560b78085b4a8b5cb6c7db51423997b4064dd2d9c0d1bc73f1e7cba82656e0a"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; cp scripts/perception_diff.py /tmp/pd.bak; printf '\\nLEGACY = \"/home/kara/ai_plays_poke/data\"\\n' >> scripts/perception_diff.py; ./venv/bin/pytest tests/test_path_resolvers.py -q 2>&1 | tail -8; cp /tmp/pd.bak scripts/perception_diff.py; echo \"--- restored:\"; git diff --stat scripts/perception_diff.py",
+          "exit_code": 0,
+          "output_sha": "0aa3a2dc902fd0af07654c006ff60b3ac8100a0fdf9a16b70e91d6b419d6958c"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; ./venv/bin/pytest tests/ -q -p no:randomly 2>&1 | tail -5",
+          "exit_code": -15,
+          "output_sha": "08d4bebaea5a601402b1c971c4e85141354bf65059dc860cceffeab2a6c50cd3"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; timeout 900 ./venv/bin/pytest tests/ -q -x --timeout=300 2>&1 | tail -6",
+          "exit_code": -15,
+          "output_sha": "18c0b17f3fe1068ee5cf7c6d84bc32eb702d8c23e9733914a2e01ea63a579b9f"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke; nohup ./venv/bin/pytest tests/ -q --timeout=300 > /tmp/full_suite.log 2>&1 &\necho started; sleep 25; tail -3 /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "6b20bfd96ac7ff299a17a7fce4a5a7d5e8ec55846563c4d64cde167f80b3b1c5"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 28; tail -3 /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "5ab6f4ccd21042f0cb603d7d71bc43adba8ee427973de402586a8e2323d18c48"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 600 /tmp/full_suite.log; echo; ps aux | grep -c \"[p]ytest\"",
+          "exit_code": 0,
+          "output_sha": "0a409fcfc72098b4f9b0f4583c80bdcd100a7b74dedc1de0c67cfb5ae772b309"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 400 /tmp/full_suite.log; echo; ps aux | grep \"[p]ytest\" | head -3",
+          "exit_code": 0,
+          "output_sha": "4496c4154bf0a21c968d7f50a2282b6162e9e9142f1c2163c03d70276a27b982"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "0bb4b336d6c87d3546da9e98b91faf9919793fdeff36cb9ac1f1efaffe6f557c"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "36749dd5644c3cd9c8bb79ecd86d083b7c5562eeeaaad1a0f6b175e048266a77"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "1597c7ce6df4d6b1f269ea5ae7d3171843901b250dad69627551beda001819ef"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "cb0aa36bc6b7c671941c0b1730f12b1778e07ff6dc236be8d1b4da62881cc9b1"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "5039722bb3f4ba8041816f7200c9f8be34d43c1a3e2fa9796eac822772e47588"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "a14fb7d552e8016c3a448352a5ad3b95120ce5af0ae936665d16e27cb42c1c95"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "791d67546549c0f0e0232b2088e9a91222156479d15336030670ad87d26569e5"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "eb3ef84e613ab0ab1675145ee17efc53af6c987ac72a9fd9e9ba679143a23d2a"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "d692b77ffb798f719c6d733e9fedbff9fef3ab7226947d66330e8daca08ffcf1"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "189e84f18ec2f47925dfb332d8acd6eae9dabd915086f06dafa74052341d804a"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "5c6e51f76cc66d523c3eb7348d21e4c88ceaab67bf9d5db065be7476c263b510"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "52d14861ed34fa99a76c2329fa746f46241f944dbed6ba7ce7472c77252c09c9"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "fc4ea452b9715cc49930ba8f5def0b27079565e0a7cb1b1f6b9926272b849e39"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "a8fd7f50ee87c195ef520c8323ab036b80b80ebdb957638673acbc711e63ff58"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "a230f89736dd25fd3524149fbdbe18576df10b79c59c3e7839b2739857e1f8ab"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "5cc83024f12217835eb861bb9c84b41ade573f9b02c962e8ec6b629f25efa956"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "97a695bd3b06596e1584fc229de52a8120982042306ec83ee2047902ec70746a"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "42d57c21b1fa6c85cdcdffa06371efc00d0d7c769682aa0b592f6c0968f31c5c"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "2a4ea59bbcfc93fe265697ca8eee9985eb08900ecc2d374b10da7f8d06169639"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "9c7ddd24fd50e94d8ff7f4f78722aa42ad1b99d081c6cf99e6b888e4c2c32a53"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "c6d121208e72c153b805f0b4114f3a6da06270d14254dd1094ecaaa1bf70ac2a"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "b0b46301a603ae8c5e2a76582f5de1057fbb16fb620991f8c67188ed3bce9d7a"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "640f479a5e1a6d0a1eb78c58472e71d0a4b76c1aec0d1e117dfaa503db958684"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "8be1e7447a81e8f1c937ca1e242ce31d2e5b5b6e8c70451894d3f3d019a45b9c"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "f88140600bbce5cc2c1afc8bcb3d9da61ca02e60d2fb4848b3ac191aac2304f5"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "ebdcb24a6a32068190e94a039f8e2784ea8065bb5c5f1ac69daabf7fc75fa221"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "fc794dad899f39152467ed9bc406f38763dfc1b41ffc65650288aaee93d9b55b"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "bceadbb26aed189dacf127ea91f87831cf7deffb22512ca1067e135f3a932790"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "d2e795880b615eff683f367618f7a36f24cda941f00e6d0afe474e1fa69d7d03"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "2c1b24b3e4e55e66bfc88a6396f6677b92ba0e29d662e09530cc00ca87143383"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "498ea715096f1342734f886f257b1e96a0110ac118fa97cd9de78173858fd491"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "cf32491954fe8fcea1de69adaf96feacef652bd811189e06931693d850d813c6"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "f98dcc27341cfdea2d143a8175632a893b0ff08d9d62bf1d22e9c69b0171050c"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "94a6521e33618a448b658f28610aa90fb91f90b4312791226fd2db479f8fb278"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "ed9ee762abf5154092910f695b68c2a92ccdfbe2c7831f58ac5df32e2cfadf57"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "9746f69573ecebda851b2b7ca1f2d2c4ba3ba18728b740f0df8cffec4748e8d4"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "f3c81b821236746f914eda67bc604a1f1da76dc125cc96cd3150ecffdf405485"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "c2ee3cbe02f8bbb2092e3f81103fbca042845e078f53a4c330a55361a1780d4d"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; tail -c 300 /tmp/full_suite.log; echo; pgrep -af \"pytest tests/ -q --timeout=300\" | head -2",
+          "exit_code": 0,
+          "output_sha": "9dce03f3f94df356bdeb78e2d2c4c5f6c720fa433d5db6562f08334b79cfaa81"
+        }
+      ]
+    }
+  },
+  "ungraded_criteria": [
+    "pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green."
+  ],
+  "context_stats": {
+    "diff_source": "working-tree",
+    "diff_bytes": 513,
+    "prompt_bytes": 17408
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [],
+    "summary": "",
+    "error": "LLM call failed: LLM request failed after 3 attempts (provider=openai model=deepseek-flash url=https://api.deepseek.com/chat/completions key=<GITREINS_LLM_API_KEY>) \u2014 last error: HTTPSConnectionPool(host='api.deepseek.com', port=443): Max retries exceeded with url: /chat/completions (Caused by NameResolutionError(\"HTTPSConnection(host='api.deepseek.com', port=443): Failed to resolve 'api.deepseek.com' ([Errno -3] Temporary failure in name resolution)\"))",
+    "review_state": {
+      "emitted": [],
+      "carried": []
+    }
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: FAIL\n  INCOMPLETE\n  \u2717 Coverage FAILED \u2014 ungraded: pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green.\nEvaluator error: LLM call failed: LLM request failed after 3 attempts (provider=openai model=deepseek-flash url=https://api.deepseek.com/chat/completions key=<GITREINS_LLM_API_KEY>) \u2014 last error: HTTPSConnectionPool(host='api.deepseek.com', port=443): Max retries exceeded with url: /chat/completions (Caused by NameResolutionError(\"HTTPSConnection(host='api.deepseek.com', port=443): Failed to resolve 'api.deepseek.com' ([Errno -3] Temporary failure in name resolution)\"))\n\nOverall: FAIL \u2717",
+  "evaluated_at": "2026-11-26T00:50:39.604916",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-26T00:50:39.682727+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 44082,
+        "truncated": false,
+        "source": "git show 94eb34b0d0dd"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 67746,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "RELEASE-009-R1"
+  }
+}

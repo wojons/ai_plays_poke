@@ -1,0 +1,394 @@
+{
+  "task_id": "RELEASE-009-R1",
+  "task_title": "Test coverage for portable AIPP_* runtime-path resolvers",
+  "task_criteria": [
+    "pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green."
+  ],
+  "passed": true,
+  "worktree": "/home/kara/ai_plays_poke",
+  "branch": "main",
+  "commit": "94eb34b0d0dd235b63e5c2936519388befbd6d01",
+  "pass_class": "judged",
+  "tier2_skipped": false,
+  "working_tree_content_fingerprint": "9c6b1bf8230205692780814ed203d3dda0220a247c7f0fd5feb801e4c2667450",
+  "working_tree_dirty_path_count": 6802,
+  "items": [
+    {
+      "criterion": "pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green.",
+      "status": "PASS",
+      "detail": "(a) `./venv/bin/pytest tests/test_path_resolvers.py -q` => \"52 passed in 0.25s\" (exit 0). (b) grep over tests/ => 32 hits (30 in tests/test_path_resolvers.py:53-103,213-512). (c) Coverage of every resolver: defaults+overrides for AIPP_CANONICAL_ENV (tests/test_path_resolvers.py:207-231, default asserted as HOME/ai_plays_poke/.env), AIPP_REPO (235-256), AIPP_HANDBOOK_RENDER (262-283), AIPP_CONSOLE_HOME (293-311), AIPP_PYTHON (317-370 for the Python tools' PY chain, 419-489 for scripts/aipp-mcp-wrapper.sh incl. fail-closed exit 2). Every resolver in the repo is covered \u2014 grep of non-test sources shows exactly these five vars in scripts/perception_diff.py:55, scripts/run_base1_baseline.py:55, scripts/benchmark_llm_vs_jev.py:70, scripts/aipp-mcp-wrapper.sh:19, docs/handbook/sheet_style.py:26, tools/console/test_auto_vision.py:20, tools/console/test_controls.py:26, tools/console/test_pass.py:30,32. (d) Guard proven to fire: appending `CONSOLE_ALT = \"/home/kara/aipp-console\"` to tools/console/test_controls.py => \"FAILED tests/test_path_resolvers.py::test_no_absolute_host_path_literal_in_source[tools/console/test_controls.py] ... 1 failed, 51 passed\"; file restored. Override test proven to fire: renaming AIPP_CANONICAL_ENV->AIPP_CANONICAL_ENVX in scripts/perception_diff.py => \"FAILED test_canonical_env_override_wins[scripts/perception_diff.py]\"; restored. (e) Full suite: `./venv/bin/pytest tests/ -q --tb=short` => \"4916 passed, 14 skipped in 272.19s (0:04:32)\", zero FAILED lines (the 9 'ERROR' grep hits are log lines emitted by tests exercising error paths, e.g. database.py:608, save_manager.py:196)."
+    }
+  ],
+  "merge_recommendation": "no_concerns_found",
+  "stages": {
+    "tier1": {
+      "id": "tier1",
+      "passed": true,
+      "any_failed": false,
+      "summary": "  \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10",
+      "steps": [
+        {
+          "id": "lint",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        },
+        {
+          "id": "secrets",
+          "type": "script",
+          "passed": true,
+          "output": "secrets: scanners=gitleaks+builtin cross-check\nscanners: nice=nice -n 10\n7:55PM INF scanned ~398260678 bytes (398.26 MB) in 53.2s\n7:55PM INF no leaks found\nsecrets: gitleaks: clean\nsecrets: builtin cross-check: Scanned 102457 files \u2014 clean (excluded harness state: .gitreins/**)\nsensitive-path override applied: .env.example\nsecrets: builtin cross-check status: clean\n",
+          "error": "",
+          "data": {
+            "exit_code": 0,
+            "secrets_scanners": [
+              "gitleaks",
+              "builtin"
+            ]
+          }
+        },
+        {
+          "id": "tests",
+          "type": "script",
+          "passed": true,
+          "output": "scanners: nice=nice -n 10\ngitreins_tests: runner=./venv/bin/pytest (pytest 9.1.1) cwd=/home/kara/ai_plays_poke\n============================= test session starts ==============================\nplatform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /home/kara/ai_plays_poke/venv/bin/python3\ncachedir: .pytest_cache\nbenchmark: 5.3.0 (defaults: timer=time.perf_counter disable_gc=False min_rounds=5 min_time=0.000005 max_time=1.0 calibration_precision=10 warmup=False warmup_iterations=100000)\nrootdir: /home/kara/ai_plays_poke\nconfigfile: pyproject.toml\ntestpaths: tests\nplugins: xdist-3.8.0, timeout-2.4.0, benchmark-5.3.0, pytest_httpserver-1.1.5, cov-7.1.0, requests-mock-1.12.1, typeguard-4.5.2, anyio-4.14.2, asyncio-1.4.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 4930 items\n\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_base_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_battle_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_invalid_timeout_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_adaptive_with_high_base_warning PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_mode_without_limit PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestTickRateConfig::test_budget_limit_negative PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_defaults PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_valid_custom_values PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_interval_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_low PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_quality_too_high PASSED [  0%]\ntests/ptp_cli/test_flags.py::TestScreenshotConfig::test_invalid_max_storage PASSED [  0%]\n\n\u2026 [539878 chars omitted \u2014 5849 line(s)] \u2026\ntest_bench_pathfinding_find_path               822.0086 (1.82)           7,103.0227 (1.0)           1,605.1985 (2.92)          1,942.4090 (7.35)            911.9976 (1.72)            410.9461 (12.35)         1;1    622,975.9178 (0.34)         10           1\ntest_bench_vision_pipeline_validate          8,365.0229 (18.55)      1,215,099.9974 (171.07)       13,833.9366 (25.20)        13,512.3856 (51.13)        13,073.9645 (24.62)         1,331.9659 (40.04)    454;4842     72,286.0043 (0.04)      24052           1\ntest_bench_ram_reader_observe            1,322,960.0154 (>1000.0)  217,148,960.9755 (>1000.0)   3,232,873.8823 (>1000.0)  14,462,234.4986 (>1000.0)   2,212,952.5023 (>1000.0)     460,253.0098 (>1000.0)      2;19        309.3223 (0.00)        424           1\ntest_bench_vision_pipeline_process      62,342,100.9514 (>1000.0)   80,508,754.9961 (>1000.0)  73,471,306.4060 (>1000.0)   7,266,887.8529 (>1000.0)  76,560,132.9913 (>1000.0)  13,399,986.0263 (>1000.0)       3;0         13.6108 (0.00)         12           1\n-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\nLegend:\n  Outliers: 1 Standard Deviation from Mean; 1.5 IQR (InterQuartile Range) from 1st Quartile and 3rd Quartile.\n  OPS: Operations Per Second, computed as 1 / Mean\n================= 4916 passed, 14 skipped in 252.91s (0:04:12) =================\n",
+          "error": "",
+          "data": {
+            "exit_code": 0
+          }
+        }
+      ],
+      "coverage": "secrets+lint+tests"
+    },
+    "tier2": {
+      "id": "tier2",
+      "passed": true,
+      "any_failed": false,
+      "summary": "COMPLETE\n  \u2713 pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green.: (a) `./venv/bin/pytest tests/test_path_resolvers.py -q` => \"52 passed in 0.25s\" (exit 0). (b) grep over tests/ => 32 hits (30 in tests/test_path_resolvers.py:53-103,213-512). (c) Coverage of every resolver: defaults+overrides for AIPP_CANONICAL_ENV (tests/test_path_resolvers.py:207-231, default asserted as HOME/ai_plays_poke/.env), AIPP_REPO (235-256), AIPP_HANDBOOK_RENDER (262-283), AIPP_CONSOLE_HOME (293-311), AIPP_PYTHON (317-370 for the Python tools' PY chain, 419-489 for scripts/aipp-mcp-wrapper.sh incl. fail-closed exit 2). Every resolver in the repo is covered \u2014 grep of non-test sources shows exactly these five vars in scripts/perception_diff.py:55, scripts/run_base1_baseline.py:55, scripts/benchmark_llm_vs_jev.py:70, scripts/aipp-mcp-wrapper.sh:19, docs/handbook/sheet_style.py:26, tools/console/test_auto_vision.py:20, tools/console/test_controls.py:26, tools/console/test_pass.py:30,32. (d) Guard proven to fire: appending `CONSOLE_ALT = \"/home/kara/aipp-console\"` to tools/console/test_controls.py => \"FAILED tests/test_path_resolvers.py::test_no_absolute_host_path_literal_in_source[tools/console/test_controls.py] ... 1 failed, 51 passed\"; file restored. Override test proven to fire: renaming AIPP_CANONICAL_ENV->AIPP_CANONICAL_ENVX in scripts/perception_diff.py => \"FAILED test_canonical_env_override_wins[scripts/perception_diff.py]\"; restored. (e) Full suite: `./venv/bin/pytest tests/ -q --tb=short` => \"4916 passed, 14 skipped in 272.19s (0:04:32)\", zero FAILED lines (the 9 'ERROR' grep hits are log lines emitted by tests exercising error paths, e.g. database.py:608, save_manager.py:196).\ntests/test_path_resolvers.py (52 tests) covers the default and override of all five AIPP_* resolvers, the host-path guard was proven to fail on a reintroduced /home literal, and the full suite is green at 4916 passed / 14 skipped. [uncovered failure paths: failure mode 0 (A resolver's default expression is edited (e.g. CONSOLE default changed to a different directory) and the test suite still passes because the assertion is about a stale expectation): detected_by cites tests/test_path_resolvers.py::test_console_home_defaults_to_the_sibling_checkout but no tool result in this run shows it ran \u2014 uncovered failure path; failure mode 1 (A new absolute host path literal is introduced in a file that is not in the HOST_PATH_FILES allowlist, so the guard stays silent): detected_by is empty \u2014 uncovered failure path]",
+      "steps": [
+        {
+          "id": "tier2",
+          "type": "ai_eval",
+          "passed": true,
+          "output": "COMPLETE\n  \u2713 pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green.: (a) `./venv/bin/pytest tests/test_path_resolvers.py -q` => \"52 passed in 0.25s\" (exit 0). (b) grep over tests/ => 32 hits (30 in tests/test_path_resolvers.py:53-103,213-512). (c) Coverage of every resolver: defaults+overrides for AIPP_CANONICAL_ENV (tests/test_path_resolvers.py:207-231, default asserted as HOME/ai_plays_poke/.env), AIPP_REPO (235-256), AIPP_HANDBOOK_RENDER (262-283), AIPP_CONSOLE_HOME (293-311), AIPP_PYTHON (317-370 for the Python tools' PY chain, 419-489 for scripts/aipp-mcp-wrapper.sh incl. fail-closed exit 2). Every resolver in the repo is covered \u2014 grep of non-test sources shows exactly these five vars in scripts/perception_diff.py:55, scripts/run_base1_baseline.py:55, scripts/benchmark_llm_vs_jev.py:70, scripts/aipp-mcp-wrapper.sh:19, docs/handbook/sheet_style.py:26, tools/console/test_auto_vision.py:20, tools/console/test_controls.py:26, tools/console/test_pass.py:30,32. (d) Guard proven to fire: appending `CONSOLE_ALT = \"/home/kara/aipp-console\"` to tools/console/test_controls.py => \"FAILED tests/test_path_resolvers.py::test_no_absolute_host_path_literal_in_source[tools/console/test_controls.py] ... 1 failed, 51 passed\"; file restored. Override test proven to fire: renaming AIPP_CANONICAL_ENV->AIPP_CANONICAL_ENVX in scripts/perception_diff.py => \"FAILED test_canonical_env_override_wins[scripts/perception_diff.py]\"; restored. (e) Full suite: `./venv/bin/pytest tests/ -q --tb=short` => \"4916 passed, 14 skipped in 272.19s (0:04:32)\", zero FAILED lines (the 9 'ERROR' grep hits are log lines emitted by tests exercising error paths, e.g. database.py:608, save_manager.py:196).\ntests/test_path_resolvers.py (52 tests) covers the default and override of all five AIPP_* resolvers, the host-path guard was proven to fail on a reintroduced /home literal, and the full suite is green at 4916 passed / 14 skipped. [uncovered failure paths: failure mode 0 (A resolver's default expression is edited (e.g. CONSOLE default changed to a different directory) and the test suite still passes because the assertion is about a stale expectation): detected_by cites tests/test_path_resolvers.py::test_console_home_defaults_to_the_sibling_checkout but no tool result in this run shows it ran \u2014 uncovered failure path; failure mode 1 (A new absolute host path literal is introduced in a file that is not in the HOST_PATH_FILES allowlist, so the guard stays silent): detected_by is empty \u2014 uncovered failure path]",
+          "error": "",
+          "data": {
+            "verdict": "COMPLETE",
+            "items": [
+              {
+                "criterion": "pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green.",
+                "status": "PASS",
+                "detail": "(a) `./venv/bin/pytest tests/test_path_resolvers.py -q` => \"52 passed in 0.25s\" (exit 0). (b) grep over tests/ => 32 hits (30 in tests/test_path_resolvers.py:53-103,213-512). (c) Coverage of every resolver: defaults+overrides for AIPP_CANONICAL_ENV (tests/test_path_resolvers.py:207-231, default asserted as HOME/ai_plays_poke/.env), AIPP_REPO (235-256), AIPP_HANDBOOK_RENDER (262-283), AIPP_CONSOLE_HOME (293-311), AIPP_PYTHON (317-370 for the Python tools' PY chain, 419-489 for scripts/aipp-mcp-wrapper.sh incl. fail-closed exit 2). Every resolver in the repo is covered \u2014 grep of non-test sources shows exactly these five vars in scripts/perception_diff.py:55, scripts/run_base1_baseline.py:55, scripts/benchmark_llm_vs_jev.py:70, scripts/aipp-mcp-wrapper.sh:19, docs/handbook/sheet_style.py:26, tools/console/test_auto_vision.py:20, tools/console/test_controls.py:26, tools/console/test_pass.py:30,32. (d) Guard proven to fire: appending `CONSOLE_ALT = \"/home/kara/aipp-console\"` to tools/console/test_controls.py => \"FAILED tests/test_path_resolvers.py::test_no_absolute_host_path_literal_in_source[tools/console/test_controls.py] ... 1 failed, 51 passed\"; file restored. Override test proven to fire: renaming AIPP_CANONICAL_ENV->AIPP_CANONICAL_ENVX in scripts/perception_diff.py => \"FAILED test_canonical_env_override_wins[scripts/perception_diff.py]\"; restored. (e) Full suite: `./venv/bin/pytest tests/ -q --tb=short` => \"4916 passed, 14 skipped in 272.19s (0:04:32)\", zero FAILED lines (the 9 'ERROR' grep hits are log lines emitted by tests exercising error paths, e.g. database.py:608, save_manager.py:196)."
+              }
+            ],
+            "summary": "tests/test_path_resolvers.py (52 tests) covers the default and override of all five AIPP_* resolvers, the host-path guard was proven to fail on a reintroduced /home literal, and the full suite is green at 4916 passed / 14 skipped. [uncovered failure paths: failure mode 0 (A resolver's default expression is edited (e.g. CONSOLE default changed to a different directory) and the test suite still passes because the assertion is about a stale expectation): detected_by cites tests/test_path_resolvers.py::test_console_home_defaults_to_the_sibling_checkout but no tool result in this run shows it ran \u2014 uncovered failure path; failure mode 1 (A new absolute host path literal is introduced in a file that is not in the HOST_PATH_FILES allowlist, so the guard stays silent): detected_by is empty \u2014 uncovered failure path]",
+            "provenance": {
+              "model": "deepseek-flash",
+              "base_url_source": "GITREINS_LLM_BASE_URL",
+              "api_key_source": "GITREINS_LLM_API_KEY"
+            },
+            "context_stats": {
+              "diff_source": "working-tree",
+              "diff_bytes": 513,
+              "prompt_bytes": 17403
+            }
+          }
+        }
+      ],
+      "model": "deepseek-flash",
+      "base_url_source": "GITREINS_LLM_BASE_URL",
+      "api_key_source": "GITREINS_LLM_API_KEY",
+      "context_stats": {
+        "diff_source": "working-tree",
+        "diff_bytes": 513,
+        "prompt_bytes": 17403
+      },
+      "tool_calls": [
+        {
+          "tool": "get_task_item",
+          "command": "get_task_item {\"id\": \"RELEASE-009-R1\"}",
+          "exit_code": 0,
+          "output_sha": "9b1d2a35d677a0523e7b3d0f2d29632f76554d0bd67a4a0356a08edc35297617"
+        },
+        {
+          "tool": "run_command",
+          "command": "ls; echo ---; cat .gitreins/config.yaml 2>/dev/null | head -50",
+          "exit_code": 0,
+          "output_sha": "0654b3cab180b73022c93e41cd8941a317293076078c23b79222db897cd2cd39"
+        },
+        {
+          "tool": "run_command",
+          "command": "ls tests/ | grep -i path; echo ---; ls -la tests/test_path_resolvers.py 2>&1; echo ---; git log --oneline -5; echo ---; git status --short | head -20",
+          "exit_code": 0,
+          "output_sha": "e6e9fc58337dbbb23c504a0215aaf8b0b595e3e3cfff88dd96d958f1387b662a"
+        },
+        {
+          "tool": "run_command",
+          "command": "grep -rn 'AIPP_CANONICAL_ENV\\|AIPP_CONSOLE_HOME\\|AIPP_HANDBOOK_RENDER\\|AIPP_REPO\\|AIPP_PYTHON' tests/ | head -50; echo \"COUNT:\"; grep -rn 'AIPP_CANONICAL_ENV\\|AIPP_CONSOLE_HOME\\|AIPP_HANDBOOK_RENDER\\|AIPP_REPO\\|AIPP_PYTHON' tests/ | wc -l",
+          "exit_code": 0,
+          "output_sha": "95b5eb6bb7abc6145b0d3f99a7c9f1e973836bb5b000a39dca6612b0de1d683c"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"path\": \"tests/test_path_resolvers.py\"}",
+          "exit_code": 0,
+          "output_sha": "f2fb4e5f1bd5cae465e312810943c9518a7ce133de0c5956bfafb78fed37694a"
+        },
+        {
+          "tool": "read_file",
+          "command": "read_file {\"limit\": 150, \"offset\": 400, \"path\": \"tests/test_path_resolvers.py\"}",
+          "exit_code": 0,
+          "output_sha": "90d0fc682a4ff7480c82d8355428cdc9927c0627de14ca30a93f88a1e4904c10"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ./venv/bin/pytest tests/test_path_resolvers.py -q 2>&1 | tail -20",
+          "exit_code": 0,
+          "output_sha": "16ba1f7e6ac8383e4f83e38f9ca42c866689ccd194d838b2c59c3076c2416e29"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && for f in scripts/perception_diff.py scripts/run_base1_baseline.py scripts/benchmark_llm_vs_jev.py scripts/aipp-mcp-wrapper.sh docs/handbook/sheet_style.py tools/console/test_auto_vision.py tools/console/test_controls.py tools/console/test_pass.py capture.py; do echo \"=== $f\"; grep -n 'AIPP_\\|/home/\\|Path.home()\\|__file__' $f | head -20; done",
+          "exit_code": 0,
+          "output_sha": "b2087257b6879eb59a942c66d17627dedfa01b16f19ae4861fd61d2339e90a4e"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && sed -n 1,40p tools/console/test_auto_vision.py; echo \"=== test_pass 25-45\"; sed -n 25,45p tools/console/test_pass.py; echo \"=== wrapper\"; cat scripts/aipp-mcp-wrapper.sh",
+          "exit_code": 0,
+          "output_sha": "295c08529ea0f67f567dfbf5276cb6bc5ee39e9fb9e6bd742d32ee9640eba248"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && cp tools/console/test_controls.py /tmp/tc.bak && printf '\\nCONSOLE_ALT = \"/home/kara/aipp-console\"\\n' >> tools/console/test_controls.py && ./venv/bin/pytest tests/test_path_resolvers.py -q 2>&1 | tail -8; cp /tmp/tc.bak tools/console/test_controls.py; echo \"restored:\"; git diff --stat tools/console/test_controls.py",
+          "exit_code": 0,
+          "output_sha": "1d693a41cedc8e443e4a41c2d11163970f34c11c2dbbca8282cc980783fa4870"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && cp scripts/perception_diff.py /tmp/pd.bak && sed -i 's|os.environ.get(\"AIPP_CANONICAL_ENV\")|os.environ.get(\"AIPP_CANONICAL_ENVX\")|' scripts/perception_diff.py && ./venv/bin/pytest tests/test_path_resolvers.py -q 2>&1 | tail -6; cp /tmp/pd.bak scripts/perception_diff.py; git diff --stat scripts/perception_diff.py",
+          "exit_code": 0,
+          "output_sha": "b7d9f9fd71132a054552bd04092ee7b18bf1b62d096091c9d5b724e46f4fd2a6"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && ./venv/bin/pytest tests/ -q -p no:randomly 2>&1 | tail -5",
+          "exit_code": -15,
+          "output_sha": "b258e50dac9fcd15ae2de576869a4c9095cb98ae9a25f754d313e510297b22ec"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && timeout 1500 ./venv/bin/pytest tests/ -q -x --tb=short > /tmp/full_suite.log 2>&1; echo \"EXIT:$?\"; tail -6 /tmp/full_suite.log",
+          "exit_code": -15,
+          "output_sha": "976b01f5416ac98ad170db8882118e2b1fccced87859ed78edd1cfd68ff72b49"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && nohup ./venv/bin/pytest tests/ -q --tb=short > /tmp/full_suite.log 2>&1 & echo started",
+          "exit_code": 0,
+          "output_sha": "5078b12f7b87ca56f6cacc18a872ef5e16661199bae40563a92dec8ba5e6e53c"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PARTIAL: tests/test_path_resolvers.py exists (541 lines) and `./venv/bin/pytest tests/test_path_resolvers.py -q` => \\\"52 passed in 0.25s\\\" (exit 0). grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ => 32 hits (30 in tests/test_path_resolvers.py). Guard test proven to fire: appending CONSOLE_ALT = \\\"/home/kara/aipp-console\\\" to tools/console/test_controls.py => FAILED test_no_absolute_host_path_literal_in_source[tools/console/test_controls.py] (1 failed, 51 passed); restored. Override test proven to fire: renaming AIPP_CANONICAL_ENV->AIPP_CANONICAL_ENVX in scripts/perception_diff.py => FAILED test_canonical_env_override_wins[scripts/perception_diff.py]; restored. Full suite run in progress.\", \"key\": \"verified_0\"}",
+          "exit_code": 0,
+          "output_sha": "ab3dc80b44124a9e93803cd8094e46785ccd27567c68e107ac13ef33d5223cb9"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -rn 'AIPP_' --include=*.py --include=*.sh --include=*.md --include=*.yaml --include=*.yml . 2>/dev/null | grep -v '^./venv\\|^./.venv\\|^./tests/\\|^./.gitreins\\|^./htmlcov\\|^./build' | grep -o 'AIPP_[A-Z_]*' | sort | uniq -c | sort -rn",
+          "exit_code": 0,
+          "output_sha": "54729a19a4ba13231e8c70d4b81ed68a161b69c0331fa90f8344db177d83ec50"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -rn 'AIPP_CANONICAL_ENV\\|AIPP_CONSOLE_HOME\\|AIPP_HANDBOOK_RENDER\\|AIPP_REPO\\|AIPP_PYTHON' --include=*.py --include=*.sh --include=*.md . 2>/dev/null | grep -v '^./venv\\|^./.venv\\|^./tests/\\|^./.gitreins\\|^./htmlcov\\|^./build'",
+          "exit_code": 0,
+          "output_sha": "792508c4cff01ffd47fca8aa4db88952149927a54fb59edf3a72eea5ff5da265"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 25; cd /home/kara/ai_plays_poke && tail -3 /tmp/full_suite.log; echo \"---\"; grep -c . /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "f014b044d6ce9f39d2e4cba6489df2b40dc85a9c406bdcb6fc3d90520b746961"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 28; cd /home/kara/ai_plays_poke && tail -2 /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "16f12494f88034d413f3985f8906318ba3fe8c2c45bfcb72d321500ce3418d39"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; cd /home/kara/ai_plays_poke && tail -2 /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "878b68c328efcb2878adb6e3527f8e788629651fdc9037ce1b361b918f5dc41f"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; cd /home/kara/ai_plays_poke && tail -2 /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "81ff9c64dcd775f2f0116f72c4151ce65c57d1b224bc251a42706e56101512bd"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; cd /home/kara/ai_plays_poke && tail -2 /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "e8e6e91e45028ab6e98a96e7f709bbec6a252933e2c598ff14d11837052e3d2b"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; cd /home/kara/ai_plays_poke && tail -2 /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "7cb1c31bb42ef5205737e242aaa54b6ecf12755ff116b1b2dcc267b24e49e0d6"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; cd /home/kara/ai_plays_poke && tail -2 /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "e41779ee0c31a843ec78c1fefc13b86c8925c486975d6b8493048182bbbf5ded"
+        },
+        {
+          "tool": "run_command",
+          "command": "sleep 29; cd /home/kara/ai_plays_poke && tail -4 /tmp/full_suite.log",
+          "exit_code": 0,
+          "output_sha": "98ebcb355399f9ece8f9da1883d3b794f03314dc7758c1b104f4bd92883aeec8"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -c 'FAILED\\|ERROR' /tmp/full_suite.log; grep -n 'test_path_resolvers' /tmp/full_suite.log | head -3; git status --short tools/ scripts/ docs/ | head",
+          "exit_code": 0,
+          "output_sha": "6a48b32a210bf7fb241ac7e50901794bbf37350687caf468a40f79d6838ef741"
+        },
+        {
+          "tool": "run_command",
+          "command": "cd /home/kara/ai_plays_poke && grep -a 'FAILED\\|ERROR' /tmp/full_suite.log | head -12; echo \"=== path_resolvers lines:\"; grep -a -c 'test_path_resolvers' /tmp/full_suite.log; grep -a 'test_path_resolvers' /tmp/full_suite.log | grep -a -v PASSED | head",
+          "exit_code": 0,
+          "output_sha": "430d18aa9ad92796b0b2a1a0ccf5fcef36c7710e58227b584e0d316056ecbf7a"
+        },
+        {
+          "tool": "sandbox_write",
+          "command": "sandbox_write {\"content\": \"PASS: full suite `./venv/bin/pytest tests/ -q --tb=short` => \\\"4916 passed, 14 skipped in 272.19s (0:04:32)\\\"; no FAILED lines (the 9 'ERROR' grep hits are expected log lines emitted by tests exercising error paths, e.g. database.py:608 UNIQUE constraint, save_manager.py:196). test_path_resolvers.py contributes 52 PASSED lines. Working tree restored after mutation probes (git status shows no modified tools/scripts/docs files).\", \"key\": \"verified_0_full\"}",
+          "exit_code": 0,
+          "output_sha": "9497bd6afe5f6688703e4e9a413395553831560ee9190513e988da445a6bfafc"
+        }
+      ]
+    }
+  },
+  "context_stats": {
+    "diff_source": "working-tree",
+    "diff_bytes": 513,
+    "prompt_bytes": 17403
+  },
+  "review": {
+    "reviewer_email": "totalwindupflightsystems@gmail.com",
+    "reviewer_name": "totalwindupflightsystems",
+    "commit_author_email": "totalwindupflightsystems@gmail.com",
+    "commit_author_name": "totalwindupflightsystems",
+    "self_review": true,
+    "findings": [
+      {
+        "severity": "low",
+        "file": ".coding-hermes/board/tasks.jsonl",
+        "line": 0,
+        "detection": "row marked status=complete while its own blocked_reason still asserts the row is BLOCKED and cannot close",
+        "detail": "RELEASE-009-R1 is flipped to \"status\": \"complete\" and gains a commit_hash, but its blocked_reason field still reads \"BLOCKED (PM pass ...): ... The row cannot CLOSE because its close gate requires a tier-2 verdict run and none exists\" \u2014 the two fields now contradict each other in the same record.",
+        "category": "unknown",
+        "fingerprint": "e5e2243eaf090b690e0a971628c0115d4641e305c6db82e4067387627ea9df25",
+        "state": "ACTIVE",
+        "echo": "[low][unknown] .coding-hermes/board/tasks.jsonl:0 \u2014 row marked status=complete while its own blocked_reason still asserts the row is BLOCKED and cannot close\nRELEASE-009-R1 is flipped to \"status\": \"complete\" and gains a commit_hash, but its blocked_reason field still reads \"BLOCKED (PM pass ...): ... The row cannot CLOSE because its close gate requires a tier-2 verdict run and none exists\" \u2014 the two fields now contradict each other in the same record."
+      },
+      {
+        "severity": "low",
+        "file": ".coding-hermes/board/tasks.jsonl",
+        "line": 0,
+        "detection": "row marked status=complete with no evidence run / verdict reference, unlike every other completed row in the diff",
+        "detail": "DF-AIPP-22 is set to \"status\": \"complete\" with completed_at and commit_hash but its detail.evidence is absent and the foreman_note explicitly says \"no gitreins task exists for this row (evidence record, judge N/A)\", whereas sibling completed rows in the same diff (QA-CONSOLE-5, INT-CLI-DRYRUN-1, DOC-030) all carry detail.evidence run_ids.",
+        "category": "unknown",
+        "fingerprint": "74f4c77c3d94e1d4200b08d63e6e83777e38bfb9dcfdd7dfdd238bd15b95749a",
+        "state": "ACTIVE",
+        "echo": "[low][unknown] .coding-hermes/board/tasks.jsonl:0 \u2014 row marked status=complete with no evidence run / verdict reference, unlike every other completed row in the diff\nDF-AIPP-22 is set to \"status\": \"complete\" with completed_at and commit_hash but its detail.evidence is absent and the foreman_note explicitly says \"no gitreins task exists for this row (evidence record, judge N/A)\", whereas sibling completed rows in the same diff (QA-CONSOLE-5, INT-CLI-DRYRUN-1, DOC-030) all carry detail.evidence run_ids."
+      },
+      {
+        "severity": "trivial",
+        "file": ".coding-hermes/board/tasks.jsonl",
+        "line": 0,
+        "detection": "completed_at timestamp is later than the row's own updated_at, leaving updated_at stale",
+        "detail": "DF-AIPP-22 gets \"completed_at\": \"2026-11-26T05:45:00Z\" while \"updated_at\" is left at \"2026-11-23T15:00:33Z\", so the row's last-modified stamp predates its completion.",
+        "category": "unknown",
+        "fingerprint": "9367d6fe49c7827c430fd804c11b4c8562f52faccfba563052573e2a8620eb9d",
+        "state": "ACTIVE",
+        "echo": "[trivial][unknown] .coding-hermes/board/tasks.jsonl:0 \u2014 completed_at timestamp is later than the row's own updated_at, leaving updated_at stale\nDF-AIPP-22 gets \"completed_at\": \"2026-11-26T05:45:00Z\" while \"updated_at\" is left at \"2026-11-23T15:00:33Z\", so the row's last-modified stamp predates its completion."
+      }
+    ],
+    "summary": "The diff is board/bookkeeping only; the substantive issues are a completed row whose blocked_reason still says BLOCKED, a completion with no evidence run, and a stale updated_at.",
+    "review_state": {
+      "emitted": [
+        {
+          "severity": "low",
+          "file": ".coding-hermes/board/tasks.jsonl",
+          "line": 0,
+          "detection": "row marked status=complete while its own blocked_reason still asserts the row is BLOCKED and cannot close",
+          "detail": "RELEASE-009-R1 is flipped to \"status\": \"complete\" and gains a commit_hash, but its blocked_reason field still reads \"BLOCKED (PM pass ...): ... The row cannot CLOSE because its close gate requires a tier-2 verdict run and none exists\" \u2014 the two fields now contradict each other in the same record.",
+          "category": "unknown",
+          "fingerprint": "e5e2243eaf090b690e0a971628c0115d4641e305c6db82e4067387627ea9df25",
+          "state": "ACTIVE",
+          "echo": "[low][unknown] .coding-hermes/board/tasks.jsonl:0 \u2014 row marked status=complete while its own blocked_reason still asserts the row is BLOCKED and cannot close\nRELEASE-009-R1 is flipped to \"status\": \"complete\" and gains a commit_hash, but its blocked_reason field still reads \"BLOCKED (PM pass ...): ... The row cannot CLOSE because its close gate requires a tier-2 verdict run and none exists\" \u2014 the two fields now contradict each other in the same record."
+        },
+        {
+          "severity": "low",
+          "file": ".coding-hermes/board/tasks.jsonl",
+          "line": 0,
+          "detection": "row marked status=complete with no evidence run / verdict reference, unlike every other completed row in the diff",
+          "detail": "DF-AIPP-22 is set to \"status\": \"complete\" with completed_at and commit_hash but its detail.evidence is absent and the foreman_note explicitly says \"no gitreins task exists for this row (evidence record, judge N/A)\", whereas sibling completed rows in the same diff (QA-CONSOLE-5, INT-CLI-DRYRUN-1, DOC-030) all carry detail.evidence run_ids.",
+          "category": "unknown",
+          "fingerprint": "74f4c77c3d94e1d4200b08d63e6e83777e38bfb9dcfdd7dfdd238bd15b95749a",
+          "state": "ACTIVE",
+          "echo": "[low][unknown] .coding-hermes/board/tasks.jsonl:0 \u2014 row marked status=complete with no evidence run / verdict reference, unlike every other completed row in the diff\nDF-AIPP-22 is set to \"status\": \"complete\" with completed_at and commit_hash but its detail.evidence is absent and the foreman_note explicitly says \"no gitreins task exists for this row (evidence record, judge N/A)\", whereas sibling completed rows in the same diff (QA-CONSOLE-5, INT-CLI-DRYRUN-1, DOC-030) all carry detail.evidence run_ids."
+        },
+        {
+          "severity": "trivial",
+          "file": ".coding-hermes/board/tasks.jsonl",
+          "line": 0,
+          "detection": "completed_at timestamp is later than the row's own updated_at, leaving updated_at stale",
+          "detail": "DF-AIPP-22 gets \"completed_at\": \"2026-11-26T05:45:00Z\" while \"updated_at\" is left at \"2026-11-23T15:00:33Z\", so the row's last-modified stamp predates its completion.",
+          "category": "unknown",
+          "fingerprint": "9367d6fe49c7827c430fd804c11b4c8562f52faccfba563052573e2a8620eb9d",
+          "state": "ACTIVE",
+          "echo": "[trivial][unknown] .coding-hermes/board/tasks.jsonl:0 \u2014 completed_at timestamp is later than the row's own updated_at, leaving updated_at stale\nDF-AIPP-22 gets \"completed_at\": \"2026-11-26T05:45:00Z\" while \"updated_at\" is left at \"2026-11-23T15:00:33Z\", so the row's last-modified stamp predates its completion."
+        }
+      ],
+      "carried": []
+    }
+  },
+  "summary": "Stage tier1: PASS\n    \u2713 lint: scanners: nice=nice -n 10\n  \u2713 secrets: secrets: scanners=gitleaks+builtin cross-check\n  \u2713 tests: scanners: nice=nice -n 10\n\nStage tier2: PASS\n  COMPLETE\n  \u2713 pytest tests/test_path_resolvers.py passes covering every AIPP_* resolver default and override; grep -rn 'AIPP_CANONICAL_ENV|AIPP_CONSOLE_HOME|AIPP_HANDBOOK_RENDER|AIPP_REPO|AIPP_PYTHON' tests/ returns > 0 hits; a guard test fails when an absolute /home path literal is reintroduced; full suite green.: (a) `./venv/bin/pytest tests/test_path_resolvers.py -q` => \"52 passed in 0.25s\" (exit 0). (b) grep over tests/ => 32 hits (30 in tests/test_path_resolvers.py:53-103,213-512). (c) Coverage of every resolver: defaults+overrides for AIPP_CANONICAL_ENV (tests/test_path_resolvers.py:207-231, default asserted as HOME/ai_plays_poke/.env), AIPP_REPO (235-256), AIPP_HANDBOOK_RENDER (262-283), AIPP_CONSOLE_HOME (293-311), AIPP_PYTHON (317-370 for the Python tools' PY chain, 419-489 for scripts/aipp-mcp-wrapper.sh incl. fail-closed exit 2). Every resolver in the repo is covered \u2014 grep of non-test sources shows exactly these five vars in scripts/perception_diff.py:55, scripts/run_base1_baseline.py:55, scripts/benchmark_llm_vs_jev.py:70, scripts/aipp-mcp-wrapper.sh:19, docs/handbook/sheet_style.py:26, tools/console/test_auto_vision.py:20, tools/console/test_controls.py:26, tools/console/test_pass.py:30,32. (d) Guard proven to fire: appending `CONSOLE_ALT = \"/home/kara/aipp-console\"` to tools/console/test_controls.py => \"FAILED tests/test_path_resolvers.py::test_no_absolute_host_path_literal_in_source[tools/console/test_controls.py] ... 1 failed, 51 passed\"; file restored. Override test proven to fire: renaming AIPP_CANONICAL_ENV->AIPP_CANONICAL_ENVX in scripts/perception_diff.py => \"FAILED test_canonical_env_override_wins[scripts/perception_diff.py]\"; restored. (e) Full suite: `./venv/bin/pytest tests/ -q --tb=short` => \"4916 passed, 14 skipped in 272.19s (0:04:32)\", zero FAILED lines (the 9 'ERROR' grep hits are log lines emitted by tests exercising error paths, e.g. database.py:608, save_manager.py:196).\ntests/test_path_resolvers.py (52 tests) covers the default and override of all five AIPP_* resolvers, the host-path guard was proven to fail on a reintroduced /home literal, and the full suite is green at 4916 passed / 14 skipped. [uncovered failure paths: failure mode 0 (A resolver's default expression is edited (e.g. CONSOLE default changed to a different directory) and the test suite still passes because the assertion is about a stale expectation): detected_by cites tests/test_path_resolvers.py::test_console_home_defaults_to_the_sibling_checkout but no tool result in this run shows it ran \u2014 uncovered failure path; failure mode 1 (A new absolute host path literal is introduced in a file that is not in the HOST_PATH_FILES allowlist, so the guard stays silent): detected_by is empty \u2014 uncovered failure path]\n\nOverall: PASS \u2713",
+  "evaluated_at": "2026-11-26T01:05:39.419880",
+  "supersedes": null,
+  "superseded_by": null,
+  "evidence": {
+    "collected_at": "2026-11-26T01:05:39.518720+00:00",
+    "items": [
+      {
+        "name": "patch",
+        "label": "Landed commit patch",
+        "file": "commit.patch",
+        "bytes": 44082,
+        "truncated": false,
+        "source": "git show 94eb34b0d0dd"
+      },
+      {
+        "name": "worktree",
+        "label": "Working-tree diff (graded)",
+        "file": "worktree.patch",
+        "bytes": 67746,
+        "truncated": false,
+        "source": "git diff HEAD (working tree)"
+      }
+    ],
+    "task_id": "RELEASE-009-R1"
+  }
+}
